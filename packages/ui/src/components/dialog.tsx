@@ -11,6 +11,8 @@ export interface DialogProps {
   trigger: ReactNode;
   children: ReactNode;
   defaultOpen?: boolean;
+  closeLabel?: string;
+  footer?: ReactNode;
 }
 export function Dialog({
   title,
@@ -18,6 +20,8 @@ export function Dialog({
   trigger,
   children,
   defaultOpen,
+  closeLabel = "Close",
+  footer,
 }: DialogProps) {
   return (
     <DialogPrimitive.Root
@@ -33,10 +37,13 @@ export function Dialog({
           <DialogPrimitive.Description className="cw-dialog-description">
             {description}
           </DialogPrimitive.Description>
-          {children}
-          <DialogPrimitive.Close asChild>
-            <Button variant="secondary">Close</Button>
-          </DialogPrimitive.Close>
+          <div className="cw-dialog-body">{children}</div>
+          <div className="cw-dialog-footer">
+            {footer}
+            <DialogPrimitive.Close asChild>
+              <Button variant="secondary">{closeLabel}</Button>
+            </DialogPrimitive.Close>
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
