@@ -7,6 +7,7 @@ import type {
   UserId,
 } from "@clockwork/contracts";
 import { ids } from "@clockwork/contracts";
+import { WorkOS } from "@workos-inc/node";
 
 export type CommerceRole =
   "owner" | "admin" | "billing" | "member" | "partner_admin" | "partner_seller";
@@ -505,6 +506,97 @@ export function isBusinessDomain(domain: string): boolean {
     "localhost",
   ]);
   return domain.includes(".") && !consumerDomains.has(domain);
+}
+
+export interface WorkosRegistrationIdentity {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  impersonated: boolean;
+}
+
+/** Narrow boundary so authorization-code exchange is independently testable. */
+export interface WorkosRegistrationCodeExchange {
+  exchange(code: string): Promise<WorkosRegistrationIdentity>;
+}
+
+/**
+ * Confidential WorkOS authorization-code exchange. The returned access and
+ * refresh tokens intentionally never cross this boundary.
+ */
+export class WorkosAuthorizationCodeExchange implements WorkosRegistrationCodeExchange {
+  private readonly workos: WorkOS;
+
+  public constructor(
+    apiKey: string,
+    private readonly clientId: string,
+  ) {
+    if (!apiKey.startsWith("sk_"))
+      throw new Error("A WorkOS server API key is required");
+    if (!clientId.trim()) throw new Error("A WorkOS client ID is required");
+    this.workos = new WorkOS(apiKey);
+  }
+
+  public async exchange(code: string): Promise<WorkosRegistrationIdentity> {
+    const response = await this.workos.userManagement.authenticateWithCode({
+      code,
+      clientId: this.clientId,
+    });
+    return {
+      id: response.user.id,
+      email: response.user.email,
+      emailVerified: response.user.emailVerified,
+      impersonated: response.impersonator !== undefined,
+    };
+  }
+}
+
+/**
+ * Verifies first-account registration without trusting request-owned identity
+ * or organization identifiers. WorkOS authorization codes are one-time tokens;
+ * they are exchanged only by the confidential server client.
+ */
+export class WorkosRegistrationBootstrapVerifier {
+  public constructor(
+    private readonly exchange: WorkosRegistrationCodeExchange,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
+
+  public async verify(input: {
+    token: string;
+    email: string;
+    businessDomain: string;
+    requestId: string;
+  }) {
+    const identity = await this.exchange.exchange(input.token);
+    if (identity.impersonated)
+      throw new Error("Impersonation cannot bootstrap an organization");
+    if (!identity.emailVerified)
+      throw new Error("A verified WorkOS email is required");
+
+    const assertedEmail = input.email.trim().toLowerCase();
+    const verifiedEmail = identity.email.trim().toLowerCase();
+    if (assertedEmail !== verifiedEmail)
+      throw new Error("Registration email does not match WorkOS identity");
+
+    const separator = verifiedEmail.lastIndexOf("@");
+    const verifiedDomain = normalizeDomain(verifiedEmail.slice(separator + 1));
+    const businessDomain = normalizeDomain(input.businessDomain);
+    if (
+      separator <= 0 ||
+      !isBusinessDomain(businessDomain) ||
+      verifiedDomain !== businessDomain
+    )
+      throw new Error(
+        "Verified WorkOS email must match the registered business domain",
+      );
+
+    return {
+      actor: { kind: "user" as const, id: `workos:${identity.id}` },
+      workosUserId: identity.id,
+      domainVerifiedAt: this.now().toISOString(),
+    };
+  }
 }
 
 function stableId(prefix: string, value: string): string {

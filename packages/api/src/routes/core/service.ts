@@ -1,4 +1,5 @@
 import type { Actor } from "@clockwork/contracts";
+import type { AuthorizationContext } from "@clockwork/domain";
 
 export const coreResourceNames = [
   "accounts",
@@ -20,6 +21,18 @@ export const coreResourceNames = [
 ] as const;
 export type CoreResourceName = (typeof coreResourceNames)[number];
 
+export const coreReportNames = [
+  "revenue_forecast",
+  "capacity_planning",
+  "renewal_churn_exposure",
+  "partner_performance",
+  "funnel_cycle_time",
+  "margin_poc_cost",
+  "three_way_tie_out",
+  "weekly_scorecard",
+] as const;
+export type CoreReportName = (typeof coreReportNames)[number];
+
 export interface CoreRecord {
   id: string;
   resource: CoreResourceName;
@@ -38,7 +51,9 @@ export interface CoreMutation {
   expectedVersion?: number;
   payload: Record<string, unknown>;
   actor: Actor;
+  authorization: AuthorizationContext;
   requestId: string;
+  idempotencyKey: string;
   occurredAt: string;
 }
 
@@ -53,6 +68,7 @@ export interface CoreListInput {
   accountId?: string;
   cursor?: string;
   limit: number;
+  authorization: AuthorizationContext;
 }
 
 export interface CoreFinanceService {
@@ -60,6 +76,13 @@ export interface CoreFinanceService {
   list(
     input: CoreListInput,
   ): Promise<{ items: CoreRecord[]; nextCursor: string | null }>;
+  report(input: {
+    report: CoreReportName;
+    accountId?: string;
+    cursor?: string;
+    limit: number;
+    authorization: AuthorizationContext;
+  }): Promise<{ items: CoreRecord[]; nextCursor: string | null }>;
   replay(input: {
     provider: string;
     eventId: string;
@@ -89,12 +112,14 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "price",
     "approve_exception",
     "reject_exception",
+    "prepare_artifact",
     "issue",
     "expire",
     "accept",
     "revise",
   ]),
   orders: new Set([
+    "prepare_artifact",
     "create",
     "accept",
     "provision",
@@ -103,7 +128,7 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "cancel",
     "terminate",
   ]),
-  amendments: new Set(["create", "accept", "apply"]),
+  amendments: new Set(["prepare_artifact", "create", "accept", "apply"]),
   commitments: new Set([
     "create",
     "record_usage",
@@ -120,16 +145,11 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "void",
     "mark_uncollectible",
     "consolidate",
+    "evaluate_dunning",
   ]),
-  credit_notes: new Set(["create", "approve", "issue", "void"]),
-  refunds: new Set(["create", "submit", "succeed", "fail"]),
-  disputes: new Set([
-    "create",
-    "submit_evidence",
-    "mark_under_review",
-    "win",
-    "lose",
-  ]),
+  credit_notes: new Set(["issue"]),
+  refunds: new Set(["submit"]),
+  disputes: new Set(["create"]),
   deal_registrations: new Set([
     "create",
     "approve",
@@ -199,6 +219,15 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
       );
     const key = `${input.resource}:${input.id}`;
     const prior = this.records.get(key);
+    if (
+      prior?.accountId &&
+      input.accountId &&
+      prior.accountId !== input.accountId
+    )
+      throw new CoreServiceError(
+        "NOT_FOUND",
+        `${input.resource} ${input.id} was not found`,
+      );
     if (input.action === "create" && prior)
       throw new CoreServiceError(
         "DUPLICATE",
@@ -275,6 +304,26 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
           ? cursorFor(finalRecord.id)
           : null,
     });
+  }
+
+  public async report(input: {
+    report: CoreReportName;
+    accountId?: string;
+    cursor?: string;
+    limit: number;
+    authorization: AuthorizationContext;
+  }) {
+    const page = await this.list({
+      resource: "reports",
+      ...(input.accountId ? { accountId: input.accountId } : {}),
+      ...(input.cursor ? { cursor: input.cursor } : {}),
+      limit: input.limit,
+      authorization: input.authorization,
+    });
+    return {
+      ...page,
+      items: page.items.filter((record) => record.data.report === input.report),
+    };
   }
 
   public replay(input: {

@@ -530,7 +530,7 @@ export class CoreFinanceWorkflowEngine {
       input,
       async (key) => {
         const eligible = input.accruals.filter(
-          (accrual) => accrual.status === "accrued",
+          (accrual) => accrual.status === "stated",
         );
         if (eligible.length === 0) {
           return this.permanentFailure(
@@ -1030,6 +1030,7 @@ export class CoreFinanceWorkflowEngine {
         };
         await this.dependencies.runs.markPermanentFailure({
           invocationKey: key,
+          leaseToken: claim.leaseToken,
           output: failure,
           failedAt: input.context.occurredAt,
         });
@@ -1037,6 +1038,7 @@ export class CoreFinanceWorkflowEngine {
       }
       await this.dependencies.runs.markCompleted({
         invocationKey: key,
+        leaseToken: claim.leaseToken,
         output: outcome.value,
         completedAt: input.context.occurredAt,
       });
@@ -1053,6 +1055,7 @@ export class CoreFinanceWorkflowEngine {
           : new TransientWorkflowError("WORKFLOW_DEPENDENCY_UNAVAILABLE");
       await this.dependencies.runs.markRetrying({
         invocationKey: key,
+        leaseToken: claim.leaseToken,
         code: transient.code,
         ...(transient.retryAfterMs === undefined
           ? {}

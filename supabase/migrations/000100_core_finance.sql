@@ -697,7 +697,7 @@ revoke insert, update, delete on core_account_commercial_profiles, core_account_
 create view core_revenue_forecast with (security_invoker = true) as
 with booked as (
   select
-    o.id as order_id, o.account_id, o.partner_account_id, q.currency,
+    o.id as order_id, q.id as quote_id, o.account_id, o.partner_account_id, q.currency,
     coalesce(cp.merchant_of_record, case when o.sourcing = 'resale' then 'partner' else 'fil_one' end) as merchant_of_record,
     o.sourcing as channel, month::date as forecast_month, 'committed_backlog'::text as forecast_stage,
     round(q.total_minor::numeric / greatest(1, coalesce((select max(ql.term_months) from quote_lines ql where ql.quote_id = q.id), 1)))::bigint
@@ -715,7 +715,7 @@ with booked as (
   where o.status in ('accepted','provisioning','active','amended')
 ), pipeline as (
   select
-    null::uuid as order_id, q.account_id, q.partner_account_id, q.currency,
+    null::uuid as order_id, q.id as quote_id, q.account_id, q.partner_account_id, q.currency,
     coalesce(qcp.merchant_of_record, 'fil_one') as merchant_of_record,
     coalesce(qcp.channel_shape, case when q.partner_account_id is null then 'direct' else 'referral' end) as channel,
     date_trunc('month', q.created_at)::date as forecast_month, 'pipeline'::text as forecast_stage,
@@ -728,7 +728,8 @@ with booked as (
 select forecast.*,
   forecast_revenue_minor as mrr_minor,
   forecast_revenue_minor * 12 as arr_minor,
-  case when merchant_of_record = 'partner' then 'transfer_price' else 'gross' end as revenue_basis
+  case when merchant_of_record = 'partner' then 'transfer_price' else 'gross' end as revenue_basis,
+  jsonb_build_object('orderId', order_id, 'quoteId', quote_id) as source_record_ids
 from forecast;
 
 create view core_capacity_planning with (security_invoker = true) as
@@ -742,7 +743,12 @@ select
   sum(case when e.status = 'active' then e.committed_quantity else 0 end) as provisioned_quantity,
   sum(coalesce(u.actual_quantity, 0)) as actual_quantity,
   count(distinct e.organization_id) as organization_count,
-  count(distinct e.order_id) as order_count
+  count(distinct e.order_id) as order_count,
+  jsonb_build_object(
+    'entitlementIds', array_agg(distinct e.id order by e.id),
+    'orderIds', array_remove(array_agg(distinct e.order_id order by e.order_id), null),
+    'organizationIds', array_agg(distinct e.organization_id order by e.organization_id)
+  ) as source_record_ids
 from entitlements e left join usage_by_month u on u.entitlement_id = e.id
 group by coalesce(u.capacity_month, date_trunc('month', coalesce(e.activated_at, e.created_at))::date), e.region, e.sku;
 
@@ -845,7 +851,15 @@ select
   (select count(*) from core_collection_cases where status in ('open','promised','escalated')) as open_collection_cases,
   (select count(*) from core_pricing_exception_decisions where status = 'pending') as open_pricing_exceptions,
   (select count(*) from pocs where status = 'active') as active_pocs,
-  (select coalesce(sum(cost_minor), 0) from core_margin_poc_cost where record_type = 'poc' and currency = currencies.currency) as cumulative_poc_cost_minor
+  (select coalesce(sum(cost_minor), 0) from core_margin_poc_cost where record_type = 'poc' and currency = currencies.currency) as cumulative_poc_cost_minor,
+  jsonb_build_object(
+    'quoteIds', (select coalesce(jsonb_agg(q.id order by q.id), '[]'::jsonb) from quotes q where q.created_at >= date_trunc('week', now()) and q.currency = currencies.currency),
+    'orderIds', (select coalesce(jsonb_agg(o.id order by o.id), '[]'::jsonb) from orders o join quotes q on q.id = o.quote_id where o.created_at >= date_trunc('week', now()) and q.currency = currencies.currency),
+    'renewalOrderIds', (select coalesce(jsonb_agg(order_id order by order_id), '[]'::jsonb) from core_renewal_churn_exposure where exposure_window in ('past_due','0_30','31_90')),
+    'collectionCaseIds', (select coalesce(jsonb_agg(id order by id), '[]'::jsonb) from core_collection_cases where status in ('open','promised','escalated')),
+    'pricingExceptionIds', (select coalesce(jsonb_agg(id order by id), '[]'::jsonb) from core_pricing_exception_decisions where status = 'pending'),
+    'pocIds', (select coalesce(jsonb_agg(id order by id), '[]'::jsonb) from pocs where status = 'active' and currency = currencies.currency)
+  ) as source_record_ids
 from currencies;
 
 revoke all on core_revenue_forecast, core_capacity_planning, core_renewal_churn_exposure,

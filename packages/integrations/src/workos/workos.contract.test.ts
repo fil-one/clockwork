@@ -1,7 +1,10 @@
 import { IdempotencyKeySchema, ids } from "@clockwork/contracts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { FakeWorkosIdentityAdapter } from "./index";
+import {
+  FakeWorkosIdentityAdapter,
+  WorkosRegistrationBootstrapVerifier,
+} from "./index";
 
 const organizationId = ids.organization.parse(
   "30000000-0000-4000-8000-000000000301",
@@ -9,6 +12,96 @@ const organizationId = ids.organization.parse(
 const userId = ids.user.parse("20000000-0000-4000-8000-000000000301");
 
 describe("WorkOS lifecycle provider contract", () => {
+  it("exchanges a one-time registration code and derives trusted identity/domain evidence", async () => {
+    const exchange = {
+      exchange: vi.fn().mockResolvedValue({
+        id: "user_workos_registration_301",
+        email: "Owner@Acme.Example",
+        emailVerified: true,
+        impersonated: false,
+      }),
+    };
+    const verifier = new WorkosRegistrationBootstrapVerifier(
+      exchange,
+      () => new Date("2026-07-31T18:00:00.000Z"),
+    );
+
+    await expect(
+      verifier.verify({
+        token: "one-time-workos-authorization-code",
+        email: "owner@acme.example",
+        businessDomain: "ACME.EXAMPLE",
+        requestId: "registration-request-301",
+      }),
+    ).resolves.toEqual({
+      actor: { kind: "user", id: "workos:user_workos_registration_301" },
+      workosUserId: "user_workos_registration_301",
+      domainVerifiedAt: "2026-07-31T18:00:00.000Z",
+    });
+    expect(exchange.exchange).toHaveBeenCalledWith(
+      "one-time-workos-authorization-code",
+    );
+  });
+
+  it.each([
+    {
+      name: "unverified WorkOS email",
+      identity: {
+        id: "user_1",
+        email: "owner@acme.example",
+        emailVerified: false,
+        impersonated: false,
+      },
+      email: "owner@acme.example",
+      domain: "acme.example",
+    },
+    {
+      name: "user-asserted email mismatch",
+      identity: {
+        id: "user_1",
+        email: "owner@acme.example",
+        emailVerified: true,
+        impersonated: false,
+      },
+      email: "attacker@acme.example",
+      domain: "acme.example",
+    },
+    {
+      name: "business-domain mismatch",
+      identity: {
+        id: "user_1",
+        email: "owner@acme.example",
+        emailVerified: true,
+        impersonated: false,
+      },
+      email: "owner@acme.example",
+      domain: "attacker.example",
+    },
+    {
+      name: "impersonated registration",
+      identity: {
+        id: "user_1",
+        email: "owner@acme.example",
+        emailVerified: true,
+        impersonated: true,
+      },
+      email: "owner@acme.example",
+      domain: "acme.example",
+    },
+  ])("rejects $name", async ({ identity, email, domain }) => {
+    const verifier = new WorkosRegistrationBootstrapVerifier({
+      exchange: vi.fn().mockResolvedValue(identity),
+    });
+    await expect(
+      verifier.verify({
+        token: "one-time-workos-authorization-code",
+        email,
+        businessDomain: domain,
+        requestId: "registration-request-302",
+      }),
+    ).rejects.toThrow();
+  });
+
   it("creates organizations and invitations idempotently, verifies domains, and enforces MFA switching", async () => {
     const adapter = new FakeWorkosIdentityAdapter();
     const organizationKey = IdempotencyKeySchema.parse(

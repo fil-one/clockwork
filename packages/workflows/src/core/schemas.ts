@@ -265,7 +265,7 @@ const CommissionAccrualInputSchema = z
     currency: CurrencySchema,
     collectedRevenueMinor: z.string().regex(/^-?(0|[1-9]\d*)$/),
     commissionMinor: z.string().regex(/^-?(0|[1-9]\d*)$/),
-    holdbackMinor: z.string().regex(/^(0|[1-9]\d*)$/),
+    holdbackMinor: z.string().regex(/^-?(0|[1-9]\d*)$/),
     status: z.enum(["accrued", "stated", "paid"]),
   })
   .strict();
@@ -299,11 +299,18 @@ export const SettleCommissionsInputSchema = z
       }
       const commission = BigInt(accrual.commissionMinor);
       const holdback = BigInt(accrual.holdbackMinor);
-      if (commission < 0n && holdback !== 0n) {
+      if (commission < 0n && holdback > 0n) {
         context.addIssue({
           code: "custom",
           path: ["accruals", index, "holdbackMinor"],
-          message: "Clawback accruals cannot carry a positive holdback",
+          message: "Clawback holdback adjustments cannot be positive",
+        });
+      }
+      if (commission < 0n && holdback < commission) {
+        context.addIssue({
+          code: "custom",
+          path: ["accruals", index, "holdbackMinor"],
+          message: "Clawback holdback release cannot exceed the clawback",
         });
       }
       if (commission >= 0n && holdback > commission) {

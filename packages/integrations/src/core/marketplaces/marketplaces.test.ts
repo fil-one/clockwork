@@ -1,11 +1,15 @@
-import { IdempotencyKeySchema } from "@clockwork/contracts";
+import { IdempotencyKeySchema, QuantitySchema } from "@clockwork/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   AzureMarketplaceFinanceAdapter,
+  GoogleMarketplaceFinanceAdapter,
   reconcileMarketplaceFinancials,
 } from "./adapters";
-import { AzureMarketplaceCredentialGate } from "./credential-gates";
+import {
+  AzureMarketplaceCredentialGate,
+  GoogleMarketplaceCredentialGate,
+} from "./credential-gates";
 import {
   normalizeAwsMarketplaceEvent,
   normalizeAzureMarketplaceEvent,
@@ -168,5 +172,115 @@ describe("marketplace financial normalization", () => {
         status: "tied",
       }),
     ]);
+  });
+
+  it("rejects Azure and Google quantities that would lose decimal precision", async () => {
+    const request = vi.fn<MarketplaceTransport["request"]>();
+    const azure = new AzureMarketplaceFinanceAdapter({
+      gate: new AzureMarketplaceCredentialGate({
+        tenantId: "tenant",
+        clientId: "client",
+        clientSecret: "secret",
+      }),
+      transport: { request },
+      financialEventsUrl: "https://finance.example.test/azure/events",
+    });
+    const google = new GoogleMarketplaceFinanceAdapter({
+      providerId: "provider",
+      gate: new GoogleMarketplaceCredentialGate({
+        projectId: "project",
+        serviceAccountEmail: "service@example.test",
+        privateKey: "private-key",
+      }),
+      transport: { request },
+      financialEventsUrl: "https://finance.example.test/google/events",
+    });
+    const input = {
+      externalEntitlementId: "entitlement-1",
+      buyerReference: "buyer-1",
+      productCode: "storage-product",
+      dimension: "locked-storage-tb",
+      quantity: QuantitySchema.parse("9007199254740993"),
+      occurredAt: "2026-07-31T16:00:00.000Z",
+      usageEventId: "usage-unsafe-1",
+      idempotencyKey: IdempotencyKeySchema.parse("usage:unsafe:precision:1"),
+    };
+
+    await expect(azure.reportUsage(input)).resolves.toMatchObject({
+      ok: false,
+      code: "AZURE_MARKETPLACE_QUANTITY_OUT_OF_RANGE",
+    });
+    await expect(google.reportUsage(input)).resolves.toMatchObject({
+      ok: false,
+      code: "GOOGLE_MARKETPLACE_QUANTITY_OUT_OF_RANGE",
+    });
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("rejects local, literal-IP, and non-provider marketplace endpoints", () => {
+    const request = vi.fn<MarketplaceTransport["request"]>();
+    const azureGate = new AzureMarketplaceCredentialGate({});
+    const googleGate = new GoogleMarketplaceCredentialGate({});
+
+    expect(
+      () =>
+        new AzureMarketplaceFinanceAdapter({
+          gate: azureGate,
+          transport: { request },
+          financialEventsUrl: "https://127.0.0.1/events",
+        }),
+    ).toThrow("must not target a local or literal IP host");
+    expect(
+      () =>
+        new AzureMarketplaceFinanceAdapter({
+          gate: azureGate,
+          transport: { request },
+          financialEventsUrl: "https://finance.example.test/events",
+          baseUrl: "https://attacker.example.test",
+        }),
+    ).toThrow("must target marketplaceapi.microsoft.com");
+    expect(
+      () =>
+        new GoogleMarketplaceFinanceAdapter({
+          providerId: "provider",
+          gate: googleGate,
+          transport: { request },
+          financialEventsUrl: "https://finance.example.test/events",
+          serviceControlBaseUrl: "https://localhost",
+        }),
+    ).toThrow("must not target a local or literal IP host");
+  });
+
+  it("fails closed when currency-less usage has conflicting financial currencies", () => {
+    const normalize = (
+      input: Record<string, unknown>,
+    ): MarketplaceFinancialEvent => {
+      const result = normalizeAwsMarketplaceEvent({ ...base, ...input });
+      if (!result.ok) throw new Error(result.message);
+      return result.value;
+    };
+    expect(() =>
+      reconcileMarketplaceFinancials({
+        events: [
+          normalize({
+            eventId: "meter-ambiguous",
+            eventType: "usage",
+            quantity: "1",
+          }),
+          normalize({
+            eventId: "invoice-usd",
+            eventType: "invoice",
+            amountMinor: "100",
+            currency: "USD",
+          }),
+          normalize({
+            eventId: "settlement-eur",
+            eventType: "settlement",
+            amountMinor: "90",
+            currency: "EUR",
+          }),
+        ],
+      }),
+    ).toThrow("ambiguous currency");
   });
 });

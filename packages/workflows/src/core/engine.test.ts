@@ -424,7 +424,7 @@ describe("commission and reconciliation workflows", () => {
           collectedRevenueMinor: "100000",
           commissionMinor: "10000",
           holdbackMinor: "2000",
-          status: "accrued",
+          status: "stated",
         },
         {
           accrualId: ids.commissionAccrual.parse(
@@ -434,20 +434,20 @@ describe("commission and reconciliation workflows", () => {
           currency: "USD",
           collectedRevenueMinor: "-10000",
           commissionMinor: "-1000",
-          holdbackMinor: "0",
-          status: "accrued",
+          holdbackMinor: "-200",
+          status: "stated",
         },
       ],
     });
     const result = await engine.settleCommissions(input);
     expect(result).toMatchObject({
       status: "completed",
-      value: { payableMinor: "7000", heldMinor: "2000" },
+      value: { payableMinor: "7200", heldMinor: "1800" },
     });
     const posting = kernel.calls.find(
       ({ operation }) => operation === "accounting.postCommissionBill",
     )?.input as { amount: { minor: string } };
-    expect(posting.amount.minor).toBe("7000");
+    expect(posting.amount.minor).toBe("7200");
   });
 
   it("deduplicates usage, excludes out-of-range events, and routes source variances", async () => {

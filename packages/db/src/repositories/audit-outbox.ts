@@ -44,25 +44,25 @@ export async function appendAuditAndOutbox(
 
   if (!event) throw new Error("Audit insert did not return a row");
 
-  const [message] = await transaction
-    .insert(outboxMessages)
-    .values({
+  const messageId = crypto.randomUUID();
+  await transaction.insert(outboxMessages).values({
+    id: messageId,
+    eventId: event.id,
+    topic: input.topic ?? input.eventType,
+    payload: {
       eventId: event.id,
-      topic: input.topic ?? input.eventType,
-      payload: {
-        eventId: event.id,
-        eventType: input.eventType,
-        aggregateType: input.aggregateType,
-        aggregateId: input.aggregateId,
-        aggregateVersion: input.aggregateVersion,
-        occurredAt: event.occurredAt.toISOString(),
-        requestId: input.requestId,
-        actor: input.actor,
-        data: input.after ?? {},
-      },
-    })
-    .returning();
+      eventType: input.eventType,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
+      aggregateVersion: input.aggregateVersion,
+      occurredAt: event.occurredAt.toISOString(),
+      requestId: input.requestId,
+      actor: input.actor,
+      data: input.after ?? {},
+    },
+  });
 
-  if (!message) throw new Error("Outbox insert did not return a row");
-  return { event, message };
+  // Tenant transactions may append but intentionally cannot SELECT the
+  // service-owned dispatch queue, so INSERT ... RETURNING would violate RLS.
+  return { event, message: { id: messageId } };
 }

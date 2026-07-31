@@ -919,6 +919,14 @@ export const commissionStatements = pgTable(
       "core_commission_statement_total_check",
       sql`${table.payableMinor} = ${table.grossAccruedMinor} - ${table.clawbackMinor} - ${table.holdbackMinor}`,
     ),
+    check(
+      "core_commission_statement_period_check",
+      sql`${table.periodEndsOn} >= ${table.periodStartsOn}`,
+    ),
+    check(
+      "core_commission_statement_status_check",
+      sql`${table.status} in ('draft','issued','approved','exported','paid','void')`,
+    ),
   ],
 );
 
@@ -944,6 +952,10 @@ export const commissionStatementLines = pgTable(
   },
   (table) => [
     index("core_commission_statement_line_idx").on(table.statementId),
+    check(
+      "core_commission_statement_line_source_check",
+      sql`${table.sourceType} in ('payment','credit_note','refund','dispute')`,
+    ),
   ],
 );
 

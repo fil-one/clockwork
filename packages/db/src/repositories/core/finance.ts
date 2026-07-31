@@ -350,7 +350,7 @@ export class CoreFinanceRepository {
       | "margin_poc"
       | "three_way_tie_out"
       | "weekly_scorecard",
-    limit = 100,
+    options: { limit?: number; offset?: number; accountId?: string } = {},
   ): Promise<ReadonlyArray<Record<string, unknown>>> {
     const views = {
       revenue_forecast: sql.identifier("core_revenue_forecast"),
@@ -362,10 +362,27 @@ export class CoreFinanceRepository {
       three_way_tie_out: sql.identifier("core_three_way_tie_out"),
       weekly_scorecard: sql.identifier("core_weekly_scorecard"),
     } as const;
-    const safeLimit = Math.min(Math.max(limit, 1), 100);
-    const result = await this.transaction.execute(
-      sql`select * from ${views[report]} limit ${safeLimit}`,
-    );
+    const accountColumns = {
+      revenue_forecast: "account_id",
+      capacity: undefined,
+      renewal_churn: "account_id",
+      partner_performance: "partner_account_id",
+      funnel_cycle: "account_id",
+      margin_poc: "account_id",
+      three_way_tie_out: undefined,
+      weekly_scorecard: undefined,
+    } as const;
+    const safeLimit = Math.min(Math.max(options.limit ?? 100, 1), 101);
+    const safeOffset = Math.min(Math.max(options.offset ?? 0, 0), 10_000);
+    const accountColumn = accountColumns[report];
+    const result =
+      accountColumn && options.accountId
+        ? await this.transaction.execute(
+            sql`select * from ${views[report]} where ${sql.identifier(accountColumn)} = ${options.accountId} limit ${safeLimit} offset ${safeOffset}`,
+          )
+        : await this.transaction.execute(
+            sql`select * from ${views[report]} limit ${safeLimit} offset ${safeOffset}`,
+          );
     return result;
   }
 }

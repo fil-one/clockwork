@@ -638,6 +638,9 @@ input {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
+.workflow-panel .cw-field__optional {
+  color: var(--web-muted);
+}
 .workflow-panel .checkbox-field,
 .workflow-panel .form-message,
 .workflow-panel .form-actions {
@@ -764,6 +767,19 @@ input {
   box-shadow: 0 1.5rem 4rem rgb(36 36 26 / 8%);
   padding: clamp(1.4rem, 5vw, 3.5rem);
 }
+.registration-card {
+  width: min(58rem, 100%);
+}
+.registration-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+.registration-form .form-message,
+.registration-form .form-actions {
+  grid-column: 1 / -1;
+}
 .signing-card h1,
 .access-card h1 {
   margin: 0;
@@ -820,6 +836,12 @@ input {
 .provider-state h2,
 .provider-state p {
   margin: 0;
+}
+.signing-frame {
+  width: 100%;
+  min-height: 32rem;
+  border: 1px solid var(--web-line);
+  background: white;
 }
 .provider-progress {
   display: block;
@@ -1022,6 +1044,12 @@ input {
     grid-template-columns: 1fr;
   }
   .workflow-panel form > * {
+    grid-column: 1;
+  }
+  .registration-form {
+    grid-template-columns: 1fr;
+  }
+  .registration-form > * {
     grid-column: 1;
   }
   .state-grid,

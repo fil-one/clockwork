@@ -1,5 +1,5 @@
 import { IdempotencyKeySchema, ids, MoneySchema } from "@clockwork/contracts";
-import type Stripe from "stripe";
+import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 
 import { StripeFinanceGateway } from "./gateway";
@@ -9,50 +9,51 @@ const endClientId = ids.account.parse("00000000-0000-4000-8000-000000000101");
 const idempotencyKey = IdempotencyKeySchema.parse("order:201:invoice:v1");
 
 function stripeClientFixture() {
-  const invoiceCreate = vi.fn(
-    async (
-      _params: Stripe.InvoiceCreateParams,
-      _options?: Stripe.RequestOptions,
-    ) =>
-      Promise.resolve({
-        id: "in_clockwork",
-        status: "draft",
-      } as Stripe.Invoice),
-  );
-  const invoiceItemCreate = vi.fn(
-    async (
-      _params: Stripe.InvoiceItemCreateParams,
-      _options?: Stripe.RequestOptions,
-    ) => Promise.resolve({ id: "ii_clockwork" } as Stripe.InvoiceItem),
-  );
-  const finalizeInvoice = vi.fn(async () =>
-    Promise.resolve({ id: "in_clockwork", status: "open" } as Stripe.Invoice),
-  );
-  const scheduleCreate = vi.fn(async () =>
-    Promise.resolve({
-      id: "sub_sched_clockwork",
-      status: "not_started",
-    } as Stripe.SubscriptionSchedule),
-  );
-  const meterCreate = vi.fn(
-    async (
-      _params: Stripe.Billing.MeterEventCreateParams,
-      _options?: Stripe.RequestOptions,
-    ) =>
-      Promise.resolve({
-        identifier: "usage_evt_1",
-      } as Stripe.Billing.MeterEvent),
-  );
-  const client = {
-    invoices: {
-      create: invoiceCreate,
-      finalizeInvoice,
-      sendInvoice: vi.fn(),
-    },
-    invoiceItems: { create: invoiceItemCreate },
-    subscriptionSchedules: { create: scheduleCreate },
-    billing: { meterEvents: { create: meterCreate } },
-  } as unknown as Stripe;
+  const httpClient = {
+    getClientName: () => "ClockworkStripeFixture",
+    makeRequest: vi.fn((_host: string, _port: string, path: string) => {
+      const payload = path.includes("/invoiceitems")
+        ? { id: "ii_clockwork", object: "invoiceitem" }
+        : path.includes("/subscription_schedules")
+          ? {
+              id: "sub_sched_clockwork",
+              object: "subscription_schedule",
+              status: "not_started",
+            }
+          : path.includes("/billing/meter_events")
+            ? {
+                identifier: "usage_evt_1",
+                object: "billing.meter_event",
+              }
+            : {
+                id: "in_clockwork",
+                object: "invoice",
+                status:
+                  path.includes("/finalize") || path.includes("/send")
+                    ? "open"
+                    : "draft",
+              };
+      return Promise.resolve({
+        getStatusCode: () => 200,
+        getHeaders: () => ({ "request-id": "req_clockwork_fixture" }),
+        getRawResponse: () => payload,
+        toStream: (done: () => void) => {
+          done();
+          return null;
+        },
+        toJSON: () => Promise.resolve(payload),
+      });
+    }),
+  } satisfies Stripe.HttpClient;
+  const client = new Stripe("sk_test_clockwork_release_fixture", {
+    httpClient,
+  });
+  const invoiceCreate = vi.spyOn(client.invoices, "create");
+  const invoiceItemCreate = vi.spyOn(client.invoiceItems, "create");
+  const finalizeInvoice = vi.spyOn(client.invoices, "finalizeInvoice");
+  vi.spyOn(client.invoices, "sendInvoice");
+  const scheduleCreate = vi.spyOn(client.subscriptionSchedules, "create");
+  const meterCreate = vi.spyOn(client.billing.meterEvents, "create");
   return {
     client,
     invoiceCreate,

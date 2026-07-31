@@ -332,10 +332,12 @@ export const demoIds = {
     directPaper: "agreement-direct-paper-v1",
     distributor: "agreement-distributor-v1",
     referral: "agreement-referral-v2",
+    referralEndClient: "agreement-referral-end-client-csa-v1",
     reseller: "agreement-reseller-v4",
   },
   quotes: {
     directAccepted: "quote-direct-accepted-v3",
+    directDraft: "quote-direct-draft-v1",
     directRenewal: "quote-direct-renewal-v2",
     distributor: "quote-distributor-exception-v1",
     expired: "quote-direct-expired-v1",
@@ -359,8 +361,8 @@ export const demoIds = {
 
 /**
  * Presentation projections for UI and document journeys. They intentionally do
- * not model transition rules or stand in for API responses. The generated API
- * only defines lane-status reads as of this seed version; see handlers.ts.
+ * not model transition rules or stand in for API responses. Generated commerce
+ * operations use the contract simulators in handlers.ts.
  */
 export const pristineDemoSeed = {
   metadata: {
@@ -531,6 +533,22 @@ export const pristineDemoSeed = {
       customerPaper: false,
     },
     {
+      id: demoIds.agreements.referralEndClient,
+      accountId: demoAccountIds.endClient,
+      title: "Cloud Service Agreement",
+      kind: "csa",
+      version: 1,
+      executionState: "active",
+      startsOn: "2026-08-15",
+      endsOn: "2027-08-14",
+      noticeStartsOn: "2027-06-15",
+      renewalState: "auto_renews",
+      signatory: "Nora Chen",
+      documentId: "DOC-AGR-1317",
+      documentHash: "sha256:demo-referral-end-client-csa-v1-1317",
+      customerPaper: false,
+    },
+    {
       id: demoIds.agreements.reseller,
       accountId: demoAccountIds.reseller,
       title: "Reseller Partner Agreement",
@@ -565,6 +583,19 @@ export const pristineDemoSeed = {
   ],
   quotes: [
     {
+      id: demoIds.quotes.directDraft,
+      accountId: demoAccountIds.direct,
+      governingAgreementId: demoIds.agreements.direct,
+      displayNumber: "Q-DRAFT-2026-0331",
+      path: "direct",
+      version: 1,
+      state: "draft",
+      total: usd("0"),
+      annualizedTotal: usd("0"),
+      expiresAt: "2026-08-31T23:59:59Z",
+      priceBookVersion: "USD-2026.2",
+    },
+    {
       id: demoIds.quotes.directAccepted,
       accountId: demoAccountIds.direct,
       governingAgreementId: demoIds.agreements.direct,
@@ -598,7 +629,7 @@ export const pristineDemoSeed = {
       id: demoIds.quotes.referral,
       accountId: demoAccountIds.endClient,
       endClientAccountId: demoAccountIds.endClient,
-      governingAgreementId: demoIds.agreements.referral,
+      governingAgreementId: demoIds.agreements.referralEndClient,
       displayNumber: "Q-2026-0317",
       path: "referral",
       version: 2,
@@ -634,11 +665,13 @@ export const pristineDemoSeed = {
       displayNumber: "RQ-EP-2026-084",
       path: "resale_customer",
       version: 4,
-      state: "draft",
+      state: "issued",
       total: gbp("9960000"),
       annualizedTotal: gbp("9960000"),
+      issuedAt: "2026-05-12T09:01:00Z",
       expiresAt: "2026-08-20T23:59:59Z",
       priceBookVersion: "GBP-2026.1",
+      documentId: "DOC-RSL-0084-V4",
     },
     {
       id: demoIds.quotes.distributor,
@@ -690,7 +723,7 @@ export const pristineDemoSeed = {
       id: demoIds.orders.endClient,
       accountId: demoAccountIds.endClient,
       quoteId: demoIds.quotes.referral,
-      agreementId: demoIds.agreements.referral,
+      agreementId: demoIds.agreements.referralEndClient,
       displayNumber: "O-2026-0182",
       state: "awaiting_signature",
       startsOn: "2026-08-15",
@@ -1028,11 +1061,11 @@ export const pristineDemoSeed = {
       id: "renewal-lumen-scheduled",
       accountId: demoAccountIds.endClient,
       orderId: demoIds.orders.endClient,
-      agreementId: demoIds.agreements.referral,
+      agreementId: demoIds.agreements.referralEndClient,
       state: "scheduled",
       endsOn: "2027-08-14",
       noticeStartsOn: "2027-06-15",
-      owner: "Jon Bell",
+      owner: "Ada Mercer",
       riskSignals: [],
     },
   ],

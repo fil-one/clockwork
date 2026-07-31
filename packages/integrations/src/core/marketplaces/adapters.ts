@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 import type { Currency, ProviderResult, Quantity } from "@clockwork/contracts";
 import { QuantitySchema } from "@clockwork/contracts";
 
@@ -67,18 +69,89 @@ function operationResult(
   };
 }
 
+function safeHttpsEndpoint(
+  value: string,
+  label: string,
+  expectedHostname?: string,
+): string {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(value);
+  } catch {
+    throw new TypeError(`${label} must be an absolute HTTPS URL`);
+  }
+  const hostname = endpoint.hostname.toLowerCase().replace(/\.$/, "");
+  if (
+    endpoint.protocol !== "https:" ||
+    endpoint.username !== "" ||
+    endpoint.password !== "" ||
+    (endpoint.port !== "" && endpoint.port !== "443")
+  )
+    throw new TypeError(
+      `${label} must use HTTPS without credentials or a non-standard port`,
+    );
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal") ||
+    isIP(hostname) !== 0
+  )
+    throw new TypeError(`${label} must not target a local or literal IP host`);
+  if (expectedHostname && hostname !== expectedHostname)
+    throw new TypeError(`${label} must target ${expectedHostname}`);
+  return endpoint.toString();
+}
+
+function expandExponent(value: string): string {
+  const [mantissa = "", exponentText] = value.toLowerCase().split("e");
+  if (exponentText === undefined) return value;
+  const exponent = Number(exponentText);
+  const [whole = "0", fraction = ""] = mantissa.split(".");
+  const digits = `${whole}${fraction}`.replace(/^0+(?=\d)/, "");
+  const point = whole.length + exponent;
+  if (point <= 0) return `0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length)
+    return `${digits}${"0".repeat(point - digits.length)}`;
+  return `${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+function exactProviderQuantity(
+  value: Quantity,
+  provider: MarketplaceProvider,
+): ProviderResult<number> {
+  const numeric = Number(value);
+  try {
+    const roundTrip = QuantitySchema.parse(expandExponent(String(numeric)));
+    if (
+      !Number.isFinite(numeric) ||
+      scaledQuantity(roundTrip) !== scaledQuantity(value)
+    )
+      throw new RangeError();
+  } catch {
+    return {
+      ok: false,
+      kind: "permanent",
+      code: `${provider.toUpperCase()}_MARKETPLACE_QUANTITY_OUT_OF_RANGE`,
+      message: `${provider.toUpperCase()} marketplace usage quantity cannot be represented without decimal precision loss`,
+    };
+  }
+  return { ok: true, value: numeric };
+}
+
 abstract class BaseMarketplaceFinanceAdapter implements MarketplaceFinanceAdapter {
   public abstract readonly provider: MarketplaceProvider;
+  protected readonly financialEventsUrl: string;
 
   protected constructor(
     protected readonly gate: MarketplaceCredentialGate,
     protected readonly transport: MarketplaceTransport,
-    protected readonly financialEventsUrl: string,
+    financialEventsUrl: string,
   ) {
-    if (!financialEventsUrl.startsWith("https://"))
-      throw new TypeError(
-        "Marketplace financial event endpoint must use HTTPS",
-      );
+    this.financialEventsUrl = safeHttpsEndpoint(
+      financialEventsUrl,
+      "Marketplace financial event endpoint",
+    );
   }
 
   public credentialStatus() {
@@ -320,8 +393,10 @@ export class AzureMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapte
     readonly baseUrl?: string;
   }) {
     super(input.gate, input.transport, input.financialEventsUrl);
-    this.baseUrl = (
-      input.baseUrl ?? "https://marketplaceapi.microsoft.com"
+    this.baseUrl = safeHttpsEndpoint(
+      input.baseUrl ?? "https://marketplaceapi.microsoft.com",
+      "Azure marketplace API endpoint",
+      "marketplaceapi.microsoft.com",
     ).replace(/\/$/, "");
   }
 
@@ -382,6 +457,8 @@ export class AzureMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapte
   public async reportUsage(
     input: Parameters<MarketplaceFinanceAdapter["reportUsage"]>[0],
   ): ReturnType<MarketplaceFinanceAdapter["reportUsage"]> {
+    const quantity = exactProviderQuantity(input.quantity, this.provider);
+    if (!quantity.ok) return quantity;
     const result = await this.call({
       operation: "usage-event",
       method: "POST",
@@ -389,7 +466,7 @@ export class AzureMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapte
       headers: { "content-type": "application/json" },
       body: {
         resourceId: input.externalEntitlementId,
-        quantity: Number(input.quantity),
+        quantity: quantity.value,
         dimension: input.dimension,
         effectiveStartTime: input.occurredAt,
         planId: input.productCode,
@@ -431,11 +508,15 @@ export class GoogleMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapt
     if (!input.providerId.trim())
       throw new TypeError("Google marketplace provider ID is required");
     this.providerId = input.providerId;
-    this.baseUrl = (
-      input.baseUrl ?? "https://cloudcommerceprocurement.googleapis.com/v1"
+    this.baseUrl = safeHttpsEndpoint(
+      input.baseUrl ?? "https://cloudcommerceprocurement.googleapis.com/v1",
+      "Google marketplace procurement endpoint",
+      "cloudcommerceprocurement.googleapis.com",
     ).replace(/\/$/, "");
-    this.serviceControlBaseUrl = (
-      input.serviceControlBaseUrl ?? "https://servicecontrol.googleapis.com/v1"
+    this.serviceControlBaseUrl = safeHttpsEndpoint(
+      input.serviceControlBaseUrl ?? "https://servicecontrol.googleapis.com/v1",
+      "Google service control endpoint",
+      "servicecontrol.googleapis.com",
     ).replace(/\/$/, "");
   }
 
@@ -503,6 +584,8 @@ export class GoogleMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapt
   public async reportUsage(
     input: Parameters<MarketplaceFinanceAdapter["reportUsage"]>[0],
   ): ReturnType<MarketplaceFinanceAdapter["reportUsage"]> {
+    const quantity = exactProviderQuantity(input.quantity, this.provider);
+    if (!quantity.ok) return quantity;
     const result = await this.call({
       operation: "report-usage",
       method: "POST",
@@ -521,7 +604,7 @@ export class GoogleMarketplaceFinanceAdapter extends BaseMarketplaceFinanceAdapt
             metricValueSets: [
               {
                 metricName: input.dimension,
-                metricValues: [{ doubleValue: Number(input.quantity) }],
+                metricValues: [{ doubleValue: quantity.value }],
               },
             ],
             labels: { entitlement_id: input.externalEntitlementId },
@@ -582,23 +665,35 @@ export function reconcileMarketplaceFinancials(input: {
     invoiceSeen: boolean;
     settlementSeen: boolean;
   };
-  const inferredCurrency = new Map<string, Currency>();
+  const inferredCurrencies = new Map<string, Set<Currency>>();
   for (const event of input.events) {
     const money = event.amount ?? event.fee;
-    if (money)
-      inferredCurrency.set(
-        `${event.provider}:${event.externalOrderId}:${event.sku}`,
-        money.currency,
-      );
+    if (money) {
+      const baseKey = `${event.provider}:${event.externalOrderId}:${event.sku}`;
+      const currencies = inferredCurrencies.get(baseKey) ?? new Set<Currency>();
+      currencies.add(money.currency);
+      inferredCurrencies.set(baseKey, currencies);
+    }
   }
   const aggregates = new Map<string, Aggregate>();
   for (const event of input.events) {
     const baseKey = `${event.provider}:${event.externalOrderId}:${event.sku}`;
+    const eventCurrency = event.amount?.currency ?? event.fee?.currency;
+    const configuredCurrency = input.currencyByOrderSku?.[baseKey];
+    const candidates = inferredCurrencies.get(baseKey);
+    if (
+      !eventCurrency &&
+      !configuredCurrency &&
+      candidates &&
+      candidates.size > 1
+    )
+      throw new TypeError(
+        `Cannot reconcile marketplace usage with ambiguous currency ${baseKey}`,
+      );
     const currency =
-      event.amount?.currency ??
-      event.fee?.currency ??
-      inferredCurrency.get(baseKey) ??
-      input.currencyByOrderSku?.[baseKey];
+      eventCurrency ??
+      configuredCurrency ??
+      (candidates?.size === 1 ? [...candidates][0] : undefined);
     if (!currency)
       throw new TypeError(
         `Cannot reconcile currency-less marketplace usage ${baseKey}`,

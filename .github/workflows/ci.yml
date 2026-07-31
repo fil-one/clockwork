@@ -12,18 +12,18 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CI: "true"
+  APP_ORIGIN: http://127.0.0.1:3000
+  NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+  AUTHORIZATION_CONTEXT_SECRET: clockwork-local-auth-context-secret-change-me
+  AUTHORIZATION_CONTEXT_SECRET_ID: local
+
 jobs:
-  verify:
+  static-checks:
+    name: Static checks
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      CI: "true"
-      APP_ORIGIN: http://127.0.0.1:3000
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
-      LOCAL_DB_HOST: 127.0.0.1
-      LOCAL_DB_PASSWORD: postgres
-      AUTHORIZATION_CONTEXT_SECRET: clockwork-local-auth-context-secret-change-me
-      AUTHORIZATION_CONTEXT_SECRET_ID: local
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,14 +35,44 @@ jobs:
           node-version: 24.18.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm boundaries
-      - run: pnpm typecheck
-      - run: pnpm scan:secrets
-      - run: pnpm run audit:dependencies
-      - run: pnpm check:generated
-      - name: Start clean local Supabase
+      - run: pnpm verify:static
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:unit
+
+  database-integration:
+    name: Database and integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LOCAL_DB_HOST: 127.0.0.1
+      LOCAL_DB_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start and reset local Supabase
         run: |
           pnpm exec supabase stop --no-backup || true
           pnpm db:start
@@ -50,14 +80,64 @@ jobs:
           echo "DATABASE_URL=postgresql://postgres.pooler-dev:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54329/postgres" >> "$GITHUB_ENV"
           echo "CLOCKWORK_SERVICE_DATABASE_URL=postgresql://postgres.pooler-dev:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54329/postgres" >> "$GITHUB_ENV"
           echo "DIRECT_DATABASE_URL=postgresql://postgres:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54322/postgres" >> "$GITHUB_ENV"
-      - run: pnpm db:test
-      - run: pnpm test:unit
-      - run: pnpm test:integration
-      - run: pnpm test:storybook
-      - run: pnpm build:storybook
-      - run: pnpm build
-      - run: pnpm playwright:install:ci
-      - run: pnpm test:e2e:smoke
+      - name: Run pgTAP after reset
+        run: pnpm db:test
+      - name: Run database and provider integration suites
+        run: pnpm test:integration
       - name: Stop Supabase
         if: always()
         run: pnpm exec supabase stop --no-backup || true
+
+  builds:
+    name: Application and Storybook builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify:build
+
+  ui-tests:
+    name: Storybook and browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm playwright:install:ci
+      - run: pnpm verify:ui
+
+  release-gate:
+    name: Release gate
+    if: always()
+    needs:
+      - static-checks
+      - unit-tests
+      - database-integration
+      - builds
+      - ui-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every release phase
+        run: |
+          test "${{ needs.static-checks.result }}" = "success"
+          test "${{ needs.unit-tests.result }}" = "success"
+          test "${{ needs.database-integration.result }}" = "success"
+          test "${{ needs.builds.result }}" = "success"
+          test "${{ needs.ui-tests.result }}" = "success"

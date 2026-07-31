@@ -6,10 +6,21 @@ describe("generated API client boundary", () => {
   it("reads only the generated lane status contract", async () => {
     const fetchImplementation = vi.fn<typeof fetch>(() =>
       Promise.resolve(
-        new Response(JSON.stringify({ lane: "system", status: "ready" }), {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            lane: "system",
+            status: "ready",
+            details: {
+              externalGates: "configured",
+              activationTestRunner: "configured",
+              workosWebhook: "configured",
+            },
+          }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        ),
       ),
     );
     await expect(
@@ -21,6 +32,11 @@ describe("generated API client boundary", () => {
     ).resolves.toEqual({
       lane: "system",
       status: "ready",
+      details: {
+        externalGates: "configured",
+        activationTestRunner: "configured",
+        workosWebhook: "configured",
+      },
     });
     const request = fetchImplementation.mock.calls[0]?.[0];
     expect(request).toBeInstanceOf(Request);

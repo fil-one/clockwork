@@ -1,9 +1,36 @@
 import { createClockworkClient } from "@clockwork/api/client";
 
-export type LaneStatus = Readonly<{
-  lane: "core" | "lifecycle" | "system";
-  status: "ready";
-}>;
+export type LaneStatus = Readonly<
+  | {
+      lane: "core";
+      status: "ready" | "degraded" | "unavailable";
+      details: {
+        service: "database" | "memory" | "missing";
+        stripeWebhook: "configured" | "missing";
+      };
+    }
+  | {
+      lane: "lifecycle";
+      status: "ready" | "degraded" | "unavailable";
+      details: {
+        service: "database" | "missing";
+        registration: "configured" | "missing";
+        esign: "configured" | "missing";
+        provisioningWebhook: "configured" | "missing";
+        marketplaceWebhook: "configured" | "missing";
+        evidenceStorage: "configured" | "missing";
+      };
+    }
+  | {
+      lane: "system";
+      status: "ready" | "degraded" | "unavailable";
+      details: {
+        externalGates: "configured" | "missing";
+        activationTestRunner: "configured" | "missing";
+        workosWebhook: "configured" | "missing";
+      };
+    }
+>;
 
 export async function readGeneratedLaneStatus(
   baseUrl: string,

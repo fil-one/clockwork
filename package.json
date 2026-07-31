@@ -37,7 +37,11 @@
     "db:diff": "supabase db diff --local",
     "db:test": "supabase test db",
     "prepare": "lefthook install",
-    "verify": "pnpm format:check && pnpm lint && pnpm boundaries && pnpm typecheck && pnpm scan:secrets && pnpm run audit:dependencies && pnpm check:generated && pnpm db:reset && pnpm db:test && pnpm test:unit && pnpm test:integration && pnpm test:storybook && pnpm build:storybook && pnpm build && pnpm test:e2e:smoke"
+    "verify:static": "turbo run typecheck format:check lint boundaries scan:secrets audit:dependencies && pnpm check:generated",
+    "verify:database": "pnpm db:reset && pnpm db:test && pnpm test",
+    "verify:build": "turbo run build build:storybook",
+    "verify:ui": "turbo run test:storybook test:e2e",
+    "verify": "pnpm verify:static && pnpm verify:database && pnpm verify:build && pnpm verify:ui"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

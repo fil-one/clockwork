@@ -92,12 +92,22 @@ export interface SurfaceConfig {
   workflow?:
     | "quote"
     | "agreement"
+    | "order"
+    | "poc"
+    | "renewal"
+    | "offboarding"
+    | "registration"
+    | "reports"
     | "payment"
     | "account"
-    | "partner"
+    | "invite"
+    | "procurement"
+    | "pricebook"
+    | "agreementAdmin"
     | "brand"
     | "assisted"
     | "approval"
+    | "collections"
     | "admin";
 }
 
@@ -269,25 +279,25 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     eyebrow: "orders.eyebrow",
     chart: "capacity",
     showTerm: true,
+    workflow: "order",
   }),
   services: withCustomer("orders.title", "orders.description", orders, {
     permission: "order:read",
     eyebrow: "orders.eyebrow",
     chart: "usage",
     showTerm: true,
+    workflow: "renewal",
   }),
   amendments: withCustomer("orders.amendment", "orders.description", orders, {
     permission: "order:write",
     eyebrow: "orders.eyebrow",
-    workflow: "quote",
     showTerm: true,
   }),
   pocs: withCustomer("pocs.title", "pocs.description", pocs, {
     permission: "poc:manage",
     eyebrow: "pocs.eyebrow",
     chart: "capacity",
-    primaryAction: "action.convert",
-    primaryHref: "/quotes/new",
+    workflow: "poc",
   }),
   billing: withCustomer("billing.title", "billing.description", invoices, {
     permission: "billing:read",
@@ -302,7 +312,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
   users: withCustomer("account.users", "account.description", users, {
     permission: "account:write",
     eyebrow: "account.eyebrow",
-    workflow: "account",
+    workflow: "invite",
     primaryAction: "action.invite",
     primaryHref: "/account/users",
   }),
@@ -313,7 +323,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     {
       permission: "account:write",
       eyebrow: "account.eyebrow",
-      workflow: "account",
+      workflow: "procurement",
     },
   ),
   offboarding: withCustomer(
@@ -323,7 +333,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     {
       permission: "destructive:request",
       eyebrow: "account.eyebrow",
-      workflow: "account",
+      workflow: "offboarding",
       showTerm: true,
     },
   ),
@@ -358,19 +368,14 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     registrations,
     {
       permission: "partner:quote:write",
-      workflow: "partner",
-      primaryAction: "action.register",
-      primaryHref: "/partner/registrations",
+      workflow: "registration",
     },
   ),
   registrationDisputes: withPartner(
     "partner.registration.title",
     "partner.registration.description",
     registrations,
-    {
-      permission: "partner:quote:write",
-      workflow: "partner",
-    },
+    { permission: "partner:quote:write" },
   ),
   partnerQuotes: withPartner(
     "partner.quotes.title",
@@ -408,8 +413,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     endClients,
     {
       permission: "order:write",
-      primaryAction: "action.renew",
-      primaryHref: "/partner/renewals",
+      workflow: "renewal",
     },
   ),
   sandboxes: withPartner(
@@ -418,7 +422,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     sandboxes,
     {
       permission: "poc:manage",
-      workflow: "partner",
+      workflow: "poc",
     },
   ),
   brand: withPartner(
@@ -447,7 +451,7 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     "internal.search.title",
     "internal.search.description",
     orders,
-    { permission: "account:read", workflow: "admin" },
+    { permission: "account:read" },
   ),
   assisted: withInternal(
     "internal.assisted.title",
@@ -471,25 +475,25 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     "internal.priceBooks.title",
     "internal.priceBooks.description",
     priceBooks,
-    { permission: "quote:approve", workflow: "admin" },
+    { permission: "quote:approve", workflow: "pricebook" },
   ),
   agreementAdmin: withInternal(
     "internal.agreements.title",
     "internal.agreements.description",
     agreements,
-    { permission: "agreement:approve", workflow: "admin" },
+    { permission: "agreement:approve", workflow: "agreementAdmin" },
   ),
   provisioning: withInternal(
     "internal.provisioning.title",
     "internal.provisioning.description",
     provisioningRecords,
-    { workflow: "approval" },
+    {},
   ),
   collections: withInternal(
     "internal.collections.title",
     "internal.collections.description",
     invoices,
-    { permission: "billing:approve", workflow: "approval" },
+    { permission: "billing:approve", workflow: "collections" },
   ),
   renewals: withInternal(
     "internal.renewals.title",
@@ -508,15 +512,14 @@ export const surfaces: Readonly<Record<SurfaceKey, SurfaceConfig>> = {
     {
       permission: "report:read",
       chart: "capacity",
-      primaryAction: "action.export",
-      primaryHref: "/internal/reports",
+      workflow: "reports",
     },
   ),
   migrations: withInternal(
     "internal.migrations.title",
     "internal.migrations.description",
     migrationRecords,
-    { workflow: "approval" },
+    {},
   ),
   gates: withInternal(
     "internal.gates.title",

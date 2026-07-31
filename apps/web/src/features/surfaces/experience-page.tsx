@@ -53,6 +53,7 @@ function recordHref(record: DemoRecord, surface: SurfaceKey): Route {
   ) {
     return `/internal/queues/${record.id}` as Route;
   }
+  if (surface === "gates") return "/internal/gates";
   if (record.id.startsWith("Q-")) return `/quotes/${record.id}` as Route;
   return `/orders/${record.id}` as Route;
 }
@@ -127,8 +128,15 @@ function Timeline() {
   );
 }
 
-export function ExperiencePage({ surface }: { surface: SurfaceKey }) {
+export function ExperiencePage({
+  surface,
+  records: recordsOverride,
+}: {
+  surface: SurfaceKey;
+  records?: readonly DemoRecord[];
+}) {
   const config = surfaces[surface];
+  const records = recordsOverride ?? config.records;
   const isPartnerSurface = config.eyebrow === "partner.eyebrow";
   return (
     <SurfacePermissionGate
@@ -151,14 +159,16 @@ export function ExperiencePage({ surface }: { surface: SurfaceKey }) {
                 {t(config.primaryAction)}
               </Link>
             ) : null}
-            <button
-              type="button"
-              className="cw-button cw-button--secondary"
-              disabled
-              title={t("state.partial.description")}
-            >
-              {t("action.download")}
-            </button>
+            {surface !== "reports" ? (
+              <button
+                type="button"
+                className="cw-button cw-button--secondary"
+                disabled
+                title={t("state.partial.description")}
+              >
+                {t("action.download")}
+              </button>
+            ) : null}
           </div>
         </header>
         {config.showTerm ? (
@@ -208,9 +218,11 @@ export function ExperiencePage({ surface }: { surface: SurfaceKey }) {
           </section>
         ) : null}
         <StatGrid stats={config.stats} />
-        {config.workflow ? <WorkflowPanel workflow={config.workflow} /> : null}
+        {config.workflow ? (
+          <WorkflowPanel workflow={config.workflow} surface={surface} />
+        ) : null}
         <div className="content-grid">
-          <RecordList records={config.records} surface={surface} />
+          <RecordList records={records} surface={surface} />
           <div className="side-stack">
             {config.chart ? <DataChart kind={config.chart} /> : null}
             <Timeline />

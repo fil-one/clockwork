@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { IdempotencyKey } from "@clockwork/contracts";
 
 import { canonicalJson, deterministicUuid } from "./determinism";
@@ -18,6 +20,7 @@ type MemoryRun = {
   output?: unknown;
   failureCode?: string;
   retryAfterMs?: number;
+  leaseToken: string;
 };
 
 /** Deterministic test/local implementation with production claim semantics. */
@@ -27,12 +30,14 @@ export class InMemoryWorkflowRunStore implements WorkflowRunStore {
   public claim(request: WorkflowClaimRequest): Promise<WorkflowClaim> {
     const existing = this.runs.get(request.invocationKey);
     if (!existing) {
+      const leaseToken = randomUUID();
       this.runs.set(request.invocationKey, {
         payloadHash: request.payloadHash,
         status: "running",
         attempt: 1,
+        leaseToken,
       });
-      return Promise.resolve({ status: "acquired", attempt: 1 });
+      return Promise.resolve({ status: "acquired", attempt: 1, leaseToken });
     }
     if (existing.payloadHash !== request.payloadHash) {
       return Promise.resolve({
@@ -55,15 +60,22 @@ export class InMemoryWorkflowRunStore implements WorkflowRunStore {
 
     existing.status = "running";
     existing.attempt += 1;
-    return Promise.resolve({ status: "acquired", attempt: existing.attempt });
+    existing.leaseToken = randomUUID();
+    return Promise.resolve({
+      status: "acquired",
+      attempt: existing.attempt,
+      leaseToken: existing.leaseToken,
+    });
   }
 
   public markCompleted(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     output: unknown;
     completedAt: string;
   }): Promise<void> {
     const run = this.required(input.invocationKey);
+    this.assertLease(run, input.leaseToken);
     run.status = "completed";
     run.output = input.output;
     delete run.failureCode;
@@ -73,11 +85,13 @@ export class InMemoryWorkflowRunStore implements WorkflowRunStore {
 
   public markRetrying(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     code: string;
     retryAfterMs?: number;
     failedAt: string;
   }): Promise<void> {
     const run = this.required(input.invocationKey);
+    this.assertLease(run, input.leaseToken);
     run.status = "retrying";
     run.failureCode = input.code;
     if (input.retryAfterMs === undefined) delete run.retryAfterMs;
@@ -87,10 +101,12 @@ export class InMemoryWorkflowRunStore implements WorkflowRunStore {
 
   public markPermanentFailure(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     output: unknown;
     failedAt: string;
   }): Promise<void> {
     const run = this.required(input.invocationKey);
+    this.assertLease(run, input.leaseToken);
     run.status = "permanent_failure";
     run.output = input.output;
     return Promise.resolve();
@@ -110,6 +126,11 @@ export class InMemoryWorkflowRunStore implements WorkflowRunStore {
         "Workflow run must be claimed before recording an outcome",
       );
     return value;
+  }
+
+  private assertLease(run: MemoryRun, leaseToken: string): void {
+    if (run.status !== "running" || run.leaseToken !== leaseToken)
+      throw new Error("STALE_WORKFLOW_LEASE");
   }
 }
 

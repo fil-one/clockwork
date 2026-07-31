@@ -20,7 +20,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Core-finance lane mount */
+                /** @description Core-finance lane status */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -30,9 +30,471 @@ export interface paths {
                             /** @enum {string} */
                             lane: "core";
                             /** @enum {string} */
-                            status: "ready";
+                            status: "ready" | "degraded" | "unavailable";
+                            details: {
+                                /** @enum {string} */
+                                service: "database" | "memory" | "missing";
+                                /** @enum {string} */
+                                stripeWebhook: "configured" | "missing";
+                                /** @enum {string} */
+                                stripePayment: "configured" | "missing";
+                                /** @enum {string} */
+                                artifactStorage: "configured" | "missing";
+                            };
                         };
                     };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/commands/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    resource: "accounts" | "procurement_profiles" | "price_books" | "quotes" | "orders" | "amendments" | "commitments" | "invoices" | "credit_notes" | "refunds" | "disputes" | "deal_registrations" | "commissions" | "accounting_exports" | "marketplace_reconciliations" | "reports";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        accountId?: string;
+                        action: string;
+                        expectedVersion?: number;
+                        payload: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Versioned core-finance mutation with atomic audit/outbox identifiers */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            record: {
+                                id: string;
+                                /** @enum {string} */
+                                resource: "accounts" | "procurement_profiles" | "price_books" | "quotes" | "orders" | "amendments" | "commitments" | "invoices" | "credit_notes" | "refunds" | "disputes" | "deal_registrations" | "commissions" | "accounting_exports" | "marketplace_reconciliations" | "reports";
+                                accountId?: string;
+                                rowVersion: number;
+                                data: {
+                                    [key: string]: unknown;
+                                };
+                                createdAt: string;
+                                updatedAt: string;
+                            };
+                            auditEventId: string;
+                            outboxMessageId: string;
+                        };
+                    };
+                };
+                /** @description Account or role scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Resource not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic version or duplicate conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/records/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: string;
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    resource: "accounts" | "procurement_profiles" | "price_books" | "quotes" | "orders" | "amendments" | "commitments" | "invoices" | "credit_notes" | "refunds" | "disputes" | "deal_registrations" | "commissions" | "accounting_exports" | "marketplace_reconciliations" | "reports";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stable cursor page */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                /** @enum {string} */
+                                resource: "accounts" | "procurement_profiles" | "price_books" | "quotes" | "orders" | "amendments" | "commitments" | "invoices" | "credit_notes" | "refunds" | "disputes" | "deal_registrations" | "commissions" | "accounting_exports" | "marketplace_reconciliations" | "reports";
+                                accountId?: string;
+                                rowVersion: number;
+                                data: {
+                                    [key: string]: unknown;
+                                };
+                                createdAt: string;
+                                updatedAt: string;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Account or role scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/replays/{provider}/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    provider: string;
+                    eventId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Replay claimed idempotently */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            replayed: boolean;
+                            workflowRunId: string;
+                        };
+                    };
+                };
+                /** @description Operator or recent-authentication requirement failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/reports/{report}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: string;
+                    cursor?: string;
+                    limit?: number;
+                    format?: "json" | "csv";
+                };
+                header?: never;
+                path: {
+                    report: "revenue_forecast" | "capacity_planning" | "renewal_churn_exposure" | "partner_performance" | "funnel_cycle_time" | "margin_poc_cost" | "three_way_tie_out" | "weekly_scorecard";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Current management report, traceable to source records */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                /** @enum {string} */
+                                resource: "accounts" | "procurement_profiles" | "price_books" | "quotes" | "orders" | "amendments" | "commitments" | "invoices" | "credit_notes" | "refunds" | "disputes" | "deal_registrations" | "commissions" | "accounting_exports" | "marketplace_reconciliations" | "reports";
+                                accountId?: string;
+                                rowVersion: number;
+                                data: {
+                                    [key: string]: unknown;
+                                };
+                                createdAt: string;
+                                updatedAt: string;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                        "text/csv": string;
+                    };
+                };
+                /** @description Report scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "stripe-signature": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Verified event applied or deduplicated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "processed" | "duplicate";
+                        };
+                    };
+                };
+                /** @description Webhook processing is unavailable or already in progress */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/payment-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        invoiceId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Stripe-hosted customer payment session; payment truth remains webhook-derived */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            provider: "stripe";
+                            sessionId: string;
+                            /** Format: uuid */
+                            invoiceId: string;
+                            /** Format: uri */
+                            url: string;
+                            /** @enum {string} */
+                            status: "requires_customer_action";
+                        };
+                    };
+                };
+                /** @description Billing permission or account scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invoice is no longer payable */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Stripe payment session is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/artifacts/{kind}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: string;
+                };
+                header?: never;
+                path: {
+                    kind: "agreement_template" | "quote" | "partner_quote" | "order_form";
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authorized immutable artifact bytes */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+                /** @description Artifact account scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Artifact not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Immutable evidence storage is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -70,7 +532,23 @@ export interface paths {
                             /** @enum {string} */
                             lane: "lifecycle";
                             /** @enum {string} */
-                            status: "ready";
+                            status: "ready" | "degraded" | "unavailable";
+                            details: {
+                                /** @enum {string} */
+                                service: "database" | "missing";
+                                /** @enum {string} */
+                                registration: "configured" | "missing";
+                                /** @enum {string} */
+                                partnerDomainOwnership: "configured" | "missing";
+                                /** @enum {string} */
+                                esign: "configured" | "missing";
+                                /** @enum {string} */
+                                provisioningWebhook: "configured" | "missing";
+                                /** @enum {string} */
+                                marketplaceWebhook: "configured" | "missing";
+                                /** @enum {string} */
+                                evidenceStorage: "configured" | "missing";
+                            };
                         };
                     };
                 };
@@ -78,6 +556,2162 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        legalName: string;
+                        country: string;
+                        registeredAddress: {
+                            line1: string;
+                            line2?: string;
+                            city: string;
+                            region?: string;
+                            postalCode: string;
+                            country: string;
+                        };
+                        relationshipRoles: ("direct_client" | "partner" | "end_client")[];
+                        businessDomain: string;
+                        /** Format: email */
+                        registrantEmail: string;
+                        registrationToken: string;
+                        taxIds: {
+                            jurisdiction: string;
+                            value: string;
+                        }[];
+                        billingContact: {
+                            name: string;
+                            /** Format: email */
+                            email: string;
+                        };
+                        apContact: {
+                            name: string;
+                            /** Format: email */
+                            email: string;
+                        } | null;
+                        /** Format: email */
+                        invoiceDeliveryEmail: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/organizations/{organizationId}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    organizationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: email */
+                        email: string;
+                        /** @enum {string} */
+                        role: "owner" | "admin" | "billing" | "member" | "partner_admin" | "partner_seller";
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/account-selection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/partners/{accountId}/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        domain: string;
+                        verificationToken: string;
+                        brandName: string;
+                        /** Format: uri */
+                        logoUrl: string | null;
+                        primaryColor: string;
+                        /** @enum {string} */
+                        communicationOwner: "fil_one" | "partner";
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/accounts/{accountId}/procurement-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        apContact: {
+                            name: string;
+                            /** Format: email */
+                            email: string;
+                        };
+                        /** Format: email */
+                        invoiceDeliveryEmail: string;
+                        poRequired: boolean;
+                        exemptions: {
+                            jurisdiction: string;
+                            /** Format: uuid */
+                            certificateDocumentId: string;
+                            /** Format: date */
+                            expiresOn: string | null;
+                        }[];
+                        supplierDocuments: {
+                            kind: string;
+                            /** Format: uuid */
+                            documentId: string;
+                        }[];
+                        buyerPortalTasks: {
+                            taskId: string;
+                            /** Format: uuid */
+                            ownerId: string;
+                            /** Format: date-time */
+                            dueAt: string;
+                            reminderEveryHours: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/agreement-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        type: string;
+                        semanticVersion: string;
+                        jurisdiction: string;
+                        /** Format: date */
+                        effectiveOn: string;
+                        /** Format: uuid */
+                        canonicalDocumentId: string;
+                        exactText: string;
+                        exactTextHash: string;
+                        /** @enum {string} */
+                        executionMode: "click_through" | "counter_signed";
+                        /** Format: uuid */
+                        approvalEvidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/agreement-templates/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    type: string;
+                    jurisdiction: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Active approved agreement template with verified exact text */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            type: string;
+                            semanticVersion: string;
+                            jurisdiction: string;
+                            /** Format: date */
+                            effectiveOn: string;
+                            /** Format: uuid */
+                            canonicalDocumentId: string;
+                            exactText: string;
+                            exactTextHash: string;
+                            /** @enum {string} */
+                            executionMode: "click_through" | "counter_signed";
+                        };
+                    };
+                };
+                /** @description Agreement read permission denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Active approved template not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Template evidence storage is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/agreements/customer-paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        uploadedDocumentId: string;
+                        /** @enum {string} */
+                        negotiationStatus: "received" | "redlining" | "agreed";
+                        jurisdiction: string;
+                        keyTerms: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/agreements/click-through": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        templateId: string;
+                        templateVersion: string;
+                        exactText: string;
+                        exactTextHash: string;
+                        authorityTitle: string;
+                        /** @enum {boolean} */
+                        authorityAttested: true;
+                        uiContext: {
+                            surface: string;
+                            actionLabel: string;
+                            locale: string;
+                        };
+                        /** Format: uuid */
+                        previousAgreementId: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/agreements/envelopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        agreementId: string;
+                        /** Format: uuid */
+                        documentId: string;
+                        /** Format: email */
+                        signerEmail: string;
+                        /** @enum {string} */
+                        mode: "redirect" | "embedded";
+                        /** Format: uri */
+                        returnUrl: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/esign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "esign-signature": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Verified e-sign callback processed or deduplicated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "processed" | "duplicate";
+                        };
+                    };
+                };
+                /** @description Webhook adapter unavailable or already processing */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/provisioning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "provisioning-signature": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Verified provisioning confirmation processed or deduplicated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "processed" | "duplicate";
+                        };
+                    };
+                };
+                /** @description Provisioning webhook adapter unavailable or busy */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/marketplaces-platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "marketplace-signature": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Verified marketplace entitlement event processed or deduplicated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "processed" | "duplicate";
+                        };
+                    };
+                };
+                /** @description Marketplace webhook adapter unavailable or busy */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/pocs/{pocId}/conversion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    pocId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        quoteId: string;
+                        /** Format: uuid */
+                        orderId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/pocs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        partnerAccountId: string | null;
+                        workload: string;
+                        /** Format: uuid */
+                        buyerUserId: string;
+                        permittedDataClass: string;
+                        successTests: {
+                            id: string;
+                            description: string;
+                        }[];
+                        capacityCap: string;
+                        egressCap: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        /** Format: uuid */
+                        supportOwnerId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/pocs/{pocId}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    pocId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "approved" | "rejected";
+                        reason: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/provisioning/{commandId}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    commandId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/end-user-terms/acceptances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        organizationId: string;
+                        /** Format: uuid */
+                        templateId: string;
+                        templateVersion: string;
+                        exactTextHash: string;
+                        uiContext: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        orderId: string;
+                        /** @enum {string} */
+                        type: "non_renewal" | "termination" | "breach_claim" | "other";
+                        /** Format: date */
+                        servedOn: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                        /** @enum {string} */
+                        source: "portal" | "email" | "mail" | "esign";
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    accountId?: string;
+                    window?: "30" | "180" | "60_90" | "all";
+                    timeZone?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/renewals/{orderId}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** @enum {string} */
+                        requestedAction: "renew" | "change_term" | "request_change";
+                        requestedTermMonths: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/renewals/{orderId}/declines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    orderId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        reason: string;
+                        authorityTitle: string;
+                        /** @enum {boolean} */
+                        authorityAttested: true;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/terminations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        orderId: string;
+                        /** @enum {string} */
+                        reason: "customer_request" | "non_renewal" | "partner_request" | "partner_default" | "material_breach";
+                        /** Format: date-time */
+                        effectiveAt: string;
+                        retrievalDays: number;
+                        /** Format: uuid */
+                        partnerAccountId: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/terminations/{terminationId}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    terminationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "approved" | "rejected";
+                        reason: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/exceptions/{caseId}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    caseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "approved" | "rejected";
+                        reason: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/novations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        /** Format: uuid */
+                        formerPartnerAccountId: string;
+                        /** Format: uuid */
+                        sourceOrderId: string;
+                        /** Format: uuid */
+                        newAgreementId: string;
+                        /** Format: uuid */
+                        newOrderId: string;
+                        /** @enum {string} */
+                        reason: "partner_default" | "partner_exit" | "agreed_handoff";
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string | null;
+                        /** @enum {string} */
+                        queue: "pricing" | "legal" | "credit_collections" | "restricted_parties" | "disputes" | "deal_registration_disputes" | "poc_qualification";
+                        objectType: string;
+                        /** Format: uuid */
+                        objectId: string;
+                        reason: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/accounts/{accountId}/support-signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    since?: string;
+                };
+                header?: never;
+                path: {
+                    accountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/migrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        executionMode: "discovery" | "rehearsal" | "execute";
+                        sourceSnapshotHash: string;
+                        /** Format: uuid */
+                        resumeRunId: string | null;
+                        batchSize: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/lifecycle/migrations/{runId}/matches/{legacyAccountId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    runId: string;
+                    legacyAccountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "create" | "attach" | "skip";
+                        /** Format: uuid */
+                        accountId: string | null;
+                        reason: string;
+                        /** Format: uuid */
+                        evidenceDocumentId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Lifecycle operation completed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            status: string;
+                            eventType?: string;
+                            /** Format: uri */
+                            signingUrl?: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Account, role, MFA, or recent-authentication denial */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Lifecycle persistence adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -110,7 +2744,15 @@ export interface paths {
                             /** @enum {string} */
                             lane: "system";
                             /** @enum {string} */
-                            status: "ready";
+                            status: "ready" | "degraded" | "unavailable";
+                            details: {
+                                /** @enum {string} */
+                                externalGates: "configured" | "missing";
+                                /** @enum {string} */
+                                activationTestRunner: "configured" | "missing";
+                                /** @enum {string} */
+                                workosWebhook: "configured" | "missing";
+                            };
                         };
                     };
                 };
@@ -118,6 +2760,310 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/external-gates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Internal external-gate activation register */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                                title: string;
+                                owner: string;
+                                inputRequired: string;
+                                affectedFeature: string;
+                                severity: string;
+                                /** @enum {string} */
+                                configuredStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                                /** @enum {string} */
+                                effectiveStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                                /** @enum {string} */
+                                simulatorState: "ready" | "degraded" | "unavailable";
+                                simulatorDetails: string;
+                                /** @enum {string} */
+                                lastActivationTestStatus: "never" | "passed" | "failed";
+                                /** Format: date-time */
+                                lastActivationTestAt: string | null;
+                                lastActivationTestedBy: string | null;
+                                activationEvidenceReference: string | null;
+                                /** Format: date */
+                                reviewOn: string | null;
+                                statusReason: string;
+                                activationAllowed: boolean;
+                                blockedReasons: string[];
+                                rowVersion: number;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Internal operator permission required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Persistent external-gate service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/external-gates/{gateKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedRowVersion: number;
+                        owner: string;
+                        inputRequired: string;
+                        /** @enum {string} */
+                        configuredStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                        /** Format: date */
+                        reviewOn: string | null;
+                        statusReason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description External-gate status updated with activation policy */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                            title: string;
+                            owner: string;
+                            inputRequired: string;
+                            affectedFeature: string;
+                            severity: string;
+                            /** @enum {string} */
+                            configuredStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            effectiveStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            simulatorState: "ready" | "degraded" | "unavailable";
+                            simulatorDetails: string;
+                            /** @enum {string} */
+                            lastActivationTestStatus: "never" | "passed" | "failed";
+                            /** Format: date-time */
+                            lastActivationTestAt: string | null;
+                            lastActivationTestedBy: string | null;
+                            activationEvidenceReference: string | null;
+                            /** Format: date */
+                            reviewOn: string | null;
+                            statusReason: string;
+                            activationAllowed: boolean;
+                            blockedReasons: string[];
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Gate not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic row-version conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Fail-closed activation policy denied the update */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Persistent external-gate service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/external-gates/{gateKey}/activation-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedRowVersion: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Runner-derived external-gate activation test recorded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                            title: string;
+                            owner: string;
+                            inputRequired: string;
+                            affectedFeature: string;
+                            severity: string;
+                            /** @enum {string} */
+                            configuredStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            effectiveStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            simulatorState: "ready" | "degraded" | "unavailable";
+                            simulatorDetails: string;
+                            /** @enum {string} */
+                            lastActivationTestStatus: "never" | "passed" | "failed";
+                            /** Format: date-time */
+                            lastActivationTestAt: string | null;
+                            lastActivationTestedBy: string | null;
+                            activationEvidenceReference: string | null;
+                            /** Format: date */
+                            reviewOn: string | null;
+                            statusReason: string;
+                            activationAllowed: boolean;
+                            blockedReasons: string[];
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Gate not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic row-version conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Activation-test runner or persistence unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

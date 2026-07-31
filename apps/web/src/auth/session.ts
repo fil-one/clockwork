@@ -130,6 +130,11 @@ export async function getCommerceSession(): Promise<SessionClaims> {
 export class WorkosNextSessionResolver implements SessionResolver {
   public async resolve(request: Request): Promise<SessionClaims | null> {
     assertAuthenticationConfiguration();
+    if (
+      request.method === "POST" &&
+      new URL(request.url).pathname.endsWith("/v1/lifecycle/registrations")
+    )
+      return null;
     if (!configured()) return new LocalSessionResolver().resolve(request);
     return getCommerceSession();
   }

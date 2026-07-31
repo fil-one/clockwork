@@ -87,6 +87,11 @@ export interface StripeWebhookProcessingResult {
   readonly ordering?: "current" | "out_of_order";
 }
 
+export interface NormalizedStripeWebhookPayload {
+  type: string;
+  event: NormalizedStripeFinancialEvent;
+}
+
 export class StripeWebhookPayloadConflictError extends Error {
   public constructor(public readonly eventId: string) {
     super(
@@ -125,6 +130,112 @@ export class StripeFinancialWebhookVerifier implements WebhookVerifier<Stripe.Ev
       occurredAt: isoFromEpoch(event.created),
       payload: event,
     };
+  }
+}
+
+/**
+ * Erases the provider SDK object after signature verification and before API
+ * composition, leaving a typed, PII-minimized financial event projection.
+ */
+export class NormalizedStripeFinancialWebhookVerifier implements WebhookVerifier<NormalizedStripeWebhookPayload> {
+  public constructor(
+    private readonly verifier: WebhookVerifier<Stripe.Event>,
+  ) {}
+
+  public async verify(
+    input: Parameters<
+      WebhookVerifier<NormalizedStripeWebhookPayload>["verify"]
+    >[0],
+  ) {
+    const verified = await this.verifier.verify(input);
+    const event = normalizeStripeFinancialEvent(verified.payload);
+    return {
+      eventId: verified.eventId,
+      occurredAt: verified.occurredAt,
+      payload: { type: event.eventType, event },
+    };
+  }
+}
+
+export function normalizedStripeEventFromPayload(
+  payload: unknown,
+): NormalizedStripeFinancialEvent {
+  if (!isRecord(payload) || !isRecord(payload.event))
+    throw new TypeError("Normalized Stripe webhook payload is invalid");
+  const event = payload.event;
+  const required = [
+    "eventId",
+    "eventType",
+    "category",
+    "objectId",
+    "aggregateKey",
+    "occurredAt",
+  ] as const;
+  if (required.some((key) => typeof event[key] !== "string"))
+    throw new TypeError("Normalized Stripe webhook event is incomplete");
+  const category = normalizedCategory(event.category);
+  if (!isRecord(event.rawObject))
+    throw new TypeError("Normalized Stripe raw object is invalid");
+  const amount = MoneySchema.safeParse(event.amount);
+  return {
+    provider: "stripe",
+    eventId: requiredString(event, "eventId"),
+    eventType: requiredString(event, "eventType"),
+    category,
+    objectId: requiredString(event, "objectId"),
+    aggregateKey: requiredString(event, "aggregateKey"),
+    occurredAt: requiredString(event, "occurredAt"),
+    livemode: event.livemode === true,
+    ...optionalEventString(event, "requestId"),
+    ...optionalEventString(event, "requestIdempotencyKey"),
+    ...optionalEventString(event, "customerId"),
+    ...optionalEventString(event, "subscriptionId"),
+    ...optionalEventString(event, "scheduleId"),
+    ...optionalEventString(event, "invoiceId"),
+    ...optionalEventString(event, "paymentIntentId"),
+    ...optionalEventString(event, "creditNoteId"),
+    ...optionalEventString(event, "refundId"),
+    ...optionalEventString(event, "disputeId"),
+    ...(amount.success ? { amount: amount.data } : {}),
+    ...optionalEventString(event, "status"),
+    rawObject: event.rawObject,
+  };
+}
+
+function optionalEventString(
+  event: Record<string, unknown>,
+  key:
+    | "requestId"
+    | "requestIdempotencyKey"
+    | "customerId"
+    | "subscriptionId"
+    | "scheduleId"
+    | "invoiceId"
+    | "paymentIntentId"
+    | "creditNoteId"
+    | "refundId"
+    | "disputeId"
+    | "status",
+): Partial<Record<typeof key, string>> {
+  const value = optionalString(event[key]);
+  return value === undefined ? {} : { [key]: value };
+}
+
+function normalizedCategory(value: unknown): StripeFinancialCategory {
+  switch (value) {
+    case "customer":
+    case "subscription":
+    case "subscription_schedule":
+    case "invoice":
+    case "payment":
+    case "credit_note":
+    case "refund":
+    case "dispute":
+    case "tax":
+    case "other":
+      return value;
+    default:
+      throw new TypeError("Normalized Stripe webhook category is invalid");
   }
 }
 
@@ -184,7 +295,7 @@ function stripeRequest(event: Stripe.Event): {
 export function normalizeStripeFinancialEvent(
   event: Stripe.Event,
 ): NormalizedStripeFinancialEvent {
-  const object = event.data.object as unknown;
+  const object: unknown = event.data.object;
   if (!isRecord(object))
     throw new TypeError("Stripe event data.object must be an object");
   const objectId = requiredString(object, "id");

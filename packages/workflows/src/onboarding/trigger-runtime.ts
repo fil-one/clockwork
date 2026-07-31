@@ -15,10 +15,21 @@ export interface LifecycleTaskInvocation {
 export interface LifecycleTaskRuntime {
   claim(
     invocation: LifecycleTaskInvocation,
-  ): Promise<{ status: "claimed" } | { status: "duplicate"; output: unknown }>;
+  ): Promise<
+    | { status: "claimed"; leaseToken: string }
+    | { status: "duplicate"; output: unknown }
+  >;
   execute(invocation: LifecycleTaskInvocation): Promise<unknown>;
-  complete(invocation: LifecycleTaskInvocation, output: unknown): Promise<void>;
-  fail(invocation: LifecycleTaskInvocation, error: string): Promise<void>;
+  complete(
+    invocation: LifecycleTaskInvocation,
+    leaseToken: string,
+    output: unknown,
+  ): Promise<void>;
+  fail(
+    invocation: LifecycleTaskInvocation,
+    leaseToken: string,
+    error: unknown,
+  ): Promise<void>;
 }
 
 let configuredRuntime: LifecycleTaskRuntime | undefined;
@@ -86,13 +97,10 @@ export async function executeLifecycleTask(
   if (claim.status === "duplicate") return claim.output;
   try {
     const output = await configuredRuntime.execute(invocation);
-    await configuredRuntime.complete(invocation, output);
+    await configuredRuntime.complete(invocation, claim.leaseToken, output);
     return output;
   } catch (error) {
-    await configuredRuntime.fail(
-      invocation,
-      error instanceof Error ? error.message : "Unknown lifecycle task failure",
-    );
+    await configuredRuntime.fail(invocation, claim.leaseToken, error);
     throw error;
   }
 }

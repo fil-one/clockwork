@@ -1,4 +1,5 @@
 export * from "./core";
-export * from "./lifecycle";
 export * from "./policy";
 export * from "./system";
+export * from "./runtime";
+export { lifecycleWorkflowRegistry } from "./lifecycle";

@@ -3,6 +3,7 @@ export * from "./repositories/audit-outbox";
 export * from "./repositories/idempotency";
 export * from "./repositories/identity";
 export * from "./repositories/webhooks";
+export * from "./repositories/workflows";
 export * from "./repositories/core";
 export * from "./repositories/lifecycle";
 export * from "./repositories/system";

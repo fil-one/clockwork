@@ -11,7 +11,12 @@ const workosProxy = workosConfigured
   ? authkitMiddleware({
       middlewareAuth: {
         enabled: true,
-        unauthenticatedPaths: ["/auth/callback", "/sign-in"],
+        unauthenticatedPaths: [
+          "/auth/callback",
+          "/register",
+          "/sign-in",
+          "/api/v1/lifecycle/registrations",
+        ],
       },
       redirectUri:
         process.env.WORKOS_REDIRECT_URI ??

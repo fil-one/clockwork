@@ -26,11 +26,60 @@ export interface RegistrationBootstrapVerifier {
   }>;
 }
 
+export interface PartnerDomainOwnershipVerifier {
+  verify(input: {
+    domain: string;
+    verificationToken: string;
+    requestId: string;
+  }): Promise<{ verifiedAt: string; evidenceReference: string }>;
+}
+
+export type LifecycleExceptionQueue =
+  | "pricing"
+  | "legal"
+  | "credit_collections"
+  | "restricted_parties"
+  | "disputes"
+  | "deal_registration_disputes"
+  | "poc_qualification";
+
+/** Looks up authorization facts from commerce-owned records, never request input. */
+export interface LifecycleAuthorizationScopeResolver {
+  resolvePocAccount(input: {
+    pocId: string;
+    requestId: string;
+  }): Promise<{ accountId: string }>;
+  resolveExceptionScope(input: {
+    caseId: string;
+    requestId: string;
+  }): Promise<{ accountId: string | null; queue: LifecycleExceptionQueue }>;
+}
+
 export interface LifecycleRouteResult {
   id: string;
   status: string;
-  eventType?: string;
+  eventType?: string | undefined;
+  signingUrl?: string | undefined;
   [key: string]: unknown;
+}
+
+export interface ActiveAgreementTemplateService {
+  getActive(input: {
+    type: string;
+    jurisdiction: string;
+    authorization: AuthorizationContext;
+    requestId: string;
+  }): Promise<{
+    id: string;
+    type: string;
+    semanticVersion: string;
+    jurisdiction: string;
+    effectiveOn: string;
+    canonicalDocumentId: string;
+    exactText: string;
+    exactTextHash: string;
+    executionMode: "click_through" | "counter_signed";
+  }>;
 }
 
 export interface LifecycleRouteService {
@@ -154,7 +203,24 @@ export interface LifecycleRouteService {
 
 export interface LifecycleRouteDependencies {
   service?: LifecycleRouteService;
+  authorizationScopes?: LifecycleAuthorizationScopeResolver;
   registrationBootstrap?: RegistrationBootstrapVerifier;
+  partnerDomainOwnership?: PartnerDomainOwnershipVerifier;
+  activeAgreementTemplates?: ActiveAgreementTemplateService;
+  signingSessions?: {
+    create(input: {
+      envelope: LifecycleRouteResult;
+      request: {
+        accountId: string;
+        agreementId: string;
+        documentId: string;
+        signerEmail: string;
+        mode: "redirect" | "embedded";
+        returnUrl: string;
+      };
+      context: LifecycleOperationContext;
+    }): Promise<LifecycleRouteResult & { signingUrl: string }>;
+  };
   esignWebhook?: {
     verifier: WebhookVerifier<unknown>;
     deduplicator: WebhookDeduplicator;

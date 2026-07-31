@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./core": "./src/repositories/core/index.ts",
+    "./lifecycle": "./src/repositories/lifecycle/index.ts",
     "./migration-client": "./src/migration-client.ts",
     "./schema": "./src/schema/index.ts"
   },

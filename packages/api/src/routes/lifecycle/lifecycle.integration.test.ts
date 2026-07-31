@@ -7,6 +7,7 @@ import type { ApiVariables } from "../../context";
 import { requestContextMiddleware } from "../../middleware/request-context";
 import { registerLifecycleRoutes, TransactionalLifecycleService } from ".";
 import type {
+  LifecycleAuthorizationScopeResolver,
   LifecycleCommandRepository,
   LifecycleRouteDependencies,
   LifecycleRouteService,
@@ -63,6 +64,8 @@ function app(input: {
   role?: "owner" | "member" | "internal_operator";
   webhook?: LifecycleRouteDependencies["esignWebhook"];
   registrationBootstrap?: LifecycleRouteDependencies["registrationBootstrap"];
+  partnerDomainOwnership?: LifecycleRouteDependencies["partnerDomainOwnership"];
+  authorizationScopes?: LifecycleAuthorizationScopeResolver;
 }) {
   const app = new OpenAPIHono<{ Variables: ApiVariables }>();
   app.onError((error, context) => {
@@ -92,6 +95,12 @@ function app(input: {
     ...(input.registrationBootstrap
       ? { registrationBootstrap: input.registrationBootstrap }
       : {}),
+    ...(input.partnerDomainOwnership
+      ? { partnerDomainOwnership: input.partnerDomainOwnership }
+      : {}),
+    ...(input.authorizationScopes
+      ? { authorizationScopes: input.authorizationScopes }
+      : {}),
   });
   return app;
 }
@@ -104,6 +113,62 @@ const mutationHeaders = {
 };
 
 describe("lifecycle API authorization and evidence", () => {
+  it("fails closed without server-observed domain proof and injects verified evidence", async () => {
+    const verifyPartnerDomain = vi
+      .fn()
+      .mockResolvedValue({ id: "domain-1", status: "verified" });
+    const body = {
+      domain: "brand.northstar.example",
+      verificationToken: "domain-proof-token-123456",
+      brandName: "Northstar",
+      logoUrl: null,
+      primaryColor: "#123456",
+      communicationOwner: "fil_one" as const,
+    };
+    const missing = await app({
+      service: service({ verifyPartnerDomain }),
+    }).request(`/v1/lifecycle/partners/${accountId}/domains`, {
+      method: "POST",
+      headers: mutationHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(missing.status).toBe(503);
+    expect(verifyPartnerDomain).not.toHaveBeenCalled();
+
+    const verifier = {
+      verify: vi.fn().mockResolvedValue({
+        verifiedAt: "2026-07-31T16:00:00.000Z",
+        evidenceReference: "dns-txt:_clockwork-domain.brand.northstar.example",
+      }),
+    };
+    const verified = await app({
+      service: service({ verifyPartnerDomain }),
+      partnerDomainOwnership: verifier,
+    }).request(`/v1/lifecycle/partners/${accountId}/domains`, {
+      method: "POST",
+      headers: mutationHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(verified.status, await verified.clone().text()).toBe(200);
+    expect(verifier.verify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domain: body.domain,
+        verificationToken: body.verificationToken,
+      }),
+    );
+    expect(verifyPartnerDomain).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId,
+        verificationEvidence: {
+          verifiedAt: "2026-07-31T16:00:00.000Z",
+          evidenceReference:
+            "dns-txt:_clockwork-domain.brand.northstar.example",
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
   it("bootstraps the first account from a trusted identity/domain proof without an existing membership", async () => {
     const register = vi
       .fn()
@@ -222,7 +287,7 @@ describe("lifecycle API authorization and evidence", () => {
       expect.objectContaining({
         actor: { kind: "user", id: userId },
         idempotencyKey: "lifecycle-route-test-0001",
-        ip: "192.0.2.10",
+        ip: null,
         userAgent: "Clockwork integration test",
       }),
     );
@@ -290,6 +355,65 @@ describe("lifecycle API authorization and evidence", () => {
     expect(response.status, await response.clone().text()).toBe(200);
     expect(acceptPassThroughTerms).toHaveBeenCalledOnce();
   });
+
+  it("derives POC decision scope from the persisted POC", async () => {
+    const decidePoc = vi
+      .fn()
+      .mockResolvedValue({ id: "poc-decision-1", status: "approved" });
+    const response = await app({
+      service: service({ decidePoc }),
+      authorizationScopes: {
+        resolvePocAccount: vi.fn().mockResolvedValue({
+          accountId: otherAccountId,
+        }),
+        resolveExceptionScope: vi.fn(),
+      },
+    }).request(
+      "/v1/lifecycle/pocs/50000000-0000-4000-8000-000000000001/decisions",
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          decision: "approved",
+          reason: "Success criteria passed",
+          evidenceDocumentId: "60000000-0000-4000-8000-000000000001",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    expect(decidePoc).not.toHaveBeenCalled();
+  });
+
+  it("derives exception queue authority instead of trusting the request", async () => {
+    const decideException = vi
+      .fn()
+      .mockResolvedValue({ id: "exception-1", status: "approved" });
+    const response = await app({
+      service: service({ decideException }),
+      authorizationScopes: {
+        resolvePocAccount: vi.fn(),
+        resolveExceptionScope: vi.fn().mockResolvedValue({
+          accountId,
+          queue: "legal",
+        }),
+      },
+    }).request(
+      "/v1/lifecycle/exceptions/70000000-0000-4000-8000-000000000001/decisions",
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          decision: "approved",
+          reason: "Counsel reviewed evidence",
+          evidenceDocumentId: "60000000-0000-4000-8000-000000000002",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    expect(decideException).not.toHaveBeenCalled();
+  });
 });
 
 describe("e-sign webhook boundary", () => {
@@ -307,7 +431,7 @@ describe("e-sign webhook boundary", () => {
       }),
     };
     const deduplicator = {
-      claim: vi.fn().mockResolvedValue("duplicate" as const),
+      claim: vi.fn().mockResolvedValue({ status: "duplicate" as const }),
       markProcessed: vi.fn(),
       markFailed: vi.fn(),
     };

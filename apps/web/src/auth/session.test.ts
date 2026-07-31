@@ -21,7 +21,7 @@ vi.mock("@/src/db/service", () => ({
   getServiceDatabase: () => ({ kind: "deterministic-test-database" }),
 }));
 
-import { getCommerceSession } from "./session";
+import { getCommerceSession, WorkosNextSessionResolver } from "./session";
 
 const fixture = {
   accountId: "10000000-0000-4000-8000-000000000004",
@@ -102,6 +102,23 @@ describe("WorkOS commerce session mapping", () => {
       mfaVerified: true,
       recentAuthenticationVerified: true,
     });
+  });
+
+  it("allows the verified registration bootstrap before a membership exists", async () => {
+    const resolver = new WorkosNextSessionResolver();
+
+    await expect(
+      resolver.resolve(
+        new Request(
+          "https://commerce.clockwork.test/v1/lifecycle/registrations",
+          {
+            method: "POST",
+          },
+        ),
+      ),
+    ).resolves.toBeNull();
+    expect(authMocks.withAuth).not.toHaveBeenCalled();
+    expect(authMocks.resolveWorkosIdentity).not.toHaveBeenCalled();
   });
 
   it("denies a privileged role when the selected organization lacks MFA policy", async () => {

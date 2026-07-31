@@ -5,7 +5,7 @@ select is((select relrowsecurity from pg_class where oid = 'public.accounts'::re
 select is((select relforcerowsecurity from pg_class where oid = 'public.accounts'::regclass), true, 'accounts RLS is forced');
 select is((select rolbypassrls from pg_roles where rolname = 'clockwork_runtime'), false, 'runtime role cannot bypass RLS');
 select is((select rolbypassrls from pg_roles where rolname = 'clockwork_service'), false, 'service role cannot bypass RLS');
-select is((select count(*)::integer from pg_policies where schemaname = 'public' and tablename = 'orders'), 1, 'orders have an account scope policy');
+select is((select count(*)::integer from pg_policies where schemaname = 'public' and tablename = 'orders' and policyname = 'orders_scope'), 1, 'orders retain their account scope policy alongside restrictive guards');
 
 select set_config(
   'app.authorization_context',

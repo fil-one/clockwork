@@ -6,6 +6,8 @@ import {
   type WorkflowIdentity,
 } from "../onboarding/durable";
 
+export * from "./deletion-certificate-handler";
+
 export const offboardingTaskIds = Object.freeze({
   retrievalWindow: "lifecycle-offboarding-retrieval-window-v1",
   retentionRelease: "lifecycle-offboarding-retention-release-v1",

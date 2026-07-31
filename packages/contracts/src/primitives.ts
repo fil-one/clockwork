@@ -47,6 +47,7 @@ export const entityNames = [
   "provider_operation",
   "role_sync_event",
   "workflow_run",
+  "external_gate",
 ] as const;
 
 export type EntityName = (typeof entityNames)[number];
@@ -100,6 +101,7 @@ export const ids = {
   providerOperation: id<"ProviderOperationId">(),
   roleSyncEvent: id<"RoleSyncEventId">(),
   workflowRun: id<"WorkflowRunId">(),
+  externalGate: id<"ExternalGateId">(),
   request: z.string().min(8).max(128).brand<"RequestId">(),
   external: z.string().min(1).max(255).brand<"ExternalId">(),
 } as const;

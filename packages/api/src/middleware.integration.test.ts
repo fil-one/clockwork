@@ -8,7 +8,10 @@ import {
   MemoryIdempotencyStore,
 } from "./middleware/idempotency";
 import { requestContextMiddleware } from "./middleware/request-context";
-import { csrfAndOriginMiddleware } from "./middleware/security";
+import {
+  createCsrfAndOriginMiddleware,
+  csrfAndOriginMiddleware,
+} from "./middleware/security";
 
 function problemResponseApp() {
   const app = new Hono<{ Variables: ApiVariables }>();
@@ -16,7 +19,7 @@ function problemResponseApp() {
     if (error instanceof ProblemError)
       return context.json(
         error.problem,
-        error.problem.status as 400 | 403 | 409,
+        error.problem.status as 400 | 403 | 409 | 413,
         { "content-type": "application/problem+json" },
       );
     throw error;
@@ -81,6 +84,111 @@ describe("CSRF and origin middleware", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
+  });
+
+  it("accepts only a custom origin approved by the persisted resolver", async () => {
+    vi.stubEnv("APP_ORIGIN", origin);
+    const resolver = {
+      isAllowed: vi
+        .fn()
+        .mockImplementation(({ origin: candidate }: { origin: string }) =>
+          Promise.resolve(candidate === "https://brand.partner.example"),
+        ),
+    };
+    const app = problemResponseApp();
+    app.use("*", requestContextMiddleware);
+    app.use("*", createCsrfAndOriginMiddleware(resolver));
+    app.post("/mutate", (context) => context.json({ ok: true }));
+    const headers = {
+      cookie: `clockwork-csrf=${csrfToken}`,
+      "x-csrf-token": csrfToken,
+    };
+    const verified = await app.request("/mutate", {
+      method: "POST",
+      headers: { ...headers, origin: "https://brand.partner.example" },
+    });
+    const unverified = await app.request("/mutate", {
+      method: "POST",
+      headers: { ...headers, origin: "https://lookalike.partner.example" },
+    });
+    expect(verified.status).toBe(200);
+    expect(unverified.status).toBe(403);
+    expect(resolver.isAllowed).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("webhook request context hardening", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function createApp() {
+    const app = problemResponseApp();
+    app.use("*", requestContextMiddleware);
+    app.post("/v1/webhooks/test", (context) => {
+      const request = context.get("requestContext");
+      return context.json({
+        bytes: request.rawWebhookBody?.byteLength ?? -1,
+        ip: request.ip,
+      });
+    });
+    return app;
+  }
+
+  it("rejects a declared webhook body larger than the configured limit", async () => {
+    vi.stubEnv("WEBHOOK_MAX_BODY_BYTES", "16");
+    const response = await createApp().request("/v1/webhooks/test", {
+      method: "POST",
+      headers: { "content-length": "17" },
+      body: "payload",
+    });
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "WEBHOOK_BODY_TOO_LARGE",
+    });
+  });
+
+  it("enforces the byte limit when content length is absent", async () => {
+    vi.stubEnv("WEBHOOK_MAX_BODY_BYTES", "4");
+    const response = await createApp().request("/v1/webhooks/test", {
+      method: "POST",
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("123"));
+          controller.enqueue(new TextEncoder().encode("45"));
+          controller.close();
+        },
+      }),
+      duplex: "half",
+    } as RequestInit & { duplex: "half" });
+    expect(response.status).toBe(413);
+  });
+
+  it("ignores caller-controlled forwarding headers by default", async () => {
+    const response = await createApp().request("/v1/webhooks/test", {
+      method: "POST",
+      headers: { "x-forwarded-for": "203.0.113.55" },
+      body: "{}",
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      bytes: 2,
+      ip: null,
+    });
+  });
+
+  it("selects the address observed by the configured trusted edge", async () => {
+    vi.stubEnv("CLOCKWORK_TRUSTED_PROXY_HOPS", "1");
+    const response = await createApp().request("/v1/webhooks/test", {
+      method: "POST",
+      headers: {
+        "x-forwarded-for": "198.51.100.99, 203.0.113.55",
+      },
+      body: "{}",
+    });
+    await expect(response.json()).resolves.toMatchObject({
+      bytes: 2,
+      ip: "203.0.113.55",
+    });
   });
 });
 

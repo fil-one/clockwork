@@ -19,7 +19,7 @@ const baseline = new Date("2030-01-01T00:00:00.000Z");
 
 const { client, db } = createRuntimeDatabase({
   url: databaseUrl,
-  maxConnections: 1,
+  maxConnections: 4,
   role: "clockwork_service",
   ssl: false,
 });
@@ -74,7 +74,9 @@ afterAll(async () => {
   await client.end();
 });
 
-describe.sequential("durable idempotency records", () => {
+// Every case owns a distinct key and all mutations are transaction-scoped, so
+// these durability cases can safely exercise the database concurrently.
+describe.concurrent("durable idempotency records", () => {
   it("persists a completed response and replays it in a later transaction", async () => {
     const key = "claim-complete-replay";
     const requestHash = "sha256:claim-complete-replay";
@@ -231,22 +233,34 @@ describe.sequential("durable idempotency records", () => {
   });
 });
 
-describe.sequential("durable webhook deduplication", () => {
+describe.concurrent("durable webhook deduplication", () => {
   it("reports an active duplicate as in progress and a processed duplicate as complete", async () => {
     const input = webhookInput("evt_claim_duplicate");
 
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("claimed");
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("in_progress");
+    const claim = await webhookDeduplicator.claim(input);
+    expect(claim.status).toBe("claimed");
+    if (claim.status !== "claimed") throw new Error("Expected webhook claim");
+    await expect(webhookDeduplicator.claim(input)).resolves.toEqual({
+      status: "in_progress",
+    });
 
-    await webhookDeduplicator.markProcessed(input.provider, input.eventId);
+    await webhookDeduplicator.markProcessed(
+      input.provider,
+      input.eventId,
+      claim.claimToken,
+    );
 
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("duplicate");
+    await expect(webhookDeduplicator.claim(input)).resolves.toEqual({
+      status: "duplicate",
+    });
   });
 
   it("rejects the same provider event ID when its payload hash changes", async () => {
     const input = webhookInput("evt_hash_conflict", "sha256:original");
 
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("claimed");
+    await expect(webhookDeduplicator.claim(input)).resolves.toMatchObject({
+      status: "claimed",
+    });
     await expect(
       webhookDeduplicator.claim({
         ...input,
@@ -259,10 +273,14 @@ describe.sequential("durable webhook deduplication", () => {
   it("reclaims a failed expired delivery and increments its attempt count", async () => {
     const input = webhookInput("evt_failed_retry");
 
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("claimed");
+    const firstClaim = await webhookDeduplicator.claim(input);
+    expect(firstClaim.status).toBe("claimed");
+    if (firstClaim.status !== "claimed")
+      throw new Error("Expected webhook claim");
     await webhookDeduplicator.markFailed(
       input.provider,
       input.eventId,
+      firstClaim.claimToken,
       "simulated transient provider failure",
     );
 
@@ -277,9 +295,7 @@ describe.sequential("durable webhook deduplication", () => {
         }),
     );
     expect(failed?.attemptCount).toBe(1);
-    expect(failed?.processingError).toBe(
-      "simulated transient provider failure",
-    );
+    expect(failed?.processingError).toBe("WEBHOOK_PROCESSING_FAILED");
 
     await internalTransaction(
       "integration:webhook:failed:expire",
@@ -296,7 +312,9 @@ describe.sequential("durable webhook deduplication", () => {
       },
     );
 
-    await expect(webhookDeduplicator.claim(input)).resolves.toBe("claimed");
+    await expect(webhookDeduplicator.claim(input)).resolves.toMatchObject({
+      status: "claimed",
+    });
 
     const retried = await internalTransaction(
       "integration:webhook:retry:inspect",
@@ -311,5 +329,47 @@ describe.sequential("durable webhook deduplication", () => {
     expect(retried?.attemptCount).toBe(2);
     expect(retried?.processingError).toBeNull();
     expect(retried?.processedAt).toBeNull();
+  });
+
+  it("rejects a stale worker after an expired lease is reclaimed", async () => {
+    const input = webhookInput("evt_stale_worker");
+    const staleClaim = await webhookDeduplicator.claim(input);
+    expect(staleClaim.status).toBe("claimed");
+    if (staleClaim.status !== "claimed")
+      throw new Error("Expected initial webhook claim");
+
+    await internalTransaction(
+      "integration:webhook:stale:expire",
+      async (transaction) => {
+        await transaction
+          .update(webhookEvents)
+          .set({ lockedUntil: new Date("2000-01-01T00:00:00.000Z") })
+          .where(
+            and(
+              eq(webhookEvents.provider, input.provider),
+              eq(webhookEvents.providerEventId, input.eventId),
+            ),
+          );
+      },
+    );
+    const currentClaim = await webhookDeduplicator.claim(input);
+    expect(currentClaim.status).toBe("claimed");
+    if (currentClaim.status !== "claimed")
+      throw new Error("Expected reclaimed webhook");
+
+    await expect(
+      webhookDeduplicator.markProcessed(
+        input.provider,
+        input.eventId,
+        staleClaim.claimToken,
+      ),
+    ).rejects.toThrow("STALE_WEBHOOK_CLAIM_COMPLETION");
+    await expect(
+      webhookDeduplicator.markProcessed(
+        input.provider,
+        input.eventId,
+        currentClaim.claimToken,
+      ),
+    ).resolves.toBeUndefined();
   });
 });

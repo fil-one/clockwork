@@ -9,6 +9,8 @@ import type {
   WebhookVerifier,
 } from "@clockwork/contracts";
 
+export * from "./http-signing-client";
+
 export type SigningMode = "redirect" | "embedded";
 export type EnvelopeState =
   "created" | "sent" | "viewed" | "completed" | "declined" | "voided";

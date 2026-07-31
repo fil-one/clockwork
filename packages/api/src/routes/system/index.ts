@@ -1,12 +1,21 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { WebhookVerifier } from "@clockwork/contracts";
+import type { ActivationTestRunner } from "@clockwork/domain/system";
 import type { RoleSynchronizationSink } from "@clockwork/integrations";
 import { synchronizeWorkosRoleEvent } from "@clockwork/integrations";
 
 import type { ApiVariables } from "../../context";
 import { verifyAndClaimWebhook } from "../../webhooks";
 import type { WebhookDeduplicator } from "../../webhooks";
+import {
+  registerExternalGateRoutes,
+  type ExternalGateService,
+} from "./external-gates";
+
+export * from "./external-gate-simulator";
+
+export * from "./external-gates";
 
 const route = createRoute({
   method: "get",
@@ -19,7 +28,12 @@ const route = createRoute({
         "application/json": {
           schema: z.object({
             lane: z.literal("system"),
-            status: z.literal("ready"),
+            status: z.enum(["ready", "degraded", "unavailable"]),
+            details: z.object({
+              externalGates: z.enum(["configured", "missing"]),
+              activationTestRunner: z.enum(["configured", "missing"]),
+              workosWebhook: z.enum(["configured", "missing"]),
+            }),
           }),
         },
       },
@@ -52,6 +66,8 @@ const workosWebhookRoute = createRoute({
 });
 
 export interface SystemRouteDependencies {
+  externalGates?: ExternalGateService;
+  externalGateActivationTests?: ActivationTestRunner;
   workosWebhook?: {
     verifier: WebhookVerifier<unknown>;
     deduplicator: WebhookDeduplicator;
@@ -63,8 +79,33 @@ export function registerSystemRoutes(
   app: OpenAPIHono<{ Variables: ApiVariables }>,
   dependencies: SystemRouteDependencies = {},
 ): void {
-  app.openapi(route, (context) =>
-    context.json({ lane: "system", status: "ready" }),
+  app.openapi(route, (context) => {
+    const details = {
+      externalGates: dependencies.externalGates
+        ? ("configured" as const)
+        : ("missing" as const),
+      activationTestRunner: dependencies.externalGateActivationTests
+        ? ("configured" as const)
+        : ("missing" as const),
+      workosWebhook: dependencies.workosWebhook
+        ? ("configured" as const)
+        : ("missing" as const),
+    };
+    const configured = Object.values(details).filter(
+      (value) => value === "configured",
+    ).length;
+    const status =
+      configured === 0
+        ? ("unavailable" as const)
+        : configured === Object.keys(details).length
+          ? ("ready" as const)
+          : ("degraded" as const);
+    return context.json({ lane: "system" as const, status, details });
+  });
+  registerExternalGateRoutes(
+    app,
+    dependencies.externalGates,
+    dependencies.externalGateActivationTests,
   );
   app.openapi(workosWebhookRoute, async (context) => {
     const adapter = dependencies.workosWebhook;
@@ -75,20 +116,21 @@ export function registerSystemRoutes(
       );
     const rawBody = context.get("requestContext").rawWebhookBody;
     if (!rawBody) throw new Error("Verified webhook raw body was not captured");
-    const unverified = z
-      .object({ event: z.string() })
-      .parse(JSON.parse(new TextDecoder().decode(rawBody)));
     const result = await verifyAndClaimWebhook({
       provider: "workos",
-      eventType: unverified.event,
+      eventType: (payload) =>
+        z
+          .object({ event: z.string().min(1) })
+          .passthrough()
+          .parse(payload).event,
       rawBody,
       signature: context.req.valid("header")["workos-signature"],
       verifier: adapter.verifier,
       deduplicator: adapter.deduplicator,
     });
-    if (result.claim === "duplicate")
+    if (result.claim.status === "duplicate")
       return context.json({ status: "duplicate" as const }, 200);
-    if (result.claim === "in_progress")
+    if (result.claim.status === "in_progress")
       return context.json(
         {
           title: "Webhook delivery is already being processed",
@@ -105,11 +147,13 @@ export function registerSystemRoutes(
       await adapter.deduplicator.markProcessed(
         "workos",
         result.verified.eventId,
+        result.claim.claimToken,
       );
     } catch (error) {
       await adapter.deduplicator.markFailed(
         "workos",
         result.verified.eventId,
+        result.claim.claimToken,
         error instanceof Error ? error.message : "Unknown role-sync failure",
       );
       throw error;

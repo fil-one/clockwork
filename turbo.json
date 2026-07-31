@@ -16,12 +16,36 @@
       "outputs": []
     },
     "test:unit": {
-      "dependsOn": ["^build"],
       "outputs": []
     },
     "test:integration": {
-      "dependsOn": ["^build"],
       "outputs": []
+    },
+    "//#format:check": {
+      "outputs": []
+    },
+    "//#lint": {
+      "outputs": []
+    },
+    "//#boundaries": {
+      "outputs": []
+    },
+    "//#scan:secrets": {
+      "outputs": []
+    },
+    "//#audit:dependencies": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#build:storybook": {
+      "outputs": ["apps/web/storybook-static/**"]
+    },
+    "//#test:storybook": {
+      "outputs": []
+    },
+    "//#test:e2e": {
+      "cache": false,
+      "outputs": ["apps/web/playwright-report/**", "apps/web/test-results/**"]
     },
     "clean": {
       "cache": false

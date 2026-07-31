@@ -1,4 +1,6 @@
-import { and, desc, eq, isNotNull, lt } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { and, desc, eq, isNotNull, isNull, lt } from "drizzle-orm";
 
 import type { RuntimeDatabase } from "../client";
 import {
@@ -10,6 +12,11 @@ import {
 } from "../schema";
 import { withInternalTransaction } from "../transaction";
 
+/** Persist only an operator-safe classification; provider messages may contain PII or credentials. */
+export function sanitizeWebhookProcessingError(_error: unknown): string {
+  return "WEBHOOK_PROCESSING_FAILED";
+}
+
 export class DatabaseWebhookDeduplicator {
   public constructor(private readonly db: RuntimeDatabase) {}
 
@@ -20,13 +27,18 @@ export class DatabaseWebhookDeduplicator {
     payloadHash: string;
     payload: unknown;
     occurredAt: string;
-  }): Promise<"claimed" | "duplicate" | "in_progress"> {
+  }): Promise<
+    | { status: "claimed"; claimToken: string }
+    | { status: "duplicate" }
+    | { status: "in_progress" }
+  > {
     return withInternalTransaction(
       this.db,
       `webhook:${input.provider}:${input.eventId}`,
       async (transaction) => {
         const now = new Date();
         const lockedUntil = new Date(now.getTime() + 30_000);
+        const claimToken = randomUUID();
         const inserted = await transaction
           .insert(webhookEvents)
           .values({
@@ -37,11 +49,12 @@ export class DatabaseWebhookDeduplicator {
             payloadHash: input.payloadHash,
             payload: input.payload,
             occurredAt: new Date(input.occurredAt),
+            lockToken: claimToken,
             lockedUntil,
           })
           .onConflictDoNothing()
           .returning({ id: webhookEvents.id });
-        if (inserted.length === 1) return "claimed";
+        if (inserted.length === 1) return { status: "claimed", claimToken };
         const existing = await transaction.query.webhookEvents.findFirst({
           where: and(
             eq(webhookEvents.provider, input.provider),
@@ -53,12 +66,14 @@ export class DatabaseWebhookDeduplicator {
           throw new Error(
             "Webhook event ID was reused with a different payload",
           );
-        if (existing.processedAt) return "duplicate";
-        if (existing.lockedUntil > now) return "in_progress";
+        if (existing.processedAt) return { status: "duplicate" };
+        if (existing.lockedUntil > now) return { status: "in_progress" };
+        const reclaimedToken = randomUUID();
         const reclaimed = await transaction
           .update(webhookEvents)
           .set({
             lockedUntil,
+            lockToken: reclaimedToken,
             attemptCount: existing.attemptCount + 1,
             processingError: null,
           })
@@ -69,46 +84,66 @@ export class DatabaseWebhookDeduplicator {
             ),
           )
           .returning({ id: webhookEvents.id });
-        return reclaimed.length === 1 ? "claimed" : "in_progress";
+        return reclaimed.length === 1
+          ? { status: "claimed", claimToken: reclaimedToken }
+          : { status: "in_progress" };
       },
     );
   }
 
-  public async markProcessed(provider: string, eventId: string) {
+  public async markProcessed(
+    provider: string,
+    eventId: string,
+    claimToken: string,
+  ) {
     await withInternalTransaction(
       this.db,
       `webhook-complete:${provider}:${eventId}`,
       async (transaction) => {
-        await transaction
+        const completed = await transaction
           .update(webhookEvents)
           .set({ processedAt: new Date(), processingError: null })
           .where(
             and(
               eq(webhookEvents.provider, provider),
               eq(webhookEvents.providerEventId, eventId),
+              eq(webhookEvents.lockToken, claimToken),
+              isNull(webhookEvents.processedAt),
             ),
-          );
+          )
+          .returning({ id: webhookEvents.id });
+        if (completed.length !== 1)
+          throw new Error("STALE_WEBHOOK_CLAIM_COMPLETION");
       },
     );
   }
 
-  public async markFailed(provider: string, eventId: string, error: string) {
+  public async markFailed(
+    provider: string,
+    eventId: string,
+    claimToken: string,
+    error: unknown,
+  ) {
     await withInternalTransaction(
       this.db,
       `webhook-failed:${provider}:${eventId}`,
       async (transaction) => {
-        await transaction
+        const failed = await transaction
           .update(webhookEvents)
           .set({
             lockedUntil: new Date(),
-            processingError: error.slice(0, 2_000),
+            processingError: sanitizeWebhookProcessingError(error),
           })
           .where(
             and(
               eq(webhookEvents.provider, provider),
               eq(webhookEvents.providerEventId, eventId),
+              eq(webhookEvents.lockToken, claimToken),
+              isNull(webhookEvents.processedAt),
             ),
-          );
+          )
+          .returning({ id: webhookEvents.id });
+        if (failed.length !== 1) throw new Error("STALE_WEBHOOK_CLAIM_FAILURE");
       },
     );
   }

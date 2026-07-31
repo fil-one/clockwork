@@ -5,6 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  ...(process.env.CI ? { workers: 2 } : {}),
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure" },
   webServer: {

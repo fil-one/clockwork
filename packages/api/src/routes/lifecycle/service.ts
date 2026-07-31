@@ -3,6 +3,7 @@ import type {
   LifecycleRouteResult,
   LifecycleRouteService,
 } from "./types";
+import { z } from "zod";
 
 export type LifecycleCommand =
   | "register"
@@ -50,9 +51,9 @@ export interface LifecycleCommandRepository {
 }
 
 function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("LIFECYCLE_COMMAND_PAYLOAD_INVALID");
-  return value as Record<string, unknown>;
+  const parsed = z.record(z.string(), z.unknown()).safeParse(value);
+  if (!parsed.success) throw new Error("LIFECYCLE_COMMAND_PAYLOAD_INVALID");
+  return parsed.data;
 }
 
 /** Concrete application service shared by HTTP, assisted, and webhook entry points. */
@@ -94,7 +95,13 @@ export class TransactionalLifecycleService implements LifecycleRouteService {
     input: unknown,
     context: LifecycleOperationContext,
   ) {
-    return this.execute("verify_partner_domain", input, context);
+    const payload = record(input);
+    if (
+      !payload.verificationEvidence ||
+      typeof payload.verificationEvidence !== "object"
+    )
+      throw new Error("TRUSTED_DOMAIN_OWNERSHIP_EVIDENCE_REQUIRED");
+    return this.execute("verify_partner_domain", payload, context);
   }
 
   public updateProcurement(input: unknown, context: LifecycleOperationContext) {

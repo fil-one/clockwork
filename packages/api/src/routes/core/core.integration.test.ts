@@ -143,6 +143,118 @@ describe("core-finance API", () => {
     });
   });
 
+  it("authorizes a partner quote by partner scope while preserving the end-client buyer", async () => {
+    const service = new MemoryCoreFinanceService();
+    configureCoreRouteDependencies({ service });
+    const app = createApiApp();
+    const response = await app.request("/v1/core/commands/quotes", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "partner-resale-quote-create-0001",
+        persona: "partner_admin",
+        accountId: accountOne,
+      }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-000000000010",
+        accountId: accountTwo,
+        action: "create",
+        payload: {
+          partnerAccountId: accountOne,
+          endClientAccountId: accountTwo,
+          route: "resale",
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      record: { accountId: accountTwo },
+    });
+
+    const foreignPartner = await app.request("/v1/core/commands/quotes", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "partner-resale-quote-foreign-0001",
+        persona: "partner_admin",
+        accountId: accountOne,
+      }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-000000000011",
+        accountId: accountTwo,
+        action: "create",
+        payload: {
+          partnerAccountId: accountTwo,
+          endClientAccountId: accountTwo,
+          route: "resale",
+        },
+      }),
+    });
+    expect(foreignPartner.status).toBe(403);
+  });
+
+  it("requires tenant scope and prevents record account reassignment", async () => {
+    const service = new MemoryCoreFinanceService();
+    configureCoreRouteDependencies({ service });
+    const app = createApiApp();
+    const id = "13000000-0000-4000-8000-000000000003";
+    const unscoped = await app.request("/v1/core/commands/orders", {
+      method: "POST",
+      headers: mutationHeaders({ key: "unscoped-order-create-0001" }),
+      body: JSON.stringify({ id, action: "create", payload: {} }),
+    });
+    expect(unscoped.status).toBe(403);
+    await expect(unscoped.json()).resolves.toMatchObject({
+      code: "ACCOUNT_SCOPE_REQUIRED",
+    });
+
+    const created = await app.request("/v1/core/commands/orders", {
+      method: "POST",
+      headers: mutationHeaders({ key: "scoped-order-create-0001" }),
+      body: JSON.stringify({
+        id,
+        accountId: accountOne,
+        action: "create",
+        payload: {},
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const reassignment = await app.request("/v1/core/commands/orders", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "order-reassignment-0001",
+        accountId: accountTwo,
+      }),
+      body: JSON.stringify({
+        id,
+        accountId: accountTwo,
+        action: "accept",
+        expectedVersion: 1,
+        payload: {},
+      }),
+    });
+    expect(reassignment.status).toBe(404);
+    await expect(reassignment.json()).resolves.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+
+  it("requires approval authority for quote exception decisions", async () => {
+    configureCoreRouteDependencies({ service: new MemoryCoreFinanceService() });
+    const response = await createApiApp().request("/v1/core/commands/quotes", {
+      method: "POST",
+      headers: mutationHeaders({ key: "quote-exception-approval-0001" }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-000000000004",
+        accountId: accountOne,
+        action: "approve_exception",
+        expectedVersion: 1,
+        payload: { reason: "Floor exception" },
+      }),
+    });
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("requires explicit tenant scope for non-internal cursor reads", async () => {
     configureCoreRouteDependencies({ service: new MemoryCoreFinanceService() });
     const response = await createApiApp().request("/v1/core/records/invoices", {
@@ -154,6 +266,61 @@ describe("core-finance API", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
       code: "ACCOUNT_SCOPE_REQUIRED",
+    });
+  });
+
+  it("uses the typed report method with source traceability and tenant/internal scope", async () => {
+    const service = new MemoryCoreFinanceService();
+    configureCoreRouteDependencies({ service });
+    const app = createApiApp();
+    const reportId = "13000000-0000-4000-8000-000000000099";
+    const created = await app.request("/v1/core/commands/reports", {
+      method: "POST",
+      headers: mutationHeaders({ key: "report-source-create-0001" }),
+      body: JSON.stringify({
+        id: reportId,
+        accountId: accountOne,
+        action: "create",
+        payload: {
+          report: "revenue_forecast",
+          sourceRecordIds: { orderId: "order-source-001" },
+          forecastRevenueMinor: "12000",
+          currency: "USD",
+        },
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const tenant = await app.request(
+      `/v1/core/reports/revenue_forecast?accountId=${accountOne}`,
+      { headers: mutationHeaders({ key: "report-tenant-read-0001" }) },
+    );
+    expect(tenant.status).toBe(200);
+    await expect(tenant.json()).resolves.toMatchObject({
+      items: [
+        {
+          id: reportId,
+          accountId: accountOne,
+          data: { sourceRecordIds: { orderId: "order-source-001" } },
+        },
+      ],
+    });
+
+    const crossTenant = await app.request(
+      `/v1/core/reports/revenue_forecast?accountId=${accountTwo}`,
+      { headers: mutationHeaders({ key: "report-cross-read-0001" }) },
+    );
+    expect(crossTenant.status).toBe(403);
+
+    const internal = await app.request("/v1/core/reports/revenue_forecast", {
+      headers: {
+        "x-clockwork-persona": "internal_operator",
+        "x-clockwork-recent-auth": "true",
+      },
+    });
+    expect(internal.status).toBe(200);
+    await expect(internal.json()).resolves.toMatchObject({
+      items: [{ id: reportId }],
     });
   });
 
@@ -177,7 +344,7 @@ describe("core-finance API", () => {
     const verifier: WebhookVerifier<unknown> = { verify: vi.fn(verify) };
     const claim: WebhookDeduplicator["claim"] = () => {
       order.push("claim");
-      return Promise.resolve("duplicate");
+      return Promise.resolve({ status: "duplicate" });
     };
     const deduplicator: WebhookDeduplicator = {
       claim: vi.fn(claim),
@@ -199,6 +366,34 @@ describe("core-finance API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ status: "duplicate" });
     expect(order).toEqual(["verify", "claim"]);
+  });
+
+  it("does not parse or claim an event before Stripe verification succeeds", async () => {
+    const claim = vi.fn<WebhookDeduplicator["claim"]>();
+    configureCoreRouteDependencies({
+      service: new MemoryCoreFinanceService(),
+      stripeWebhook: {
+        verifier: {
+          verify: vi.fn().mockRejectedValue(new Error("invalid signature")),
+        },
+        deduplicator: {
+          claim,
+          markProcessed: vi.fn(),
+          markFailed: vi.fn(),
+        },
+        apply: vi.fn(),
+      },
+    });
+    const response = await createApiApp().request("/v1/webhooks/stripe", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "invalid",
+      },
+      body: '{"notType":"must-not-be-parsed-before-verification"}',
+    });
+    expect(response.status).toBe(500);
+    expect(claim).not.toHaveBeenCalled();
   });
 
   it("claims operator replay once and requires recent authentication", async () => {

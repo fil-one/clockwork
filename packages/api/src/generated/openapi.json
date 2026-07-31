@@ -16,7 +16,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Core-finance lane mount",
+            "description": "Core-finance lane status",
             "content": {
               "application/json": {
                 "schema": {
@@ -31,17 +31,820 @@
                     "status": {
                       "type": "string",
                       "enum": [
-                        "ready"
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "database",
+                            "memory",
+                            "missing"
+                          ]
+                        },
+                        "stripeWebhook": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "stripePayment": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "artifactStorage": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "service",
+                        "stripeWebhook",
+                        "stripePayment",
+                        "artifactStorage"
                       ]
                     }
                   },
                   "required": [
                     "lane",
+                    "status",
+                    "details"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/core/commands/{resource}": {
+      "post": {
+        "tags": [
+          "core"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "accounts",
+                "procurement_profiles",
+                "price_books",
+                "quotes",
+                "orders",
+                "amendments",
+                "commitments",
+                "invoices",
+                "credit_notes",
+                "refunds",
+                "disputes",
+                "deal_registrations",
+                "commissions",
+                "accounting_exports",
+                "marketplace_reconciliations",
+                "reports"
+              ]
+            },
+            "required": true,
+            "name": "resource",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "action": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "action",
+                  "payload"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Versioned core-finance mutation with atomic audit/outbox identifiers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "record": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "resource": {
+                          "type": "string",
+                          "enum": [
+                            "accounts",
+                            "procurement_profiles",
+                            "price_books",
+                            "quotes",
+                            "orders",
+                            "amendments",
+                            "commitments",
+                            "invoices",
+                            "credit_notes",
+                            "refunds",
+                            "disputes",
+                            "deal_registrations",
+                            "commissions",
+                            "accounting_exports",
+                            "marketplace_reconciliations",
+                            "reports"
+                          ]
+                        },
+                        "accountId": {
+                          "type": "string"
+                        },
+                        "rowVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true
+                        },
+                        "data": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "nullable": true
+                          }
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "resource",
+                        "rowVersion",
+                        "data",
+                        "createdAt",
+                        "updatedAt"
+                      ]
+                    },
+                    "auditEventId": {
+                      "type": "string"
+                    },
+                    "outboxMessageId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "record",
+                    "auditEventId",
+                    "outboxMessageId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account or role scope denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Optimistic version or duplicate conflict"
+          }
+        }
+      }
+    },
+    "/v1/core/records/{resource}": {
+      "get": {
+        "tags": [
+          "core"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "accounts",
+                "procurement_profiles",
+                "price_books",
+                "quotes",
+                "orders",
+                "amendments",
+                "commitments",
+                "invoices",
+                "credit_notes",
+                "refunds",
+                "disputes",
+                "deal_registrations",
+                "commissions",
+                "accounting_exports",
+                "marketplace_reconciliations",
+                "reports"
+              ]
+            },
+            "required": true,
+            "name": "resource",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stable cursor page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "resource": {
+                            "type": "string",
+                            "enum": [
+                              "accounts",
+                              "procurement_profiles",
+                              "price_books",
+                              "quotes",
+                              "orders",
+                              "amendments",
+                              "commitments",
+                              "invoices",
+                              "credit_notes",
+                              "refunds",
+                              "disputes",
+                              "deal_registrations",
+                              "commissions",
+                              "accounting_exports",
+                              "marketplace_reconciliations",
+                              "reports"
+                            ]
+                          },
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "rowVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "data": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "nullable": true
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "resource",
+                          "rowVersion",
+                          "data",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account or role scope denied"
+          }
+        }
+      }
+    },
+    "/v1/core/replays/{provider}/{eventId}": {
+      "post": {
+        "tags": [
+          "core",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "eventId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Replay claimed idempotently",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "replayed": {
+                      "type": "boolean"
+                    },
+                    "workflowRunId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "replayed",
+                    "workflowRunId"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator or recent-authentication requirement failed"
+          }
+        }
+      }
+    },
+    "/v1/core/reports/{report}": {
+      "get": {
+        "tags": [
+          "core",
+          "reports"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "revenue_forecast",
+                "capacity_planning",
+                "renewal_churn_exposure",
+                "partner_performance",
+                "funnel_cycle_time",
+                "margin_poc_cost",
+                "three_way_tie_out",
+                "weekly_scorecard"
+              ]
+            },
+            "required": true,
+            "name": "report",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "default": "json"
+            },
+            "required": false,
+            "name": "format",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current management report, traceable to source records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "resource": {
+                            "type": "string",
+                            "enum": [
+                              "accounts",
+                              "procurement_profiles",
+                              "price_books",
+                              "quotes",
+                              "orders",
+                              "amendments",
+                              "commitments",
+                              "invoices",
+                              "credit_notes",
+                              "refunds",
+                              "disputes",
+                              "deal_registrations",
+                              "commissions",
+                              "accounting_exports",
+                              "marketplace_reconciliations",
+                              "reports"
+                            ]
+                          },
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "rowVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "data": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "nullable": true
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "resource",
+                          "rowVersion",
+                          "data",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ]
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Report scope denied"
+          }
+        }
+      }
+    },
+    "/v1/webhooks/stripe": {
+      "post": {
+        "tags": [
+          "core",
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "stripe-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified event applied or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
                     "status"
                   ]
                 }
               }
             }
+          },
+          "503": {
+            "description": "Webhook processing is unavailable or already in progress"
+          }
+        }
+      }
+    },
+    "/v1/core/payment-sessions": {
+      "post": {
+        "tags": [
+          "core",
+          "billing"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "invoiceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "invoiceId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stripe-hosted customer payment session; payment truth remains webhook-derived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "stripe"
+                      ]
+                    },
+                    "sessionId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "invoiceId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "requires_customer_action"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "sessionId",
+                    "invoiceId",
+                    "url",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Billing permission or account scope denied"
+          },
+          "409": {
+            "description": "Invoice is no longer payable"
+          },
+          "503": {
+            "description": "Stripe payment session is not configured"
+          }
+        }
+      }
+    },
+    "/v1/core/artifacts/{kind}/{id}": {
+      "get": {
+        "tags": [
+          "core",
+          "documents"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "agreement_template",
+                "quote",
+                "partner_quote",
+                "order_form"
+              ]
+            },
+            "required": true,
+            "name": "kind",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized immutable artifact bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Artifact account scope denied"
+          },
+          "404": {
+            "description": "Artifact not found"
+          },
+          "503": {
+            "description": "Immutable evidence storage is not configured"
           }
         }
       }
@@ -68,17 +871,3395 @@
                     "status": {
                       "type": "string",
                       "enum": [
-                        "ready"
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "database",
+                            "missing"
+                          ]
+                        },
+                        "registration": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "partnerDomainOwnership": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "esign": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "provisioningWebhook": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "marketplaceWebhook": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "evidenceStorage": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "service",
+                        "registration",
+                        "partnerDomainOwnership",
+                        "esign",
+                        "provisioningWebhook",
+                        "marketplaceWebhook",
+                        "evidenceStorage"
                       ]
                     }
                   },
                   "required": [
                     "lane",
+                    "status",
+                    "details"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/registrations": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "onboarding"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legalName": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$"
+                  },
+                  "registeredAddress": {
+                    "type": "object",
+                    "properties": {
+                      "line1": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "line2": {
+                        "type": "string"
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "region": {
+                        "type": "string"
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "country": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$"
+                      }
+                    },
+                    "required": [
+                      "line1",
+                      "city",
+                      "postalCode",
+                      "country"
+                    ]
+                  },
+                  "relationshipRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "direct_client",
+                        "partner",
+                        "end_client"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "businessDomain": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "registrantEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "registrationToken": {
+                    "type": "string",
+                    "minLength": 32
+                  },
+                  "taxIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "jurisdiction": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{2}$"
+                        },
+                        "value": {
+                          "type": "string",
+                          "minLength": 3
+                        }
+                      },
+                      "required": [
+                        "jurisdiction",
+                        "value"
+                      ]
+                    },
+                    "maxItems": 20
+                  },
+                  "billingContact": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "email"
+                    ]
+                  },
+                  "apContact": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "email"
+                    ]
+                  },
+                  "invoiceDeliveryEmail": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "legalName",
+                  "country",
+                  "registeredAddress",
+                  "relationshipRoles",
+                  "businessDomain",
+                  "registrantEmail",
+                  "registrationToken",
+                  "taxIds",
+                  "billingContact",
+                  "apContact",
+                  "invoiceDeliveryEmail"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/organizations/{organizationId}/invites": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "identity"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "organizationId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "billing",
+                      "member",
+                      "partner_admin",
+                      "partner_seller"
+                    ]
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "email",
+                  "role",
+                  "expiresAt"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/account-selection": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "identity"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/partners/{accountId}/domains": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "identity",
+          "partners"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "accountId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "verificationToken": {
+                    "type": "string",
+                    "minLength": 16
+                  },
+                  "brandName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "logoUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uri"
+                  },
+                  "primaryColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "communicationOwner": {
+                    "type": "string",
+                    "enum": [
+                      "fil_one",
+                      "partner"
+                    ]
+                  }
+                },
+                "required": [
+                  "domain",
+                  "verificationToken",
+                  "brandName",
+                  "logoUrl",
+                  "primaryColor",
+                  "communicationOwner"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/accounts/{accountId}/procurement-profile": {
+      "put": {
+        "tags": [
+          "lifecycle",
+          "onboarding"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "accountId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apContact": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "email"
+                    ]
+                  },
+                  "invoiceDeliveryEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "poRequired": {
+                    "type": "boolean"
+                  },
+                  "exemptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "jurisdiction": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "certificateDocumentId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "expiresOn": {
+                          "type": "string",
+                          "nullable": true,
+                          "format": "date"
+                        }
+                      },
+                      "required": [
+                        "jurisdiction",
+                        "certificateDocumentId",
+                        "expiresOn"
+                      ]
+                    }
+                  },
+                  "supplierDocuments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "documentId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "documentId"
+                      ]
+                    }
+                  },
+                  "buyerPortalTasks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "taskId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "ownerId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "dueAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reminderEveryHours": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true
+                        }
+                      },
+                      "required": [
+                        "taskId",
+                        "ownerId",
+                        "dueAt",
+                        "reminderEveryHours"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "apContact",
+                  "invoiceDeliveryEmail",
+                  "poRequired",
+                  "exemptions",
+                  "supplierDocuments",
+                  "buyerPortalTasks"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/agreement-templates": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "semanticVersion": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$"
+                  },
+                  "jurisdiction": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "effectiveOn": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "canonicalDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "exactText": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "exactTextHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "executionMode": {
+                    "type": "string",
+                    "enum": [
+                      "click_through",
+                      "counter_signed"
+                    ]
+                  },
+                  "approvalEvidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "type",
+                  "semanticVersion",
+                  "jurisdiction",
+                  "effectiveOn",
+                  "canonicalDocumentId",
+                  "exactText",
+                  "exactTextHash",
+                  "executionMode",
+                  "approvalEvidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/agreement-templates/active": {
+      "get": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "required": true,
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 20
+            },
+            "required": true,
+            "name": "jurisdiction",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active approved agreement template with verified exact text",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "semanticVersion": {
+                      "type": "string"
+                    },
+                    "jurisdiction": {
+                      "type": "string"
+                    },
+                    "effectiveOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "canonicalDocumentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "exactText": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "exactTextHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "executionMode": {
+                      "type": "string",
+                      "enum": [
+                        "click_through",
+                        "counter_signed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "semanticVersion",
+                    "jurisdiction",
+                    "effectiveOn",
+                    "canonicalDocumentId",
+                    "exactText",
+                    "exactTextHash",
+                    "executionMode"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Agreement read permission denied"
+          },
+          "404": {
+            "description": "Active approved template not found"
+          },
+          "503": {
+            "description": "Template evidence storage is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/agreements/customer-paper": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "uploadedDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "negotiationStatus": {
+                    "type": "string",
+                    "enum": [
+                      "received",
+                      "redlining",
+                      "agreed"
+                    ]
+                  },
+                  "jurisdiction": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "keyTerms": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "nullable": true
+                    }
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "uploadedDocumentId",
+                  "negotiationStatus",
+                  "jurisdiction",
+                  "keyTerms"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/agreements/click-through": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "templateVersion": {
+                    "type": "string",
+                    "pattern": "^\\d+\\.\\d+\\.\\d+$"
+                  },
+                  "exactText": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "exactTextHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "authorityTitle": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "authorityAttested": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "uiContext": {
+                    "type": "object",
+                    "properties": {
+                      "surface": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actionLabel": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "locale": {
+                        "type": "string",
+                        "minLength": 2
+                      }
+                    },
+                    "required": [
+                      "surface",
+                      "actionLabel",
+                      "locale"
+                    ]
+                  },
+                  "previousAgreementId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "templateId",
+                  "templateVersion",
+                  "exactText",
+                  "exactTextHash",
+                  "authorityTitle",
+                  "authorityAttested",
+                  "uiContext",
+                  "previousAgreementId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/agreements/envelopes": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "agreementId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "signerEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "redirect",
+                      "embedded"
+                    ]
+                  },
+                  "returnUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "agreementId",
+                  "documentId",
+                  "signerEmail",
+                  "mode",
+                  "returnUrl"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/webhooks/esign": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "esign-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified e-sign callback processed or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
                     "status"
                   ]
                 }
               }
             }
+          },
+          "503": {
+            "description": "Webhook adapter unavailable or already processing"
+          }
+        }
+      }
+    },
+    "/v1/webhooks/provisioning": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "webhooks",
+          "provisioning"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "provisioning-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified provisioning confirmation processed or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Provisioning webhook adapter unavailable or busy"
+          }
+        }
+      }
+    },
+    "/v1/webhooks/marketplaces-platform": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "webhooks",
+          "marketplaces"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "marketplace-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified marketplace entitlement event processed or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Marketplace webhook adapter unavailable or busy"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/pocs/{pocId}/conversion": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "pocs"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "pocId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "quoteId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "quoteId",
+                  "orderId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/pocs": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "pocs"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "partnerAccountId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "workload": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "buyerUserId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "permittedDataClass": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "successTests": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "description"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "capacityCap": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,18})?$"
+                  },
+                  "egressCap": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9]\\d*)(\\.\\d{1,18})?$"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "supportOwnerId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "partnerAccountId",
+                  "workload",
+                  "buyerUserId",
+                  "permittedDataClass",
+                  "successTests",
+                  "capacityCap",
+                  "egressCap",
+                  "expiresAt",
+                  "supportOwnerId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/pocs/{pocId}/decisions": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "pocs",
+          "exceptions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "pocId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reason",
+                  "evidenceDocumentId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/provisioning/{commandId}/recover": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "provisioning"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "commandId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/end-user-terms/acceptances": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "agreements"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "organizationId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "templateVersion": {
+                    "type": "string"
+                  },
+                  "exactTextHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "uiContext": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "organizationId",
+                  "templateId",
+                  "templateVersion",
+                  "exactTextHash",
+                  "uiContext"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/notices": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "renewals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "non_renewal",
+                      "termination",
+                      "breach_claim",
+                      "other"
+                    ]
+                  },
+                  "servedOn": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "portal",
+                      "email",
+                      "mail",
+                      "esign"
+                    ]
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "orderId",
+                  "type",
+                  "servedOn",
+                  "evidenceDocumentId",
+                  "source"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/renewals": {
+      "get": {
+        "tags": [
+          "lifecycle",
+          "renewals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "accountId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "30",
+                "180",
+                "60_90",
+                "all"
+              ],
+              "default": "all"
+            },
+            "required": false,
+            "name": "window",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "default": "UTC"
+            },
+            "required": false,
+            "name": "timeZone",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/renewals/{orderId}/requests": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "renewals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "orderId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "requestedAction": {
+                    "type": "string",
+                    "enum": [
+                      "renew",
+                      "change_term",
+                      "request_change"
+                    ]
+                  },
+                  "requestedTermMonths": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "requestedAction",
+                  "requestedTermMonths"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/renewals/{orderId}/declines": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "renewals"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "orderId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "authorityTitle": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "authorityAttested": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "reason",
+                  "authorityTitle",
+                  "authorityAttested",
+                  "evidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/terminations": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "offboarding"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "customer_request",
+                      "non_renewal",
+                      "partner_request",
+                      "partner_default",
+                      "material_breach"
+                    ]
+                  },
+                  "effectiveAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "retrievalDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "partnerAccountId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "orderId",
+                  "reason",
+                  "effectiveAt",
+                  "retrievalDays",
+                  "partnerAccountId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/terminations/{terminationId}/approvals": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "offboarding"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "terminationId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reason",
+                  "evidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/exceptions/{caseId}/decisions": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "exceptions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "caseId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "reason",
+                  "evidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/novations": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "offboarding"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "formerPartnerAccountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "sourceOrderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "newAgreementId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "newOrderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "partner_default",
+                      "partner_exit",
+                      "agreed_handoff"
+                    ]
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "formerPartnerAccountId",
+                  "sourceOrderId",
+                  "newAgreementId",
+                  "newOrderId",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/exceptions": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "exceptions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "queue": {
+                    "type": "string",
+                    "enum": [
+                      "pricing",
+                      "legal",
+                      "credit_collections",
+                      "restricted_parties",
+                      "disputes",
+                      "deal_registration_disputes",
+                      "poc_qualification"
+                    ]
+                  },
+                  "objectType": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "objectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "accountId",
+                  "queue",
+                  "objectType",
+                  "objectId",
+                  "reason",
+                  "evidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/accounts/{accountId}/support-signals": {
+      "get": {
+        "tags": [
+          "lifecycle",
+          "support"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "accountId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "since",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/migrations": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "migrations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "executionMode": {
+                    "type": "string",
+                    "enum": [
+                      "discovery",
+                      "rehearsal",
+                      "execute"
+                    ]
+                  },
+                  "sourceSnapshotHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "resumeRunId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "batchSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "executionMode",
+                  "sourceSnapshotHash",
+                  "resumeRunId",
+                  "batchSize"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/migrations/{runId}/matches/{legacyAccountId}/decision": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "migrations",
+          "exceptions"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "runId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "legacyAccountId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "attach",
+                      "skip"
+                    ]
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "evidenceDocumentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "decision",
+                  "accountId",
+                  "reason",
+                  "evidenceDocumentId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lifecycle operation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "signingUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account, role, MFA, or recent-authentication denial"
+          },
+          "503": {
+            "description": "Lifecycle persistence adapter is not configured"
           }
         }
       }
@@ -105,17 +4286,745 @@
                     "status": {
                       "type": "string",
                       "enum": [
-                        "ready"
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "externalGates": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "activationTestRunner": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
+                        "workosWebhook": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "externalGates",
+                        "activationTestRunner",
+                        "workosWebhook"
                       ]
                     }
                   },
                   "required": [
                     "lane",
-                    "status"
+                    "status",
+                    "details"
                   ]
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/system/external-gates": {
+      "get": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Internal external-gate activation register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "gateKey": {
+                            "type": "string",
+                            "enum": [
+                              "EXT-ACC-01",
+                              "EXT-LEGAL-01",
+                              "EXT-COMMERCIAL-01",
+                              "EXT-PROVIDER-01",
+                              "EXT-PROVISION-01",
+                              "EXT-TAX-01",
+                              "EXT-DOMAIN-01",
+                              "EXT-BRAND-01",
+                              "EXT-APPROVERS-01",
+                              "EXT-TEARDOWN-01",
+                              "EXT-MARKETPLACE-01",
+                              "EXT-MIGRATION-01"
+                            ]
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "owner": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "inputRequired": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "affectedFeature": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "severity": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "configuredStatus": {
+                            "type": "string",
+                            "enum": [
+                              "blocked",
+                              "review",
+                              "pending",
+                              "active",
+                              "not_required"
+                            ]
+                          },
+                          "effectiveStatus": {
+                            "type": "string",
+                            "enum": [
+                              "blocked",
+                              "review",
+                              "pending",
+                              "active",
+                              "not_required"
+                            ]
+                          },
+                          "simulatorState": {
+                            "type": "string",
+                            "enum": [
+                              "ready",
+                              "degraded",
+                              "unavailable"
+                            ]
+                          },
+                          "simulatorDetails": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "lastActivationTestStatus": {
+                            "type": "string",
+                            "enum": [
+                              "never",
+                              "passed",
+                              "failed"
+                            ]
+                          },
+                          "lastActivationTestAt": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "lastActivationTestedBy": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1
+                          },
+                          "activationEvidenceReference": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1
+                          },
+                          "reviewOn": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date"
+                          },
+                          "statusReason": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "activationAllowed": {
+                            "type": "boolean"
+                          },
+                          "blockedReasons": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "rowVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "gateKey",
+                          "title",
+                          "owner",
+                          "inputRequired",
+                          "affectedFeature",
+                          "severity",
+                          "configuredStatus",
+                          "effectiveStatus",
+                          "simulatorState",
+                          "simulatorDetails",
+                          "lastActivationTestStatus",
+                          "lastActivationTestAt",
+                          "lastActivationTestedBy",
+                          "activationEvidenceReference",
+                          "reviewOn",
+                          "statusReason",
+                          "activationAllowed",
+                          "blockedReasons",
+                          "rowVersion",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Internal operator permission required"
+          },
+          "503": {
+            "description": "Persistent external-gate service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/external-gates/{gateKey}": {
+      "put": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EXT-ACC-01",
+                "EXT-LEGAL-01",
+                "EXT-COMMERCIAL-01",
+                "EXT-PROVIDER-01",
+                "EXT-PROVISION-01",
+                "EXT-TAX-01",
+                "EXT-DOMAIN-01",
+                "EXT-BRAND-01",
+                "EXT-APPROVERS-01",
+                "EXT-TEARDOWN-01",
+                "EXT-MARKETPLACE-01",
+                "EXT-MIGRATION-01"
+              ]
+            },
+            "required": true,
+            "name": "gateKey",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRowVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "owner": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 200
+                  },
+                  "inputRequired": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 2000
+                  },
+                  "configuredStatus": {
+                    "type": "string",
+                    "enum": [
+                      "blocked",
+                      "review",
+                      "pending",
+                      "active",
+                      "not_required"
+                    ]
+                  },
+                  "reviewOn": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date"
+                  },
+                  "statusReason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "expectedRowVersion",
+                  "owner",
+                  "inputRequired",
+                  "configuredStatus",
+                  "reviewOn",
+                  "statusReason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "External-gate status updated with activation policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "gateKey": {
+                      "type": "string",
+                      "enum": [
+                        "EXT-ACC-01",
+                        "EXT-LEGAL-01",
+                        "EXT-COMMERCIAL-01",
+                        "EXT-PROVIDER-01",
+                        "EXT-PROVISION-01",
+                        "EXT-TAX-01",
+                        "EXT-DOMAIN-01",
+                        "EXT-BRAND-01",
+                        "EXT-APPROVERS-01",
+                        "EXT-TEARDOWN-01",
+                        "EXT-MARKETPLACE-01",
+                        "EXT-MIGRATION-01"
+                      ]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "inputRequired": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "affectedFeature": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "severity": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "configuredStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "effectiveStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "simulatorState": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "simulatorDetails": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "lastActivationTestStatus": {
+                      "type": "string",
+                      "enum": [
+                        "never",
+                        "passed",
+                        "failed"
+                      ]
+                    },
+                    "lastActivationTestAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "lastActivationTestedBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "activationEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "reviewOn": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "statusReason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "activationAllowed": {
+                      "type": "boolean"
+                    },
+                    "blockedReasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "gateKey",
+                    "title",
+                    "owner",
+                    "inputRequired",
+                    "affectedFeature",
+                    "severity",
+                    "configuredStatus",
+                    "effectiveStatus",
+                    "simulatorState",
+                    "simulatorDetails",
+                    "lastActivationTestStatus",
+                    "lastActivationTestAt",
+                    "lastActivationTestedBy",
+                    "activationEvidenceReference",
+                    "reviewOn",
+                    "statusReason",
+                    "activationAllowed",
+                    "blockedReasons",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "404": {
+            "description": "Gate not found"
+          },
+          "409": {
+            "description": "Optimistic row-version conflict"
+          },
+          "422": {
+            "description": "Fail-closed activation policy denied the update"
+          },
+          "503": {
+            "description": "Persistent external-gate service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/external-gates/{gateKey}/activation-tests": {
+      "post": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EXT-ACC-01",
+                "EXT-LEGAL-01",
+                "EXT-COMMERCIAL-01",
+                "EXT-PROVIDER-01",
+                "EXT-PROVISION-01",
+                "EXT-TAX-01",
+                "EXT-DOMAIN-01",
+                "EXT-BRAND-01",
+                "EXT-APPROVERS-01",
+                "EXT-TEARDOWN-01",
+                "EXT-MARKETPLACE-01",
+                "EXT-MIGRATION-01"
+              ]
+            },
+            "required": true,
+            "name": "gateKey",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRowVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  }
+                },
+                "required": [
+                  "expectedRowVersion"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Runner-derived external-gate activation test recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "gateKey": {
+                      "type": "string",
+                      "enum": [
+                        "EXT-ACC-01",
+                        "EXT-LEGAL-01",
+                        "EXT-COMMERCIAL-01",
+                        "EXT-PROVIDER-01",
+                        "EXT-PROVISION-01",
+                        "EXT-TAX-01",
+                        "EXT-DOMAIN-01",
+                        "EXT-BRAND-01",
+                        "EXT-APPROVERS-01",
+                        "EXT-TEARDOWN-01",
+                        "EXT-MARKETPLACE-01",
+                        "EXT-MIGRATION-01"
+                      ]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "inputRequired": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "affectedFeature": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "severity": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "configuredStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "effectiveStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "simulatorState": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "simulatorDetails": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "lastActivationTestStatus": {
+                      "type": "string",
+                      "enum": [
+                        "never",
+                        "passed",
+                        "failed"
+                      ]
+                    },
+                    "lastActivationTestAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "lastActivationTestedBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "activationEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "reviewOn": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "statusReason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "activationAllowed": {
+                      "type": "boolean"
+                    },
+                    "blockedReasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "gateKey",
+                    "title",
+                    "owner",
+                    "inputRequired",
+                    "affectedFeature",
+                    "severity",
+                    "configuredStatus",
+                    "effectiveStatus",
+                    "simulatorState",
+                    "simulatorDetails",
+                    "lastActivationTestStatus",
+                    "lastActivationTestAt",
+                    "lastActivationTestedBy",
+                    "activationEvidenceReference",
+                    "reviewOn",
+                    "statusReason",
+                    "activationAllowed",
+                    "blockedReasons",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "404": {
+            "description": "Gate not found"
+          },
+          "409": {
+            "description": "Optimistic row-version conflict"
+          },
+          "503": {
+            "description": "Activation-test runner or persistence unavailable"
           }
         }
       }

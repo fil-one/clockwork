@@ -72,7 +72,7 @@ export interface WorkflowExceptionPort {
 }
 
 export type WorkflowClaim =
-  | { status: "acquired"; attempt: number }
+  | { status: "acquired"; attempt: number; leaseToken: string }
   | { status: "completed"; output: unknown }
   | { status: "in_progress" }
   | { status: "permanent_failure"; output: unknown }
@@ -93,17 +93,20 @@ export interface WorkflowRunStore {
   claim(request: WorkflowClaimRequest): Promise<WorkflowClaim>;
   markCompleted(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     output: unknown;
     completedAt: string;
   }): Promise<void>;
   markRetrying(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     code: string;
     retryAfterMs?: number;
     failedAt: string;
   }): Promise<void>;
   markPermanentFailure(input: {
     invocationKey: IdempotencyKey;
+    leaseToken: string;
     output: unknown;
     failedAt: string;
   }): Promise<void>;

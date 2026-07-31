@@ -29,7 +29,7 @@ describe("Trigger lifecycle runtime", () => {
   it("persists claim, execution, and completion and returns durable duplicates", async () => {
     const claim = vi
       .fn()
-      .mockResolvedValueOnce({ status: "claimed" })
+      .mockResolvedValueOnce({ status: "claimed", leaseToken: "lease-1" })
       .mockResolvedValueOnce({ status: "duplicate", output: { ok: true } });
     const execute = vi.fn().mockResolvedValue({ ok: true });
     const complete = vi.fn().mockResolvedValue(undefined);
@@ -52,13 +52,15 @@ describe("Trigger lifecycle runtime", () => {
       ok: true,
     });
     expect(execute).toHaveBeenCalledOnce();
-    expect(complete).toHaveBeenCalledOnce();
+    expect(complete).toHaveBeenCalledWith(invocation, "lease-1", { ok: true });
   });
 
   it("persists failed attempts before allowing Trigger retry", async () => {
     const fail = vi.fn().mockResolvedValue(undefined);
     configureLifecycleTaskRuntime({
-      claim: vi.fn().mockResolvedValue({ status: "claimed" }),
+      claim: vi
+        .fn()
+        .mockResolvedValue({ status: "claimed", leaseToken: "lease-2" }),
       execute: vi.fn().mockRejectedValue(new Error("provider timeout")),
       complete: vi.fn(),
       fail,
@@ -72,6 +74,6 @@ describe("Trigger lifecycle runtime", () => {
     await expect(executeLifecycleTask(invocation)).rejects.toThrow(
       "provider timeout",
     );
-    expect(fail).toHaveBeenCalledWith(invocation, "provider timeout");
+    expect(fail).toHaveBeenCalledWith(invocation, "lease-2", expect.any(Error));
   });
 });

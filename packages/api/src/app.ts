@@ -10,16 +10,22 @@ import {
 } from "./middleware/idempotency";
 import type { IdempotencyStore } from "./middleware/idempotency";
 import { requestContextMiddleware } from "./middleware/request-context";
-import { csrfAndOriginMiddleware } from "./middleware/security";
+import { createCsrfAndOriginMiddleware } from "./middleware/security";
+import type { TrustedOriginResolver } from "./middleware/security";
 import { registerCoreRoutes } from "./routes/core";
+import type { CoreRouteDependencies } from "./routes/core";
 import { registerLifecycleRoutes } from "./routes/lifecycle";
+import type { LifecycleRouteDependencies } from "./routes/lifecycle";
 import { registerSystemRoutes } from "./routes/system";
 import type { SystemRouteDependencies } from "./routes/system";
 
 export interface ApiAppOptions {
   sessionResolver?: SessionResolver;
   idempotencyStore?: IdempotencyStore;
+  core?: CoreRouteDependencies;
+  lifecycle?: LifecycleRouteDependencies;
   system?: SystemRouteDependencies;
+  trustedOriginResolver?: TrustedOriginResolver;
 }
 
 export function createApiApp(options: ApiAppOptions = {}) {
@@ -48,7 +54,7 @@ export function createApiApp(options: ApiAppOptions = {}) {
   });
 
   app.use("*", requestContextMiddleware);
-  app.use("*", csrfAndOriginMiddleware);
+  app.use("*", createCsrfAndOriginMiddleware(options.trustedOriginResolver));
   app.use(
     "*",
     sessionMiddleware(options.sessionResolver ?? new LocalSessionResolver()),
@@ -82,8 +88,8 @@ export function createApiApp(options: ApiAppOptions = {}) {
     });
   });
 
-  registerCoreRoutes(app);
-  registerLifecycleRoutes(app);
+  registerCoreRoutes(app, options.core);
+  registerLifecycleRoutes(app, options.lifecycle);
   registerSystemRoutes(app, options.system);
 
   app.get("/openapi.json", (context) =>

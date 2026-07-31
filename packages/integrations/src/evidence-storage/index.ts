@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
+  S3Client,
   DeleteObjectCommand,
   GetBucketVersioningCommand,
   GetObjectCommand,
@@ -136,6 +137,86 @@ export interface EvidenceStoragePort {
     access: EvidenceAccessContext;
     expiresInSeconds?: number;
   }): Promise<ProviderResult<{ url: string; expiresAt: string }>>;
+}
+
+export interface ImmutableArtifactReadInput {
+  storageKey: string;
+  storageVersionId: string;
+  contentHash: string;
+  mimeType: string;
+  byteLength: string;
+}
+
+export interface ImmutableArtifactReader {
+  read(input: ImmutableArtifactReadInput): Promise<{
+    bytes: Uint8Array;
+    contentHash: string;
+    mimeType: string;
+    byteLength: string;
+  }>;
+}
+
+/**
+ * App-streamed immutable evidence reader. The object key and version must come
+ * from an authorized database lookup; callers never pass user-owned URLs.
+ */
+export class S3ImmutableArtifactReader implements ImmutableArtifactReader {
+  private readonly client: S3CommandClient;
+
+  public constructor(
+    private readonly configuration: {
+      bucket: string;
+      region: string;
+      expectedBucketOwner: string;
+      client?: S3CommandClient;
+    },
+  ) {
+    if (!configuration.bucket.trim())
+      throw new Error("Evidence bucket is required");
+    if (!/^\d{12}$/.test(configuration.expectedBucketOwner))
+      throw new Error("Expected evidence bucket owner must be 12 digits");
+    this.client =
+      configuration.client ?? new S3Client({ region: configuration.region });
+  }
+
+  public async read(input: ImmutableArtifactReadInput) {
+    if (!/^[a-f0-9]{64}$/.test(input.contentHash))
+      throw new Error("Artifact content hash is invalid");
+    const responseValue = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.configuration.bucket,
+        Key: input.storageKey,
+        VersionId: input.storageVersionId,
+        ExpectedBucketOwner: this.configuration.expectedBucketOwner,
+        ChecksumMode: "ENABLED",
+      }),
+    );
+    const response = responseValue as {
+      Body?: { transformToByteArray(): Promise<Uint8Array> } | Uint8Array;
+      VersionId?: string;
+      ContentType?: string;
+      ContentLength?: number;
+    };
+    const bytes = await bodyToBytes(response.Body);
+    if (
+      response.VersionId !== input.storageVersionId ||
+      sha256(bytes) !== input.contentHash ||
+      BigInt(bytes.byteLength) !== BigInt(input.byteLength) ||
+      (response.ContentLength !== undefined &&
+        response.ContentLength !== bytes.byteLength) ||
+      (response.ContentType !== undefined &&
+        response.ContentType !== input.mimeType)
+    )
+      throw new Error(
+        "Immutable artifact bytes do not match database metadata",
+      );
+    return {
+      bytes,
+      contentHash: input.contentHash,
+      mimeType: input.mimeType,
+      byteLength: input.byteLength,
+    };
+  }
 }
 
 export interface MalwareScanResult {

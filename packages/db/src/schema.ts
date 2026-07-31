@@ -48,6 +48,7 @@ export const accounts = pgTable(
     partnerAgreementType: text("partner_agreement_type"),
     partnerDiscountTier: text("partner_discount_tier"),
     commissionRateBps: integer("commission_rate_bps"),
+    commissionHoldbackBps: integer("commission_holdback_bps"),
     aggregateCreditLimitMinor: minor("aggregate_credit_limit_minor").default(
       sql`0`,
     ),
@@ -74,6 +75,10 @@ export const accounts = pgTable(
     check(
       "accounts_credit_nonnegative_check",
       sql`${table.aggregateCreditLimitMinor} >= 0`,
+    ),
+    check(
+      "accounts_commission_policy_check",
+      sql`(${table.commissionRateBps} is null) = (${table.commissionHoldbackBps} is null) and (${table.commissionRateBps} is null or (${table.commissionRateBps} between 0 and 10000 and ${table.commissionHoldbackBps} between 0 and 10000))`,
     ),
   ],
 );
@@ -582,7 +587,7 @@ export const orders = pgTable(
     ),
     check(
       "orders_sourcing_check",
-      sql`${table.sourcing} in ('direct','referral','resale')`,
+      sql`${table.sourcing} in ('direct','referral','resale','distributor','marketplace')`,
     ),
   ],
 );
@@ -717,6 +722,7 @@ export const entitlements = pgTable(
     rowVersion: rowVersion(),
   },
   (table) => [
+    uniqueIndex("entitlements_order_line_unique").on(table.orderLineId),
     index("entitlements_org_status_idx").on(table.organizationId, table.status),
     index("entitlements_retention_idx").on(
       table.status,
@@ -781,13 +787,18 @@ export const invoices = pgTable(
     accountId: uuid("account_id")
       .notNull()
       .references(() => accounts.id),
-    stripeInvoiceId: text("stripe_invoice_id").notNull().unique(),
+    stripeInvoiceId: text("stripe_invoice_id").unique(),
+    accountingPostingId: text("accounting_posting_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
     poNumber: text("po_number"),
     status: text("status").notNull(),
     dueAt: timestamp("due_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    stripeLastOccurredAt: timestamp("stripe_last_occurred_at", {
+      withTimezone: true,
+    }),
+    stripeLastEventId: text("stripe_last_event_id"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),
@@ -802,6 +813,14 @@ export const invoices = pgTable(
     check(
       "invoices_status_check",
       sql`${table.status} in ('draft','open','paid','void','uncollectible')`,
+    ),
+    check(
+      "invoices_provider_binding_check",
+      sql`(${table.status} = 'draft' and ${table.stripeInvoiceId} is null) or (${table.status} <> 'draft' and ${table.stripeInvoiceId} is not null)`,
+    ),
+    check(
+      "invoices_stripe_watermark_check",
+      sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
   ],
 );
@@ -821,6 +840,10 @@ export const payments = pgTable(
     amountMinor: minor("amount_minor"),
     status: text("status").notNull(),
     receivedAt: timestamp("received_at", { withTimezone: true }),
+    stripeLastOccurredAt: timestamp("stripe_last_occurred_at", {
+      withTimezone: true,
+    }),
+    stripeLastEventId: text("stripe_last_event_id"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),
@@ -829,6 +852,10 @@ export const payments = pgTable(
     check(
       "payments_status_check",
       sql`${table.status} in ('pending','succeeded','failed','refunded')`,
+    ),
+    check(
+      "payments_stripe_watermark_check",
+      sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
   ],
 );
@@ -1069,8 +1096,13 @@ export const commissionAccruals = pgTable(
     invoiceId: uuid("invoice_id")
       .notNull()
       .references(() => invoices.id),
-    adjustmentSourceId: uuid("adjustment_source_id"),
+    sourceType: text("source_type").notNull(),
+    sourceId: uuid("source_id").notNull(),
+    adjustmentSourceId: uuid("adjustment_source_id").references(
+      (): AnyPgColumn => commissionAccruals.id,
+    ),
     rateBps: integer("rate_bps").notNull(),
+    holdbackBps: integer("holdback_bps").notNull(),
     currency: currency(),
     netCollectedRevenueMinor: bigint("net_collected_revenue_minor", {
       mode: "bigint",
@@ -1086,6 +1118,10 @@ export const commissionAccruals = pgTable(
     version: integer("version").notNull().default(1),
   },
   (table) => [
+    uniqueIndex("commission_accruals_source_unique").on(
+      table.sourceType,
+      table.sourceId,
+    ),
     index("commission_statement_queue_idx").on(
       table.partnerAccountId,
       table.period,
@@ -1094,6 +1130,18 @@ export const commissionAccruals = pgTable(
     check(
       "commission_accruals_status_check",
       sql`${table.status} in ('accrued','stated','paid')`,
+    ),
+    check(
+      "commission_accruals_source_type_check",
+      sql`${table.sourceType} in ('payment','credit_note','refund','dispute')`,
+    ),
+    check(
+      "commission_accruals_policy_check",
+      sql`${table.rateBps} between 0 and 10000 and ${table.holdbackBps} between 0 and 10000`,
+    ),
+    check(
+      "commission_accruals_sign_check",
+      sql`(${table.sourceType} = 'payment' and ${table.adjustmentSourceId} is null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} <> 'payment' and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} <= 0 and ${table.amountMinor} <= 0 and ${table.holdbackMinor} <= 0)`,
     ),
   ],
 );
@@ -1303,6 +1351,7 @@ export const webhookEvents = pgTable(
     payloadHash: text("payload_hash").notNull(),
     payload: jsonb("payload").notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    lockToken: uuid("lock_token").notNull().defaultRandom(),
     lockedUntil: timestamp("locked_until", { withTimezone: true }).notNull(),
     attemptCount: integer("attempt_count").notNull().default(1),
     processedAt: timestamp("processed_at", { withTimezone: true }),

@@ -10,30 +10,47 @@ export interface WebhookDeduplicator {
     payloadHash: string;
     payload: unknown;
     occurredAt: string;
-  }): Promise<"claimed" | "duplicate" | "in_progress">;
-  markProcessed(provider: string, eventId: string): Promise<void>;
-  markFailed(provider: string, eventId: string, error: string): Promise<void>;
+  }): Promise<
+    | { status: "claimed"; claimToken: string }
+    | { status: "duplicate" }
+    | { status: "in_progress" }
+  >;
+  markProcessed(
+    provider: string,
+    eventId: string,
+    claimToken: string,
+  ): Promise<void>;
+  markFailed(
+    provider: string,
+    eventId: string,
+    claimToken: string,
+    error: string,
+  ): Promise<void>;
 }
 
 export async function verifyAndClaimWebhook<T>(input: {
   provider: string;
-  eventType: string;
+  eventType(payload: T): string;
   rawBody: Uint8Array;
   signature: string;
   verifier: WebhookVerifier<T>;
   deduplicator: WebhookDeduplicator;
+  persistedPayload?: (payload: T) => unknown;
 }) {
   const verified = await input.verifier.verify({
     rawBody: input.rawBody,
     signature: input.signature,
   });
+  const eventType = input.eventType(verified.payload);
   const payloadHash = createHash("sha256").update(input.rawBody).digest("hex");
   const claim = await input.deduplicator.claim({
     provider: input.provider,
     eventId: verified.eventId,
-    eventType: input.eventType,
+    eventType,
     payloadHash,
-    payload: verified.payload,
+    payload: input.persistedPayload
+      ? input.persistedPayload(verified.payload)
+      : verified.payload,
     occurredAt: verified.occurredAt,
   });
   return { claim, verified, payloadHash };
