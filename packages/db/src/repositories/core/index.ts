@@ -1,2 +1,5 @@
-/** Core-finance lane repository exports live under this exclusive directory. */
-export const coreRepositoryRegistry = [] as const;
+export * from "./finance";
+
+import { CoreFinanceRepository } from "./finance";
+
+export const coreRepositoryRegistry = [CoreFinanceRepository] as const;
