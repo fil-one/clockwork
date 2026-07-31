@@ -1,4 +1,5 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
+
 export default function Page() {
-  return <ExperiencePage surface="collections" />;
+  return <CollectionsView />;
 }

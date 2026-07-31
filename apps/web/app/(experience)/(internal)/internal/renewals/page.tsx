@@ -1,4 +1,5 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
+
 export default function Page() {
-  return <ExperiencePage surface="renewals" />;
+  return <RenewalsView />;
 }

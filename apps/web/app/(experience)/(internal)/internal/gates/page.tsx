@@ -2,19 +2,24 @@ import { headers } from "next/headers";
 
 import { readGeneratedExternalGates } from "@/src/features/contracts/external-gates-client";
 import {
-  externalGateFallback,
-  externalGateRecords,
-} from "@/src/features/surfaces/external-gate-records";
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+  fallbackGates,
+  type GateRecord,
+} from "@/src/features/internal-ops/administration-safety/data";
+import {
+  GateRegister,
+  presentGeneratedGate,
+} from "@/src/features/internal-ops/administration-safety/gates";
+import { getRouteRoles } from "@/src/features/shell/route-session";
 
 export const dynamic = "force-dynamic";
 
-async function configuredGateRecords() {
-  const fallback = externalGateFallback(
-    process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV,
-  );
+async function configuredGateRecords(): Promise<{
+  gates: readonly GateRecord[];
+  source: "System gate registry" | "Fail-closed operational fallback";
+}> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (!appUrl) return fallback;
+  if (!appUrl)
+    return { gates: fallbackGates, source: "Fail-closed operational fallback" };
   try {
     const requestHeaders = await headers();
     const cookie = requestHeaders.get("cookie");
@@ -24,16 +29,27 @@ async function configuredGateRecords() {
       return fetch(input, { ...init, headers: forwarded, cache: "no-store" });
     };
     const baseUrl = `${appUrl.replace(/\/$/, "")}/api`;
-    return externalGateRecords(
-      await readGeneratedExternalGates(baseUrl, sessionFetch),
-    );
+    return {
+      gates: (await readGeneratedExternalGates(baseUrl, sessionFetch)).map(
+        presentGeneratedGate,
+      ),
+      source: "System gate registry",
+    };
   } catch {
-    return fallback;
+    return { gates: fallbackGates, source: "Fail-closed operational fallback" };
   }
 }
 
 export default async function Page() {
+  const [roles, configured] = await Promise.all([
+    getRouteRoles("internal"),
+    configuredGateRecords(),
+  ]);
   return (
-    <ExperiencePage surface="gates" records={await configuredGateRecords()} />
+    <GateRegister
+      roles={roles}
+      gates={configured.gates}
+      source={configured.source}
+    />
   );
 }
