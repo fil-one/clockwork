@@ -3,9 +3,14 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import { WebVitals } from "@/src/features/performance/web-vitals";
+
 export const metadata: Metadata = {
-  title: "Clockwork Commerce",
-  description: "Frictionless commerce for durable cloud services.",
+  title: { default: "Fil One Commerce", template: "%s · Fil One Commerce" },
+  description:
+    "Agreements, services, billing, and partner commerce in one dependable chain.",
+  applicationName: "Fil One Commerce",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({
@@ -13,7 +18,10 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <WebVitals />
+      </body>
     </html>
   );
 }

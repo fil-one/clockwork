@@ -1,15 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test("@smoke renders the foundation and its API lane mounts", async ({
+test("@smoke renders the customer experience and its API lane mounts", async ({
   page,
   request,
 }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Every agreement",
+    "Good afternoon",
   );
-  await expect(page.getByText("Foundation ready")).toBeVisible();
+  await expect(page.getByText("Demo environment").first()).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
   for (const lane of ["core", "lifecycle", "system"]) {
