@@ -7,6 +7,8 @@ export type ExperienceAudience = "customer" | "partner" | "internal";
 export interface NavigationItem {
   href: Route;
   label: MessageId;
+  description?: MessageId;
+  keywords?: readonly string[];
   match?: string;
 }
 
@@ -14,13 +16,13 @@ export const navigation: Readonly<
   Record<ExperienceAudience, readonly NavigationItem[]>
 > = {
   customer: [
-    { href: "/dashboard", label: "nav.dashboard" },
-    { href: "/agreements", label: "nav.agreements" },
-    { href: "/quotes", label: "nav.quotes" },
-    { href: "/orders", label: "nav.orders" },
-    { href: "/pocs", label: "nav.pocs" },
-    { href: "/billing", label: "nav.billing" },
-    { href: "/account", label: "nav.account" },
+    { href: "/dashboard", label: "nav.dashboard", keywords: ["home"] },
+    { href: "/agreements", label: "nav.agreements", keywords: ["contracts"] },
+    { href: "/quotes", label: "nav.quotes", keywords: ["pricing"] },
+    { href: "/orders", label: "nav.orders", keywords: ["services"] },
+    { href: "/pocs", label: "nav.pocs", keywords: ["proof of concept"] },
+    { href: "/billing", label: "nav.billing", keywords: ["invoices"] },
+    { href: "/account", label: "nav.account", keywords: ["users", "settings"] },
   ],
   partner: [
     { href: "/partner", label: "nav.partner.home" },
@@ -55,6 +57,17 @@ export const allowedRoles = {
 
 export type CommerceRole =
   (typeof allowedRoles)[keyof typeof allowedRoles][number];
+
+export function isNavigationItemActive(
+  item: NavigationItem,
+  pathname: string,
+): boolean {
+  const match = item.match ?? item.href;
+  const rootDestination = match === "/partner" || match === "/internal";
+  return rootDestination
+    ? pathname === match
+    : pathname === match || pathname.startsWith(`${match}/`);
+}
 
 export function roleCanAccess(
   audience: ExperienceAudience,

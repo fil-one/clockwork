@@ -8,9 +8,29 @@ export const en = {
   "app.skip": "Skip to main content",
   "app.nav.primary": "Primary navigation",
   "app.nav.secondary": "Account and help",
+  "app.nav.open": "Open navigation",
+  "app.nav.title": "Navigation",
+  "app.nav.description": "Browse every destination.",
   "app.search": "Search",
   "app.search.hint": "Accounts, orders, invoices, or documents",
   "app.command": "Open command menu",
+  "app.command.title": "Search and commands",
+  "app.command.description":
+    "Find a destination, start common work, or open a recent record.",
+  "app.command.searchLabel": "Search navigation, actions, and records",
+  "app.command.noResults": "No results found. Try an ID, account, or action.",
+  "app.command.group.navigation": "Navigation",
+  "app.command.group.actions": "Actions",
+  "app.command.group.records": "Records",
+  "app.command.action.customerQuote":
+    "Configure capacity, term, and commercial details.",
+  "app.command.action.inviteUser":
+    "Manage access for the current organization.",
+  "app.command.action.registerDeal": "Protect a new partner opportunity.",
+  "app.command.action.partnerQuote": "Build pricing for an end client.",
+  "app.command.action.globalSearch": "Search accounts and operational records.",
+  "app.command.action.reviewApprovals":
+    "Open the approvals and exception queue.",
   "app.command.shortcut": "Command K",
   "app.notifications": "Notifications",
   "app.notifications.count": "3 unread notifications",
@@ -20,6 +40,7 @@ export const en = {
   "app.help": "Help",
   "app.help.description": "Guides, support, and service status",
   "app.account.switch": "Switch organization",
+  "app.account.switched": "Switched to {account}.",
   "app.account.choose.title": "Choose an organization",
   "app.account.choose.description":
     "Select an organization in WorkOS AuthKit. Local development uses the deterministic Northstar organization.",
