@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, "commerce/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      APP_ORIGIN: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      LOCAL_DB_HOST: 127.0.0.1
+      LOCAL_DB_PASSWORD: postgres
+      AUTHORIZATION_CONTEXT_SECRET: clockwork-local-auth-context-secret-change-me
+      AUTHORIZATION_CONTEXT_SECRET_ID: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm boundaries
+      - run: pnpm typecheck
+      - run: pnpm scan:secrets
+      - run: pnpm run audit:dependencies
+      - run: pnpm check:generated
+      - name: Start clean local Supabase
+        run: |
+          pnpm exec supabase stop --no-backup || true
+          pnpm db:start
+          pnpm db:reset
+          echo "DATABASE_URL=postgresql://postgres.pooler-dev:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54329/postgres" >> "$GITHUB_ENV"
+          echo "CLOCKWORK_SERVICE_DATABASE_URL=postgresql://postgres.pooler-dev:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54329/postgres" >> "$GITHUB_ENV"
+          echo "DIRECT_DATABASE_URL=postgresql://postgres:${LOCAL_DB_PASSWORD}@${LOCAL_DB_HOST}:54322/postgres" >> "$GITHUB_ENV"
+      - run: pnpm db:test
+      - run: pnpm test:unit
+      - run: pnpm test:integration
+      - run: pnpm test:storybook
+      - run: pnpm build:storybook
+      - run: pnpm build
+      - run: pnpm playwright:install:ci
+      - run: pnpm test:e2e:smoke
+      - name: Stop Supabase
+        if: always()
+        run: pnpm exec supabase stop --no-backup || true

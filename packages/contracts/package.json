@@ -1,0 +1,23 @@
+{
+  "name": "@clockwork/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

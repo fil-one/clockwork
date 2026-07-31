@@ -1,0 +1,28 @@
+{
+  "name": "@clockwork/documents",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@clockwork/contracts": "workspace:*",
+    "@clockwork/domain": "workspace:*",
+    "@clockwork/ui": "workspace:*",
+    "@react-pdf/renderer": "catalog:",
+    "react": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

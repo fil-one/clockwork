@@ -1,0 +1,180 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Clockwork Commerce API",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/v1/core/status": {
+      "get": {
+        "tags": [
+          "core"
+        ],
+        "responses": {
+          "200": {
+            "description": "Core-finance lane mount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lane": {
+                      "type": "string",
+                      "enum": [
+                        "core"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ready"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "lane",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/lifecycle/status": {
+      "get": {
+        "tags": [
+          "lifecycle"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lifecycle-platform lane mount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lane": {
+                      "type": "string",
+                      "enum": [
+                        "lifecycle"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ready"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "lane",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/system/status": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "responses": {
+          "200": {
+            "description": "Experience/system lane mount",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lane": {
+                      "type": "string",
+                      "enum": [
+                        "system"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ready"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "lane",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/workos": {
+      "post": {
+        "tags": [
+          "system",
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "workos-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified WorkOS event accepted or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Webhook adapter is not configured"
+          }
+        }
+      }
+    }
+  }
+}

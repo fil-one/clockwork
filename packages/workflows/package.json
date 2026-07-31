@@ -1,0 +1,31 @@
+{
+  "name": "@clockwork/workflows",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./lifecycle": "./src/lifecycle/index.ts",
+    "./system": "./src/system/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@clockwork/contracts": "workspace:*",
+    "@clockwork/db": "workspace:*",
+    "@clockwork/domain": "workspace:*",
+    "@clockwork/integrations": "workspace:*",
+    "@trigger.dev/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

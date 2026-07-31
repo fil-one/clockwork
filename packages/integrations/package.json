@@ -1,0 +1,34 @@
+{
+  "name": "@clockwork/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./lifecycle": "./src/lifecycle/index.ts",
+    "./system": "./src/system/index.ts",
+    "./fakes": "./src/fakes/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/lib-storage": "catalog:",
+    "@clockwork/contracts": "workspace:*",
+    "@clockwork/domain": "workspace:*",
+    "@workos-inc/node": "catalog:",
+    "stripe": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "fast-check": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

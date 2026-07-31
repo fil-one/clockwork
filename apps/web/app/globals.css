@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@import "@clockwork/ui/styles.css";
+
+.app-shell {
+  width: min(72rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 750;
+}
+.app-mark {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: var(--color-accent);
+  color: white;
+}
+.hero {
+  display: grid;
+  gap: 1rem;
+  max-width: 48rem;
+}
+.eyebrow {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.3rem, 7vw, 4.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+.hero-copy {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.125rem;
+}
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.demo-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  padding: 1.25rem;
+}
+.demo-card h2,
+.demo-card p {
+  margin: 0;
+}
+.demo-card p {
+  color: var(--color-muted);
+}

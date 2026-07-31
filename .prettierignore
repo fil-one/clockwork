@@ -1,0 +1,4 @@
+commerce_platform_spec.md
+packages/api/src/generated/**
+packages/db/drizzle/meta/**
+pnpm-lock.yaml

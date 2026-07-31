@@ -1,0 +1,36 @@
+{
+  "name": "@clockwork/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app.ts",
+    "./client": "./src/generated/client.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage src/generated/openapi.json src/generated/schema.d.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
+    "generate": "tsx scripts/generate-openapi.ts && openapi-typescript src/generated/openapi.json -o src/generated/schema.d.ts"
+  },
+  "dependencies": {
+    "@clockwork/contracts": "workspace:*",
+    "@clockwork/db": "workspace:*",
+    "@clockwork/domain": "workspace:*",
+    "@clockwork/integrations": "workspace:*",
+    "@clockwork/workflows": "workspace:*",
+    "@hono/zod-openapi": "catalog:",
+    "hono": "catalog:",
+    "openapi-fetch": "0.17.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "tsx": "4.23.1",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

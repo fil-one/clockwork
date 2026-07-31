@@ -1,0 +1,33 @@
+{
+  "name": "@clockwork/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./migration-client": "./src/migration-client.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
+    "generate": "drizzle-kit generate",
+    "check": "drizzle-kit check"
+  },
+  "dependencies": {
+    "@clockwork/contracts": "workspace:*",
+    "@clockwork/domain": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "postgres": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "dotenv": "17.4.2",
+    "drizzle-kit": "0.31.10",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
