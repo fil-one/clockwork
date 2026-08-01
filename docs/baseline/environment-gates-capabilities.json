@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T13:56:29Z",
+  "capturedAt": "2026-08-01T14:14:06Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -754,7 +754,6 @@
     "CLOCKWORK_ARTIFACT_DIR",
     "CLOCKWORK_CANONICAL_ORIGIN",
     "CLOCKWORK_ENABLE_SIMULATORS",
-    "CLOCKWORK_ENV",
     "CLOCKWORK_EVIDENCE_ADAPTER",
     "CLOCKWORK_EXPERIENCE_ADAPTER",
     "CLOCKWORK_NEXT_DIST_DIR",
@@ -808,7 +807,7 @@
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 62,
+  "staticallyReferencedCount": 61,
   "environmentReferenceRecords": [
     {
       "key": "APP_ORIGIN",
@@ -950,19 +949,6 @@
       "toolingOrTestSources": []
     },
     {
-      "key": "CLOCKWORK_ENV",
-      "declared": true,
-      "sources": [
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
-        "apps/web/src/features/experience-server/evidence-gateway.ts"
-      ],
-      "runtimeSources": [
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
-        "apps/web/src/features/experience-server/evidence-gateway.ts"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
       "key": "CLOCKWORK_EVIDENCE_ADAPTER",
       "declared": true,
       "sources": [
@@ -977,11 +963,9 @@
       "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
       "declared": true,
       "sources": [
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "runtimeSources": [
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "toolingOrTestSources": []
@@ -1372,9 +1356,6 @@
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/contracts/provider-navigation.ts",
         "apps/web/src/features/experience-server/controller.ts",
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
-        "apps/web/src/features/experience-server/evidence-gateway.ts",
-        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/shell/route-session.ts",
         "apps/web/src/features/surfaces/workflow-panel.tsx",
         "apps/web/src/telemetry/runtime.ts",
@@ -1401,9 +1382,6 @@
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/contracts/provider-navigation.ts",
         "apps/web/src/features/experience-server/controller.ts",
-        "apps/web/src/features/experience-server/dashboard-loader.ts",
-        "apps/web/src/features/experience-server/evidence-gateway.ts",
-        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/shell/route-session.ts",
         "apps/web/src/features/surfaces/workflow-panel.tsx",
         "apps/web/src/telemetry/runtime.ts",
@@ -1728,6 +1706,7 @@
     "ACCOUNTING_PROVIDER_TOKEN",
     "AUTHORIZATION_CONTEXT_SECRET_ID",
     "CLOCKWORK_DEMO_STATE_PATH",
+    "CLOCKWORK_ENV",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",

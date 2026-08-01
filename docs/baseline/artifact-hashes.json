@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T13:56:29Z",
-  "captureCommit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
-  "captureTree": "5965cdbe18966e88304ee98ec41d804e0d4e9fae",
-  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
-  "captureWorkingTreePathCount": 215,
+  "capturedAt": "2026-08-01T14:14:06Z",
+  "captureCommit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
+  "captureTree": "4b15727629d7e7d255374c5c2b8d95bcf26ed183",
+  "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
+  "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "c2c4e03c2ab04703dfed2d5d063104815f8f2b41b8c246968e516bcb303e3e36",
-  "artifactCount": 631,
+  "captureTreeListingSha256": "7c236a2ca7e31747228a4e88d3e8192db7d1728096fba9e73b9804c224d385cf",
+  "artifactCount": 632,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
-      "aggregateSha256": "4ebdd3c75807e4fb5400df46e537a3195acc37180f8b7b143ee723c2a967912b",
+      "aggregateSha256": "07376cb7a6739c26ffd478a90c914929e302ed9521a3e7de5b784fc9f6b2d47e",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -55,7 +55,7 @@
     },
     "traceability": {
       "artifactCount": 3,
-      "aggregateSha256": "c38975551ff653744281fca2affccb8fc27172a032c548a67b439e839ec6d217",
+      "aggregateSha256": "fa31a958cab966e89f4b03758e6c0a62b0145df674fb480815ca6af84388daed",
       "paths": [
         "docs/traceability/launch-requirements.json",
         "docs/traceability/launch-requirements.schema.json",
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "99deff5042520550f1e37e8584fdb00832590a6637b5d910c437368aba32ddeb",
+      "aggregateSha256": "2eaf05c83aa51b9a8a655473d78048cae435dbe71ebf8ba671699ac4db3c8179",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -150,7 +150,7 @@
     },
     "route-auth-api": {
       "artifactCount": 142,
-      "aggregateSha256": "040d58ad64f319c13238aa8251a0e70c33795410605fe319d46f1327e1b1bd1e",
+      "aggregateSha256": "b89abe3c48c2f6f8deb591f4d72ba7726864c7e68ec77941b7302a90a2c59bf4",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx",
         "apps/web/app/(experience)/(customer)/account/page.tsx",
@@ -478,8 +478,8 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 253,
-      "aggregateSha256": "84a70ef6527a1c937bc80263294f42555c098ad0b7ec6e061c61bab54fcc9694",
+      "artifactCount": 254,
+      "aggregateSha256": "1f61361321c7afacabd70ae3ec29c6985bd8cb5db8c27cb67410335c35fdbaa4",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -527,6 +527,7 @@
         "apps/web/src/features/experience-server/authorization.test.ts",
         "apps/web/src/features/experience-server/controller.test.ts",
         "apps/web/src/features/experience-server/controller.ts",
+        "apps/web/src/features/experience-server/dashboard-loader.test.ts",
         "apps/web/src/features/experience-server/evidence-gateway.test.ts",
         "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
         "apps/web/src/features/experience-server/projection-authorization.test.ts",
@@ -1350,13 +1351,13 @@
     },
     {
       "path": "apps/web/src/auth/session.test.ts",
-      "bytes": 16933,
-      "sha256": "900acd3e6bbc73e57188665509950c3085607cffe626b740170aec664e108e13"
+      "bytes": 17357,
+      "sha256": "04363dada39fc0456027723a7d374304fe6bf3e19f412d52e29d7fb0da6a10a3"
     },
     {
       "path": "apps/web/src/auth/session.ts",
-      "bytes": 16171,
-      "sha256": "b376e585f8bcbfd86b6e9c45dfc61b52374f6054db87e4ba2bf18e1ed1349a22"
+      "bytes": 16301,
+      "sha256": "525095d7bd60016a69255370db6cebcdbdbb497fd4ce673589931269713ee244"
     },
     {
       "path": "apps/web/src/features/contracts/commerce-client.test.ts",
@@ -1479,9 +1480,14 @@
       "sha256": "2a140ddbe3490377c16ac4c999b066f9be1c06c7d1b2cce487d1b7b7c12abce5"
     },
     {
+      "path": "apps/web/src/features/experience-server/dashboard-loader.test.ts",
+      "bytes": 1403,
+      "sha256": "cd64eb41629094eaa8ddeafdc57998a355291c1272707af42b61ef21fed049f2"
+    },
+    {
       "path": "apps/web/src/features/experience-server/evidence-gateway.test.ts",
-      "bytes": 4093,
-      "sha256": "979139d695d85b15ea82ab949ca76b540d3f44abb7ad64b1d1ca6f1fba55b5ee"
+      "bytes": 5923,
+      "sha256": "a525404d15d7fa46f8a32451ae2174d7585d0f12f6b199af7233cfa5129352b5"
     },
     {
       "path": "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
@@ -1555,8 +1561,8 @@
     },
     {
       "path": "apps/web/src/features/internal-ops/gates/server-gate-loader.test.ts",
-      "bytes": 3015,
-      "sha256": "be70e580c09f630bd73c72f69b52a0cff94a18b748c8ff64c98bcf11edc20eb3"
+      "bytes": 3689,
+      "sha256": "d32fcd5092619937eb1ec6c23c3ff63f113f9adbcf911c2e01945115e6b96df0"
     },
     {
       "path": "apps/web/src/features/internal-ops/operations-home/operations-home.test.tsx",
@@ -1720,8 +1726,8 @@
     },
     {
       "path": "commerce_platform_spec.md",
-      "bytes": 93269,
-      "sha256": "842fc401d8b6c9c21ccf34d9018b66eba2296cfc4d62b08c34a89e79846aed64"
+      "bytes": 93587,
+      "sha256": "21521f3f7c555f83da8631367599dbb38e5e64b98e68b31a42e7229403ed5586"
     },
     {
       "path": "dependency-cruiser.config.mjs",
@@ -1740,8 +1746,8 @@
     },
     {
       "path": "docs/adr/0003-drizzle-canonical-sql.md",
-      "bytes": 1283,
-      "sha256": "8723636198a56d6bf68c74776299571b7331d1cecf90b75d78e3f54f84de566d"
+      "bytes": 1377,
+      "sha256": "726aaa9495410267f19bed63114792fb268be96119cd47c074161ef635610436"
     },
     {
       "path": "docs/adr/0004-workos-identity-commerce-authz.md",
@@ -1770,48 +1776,48 @@
     },
     {
       "path": "docs/backlog.md",
-      "bytes": 31563,
-      "sha256": "e3dd7492b9f0155fdec36ece8e67422cc931aa5a212ba3865f2456dccd41fa57"
+      "bytes": 14294,
+      "sha256": "ce5d2b25c4e44918af3dbe5ff4e6b81b36e143c2d60e74f08cba1a64ba641f7c"
     },
     {
       "path": "docs/external-gates.md",
-      "bytes": 24188,
-      "sha256": "de091af820f8cbc790731183327bc47cafeba034a70b11e0002774cd72ec80a6"
+      "bytes": 25003,
+      "sha256": "cd57f4baa790bb20f28e9a06919faa07f5d06c54d94c51c0a22dc7bfa9406239"
     },
     {
       "path": "docs/handoffs/commercial-integrity-instance-2-20260731.md",
-      "bytes": 11672,
-      "sha256": "d5cb889ff69df215e6a197abfe4032dc61dcffef3362aea80dac577ebba1f58d"
+      "bytes": 11909,
+      "sha256": "b8df90792445ad5f4ac8a338695a9f287e7d493021eb450567d75acf284c9ede"
     },
     {
       "path": "docs/handoffs/core-finance.md",
-      "bytes": 11538,
-      "sha256": "f6409d2fda87f0cc775b177a2d5da26c0dc7f48effff5ae5a2f3a7f6f8f32c6c"
+      "bytes": 11753,
+      "sha256": "1ffaaf61c3a918f2702dcce722db1568af88402b061d062bc7cd1b080fca093b"
     },
     {
       "path": "docs/handoffs/experience-docs.md",
-      "bytes": 15992,
-      "sha256": "065b31b76f31a493b49e6fd25990932b12461625774378b8d33b127fecb91a28"
+      "bytes": 16210,
+      "sha256": "9807e37f4a53c9db46434b7e81494302bac9e639a1b2d0e4930ef4b1068f8635"
     },
     {
       "path": "docs/handoffs/lifecycle-platform.md",
-      "bytes": 22241,
-      "sha256": "56e7fe0491c2a2c78ea9e02d7e1f09f2dc0b0a9aa6a0ca25b4c0b823c37b4b24"
+      "bytes": 22456,
+      "sha256": "53beb5f7a97e33d7b7f9db26a788d9f45804d532ad07c469b28721794f3cd863"
     },
     {
       "path": "docs/handoffs/runtime-operations-instance-3-20260731.md",
-      "bytes": 6289,
-      "sha256": "0287241c7c08809dfa364e6f90b71ee09bb0b9ec2cbe4a1fd568376c806dbc79"
+      "bytes": 6526,
+      "sha256": "b560980b7d5b73470eae0b1f5c7fa7f7c3f2fe4b4e5ec88c66c6f0b1acc56b21"
     },
     {
       "path": "docs/handoffs/runtime-operations-instance-3-gates-ownership.md",
-      "bytes": 2848,
-      "sha256": "6610941f99c84b359b8d056d92a552fc16efafc80d22610d254e2c19fc827b2d"
+      "bytes": 3038,
+      "sha256": "ceeed5cfa5fbdf00610d93b1ae6645b5ac086e8403a0679d552401bf22040667"
     },
     {
       "path": "docs/handoffs/runtime-operations-instance-3-provider-telemetry.md",
-      "bytes": 6421,
-      "sha256": "0df402425e2c98238a3027f5589d9449bf4c204d64af0a4c44d451f3cbb29932"
+      "bytes": 6657,
+      "sha256": "398c8bddee493a799213b2c2643ab830a16e844fa0794cedffeddcfa0e2e6c78"
     },
     {
       "path": "docs/implementation-lanes.md",
@@ -1820,8 +1826,8 @@
     },
     {
       "path": "docs/launch-checklist.md",
-      "bytes": 13857,
-      "sha256": "5862a74a2f7d9cef39e4318f0d0f81719484437d46d64d554681db64c2f5e59a"
+      "bytes": 14742,
+      "sha256": "f1d8041473e4fb41bff3ee0bbeb14e918f61927e7ea59c9d69dfbb76dbf2d10e"
     },
     {
       "path": "docs/operations/auth-anomalies.md",
@@ -1885,8 +1891,8 @@
     },
     {
       "path": "docs/operations/trigger-worker-bootstrap.md",
-      "bytes": 4043,
-      "sha256": "41054c142c84b287fe09dd5c18249d1e76d191d4bdcf99a9b15f9fa422d8231a"
+      "bytes": 4159,
+      "sha256": "cda702d6760fc37e970f2b06cf4ae4ebb6cbee9112728dca80324c0ed3632b56"
     },
     {
       "path": "docs/operations/unhandled-errors.md",
@@ -1905,8 +1911,8 @@
     },
     {
       "path": "docs/release-candidate-report.md",
-      "bytes": 14981,
-      "sha256": "63434ea24282ee8471898ae74f159f1bdaa5212f25b0941a5e0184e3c347b7ca"
+      "bytes": 13103,
+      "sha256": "bf1b63e9609771b7124581b404523efa2e2d77c2e8fa4bb43ac5747a987f88b5"
     },
     {
       "path": "docs/sprint-checklist.md",
@@ -1915,13 +1921,13 @@
     },
     {
       "path": "docs/traceability/launch-requirements.json",
-      "bytes": 251923,
-      "sha256": "97d85a59eb4e7ee34ed63f89aaa0f29de33d29976a6104ea2aa38e7937a00291"
+      "bytes": 277320,
+      "sha256": "3cf9acf7daafa3c80470fa4315f93f66d77648a10f74d7c56451980df095849e"
     },
     {
       "path": "docs/traceability/launch-requirements.schema.json",
-      "bytes": 4821,
-      "sha256": "4fd35c49ac9d282e11bbe3c22dc6042a362fa326b710c3013aaed341ebe149a7"
+      "bytes": 5448,
+      "sha256": "380aac6bf8938c9fd538708f2c8ff0b3c271e77cca9fa4ada7c04dc33fe9d5a5"
     },
     {
       "path": "eslint.config.mjs",
@@ -2860,8 +2866,8 @@
     },
     {
       "path": "packages/integrations/src/provider-transport.test.ts",
-      "bytes": 2910,
-      "sha256": "b468131faa5e2b4af9142407ca89c5da438e3f55addd1bf83c245643944d737b"
+      "bytes": 3608,
+      "sha256": "13f8b07e3f4a0742395ecdc327d329ab326774b5886aa9d3afe3a2d35155142e"
     },
     {
       "path": "packages/integrations/src/provisioning/provisioning.contract.test.ts",
@@ -3655,8 +3661,8 @@
     },
     {
       "path": "scripts/validate-traceability.mjs",
-      "bytes": 17200,
-      "sha256": "5967b36ba15a578fa5ec095a482e3fd02a72f293825317c34beed1afe8a5350b"
+      "bytes": 17526,
+      "sha256": "527d9fab930ceaf56e22e48606b972620654d0c3d13609e1d9b6ec468c7c13b8"
     },
     {
       "path": "scripts/verify-demo-reset-safety.mjs",

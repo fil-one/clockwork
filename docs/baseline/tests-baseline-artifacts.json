@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T13:56:29Z",
+  "capturedAt": "2026-08-01T14:14:06Z",
   "testFiles": [
     "apps/web/app/api/telemetry/route.test.ts",
     "apps/web/e2e/experience.spec.ts",
@@ -35,6 +35,7 @@
     "apps/web/src/features/experience-server/artifact-sources.test.ts",
     "apps/web/src/features/experience-server/authorization.test.ts",
     "apps/web/src/features/experience-server/controller.test.ts",
+    "apps/web/src/features/experience-server/dashboard-loader.test.ts",
     "apps/web/src/features/experience-server/evidence-gateway.test.ts",
     "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
     "apps/web/src/features/experience-server/projection-authorization.test.ts",
@@ -228,8 +229,8 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 224,
-    "unitFiles": 168,
+    "totalFiles": 225,
+    "unitFiles": 169,
     "storybookFiles": 3,
     "integrationFiles": 30,
     "scriptFiles": 1,
@@ -266,6 +267,7 @@
       "apps/web/src/features/experience-server/artifact-sources.test.ts",
       "apps/web/src/features/experience-server/authorization.test.ts",
       "apps/web/src/features/experience-server/controller.test.ts",
+      "apps/web/src/features/experience-server/dashboard-loader.test.ts",
       "apps/web/src/features/experience-server/evidence-gateway.test.ts",
       "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
       "apps/web/src/features/experience-server/projection-authorization.test.ts",
