@@ -16,5 +16,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/storybook/**/*.a11y.test.tsx"],
     setupFiles: ["./vitest.setup.ts"],
+    // Every test here renders a composed story and runs a full axe tree scan.
+    // Those took 5-7s each when the release benchmark ran six suites at once,
+    // so the whole project gets the headroom rather than each new story.
+    testTimeout: 30_000,
   },
 });

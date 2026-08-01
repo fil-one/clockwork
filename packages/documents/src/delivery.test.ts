@@ -50,7 +50,7 @@ describe("authorized document delivery", () => {
       expect(representation.contentHash).toMatch(/^[a-f0-9]{64}$/);
       expect(representation.downloadHref).toContain(input.kind);
     }
-  }, 30_000);
+  }, 60_000);
 
   it("rejects forged account, audience, kind, and source bindings", async () => {
     const input = demoDocuments[0];

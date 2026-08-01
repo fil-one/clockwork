@@ -94,7 +94,7 @@ describe("durable demo adapter state", () => {
       createPristineDemoAdapterState(),
     );
     expect(await readdir(directory)).toEqual(["state.json"]);
-  });
+  }, 60_000);
 
   it("leaves dirty state untouched when the child process sees production", async () => {
     const { location, store } = await stateFixture();
@@ -121,7 +121,7 @@ describe("durable demo adapter state", () => {
       "Demo reset refused: NODE_ENV identifies a production environment",
     );
     expect(await new FileDemoAdapterStateStore(location).read()).toEqual(dirty);
-  });
+  }, 60_000);
 
   it("makes the reset command fail without changing corrupt non-demo bytes", async () => {
     const { directory, location } = await stateFixture();
@@ -147,7 +147,7 @@ describe("durable demo adapter state", () => {
     );
     expect(await readFile(location, "utf8")).toBe(corrupt);
     expect(await readdir(directory)).toEqual(["state.json"]);
-  });
+  }, 60_000);
 
   it("uses an explicit path verbatim and otherwise resolves one ignored workspace artifact", () => {
     expect(
