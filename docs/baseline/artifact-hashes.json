@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T16:19:41Z",
-  "captureCommit": "caa99415d408a8dc7df97ced216379986848f93f",
-  "captureTree": "2f2861c3ea4fd57bcac6910db98db6d4c3ac2d4a",
+  "capturedAt": "2026-08-01T19:56:42Z",
+  "captureCommit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
+  "captureTree": "70a4daf53e11a42d98d6f9cd66cc883d1e6606bd",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "48a2059a238321380cf478f0b1038a7060b37e63b1c38b724be519315dbdacc2",
+  "captureTreeListingSha256": "431f77d9dccef1aa37c085ba34b02f93a6cd287f91d2d0d8af8f4047d87936b6",
   "artifactCount": 636,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "b288f61560d1b6d7b725a4340ca6c98be9059e4de02e1f2ee50244583d5bc9d9",
+      "aggregateSha256": "3203eaf20b7e10b57afe12d245a97e41b2f96ca68727000391e2332ae5ec12fd",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 258,
-      "aggregateSha256": "cc42b565a1e6803d74f4abc51882902bbd8ef6d49f9020a617c1182ecd2920d9",
+      "aggregateSha256": "21b4b8a46dce558c29ed86b744c5f261cfedb789905652ffa7e427d24a77538d",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -750,8 +750,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 4950,
-      "sha256": "5ac6dcec5052445bad00fe76841ff5179c174db66a7be5c33c5dcf38101c5f43"
+      "bytes": 5623,
+      "sha256": "9a437465a98bb2783a3d180fa19db1ea31a803b662c1d6a5397ba9a717a3c143"
     },
     {
       "path": ".node-version",
@@ -3630,8 +3630,8 @@
     },
     {
       "path": "scripts/benchmark-release.mjs",
-      "bytes": 5796,
-      "sha256": "e200c686286b8d03462624dc7f0666faeaa7617e5c6ee5408434414da2fc5a29"
+      "bytes": 6580,
+      "sha256": "b26a86ba4e88df20dc1a7aec990cc6ba2a86c796edeccc0985e6c799051548c3"
     },
     {
       "path": "scripts/check-generated-dry-run.mjs",
@@ -3645,8 +3645,8 @@
     },
     {
       "path": "scripts/generate-baseline-manifests.mjs",
-      "bytes": 89041,
-      "sha256": "e2e0cc12388ad2f144176e3b0febca17894bcf012d44ab0e8f956d4c8ee32e3a"
+      "bytes": 102041,
+      "sha256": "51d3c283b25fcd3591b0a705917b4e7ee98a50d92236003f5954832d2d60de2f"
     },
     {
       "path": "scripts/qualify-populated-upgrade.mjs",
@@ -3655,18 +3655,18 @@
     },
     {
       "path": "scripts/release-artifacts.mjs",
-      "bytes": 20326,
-      "sha256": "52fa4a678aa76ec47c10ddaf0a116d08daf88a4413aa42c19d8e40b83bbb39c3"
+      "bytes": 37219,
+      "sha256": "53c6c8d8e40898658d848cd54d44aeb25535807a5f9b5462844d60a15e825c64"
     },
     {
       "path": "scripts/release-artifacts.test.mjs",
-      "bytes": 16754,
-      "sha256": "ed27fb6aa9143bed0eda61bc73a328de111b0c4764329a33e2a2c2f0e1a6a8b9"
+      "bytes": 27144,
+      "sha256": "9aa122e843e47fc157b1a7ab542782aa1b5aa8de11adb8bc67807e4f7cf98c4b"
     },
     {
       "path": "scripts/release-suites.mjs",
-      "bytes": 39676,
-      "sha256": "16328e7bb027dafd7e586ff924ba22d9e6c32c8df2b491e714f5e20327f09ed1"
+      "bytes": 43078,
+      "sha256": "3904f238d0537a293d952da69fb9cee4b6974c5f554404ec99cf57dd02a36b2b"
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",
