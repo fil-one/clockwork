@@ -19,6 +19,11 @@
       "outputs": []
     },
     "test:integration": {
+      "passThroughEnv": [
+        "CLOCKWORK_SERVICE_DATABASE_URL",
+        "DATABASE_URL",
+        "DIRECT_DATABASE_URL"
+      ],
       "outputs": []
     },
     "//#format:check": {

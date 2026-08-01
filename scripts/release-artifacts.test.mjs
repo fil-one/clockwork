@@ -1,17 +1,51 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import {
   expectedReleaseCommands,
   normalizeArtifactText,
   normalizeReportValue,
+  releaseDatabaseProjectId,
   releaseAssertionFingerprint,
   releaseCacheRootIssues,
   releaseSummaryIssues,
   semanticArtifactInventoryFingerprint,
   sourceIdentityKey,
 } from "./release-artifacts.mjs";
+
+test("creates stable warning-free isolated Supabase project IDs", () => {
+  const input = {
+    revision: "a".repeat(40),
+    runId: "quality-123456789abc-qualified-run-with-a-long-name",
+    suite: "integration",
+    portBase: 56_040,
+  };
+  const projectId = releaseDatabaseProjectId(input);
+  assert.equal(projectId, releaseDatabaseProjectId(input));
+  assert.match(projectId, /^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/);
+  assert.equal(projectId.length, 39);
+  assert.notEqual(
+    projectId,
+    releaseDatabaseProjectId({ ...input, portBase: input.portBase + 20 }),
+  );
+  assert.notEqual(
+    projectId,
+    releaseDatabaseProjectId({ ...input, suite: "proof" }),
+  );
+});
+
+test("passes isolated database URLs through the integration task", async () => {
+  const turbo = JSON.parse(
+    await readFile(new URL("../turbo.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(turbo.tasks["test:integration"].passThroughEnv, [
+    "CLOCKWORK_SERVICE_DATABASE_URL",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+  ]);
+});
 
 const roots = [
   ["/tmp/clockwork-parallel/workspace", "<workspace>"],

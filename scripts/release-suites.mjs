@@ -20,6 +20,7 @@ import {
   expectedReleaseCommands as commandsForSuite,
   normalizeArtifactText,
   normalizeReportValue,
+  releaseDatabaseProjectId,
   releaseCacheRootIssues,
   releaseAssertionFingerprint,
   RELEASE_FIXED_CLOCK as FIXED_CLOCK,
@@ -370,8 +371,13 @@ async function prepareDatabaseProject(name, index, context, environment) {
     randomBytes(32).toString("hex"),
     { encoding: "utf8", mode: 0o600 },
   );
-  const projectId = `clockwork-${context.runId}-${name}`;
   const databasePortBase = context.databasePortBase + index * 20;
+  const projectId = releaseDatabaseProjectId({
+    revision: context.sourceIdentity.revision,
+    runId: context.runId,
+    suite: name,
+    portBase: databasePortBase,
+  });
   const configPath = path.join(projectRoot, "supabase", "config.toml");
   await writeFile(
     configPath,

@@ -1,7 +1,7 @@
 # Deterministic release orchestration
 
 Status: implementation complete; measured serial/parallel evidence is produced
-only from a clean committed release candidate
+only from a clean committed repository candidate
 
 ## Shards and budgets
 

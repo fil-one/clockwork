@@ -1718,8 +1718,8 @@
       "tests": ["pricing tests"],
       "externalGates": ["EXT-COMMERCIAL-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-COMMERCIAL-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "The versioned price-book source, administration surface, and shared rate-card rendering are complete and tested. EXT-COMMERCIAL-01 is retained only for loading approved live commercial values, which is tracked separately from this repository implementation requirement."
     },
     {
       "id": "SPEC-09-02",
@@ -1763,8 +1763,8 @@
       "tests": ["core finance tests"],
       "externalGates": ["EXT-COMMERCIAL-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-COMMERCIAL-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "Commit type, contracted overage rate, and amendment proration are represented in the authoritative schema and commands with tests. EXT-COMMERCIAL-01 is retained only for approved live values, not unfinished repository behavior."
     },
     {
       "id": "SPEC-09-05",
@@ -2273,8 +2273,8 @@
       "tests": ["partner tests"],
       "externalGates": ["EXT-COMMERCIAL-01", "EXT-APPROVERS-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered inputs EXT-COMMERCIAL-01, EXT-APPROVERS-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "Deal-registration clocks, exclusions, credit, expiry, extensions, dispute ownership, and tie-break routing are encoded and tested. EXT-COMMERCIAL-01 and EXT-APPROVERS-01 remain only for approved live policy values and enrollments."
     },
     {
       "id": "SPEC-14-03",
@@ -3873,8 +3873,8 @@
       "tests": ["property tests"],
       "externalGates": ["EXT-COMMERCIAL-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-COMMERCIAL-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "Both commitment models and their distinct contracted-overage behavior are implemented and tested per SKU. EXT-COMMERCIAL-01 remains only for loading approved live commercial values."
     },
     {
       "id": "SPEC-20-DEC-04",
@@ -4008,8 +4008,8 @@
       "tests": ["migration tests"],
       "externalGates": ["EXT-MIGRATION-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-MIGRATION-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "Dry-run, review, guarded execution, recovery, and activation tests are complete in the repository. The separate live migration run remains external-gated under SPEC-21-03 and EXT-MIGRATION-01."
     },
     {
       "id": "SPEC-20-DEC-13",

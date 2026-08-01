@@ -130,8 +130,8 @@ The canonical ledger contains 312 requirements and ten §22 acceptance rows. At
 - zero `partial`;
 - zero `unimplemented`;
 - zero backlog references to completed work;
-- 185 `implemented` rows where repository proof is sufficient;
-- 115 `external-gated` rows only where the live normative behavior cannot
+- 190 `implemented` rows where repository proof is sufficient;
+- 110 `external-gated` rows only where the live normative behavior cannot
   activate without exact registered launch input(s); and
 - 12 historical §22 topology/provenance rows that remain unchanged.
 

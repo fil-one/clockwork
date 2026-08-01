@@ -41,6 +41,30 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   proof: Object.freeze(["production-proof-build", "production-browser-proof"]),
 });
 
+export function releaseDatabaseProjectId({ revision, runId, suite, portBase }) {
+  if (!/^(integration|proof)$/.test(String(suite)))
+    throw new Error(`Unsupported database release suite: ${String(suite)}`);
+  if (typeof revision !== "string" || revision.length === 0)
+    throw new Error("Database release project identity requires a revision.");
+  if (typeof runId !== "string" || runId.length === 0)
+    throw new Error("Database release project identity requires a run ID.");
+  if (!Number.isInteger(portBase))
+    throw new Error(
+      "Database release project identity requires an integer port base.",
+    );
+
+  const suffix = createHash("sha256")
+    .update([revision, runId, suite, String(portBase)].join("\0"))
+    .digest("hex")
+    .slice(0, 24);
+  const projectId = `cw-${suite}-${suffix}`;
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$/.test(projectId))
+    throw new Error(
+      "Database release project ID violates Supabase constraints.",
+    );
+  return projectId;
+}
+
 const noTurboCache = ["--cache=local:,remote:", "--continue=always"];
 
 function serialVitestArguments(serial) {
