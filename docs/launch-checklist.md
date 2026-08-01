@@ -46,7 +46,7 @@ not hidden repository work and do not make this consolidation an RC.
       workflow, Stripe webhook/test-clock,
       WorkOS/e-sign/provisioning/marketplace replay, PDF golden,
       Storybook/axe/visual, and all Playwright persona/critical-path suites
-      passed with recorded counts. Reset pgTAP is 16 files / 430 assertions;
+      passed with recorded counts. Reset pgTAP is 16 files / 431 assertions;
       workspace typecheck is 10/10 packages in 45.593 seconds. The replacement
       isolated browser gate passed Storybook 5/5 and Playwright 79/79 with zero
       skipped, flaky, unexpected, or retried tests.

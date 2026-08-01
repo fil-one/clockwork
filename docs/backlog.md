@@ -182,7 +182,7 @@ repository work.
   clean-install helper edge reuses the already locked Next version and adds no
   package resolution or integrity record.
 - Populated upgrade: accepted on Node `24.18.1` / pnpm `10.34.5` in 93.813
-  seconds. Zero reset plus pgTAP: 16 files / 430 assertions. Full workspace
+  seconds. Zero reset plus pgTAP: 16 files / 431 assertions. Full workspace
   typecheck: 10/10 packages in 45.593 seconds. Focused security,
   telemetry-redaction, migration, provider, controller, artifact, and workflow
   suites pass without skipped or retry-masked failures.
