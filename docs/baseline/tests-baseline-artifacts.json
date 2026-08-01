@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T19:56:42Z",
+  "capturedAt": "2026-08-01T21:19:34Z",
   "testFiles": [
     "apps/web/app/api/telemetry/route.test.ts",
     "apps/web/e2e/experience.spec.ts",
@@ -210,6 +210,7 @@
     "packages/workflows/src/system/outbox-dispatcher.test.ts",
     "packages/workflows/src/system/workos-organization.test.ts",
     "packages/workflows/src/trigger/discovery.test.ts",
+    "scripts/benchmark-release.test.mjs",
     "scripts/release-artifacts.test.mjs",
     "supabase/tests/000_schema.test.sql",
     "supabase/tests/010_constraints.test.sql",
@@ -229,11 +230,11 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 225,
-    "unitFiles": 169,
+    "totalFiles": 226,
+    "unitFiles": 170,
     "storybookFiles": 3,
     "integrationFiles": 30,
-    "scriptFiles": 1,
+    "scriptFiles": 2,
     "playwrightSpecFiles": 7,
     "playwrightSupportFiles": 4,
     "browserSourceDeclarations": 55,
@@ -411,6 +412,7 @@
       "packages/workflows/src/system/outbox-dispatcher.test.ts",
       "packages/workflows/src/system/workos-organization.test.ts",
       "packages/workflows/src/trigger/discovery.test.ts",
+      "scripts/benchmark-release.test.mjs",
       "scripts/release-artifacts.test.mjs"
     ],
     "storybook": [
@@ -450,7 +452,10 @@
       "packages/workflows/src/core/money-path.integration.test.ts",
       "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
     ],
-    "scripts": ["scripts/release-artifacts.test.mjs"],
+    "scripts": [
+      "scripts/benchmark-release.test.mjs",
+      "scripts/release-artifacts.test.mjs"
+    ],
     "playwright": [
       "apps/web/e2e/experience.spec.ts",
       "apps/web/e2e/production-proof.spec.ts",

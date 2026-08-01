@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T19:56:42Z",
+  "capturedAt": "2026-08-01T21:19:34Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -777,6 +777,7 @@
     "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
     "CLOCKWORK_RELEASE_STARTED_AT",
     "CLOCKWORK_RELEASE_STRESS_RUNS",
+    "CLOCKWORK_RELEASE_SUITES_SCRIPT",
     "CLOCKWORK_SERVICE_DATABASE_URL",
     "CLOCKWORK_TEST_PORT",
     "DATABASE_URL",
@@ -807,7 +808,7 @@
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 61,
+  "staticallyReferencedCount": 62,
   "environmentReferenceRecords": [
     {
       "key": "APP_ORIGIN",
@@ -1136,6 +1137,13 @@
     },
     {
       "key": "CLOCKWORK_RELEASE_STRESS_RUNS",
+      "declared": false,
+      "sources": ["scripts/benchmark-release.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/benchmark-release.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SUITES_SCRIPT",
       "declared": false,
       "sources": ["scripts/benchmark-release.mjs"],
       "runtimeSources": [],
@@ -1573,6 +1581,7 @@
     "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
     "CLOCKWORK_RELEASE_STARTED_AT",
     "CLOCKWORK_RELEASE_STRESS_RUNS",
+    "CLOCKWORK_RELEASE_SUITES_SCRIPT",
     "CLOCKWORK_TEST_PORT",
     "KEY",
     "PATH",
@@ -1677,6 +1686,10 @@
     },
     {
       "key": "CLOCKWORK_RELEASE_STRESS_RUNS",
+      "sources": ["scripts/benchmark-release.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SUITES_SCRIPT",
       "sources": ["scripts/benchmark-release.mjs"]
     },
     {

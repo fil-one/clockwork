@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T19:56:42Z",
+  "capturedAt": "2026-08-01T21:19:34Z",
   "captureRef": "main",
-  "captureCommit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
-  "captureTree": "70a4daf53e11a42d98d6f9cd66cc883d1e6606bd",
+  "captureCommit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+  "captureTree": "2dec8036cf1e0704abf4ff71532abcf34759ca35",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
+      "object": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
       "objectType": "commit",
-      "peeledCommit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
-      "commit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
-      "tree": "70a4daf53e11a42d98d6f9cd66cc883d1e6606bd",
-      "treeEntryCount": 896,
-      "treeListingSha256": "431f77d9dccef1aa37c085ba34b02f93a6cd287f91d2d0d8af8f4047d87936b6",
-      "parents": ["4667b0ed9078e2d6c731e0839dd6e07276d05999"],
-      "subject": "test: harden qualification evidence isolation",
-      "mergeBaseWithMain": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374"
+      "peeledCommit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+      "commit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+      "tree": "2dec8036cf1e0704abf4ff71532abcf34759ca35",
+      "treeEntryCount": 897,
+      "treeListingSha256": "7b47f3fff0ca6da7f188daab9f0247344451c7e33bf373f72df9b0c2b10d2604",
+      "parents": ["0c8ab0243b2bbb416d61132f29bfd2f58d184493"],
+      "subject": "fix: own the benchmark child signal lifecycle",
+      "mergeBaseWithMain": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
+      "head": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,7 +351,7 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 76057,
+        "ignoredArtifactCount": 76120,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
           ".clockwork-archives/pre-final-inventory/refs.tsv",
@@ -1603,6 +1603,69 @@
           ".artifacts/release-benchmark/quality-be355e65e14f-qual-1/serial/setup/frozen-fetch.log",
           ".artifacts/release-benchmark/quality-be355e65e14f-qual-1/stress-1/setup/frozen-fetch.log",
           ".artifacts/release-benchmark/quality-be355e65e14f-qual-1/stress-2/setup/frozen-fetch.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-3.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-4.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-5.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-6.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-7.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/.last-run.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/production-proof--customer-8c92f-e-remaining-queue-contracts-customer-proof/error-context.md",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/production-proof--customer-8c92f-e-remaining-queue-contracts-customer-proof/trace.zip",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/proof-auth-lifecycle.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-3.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-4.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-5.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/build-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/build-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/frozen-fetch.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/integration-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/integration-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/playwright-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/proof-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/proof-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/static-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/static-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/ui-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/ui-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/unit-install.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/unit-rebuild.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-3.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-4.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-5.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-6.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-7.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-8.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-9.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/playwright-output/.last-run.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/playwright.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/contract.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/result.json",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-1.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-2.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-3.log",
+          ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-4.log",
           ".artifacts/release-benchmark/repository-quality-b7340cb/serial/build/contract.json",
           ".artifacts/release-benchmark/repository-quality-b7340cb/serial/build/result.json",
           ".artifacts/release-benchmark/repository-quality-b7340cb/serial/build/step-1.log",
@@ -1742,8 +1805,8 @@
         ],
         "retainedEvidence": {
           "qualification": {
-            "artifactCount": 1372,
-            "aggregateSha256": "9fc5edd6c6e71bdc12872d112493ab2d13e867d074aa377493a444ad888f225b",
+            "artifactCount": 1435,
+            "aggregateSha256": "aa152c7dd4a334f31e85a4b886843a061b84abe4e36a94360c8977083736a2e1",
             "runs": [
               {
                 "root": ".artifacts/release-benchmark/quality-5af2de1b687c-qual-4",
@@ -1808,6 +1871,24 @@
                 "reportedOutcome": null,
                 "validationIssues": [],
                 "incompleteReason": "No run summary was written; retained artifacts record an interrupted or aborted qualification attempt."
+              },
+              {
+                "root": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3",
+                "kind": "benchmark",
+                "runId": "repository-quality-a9ebf15ce2d3-serial",
+                "mode": "serial",
+                "outcome": "failed",
+                "durationMs": 761486,
+                "sourceRevision": "a9ebf15ce2d35d006ac007d5bedca7353f597006",
+                "artifactCount": 63,
+                "aggregateSha256": "22f8319a504c56e2a0c2b28e40d51e4c360f4ce50d0b9c6c98bb362fd984b204",
+                "summaryPaths": [
+                  ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json"
+                ],
+                "completionEvidence": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+                "reportedOutcome": "failed",
+                "validationIssues": [],
+                "incompleteReason": null
               },
               {
                 "root": ".artifacts/release-benchmark/repository-quality-b7340cb",
@@ -1979,6 +2060,18 @@
               }
             ],
             "summaries": [
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+                "bytes": 88343,
+                "sha256": "a772da551b00b578aa24ae11a9b15b0ac07f9703fdd254a2d6d17d90f5bd4548",
+                "runId": "repository-quality-a9ebf15ce2d3-serial",
+                "mode": "serial",
+                "outcome": "failed",
+                "reportedOutcome": "failed",
+                "validationIssues": [],
+                "durationMs": 761486,
+                "sourceRevision": "a9ebf15ce2d35d006ac007d5bedca7353f597006"
+              },
               {
                 "path": ".artifacts/release-benchmark/repository-quality-b7340cb/serial/summary.json",
                 "bytes": 60709,
@@ -9524,6 +9617,384 @@
                 "sha256": "778da80b5507c80841894249d2fd97006c853a677ab36d54c542b695e2a20c97"
               },
               {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 5602,
+                "sha256": "26ddab0dad6c4a53859d4dce7b6e359bce03dae6be2b0cf1c6cb7a4730803793"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 8287,
+                "sha256": "5b8fa4dc102114bdfb0cce0db28cbdfaefff838c7d9433b327566ed22ebdfbfc"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 8464,
+                "sha256": "ada7670af3c0a1627703d1485da5a2e50470237a453541388c148640200c98b8"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/build/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 93,
+                "sha256": "7f09655175802c34040dd0f4828b4d3741a2bd6923ab98fcaafba5beb40465d4"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 14278,
+                "sha256": "6989a3beb0cfc71d7da1d267421293036a9625d933b2e51c439075356609f6b9"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 19338,
+                "sha256": "f1e9633bdc1e12dc990b725f905bd37fbab53d5379a600f5d9d7433b6997af37"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 2376,
+                "sha256": "8303a4d9a2a9b39d7a11fe45a1b1d7e06c8192ac6b89cac58be270a7339028c5"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 2237,
+                "sha256": "8ae1cd75cf5cc313c8517ca83b4f40e124af65ff476c706ace5b71d0b77c14ce"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-3.log",
+                "kind": "qualification-evidence",
+                "bytes": 470,
+                "sha256": "cc06dc769f6af811ef1616c8c73c63b5959ad7c42d78d2a966c4b5c9728f3547"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-4.log",
+                "kind": "qualification-evidence",
+                "bytes": 114,
+                "sha256": "d8c7f3864d16d0090a46c7bb46463c0e48e6ade66f4e00fbb6ab49bf57bca35b"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-5.log",
+                "kind": "qualification-evidence",
+                "bytes": 16068,
+                "sha256": "cc3b569182510d235d135afbfae681508672a2d93158891bc4739136cda2a9f6"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-6.log",
+                "kind": "qualification-evidence",
+                "bytes": 19408,
+                "sha256": "c63700d7a9e07c09fcfa0da6d4edadda7ed9e09e6536c26b6dc0145c370a469c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/integration/step-7.log",
+                "kind": "qualification-evidence",
+                "bytes": 133,
+                "sha256": "3d67dd3c8eb4e737a2a05feff3df56790441bc98abdd313773c5aa2d14b85da6"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 13852,
+                "sha256": "1b2dbf02cbade4f9717695d640f8e77afe4056aebb56d824ada486ad05a4416e"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/.last-run.json",
+                "kind": "qualification-evidence",
+                "bytes": 96,
+                "sha256": "7c450c2913a382ae1d93ba997577fd1f7aecc024c26c7e627884e5e1d09bad05"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/production-proof--customer-8c92f-e-remaining-queue-contracts-customer-proof/error-context.md",
+                "kind": "qualification-evidence",
+                "bytes": 8817,
+                "sha256": "7626c6c2eb6b167c9260ca0f94d06f796c05a1455bfbe6aff8949b540bce35d1"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright-output/production-proof--customer-8c92f-e-remaining-queue-contracts-customer-proof/trace.zip",
+                "kind": "qualification-evidence",
+                "bytes": 13919,
+                "sha256": "96cb44790ad97cc152d1f6546bf0a65fab637f9104f3015ba248e1ab6f6bbb01"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/playwright.json",
+                "kind": "qualification-evidence",
+                "bytes": 12203,
+                "sha256": "654abc66e07f93268c3cb846541977a34076bf90cc3d51585fad7b5839d1409e"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/proof-auth-lifecycle.json",
+                "kind": "qualification-evidence",
+                "bytes": 136,
+                "sha256": "62aec8095d8a241b729c054eb721086a4b8969dd9d582df027c14540b6957878"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 20624,
+                "sha256": "61fb969d17959eb9ac52f0bf519945ad71d6d2714a5b90446f8dda2911091d4f"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 2376,
+                "sha256": "1604664d226611baf7e48e1c922f0c49596b684484b468b60ba6bc1a22ae026e"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 2237,
+                "sha256": "8ae1cd75cf5cc313c8517ca83b4f40e124af65ff476c706ace5b71d0b77c14ce"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-3.log",
+                "kind": "qualification-evidence",
+                "bytes": 2460,
+                "sha256": "60ea63a6f3bf7457a88c0e0e278284a5d6cf40f8ed2b9520ee3abda23cbe3490"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-4.log",
+                "kind": "qualification-evidence",
+                "bytes": 3133,
+                "sha256": "16898c3b95a1f58c4369bb4053433a8c3534a07f48e8182b4cb8a8335a4a1dd1"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/proof/step-5.log",
+                "kind": "qualification-evidence",
+                "bytes": 127,
+                "sha256": "200430c9078c2193504a13ae43729fda96af9e89800c7cb83db86cdb5b905b55"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/build-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 1910,
+                "sha256": "ad7f1261604fa8e62708683fb3c54db082d760f95768d39c9aff6c930973ea45"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/build-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 316,
+                "sha256": "54826363b54bd0c7fbc107279a257493ffd4354e8a3782b971290776e917206c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/frozen-fetch.log",
+                "kind": "qualification-evidence",
+                "bytes": 1339,
+                "sha256": "3d3f306df558831c60e0755c41656e9827b6bac1e99a6a8dc3905987fd9c1f8a"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/integration-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 1910,
+                "sha256": "2c4a25455dc2e9b93d8c41ecaeed402066c5fdda6becabaa6161ee99f7dc6df7"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/integration-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 316,
+                "sha256": "54826363b54bd0c7fbc107279a257493ffd4354e8a3782b971290776e917206c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/playwright-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 7135,
+                "sha256": "58477ebb25248d81af8bfa5bdfcd448894ab8fd587840c2ad538c2590eb9e0fb"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/proof-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 1910,
+                "sha256": "5753420ac71f34a48d2c31f3e9a6f613434042d5530c3650563f976413a83f0c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/proof-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 316,
+                "sha256": "54826363b54bd0c7fbc107279a257493ffd4354e8a3782b971290776e917206c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/static-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 576,
+                "sha256": "5aedff81f071aa2bd166f3dd49d5775862b358dcc895ebeef26d6f977f2c8123"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/static-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 86,
+                "sha256": "75aca8612ef87ff107e2499eec9627cd2ee659ea6d6ce9fc4bbac2f8266b2666"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/ui-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 1849,
+                "sha256": "8c6d2d32570d65850235ca04fb44e57829edbed8390e055502ff481d944ed7fb"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/ui-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 316,
+                "sha256": "54826363b54bd0c7fbc107279a257493ffd4354e8a3782b971290776e917206c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/unit-install.log",
+                "kind": "qualification-evidence",
+                "bytes": 1910,
+                "sha256": "729354dadf18d4b482f68ccd06356c34a877f99d2d8d2c713f90fefc8f718aaf"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/setup/unit-rebuild.log",
+                "kind": "qualification-evidence",
+                "bytes": 316,
+                "sha256": "54826363b54bd0c7fbc107279a257493ffd4354e8a3782b971290776e917206c"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 5887,
+                "sha256": "f248f9ad0a7fefed2a9761ab7300c5b7576c9571528a91c2fba57e6272ec6f53"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 10888,
+                "sha256": "f7a90007823c3e5383c6c2c7f83472528c3e422e1a7732939f75ab786bf3d46f"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 4627,
+                "sha256": "0781eb0368d1c15476a6d36d81b860ae270406ee6e2696521dab812d2b9972fc"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 256,
+                "sha256": "2f53f5a69387995f9019c306026841afe56828e4b772b0c5c8a09ebdd00d6525"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-3.log",
+                "kind": "qualification-evidence",
+                "bytes": 298,
+                "sha256": "ff28e5f453b0c47dda835568a07cbf5f794f170efc07be10d134591d11ac30d3"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-4.log",
+                "kind": "qualification-evidence",
+                "bytes": 331,
+                "sha256": "bea5453de103163c3f0ee686f8a81d26aa44cd1d21096c94a3bd0dfd8e3718e0"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-5.log",
+                "kind": "qualification-evidence",
+                "bytes": 260,
+                "sha256": "aae89c8c1cc5e4e12aecbbb418d731dd302bbd928b32275b594f1558768c8cd7"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-6.log",
+                "kind": "qualification-evidence",
+                "bytes": 31,
+                "sha256": "15950a68a7ed99c59779717acefdceb3f69cfd31bde67d2c954f2a3cea4d7955"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-7.log",
+                "kind": "qualification-evidence",
+                "bytes": 7791,
+                "sha256": "95500c4eebe37f99657d62bb4319f7fd747d16e7b9eed5d6bc5a7b4471f36c55"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-8.log",
+                "kind": "qualification-evidence",
+                "bytes": 734,
+                "sha256": "2cabb6560a353c2385ccf0841c7fbeb29741615c083d2c2bc812535bef40d290"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/static/step-9.log",
+                "kind": "qualification-evidence",
+                "bytes": 1019,
+                "sha256": "c540fc1d4dd5ef31b75cd50d850dc5a56c8f4b013664bcc90fac38f846fac946"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+                "kind": "qualification-evidence",
+                "bytes": 88343,
+                "sha256": "a772da551b00b578aa24ae11a9b15b0ac07f9703fdd254a2d6d17d90f5bd4548"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 5690,
+                "sha256": "d87f42216a0e3ec20323e84baa0651a42f9bab710a7087d2658c35c8ff9a8f12"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/playwright-output/.last-run.json",
+                "kind": "qualification-evidence",
+                "bytes": 45,
+                "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/playwright.json",
+                "kind": "qualification-evidence",
+                "bytes": 92473,
+                "sha256": "1654ff68e0b3766b7e745fb6312996ac1d6c10a5c0fc930eccb585dde10c261f"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 9027,
+                "sha256": "fc53e2cc6890f22d388ff34e3d355354cc78dbd6c8d7bf4ed3b7fd55b1f38909"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 323,
+                "sha256": "8f55c39f91015caad209c2bd6a20f7df7e2a4b956564a6cf35c187d6f878bd74"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/ui/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 274,
+                "sha256": "bd24f6286870869eb84ee8ab1970e7be6f386e5bbf0c3f6e13f6e91eb9b0d661"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/contract.json",
+                "kind": "qualification-evidence",
+                "bytes": 5815,
+                "sha256": "8bac3d21a8410e2da50ae0163c502a6289a9c9f622b88c16aac1b409afa02f15"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/result.json",
+                "kind": "qualification-evidence",
+                "bytes": 9188,
+                "sha256": "86b33951be1a951949b7afadcf887db9be2636a73987a6821cfd57fc0c56eb76"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-1.log",
+                "kind": "qualification-evidence",
+                "bytes": 38039,
+                "sha256": "009e6328a09b0dabcdedc4ccc027c00214830d26fdb6548652e794b62f4069ef"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-2.log",
+                "kind": "qualification-evidence",
+                "bytes": 2164,
+                "sha256": "5780031bd4543335d216c18675e48d0c8f33d97beb6eef8e56b67e5bb2c00c63"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-3.log",
+                "kind": "qualification-evidence",
+                "bytes": 358,
+                "sha256": "7e50347cf14b8f7ccdc7691e583d55ec2ef0f989d25223a3583be855ad7c2661"
+              },
+              {
+                "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/unit/step-4.log",
+                "kind": "qualification-evidence",
+                "bytes": 64,
+                "sha256": "3655e5ec61302f69d1b4d75f7175caeb182656ea1f688759a5ba0ad3e2db9702"
+              },
+              {
                 "path": ".artifacts/release-benchmark/repository-quality-b7340cb/serial/build/contract.json",
                 "kind": "qualification-evidence",
                 "bytes": 1625,
@@ -10421,13 +10892,31 @@
           }
         },
         "rejectedIgnoredArtifactCount": 74673,
-        "ignoredArtifactListingSha256": "ecab885e46df32a6d05b1d6aa01dabe00262b98d9ff1c1333c5644b0240b6c6b",
+        "ignoredArtifactListingSha256": "95feb640ed31fd2d729afde30fffcb812e3faee7671a8ea164e350396b215a11",
         "rejectedIgnoredArtifactListingSha256": "ab2b5c891f8cb03db0e858758dd951dff4391589d9308cc9956be5f942a81583",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+      "tree": "2dec8036cf1e0704abf4ff71532abcf34759ca35",
+      "parents": ["0c8ab0243b2bbb416d61132f29bfd2f58d184493"],
+      "subject": "fix: own the benchmark child signal lifecycle"
+    },
+    {
+      "commit": "0c8ab0243b2bbb416d61132f29bfd2f58d184493",
+      "tree": "b1c8b41dfbbd2072f4aba0fa274c3f8681953416",
+      "parents": ["a9ebf15ce2d35d006ac007d5bedca7353f597006"],
+      "subject": "fix: claim outbox work on database time"
+    },
+    {
+      "commit": "a9ebf15ce2d35d006ac007d5bedca7353f597006",
+      "tree": "390046ec77a1abd26bcc7bffe2407b92edcd2197",
+      "parents": ["acf5e6e84d68adfbd7613d9b1adf2079bd3c1374"],
+      "subject": "docs: capture hardened qualification manifests"
+    },
     {
       "commit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
       "tree": "70a4daf53e11a42d98d6f9cd66cc883d1e6606bd",
@@ -10933,7 +11422,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 79,
+  "reachableCommitCount": 82,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -11404,6 +11893,36 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+      "selector": "refs/heads/main@{2026-08-01T17:18:32-04:00}",
+      "subject": "commit: fix: own the benchmark child signal lifecycle"
+    },
+    {
+      "commit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+      "selector": "HEAD@{2026-08-01T17:18:32-04:00}",
+      "subject": "commit: fix: own the benchmark child signal lifecycle"
+    },
+    {
+      "commit": "0c8ab0243b2bbb416d61132f29bfd2f58d184493",
+      "selector": "refs/heads/main@{2026-08-01T17:17:19-04:00}",
+      "subject": "commit: fix: claim outbox work on database time"
+    },
+    {
+      "commit": "0c8ab0243b2bbb416d61132f29bfd2f58d184493",
+      "selector": "HEAD@{2026-08-01T17:17:19-04:00}",
+      "subject": "commit: fix: claim outbox work on database time"
+    },
+    {
+      "commit": "a9ebf15ce2d35d006ac007d5bedca7353f597006",
+      "selector": "refs/heads/main@{2026-08-01T16:19:11-04:00}",
+      "subject": "commit: docs: capture hardened qualification manifests"
+    },
+    {
+      "commit": "a9ebf15ce2d35d006ac007d5bedca7353f597006",
+      "selector": "HEAD@{2026-08-01T16:19:11-04:00}",
+      "subject": "commit: docs: capture hardened qualification manifests"
+    },
     {
       "commit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
       "selector": "refs/heads/main@{2026-08-01T15:39:34-04:00}",
@@ -12211,8 +12730,8 @@
         ],
         "retainedArchiveDecision": "retained-and-file-hashed-in-worktree-status",
         "retainedQualificationEvidence": {
-          "artifactCount": 1372,
-          "aggregateSha256": "9fc5edd6c6e71bdc12872d112493ab2d13e867d074aa377493a444ad888f225b",
+          "artifactCount": 1435,
+          "aggregateSha256": "aa152c7dd4a334f31e85a4b886843a061b84abe4e36a94360c8977083736a2e1",
           "runs": [
             {
               "root": ".artifacts/release-benchmark/quality-5af2de1b687c-qual-4",
@@ -12277,6 +12796,24 @@
               "reportedOutcome": null,
               "validationIssues": [],
               "incompleteReason": "No run summary was written; retained artifacts record an interrupted or aborted qualification attempt."
+            },
+            {
+              "root": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3",
+              "kind": "benchmark",
+              "runId": "repository-quality-a9ebf15ce2d3-serial",
+              "mode": "serial",
+              "outcome": "failed",
+              "durationMs": 761486,
+              "sourceRevision": "a9ebf15ce2d35d006ac007d5bedca7353f597006",
+              "artifactCount": 63,
+              "aggregateSha256": "22f8319a504c56e2a0c2b28e40d51e4c360f4ce50d0b9c6c98bb362fd984b204",
+              "summaryPaths": [
+                ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json"
+              ],
+              "completionEvidence": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+              "reportedOutcome": "failed",
+              "validationIssues": [],
+              "incompleteReason": null
             },
             {
               "root": ".artifacts/release-benchmark/repository-quality-b7340cb",
@@ -12448,6 +12985,18 @@
             }
           ],
           "summaries": [
+            {
+              "path": ".artifacts/release-benchmark/repository-quality-a9ebf15ce2d3/serial/summary.json",
+              "bytes": 88343,
+              "sha256": "a772da551b00b578aa24ae11a9b15b0ac07f9703fdd254a2d6d17d90f5bd4548",
+              "runId": "repository-quality-a9ebf15ce2d3-serial",
+              "mode": "serial",
+              "outcome": "failed",
+              "reportedOutcome": "failed",
+              "validationIssues": [],
+              "durationMs": 761486,
+              "sourceRevision": "a9ebf15ce2d35d006ac007d5bedca7353f597006"
+            },
             {
               "path": ".artifacts/release-benchmark/repository-quality-b7340cb/serial/summary.json",
               "bytes": 60709,

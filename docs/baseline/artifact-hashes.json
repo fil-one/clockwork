@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T19:56:42Z",
-  "captureCommit": "acf5e6e84d68adfbd7613d9b1adf2079bd3c1374",
-  "captureTree": "70a4daf53e11a42d98d6f9cd66cc883d1e6606bd",
+  "capturedAt": "2026-08-01T21:19:34Z",
+  "captureCommit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
+  "captureTree": "2dec8036cf1e0704abf4ff71532abcf34759ca35",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "431f77d9dccef1aa37c085ba34b02f93a6cd287f91d2d0d8af8f4047d87936b6",
-  "artifactCount": 636,
+  "captureTreeListingSha256": "7b47f3fff0ca6da7f188daab9f0247344451c7e33bf373f72df9b0c2b10d2604",
+  "artifactCount": 637,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
@@ -63,8 +63,8 @@
       ]
     },
     "toolchain-ci": {
-      "artifactCount": 80,
-      "aggregateSha256": "3203eaf20b7e10b57afe12d245a97e41b2f96ca68727000391e2332ae5ec12fd",
+      "artifactCount": 81,
+      "aggregateSha256": "a4f60de377cdbe6864d2320b75304a4508bd95cd8c337af0a92a1b17644f4191",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -129,6 +129,7 @@
         "pnpm-workspace.yaml",
         "prettier.config.mjs",
         "scripts/benchmark-release.mjs",
+        "scripts/benchmark-release.test.mjs",
         "scripts/check-generated-dry-run.mjs",
         "scripts/compare-release-results.mjs",
         "scripts/generate-baseline-manifests.mjs",
@@ -298,7 +299,7 @@
     },
     "database": {
       "artifactCount": 101,
-      "aggregateSha256": "a6f5623d17463c54b6fa6288588830803a48a976b126d9a8d340eef0146d6e7d",
+      "aggregateSha256": "5221b357ac5c1ed9052815eef6593b58abd97b681ef1748ec312c5b754884b38",
       "paths": [
         "packages/db/drizzle/meta/0000_snapshot.json",
         "packages/db/drizzle/meta/0001_snapshot.json",
@@ -478,8 +479,8 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 258,
-      "aggregateSha256": "21b4b8a46dce558c29ed86b744c5f261cfedb789905652ffa7e427d24a77538d",
+      "artifactCount": 259,
+      "aggregateSha256": "b32bd755e646c2a2dbf5149c1159008edba6d0e35eda018e5c51eb1c6400de00",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -722,6 +723,7 @@
         "packages/workflows/src/system/outbox-dispatcher.test.ts",
         "packages/workflows/src/system/workos-organization.test.ts",
         "packages/workflows/src/trigger/discovery.test.ts",
+        "scripts/benchmark-release.test.mjs",
         "scripts/release-artifacts.test.mjs",
         "supabase/tests/000_schema.test.sql",
         "supabase/tests/010_constraints.test.sql",
@@ -1215,8 +1217,8 @@
     },
     {
       "path": "apps/web/e2e/production-proof.spec.ts",
-      "bytes": 30359,
-      "sha256": "b902eb877b2d31c6ac2a1186d3563d6d53d7d632cb07ba92644c996518fbdd82"
+      "bytes": 32600,
+      "sha256": "6e290a2a76e4ddd90b979bd28d33fa0b9359dc08d598bcae646df0794f757357"
     },
     {
       "path": "apps/web/e2e/production-proof.teardown.ts",
@@ -1230,8 +1232,8 @@
     },
     {
       "path": "apps/web/e2e/production-workflow-proof.ts",
-      "bytes": 2577,
-      "sha256": "ce1623b7f134e726ce6b39f8d3cb1d4d042870b223cd585bcf5fdd1ded3cf084"
+      "bytes": 2566,
+      "sha256": "b0fd37c741902e2c229f0ee8724b22f6b6b51c5c75db3c501102d47c8a36fa1b"
     },
     {
       "path": "apps/web/e2e/smoke.spec.ts",
@@ -1965,8 +1967,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 4806,
-      "sha256": "76aa68e2609bcc1490712c5df8bebe375f8c43d6c634dc366313126238d64d91"
+      "bytes": 4841,
+      "sha256": "700638f9e5e188620de8fb81ac8f48150c7bed9c15b1c46a0ed0560341ae431d"
     },
     {
       "path": "packages/api/package.json",
@@ -2450,8 +2452,8 @@
     },
     {
       "path": "packages/db/src/repositories/system/outbox.ts",
-      "bytes": 9496,
-      "sha256": "dec039d10b9654a54a2e1ce5ede4772f733b9253309e5d115d34d852d00d476f"
+      "bytes": 10698,
+      "sha256": "c591e1c67c31e284903ad010425fc2a273ba8f5fe6f21363e27141a6a29ac8c5"
     },
     {
       "path": "packages/db/src/repositories/system/providers.ts",
@@ -2525,8 +2527,8 @@
     },
     {
       "path": "packages/db/src/repositories/workflows/runtime.integration.test.ts",
-      "bytes": 21010,
-      "sha256": "c5cef0c19cca96a25c11198f4f8d17e85c7e64b1edb341d0a76389481cad2581"
+      "bytes": 23223,
+      "sha256": "2aead576201c9b32cffdea12bae5ff1f4c1a6ab730fcbbd8972db84f701a0293"
     },
     {
       "path": "packages/db/src/schema.ts",
@@ -3630,8 +3632,13 @@
     },
     {
       "path": "scripts/benchmark-release.mjs",
-      "bytes": 6580,
-      "sha256": "b26a86ba4e88df20dc1a7aec990cc6ba2a86c796edeccc0985e6c799051548c3"
+      "bytes": 10284,
+      "sha256": "5bf1afa77be565b46579709f4ffb34d9be644cd08b89d419993307ca03c019f2"
+    },
+    {
+      "path": "scripts/benchmark-release.test.mjs",
+      "bytes": 14543,
+      "sha256": "52b6bb9e14343ef3eab964f3ebd2c14ff4177a9825df0d65046f3dd69ae8d8cf"
     },
     {
       "path": "scripts/check-generated-dry-run.mjs",
@@ -3655,13 +3662,13 @@
     },
     {
       "path": "scripts/release-artifacts.mjs",
-      "bytes": 37219,
-      "sha256": "53c6c8d8e40898658d848cd54d44aeb25535807a5f9b5462844d60a15e825c64"
+      "bytes": 38127,
+      "sha256": "932d27df35a3276beb2bf851e7636bf2ece0a61f45f7017e1d852d2133211235"
     },
     {
       "path": "scripts/release-artifacts.test.mjs",
-      "bytes": 27144,
-      "sha256": "9aa122e843e47fc157b1a7ab542782aa1b5aa8de11adb8bc67807e4f7cf98c4b"
+      "bytes": 29915,
+      "sha256": "4c5f6404fda35a2ff43249223e279100d21e3f0c3230de4439d4cc94616366ac"
     },
     {
       "path": "scripts/release-suites.mjs",
