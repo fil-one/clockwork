@@ -36,6 +36,7 @@ export function deterministicProviderActivationTest(
       evidenceReference: `urn:clockwork:activation:${provider}`,
       simulatorState: "ready",
       simulatorDetails: `${provider} deterministic provider simulator ready`,
+      inputProvenance: "repository_fixture",
     });
 }
 

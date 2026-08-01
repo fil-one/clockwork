@@ -5,6 +5,7 @@ export * from "./marketplaces/normalization";
 export * from "./marketplaces/types";
 export * from "./provider-result";
 export * from "./stripe/gateway";
+export * from "./stripe/adjustments";
 export * from "./stripe/payment-sessions";
 export * from "./stripe/types";
 export * from "./stripe/webhooks";

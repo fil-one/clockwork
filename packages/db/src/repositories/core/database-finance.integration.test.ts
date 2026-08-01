@@ -4,7 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { ids, MoneySchema } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
-import type { QuoteSnapshot } from "@clockwork/domain/core";
+import { issueQuote, type QuoteSnapshot } from "@clockwork/domain/core";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
 import { afterAll, describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -16,12 +16,15 @@ import {
   orders,
   organizations,
   outboxMessages,
+  quoteLines,
   quotes,
 } from "../../schema";
 import {
+  accountCommercialProfiles,
   dealRegistrationExclusions,
   orderCommercialProfiles,
   orderLineSnapshots,
+  quoteCommercialProfiles,
   quoteSnapshots,
 } from "../../schema/core/finance";
 import { commercialArtifactRequests } from "../../schema/core/commercial-artifacts";
@@ -30,7 +33,6 @@ import {
   withAuthorizedTransaction,
   withInternalTransaction,
 } from "../../transaction";
-import { createAcceptedOrderProvisioningAttempt } from "../lifecycle/accepted-order-provisioning";
 import { DatabaseLifecycleCommandRepository } from "../lifecycle/command-repository";
 import { quoteArtifactDefinition } from "./artifact-definitions";
 import {
@@ -135,6 +137,173 @@ async function persistTestArtifact(
   return documentId;
 }
 
+async function issuedChannelQuoteFixture(input: {
+  sourceQuoteId: string;
+  signerUserId: string;
+  suffix: string;
+}): Promise<{ quoteId: string; quoteLineId: string }> {
+  return withInternalTransaction(
+    db,
+    `issued-channel-quote-${input.suffix}`,
+    async (tx) => {
+      const sourceQuote = await tx.query.quotes.findFirst({
+        where: eq(quotes.id, input.sourceQuoteId),
+      });
+      const sourceLine = sourceQuote
+        ? await tx.query.quoteLines.findFirst({
+            where: eq(quoteLines.quoteId, sourceQuote.id),
+          })
+        : undefined;
+      const sourceProfile = sourceQuote
+        ? await tx.query.quoteCommercialProfiles.findFirst({
+            where: eq(quoteCommercialProfiles.quoteId, sourceQuote.id),
+          })
+        : undefined;
+      const priceBook = sourceQuote
+        ? await tx.query.priceBooks.findFirst({
+            where: (row, { eq: equals }) =>
+              equals(row.id, sourceQuote.priceBookId),
+          })
+        : undefined;
+      const rateCard = sourceLine
+        ? await tx.query.rateCards.findFirst({
+            where: (row, { eq: equals }) =>
+              equals(row.id, sourceLine.rateCardId),
+          })
+        : undefined;
+      if (
+        !sourceQuote ||
+        !sourceLine ||
+        !sourceProfile ||
+        !priceBook ||
+        !rateCard
+      )
+        throw new Error("CHANNEL_ORDER_SOURCE_FIXTURE_MISSING");
+      const currency = z
+        .enum(["USD", "EUR", "GBP"])
+        .parse(sourceQuote.currency);
+      const route = z
+        .enum(["referral", "resale", "distributor"])
+        .parse(sourceProfile.channelShape);
+      const quoteId = crypto.randomUUID();
+      const quoteLineId = crypto.randomUUID();
+      const draft: QuoteSnapshot = {
+        id: quoteId,
+        seriesId: crypto.randomUUID(),
+        revision: 1,
+        accountId: sourceQuote.accountId,
+        ...(sourceQuote.endClientAccountId
+          ? { endClientAccountId: sourceQuote.endClientAccountId }
+          : {}),
+        ...(sourceQuote.partnerAccountId
+          ? { partnerAccountId: sourceQuote.partnerAccountId }
+          : {}),
+        priceBook: { id: priceBook.id, version: priceBook.version },
+        route,
+        status: "draft",
+        lines: [
+          {
+            id: quoteLineId,
+            rateCardId: rateCard.id,
+            sku: sourceLine.sku,
+            region: rateCard.region,
+            unit: rateCard.unit,
+            approvedClaim: rateCard.approvedClaim,
+            quantity: sourceLine.quantity,
+            termMonths: sourceLine.termMonths,
+            unitPrice: testMoney(
+              currency,
+              sourceLine.unitPriceMinor.toString(),
+            ),
+            listUnitPrice: testMoney(
+              currency,
+              sourceLine.unitPriceMinor.toString(),
+            ),
+            ...(rateCard.floorPriceMinor === null
+              ? {}
+              : {
+                  floorPrice: testMoney(
+                    currency,
+                    rateCard.floorPriceMinor.toString(),
+                  ),
+                }),
+            overageRate: testMoney(
+              currency,
+              sourceLine.overageRateMinor.toString(),
+            ),
+            lineTotal: testMoney(
+              currency,
+              sourceLine.lineTotalMinor.toString(),
+            ),
+            discountBps: sourceLine.discountBps,
+            commitType: z
+              .enum(["period_allowance", "term_drawdown"])
+              .parse(rateCard.commitType),
+            stripeTaxCode: rateCard.stripeTaxCode,
+            qboIncomeAccount: rateCard.qboIncomeAccount,
+            marginResult: z
+              .enum(["not_configured", "pass", "exception_required"])
+              .parse(sourceQuote.marginFloorResult),
+          },
+        ],
+        total: testMoney(currency, sourceQuote.totalMinor.toString()),
+        ...(sourceQuote.partnerResaleTotalMinor === null
+          ? {}
+          : {
+              partnerResaleTotal: testMoney(
+                currency,
+                sourceQuote.partnerResaleTotalMinor.toString(),
+              ),
+            }),
+        marginResult: z
+          .enum(["not_configured", "pass", "approved", "rejected"])
+          .parse(sourceQuote.marginFloorResult),
+        exceptionReasons: [],
+        expiresAt: sourceQuote.expiresAt.toISOString(),
+        createdBy: input.signerUserId,
+        createdAt: occurredAt,
+      };
+      const issued = issueQuote(draft, {
+        issuedAt: occurredAt,
+        renderedDocumentId: z.uuid().parse(sourceQuote.renderedDocumentId),
+        ...(route === "resale" || route === "distributor"
+          ? {
+              partnerDocumentId: z.uuid().parse(sourceQuote.partnerDocumentId),
+            }
+          : {}),
+      });
+      await tx.insert(quotes).values({
+        ...sourceQuote,
+        id: quoteId,
+        seriesId: issued.seriesId,
+        previousRevisionId: null,
+        status: "issued",
+        createdBy: input.signerUserId,
+        rowVersion: 1,
+      });
+      await tx.insert(quoteLines).values({
+        ...sourceLine,
+        id: quoteLineId,
+        quoteId,
+      });
+      await tx.insert(quoteCommercialProfiles).values({
+        ...sourceProfile,
+        quoteId,
+        pricingInputs: { source: "isolated-channel-order-fixture" },
+      });
+      await tx.insert(quoteSnapshots).values({
+        quoteId,
+        revision: 1,
+        snapshot: issued,
+        snapshotHash: coreSnapshotHash(issued),
+        issuedAt: new Date(issued.issuedAt ?? occurredAt),
+        createdBy: input.signerUserId,
+      });
+      return { quoteId, quoteLineId };
+    },
+  );
+}
+
 afterAll(async () => {
   await client.end();
 });
@@ -174,7 +343,7 @@ describe("database core direct-owner artifact chain", () => {
             requestedBy: partnerUserId,
           }),
       ),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ cause: { code: "42501" } });
     await withInternalTransaction(
       db,
       `verify-unrelated-commercial-artifact-${runId}`,
@@ -267,6 +436,224 @@ describe("database core direct-owner artifact chain", () => {
         expect(JSON.stringify(partner.definition)).toContain("14000");
       },
     );
+  });
+
+  it("rejects caller-supplied partner transfer tiers that differ from persisted policy", async () => {
+    const distributorAccountId = "10000000-0000-4000-8000-000000000005";
+    const distributorUserId = "20000000-0000-4000-8000-000000000005";
+    await expect(
+      repository.mutate({
+        resource: "quotes",
+        id: crypto.randomUUID(),
+        accountId: "10000000-0000-4000-8000-000000000004",
+        action: "create",
+        payload: {
+          priceBookId: "60000000-0000-4000-8000-000000000001",
+          seriesId: crypto.randomUUID(),
+          route: "distributor",
+          endClientAccountId: "10000000-0000-4000-8000-000000000004",
+          partnerAccountId: distributorAccountId,
+          partnerTier: "silver",
+          partnerResaleTotal: { currency: "USD", minor: "180000" },
+          lines: [
+            {
+              lineId: crypto.randomUUID(),
+              sku: "LOCKED-STORAGE-TB",
+              region: "us-east-2",
+              quantity: "1",
+              termMonths: 12,
+            },
+          ],
+          expiresAt: "2026-12-31T23:59:59.000Z",
+        },
+        actor: { kind: "user", id: distributorUserId },
+        authorization: {
+          userId: ids.user.parse(distributorUserId),
+          accountIds: [ids.account.parse(distributorAccountId)],
+          roles: ["partner_admin"],
+          isInternalStaff: false,
+          mfaVerified: true,
+          recentAuthenticationVerified: true,
+        },
+        requestId: `forged-partner-tier-${runId}`,
+        idempotencyKey: testKey("forged-partner-tier"),
+        occurredAt,
+      }),
+    ).rejects.toThrow(
+      "Partner transfer pricing tier must match persisted partner policy",
+    );
+  });
+
+  it("persists referral, resale, and distributor orders for their authoritative legal parties", async () => {
+    const channels = [
+      {
+        channel: "referral",
+        sourceQuoteId: "70000000-0000-4000-8000-000000000002",
+        signerUserId: "20000000-0000-4000-8000-000000000004",
+        authorizationAccountId: "10000000-0000-4000-8000-000000000004",
+        role: "owner" as const,
+        invoicingAccountId: "10000000-0000-4000-8000-000000000004",
+        governingAgreementId: "51000000-0000-4000-8000-000000000007",
+        partnerAgreementId: "51000000-0000-4000-8000-000000000008",
+      },
+      {
+        channel: "resale",
+        sourceQuoteId: "70000000-0000-4000-8000-000000000003",
+        signerUserId: "20000000-0000-4000-8000-000000000008",
+        authorizationAccountId: "10000000-0000-4000-8000-000000000003",
+        role: "partner_admin" as const,
+        invoicingAccountId: "10000000-0000-4000-8000-000000000003",
+        governingAgreementId: "51000000-0000-4000-8000-000000000003",
+        partnerAgreementId: "51000000-0000-4000-8000-000000000003",
+      },
+      {
+        channel: "distributor",
+        sourceQuoteId: "70000000-0000-4000-8000-000000000004",
+        signerUserId: "20000000-0000-4000-8000-000000000005",
+        authorizationAccountId: "10000000-0000-4000-8000-000000000005",
+        role: "partner_admin" as const,
+        invoicingAccountId: "10000000-0000-4000-8000-000000000005",
+        governingAgreementId: "51000000-0000-4000-8000-000000000004",
+        partnerAgreementId: "51000000-0000-4000-8000-000000000004",
+      },
+    ];
+
+    for (const channel of channels) {
+      const suffix = `${channel.channel}-${crypto.randomUUID().slice(0, 8)}`;
+      const fixture = await issuedChannelQuoteFixture({
+        sourceQuoteId: channel.sourceQuoteId,
+        signerUserId: channel.signerUserId,
+        suffix,
+      });
+      const channelAuthorization: AuthorizationContext = {
+        userId: ids.user.parse(channel.signerUserId),
+        accountIds: [ids.account.parse(channel.authorizationAccountId)],
+        roles: [channel.role],
+        isInternalStaff: false,
+        mfaVerified: true,
+        recentAuthenticationVerified: true,
+      };
+      const orderId = crypto.randomUUID();
+      const channelOrderLineId = crypto.randomUUID();
+      const orderCommand = {
+        quoteId: fixture.quoteId,
+        signerUserId: channel.signerUserId,
+        authorityTitle:
+          channel.role === "owner" ? "Chief Demo Officer" : "Partner Director",
+        authorityAttested: true as const,
+        serviceStartsOn: "2026-08-01",
+        serviceEndsOn: "2027-07-31",
+        noticeOn: "2027-06-01",
+        acceptedAt: "2026-08-01T00:00:00.000Z",
+        orderLineIds: [channelOrderLineId],
+      };
+
+      if (channel.channel === "resale") {
+        const endClientUserId = "20000000-0000-4000-8000-000000000004";
+        await expect(
+          repository.mutate({
+            resource: "orders",
+            id: crypto.randomUUID(),
+            accountId: "10000000-0000-4000-8000-000000000004",
+            action: "prepare_artifact",
+            payload: {
+              ...orderCommand,
+              signerUserId: endClientUserId,
+              retainUntil: "2033-08-01T00:00:00.000Z",
+            },
+            actor: { kind: "user", id: endClientUserId },
+            authorization: {
+              userId: ids.user.parse(endClientUserId),
+              accountIds: [
+                ids.account.parse("10000000-0000-4000-8000-000000000004"),
+              ],
+              roles: ["owner"],
+              isInternalStaff: false,
+              mfaVerified: true,
+              recentAuthenticationVerified: true,
+            },
+            requestId: `forged-resale-acceptance-${suffix}`,
+            idempotencyKey: testKey(`forged-resale-acceptance-${suffix}`),
+            occurredAt: "2026-08-01T00:00:00.000Z",
+          }),
+        ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      }
+
+      const prepared = await repository.mutate({
+        resource: "orders",
+        id: orderId,
+        accountId: "10000000-0000-4000-8000-000000000004",
+        action: "prepare_artifact",
+        payload: {
+          ...orderCommand,
+          retainUntil: "2033-08-01T00:00:00.000Z",
+        },
+        actor: { kind: "user", id: channel.signerUserId },
+        authorization: channelAuthorization,
+        requestId: `channel-order-artifact-${suffix}`,
+        idempotencyKey: testKey(`channel-order-artifact-${suffix}`),
+        occurredAt: "2026-08-01T00:00:00.000Z",
+      });
+      const orderDocumentId = await persistTestArtifact(
+        prepared,
+        `channel-order-${suffix}`,
+      );
+      const accepted = await repository.mutate({
+        resource: "orders",
+        id: orderId,
+        accountId: "10000000-0000-4000-8000-000000000004",
+        action: "create",
+        payload: { ...orderCommand, orderFormDocumentId: orderDocumentId },
+        actor: { kind: "user", id: channel.signerUserId },
+        authorization: channelAuthorization,
+        requestId: `channel-order-accept-${suffix}`,
+        idempotencyKey: testKey(`channel-order-accept-${suffix}`),
+        occurredAt: "2026-08-01T00:00:00.000Z",
+      });
+      expect(accepted.record.data).toMatchObject({
+        status: "accepted",
+        sourcing: channel.channel,
+        accountId: "10000000-0000-4000-8000-000000000004",
+        invoicingAccountId: channel.invoicingAccountId,
+        acceptanceReservation: { decision: "approved" },
+      });
+      await withInternalTransaction(
+        db,
+        `channel-order-assert-${suffix}`,
+        async (tx) => {
+          const [persistedOrder, profile, attempt] = await Promise.all([
+            tx.query.orders.findFirst({ where: eq(orders.id, orderId) }),
+            tx.query.orderCommercialProfiles.findFirst({
+              where: eq(orderCommercialProfiles.orderId, orderId),
+            }),
+            tx.query.lifecycleProvisioningAttempts.findFirst({
+              where: eq(lifecycleProvisioningAttempts.orderId, orderId),
+            }),
+          ]);
+          expect(persistedOrder).toMatchObject({
+            agreementId: channel.governingAgreementId,
+            invoicingAccountId: channel.invoicingAccountId,
+            signerUserId: channel.signerUserId,
+          });
+          expect(profile).toMatchObject({
+            buyerAgreementId: "51000000-0000-4000-8000-000000000007",
+            partnerAgreementId: channel.partnerAgreementId,
+          });
+          expect(attempt).toMatchObject({
+            accountId: "10000000-0000-4000-8000-000000000004",
+            orderId,
+            organizationId: "30000000-0000-4000-8000-000000000003",
+            operation: "provision",
+            state: "pending",
+          });
+          if (channel.channel === "referral") {
+            expect(attempt?.accountId).toBe(channel.invoicingAccountId);
+          } else {
+            expect(attempt?.accountId).not.toBe(channel.invoicingAccountId);
+          }
+        },
+      );
+    }
   });
 
   it("accepted-order-creates-provisioning-attempt-and-entitlements", async () => {
@@ -435,7 +822,6 @@ describe("database core direct-owner artifact chain", () => {
 
     const orderCommand = {
       quoteId,
-      agreementId: "51000000-0000-4000-8000-000000000001",
       signerUserId: userId,
       authorityTitle: "Chief Demo Officer",
       authorityAttested: true as const,
@@ -444,7 +830,6 @@ describe("database core direct-owner artifact chain", () => {
       noticeOn: "2027-06-01",
       acceptedAt: "2026-08-01T00:00:00.000Z",
       orderLineIds: [orderLineId],
-      contractualTimeZone: "America/New_York",
     };
     const orderArtifactRequest = await repository.mutate({
       resource: "orders",
@@ -465,6 +850,41 @@ describe("database core direct-owner artifact chain", () => {
       orderArtifactRequest,
       "order",
     );
+    await withInternalTransaction(
+      db,
+      `core-owner-credit-fixture-${runId}`,
+      async (tx) => {
+        await tx
+          .update(accountCommercialProfiles)
+          .set({
+            creditStatus: "approved",
+            approvedCreditLimitMinor: 5_000_000n,
+            currentExposureMinor: 0n,
+            newServiceBlocked: false,
+            blockReason: null,
+          })
+          .where(eq(accountCommercialProfiles.accountId, accountId));
+      },
+    );
+    await expect(
+      repository.mutate({
+        resource: "orders",
+        id: orderId,
+        accountId,
+        action: "create",
+        payload: {
+          ...orderCommand,
+          orderFormDocumentId: orderDocumentId,
+          agreementId: "51000000-0000-4000-8000-000000000002",
+          partnerAccountId: "10000000-0000-4000-8000-000000000003",
+        },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: "core-owner-order-forged-counterparty",
+        idempotencyKey: testKey("core-owner-order-forged-counterparty"),
+        occurredAt: "2026-08-01T00:00:00.000Z",
+      }),
+    ).rejects.toThrow();
     const accepted = await repository.mutate({
       resource: "orders",
       id: orderId,
@@ -485,93 +905,29 @@ describe("database core direct-owner artifact chain", () => {
       sourcing: "direct",
       accountId,
       invoicingAccountId: accountId,
-    });
-    const provisioningOrder = await repository.mutate({
-      resource: "orders",
-      id: orderId,
-      accountId,
-      action: "provision",
-      expectedVersion: accepted.record.rowVersion,
-      payload: {},
-      actor: { kind: "system", id: "artifact-chain-test" },
-      authorization,
-      requestId: "core-owner-order-provision",
-      idempotencyKey: testKey("core-owner-order-provision"),
-      occurredAt: "2026-08-01T00:01:00.000Z",
-    });
-    const activeOrder = await repository.mutate({
-      resource: "orders",
-      id: orderId,
-      accountId,
-      action: "activate",
-      expectedVersion: provisioningOrder.record.rowVersion,
-      payload: {},
-      actor: { kind: "provider", id: "provisioning-platform" },
-      authorization,
-      requestId: "core-owner-order-activate",
-      idempotencyKey: testKey("core-owner-order-activate"),
-      occurredAt: "2026-08-01T00:02:00.000Z",
-    });
-    expect(activeOrder.record.data.status).toBe("active");
-
-    const amendmentId = crypto.randomUUID();
-    const amendmentCommand = {
-      id: amendmentId,
-      order: { id: orderId },
-      effectiveOn: "2026-09-01",
-      kind: "upgrade" as const,
-      prorationMethod: "daily" as const,
-      deltas: [
-        {
-          orderLineId,
-          sku: "LOCKED-STORAGE-TB",
-          quantityDelta: "1",
-          fullPeriodPriceDelta: { currency: "USD", minor: "10000" },
-        },
-      ],
-      acceptedAt: "2026-08-15T16:00:00.000Z",
-    };
-    const amendmentArtifactRequest = await repository.mutate({
-      resource: "amendments",
-      id: amendmentId,
-      accountId,
-      action: "prepare_artifact",
-      payload: {
-        amendment: amendmentCommand,
-        retainUntil: "2033-08-15T16:00:00.000Z",
+      acceptanceReservation: {
+        decision: "approved",
+        reason: "authoritative_checks_passed",
+        reviewCaseId: null,
       },
-      actor: { kind: "user", id: userId },
-      authorization,
-      requestId: "core-owner-amendment-artifact",
-      idempotencyKey: testKey("core-owner-amendment-artifact"),
-      occurredAt: "2026-08-15T16:00:00.000Z",
     });
-    const amendmentDocumentId = await persistTestArtifact(
-      amendmentArtifactRequest,
-      "amendment",
+    await expect(
+      repository.mutate({
+        resource: "orders",
+        id: orderId,
+        accountId,
+        action: "activate",
+        expectedVersion: accepted.record.rowVersion,
+        payload: {},
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: "core-owner-order-force-activate",
+        idempotencyKey: testKey("core-owner-order-force-activate"),
+        occurredAt: "2026-08-01T00:02:00.000Z",
+      }),
+    ).rejects.toThrow(
+      "Order state changes require provider confirmation or lifecycle offboarding",
     );
-    const amendment = await repository.mutate({
-      resource: "amendments",
-      id: amendmentId,
-      accountId,
-      action: "create",
-      payload: {
-        amendment: {
-          ...amendmentCommand,
-          documentId: amendmentDocumentId,
-        },
-      },
-      actor: { kind: "user", id: userId },
-      authorization,
-      requestId: "core-owner-amendment-accept",
-      idempotencyKey: testKey("core-owner-amendment-accept"),
-      occurredAt: "2026-08-15T16:00:00.000Z",
-    });
-    expect(amendment.record.data).toMatchObject({
-      id: amendmentId,
-      orderId,
-      documentId: amendmentDocumentId,
-    });
 
     const command = await withInternalTransaction(
       db,
@@ -605,7 +961,7 @@ describe("database core direct-owner artifact chain", () => {
           merchantOfRecord: "fil_one",
           billingShape: "direct",
           governingAgreementVersion: 1,
-          contractualTimeZone: "America/New_York",
+          contractualTimeZone: "UTC",
         });
         expect(lineSnapshot?.snapshotHash).toMatch(/^[a-f0-9]{64}$/);
         expect(attempt).toMatchObject({
@@ -657,8 +1013,8 @@ describe("database core direct-owner artifact chain", () => {
               events.map((event) => event.id),
             ),
           );
-        expect(events).toHaveLength(5);
-        expect(messages).toHaveLength(5);
+        expect(events).toHaveLength(3);
+        expect(messages).toHaveLength(3);
         expect(messages.every((message) => message.id.length > 0)).toBe(true);
         if (!attempt) throw new Error("Provisioning attempt was not persisted");
         const provisioningEvent = await tx.query.auditEvents.findFirst({
@@ -814,49 +1170,89 @@ describe("database core direct-owner artifact chain", () => {
       },
     );
 
+    const amendmentId = crypto.randomUUID();
+    const amendmentCommand = {
+      id: amendmentId,
+      order: { id: orderId },
+      effectiveOn: "2026-09-01",
+      kind: "upgrade" as const,
+      prorationMethod: "daily" as const,
+      deltas: [
+        {
+          orderLineId,
+          sku: "LOCKED-STORAGE-TB",
+          quantityDelta: "1",
+          fullPeriodPriceDelta: { currency: "USD", minor: "10000" },
+        },
+      ],
+      acceptedAt: "2026-08-15T16:00:00.000Z",
+    };
+    const amendmentArtifactRequest = await repository.mutate({
+      resource: "amendments",
+      id: amendmentId,
+      accountId,
+      action: "prepare_artifact",
+      payload: {
+        amendment: amendmentCommand,
+        retainUntil: "2033-08-15T16:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-owner-amendment-artifact",
+      idempotencyKey: testKey("core-owner-amendment-artifact"),
+      occurredAt: "2026-08-15T16:00:00.000Z",
+    });
+    const amendmentDocumentId = await persistTestArtifact(
+      amendmentArtifactRequest,
+      "amendment",
+    );
+    const amendment = await repository.mutate({
+      resource: "amendments",
+      id: amendmentId,
+      accountId,
+      action: "create",
+      payload: {
+        amendment: {
+          ...amendmentCommand,
+          documentId: amendmentDocumentId,
+        },
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-owner-amendment-accept",
+      idempotencyKey: testKey("core-owner-amendment-accept"),
+      occurredAt: "2026-08-15T16:00:00.000Z",
+    });
+    expect(amendment.record.data).toMatchObject({
+      id: amendmentId,
+      orderId,
+      documentId: amendmentDocumentId,
+    });
+
     await withInternalTransaction(
       db,
       "channel-provisioning-scope",
       async (tx) => {
-        const channelOrganizationId = "30000000-0000-4000-8000-000000000009";
-        await tx
-          .insert(organizations)
-          .values({
-            id: channelOrganizationId,
-            accountId: "10000000-0000-4000-8000-000000000004",
-            name: "Juniper Production",
-            isolated: false,
-            workosOrganizationId: "org_local_juniper_production",
-          })
-          .onConflictDoNothing();
         const channels = [
           {
             channel: "referral",
             orderId: "80000000-0000-4000-8000-000000000002",
-            orderLineId: "81000000-0000-4000-8000-000000000002",
             invoicingAccountId: "10000000-0000-4000-8000-000000000004",
-            region: "us-east-2",
           },
           {
             channel: "resale",
             orderId: "80000000-0000-4000-8000-000000000003",
-            orderLineId: "81000000-0000-4000-8000-000000000003",
             invoicingAccountId: "10000000-0000-4000-8000-000000000003",
-            region: "eu-west-1",
           },
           {
             channel: "distributor",
             orderId: "80000000-0000-4000-8000-000000000004",
-            orderLineId: "81000000-0000-4000-8000-000000000004",
             invoicingAccountId: "10000000-0000-4000-8000-000000000005",
-            region: "us-east-2",
           },
           {
             channel: "marketplace",
             orderId: "80000000-0000-4000-8000-000000000006",
-            orderLineId: "81000000-0000-4000-8000-000000000006",
-            invoicingAccountId: "10000000-0000-4000-8000-000000000008",
-            region: "us-east-2",
+            invoicingAccountId: "10000000-0000-4000-8000-000000000004",
           },
         ] as const;
         for (const channel of channels) {
@@ -869,57 +1265,6 @@ describe("database core direct-owner artifact chain", () => {
             accountId: "10000000-0000-4000-8000-000000000004",
             invoicingAccountId: channel.invoicingAccountId,
           });
-          const snapshot = {
-            id: channel.orderLineId,
-            sku: "LOCKED-STORAGE-TB",
-            quantity: "1.000000000000000000",
-            region: channel.region,
-          };
-          const [insertedSnapshot] = await tx
-            .insert(orderLineSnapshots)
-            .values({
-              orderLineId: channel.orderLineId,
-              snapshot,
-              snapshotHash: coreSnapshotHash(snapshot),
-            })
-            .onConflictDoNothing()
-            .returning();
-          const persistedSnapshot =
-            insertedSnapshot ??
-            (await tx.query.orderLineSnapshots.findFirst({
-              where: eq(orderLineSnapshots.orderLineId, channel.orderLineId),
-            }));
-          if (!persistedSnapshot)
-            throw new Error(`${channel.channel} snapshot missing`);
-          let attempt = await tx.query.lifecycleProvisioningAttempts.findFirst({
-            where: eq(lifecycleProvisioningAttempts.orderId, channel.orderId),
-          });
-          if (!attempt) {
-            attempt = (
-              await createAcceptedOrderProvisioningAttempt(tx, {
-                orderId: persistedOrder.id,
-                orderVersion: persistedOrder.rowVersion,
-                accountId: persistedOrder.accountId,
-                provisioningIdempotencyKey: `order:${persistedOrder.id}:v1:provision`,
-                requestedAt: new Date("2026-07-31T16:00:00.000Z"),
-                actor: { kind: "system", id: "channel-scope-fixture" },
-                requestId: `channel-scope-${channel.channel}`,
-                lineSnapshots: [persistedSnapshot],
-              })
-            ).attempt;
-          }
-          expect(attempt).toMatchObject({
-            accountId: persistedOrder.accountId,
-            orderId: persistedOrder.id,
-            organizationId: channelOrganizationId,
-          });
-          if (channel.channel === "referral") {
-            expect(attempt.accountId).toBe(persistedOrder.invoicingAccountId);
-          } else {
-            expect(attempt.accountId).not.toBe(
-              persistedOrder.invoicingAccountId,
-            );
-          }
         }
       },
     );

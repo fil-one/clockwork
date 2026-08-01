@@ -24,6 +24,7 @@ const gate: ExternalGateRecord = {
   configuredStatus: "blocked",
   simulatorState: "ready",
   simulatorDetails: "Provider simulator ready",
+  inputProvenance: "unverified",
   lastActivationTestStatus: "never",
   lastActivationTestAt: null,
   lastActivationTestedBy: null,
@@ -78,6 +79,7 @@ function runner(
           status === "passed"
             ? "All deterministic activation scenarios passed"
             : "Expected-denial scenario failed safely",
+        inputProvenance: "repository_fixture",
       }),
   };
 }
@@ -185,6 +187,7 @@ describe("external-gate system API", () => {
       gateKey: "EXT-ACC-01",
       simulatorState: "ready",
       simulatorDetails: "All deterministic activation scenarios passed",
+      inputProvenance: "repository_fixture",
       lastActivationTestStatus: "passed",
       activationEvidenceReference:
         "https://evidence.fil.one/activation/EXT-ACC-01",

@@ -367,6 +367,7 @@ describe("lifecycle API authorization and evidence", () => {
           accountId: otherAccountId,
         }),
         resolveExceptionScope: vi.fn(),
+        resolveOrderScope: vi.fn(),
       },
     }).request(
       "/v1/lifecycle/pocs/50000000-0000-4000-8000-000000000001/decisions",
@@ -397,6 +398,7 @@ describe("lifecycle API authorization and evidence", () => {
           accountId,
           queue: "legal",
         }),
+        resolveOrderScope: vi.fn(),
       },
     }).request(
       "/v1/lifecycle/exceptions/70000000-0000-4000-8000-000000000001/decisions",
@@ -413,6 +415,123 @@ describe("lifecycle API authorization and evidence", () => {
 
     expect(response.status).toBe(403);
     expect(decideException).not.toHaveBeenCalled();
+  });
+
+  it("authorizes partner-MoR offboarding from the persisted order scope", async () => {
+    const requestRenewal = vi
+      .fn()
+      .mockResolvedValue({ id: "renewal-1", status: "accepted" });
+    const declineRenewal = vi
+      .fn()
+      .mockResolvedValue({ id: "decline-1", status: "accepted" });
+    const requestTermination = vi
+      .fn()
+      .mockResolvedValue({ id: "termination-1", status: "requested" });
+    const orderId = "50000000-0000-4000-8000-000000000090";
+    const resolver: LifecycleAuthorizationScopeResolver = {
+      resolvePocAccount: vi.fn(),
+      resolveExceptionScope: vi.fn(),
+      resolveOrderScope: vi.fn().mockResolvedValue({
+        accountId: otherAccountId,
+        partnerAccountId: accountId,
+        authorizationAccountId: accountId,
+      }),
+    };
+    const configured = app({
+      service: service({ requestRenewal, declineRenewal, requestTermination }),
+      authorizationScopes: resolver,
+    });
+
+    const renewal = await configured.request(
+      `/v1/lifecycle/renewals/${orderId}/requests`,
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          accountId,
+          requestedAction: "renew",
+          requestedTermMonths: 12,
+        }),
+      },
+    );
+    expect(renewal.status, await renewal.clone().text()).toBe(200);
+    expect(requestRenewal).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: otherAccountId, orderId }),
+      expect.anything(),
+    );
+
+    const decline = await configured.request(
+      `/v1/lifecycle/renewals/${orderId}/declines`,
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          accountId,
+          reason: "End client requested non-renewal",
+          authorityTitle: "Partner administrator",
+          authorityAttested: true,
+          evidenceDocumentId: "60000000-0000-4000-8000-000000000090",
+        }),
+      },
+    );
+    expect(decline.status, await decline.clone().text()).toBe(200);
+    expect(declineRenewal).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: otherAccountId, orderId }),
+      expect.anything(),
+    );
+
+    const termination = await configured.request("/v1/lifecycle/terminations", {
+      method: "POST",
+      headers: mutationHeaders,
+      body: JSON.stringify({
+        accountId,
+        orderId,
+        reason: "partner_request",
+        effectiveAt: "2026-08-31T00:00:00.000Z",
+        retrievalDays: 30,
+        partnerAccountId: null,
+      }),
+    });
+    expect(termination.status, await termination.clone().text()).toBe(200);
+    expect(requestTermination).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: otherAccountId,
+        partnerAccountId: accountId,
+        orderId,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects an unrelated tenant before partner-MoR offboarding", async () => {
+    const declineRenewal = vi.fn();
+    const response = await app({
+      service: service({ declineRenewal }),
+      authorizationScopes: {
+        resolvePocAccount: vi.fn(),
+        resolveExceptionScope: vi.fn(),
+        resolveOrderScope: vi.fn().mockResolvedValue({
+          accountId,
+          partnerAccountId: otherAccountId,
+          authorizationAccountId: otherAccountId,
+        }),
+      },
+    }).request(
+      "/v1/lifecycle/renewals/50000000-0000-4000-8000-000000000091/declines",
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          accountId,
+          reason: "Forged partner request",
+          authorityTitle: "Partner administrator",
+          authorityAttested: true,
+          evidenceDocumentId: "60000000-0000-4000-8000-000000000091",
+        }),
+      },
+    );
+    expect(response.status).toBe(403);
+    expect(declineRenewal).not.toHaveBeenCalled();
   });
 });
 

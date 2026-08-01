@@ -7,7 +7,8 @@ export type CommissionRevenueEvent = {
   invoiceId: string;
   partnerAccountId: string;
   occurredAt: string;
-  type: "payment" | "credit_note" | "refund" | "chargeback";
+  type:
+    "payment" | "credit_note" | "credit_note_void" | "refund" | "chargeback";
   amount: Money;
 };
 
@@ -52,7 +53,9 @@ export function accrueCommission(input: {
   const sourceMinor = BigInt(input.event.amount.minor);
   if (sourceMinor < 0n)
     throw new Error("Financial source events use positive absolute amounts");
-  const sign = input.event.type === "payment" ? 1n : -1n;
+  const sign = ["payment", "credit_note_void"].includes(input.event.type)
+    ? 1n
+    : -1n;
   const netMinor = sourceMinor * sign;
   const grossMinor = divideRound(netMinor * BigInt(input.rateBps), 10_000n);
   const holdbackMinor = divideRound(

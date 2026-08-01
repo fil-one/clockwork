@@ -35,7 +35,7 @@ import {
 } from "../core/database-finance";
 
 export type PersistedCommissionSourceType =
-  "payment" | "credit_note" | "refund" | "chargeback";
+  "payment" | "credit_note" | "credit_note_void" | "refund" | "chargeback";
 
 export interface CoreWorkflowDispatchContext {
   aggregateId: string;
@@ -45,7 +45,15 @@ export interface CoreWorkflowDispatchContext {
 }
 
 export interface CoreWorkflowTaskDispatch {
-  taskId: "core.billing.issue-invoice.v1" | "core.commissions.settle.v1";
+  taskId:
+    | "core.billing.issue-invoice.v1"
+    | "core.billing.sync-overage.v1"
+    | "core.collections.dunning.v1"
+    | "core.collections.partner-credit.v1"
+    | "core.commissions.settle.v1"
+    | "core.reconciliation.usage.v1"
+    | "core.reconciliation.three-way.v1"
+    | "core.reporting.export.v1";
   payload: unknown;
   idempotencyKey: string;
 }
@@ -362,7 +370,7 @@ export class DatabaseCoreWorkflowDispatchStore {
           await transaction.query.commissionStatements.findFirst({
             where: eq(commissionStatements.id, input.statementId),
           });
-        if (!statement || statement.status !== "draft")
+        if (!statement || statement.status !== "approved")
           throw new Error("COMMISSION_STATEMENT_NOT_SETTLEMENT_ELIGIBLE");
         const lines = await transaction
           .select({
@@ -432,7 +440,9 @@ export class DatabaseCoreWorkflowDispatchStore {
         resource: "commissions",
         id: accrualId,
         accountId: target.partnerAccountId,
-        action: input.sourceType === "payment" ? "accrue" : "clawback",
+        action: ["payment", "credit_note_void"].includes(input.sourceType)
+          ? "accrue"
+          : "clawback",
         payload: { sourceType: input.sourceType, sourceId: input.sourceId },
         actor: { kind: "system", id: "stripe-commission-projection" },
         authorization: target.authorization,
@@ -468,11 +478,16 @@ export class DatabaseCoreWorkflowDispatchStore {
       if (row?.status !== "succeeded" || !row.receivedAt) return undefined;
       orderId = row.orderId;
       occurredAt = row.receivedAt;
-    } else if (input.sourceType === "credit_note") {
+    } else if (
+      input.sourceType === "credit_note" ||
+      input.sourceType === "credit_note_void"
+    ) {
       const row = await transaction.query.creditNotes.findFirst({
         where: eq(creditNotes.id, input.sourceId),
       });
-      if (row?.status !== "issued") return undefined;
+      const requiredStatus =
+        input.sourceType === "credit_note_void" ? "void" : "issued";
+      if (row?.status !== requiredStatus) return undefined;
       orderId = row.orderId;
       occurredAt = row.createdAt;
     } else if (input.sourceType === "refund") {

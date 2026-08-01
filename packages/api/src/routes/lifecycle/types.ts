@@ -53,6 +53,11 @@ export interface LifecycleAuthorizationScopeResolver {
     caseId: string;
     requestId: string;
   }): Promise<{ accountId: string | null; queue: LifecycleExceptionQueue }>;
+  resolveOrderScope(input: { orderId: string; requestId: string }): Promise<{
+    accountId: string;
+    partnerAccountId: string | null;
+    authorizationAccountId: string;
+  }>;
 }
 
 export interface LifecycleRouteResult {

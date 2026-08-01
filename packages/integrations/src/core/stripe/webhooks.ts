@@ -317,13 +317,18 @@ export function normalizeStripeFinancialEvent(
     category === "refund" ? objectId : referenceId(object.refund);
   const disputeId =
     category === "dispute" ? objectId : referenceId(object.dispute);
+  // Adjustments require one independent ordering watermark per credit note or
+  // refund. Keying refunds by their shared payment intent would cause a later
+  // event for one partial refund to suppress a valid event for another.
   const aggregateKey =
-    invoiceId ??
-    subscriptionId ??
-    scheduleId ??
-    paymentIntentId ??
-    customerId ??
-    objectId;
+    category === "credit_note" || category === "refund"
+      ? objectId
+      : (invoiceId ??
+        subscriptionId ??
+        scheduleId ??
+        paymentIntentId ??
+        customerId ??
+        objectId);
   const amount = supportedMoney(object);
   const eventStatus = optionalString(object.status);
   return {

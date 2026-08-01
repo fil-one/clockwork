@@ -38,6 +38,7 @@ function activationTest(
       evidenceReference: `urn:clockwork:activation:${provider}`,
       simulatorState: "ready",
       simulatorDetails: `${provider} ready`,
+      inputProvenance: "repository_fixture",
     });
 }
 
@@ -75,6 +76,18 @@ function selections(): ProductionWorkflowProviderSelections {
                 ),
                 duplicateSourceUsageIds: [],
               },
+            }),
+        },
+        adjustments: {
+          issueCreditNote: () =>
+            Promise.resolve({
+              ok: true,
+              value: { creditNoteId: "cn_simulator", status: "issued" },
+            }),
+          refundPayment: () =>
+            Promise.resolve({
+              ok: true,
+              value: { refundId: "re_simulator", status: "pending" },
             }),
         },
       },
@@ -223,10 +236,13 @@ describe("production workflow adapter factory", () => {
       "Fil One, Inc.",
     );
     expect(bundle.outboxHandlers.has("core.invoice.draft_ready")).toBe(true);
+    expect(bundle.outboxHandlers.has("core.schedule.dispatch.v1")).toBe(true);
     expect(guard.checks[0]?.gateKeys).toEqual([
       "EXT-ACC-01",
+      "EXT-COMMERCIAL-01",
       "EXT-PROVIDER-01",
       "EXT-PROVISION-01",
+      "EXT-TAX-01",
       "EXT-APPROVERS-01",
       "EXT-LEGAL-01",
     ]);

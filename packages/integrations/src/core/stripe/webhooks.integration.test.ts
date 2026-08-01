@@ -6,6 +6,7 @@ import {
   ReplaySafeStripeWebhookProcessor,
   StripeFinancialWebhookVerifier,
   StripeWebhookPayloadConflictError,
+  type StripeWebhookDelivery,
 } from "./webhooks";
 
 const secret = "whsec_clockwork_core_finance_fixture";
@@ -47,6 +48,34 @@ function signed(payload: string): string {
   });
 }
 
+function refundPayload(input: {
+  id: string;
+  refundId: string;
+  created: number;
+  status: "pending" | "failed" | "succeeded";
+}): string {
+  return JSON.stringify({
+    id: input.id,
+    object: "event",
+    api_version: "2025-12-15.clover",
+    created: input.created,
+    livemode: false,
+    pending_webhooks: 1,
+    request: { id: `req_${input.id}`, idempotency_key: `idem_${input.id}` },
+    type: "refund.updated",
+    data: {
+      object: {
+        id: input.refundId,
+        object: "refund",
+        payment_intent: "pi_shared_payment",
+        currency: "usd",
+        amount: 2_500,
+        status: input.status,
+      },
+    },
+  });
+}
+
 describe("replay-safe Stripe financial webhooks", () => {
   it("verifies raw bytes, deduplicates, labels late delivery, and supports audited replay", async () => {
     const stripe = new Stripe("sk_test_clockwork_fixture");
@@ -54,7 +83,9 @@ describe("replay-safe Stripe financial webhooks", () => {
       new StripeFinancialWebhookVerifier(secret, { client: stripe }),
       new InMemoryStripeWebhookInbox(),
     );
-    const handler = vi.fn(async () => Promise.resolve());
+    const handler = vi.fn(async (_delivery: StripeWebhookDelivery) =>
+      Promise.resolve(),
+    );
     const current = eventPayload({
       id: "evt_current",
       created: 2_000,
@@ -164,5 +195,46 @@ describe("replay-safe Stripe financial webhooks", () => {
       }),
     ).rejects.toThrow();
     expect(claim).not.toHaveBeenCalled();
+  });
+
+  it("keeps independent ordering watermarks for partial refunds on one payment", async () => {
+    const processor = new ReplaySafeStripeWebhookProcessor(
+      new StripeFinancialWebhookVerifier(secret, {
+        client: new Stripe("sk_test_clockwork_fixture"),
+      }),
+      new InMemoryStripeWebhookInbox(),
+    );
+    const handler = vi.fn(async (_delivery: StripeWebhookDelivery) =>
+      Promise.resolve(),
+    );
+    const newerSecondRefund = refundPayload({
+      id: "evt_refund_second_newer",
+      refundId: "re_second",
+      created: 2_000,
+      status: "succeeded",
+    });
+    const olderFirstRefund = refundPayload({
+      id: "evt_refund_first_older",
+      refundId: "re_first",
+      created: 1_000,
+      status: "failed",
+    });
+
+    const second = await processor.process({
+      rawBody: encoder.encode(newerSecondRefund),
+      signature: signed(newerSecondRefund),
+      handler,
+    });
+    const first = await processor.process({
+      rawBody: encoder.encode(olderFirstRefund),
+      signature: signed(olderFirstRefund),
+      handler,
+    });
+
+    expect(second.ordering).toBe("current");
+    expect(first.ordering).toBe("current");
+    expect(
+      handler.mock.calls.map(([delivery]) => delivery.event.aggregateKey),
+    ).toEqual(["re_second", "re_first"]);
   });
 });

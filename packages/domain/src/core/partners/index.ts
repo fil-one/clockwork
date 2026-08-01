@@ -27,6 +27,53 @@ export interface DealRegistration {
   };
 }
 
+export interface ApprovedPartnerRelationship {
+  partnerAccountId: string;
+  endClientAccountId: string;
+  workload: string;
+  status: "approved" | "converted";
+  protectionStartsAt: string;
+  protectionEndsAt: string;
+}
+
+/**
+ * Resolves POC attribution from persisted relationship evidence. A request may
+ * assert that it is direct (null) or repeat the derived partner as a stale-
+ * client guard, but it cannot manufacture the relationship.
+ */
+export function derivePocPartnerAccountId(input: {
+  endClientAccountId: string;
+  workload: string;
+  now: string;
+  assertedPartnerAccountId: string | null;
+  relationships: readonly ApprovedPartnerRelationship[];
+}): string | undefined {
+  const now = Date.parse(input.now);
+  if (!Number.isFinite(now)) throw new Error("POC_RELATIONSHIP_TIME_INVALID");
+  const workload = input.workload.trim().toLocaleLowerCase();
+  const candidates = input.relationships.filter(
+    (relationship) =>
+      relationship.endClientAccountId === input.endClientAccountId &&
+      relationship.workload.trim().toLocaleLowerCase() === workload &&
+      (relationship.status === "approved" ||
+        relationship.status === "converted") &&
+      Date.parse(relationship.protectionStartsAt) <= now &&
+      Date.parse(relationship.protectionEndsAt) > now,
+  );
+  const partnerIds = [
+    ...new Set(candidates.map((relationship) => relationship.partnerAccountId)),
+  ];
+  if (partnerIds.length > 1)
+    throw new Error("POC_PARTNER_RELATIONSHIP_AMBIGUOUS");
+  const derived = partnerIds[0];
+  if (
+    input.assertedPartnerAccountId &&
+    input.assertedPartnerAccountId !== derived
+  )
+    throw new Error("POC_PARTNER_RELATIONSHIP_FORGED");
+  return derived;
+}
+
 export function registerDeal(input: {
   id: string;
   partner: AccountCommercialRecord;
@@ -172,4 +219,42 @@ export function merchantOfRecord(
     : route === "marketplace"
       ? "marketplace"
       : "fil_one";
+}
+
+/** Prevents a resale end client from receiving the partner transfer price. */
+export function redactPartnerQuoteData(
+  data: Readonly<Record<string, unknown>>,
+  viewer: { isInternalStaff: boolean; accountIds: readonly string[] },
+): Record<string, unknown> {
+  const partnerAccountId =
+    typeof data.partnerAccountId === "string"
+      ? data.partnerAccountId
+      : undefined;
+  const channel = [data.route, data.sourcing, data.channelShape].find(
+    (candidate) => candidate === "resale" || candidate === "distributor",
+  );
+  const partnerPriced =
+    partnerAccountId !== undefined &&
+    (channel !== undefined || data.partnerResaleTotalMinor != null);
+  if (
+    !partnerPriced ||
+    viewer.isInternalStaff ||
+    viewer.accountIds.includes(partnerAccountId)
+  )
+    return { ...data };
+  const partnerResaleTotalMinor = data.partnerResaleTotalMinor;
+  const publicData = Object.fromEntries(
+    Object.entries(data).filter(
+      ([key]) =>
+        key !== "totalMinor" &&
+        key !== "partnerResaleTotalMinor" &&
+        key !== "partnerDocumentId",
+    ),
+  );
+  return {
+    ...publicData,
+    ...(partnerResaleTotalMinor == null
+      ? {}
+      : { totalMinor: partnerResaleTotalMinor }),
+  };
 }

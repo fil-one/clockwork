@@ -10,6 +10,8 @@ import {
   isNotNull,
   isNull,
   lte,
+  or,
+  sql,
 } from "drizzle-orm";
 import {
   ActorSchema,
@@ -18,6 +20,10 @@ import {
   type EntityName,
 } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
+import {
+  assertRecoverableOffboardingSourceStatus,
+  derivePocPartnerAccountId,
+} from "@clockwork/domain/core";
 import {
   acceptPassThroughTerms,
   applyEnvelopeEvent,
@@ -79,6 +85,7 @@ import {
   approvals,
   auditEvents,
   commerceUsers,
+  dealRegistrations,
   documents,
   entitlements,
   exceptionCases,
@@ -693,6 +700,20 @@ export class DatabaseLifecycleCommandRepository {
       { secret: this.options.authorizationSecret, now: this.now() },
       (transaction) => this.executeClaimed(transaction, input),
     );
+  }
+
+  private async capabilityEnabled(
+    transaction: RuntimeTransaction,
+    capability: "teardown",
+    recovery = false,
+  ): Promise<boolean> {
+    const [row] = await transaction.execute<{ enabled: boolean }>(sql`
+      select public.system_capability_is_enabled(
+        ${capability}::text,
+        ${recovery}::boolean
+      ) as enabled
+    `);
+    return row?.enabled === true;
   }
 
   private async executeClaimed(
@@ -2051,8 +2072,8 @@ export class DatabaseLifecycleCommandRepository {
       attempt.command.operation === "teardown" &&
       payload.status === "succeeded"
     ) {
-      if (!this.options.policies.automatedTeardownEnabled)
-        throw new Error("AUTOMATED_TEARDOWN_EXTERNALLY_GATED");
+      if (!(await this.capabilityEnabled(transaction, "teardown", true)))
+        throw new Error("TEARDOWN_RECOVERY_CAPABILITY_BLOCKED");
       if (
         !payload.excludedObjectIds ||
         !payload.deletedScope ||
@@ -2249,6 +2270,52 @@ export class DatabaseLifecycleCommandRepository {
         )
         .returning();
       if (!updatedTermination) throw new Error("VERSION_CONFLICT");
+      const [sourceOrder] = await transaction
+        .select({
+          id: orders.id,
+          status: orders.status,
+          rowVersion: orders.rowVersion,
+        })
+        .from(orders)
+        .where(eq(orders.id, attemptRow.orderId))
+        .for("update");
+      if (!sourceOrder) throw new Error("ORDER_NOT_FOUND");
+      const unsettledInvoices = await transaction
+        .select({ id: invoices.id })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.orderId, sourceOrder.id),
+            inArray(invoices.status, ["draft", "open"]),
+          ),
+        )
+        .for("update");
+      if (unsettledInvoices.length > 0)
+        throw new Error("FINAL_BILLING_INCOMPLETE");
+      const finalOrderStatus =
+        sourceOrder.status === "terminated" ||
+        sourceOrder.status === "cancelled"
+          ? sourceOrder.status
+          : sourceOrder.status === "active" || sourceOrder.status === "amended"
+            ? "terminated"
+            : "cancelled";
+      if (
+        sourceOrder.status !== "terminated" &&
+        sourceOrder.status !== "cancelled"
+      ) {
+        assertRecoverableOffboardingSourceStatus(sourceOrder.status);
+        const [finalizedOrder] = await transaction
+          .update(orders)
+          .set({ status: finalOrderStatus, updatedAt: this.now() })
+          .where(
+            and(
+              eq(orders.id, sourceOrder.id),
+              eq(orders.rowVersion, sourceOrder.rowVersion),
+            ),
+          )
+          .returning({ id: orders.id });
+        if (!finalizedOrder) throw new Error("VERSION_CONFLICT");
+      }
       const deletionMethod = payload.deletionMethod;
       const deletedScope = payload.deletedScope;
       if (!deletionMethod || !deletedScope)
@@ -2714,16 +2781,41 @@ export class DatabaseLifecycleCommandRepository {
       throw new Error("POC_BUYER_MUST_BE_AUTHENTICATED_USER");
     const supportOwnerId = this.queuePolicies.get("poc_qualification")?.ownerId;
     if (!supportOwnerId) throw new Error("POC_SUPPORT_OWNER_POLICY_MISSING");
-    const [account, buyer] = await Promise.all([
+    const [account, buyer, persistedRelationships] = await Promise.all([
       transaction.query.accounts.findFirst({
         where: eq(accounts.id, payload.accountId),
       }),
       transaction.query.commerceUsers.findFirst({
         where: eq(commerceUsers.id, authenticatedBuyerId),
       }),
+      transaction.query.dealRegistrations.findMany({
+        where: and(
+          eq(dealRegistrations.endClientAccountId, payload.accountId),
+          inArray(dealRegistrations.status, ["approved", "converted"]),
+          lte(
+            dealRegistrations.protectionStartsAt,
+            new Date(context.occurredAt),
+          ),
+          gt(dealRegistrations.protectionEndsAt, new Date(context.occurredAt)),
+        ),
+      }),
     ]);
     if (!account || !buyer)
       throw new Error("POC_IDENTITY_OR_ACCOUNT_NOT_FOUND");
+    const partnerAccountId = derivePocPartnerAccountId({
+      endClientAccountId: payload.accountId,
+      workload: payload.workload,
+      now: context.occurredAt,
+      assertedPartnerAccountId: payload.partnerAccountId,
+      relationships: persistedRelationships.map((relationship) => ({
+        partnerAccountId: relationship.partnerAccountId,
+        endClientAccountId: relationship.endClientAccountId,
+        workload: relationship.workload,
+        status: z.enum(["approved", "converted"]).parse(relationship.status),
+        protectionStartsAt: relationship.protectionStartsAt.toISOString(),
+        protectionEndsAt: relationship.protectionEndsAt.toISOString(),
+      })),
+    });
     const qualification = qualifyPoc({
       workload: payload.workload,
       buyerUserId: payload.buyerUserId,
@@ -2747,11 +2839,12 @@ export class DatabaseLifecycleCommandRepository {
       (expiresAt.getTime() - now.getTime()) / 86_400_000,
     );
     if (durationDays < 1) throw new Error("POC_EXPIRY_INVALID");
+    const pocId = randomUUID();
     const [organization] = await transaction
       .insert(organizations)
       .values({
         accountId: payload.accountId,
-        name: `POC ${payload.workload.slice(0, 80)}`,
+        name: `POC ${payload.workload.slice(0, 68)} ${pocId.slice(0, 8)}`,
         isolated: true,
       })
       .returning();
@@ -2759,9 +2852,10 @@ export class DatabaseLifecycleCommandRepository {
     const [poc] = await transaction
       .insert(pocs)
       .values({
+        id: pocId,
         accountId: payload.accountId,
         organizationId: organization.id,
-        partnerAccountId: payload.partnerAccountId,
+        partnerAccountId,
         workload: payload.workload,
         permittedDataClass: payload.permittedDataClass,
         successTests: payload.successTests,
@@ -2800,6 +2894,7 @@ export class DatabaseLifecycleCommandRepository {
         organizationId: organization.id,
         isolated: organization.isolated,
         qualification,
+        partnerAccountId: poc.partnerAccountId,
         expiresAt: poc.expiresAt.toISOString(),
       },
     });
@@ -3345,7 +3440,10 @@ export class DatabaseLifecycleCommandRepository {
         ? []
         : await transaction.query.orders.findMany({
             where: and(
-              inArray(orders.accountId, visibleAccountIds),
+              or(
+                inArray(orders.accountId, visibleAccountIds),
+                inArray(orders.partnerAccountId, visibleAccountIds),
+              ),
               isNotNull(orders.serviceEndsOn),
             ),
             orderBy: [asc(orders.serviceEndsOn)],
@@ -3444,10 +3542,14 @@ export class DatabaseLifecycleCommandRepository {
     context: LifecycleRepositoryOperationContext,
   ) {
     const payload = requestRenewalPayloadSchema.parse(raw);
-    assertAccountScope(context, payload.accountId);
     const renewable = await this.renewableOrder(transaction, payload.orderId);
     if (renewable.accountId !== payload.accountId)
-      throw new Error("ORDER_SCOPE");
+      throw new Error("RENEWAL_REQUEST_SCOPE_NOT_FOUND");
+    const authorityAccountId =
+      renewable.notificationPath === "partner" && renewable.partnerAccountId
+        ? renewable.partnerAccountId
+        : payload.accountId;
+    assertAccountScope(context, authorityAccountId);
     const requestedTermMonths =
       payload.requestedTermMonths ??
       Math.max(
@@ -3509,13 +3611,19 @@ export class DatabaseLifecycleCommandRepository {
     context: LifecycleRepositoryOperationContext,
   ) {
     const payload = declineRenewalPayloadSchema.parse(raw);
-    assertAccountScope(context, payload.accountId);
     if (!context.ip || !context.userAgent)
       throw new Error("RENEWAL_DECLINE_NETWORK_EVIDENCE_REQUIRED");
-    const [renewable, account, currentUser, evidence] = await Promise.all([
-      this.renewableOrder(transaction, payload.orderId),
+    const renewable = await this.renewableOrder(transaction, payload.orderId);
+    if (renewable.accountId !== payload.accountId)
+      throw new Error("RENEWAL_DECLINE_SCOPE_NOT_FOUND");
+    const authorityAccountId =
+      renewable.notificationPath === "partner" && renewable.partnerAccountId
+        ? renewable.partnerAccountId
+        : payload.accountId;
+    assertAccountScope(context, authorityAccountId);
+    const [account, currentUser, evidence] = await Promise.all([
       transaction.query.accounts.findFirst({
-        where: eq(accounts.id, payload.accountId),
+        where: eq(accounts.id, authorityAccountId),
       }),
       transaction.query.commerceUsers.findFirst({
         where: eq(commerceUsers.id, userId(context)),
@@ -3523,10 +3631,10 @@ export class DatabaseLifecycleCommandRepository {
       immutableEvidence(
         transaction,
         payload.evidenceDocumentId,
-        payload.accountId,
+        authorityAccountId,
       ),
     ]);
-    if (!account || !currentUser || renewable.accountId !== payload.accountId)
+    if (!account || !currentUser)
       throw new Error("RENEWAL_DECLINE_SCOPE_NOT_FOUND");
     const role = requireAuthorization(context).roles[0];
     if (!role) throw new Error("RENEWAL_DECLINE_ROLE_REQUIRED");
@@ -3582,8 +3690,22 @@ export class DatabaseLifecycleCommandRepository {
         servedOn: decline.servedOn,
       },
     });
+    const offboarding = await this.requestTermination(
+      transaction,
+      {
+        accountId: payload.accountId,
+        orderId: payload.orderId,
+        reason: "non_renewal",
+        effectiveAt: `${renewable.endsOn}T00:00:00.000Z`,
+        retrievalDays: 30,
+        partnerAccountId: renewable.partnerAccountId,
+      },
+      context,
+      true,
+    );
     return result(row.id, "declined", "renewal.declined", {
       timeliness: decline.timeliness,
+      terminationId: offboarding.id,
     });
   }
 
@@ -3591,29 +3713,47 @@ export class DatabaseLifecycleCommandRepository {
     transaction: RuntimeTransaction,
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
+    authorityAlreadyCaptured = false,
   ) {
     const payload = requestTerminationPayloadSchema.parse(raw);
-    requireRecentAuthentication(context);
-    assertAccountScope(context, payload.accountId);
-    const order = await transaction.query.orders.findFirst({
-      where: and(
-        eq(orders.id, payload.orderId),
-        eq(orders.accountId, payload.accountId),
-      ),
-    });
+    if (!authorityAlreadyCaptured) requireRecentAuthentication(context);
+    const [order] = await transaction
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.id, payload.orderId),
+          eq(orders.accountId, payload.accountId),
+        ),
+      )
+      .for("update");
     if (!order) throw new Error("ORDER_NOT_FOUND");
-    if (payload.reason === "partner_request") {
+    assertRecoverableOffboardingSourceStatus(order.status);
+    const priorTerminations = await transaction.query.terminations.findMany({
+      where: eq(terminations.orderId, order.id),
+    });
+    if (
+      priorTerminations.some(
+        (termination) => termination.teardownStatus !== "complete",
+      )
+    )
+      throw new Error("ORDER_OFFBOARDING_ALREADY_OPEN");
+    const partnerAuthority =
+      payload.reason === "partner_request" ||
+      (authorityAlreadyCaptured && payload.partnerAccountId !== null);
+    if (partnerAuthority) {
       if (!payload.partnerAccountId)
         throw new Error("PARTNER_ACCOUNT_REQUIRED");
       authorizePartnerInitiation({
-        sourcing: z
-          .enum(["direct", "referral", "resale"])
-          .parse(order.sourcing),
+        sourcing:
+          order.sourcing === "distributor"
+            ? "resale"
+            : z.enum(["direct", "referral", "resale"]).parse(order.sourcing),
         orderPartnerAccountId: order.partnerAccountId,
         actorPartnerAccountId: payload.partnerAccountId,
       });
       assertAccountScope(context, payload.partnerAccountId);
-    }
+    } else assertAccountScope(context, payload.accountId);
     const organization = await transaction
       .select({ id: organizations.id })
       .from(entitlements)
@@ -3746,7 +3886,36 @@ export class DatabaseLifecycleCommandRepository {
       payload.evidenceDocumentId,
       persisted.accountId,
     );
-    const currentPlan = OffboardingPlanSchema.parse(persisted.plan);
+    const persistedPlan = OffboardingPlanSchema.parse(persisted.plan);
+    const [billingOrder] = await transaction
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.id, persistedPlan.orderId),
+          eq(orders.accountId, persisted.accountId),
+        ),
+      )
+      .for("update");
+    if (!billingOrder) throw new Error("ORDER_NOT_FOUND");
+    const unsettledInvoices = await transaction
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.orderId, persistedPlan.orderId),
+          inArray(invoices.status, ["draft", "open"]),
+        ),
+      )
+      .for("update");
+    const currentPlan: OffboardingPlan =
+      persistedPlan.finalBillingStatus === "credit_due"
+        ? persistedPlan
+        : {
+            ...persistedPlan,
+            finalBillingStatus:
+              unsettledInvoices.length === 0 ? "settled" : "pending",
+          };
     const approverId = userId(context);
     const approvalId = randomUUID();
     const authenticationEvidenceHash = hashEvidence({
@@ -3780,9 +3949,12 @@ export class DatabaseLifecycleCommandRepository {
       decidedAt: new Date(context.occurredAt),
     });
     let provisioningCommandId: string | undefined;
+    const automatedTeardownAuthorized =
+      this.options.policies.automatedTeardownEnabled &&
+      (await this.capabilityEnabled(transaction, "teardown"));
     if (
       plan.status === "ready_for_teardown" &&
-      this.options.policies.automatedTeardownEnabled &&
+      automatedTeardownAuthorized &&
       Date.parse(context.occurredAt) >= Date.parse(plan.retrievalEndsAt)
     ) {
       const teardown = requestTeardown(plan, {
@@ -3845,6 +4017,7 @@ export class DatabaseLifecycleCommandRepository {
       .update(terminations)
       .set({
         teardownStatus: plan.status,
+        finalBillingStatus: plan.finalBillingStatus,
         updatedAt: this.now(),
         rowVersion: nextVersion,
       })
@@ -3870,9 +4043,11 @@ export class DatabaseLifecycleCommandRepository {
       before: {
         status: currentPlan.status,
         approvals: currentPlan.approvals.length,
+        finalBillingStatus: persistedPlan.finalBillingStatus,
       },
       after: {
         status: plan.status,
+        finalBillingStatus: plan.finalBillingStatus,
         approvalId,
         decision: payload.decision,
         approverId,
@@ -4498,21 +4673,21 @@ export class DatabaseLifecycleCommandRepository {
     });
     if (!persisted || !persisted.serviceEndsOn)
       throw new Error("RENEWABLE_ORDER_NOT_FOUND");
-    const [agreement, profile, account, lines] = await Promise.all([
+    const [agreement, profile, quote, lines] = await Promise.all([
       transaction.query.agreements.findFirst({
         where: eq(agreements.id, persisted.agreementId),
       }),
       transaction.query.orderCommercialProfiles.findFirst({
         where: eq(orderCommercialProfiles.orderId, persisted.id),
       }),
-      transaction.query.accounts.findFirst({
-        where: eq(accounts.id, persisted.accountId),
+      transaction.query.quotes.findFirst({
+        where: eq(quotes.id, persisted.quoteId),
       }),
       transaction.query.orderLines.findMany({
         where: eq(orderLines.orderId, persisted.id),
       }),
     ]);
-    if (!agreement || !profile || !account)
+    if (!agreement || !profile || !quote)
       throw new Error("RENEWABLE_ORDER_STATE_INCOMPLETE");
     const template = agreement.templateId
       ? await transaction.query.agreementTemplates.findFirst({
@@ -4528,7 +4703,10 @@ export class DatabaseLifecycleCommandRepository {
           : persisted.accountId,
       partnerAccountId: persisted.partnerAccountId,
       invoicingAccountId: persisted.invoicingAccountId,
-      notificationPath: persisted.sourcing === "resale" ? "partner" : "direct",
+      notificationPath:
+        persisted.sourcing === "resale" || persisted.sourcing === "distributor"
+          ? "partner"
+          : "direct",
       startsOn: persisted.serviceStartsOn,
       endsOn: persisted.serviceEndsOn,
       noticeDays: agreement.noticeDays,
@@ -4548,7 +4726,7 @@ export class DatabaseLifecycleCommandRepository {
         quantity: line.quantity,
         region: "contracted",
         unitPriceMinor: line.unitPriceMinor.toString(),
-        currency: z.enum(["USD", "EUR", "GBP"]).parse(account.currency),
+        currency: z.enum(["USD", "EUR", "GBP"]).parse(quote.currency),
       })),
       commercialOwnerId: persisted.signerUserId,
       rowVersion: persisted.rowVersion,

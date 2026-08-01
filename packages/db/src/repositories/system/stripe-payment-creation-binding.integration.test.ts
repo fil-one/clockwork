@@ -202,7 +202,10 @@ async function verifiedEvent<Event extends StripeFinancialProjectionEvent>(
       eventType: event.eventType,
       signatureVerifiedAt: new Date(event.occurredAt),
       payloadHash: "a".repeat(64),
-      payload: { normalized: true, eventId: event.eventId },
+      payload: {
+        type: event.eventType,
+        event: { provider: "stripe", ...event },
+      },
       occurredAt: new Date(event.occurredAt),
       lockedUntil: new Date("2031-12-31T00:00:00.000Z"),
     });

@@ -48,6 +48,7 @@ export class DeterministicExternalGateActivationTestRunner implements Activation
       evidenceReference: `evidence://activation-tests/${input.gate.gateKey.toLowerCase()}/${encodeURIComponent(input.requestId)}`,
       simulatorState: outcome.simulatorState,
       simulatorDetails: `${suite}: ${outcome.status}; simulator ${outcome.simulatorState}`,
+      inputProvenance: "repository_fixture",
     });
   }
 }

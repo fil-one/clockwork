@@ -30,6 +30,12 @@ export const productionWorkflowExternalInputs = [
     input: "activated Stripe account and scoped secret key",
   },
   {
+    component: "commercial_policy",
+    gate: "EXT-COMMERCIAL-01",
+    input:
+      "signed SKU, currency, minimum, overage, floor, partner-tier, credit, and claims inputs",
+  },
+  {
     component: "accounting",
     gate: "EXT-PROVIDER-01",
     input: "selected QBO connector, posting model, and credentials",
@@ -74,6 +80,12 @@ export const productionWorkflowExternalInputs = [
     component: "legal_artifact_identity",
     gate: "EXT-LEGAL-01",
     input: "approved platform issuer identity and artifact rules",
+  },
+  {
+    component: "tax_accounting_policy",
+    gate: "EXT-TAX-01",
+    input:
+      "signed registrations, exemption rules, invoice entities, QBO mappings, revenue recognition, and credit policy",
   },
 ] as const;
 

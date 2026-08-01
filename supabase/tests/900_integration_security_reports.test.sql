@@ -59,13 +59,23 @@ select lives_ok($$
     expires_at, created_by
   ) values (
     'f9400000-0000-4000-8000-000000000001',
-    '10000000-0000-4000-8000-000000000005',
+    '10000000-0000-4000-8000-000000000004',
     '10000000-0000-4000-8000-000000000004',
     '10000000-0000-4000-8000-000000000005',
     '60000000-0000-4000-8000-000000000001',
     'f9410000-0000-4000-8000-000000000001',
     1, 'accepted', 'USD', 132000, 'pass', '2027-01-01T00:00:00Z',
     '20000000-0000-4000-8000-000000000005'
+  );
+  insert into core_quote_commercial_profiles(
+    quote_id, channel_shape, merchant_of_record, pricing_authority,
+    billing_account_id, distributor_account_id, pricing_inputs,
+    pricing_calculated_at
+  ) values (
+    'f9400000-0000-4000-8000-000000000001', 'distributor',
+    'partner', 'partner', '10000000-0000-4000-8000-000000000005',
+    '10000000-0000-4000-8000-000000000005', '{}',
+    '2026-07-31T16:00:00Z'
   );
   insert into orders(
     id, quote_id, agreement_id, account_id, invoicing_account_id,
@@ -246,7 +256,7 @@ select lives_ok($$
     'f9300000-0000-4000-8000-000000000001',
     '10000000-0000-4000-8000-000000000001',
     '80000000-0000-4000-8000-000000000001',
-    '2027-02-01T00:00:00Z', 'pending', 'gated'
+    '2027-02-01T00:00:00Z', 'pending', 'pending_final_billing'
   )
 $$, 'account owner can create a termination request');
 select is_empty($$

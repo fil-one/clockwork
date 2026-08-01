@@ -97,6 +97,7 @@ const ActivationTestResponseSchema = z.object({
   evidenceReference: z.string().min(8),
   simulatorState: z.enum(["ready", "degraded", "unavailable"]),
   simulatorDetails: z.string().min(1),
+  inputProvenance: z.enum(["unverified", "repository_fixture", "live_signed"]),
 });
 
 export class HttpAccountingExportSink implements AccountingExportSink {

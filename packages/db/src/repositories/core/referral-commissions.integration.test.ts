@@ -13,13 +13,20 @@ import {
   disputeCases,
   payments,
   refunds,
+  webhookEvents,
 } from "../../schema";
 import {
+  commissionSettlementExports,
   commissionStatementLines,
   commissionStatements,
+  partnerQboVendorMappings,
 } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
-import { DatabaseCommissionStatementRepository } from "./commissions";
+import { DatabaseStripeFinancialProjection } from "../system/providers";
+import {
+  DatabaseCommissionStatementRepository,
+  DatabaseQboVendorMappingResolver,
+} from "./commissions";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
 
 const databaseUrl =
@@ -50,6 +57,8 @@ const finance = new DatabaseCoreFinanceRepository({
   authorizationSecret,
 });
 const statements = new DatabaseCommissionStatementRepository(db);
+const qboVendorMappings = new DatabaseQboVendorMappingResolver(db);
+const stripeProjection = new DatabaseStripeFinancialProjection(db);
 
 const internalAuthorization: AuthorizationContext = {
   userId: ids.user.parse(internalUserId),
@@ -128,7 +137,8 @@ async function insertReferralPayment(occurredAt: string): Promise<string> {
 
 async function accrue(input: {
   id?: string;
-  sourceType: "payment" | "credit_note" | "refund" | "chargeback";
+  sourceType:
+    "payment" | "credit_note" | "credit_note_void" | "refund" | "chargeback";
   sourceId: string;
   accountId?: string;
   authorization?: AuthorizationContext;
@@ -165,6 +175,52 @@ async function accrualBySource(sourceType: string, sourceId: string) {
 }
 
 describe("persisted referral commissions", () => {
+  it("resolves only the verified vendor bound to the persisted partner", async () => {
+    await internal(`${prefix}qbo-mapping`, async (transaction) => {
+      await transaction
+        .insert(partnerQboVendorMappings)
+        .values([
+          {
+            partnerAccountId: referralPartnerId,
+            realmReferenceHash: "a".repeat(64),
+            vendorId: "vendor_referral_partner",
+            verificationStatus: "verified",
+            verifiedAt: new Date("2026-07-31T16:00:00.000Z"),
+            verifiedBy: internalUserId,
+            sourceReference: "repository:verified-vendor-fixture",
+          },
+          {
+            partnerAccountId: resalePartnerId,
+            realmReferenceHash: "b".repeat(64),
+            vendorId: "vendor_revoked_partner",
+            verificationStatus: "revoked",
+            verifiedAt: new Date("2026-07-30T16:00:00.000Z"),
+            verifiedBy: internalUserId,
+            sourceReference: "repository:revoked-vendor-fixture",
+            revokedAt: new Date("2026-07-31T16:00:00.000Z"),
+          },
+        ])
+        .onConflictDoNothing();
+    });
+
+    await expect(
+      qboVendorMappings.resolve({ partnerAccountId: referralPartnerId }),
+    ).resolves.toMatchObject({
+      ok: true,
+      value: {
+        partnerAccountId: referralPartnerId,
+        vendorId: "vendor_referral_partner",
+        status: "verified",
+      },
+    });
+    await expect(
+      qboVendorMappings.resolve({ partnerAccountId: resalePartnerId }),
+    ).resolves.toMatchObject({
+      ok: false,
+      code: "QBO_VENDOR_MAPPING_NOT_VERIFIED",
+    });
+  });
+
   it("derives the referral partner, invoice, money, policy, and quarter from a collected payment", async () => {
     const period = randomQuarter();
     const paymentId = await insertReferralPayment(period.occurredAt);
@@ -334,6 +390,56 @@ describe("persisted referral commissions", () => {
     expect(clawback?.adjustmentSourceId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
+
+    const voidEventId = `evt_void_${creditNoteId}`;
+    const voidProjectionEvent = {
+      eventId: voidEventId,
+      eventType: "credit_note.voided",
+      category: "credit_note" as const,
+      aggregateKey: `cn_${prefix}${creditNoteId}`,
+      occurredAt: period.occurredAt,
+      invoiceId: "in_demo_referral",
+      creditNoteId: `cn_${prefix}${creditNoteId}`,
+      amount: { currency: "USD", minor: "60000" },
+      status: "void",
+    };
+    await internal(`${prefix}void-credit-note-${creditNoteId}`, async (tx) => {
+      await tx.insert(webhookEvents).values({
+        provider: "stripe",
+        providerEventId: voidEventId,
+        eventType: "credit_note.voided",
+        signatureVerifiedAt: new Date(period.occurredAt),
+        payloadHash: "c".repeat(64),
+        payload: {
+          type: voidProjectionEvent.eventType,
+          event: { provider: "stripe", ...voidProjectionEvent },
+        },
+        occurredAt: new Date(period.occurredAt),
+        lockedUntil: new Date(period.occurredAt),
+      });
+    });
+    await stripeProjection.apply(voidProjectionEvent);
+    await accrue({
+      sourceType: "credit_note_void",
+      sourceId: creditNoteId,
+      action: "accrue",
+    });
+    await expect(
+      accrualBySource("credit_note_void", creditNoteId),
+    ).resolves.toMatchObject({
+      partnerAccountId: referralPartnerId,
+      invoiceId: referralInvoiceId,
+      sourceType: "credit_note_void",
+      sourceId: creditNoteId,
+      adjustmentSourceId: clawback?.id,
+      rateBps: 1200,
+      holdbackBps: 1000,
+      currency: "USD",
+      netCollectedRevenueMinor: 60_000n,
+      amountMinor: 7_200n,
+      holdbackMinor: 720n,
+      period: period.quarter,
+    });
   });
 
   it("maps a lost chargeback to a persisted dispute clawback", async () => {
@@ -501,6 +607,167 @@ describe("persisted referral commissions", () => {
       statementId,
       lineCount: 2,
       duplicate: true,
+    });
+  });
+
+  it("settles exactly one persisted partner statement and makes concurrent replay harmless", async () => {
+    const period = randomQuarter();
+    const paymentId = await insertReferralPayment(period.occurredAt);
+    await accrue({ sourceType: "payment", sourceId: paymentId });
+    const statementId = randomUUID();
+    const statement = await statements.generate({
+      statementId,
+      partnerAccountId: referralPartnerId,
+      quarter: period.quarter,
+      currency: "USD",
+      actor: { kind: "system", id: "commission-statement-workflow" },
+      requestId: `${prefix}settlement-statement-${statementId}`,
+      occurredAt: period.occurredAt,
+    });
+    const settlementFixture = await internal(
+      `${prefix}settlement-lines-${statementId}`,
+      async (transaction) => {
+        const [issued] = await transaction
+          .update(commissionStatements)
+          .set({ status: "issued" })
+          .where(
+            and(
+              eq(commissionStatements.id, statementId),
+              eq(commissionStatements.rowVersion, 1),
+            ),
+          )
+          .returning({ rowVersion: commissionStatements.rowVersion });
+        if (!issued) throw new Error("statement issuance fixture failed");
+        const [approved] = await transaction
+          .update(commissionStatements)
+          .set({ status: "approved" })
+          .where(
+            and(
+              eq(commissionStatements.id, statementId),
+              eq(commissionStatements.rowVersion, issued.rowVersion),
+            ),
+          )
+          .returning({ rowVersion: commissionStatements.rowVersion });
+        if (!approved) throw new Error("statement approval fixture failed");
+        const accrualIds = (
+          await transaction.query.commissionStatementLines.findMany({
+            where: eq(commissionStatementLines.statementId, statementId),
+          })
+        ).map((line) => line.accrualId);
+        return { accrualIds, rowVersion: approved.rowVersion };
+      },
+    );
+    const { accrualIds } = settlementFixture;
+    const exportKey = `${prefix}qbo-${statementId}`;
+    const providerBillId = `qbo_bill_${statementId}`;
+    const finalize = () =>
+      statements.finalizeSettlement({
+        statementId,
+        partnerAccountId: referralPartnerId,
+        expectedRowVersion: settlementFixture.rowVersion,
+        currency: "USD",
+        payableMinor: statement.payableMinor,
+        accrualIds,
+        exportKey,
+        providerBillId,
+        actor: { kind: "system", id: "commission-settlement-workflow" },
+        requestId: `${prefix}settlement-${statementId}`,
+        occurredAt: period.occurredAt,
+      });
+
+    await expect(
+      statements.validateSettlement({
+        statementId,
+        partnerAccountId: resalePartnerId,
+        expectedRowVersion: settlementFixture.rowVersion,
+        currency: "USD",
+        payableMinor: statement.payableMinor,
+        accrualIds,
+        exportKey: `${exportKey}:forged-partner`,
+      }),
+    ).rejects.toThrow("COMMISSION_STATEMENT_BINDING_MISMATCH");
+    await expect(
+      statements.validateSettlement({
+        statementId,
+        partnerAccountId: referralPartnerId,
+        expectedRowVersion: settlementFixture.rowVersion,
+        currency: "USD",
+        payableMinor: statement.payableMinor,
+        accrualIds: [randomUUID()],
+        exportKey: `${exportKey}:forged-lines`,
+      }),
+    ).rejects.toThrow("COMMISSION_SETTLEMENT_LINE_BINDING_MISMATCH");
+
+    await Promise.all([
+      statements.validateSettlement({
+        statementId,
+        partnerAccountId: referralPartnerId,
+        expectedRowVersion: settlementFixture.rowVersion,
+        currency: "USD",
+        payableMinor: statement.payableMinor,
+        accrualIds,
+        exportKey,
+      }),
+      statements.validateSettlement({
+        statementId,
+        partnerAccountId: referralPartnerId,
+        expectedRowVersion: settlementFixture.rowVersion,
+        currency: "USD",
+        payableMinor: statement.payableMinor,
+        accrualIds,
+        exportKey,
+      }),
+    ]);
+    const claimed = await internal(
+      `${prefix}settlement-claimed-${statementId}`,
+      async (transaction) => ({
+        statement: await transaction.query.commissionStatements.findFirst({
+          where: eq(commissionStatements.id, statementId),
+        }),
+        settlement:
+          await transaction.query.commissionSettlementExports.findFirst({
+            where: eq(commissionSettlementExports.statementId, statementId),
+          }),
+      }),
+    );
+    expect(claimed.statement?.status).toBe("exported");
+    expect(claimed.settlement).toMatchObject({
+      exportKey,
+      status: "pending",
+      providerReference: null,
+    });
+
+    const concurrent = await Promise.all([finalize(), finalize()]);
+    expect(concurrent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statementId, accrualCount: 1 }),
+        expect.objectContaining({
+          statementId,
+          accrualCount: 1,
+          duplicate: true,
+        }),
+      ]),
+    );
+    const persisted = await internal(
+      `${prefix}settlement-read-${statementId}`,
+      async (transaction) => ({
+        statement: await transaction.query.commissionStatements.findFirst({
+          where: eq(commissionStatements.id, statementId),
+        }),
+        accruals: await transaction.query.commissionAccruals.findMany({
+          where: eq(commissionAccruals.id, accrualIds[0] ?? ""),
+        }),
+        exports: await transaction.query.commissionSettlementExports.findMany({
+          where: eq(commissionSettlementExports.statementId, statementId),
+        }),
+      }),
+    );
+    expect(persisted.statement?.status).toBe("paid");
+    expect(persisted.accruals.map((row) => row.status)).toEqual(["paid"]);
+    expect(persisted.exports).toHaveLength(1);
+    expect(persisted.exports[0]).toMatchObject({
+      status: "succeeded",
+      providerReference: providerBillId,
     });
   });
 });

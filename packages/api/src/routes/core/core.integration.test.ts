@@ -66,7 +66,7 @@ describe("core-finance API", () => {
     expect(service.outboxMessages).toHaveLength(1);
   });
 
-  it("returns an operator-safe optimistic concurrency conflict", async () => {
+  it("rejects generic order state-forcing commands", async () => {
     const service = new MemoryCoreFinanceService();
     configureCoreRouteDependencies({ service });
     const app = createApiApp();
@@ -87,19 +87,22 @@ describe("core-finance API", () => {
           payload: { status: action },
         }),
       });
-    expect(
-      (await call("create", undefined, "core-order-create-0001")).status,
-    ).toBe(200);
-    expect((await call("accept", 1, "core-order-accept-0001")).status).toBe(
-      200,
-    );
-    const stale = await call("activate", 1, "core-order-stale-0001");
-    expect(stale.status).toBe(409);
-    await expect(stale.json()).resolves.toMatchObject({
-      code: "VERSION_CONFLICT",
-      status: 409,
-      retryable: false,
-    });
+    for (const action of [
+      "accept",
+      "provision",
+      "activate",
+      "complete",
+      "cancel",
+      "terminate",
+    ]) {
+      const response = await call(action, 1, `core-order-force-${action}-0001`);
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "INVALID_STATE",
+        status: 422,
+        retryable: false,
+      });
+    }
   });
 
   it("denies unauthorized cross-account and cross-partner writes", async () => {
@@ -162,6 +165,9 @@ describe("core-finance API", () => {
           partnerAccountId: accountOne,
           endClientAccountId: accountTwo,
           route: "resale",
+          totalMinor: "168000",
+          partnerResaleTotalMinor: "216000",
+          partnerDocumentId: "partner-only-document",
         },
       }),
     });
@@ -169,6 +175,24 @@ describe("core-finance API", () => {
     await expect(response.json()).resolves.toMatchObject({
       record: { accountId: accountTwo },
     });
+
+    const order = await app.request("/v1/core/commands/orders", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "partner-resale-order-create-0001",
+        persona: "partner_admin",
+        accountId: accountOne,
+      }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-000000000012",
+        accountId: accountTwo,
+        action: "create",
+        payload: {
+          quoteId: "13000000-0000-4000-8000-000000000010",
+        },
+      }),
+    });
+    expect(order.status).toBe(200);
 
     const foreignPartner = await app.request("/v1/core/commands/quotes", {
       method: "POST",
@@ -189,6 +213,23 @@ describe("core-finance API", () => {
       }),
     });
     expect(foreignPartner.status).toBe(403);
+
+    const endClientView = await app.request(
+      `/v1/core/records/quotes?accountId=${accountTwo}`,
+      {
+        headers: {
+          "x-clockwork-persona": "owner",
+          "x-clockwork-account": accountTwo,
+        },
+      },
+    );
+    expect(endClientView.status).toBe(200);
+    const page = (await endClientView.json()) as {
+      items: { data: Record<string, unknown> }[];
+    };
+    expect(page.items[0]?.data).toMatchObject({ totalMinor: "216000" });
+    expect(page.items[0]?.data).not.toHaveProperty("partnerResaleTotalMinor");
+    expect(page.items[0]?.data).not.toHaveProperty("partnerDocumentId");
   });
 
   it("requires tenant scope and prevents record account reassignment", async () => {
@@ -227,8 +268,7 @@ describe("core-finance API", () => {
       body: JSON.stringify({
         id,
         accountId: accountTwo,
-        action: "accept",
-        expectedVersion: 1,
+        action: "create",
         payload: {},
       }),
     });

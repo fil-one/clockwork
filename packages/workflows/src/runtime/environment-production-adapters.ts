@@ -340,7 +340,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     providers: {
       billing: {
         mode: "live",
-        value: { billing: stripe, metering: stripe },
+        value: { billing: stripe, metering: stripe, adjustments: stripe },
         activationTest: activationTest("billing"),
       },
       accounting: {

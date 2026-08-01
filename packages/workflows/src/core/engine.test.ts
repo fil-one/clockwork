@@ -7,7 +7,7 @@ import {
   FakeProviderKernel,
   createFakeProviderPorts,
 } from "@clockwork/integrations/fakes";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { renderCsv } from "./csv";
 import {
@@ -49,6 +49,7 @@ const ID = {
   order: ids.order.parse("20000000-0000-4000-8000-000000000001"),
   invoice: ids.invoice.parse("30000000-0000-4000-8000-000000000001"),
   ledger: ids.commitmentLedger.parse("40000000-0000-4000-8000-000000000001"),
+  period: "40000000-0000-4000-8000-000000000004",
   ledgerEntry: ids.commitmentEntry.parse(
     "40000000-0000-4000-8000-000000000002",
   ),
@@ -74,6 +75,9 @@ function success<T>(value: T): ProviderResult<T> {
 }
 
 function fixture(overrides?: {
+  capabilities?: CoreWorkflowDependencies["capabilities"];
+  commissionAccounting?: CoreWorkflowDependencies["commissionAccounting"];
+  commissionSettlements?: CoreWorkflowDependencies["commissionSettlements"];
   usage?: CoreWorkflowDependencies["usage"];
   reporting?: CoreWorkflowDependencies["reporting"];
 }) {
@@ -83,11 +87,33 @@ function fixture(overrides?: {
   const exceptions = new InMemoryWorkflowExceptionPort();
   const records = new InMemoryCoreWorkflowRecordPort();
   const dependencies: CoreWorkflowDependencies = {
+    capabilities: overrides?.capabilities ?? {
+      require: () => Promise.resolve({ allowed: true, disabled: [] }),
+    },
     runs,
     exceptions,
     records,
     billing: providers.billing,
     accounting: providers.accounting,
+    commissionAccounting: overrides?.commissionAccounting ?? {
+      postVerifiedCommissionBill: async (input) => {
+        const posted = await providers.accounting.postCommissionBill({
+          statementId: ids.document.parse(input.statementId),
+          amount: input.amount,
+          idempotencyKey: input.idempotencyKey,
+        });
+        return posted.ok
+          ? {
+              ok: true as const,
+              value: { ...posted.value, vendorId: "vendor_verified" },
+            }
+          : posted;
+      },
+    },
+    commissionSettlements: overrides?.commissionSettlements ?? {
+      validate: () => Promise.resolve({}),
+      finalize: () => Promise.resolve({}),
+    },
     notifications: providers.notifications,
     usage: overrides?.usage ?? providers.usage,
     exports: providers.evidence,
@@ -119,6 +145,29 @@ function fixture(overrides?: {
     records,
   };
 }
+
+describe("persisted workflow capability boundaries", () => {
+  it("rejects a disabled command before any provider effect", async () => {
+    const { engine, kernel, exceptions } = fixture({
+      capabilities: {
+        require: () =>
+          Promise.resolve({ allowed: false, disabled: ["billing"] }),
+      },
+    });
+
+    const result = await engine.issueInvoice(invoiceInput());
+
+    expect(result).toMatchObject({
+      status: "permanent_failure",
+      code: "PERSISTED_CAPABILITY_DISABLED",
+    });
+    expect(kernel.calls).toHaveLength(0);
+    expect(exceptions.cases[0]?.metadata).toMatchObject({
+      disabledCapabilities: "billing",
+      recovery: "false",
+    });
+  });
+});
 
 function invoiceInput() {
   return IssueInvoiceInputSchema.parse({
@@ -294,7 +343,8 @@ describe("billing workflows", () => {
     };
     expect(() =>
       SyncOverageInputSchema.parse({
-        context: context(ID.ledger),
+        context: context(ID.period),
+        periodId: ID.period,
         ledgerId: ID.ledger,
         orderId: ID.order,
         invoiceId: ID.invoice,
@@ -448,6 +498,109 @@ describe("commission and reconciliation workflows", () => {
       ({ operation }) => operation === "accounting.postCommissionBill",
     )?.input as { amount: { minor: string } };
     expect(posting.amount.minor).toBe("7200");
+  });
+
+  it("rejects a forged settlement binding before any accounting effect", async () => {
+    const postVerifiedCommissionBill = vi.fn();
+    const { engine } = fixture({
+      commissionAccounting: { postVerifiedCommissionBill },
+      commissionSettlements: {
+        validate: () =>
+          Promise.reject(new Error("cross-partner statement binding")),
+        finalize: vi.fn(),
+      },
+    });
+    const result = await engine.settleCommissions(
+      SettleCommissionsInputSchema.parse({
+        context: context(ID.statement),
+        statementId: ID.statement,
+        partnerAccountId: ID.partner,
+        periodStart: "2026-04-01",
+        periodEnd: "2026-06-30",
+        currency: "USD",
+        accruals: [
+          {
+            accrualId: ID.accrual,
+            invoiceId: ID.invoice,
+            currency: "USD",
+            collectedRevenueMinor: "100000",
+            commissionMinor: "10000",
+            holdbackMinor: "2000",
+            status: "stated",
+          },
+        ],
+      }),
+    );
+    expect(result).toMatchObject({
+      status: "permanent_failure",
+      code: "COMMISSION_SETTLEMENT_BINDING_INVALID",
+    });
+    expect(postVerifiedCommissionBill).not.toHaveBeenCalled();
+  });
+
+  it("replays one provider bill after a crash and then finalizes the exact persisted lines", async () => {
+    const providerKeys: string[] = [];
+    const finalized: Parameters<
+      CoreWorkflowDependencies["commissionSettlements"]["finalize"]
+    >[0][] = [];
+    let commitAttempt = 0;
+    const { engine } = fixture({
+      commissionAccounting: {
+        postVerifiedCommissionBill: (input) => {
+          providerKeys.push(input.idempotencyKey);
+          return Promise.resolve(
+            success({ billId: "bill_replay_safe", vendorId: "vendor_bound" }),
+          );
+        },
+      },
+      commissionSettlements: {
+        validate: () => Promise.resolve({}),
+        finalize: (input) => {
+          finalized.push(input);
+          commitAttempt += 1;
+          return commitAttempt === 1
+            ? Promise.reject(new Error("crash after provider success"))
+            : Promise.resolve({ duplicate: false });
+        },
+      },
+    });
+    const input = SettleCommissionsInputSchema.parse({
+      context: context(ID.statement),
+      statementId: ID.statement,
+      partnerAccountId: ID.partner,
+      periodStart: "2026-04-01",
+      periodEnd: "2026-06-30",
+      currency: "USD",
+      accruals: [
+        {
+          accrualId: ID.accrual,
+          invoiceId: ID.invoice,
+          currency: "USD",
+          collectedRevenueMinor: "100000",
+          commissionMinor: "10000",
+          holdbackMinor: "2000",
+          status: "stated",
+        },
+      ],
+    });
+
+    await expect(engine.settleCommissions(input)).rejects.toMatchObject({
+      code: "COMMISSION_SETTLEMENT_COMMIT_UNAVAILABLE",
+    });
+    await expect(engine.settleCommissions(input)).resolves.toMatchObject({
+      status: "completed",
+      value: { billId: "bill_replay_safe", payableMinor: "8000" },
+    });
+    expect(providerKeys).toHaveLength(2);
+    expect(new Set(providerKeys).size).toBe(1);
+    expect(finalized).toHaveLength(2);
+    expect(finalized[1]).toMatchObject({
+      statementId: ID.statement,
+      partnerAccountId: ID.partner,
+      expectedRowVersion: 1,
+      accrualIds: [ID.accrual],
+      providerBillId: "bill_replay_safe",
+    });
   });
 
   it("deduplicates usage, excludes out-of-range events, and routes source variances", async () => {

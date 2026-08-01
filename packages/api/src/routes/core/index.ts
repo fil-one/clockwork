@@ -328,9 +328,6 @@ const actionPermissionByResource: Partial<
     approve_exception: "quote:approve",
     reject_exception: "quote:approve",
   },
-  orders: {
-    terminate: "destructive:request",
-  },
   invoices: {
     void: "billing:approve",
     mark_uncollectible: "billing:approve",
@@ -348,7 +345,6 @@ const recentAuthenticationActions = new Set([
   "price_books:retire",
   "quotes:approve_exception",
   "quotes:reject_exception",
-  "orders:terminate",
   "invoices:void",
   "invoices:mark_uncollectible",
   "credit_notes:approve",
@@ -558,13 +554,16 @@ export function registerCoreRoutes(
         : resource === "deal_registrations"
           ? "quote:write"
           : permissionByResource[resource];
+    // Partner identity is an asserted quote input, but order acceptance derives
+    // it from the persisted issued quote. Requiring it again on an order would
+    // reintroduce caller-supplied counterparty truth at the API boundary.
     const partnerAuthorizationAccount =
-      partnerActor && (resource === "quotes" || resource === "orders")
+      partnerActor && resource === "quotes"
         ? z.uuid().safeParse(body.payload.partnerAccountId)
         : undefined;
     if (
       partnerActor &&
-      (resource === "quotes" || resource === "orders") &&
+      resource === "quotes" &&
       !partnerAuthorizationAccount?.success
     )
       throw new ProblemError({
@@ -580,7 +579,9 @@ export function registerCoreRoutes(
       permission,
       partnerAuthorizationAccount?.success
         ? ids.account.parse(partnerAuthorizationAccount.data)
-        : accountId,
+        : partnerActor && resource === "orders"
+          ? undefined
+          : accountId,
     );
     if (recentAuthenticationActions.has(`${resource}:${body.action}`))
       requireRecentAuthentication(context);

@@ -234,6 +234,33 @@ describe("authoritative core outbox joins", () => {
     });
   });
 
+  it("does not accrue refund commission effects from non-terminal refund.created", () => {
+    const test = fixture();
+    expect(test.handlers.has("provider.stripe.refund.created")).toBe(false);
+    expect(test.handlers.has("provider.stripe.refund.updated")).toBe(true);
+  });
+
+  it("routes a signed credit-note void to a distinct compensating source", async () => {
+    const test = fixture();
+    const creditNoteId = "30000000-0000-4000-8000-000000000099";
+    const topic = "provider.stripe.credit_note.voided";
+    await test.handlers.get(topic)?.(
+      delivery(
+        event({
+          eventType: topic,
+          aggregateType: "credit_note",
+          aggregateId: creditNoteId,
+        }),
+        topic,
+      ),
+    );
+    expect(test.projectReferralCommission).toHaveBeenCalledWith({
+      sourceType: "credit_note_void",
+      sourceId: creditNoteId,
+      requestId: "60000000-0000-4000-8000-000000000001",
+    });
+  });
+
   it("submits persisted commission statement lines including signed holdback release", async () => {
     const test = fixture();
     const payload = event({

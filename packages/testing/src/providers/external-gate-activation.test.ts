@@ -24,6 +24,7 @@ function gate(gateKey: ExternalGateKey): ExternalGateRecord {
     configuredStatus: "blocked",
     simulatorState: "ready",
     simulatorDetails: "Deterministic simulator ready",
+    inputProvenance: "repository_fixture",
     lastActivationTestStatus: "never",
     lastActivationTestAt: null,
     lastActivationTestedBy: null,
@@ -59,6 +60,7 @@ describe("deterministic external-gate activation runner", () => {
       results.every(
         (result) =>
           result.simulatorState === "ready" &&
+          result.inputProvenance === "repository_fixture" &&
           result.evidenceReference.startsWith("evidence://activation-tests/"),
       ),
     ).toBe(true);

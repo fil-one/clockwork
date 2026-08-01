@@ -212,6 +212,8 @@ export interface StripeFinancialEvent {
   status: string;
   amountMinor?: string;
   currency?: Currency;
+  invoiceId?: string;
+  paymentIntentId?: string;
   receiptUrl?: string;
 }
 
@@ -242,4 +244,138 @@ export function projectStripeTruth(events: readonly StripeFinancialEvent[]): {
     projections[event.objectId] = event;
   }
   return { projections, duplicates, ignoredOutOfOrder };
+}
+
+export type StripeAdjustmentStatus = "pending" | "succeeded" | "failed";
+
+export interface PersistedStripeAdjustment {
+  adjustmentId: string;
+  kind: "credit_note" | "refund";
+  providerObjectId: string;
+  sourceObjectId: string;
+  amount: Money;
+  status: StripeAdjustmentStatus;
+  watermark?: { eventId: string; created: number };
+}
+
+export interface StripeAdjustmentProjection extends PersistedStripeAdjustment {
+  watermark?: { eventId: string; created: number };
+}
+
+function adjustmentStatus(
+  adjustment: PersistedStripeAdjustment,
+  event: StripeFinancialEvent,
+): StripeAdjustmentStatus | undefined {
+  if (adjustment.kind === "refund") {
+    // refund.created proves only that Stripe accepted creation; later signed
+    // refund.updated events carry the authoritative pending/final status.
+    if (event.type !== "refund.updated") return undefined;
+    if (event.status === "pending" || event.status === "requires_action")
+      return "pending";
+    if (event.status === "succeeded") return "succeeded";
+    if (event.status === "failed" || event.status === "canceled")
+      return "failed";
+    return undefined;
+  }
+  if (
+    event.type !== "credit_note.created" &&
+    event.type !== "credit_note.updated" &&
+    event.type !== "credit_note.voided"
+  )
+    return undefined;
+  if (event.status === "issued") return "succeeded";
+  if (event.status === "void" || event.type === "credit_note.voided")
+    return "failed";
+  return event.status === "draft" ? "pending" : undefined;
+}
+
+function afterWatermark(
+  event: StripeFinancialEvent,
+  watermark: PersistedStripeAdjustment["watermark"],
+): boolean {
+  return (
+    !watermark ||
+    event.created > watermark.created ||
+    (event.created === watermark.created && event.id > watermark.eventId)
+  );
+}
+
+/**
+ * Projects only signed, binding-matched adjustment events onto persisted
+ * commands. Every adjustment has its own watermark, even when several refunds
+ * share one payment intent or several credit notes share one invoice.
+ */
+export function projectStripeAdjustmentTruth(input: {
+  adjustments: readonly PersistedStripeAdjustment[];
+  events: readonly StripeFinancialEvent[];
+}): {
+  projections: Readonly<Record<string, StripeAdjustmentProjection>>;
+  duplicates: readonly string[];
+  ignored: readonly string[];
+  rejected: readonly { eventId: string; reason: string }[];
+} {
+  const projections: Record<string, StripeAdjustmentProjection> = {};
+  const byProviderObject = new Map<string, PersistedStripeAdjustment>();
+  for (const adjustment of input.adjustments) {
+    if (byProviderObject.has(adjustment.providerObjectId))
+      throw new Error("Stripe adjustment provider binding must be unique");
+    byProviderObject.set(adjustment.providerObjectId, adjustment);
+    projections[adjustment.adjustmentId] = { ...adjustment };
+  }
+  const eventIds = new Set<string>();
+  const duplicates: string[] = [];
+  const ignored: string[] = [];
+  const rejected: { eventId: string; reason: string }[] = [];
+  for (const event of input.events) {
+    if (eventIds.has(event.id)) {
+      duplicates.push(event.id);
+      continue;
+    }
+    eventIds.add(event.id);
+    const persisted = byProviderObject.get(event.objectId);
+    if (!persisted) {
+      rejected.push({ eventId: event.id, reason: "provider_object_unbound" });
+      continue;
+    }
+    const current = projections[persisted.adjustmentId];
+    if (!current)
+      throw new Error("Stripe adjustment projection was not seeded");
+    const status = adjustmentStatus(persisted, event);
+    if (!status) {
+      ignored.push(event.id);
+      continue;
+    }
+    const sourceObjectId =
+      persisted.kind === "refund" ? event.paymentIntentId : event.invoiceId;
+    if (sourceObjectId !== persisted.sourceObjectId) {
+      rejected.push({ eventId: event.id, reason: "source_binding_mismatch" });
+      continue;
+    }
+    if (
+      event.amountMinor === undefined ||
+      event.currency === undefined ||
+      event.amountMinor !== persisted.amount.minor ||
+      event.currency !== persisted.amount.currency
+    ) {
+      rejected.push({ eventId: event.id, reason: "money_binding_mismatch" });
+      continue;
+    }
+    if (!afterWatermark(event, current.watermark)) {
+      ignored.push(event.id);
+      continue;
+    }
+    if (
+      (current.status === "succeeded" || current.status === "failed") &&
+      current.status !== status
+    ) {
+      rejected.push({ eventId: event.id, reason: "terminal_status_conflict" });
+      continue;
+    }
+    projections[persisted.adjustmentId] = {
+      ...current,
+      status,
+      watermark: { eventId: event.id, created: event.created },
+    };
+  }
+  return { projections, duplicates, ignored, rejected };
 }

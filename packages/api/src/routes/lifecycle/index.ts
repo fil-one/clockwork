@@ -1558,15 +1558,20 @@ export function registerLifecycleRoutes(
 
   app.openapi(renewalRequestRoute, async (context) => {
     const body = context.req.valid("json");
+    const request = context.get("requestContext");
+    const orderId = context.req.valid("param").orderId;
+    const scope = await authorizationScopesOrThrow(
+      dependencies,
+      request,
+    ).resolveOrderScope({ orderId, requestId: request.requestId });
     requirePermission(
       context,
       "order:write",
-      ids.account.parse(body.accountId),
+      ids.account.parse(scope.authorizationAccountId),
     );
-    const request = context.get("requestContext");
     return context.json(
       await serviceOrThrow(dependencies, request).requestRenewal(
-        { ...body, orderId: context.req.valid("param").orderId },
+        { ...body, orderId, accountId: scope.accountId },
         operationContext(request, idempotencyKey(context.req.valid("header"))),
       ),
       200,
@@ -1575,15 +1580,20 @@ export function registerLifecycleRoutes(
 
   app.openapi(renewalDeclineRoute, async (context) => {
     const body = context.req.valid("json");
+    const request = context.get("requestContext");
+    const orderId = context.req.valid("param").orderId;
+    const scope = await authorizationScopesOrThrow(
+      dependencies,
+      request,
+    ).resolveOrderScope({ orderId, requestId: request.requestId });
     requirePermission(
       context,
       "order:write",
-      ids.account.parse(body.accountId),
+      ids.account.parse(scope.authorizationAccountId),
     );
-    const request = context.get("requestContext");
     return context.json(
       await serviceOrThrow(dependencies, request).declineRenewal(
-        { ...body, orderId: context.req.valid("param").orderId },
+        { ...body, orderId, accountId: scope.accountId },
         operationContext(request, idempotencyKey(context.req.valid("header"))),
       ),
       200,
@@ -1592,16 +1602,27 @@ export function registerLifecycleRoutes(
 
   app.openapi(terminationRoute, async (context) => {
     const body = context.req.valid("json");
+    const request = context.get("requestContext");
+    const scope = await authorizationScopesOrThrow(
+      dependencies,
+      request,
+    ).resolveOrderScope({
+      orderId: body.orderId,
+      requestId: request.requestId,
+    });
     requirePermission(
       context,
       "destructive:request",
-      ids.account.parse(body.accountId),
+      ids.account.parse(scope.authorizationAccountId),
     );
     requireRecentAuthentication(context);
-    const request = context.get("requestContext");
     return context.json(
       await serviceOrThrow(dependencies, request).requestTermination(
-        body,
+        {
+          ...body,
+          accountId: scope.accountId,
+          partnerAccountId: scope.partnerAccountId,
+        },
         operationContext(request, idempotencyKey(context.req.valid("header"))),
       ),
       200,
