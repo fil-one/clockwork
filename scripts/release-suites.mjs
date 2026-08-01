@@ -601,6 +601,7 @@ async function runSuite(name, index, context) {
             "db",
             "reset",
             "--local",
+            ...(name === "integration" ? ["--no-seed"] : []),
             "--workdir",
             databaseProject.projectRoot,
           ],
