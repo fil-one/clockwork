@@ -49,6 +49,15 @@ function git(...arguments_) {
   return command("git", arguments_);
 }
 
+function tryGit(...arguments_) {
+  const result = spawnSync("git", arguments_, {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+  });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
 function sha256Bytes(value) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -397,6 +406,12 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
   const qualificationEvidenceArtifacts = evidenceArtifacts.filter(
     ({ kind }) => kind === "qualification-evidence",
   );
+  const evidenceAggregate = (artifacts) =>
+    sha256Bytes(
+      `${artifacts
+        .map(({ path, bytes, sha256 }) => `${path}:${bytes}:${sha256}`)
+        .join("\n")}\n`,
+    );
   const qualificationSummaries = qualificationEvidenceArtifacts
     .filter(({ path }) => /\/(?:stress-)?summary\.json$/.test(path))
     .map(({ path, bytes, sha256 }) => {
@@ -415,15 +430,68 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
           summary.sourceIdentity?.revision ?? summary.sourceIdentity ?? null,
       };
     });
+  const qualificationRunRoots = unique(
+    qualificationEvidenceArtifacts.flatMap(({ path }) => {
+      const match = path.match(
+        /^(\.artifacts\/(?:release-benchmark|release-smoke)\/[^/]+)/,
+      );
+      return match ? [match[1]] : [];
+    }),
+  );
+  const qualificationRuns = qualificationRunRoots.map((runRoot) => {
+    const artifacts = qualificationEvidenceArtifacts.filter(({ path }) =>
+      path.startsWith(`${runRoot}/`),
+    );
+    const summaryRecords = qualificationSummaries.filter(({ path }) =>
+      path.startsWith(`${runRoot}/`),
+    );
+    const primarySummary =
+      summaryRecords.find(
+        ({ path }) => path === `${runRoot}/stress-summary.json`,
+      ) ??
+      summaryRecords.find(({ path }) => path === `${runRoot}/summary.json`) ??
+      summaryRecords.find(
+        ({ path }) => path === `${runRoot}/serial/summary.json`,
+      ) ??
+      summaryRecords[0] ??
+      null;
+    const contractArtifact = artifacts.find(({ path }) =>
+      path.endsWith("/contract.json"),
+    );
+    const contract = contractArtifact
+      ? JSON.parse(readFileSync(join(fields.worktree, contractArtifact.path)))
+      : null;
+    const runName = runRoot.split("/").at(-1);
+    const abbreviatedRevision = runName.match(/[0-9a-f]{12}/)?.[0] ?? null;
+    const recoveredRevision = abbreviatedRevision
+      ? tryGit("rev-parse", "--verify", `${abbreviatedRevision}^{commit}`)
+      : null;
+    return {
+      root: runRoot,
+      kind: runRoot.startsWith(".artifacts/release-benchmark/")
+        ? "benchmark"
+        : "smoke",
+      runId: primarySummary?.runId ?? contract?.runId ?? runName,
+      mode: primarySummary?.mode ?? contract?.mode ?? null,
+      outcome: primarySummary?.outcome ?? "incomplete",
+      durationMs: primarySummary?.durationMs ?? null,
+      sourceRevision:
+        primarySummary?.sourceRevision ??
+        contract?.sourceIdentity?.revision ??
+        recoveredRevision,
+      artifactCount: artifacts.length,
+      aggregateSha256: evidenceAggregate(artifacts),
+      summaryPaths: summaryRecords.map(({ path }) => path),
+      completionEvidence: primarySummary?.path ?? null,
+      incompleteReason:
+        primarySummary === null
+          ? "No run summary was written; retained artifacts record an interrupted or aborted qualification attempt."
+          : null,
+    };
+  });
   const archiveArtifacts = evidenceArtifacts.filter(
     ({ kind }) => kind === "archive",
   );
-  const evidenceAggregate = (artifacts) =>
-    sha256Bytes(
-      `${artifacts
-        .map(({ path, bytes, sha256 }) => `${path}:${bytes}:${sha256}`)
-        .join("\n")}\n`,
-    );
   const rejectedIgnoredListing = `${rejectedIgnoredArtifactPaths.join("\n")}${
     rejectedIgnoredArtifactPaths.length > 0 ? "\n" : ""
   }`;
@@ -463,6 +531,7 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
         qualification: {
           artifactCount: qualificationEvidenceArtifacts.length,
           aggregateSha256: evidenceAggregate(qualificationEvidenceArtifacts),
+          runs: qualificationRuns,
           summaries: qualificationSummaries,
           artifacts: qualificationEvidenceArtifacts,
         },
@@ -774,10 +843,11 @@ writeJson("git-provenance.json", {
       retainedQualificationEvidence: {
         artifactCount: status.retainedEvidence.qualification.artifactCount,
         aggregateSha256: status.retainedEvidence.qualification.aggregateSha256,
+        runs: status.retainedEvidence.qualification.runs,
         summaries: status.retainedEvidence.qualification.summaries,
         decision:
           status.retainedEvidence.qualification.artifactCount > 0
-            ? "retained-failure-and-pass-evidence-with-file-hashes"
+            ? "retained-passed-failed-and-incomplete-evidence-with-file-hashes"
             : "not-present-in-this-worktree",
       },
     })),
