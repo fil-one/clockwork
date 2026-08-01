@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:14:06Z",
-  "captureCommit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
-  "captureTree": "4b15727629d7e7d255374c5c2b8d95bcf26ed183",
+  "capturedAt": "2026-08-01T14:18:27Z",
+  "captureCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+  "captureTree": "d8a521f88921d7da758e5c174cabec969a800c20",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "7c236a2ca7e31747228a4e88d3e8192db7d1728096fba9e73b9804c224d385cf",
+  "captureTreeListingSha256": "c8f78edc7a9f603ce6a78befa60d4faa7f34bc844453eda9718cca7d09fa67ac",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "2eaf05c83aa51b9a8a655473d78048cae435dbe71ebf8ba671699ac4db3c8179",
+      "aggregateSha256": "e0e3fe9d4e957d715030770993500a884ec81ca94d39280140a943566a4e1ef7",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -3641,8 +3641,8 @@
     },
     {
       "path": "scripts/release-suites.mjs",
-      "bytes": 38581,
-      "sha256": "5e6e617e3a3d37b00c91d16172d0c957c91aec970feba699af790d8ccb09f8a2"
+      "bytes": 38823,
+      "sha256": "7bd00739562fce9ee175fa3a0f97e06650cbf5f98bfe47c1d41d7391d7a58bb8"
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",

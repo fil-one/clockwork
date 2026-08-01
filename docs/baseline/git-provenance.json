@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:14:06Z",
+  "capturedAt": "2026-08-01T14:18:27Z",
   "captureRef": "main",
-  "captureCommit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
-  "captureTree": "4b15727629d7e7d255374c5c2b8d95bcf26ed183",
+  "captureCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+  "captureTree": "d8a521f88921d7da758e5c174cabec969a800c20",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
+      "object": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
       "objectType": "commit",
-      "peeledCommit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
-      "commit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
-      "tree": "4b15727629d7e7d255374c5c2b8d95bcf26ed183",
+      "peeledCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "tree": "d8a521f88921d7da758e5c174cabec969a800c20",
       "treeEntryCount": 896,
-      "treeListingSha256": "7c236a2ca7e31747228a4e88d3e8192db7d1728096fba9e73b9804c224d385cf",
-      "parents": ["ab0ae079e674feafd4ae86413d168e001416c0e2"],
-      "subject": "feat: consolidate release-quality main",
-      "mergeBaseWithMain": "b5bdef2189459dea76c9b4e72149c1ad89a433ac"
+      "treeListingSha256": "c8f78edc7a9f603ce6a78befa60d4faa7f34bc844453eda9718cca7d09fa67ac",
+      "parents": ["be355e65e14f87b761621ce8d3f5dacf35de46c9"],
+      "subject": "fix: make qualification installs non-interactive",
+      "mergeBaseWithMain": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
+      "head": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -321,6 +321,7 @@
         "unstaged": [],
         "untracked": [],
         "ignoredRoots": [
+          ".artifacts",
           ".clockwork-archives",
           ".turbo",
           "apps",
@@ -350,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 74202,
+        "ignoredArtifactCount": 74206,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 74201,
-        "ignoredArtifactListingSha256": "73518eac42642ada05d1241658ec3900ff6eba8d83585f4f76e40c7ca1d1998a",
+        "rejectedIgnoredArtifactCount": 74205,
+        "ignoredArtifactListingSha256": "e677be1828c8e0cb14c9a9dbf6528877ddfa9d2dd790751880972398e0734a9d",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "tree": "d8a521f88921d7da758e5c174cabec969a800c20",
+      "parents": ["be355e65e14f87b761621ce8d3f5dacf35de46c9"],
+      "subject": "fix: make qualification installs non-interactive"
+    },
+    {
+      "commit": "be355e65e14f87b761621ce8d3f5dacf35de46c9",
+      "tree": "f18e1235e6d62d1d25a04c7b855c7a275201651f",
+      "parents": ["b5bdef2189459dea76c9b4e72149c1ad89a433ac"],
+      "subject": "docs: capture consolidated main provenance"
+    },
     {
       "commit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
       "tree": "4b15727629d7e7d255374c5c2b8d95bcf26ed183",
@@ -704,7 +717,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 52,
+  "reachableCommitCount": 54,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1176,6 +1189,26 @@
   ],
   "reflogEntries": [
     {
+      "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "selector": "refs/heads/main@{2026-08-01T10:17:35-04:00}",
+      "subject": "commit: fix: make qualification installs non-interactive"
+    },
+    {
+      "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "selector": "HEAD@{2026-08-01T10:17:35-04:00}",
+      "subject": "commit: fix: make qualification installs non-interactive"
+    },
+    {
+      "commit": "be355e65e14f87b761621ce8d3f5dacf35de46c9",
+      "selector": "refs/heads/main@{2026-08-01T10:14:44-04:00}",
+      "subject": "commit: docs: capture consolidated main provenance"
+    },
+    {
+      "commit": "be355e65e14f87b761621ce8d3f5dacf35de46c9",
+      "selector": "HEAD@{2026-08-01T10:14:44-04:00}",
+      "subject": "commit: docs: capture consolidated main provenance"
+    },
+    {
       "commit": "b5bdef2189459dea76c9b4e72149c1ad89a433ac",
       "selector": "refs/heads/main@{2026-08-01T10:13:12-04:00}",
       "subject": "commit: feat: consolidate release-quality main"
@@ -1644,6 +1677,7 @@
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork",
         "roots": [
+          ".artifacts",
           ".turbo",
           "apps",
           "apps/web/.next",
@@ -1672,8 +1706,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 74201,
-        "listingSha256": "73518eac42642ada05d1241658ec3900ff6eba8d83585f4f76e40c7ca1d1998a",
+        "artifactCount": 74205,
+        "listingSha256": "e677be1828c8e0cb14c9a9dbf6528877ddfa9d2dd790751880972398e0734a9d",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
