@@ -345,6 +345,23 @@
   line-height: 1.45;
 }
 
+.reviewHandoff {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--web-line);
+  border-left: 3px solid var(--web-warm);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--web-canvas) 55%, var(--web-paper));
+  padding: 0.65rem 0.75rem;
+  color: var(--web-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.reviewHandoff strong {
+  color: var(--web-ink);
+}
+
 .statusMessage {
   margin: 0.75rem 0 0;
   color: #2c6844;
@@ -458,6 +475,7 @@
 }
 
 .filterBar button {
+  min-height: 2.75rem;
   margin-bottom: 0.02rem;
 }
 
@@ -505,6 +523,10 @@
   display: grid;
   justify-items: end;
   gap: 0.35rem;
+}
+
+.reportActions button {
+  min-height: 2.75rem;
 }
 
 .chartBody {
@@ -565,11 +587,17 @@
 }
 
 .dataAlternative {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
   border-top: 1px solid var(--web-line);
   padding-top: 0.65rem;
 }
 
 .dataAlternative summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
   cursor: pointer;
   color: var(--web-accent);
   font-size: 0.72rem;
@@ -578,6 +606,7 @@
 
 .compactTable {
   width: 100%;
+  min-width: 24rem;
   margin-top: 0.55rem;
   border-collapse: collapse;
   font-size: 0.68rem;

@@ -14,7 +14,6 @@ import {
 } from "./policy";
 import {
   AdministrationPage,
-  ExitLink,
   HumanSelector,
   ReviewSummaryCard,
   StatusPill,
@@ -63,7 +62,6 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
   const [actionKey, setActionKey] =
     useState<AssistedActionKey>("quote_adjustment");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const [message, setMessage] = useState("");
   const account = accounts.find((item) => item.id === accountId) ?? accounts[0];
   const action = assistedActions[actionKey];
   const actor = useMemo(
@@ -85,26 +83,10 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
 
   const resetReview = () => {
     setSummary(null);
-    setMessage("");
   };
 
   return (
     <AdministrationPage {...adminSafetyCopy.assisted}>
-      <section
-        className={styles.assistedState}
-        role="status"
-        aria-label="Assisted mode state"
-      >
-        <div>
-          <strong>Assisted mode active · {account.label}</strong>
-          <p>
-            Effective account: {account.label} · Staff actor: {actor} · Reason:{" "}
-            {reason.trim() || "required before review"}
-          </p>
-        </div>
-        <ExitLink href="/internal">Exit assisted mode</ExitLink>
-      </section>
-
       <section className={styles.notice} role="note">
         <strong>The staff actor never changes.</strong>
         The effective account scopes the customer record. The authenticated
@@ -140,7 +122,6 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
                 reason,
               }),
             );
-            setMessage("");
           }}
         >
           <HumanSelector
@@ -241,26 +222,19 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
             title="Assisted action review"
             identifiers={[{ label: "Effective account ID", value: account.id }]}
           />
-          <div className={styles.actions}>
-            <button
-              className={styles.button}
-              type="button"
-              disabled={!ready}
-              onClick={() =>
-                setMessage(
-                  "Assisted action is ready for secure submission. The server will preserve the staff actor and re-evaluate account, role, commercial, screening, credit, retention, and provider gates.",
-                )
-              }
-            >
-              Submit assisted action
-            </button>
-          </div>
+          <section className={styles.handoff} role="note">
+            <strong>
+              {ready
+                ? "Assisted action not submitted"
+                : "Assisted action remains blocked"}
+            </strong>
+            <p>
+              Continue in the secure assisted workflow. The server preserves the
+              staff actor and re-evaluates account, role, commercial, screening,
+              credit, retention, and provider gates before any mutation.
+            </p>
+          </section>
         </>
-      ) : null}
-      {message ? (
-        <p className={styles.statusMessage} role="status">
-          {message}
-        </p>
       ) : null}
     </AdministrationPage>
   );

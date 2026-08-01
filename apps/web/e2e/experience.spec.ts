@@ -43,19 +43,19 @@ const journeys = [
     persona: "legal approver",
     role: "legal_approver",
     path: "/internal/agreements",
-    heading: "Agreement & customer-paper",
+    heading: "Agreement templates",
   },
   {
     persona: "finance approver",
     role: "finance_approver",
     path: "/internal/reports",
-    heading: "Reports & reconciliation",
+    heading: "Operational reports",
   },
   {
     persona: "internal operator",
     role: "internal_operator",
     path: "/internal/queues",
-    heading: "Exception queues",
+    heading: "Operational queues",
   },
 ] as const;
 
@@ -191,39 +191,34 @@ test("direct buyer executes terms, creates a quote, and accepts the order throug
   });
 
   await page.goto("/agreements/execute");
-  await expect(page.getByLabel("Exact agreement text")).toHaveValue(exactText);
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Submit securely" }).click();
+  await expect(page.getByLabel("Exact agreement text")).toContainText(
+    "Cloud Service Agreement Version 1.0.0",
+  );
+  await page.getByRole("checkbox", { name: /authorized to bind/i }).check();
+  await page.getByRole("button", { name: "Accept and execute" }).click();
   await expect(
-    page.getByText(/server record is now the source of truth/i),
+    page.getByText(/recorded the authority evidence/i),
   ).toBeVisible();
 
   await page.goto("/quotes/new");
-  const capacity = page.getByRole("textbox", {
-    name: "Committed capacity",
-    exact: true,
-  });
-  const save = page.getByRole("button", { name: "Submit securely" });
-  await expect(save).toBeEnabled();
+  await page.getByRole("button", { name: "Continue" }).click();
+  const capacity = page.getByLabel("Committed capacity (TB)");
   await capacity.fill("4");
-  await save.click();
-  await expect(
-    page.getByText("Enter a committed capacity of at least 10 TB.", {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText(/at least 10 TB/)).toBeVisible();
   await capacity.fill("120");
-  await save.click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Create priced draft" }).click();
   await expect(
-    page.getByText(/server record is now the source of truth/i),
+    page.getByText(/server created the priced draft/i),
   ).toBeVisible();
 
-  await page.goto("/orders");
+  await page.goto("/orders/accept");
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Submit securely" }).click();
-  await expect(
-    page.getByText(/server record is now the source of truth/i),
-  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Accept order and create commitment" })
+    .click();
+  await expect(page.getByText(/server created the order/i)).toBeVisible();
 
   expect(operations.map((operation) => operation.path)).toEqual([
     "/api/v1/lifecycle/agreements/click-through",
@@ -240,7 +235,7 @@ test("direct buyer executes terms, creates a quote, and accepts the order throug
   });
   expect(operations[2]?.body).toMatchObject({
     action: "create",
-    payload: { authorityAttested: true, poNumber: "PO-2026-0042" },
+    payload: { authorityAttested: true, poNumber: "PO-NA-1092" },
   });
 });
 
@@ -287,12 +282,15 @@ test("redirect signing creates an envelope without activating the agreement", as
   });
 });
 
-test("billing opens a Stripe session while payment truth remains webhook-derived", async ({
+test("billing prepares a Stripe handoff while payment truth remains webhook-derived", async ({
   page,
 }) => {
   let payment: Record<string, unknown> | undefined;
   await page.route("**/api/v1/core/payment-sessions", async (route) => {
-    payment = route.request().postDataJSON() as Record<string, unknown>;
+    const request = route.request();
+    expect(request.headers()["idempotency-key"]).toBeTruthy();
+    expect(request.headers()["x-csrf-token"]).toBeTruthy();
+    payment = request.postDataJSON() as Record<string, unknown>;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -305,11 +303,19 @@ test("billing opens a Stripe session while payment truth remains webhook-derived
       }),
     });
   });
-  await page.goto("/billing");
-  await page.getByRole("button", { name: "Open secure payment" }).click();
+  await page.goto("/billing/INV-2026-0781");
   await expect(
-    page.getByText(/Invoice status changes only after Stripe confirms/i),
+    page.getByText("Awaiting provider confirmation").first(),
   ).toBeVisible();
+  await expect(
+    page.getByText(/Reported by the payment provider webhook/),
+  ).toBeVisible();
+  const prepare = page.getByRole("button", { name: "Prepare secure payment" });
+  await prepare.click();
+  await expect(page.getByRole("checkbox")).toBeFocused();
+  expect(payment).toBeUndefined();
+  await page.getByRole("checkbox").check();
+  await prepare.click();
   await expect(
     page.getByRole("link", { name: "Continue to secure Stripe payment" }),
   ).toHaveAttribute("href", "https://invoice.stripe.com/i/acct_demo/in_demo");
@@ -319,40 +325,25 @@ test("billing opens a Stripe session while payment truth remains webhook-derived
   });
 });
 
-test("internal assisted quote uses the concrete quote command", async ({
+test("internal assisted review preserves actor attribution without a local mutation", async ({
   page,
 }) => {
-  let command: Record<string, unknown> | undefined;
+  let commandCalls = 0;
   await page.route("**/api/v1/core/commands/quotes", async (route) => {
-    command = route.request().postDataJSON() as Record<string, unknown>;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        record: {
-          id: "88888888-8888-4888-8888-888888888888",
-          resource: "quotes",
-          rowVersion: 1,
-          data: {},
-        },
-        auditEventId: "audit-assisted",
-        outboxEventId: "outbox-assisted",
-      }),
-    });
+    commandCalls += 1;
+    await route.abort();
   });
   await page.goto("/internal/assisted");
-  await expect(page.getByText(/server—not this form—records/i)).toBeVisible();
-  await page
-    .getByRole("checkbox", { name: /active assisted session/i })
-    .check();
-  await page.getByRole("button", { name: "Create assisted quote" }).click();
   await expect(
-    page.getByText(/server record is now the source of truth/i),
+    page.getByRole("complementary", { name: "Assisted mode active" }),
+  ).toContainText("Morgan Ellis · Internal operator");
+  await page.getByRole("button", { name: "Review assisted action" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Assisted action review" }),
   ).toBeVisible();
-  expect(command).toMatchObject({
-    accountId: "11111111-1111-4111-8111-111111111111",
-    action: "create",
-    payload: { route: "direct" },
-  });
-  expect(command).not.toHaveProperty("actor");
+  await expect(page.getByText("Assisted action not submitted")).toBeVisible();
+  await expect(
+    page.getByText(/server preserves the staff actor/i),
+  ).toBeVisible();
+  expect(commandCalls).toBe(0);
 });

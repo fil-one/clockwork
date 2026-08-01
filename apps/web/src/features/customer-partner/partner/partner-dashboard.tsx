@@ -4,6 +4,7 @@ import { TermBar } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 
+import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
 
 const urgent = [
@@ -12,41 +13,72 @@ const urgent = [
     detail: "Partner agreement notice window opens Sep 1",
     meta: "32 days",
     href: "/partner/renewals",
+    adminOnly: true,
   },
   {
     title: "Halcyon renewal",
     detail: "Review transfer and resale economics before requesting action",
     meta: "Due Sep 2",
     href: "/partner/renewals",
+    adminOnly: true,
   },
   {
     title: "Credit exposure",
     detail: "July consolidated invoice remains within policy",
     meta: "$12,600",
     href: "/partner/billing",
+    adminOnly: true,
   },
   {
     title: "Atlas registration",
     detail: "Protection request needs commercial evidence",
     meta: "Due today",
     href: "/partner/registrations",
+    adminOnly: false,
   },
   {
     title: "Orchid claim dispute",
     detail: "Competing registration response requires evidence",
     meta: "3 days",
     href: "/partner/disputes",
+    adminOnly: false,
   },
   {
     title: "Atlas POC report",
     detail: "Three of four qualification tests are complete",
     meta: "Due today",
     href: "/partner/sandboxes",
+    adminOnly: true,
   },
 ] as const;
 
-export function PartnerDashboard() {
+const adminStats = [
+  {
+    label: "Renewals needing action",
+    value: "4",
+    detail: "Next 90 days",
+  },
+  { label: "Credit exposure", value: "$12.6k", detail: "Within policy" },
+  { label: "Active end clients", value: "14", detail: "Plus 3 POCs" },
+  {
+    label: "Collected commission",
+    value: "$18.4k",
+    detail: "Q3 accrued net",
+  },
+] as const;
+
+const sellerStats = [
+  { label: "Active end clients", value: "14", detail: "Named portfolio" },
+  { label: "Open quotes", value: "3", detail: "Across assigned clients" },
+  { label: "Protected registrations", value: "2", detail: "One due today" },
+  { label: "Open disputes", value: "1", detail: "Evidence due in 3 days" },
+] as const;
+
+export function PartnerDashboard({ roles }: { roles: readonly string[] }) {
   const copy = customerPartnerCopy.partner;
+  const isAdmin = currentPartnerRole(roles) === "partner_admin";
+  const visibleUrgent = urgent.filter((item) => isAdmin || !item.adminOnly);
+  const stats = isAdmin ? adminStats : sellerStats;
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
@@ -100,10 +132,10 @@ export function PartnerDashboard() {
             <p className={styles.eyebrow}>Needs attention</p>
             <h2 id="urgent-partner-title">{copy.urgentTitle}</h2>
           </div>
-          <p className={styles.count}>6 actions</p>
+          <p className={styles.count}>{visibleUrgent.length} actions</p>
         </div>
         <div className={styles.urgentGrid}>
-          {urgent.map((item) => (
+          {visibleUrgent.map((item) => (
             <Link
               className={styles.urgentCard}
               href={item.href}
@@ -121,26 +153,13 @@ export function PartnerDashboard() {
       </section>
 
       <section className={styles.stats} aria-label="Partner metrics">
-        <article className={styles.stat}>
-          <span>Renewals needing action</span>
-          <strong>4</strong>
-          <span>Next 90 days</span>
-        </article>
-        <article className={styles.stat}>
-          <span>Credit exposure</span>
-          <strong>$12.6k</strong>
-          <span>Within policy</span>
-        </article>
-        <article className={styles.stat}>
-          <span>Active end clients</span>
-          <strong>14</strong>
-          <span>Plus 3 POCs</span>
-        </article>
-        <article className={styles.stat}>
-          <span>Collected commission</span>
-          <strong>$18.4k</strong>
-          <span>Q3 accrued net</span>
-        </article>
+        {stats.map((stat) => (
+          <article className={styles.stat} key={stat.label}>
+            <span>{stat.label}</span>
+            <strong>{stat.value}</strong>
+            <span>{stat.detail}</span>
+          </article>
+        ))}
       </section>
 
       <div className={styles.dashboardGrid}>

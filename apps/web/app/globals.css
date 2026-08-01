@@ -46,8 +46,7 @@ input {
   min-height: 100vh;
   background: var(--web-canvas);
 }
-.connection-banner,
-.assisted-banner {
+.connection-banner {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -59,19 +58,6 @@ input {
 .connection-banner {
   background: #3b271d;
   color: #fff4e8;
-}
-.assisted-banner {
-  background: #ecdfc6;
-  color: #4a3518;
-  border-bottom: 1px solid #d4c29f;
-}
-.assisted-banner strong {
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.assisted-banner a {
-  margin-left: auto;
-  font-weight: 700;
 }
 .wordmark {
   display: inline-flex;
@@ -956,13 +942,6 @@ input {
   .state-grid,
   .side-stack {
     grid-template-columns: 1fr;
-  }
-  .assisted-banner {
-    align-items: start;
-    flex-wrap: wrap;
-  }
-  .assisted-banner a {
-    margin-left: 0;
   }
 }
 @media (max-width: 30rem) {

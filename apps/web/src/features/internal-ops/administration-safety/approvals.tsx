@@ -26,7 +26,6 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
   const [decision, setDecision] = useState<"approved" | "rejected">("approved");
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const [message, setMessage] = useState("");
   const selected =
     approvalCases.find((approvalCase) => approvalCase.id === caseId) ??
     approvalCases[0];
@@ -42,7 +41,6 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
 
   const resetReview = () => {
     setSummary(null);
-    setMessage("");
   };
 
   return (
@@ -114,7 +112,6 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                   reason,
                 }),
               );
-              setMessage("");
             }}
           >
             <HumanSelector
@@ -220,29 +217,15 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
             identifiers={selected.identifiers}
             title={`${decision === "approved" ? "Approval" : "Rejection"} review summary`}
           />
-          <div className={styles.actions}>
-            <button
-              className={
-                selected.decision === "destructive"
-                  ? styles.buttonDanger
-                  : styles.button
-              }
-              type="button"
-              onClick={() =>
-                setMessage(
-                  "Decision is ready for secure submission. Server authority, actor separation, evidence, and all policy gates will be revalidated.",
-                )
-              }
-            >
-              Record {decision === "approved" ? "approval" : "rejection"}
-            </button>
-          </div>
+          <section className={styles.handoff} role="note">
+            <strong>Secure decision submission required</strong>
+            <p>
+              This review has not recorded an approval or rejection. Continue in
+              the authorized server workflow, where authority, actor separation,
+              evidence, retention, and policy gates are revalidated.
+            </p>
+          </section>
         </>
-      ) : null}
-      {message ? (
-        <p className={styles.statusMessage} role="status">
-          {message}
-        </p>
       ) : null}
     </AdministrationPage>
   );

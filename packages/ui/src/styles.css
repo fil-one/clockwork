@@ -3204,6 +3204,19 @@ body {
     display: none;
   }
 
+  .cw-term__labels {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: var(--cw-space-1);
+  }
+
+  .cw-term__labels strong {
+    flex: 1 1 11rem;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   .cw-term__meta {
     justify-content: space-between;
   }

@@ -194,4 +194,15 @@ describe("grouped global search", () => {
     expect(nextSearchIndex(2, "ArrowDown", 3)).toBe(0);
     expect(nextSearchIndex(0, "ArrowUp", 3)).toBe(2);
   });
+
+  it("keeps every internal search destination inside the internal experience", () => {
+    const commerceRecords = [
+      ...searchRecords("Quotes"),
+      ...searchRecords("Orders"),
+    ];
+    expect(commerceRecords.length).toBeGreaterThan(0);
+    expect(commerceRecords).toSatisfy((records: typeof commerceRecords) =>
+      records.every((record) => record.href.startsWith("/internal")),
+    );
+  });
 });

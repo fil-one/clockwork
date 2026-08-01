@@ -6,14 +6,34 @@ const customerDestinations = [
   "Agreements",
   "Quotes",
   "Orders & services",
+  "Active services",
   "POCs",
   "Billing",
+  "Amendments",
+  "Marketplace",
+  "Support",
   "Account",
+] as const;
+
+const partnerAdminDestinations = [
+  "Partner desk",
+  "End clients",
+  "Deal registration",
+  "Partner quotes",
+  "Consolidated billing",
+  "Commissions",
+  "Renewals",
+  "Disputes",
+  "Marketplace",
+  "Sandboxes & POCs",
+  "Brand & domains",
+  "Support",
 ] as const;
 
 const viewports = [
   { name: "desktop", width: 1440, height: 1000, mobile: false },
-  { name: "tablet", width: 900, height: 900, mobile: false },
+  { name: "compact-desktop", width: 1024, height: 768, mobile: false },
+  { name: "tablet", width: 768, height: 1024, mobile: false },
   { name: "mobile-390", width: 390, height: 844, mobile: true },
   { name: "mobile-320", width: 320, height: 800, mobile: true },
 ] as const;
@@ -176,6 +196,57 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
     await expectNoHorizontalOverflow(page);
   });
 }
+
+test("partner admin can reach every partner destination from the 320px drawer", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({
+    "x-clockwork-persona": "partner_admin",
+  });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/partner");
+  const { drawer } = await openNavigation(page);
+
+  for (const destination of partnerAdminDestinations) {
+    await expectMinimumTarget(
+      drawer.getByRole("link", { name: destination, exact: true }),
+    );
+  }
+  await expectNoHorizontalOverflow(page);
+});
+
+test("partner seller navigation and commands exclude admin-only work", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({
+    "x-clockwork-persona": "partner_seller",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/partner");
+  const { drawer } = await openNavigation(page);
+
+  await expect(
+    drawer.getByRole("link", { name: "Support", exact: true }),
+  ).toBeVisible();
+  for (const destination of [
+    "Consolidated billing",
+    "Commissions",
+    "Renewals",
+    "Sandboxes & POCs",
+    "Brand & domains",
+  ]) {
+    await expect(
+      drawer.getByRole("link", { name: destination, exact: true }),
+    ).toHaveCount(0);
+  }
+
+  await page.keyboard.press("Escape");
+  const { palette, search } = await openCommandPalette(page);
+  await search.fill("billing");
+  await expect(
+    palette.getByText("No results found", { exact: false }),
+  ).toBeVisible();
+});
 
 test("command palette supports grouped search, no matches, and focus restoration", async ({
   page,

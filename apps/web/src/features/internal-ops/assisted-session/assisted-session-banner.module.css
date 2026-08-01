@@ -10,10 +10,6 @@
   font-size: 0.78rem;
 }
 
-:global(.experience-shell):has(.banner) > :global(.assisted-banner) {
-  display: none;
-}
-
 .title {
   display: flex;
   align-items: center;
@@ -60,6 +56,10 @@
 }
 
 .banner a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
   padding: 0.5rem 0.65rem;
   border: 1px solid currentColor;
   border-radius: 0.4rem;
@@ -67,6 +67,11 @@
   font-weight: 750;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.banner a:focus-visible {
+  outline: 3px solid #174f42;
+  outline-offset: 2px;
 }
 
 @media (max-width: 1050px) {

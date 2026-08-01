@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ApplicationStatePanel, Button } from "@clockwork/ui";
 
@@ -213,7 +213,9 @@ function RenewalPanel() {
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
   const [message, setMessage] = useState("");
+  const idempotencyKeyRef = useRef<string | null>(null);
   const summary = renewalReviewSummary({
     client: "Halcyon Research Cooperative",
     action: "renew",
@@ -228,12 +230,17 @@ function RenewalPanel() {
     setPending(true);
     setMessage("");
     try {
-      await requestRenewal({
-        orderId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        accountId: partnerIds.endClient,
-        requestedAction: "renew",
-        requestedTermMonths: 12,
-      });
+      idempotencyKeyRef.current ??= crypto.randomUUID();
+      await requestRenewal(
+        {
+          orderId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          accountId: partnerIds.endClient,
+          requestedAction: "renew",
+          requestedTermMonths: 12,
+        },
+        { idempotencyKey: idempotencyKeyRef.current },
+      );
+      setSucceeded(true);
       setMessage(
         "Renewal request submitted. The current term remains authoritative until the server confirms a change.",
       );
@@ -289,7 +296,7 @@ function RenewalPanel() {
               Back
             </Button>
             <Button
-              disabled={!confirmed}
+              disabled={!confirmed || succeeded}
               loading={pending}
               onClick={() => {
                 void submit();
@@ -347,7 +354,7 @@ export function PartnerCollection({
     );
     const href =
       `${pathname}${next.size ? `?${next.toString()}` : ""}` as Route;
-    router.replace(href, { scroll: false });
+    router.push(href, { scroll: false });
   }
 
   const explicitState = !canUse

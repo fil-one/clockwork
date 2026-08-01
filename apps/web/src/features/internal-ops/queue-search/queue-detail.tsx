@@ -158,18 +158,22 @@ export function QueueDetail({
             the required {item.requiredRole?.replaceAll("_", " ")} role.
           </p>
         ) : null}
-        <div className={styles.actionList}>
-          {actions.map((action, index) => (
-            <button
-              className={
-                index === 0 ? styles.primaryButton : styles.secondaryButton
-              }
-              key={action}
-              type="button"
-            >
-              {action}
-            </button>
-          ))}
+        <div className={styles.actionHandoff} role="note">
+          <strong>Authorized workflow required</strong>
+          <p>
+            This evidence review is read-only and does not submit queue
+            mutations. Continue through the authorized system workflow, where
+            role, actor, policy, and provider gates are revalidated.
+          </p>
+          {actions.length ? (
+            <ul>
+              {actions.map((action) => (
+                <li key={action}>{action}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No actions are available for this role and record state.</p>
+          )}
         </div>
       </section>
     </article>

@@ -162,10 +162,16 @@ export function QuoteBuilder() {
   const workflowRef = useRef<HTMLDivElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const quoteIdRef = useRef<string | null>(null);
+  const quoteInputRef = useRef<ReturnType<typeof quotePayload> | null>(null);
 
   const update = (field: QuoteField, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
+    idempotencyKeyRef.current = null;
+    quoteIdRef.current = null;
+    quoteInputRef.current = null;
+    setMessage("");
+    setErrorMessage("");
   };
 
   const focusField = (field: QuoteField | undefined) => {
@@ -214,7 +220,8 @@ export function QuoteBuilder() {
     setMessage("");
     setErrorMessage("");
     try {
-      const input = quotePayload(draft);
+      quoteInputRef.current ??= quotePayload(draft);
+      const input = quoteInputRef.current;
       idempotencyKeyRef.current ??= crypto.randomUUID();
       quoteIdRef.current ??= crypto.randomUUID();
       if (!input.accountId)

@@ -8,6 +8,19 @@ import { requestOffboarding } from "@/src/features/contracts/commerce-client";
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 
+const services = [
+  {
+    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    label: "Northstar primary archive · 500 TB · ends Dec 31, 2026",
+    name: "Northstar primary archive",
+  },
+  {
+    id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+    label: "Madrid compliance replica · 120 TB · ends Jul 31, 2027",
+    name: "Madrid compliance replica",
+  },
+] as const;
+
 export function OffboardingWorkflow() {
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
@@ -21,6 +34,8 @@ export function OffboardingWorkflow() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const idempotencyKeyRef = useRef<string | null>(null);
+  const selectedService =
+    services.find((service) => service.id === orderId) ?? services[0];
 
   const submit = async () => {
     if (!confirmed) {
@@ -88,12 +103,11 @@ export function OffboardingWorkflow() {
                 onChange={(event) => setOrderId(event.target.value)}
                 value={orderId}
               >
-                <option value="cccccccc-cccc-4ccc-8ccc-cccccccccccc">
-                  Northstar primary archive · 500 TB · ends Dec 31, 2026
-                </option>
-                <option value="cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd">
-                  Madrid compliance replica · 120 TB · ends Jul 31, 2027
-                </option>
+                {services.map((service) => (
+                  <option value={service.id} key={service.id}>
+                    {service.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className={styles.field}>
@@ -153,7 +167,7 @@ export function OffboardingWorkflow() {
               <ul className={styles.reviewList}>
                 <li>
                   <span>Service</span>
-                  <strong>Northstar primary archive</strong>
+                  <strong>{selectedService.name}</strong>
                 </li>
                 <li>
                   <span>Requested effective time</span>

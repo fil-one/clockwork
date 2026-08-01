@@ -104,6 +104,14 @@ export function ReviewAction({
         required
       />
       <p className={styles.actorNote}>{lifecycleCopy.review.actorNote}</p>
+      <div className={styles.reviewHandoff} role="note">
+        <strong>Review-only staging</strong>
+        <span>
+          Completing this review records no mutation in this surface. Continue
+          through the secure server-authorized workflow to apply the action and
+          revalidate every applicable gate.
+        </span>
+      </div>
       {reviewed ? (
         <p className={styles.statusMessage} role="status">
           {lifecycleCopy.review.complete}

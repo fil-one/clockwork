@@ -1,5 +1,11 @@
 import type { Route } from "next";
 
+import {
+  hasPermission,
+  roles as commerceRoles,
+  type Permission,
+  type Role,
+} from "@clockwork/contracts";
 import type { CommandPaletteItem } from "@clockwork/ui";
 
 import {
@@ -11,7 +17,11 @@ import {
 } from "@/src/features/shared/demo-data";
 import { t } from "@/src/i18n/en";
 
-import { navigation, type ExperienceAudience } from "./navigation";
+import {
+  canAccessNavigationItem,
+  navigation,
+  type ExperienceAudience,
+} from "./navigation";
 
 interface CommandAction {
   id: string;
@@ -19,6 +29,8 @@ interface CommandAction {
   description: string;
   href: Route;
   keywords: readonly string[];
+  requiredPermission?: Permission;
+  allowedRoles?: readonly Role[];
 }
 
 const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
@@ -30,6 +42,7 @@ const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
         description: t("app.command.action.customerQuote"),
         href: "/quotes/new",
         keywords: ["new", "pricing", "capacity"],
+        requiredPermission: "quote:write",
       },
       {
         id: "invite-user",
@@ -37,6 +50,7 @@ const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
         description: t("app.command.action.inviteUser"),
         href: "/account/users",
         keywords: ["member", "team", "access"],
+        requiredPermission: "account:write",
       },
     ],
     partner: [
@@ -53,6 +67,7 @@ const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
         description: t("app.command.action.partnerQuote"),
         href: "/partner/quotes/new",
         keywords: ["new", "pricing", "client"],
+        requiredPermission: "partner:quote:write",
       },
     ],
     internal: [
@@ -69,6 +84,11 @@ const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
         description: t("app.command.action.reviewApprovals"),
         href: "/internal/approvals",
         keywords: ["queue", "exception", "resolve"],
+        allowedRoles: [
+          "finance_approver",
+          "legal_approver",
+          "destructive_action_approver",
+        ],
       },
     ],
   };
@@ -129,12 +149,37 @@ function recordItems(audience: ExperienceAudience): CommandPaletteItem[] {
   ];
 }
 
+function isCommerceRole(role: string): role is Role {
+  return (commerceRoles as readonly string[]).includes(role);
+}
+
+function canAccessAction(
+  action: CommandAction,
+  roles: readonly string[],
+): boolean {
+  const actionRoles = action.allowedRoles;
+  if (
+    actionRoles &&
+    !roles.some((role) => isCommerceRole(role) && actionRoles.includes(role))
+  ) {
+    return false;
+  }
+
+  const requiredPermission = action.requiredPermission;
+  if (!requiredPermission) return true;
+  return roles.some(
+    (role) => isCommerceRole(role) && hasPermission(role, requiredPermission),
+  );
+}
+
 /** Builds the palette data for the active portal without leaking cross-audience actions. */
 export function getCommandItems(
   audience: ExperienceAudience,
+  roles: readonly string[],
 ): CommandPaletteItem[] {
-  const navigationItems: CommandPaletteItem[] = navigation[audience].map(
-    (item) => ({
+  const navigationItems: CommandPaletteItem[] = navigation[audience]
+    .filter((item) => canAccessNavigationItem(item, roles))
+    .map((item) => ({
       id: `navigation-${item.href}`,
       label: t(item.label),
       category: "navigation",
@@ -142,15 +187,19 @@ export function getCommandItems(
       ...(item.keywords ? { keywords: item.keywords } : {}),
       href: item.href,
       audiences: [audience],
-    }),
-  );
+    }));
 
-  const actionItems: CommandPaletteItem[] = actions[audience].map((item) => ({
-    ...item,
-    id: `action-${item.id}`,
-    category: "actions",
-    audiences: [audience],
-  }));
+  const actionItems: CommandPaletteItem[] = actions[audience]
+    .filter((item) => canAccessAction(item, roles))
+    .map((item) => ({
+      id: `action-${item.id}`,
+      label: item.label,
+      description: item.description,
+      href: item.href,
+      keywords: item.keywords,
+      category: "actions",
+      audiences: [audience],
+    }));
 
   return [...navigationItems, ...actionItems, ...recordItems(audience)];
 }

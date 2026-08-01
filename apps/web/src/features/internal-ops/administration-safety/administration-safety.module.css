@@ -59,7 +59,7 @@
 .buttonSecondary,
 .buttonDanger,
 .textButton {
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   border: 1px solid transparent;
   border-radius: 0.48rem;
   padding: 0.62rem 0.88rem;
@@ -449,6 +449,27 @@
   background: color-mix(in srgb, var(--web-soft) 55%, var(--web-paper));
   padding: 0.75rem 0.9rem;
   font-size: 0.76rem;
+}
+
+.handoff {
+  border: 1px solid var(--web-line);
+  border-left: 4px solid var(--web-warm);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--web-canvas) 55%, var(--web-paper));
+  padding: 0.85rem 1rem;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.handoff strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--web-ink);
+}
+
+.handoff p {
+  margin: 0;
 }
 
 .gateGroups {

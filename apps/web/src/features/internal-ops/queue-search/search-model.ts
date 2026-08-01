@@ -66,7 +66,7 @@ export const SEARCH_RECORDS: readonly SearchRecord[] = [
     group: "Quotes",
     title: "Enterprise committed capacity",
     subtitle: "Halcyon Research Cooperative · 400 TB · annual",
-    href: "/quotes/Q-2026-0184-v3",
+    href: "/internal/queues/EXC-PRC-019",
     status: "Awaiting approval",
   },
   {
@@ -74,7 +74,7 @@ export const SEARCH_RECORDS: readonly SearchRecord[] = [
     group: "Quotes",
     title: "Annual business expansion",
     subtitle: "Northstar Archive Labs · 80 TB · EU West",
-    href: "/quotes/Q-2026-0171-v1",
+    href: "/internal/accounts/acct_northstar",
     status: "Draft",
   },
   {
@@ -82,7 +82,7 @@ export const SEARCH_RECORDS: readonly SearchRecord[] = [
     group: "Orders",
     title: "Northstar primary archive",
     subtitle: "Northstar Archive Labs · 500 TB · US East",
-    href: "/orders/ORD-2026-0098",
+    href: "/internal/accounts/acct_northstar",
     status: "Active",
   },
   {
@@ -90,7 +90,7 @@ export const SEARCH_RECORDS: readonly SearchRecord[] = [
     group: "Orders",
     title: "Madrid compliance replica",
     subtitle: "Northstar Archive Labs · 120 TB · EU West",
-    href: "/orders/ORD-2026-0112",
+    href: "/internal/provisioning",
     status: "Provisioning",
   },
   {

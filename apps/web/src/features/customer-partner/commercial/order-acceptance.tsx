@@ -38,6 +38,7 @@ export function OrderAcceptance() {
   const [error, setError] = useState("");
   const idempotencyKeyRef = useRef<string | null>(null);
   const orderIdRef = useRef<string | null>(null);
+  const acceptedAtRef = useRef<string | null>(null);
   const summary = useMemo(
     () =>
       orderReviewSummary({
@@ -73,6 +74,7 @@ export function OrderAcceptance() {
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       orderIdRef.current ??= crypto.randomUUID();
+      acceptedAtRef.current ??= new Date().toISOString();
       await sendCoreCommand(
         {
           resource: "orders",
@@ -86,7 +88,7 @@ export function OrderAcceptance() {
             authorityTitle,
             authorityAttested: true,
             poNumber,
-            acceptedAt: new Date().toISOString(),
+            acceptedAt: acceptedAtRef.current,
             serviceStartsOn: serviceStart,
             orderFormDocumentId: orderIds.orderForm,
             orderLineIds: [orderIds.orderLine],
@@ -138,7 +140,12 @@ export function OrderAcceptance() {
               <label htmlFor="po-number">Purchase order</label>
               <input
                 id="po-number"
-                onChange={(event) => setPoNumber(event.target.value)}
+                onChange={(event) => {
+                  setPoNumber(event.target.value);
+                  idempotencyKeyRef.current = null;
+                  orderIdRef.current = null;
+                  acceptedAtRef.current = null;
+                }}
                 required
                 value={poNumber}
               />
@@ -147,7 +154,12 @@ export function OrderAcceptance() {
               <label htmlFor="service-start">Service start</label>
               <input
                 id="service-start"
-                onChange={(event) => setServiceStart(event.target.value)}
+                onChange={(event) => {
+                  setServiceStart(event.target.value);
+                  idempotencyKeyRef.current = null;
+                  orderIdRef.current = null;
+                  acceptedAtRef.current = null;
+                }}
                 required
                 type="date"
                 value={serviceStart}
@@ -157,7 +169,12 @@ export function OrderAcceptance() {
               <label htmlFor="order-authority-title">Authority title</label>
               <input
                 id="order-authority-title"
-                onChange={(event) => setAuthorityTitle(event.target.value)}
+                onChange={(event) => {
+                  setAuthorityTitle(event.target.value);
+                  idempotencyKeyRef.current = null;
+                  orderIdRef.current = null;
+                  acceptedAtRef.current = null;
+                }}
                 required
                 value={authorityTitle}
               />

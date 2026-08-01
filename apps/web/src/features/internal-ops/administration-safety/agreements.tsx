@@ -29,7 +29,6 @@ export function AgreementAdministration({
   );
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const [message, setMessage] = useState("");
   const permitted = canDecide(roles, "legal");
 
   const filtered = useMemo(() => {
@@ -194,7 +193,6 @@ export function AgreementAdministration({
                 reason,
               }),
             );
-            setMessage("");
           }}
         >
           <HumanSelector
@@ -210,7 +208,6 @@ export function AgreementAdministration({
               if (id) setSelectedId(id);
               setReason("");
               setSummary(null);
-              setMessage("");
             }}
           />
           <dl className={styles.metaGrid}>
@@ -243,7 +240,6 @@ export function AgreementAdministration({
               onChange={(event) => {
                 setReason(event.currentTarget.value);
                 setSummary(null);
-                setMessage("");
               }}
             />
           </label>
@@ -282,25 +278,15 @@ export function AgreementAdministration({
               { label: "Exact text hash", value: selected.textHash },
             ]}
           />
-          <div className={styles.actions}>
-            <button
-              className={styles.button}
-              type="button"
-              onClick={() =>
-                setMessage(
-                  "Publication is ready for secure submission. The server will verify counsel authority, text hash, approval evidence, and effective date.",
-                )
-              }
-            >
-              Publish approved version
-            </button>
-          </div>
+          <section className={styles.handoff} role="note">
+            <strong>Publication not submitted</strong>
+            <p>
+              This surface completes counsel review only. Publish through the
+              authorized template workflow, where counsel authority, exact text
+              hash, approval evidence, and effective date are verified.
+            </p>
+          </section>
         </>
-      ) : null}
-      {message ? (
-        <p className={styles.statusMessage} role="status">
-          {message}
-        </p>
       ) : null}
     </AdministrationPage>
   );

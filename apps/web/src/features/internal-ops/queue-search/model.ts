@@ -179,7 +179,7 @@ export const QUEUE_ITEMS: readonly QueueItem[] = [
       },
     ],
     related: [
-      { label: "Quote Q-2026-0184-v3", href: "/quotes/Q-2026-0184-v3" },
+      { label: "Quote Q-2026-0184-v3", href: "/internal/approvals" },
       { label: "Halcyon end client", href: "/internal/search?q=Halcyon" },
     ],
     permittedActions: [

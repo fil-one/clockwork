@@ -37,8 +37,14 @@ export function ResaleQuoteBuilder() {
   const [errors, setErrors] = useState<QuoteValidation>({});
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
   const [message, setMessage] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const submissionRef = useRef<{
+    idempotencyKey: string;
+    quoteId: string;
+    payload: ReturnType<typeof resaleQuotePayload>;
+  } | null>(null);
   const stages = customerPartnerCopy.commercial.quoteStages;
 
   function update<K extends keyof ResaleQuoteDraft>(
@@ -47,6 +53,9 @@ export function ResaleQuoteBuilder() {
   ) {
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
+    submissionRef.current = null;
+    setSucceeded(false);
+    setMessage("");
   }
 
   function focusFirstInvalid(nextErrors: QuoteValidation) {
@@ -85,14 +94,23 @@ export function ResaleQuoteBuilder() {
     setPending(true);
     setMessage("");
     try {
-      const payload = resaleQuotePayload(draft);
-      await sendCoreCommand({
-        resource: "quotes",
-        id: crypto.randomUUID(),
-        accountId: payload.endClientAccountId,
-        action: "create",
-        payload,
-      });
+      submissionRef.current ??= {
+        idempotencyKey: crypto.randomUUID(),
+        quoteId: crypto.randomUUID(),
+        payload: resaleQuotePayload(draft),
+      };
+      const submission = submissionRef.current;
+      await sendCoreCommand(
+        {
+          resource: "quotes",
+          id: submission.quoteId,
+          accountId: submission.payload.endClientAccountId,
+          action: "create",
+          payload: submission.payload,
+        },
+        { idempotencyKey: submission.idempotencyKey },
+      );
+      setSucceeded(true);
       setMessage(
         "Draft created from server pricing. Review the server-returned transfer price before using the valid Issue action.",
       );
@@ -365,7 +383,11 @@ export function ResaleQuoteBuilder() {
             {stage < 3 ? (
               <Button onClick={advance}>Continue</Button>
             ) : (
-              <Button type="submit" disabled={!confirmed} loading={pending}>
+              <Button
+                type="submit"
+                disabled={!confirmed || succeeded}
+                loading={pending}
+              >
                 Create priced draft
               </Button>
             )}

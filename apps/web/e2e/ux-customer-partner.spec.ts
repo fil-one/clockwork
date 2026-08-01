@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { createHash } from "node:crypto";
 
@@ -14,6 +15,24 @@ function expectProtectedMutation(route: Route) {
   const headers = route.request().headers();
   expect(headers["idempotency-key"]).toBeTruthy();
   expect(headers["x-csrf-token"]).toBeTruthy();
+}
+
+async function expectAccessible(page: Page) {
+  await expect(page).toHaveTitle(/Fil One Commerce/);
+  const result = await new AxeBuilder({ page }).analyze();
+  expect(result.violations).toEqual([]);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true);
 }
 
 test("owner dashboard leads with decisions and one commercial term", async ({
@@ -38,6 +57,7 @@ test("owner dashboard leads with decisions and one commercial term", async ({
   await expect(
     page.getByRole("heading", { name: "Recent activity" }),
   ).toBeVisible();
+  await expectAccessible(page);
 });
 
 test("member keeps read access without owner-only customer actions", async ({
@@ -71,9 +91,21 @@ test("owner creates a validated three-stage quote draft with canonical IDs", asy
 }) => {
   await usePersona(page, "owner");
   let command: Record<string, unknown> | undefined;
+  const requestKeys: string[] = [];
+  const requestBodies: Record<string, unknown>[] = [];
   await page.route("**/api/v1/core/commands/quotes", async (route) => {
     expectProtectedMutation(route);
+    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
     command = route.request().postDataJSON() as Record<string, unknown>;
+    requestBodies.push(command);
+    if (requestBodies.length === 1) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary test outage" }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -105,8 +137,15 @@ test("owner creates a validated three-stage quote draft with canonical IDs", asy
   await expect(
     page.getByText("Review and issue", { exact: true }).first(),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Create priced draft" }).click();
+  const create = page.getByRole("button", { name: "Create priced draft" });
+  await create.click();
+  await expect(
+    page.getByText(/commerce service is unavailable/i),
+  ).toBeVisible();
+  await create.click();
   await expect(page.getByText(/current server status is draft/i)).toBeVisible();
+  expect(requestKeys[0]).toBe(requestKeys[1]);
+  expect(requestBodies[0]).toEqual(requestBodies[1]);
 
   expect(command).toMatchObject({
     action: "create",
@@ -183,9 +222,21 @@ test("owner confirms the complete order commitment before acceptance", async ({
 }) => {
   await usePersona(page, "owner");
   let command: Record<string, unknown> | undefined;
+  const requestKeys: string[] = [];
+  const requestBodies: Record<string, unknown>[] = [];
   await page.route("**/api/v1/core/commands/orders", async (route) => {
     expectProtectedMutation(route);
+    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
     command = route.request().postDataJSON() as Record<string, unknown>;
+    requestBodies.push(command);
+    if (requestBodies.length === 1) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary test outage" }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -217,7 +268,13 @@ test("owner confirms the complete order commitment before acceptance", async ({
   await expect(page.getByRole("checkbox")).toBeFocused();
   await page.getByRole("checkbox").check();
   await submit.click();
+  await expect(
+    page.getByText(/commerce service is unavailable/i),
+  ).toBeVisible();
+  await submit.click();
   await expect(page.getByText(/server created the order/i)).toBeVisible();
+  expect(requestKeys[0]).toBe(requestKeys[1]);
+  expect(requestBodies[0]).toEqual(requestBodies[1]);
   expect(command).toMatchObject({
     action: "create",
     payload: {
@@ -226,6 +283,20 @@ test("owner confirms the complete order commitment before acceptance", async ({
       serviceStartsOn: "2026-08-15",
     },
   });
+});
+
+test("offboarding review reflects the selected named service", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
+  await page.goto("/account/offboarding");
+  await page
+    .getByLabel("Service", { exact: true })
+    .selectOption("cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd");
+  await page.getByRole("button", { name: "Review and confirm" }).click();
+  const review = page.getByRole("complementary", { name: "Review impact" });
+  await expect(review.getByText("Madrid compliance replica")).toBeVisible();
+  await expect(review.getByText("Northstar primary archive")).toHaveCount(0);
 });
 
 test("billing prepares a safe provider handoff while payment truth stays webhook-derived", async ({
@@ -274,6 +345,15 @@ test("partner seller can search the named portfolio but cannot open partner bill
   page,
 }) => {
   await usePersona(page, "partner_seller");
+  await page.goto("/partner");
+  const desk = page.locator("#main-content");
+  await expect(desk.getByText("2 actions", { exact: true })).toBeVisible();
+  await expect(desk.getByRole("link", { name: "Credit exposure" })).toHaveCount(
+    0,
+  );
+  await expect(desk.getByText("Collected commission")).toHaveCount(0);
+  await expect(desk.getByText("Protected registrations")).toBeVisible();
+
   await page.goto("/partner/portfolio");
   const search = page.getByPlaceholder("Search end clients");
   await search.fill("Halcyon");
@@ -282,10 +362,41 @@ test("partner seller can search the named portfolio but cannot open partner bill
   await expect(
     page.getByRole("link", { name: "Halcyon Research Cooperative" }),
   ).toBeVisible();
+  await expectAccessible(page);
   await page.goto("/partner/billing");
   await expect(
     page.getByRole("heading", { name: /not available to your role/i }),
   ).toBeVisible();
+});
+
+test("partner collection state survives reload and browser history", async ({
+  page,
+}) => {
+  await usePersona(page, "partner_admin");
+  await page.goto("/partner/portfolio");
+  const filters = page.getByRole("form", { name: "Filters" });
+  const search = filters.getByRole("searchbox", { name: "Search" });
+  await search.fill("Halcyon");
+  await filters.getByRole("button", { name: "Apply" }).click();
+  await expect(page).toHaveURL(/q=Halcyon/);
+
+  await page.reload();
+  await expect(search).toHaveValue("Halcyon");
+  await filters
+    .getByRole("combobox", { name: "Risk", exact: true })
+    .selectOption("medium");
+  await expect(page).toHaveURL(/risk=medium/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/q=Halcyon/);
+  await expect(page).not.toHaveURL(/risk=medium/);
+  await expect(
+    filters.getByRole("combobox", { name: "Risk", exact: true }),
+  ).toHaveValue("all");
+
+  await page.goForward();
+  await expect(page).toHaveURL(/risk=medium/);
+  await expect(search).toHaveValue("Halcyon");
 });
 
 test("partner seller creates a reviewed resale quote from names while IDs stay technical", async ({
@@ -293,9 +404,21 @@ test("partner seller creates a reviewed resale quote from names while IDs stay t
 }) => {
   await usePersona(page, "partner_seller");
   let command: Record<string, unknown> | undefined;
+  const requestKeys: string[] = [];
+  const requestBodies: Record<string, unknown>[] = [];
   await page.route("**/api/v1/core/commands/quotes", async (route) => {
     expectProtectedMutation(route);
+    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
     command = route.request().postDataJSON() as Record<string, unknown>;
+    requestBodies.push(command);
+    if (requestBodies.length === 1) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary test outage" }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -317,16 +440,26 @@ test("partner seller creates a reviewed resale quote from names while IDs stay t
     /US committed archive/,
   );
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByLabel("End client")).toHaveValue(
+  await expect(page.getByRole("combobox", { name: "End client" })).toHaveValue(
     "Halcyon Research Cooperative",
   );
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByText(/Partner resale price:/).first()).toBeVisible();
   await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Create priced draft" }).click();
+  const create = page.getByRole("button", { name: "Create priced draft" });
+  await create.click();
+  await expect(
+    page.getByText(/commerce service is unavailable/i),
+  ).toBeVisible();
+  await expect(create).toBeEnabled();
+  await create.click();
   await expect(
     page.getByText(/Draft created from server pricing/i),
   ).toBeVisible();
+  await expect(create).toBeDisabled();
+  expect(requestKeys).toHaveLength(2);
+  expect(requestKeys[0]).toBe(requestKeys[1]);
+  expect(requestBodies[0]).toEqual(requestBodies[1]);
   expect(command).toMatchObject({
     action: "create",
     accountId: "33333333-3333-4333-8333-333333333333",
@@ -344,11 +477,23 @@ test("partner admin reviews financial boundaries before requesting renewal", asy
 }) => {
   await usePersona(page, "partner_admin");
   let renewal: Record<string, unknown> | undefined;
+  const requestKeys: string[] = [];
+  const requestBodies: Record<string, unknown>[] = [];
   await page.route(
     "**/api/v1/lifecycle/renewals/**/requests",
     async (route) => {
       expectProtectedMutation(route);
+      requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
       renewal = route.request().postDataJSON() as Record<string, unknown>;
+      requestBodies.push(renewal);
+      if (requestBodies.length === 1) {
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ detail: "Temporary test outage" }),
+        });
+        return;
+      }
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -369,8 +514,17 @@ test("partner admin reviews financial boundaries before requesting renewal", asy
   await page.getByRole("checkbox").check();
   await confirm.click();
   await expect(
+    page.getByText(/commerce service is unavailable/i),
+  ).toBeVisible();
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  await expect(
     page.getByText(/current term remains authoritative/i),
   ).toBeVisible();
+  await expect(confirm).toBeDisabled();
+  expect(requestKeys).toHaveLength(2);
+  expect(requestKeys[0]).toBe(requestKeys[1]);
+  expect(requestBodies[0]).toEqual(requestBodies[1]);
   expect(renewal).toEqual({
     accountId: "33333333-3333-4333-8333-333333333333",
     requestedAction: "renew",
@@ -380,9 +534,10 @@ test("partner admin reviews financial boundaries before requesting renewal", asy
 
 for (const viewport of [
   { width: 1440, height: 1000 },
+  { width: 1024, height: 768 },
   { width: 768, height: 1024 },
   { width: 390, height: 844 },
-  { width: 320, height: 720 },
+  { width: 320, height: 800 },
 ]) {
   test(`customer and partner priority layouts avoid overflow at ${viewport.width}px`, async ({
     page,
@@ -393,9 +548,22 @@ for (const viewport of [
     await expect(
       page.getByRole("heading", { name: "Needs attention" }),
     ).toBeVisible();
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(viewport.width);
+    await expectNoHorizontalOverflow(page);
+
+    await page.goto("/quotes/new");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Create a quote" }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+
+    await page.goto("/orders/ORD-2026-0112");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Madrid compliance replica",
+      }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
 
     await usePersona(page, "partner_admin");
     await page.goto("/partner");
@@ -408,8 +576,12 @@ for (const viewport of [
     const clockBox = await clock.boundingBox();
     const urgentBox = await urgent.boundingBox();
     expect(clockBox?.y).toBeLessThan(urgentBox?.y ?? Number.POSITIVE_INFINITY);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(viewport.width);
+    await expectNoHorizontalOverflow(page);
+
+    await page.goto("/partner/portfolio");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "End-client portfolio" }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
   });
 }

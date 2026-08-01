@@ -29,7 +29,6 @@ export function PriceBookAdministration({
   );
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const [message, setMessage] = useState("");
   const permitted = canDecide(roles, "finance");
 
   const filtered = useMemo(() => {
@@ -198,7 +197,6 @@ export function PriceBookAdministration({
                 reason,
               }),
             );
-            setMessage("");
           }}
         >
           <HumanSelector
@@ -214,7 +212,6 @@ export function PriceBookAdministration({
               if (id) setSelectedId(id);
               setReason("");
               setSummary(null);
-              setMessage("");
             }}
           />
           <dl className={styles.metaGrid}>
@@ -245,7 +242,6 @@ export function PriceBookAdministration({
               onChange={(event) => {
                 setReason(event.currentTarget.value);
                 setSummary(null);
-                setMessage("");
               }}
             />
           </label>
@@ -278,25 +274,15 @@ export function PriceBookAdministration({
             title="Price-book activation review"
             identifiers={[{ label: "Price book ID", value: selected.id }]}
           />
-          <div className={styles.actions}>
-            <button
-              className={styles.button}
-              type="button"
-              onClick={() =>
-                setMessage(
-                  "Activation is ready for secure submission. The pricing service will revalidate finance authority, version state, route coverage, and floors.",
-                )
-              }
-            >
-              Approve activation
-            </button>
-          </div>
+          <section className={styles.handoff} role="note">
+            <strong>Activation not submitted</strong>
+            <p>
+              This surface completes finance review only. Activate through the
+              authorized pricing workflow, where finance authority, version
+              state, route coverage, and floors are revalidated.
+            </p>
+          </section>
         </>
-      ) : null}
-      {message ? (
-        <p className={styles.statusMessage} role="status">
-          {message}
-        </p>
       ) : null}
     </AdministrationPage>
   );

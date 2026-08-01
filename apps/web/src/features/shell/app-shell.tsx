@@ -40,8 +40,10 @@ import { t } from "@/src/i18n/en";
 
 import { getCommandItems } from "./command-items";
 import {
+  canAccessNavigationItem,
   isNavigationItemActive,
   navigation,
+  roleCanAccess,
   type ExperienceAudience,
 } from "./navigation";
 
@@ -63,13 +65,23 @@ const accountDestination = new Map<string, Route>([
   [accounts[2].id, audienceHome.internal],
 ]);
 
+const accountAudience = new Map<string, ExperienceAudience>([
+  [accounts[0].id, "customer"],
+  [accounts[1].id, "partner"],
+  [accounts[2].id, "internal"],
+]);
+
 const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/dashboard": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/quotes": <ScrollText size={19} strokeWidth={1.8} />,
   "/orders": <PackageCheck size={19} strokeWidth={1.8} />,
+  "/services": <PackageCheck size={19} strokeWidth={1.8} />,
   "/pocs": <FlaskConical size={19} strokeWidth={1.8} />,
   "/billing": <ReceiptText size={19} strokeWidth={1.8} />,
+  "/amendments": <FileText size={19} strokeWidth={1.8} />,
+  "/marketplace": <Building2 size={19} strokeWidth={1.8} />,
+  "/support": <CircleHelp size={19} strokeWidth={1.8} />,
   "/account": <Settings size={19} strokeWidth={1.8} />,
   "/partner": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/partner/portfolio": <Users size={19} strokeWidth={1.8} />,
@@ -78,13 +90,24 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/partner/billing": <ReceiptText size={19} strokeWidth={1.8} />,
   "/partner/commissions": <BadgeDollarSign size={19} strokeWidth={1.8} />,
   "/partner/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
+  "/partner/disputes": <Inbox size={19} strokeWidth={1.8} />,
+  "/partner/marketplace": <Building2 size={19} strokeWidth={1.8} />,
   "/partner/sandboxes": <SlidersHorizontal size={19} strokeWidth={1.8} />,
+  "/partner/brand": <Settings size={19} strokeWidth={1.8} />,
+  "/partner/support": <CircleHelp size={19} strokeWidth={1.8} />,
   "/internal": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/internal/search": <Search size={19} strokeWidth={1.8} />,
   "/internal/queues": <Inbox size={19} strokeWidth={1.8} />,
   "/internal/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
+  "/internal/collections": <ReceiptText size={19} strokeWidth={1.8} />,
+  "/internal/provisioning": <PackageCheck size={19} strokeWidth={1.8} />,
+  "/internal/migrations": <RefreshCw size={19} strokeWidth={1.8} />,
   "/internal/reports": <ChartNoAxesCombined size={19} strokeWidth={1.8} />,
+  "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
+  "/internal/approvals": <Inbox size={19} strokeWidth={1.8} />,
   "/internal/price-books": <Settings size={19} strokeWidth={1.8} />,
+  "/internal/gates": <SlidersHorizontal size={19} strokeWidth={1.8} />,
+  "/internal/assisted": <Users size={19} strokeWidth={1.8} />,
 };
 
 function Wordmark({ audience }: { audience: ExperienceAudience }) {
@@ -102,9 +125,11 @@ function Wordmark({ audience }: { audience: ExperienceAudience }) {
 
 function OrganizationSwitcher({
   audience,
+  availableAccounts,
   announce,
 }: {
   audience: ExperienceAudience;
+  availableAccounts: readonly (typeof accounts)[number][];
   announce: (message: string) => void;
 }) {
   const router = useRouter();
@@ -114,7 +139,9 @@ function OrganizationSwitcher({
   useEffect(() => setSelected(audienceAccount[audience]), [audience]);
 
   const changeOrganization = (accountId: string) => {
-    const account = accounts.find((candidate) => candidate.id === accountId);
+    const account = availableAccounts.find(
+      (candidate) => candidate.id === accountId,
+    );
     const destination = accountDestination.get(accountId);
     if (!account || !destination) return;
 
@@ -133,9 +160,9 @@ function OrganizationSwitcher({
           value={selected}
           onChange={(event) => changeOrganization(event.target.value)}
         >
-          {accounts.map((account) => (
+          {availableAccounts.map((account) => (
             <option key={account.id} value={account.id}>
-              {account.name} · {account.role}
+              {account.name}
             </option>
           ))}
         </select>
@@ -154,7 +181,19 @@ function ShellUtilities({
 }) {
   const router = useRouter();
   const helpHref: Route =
-    audience === "partner" ? "/partner/support" : "/support";
+    audience === "partner"
+      ? "/partner/support"
+      : audience === "internal"
+        ? "/internal/gates"
+        : "/support";
+  const helpLabel = t(
+    audience === "internal" ? "app.help.internal" : "app.help",
+  );
+  const helpDescription = t(
+    audience === "internal"
+      ? "app.help.internal.description"
+      : "app.help.description",
+  );
 
   return (
     <nav className="header-actions" aria-label={t("app.nav.secondary")}>
@@ -209,8 +248,8 @@ function ShellUtilities({
       <Link
         className="icon-action"
         href={helpHref}
-        aria-label={t("app.help")}
-        title={t("app.help.description")}
+        aria-label={helpLabel}
+        title={helpDescription}
       >
         <CircleHelp aria-hidden="true" size={19} strokeWidth={1.8} />
       </Link>
@@ -233,9 +272,11 @@ function ShellUtilities({
 
 export function AppShell({
   audience,
+  roles,
   children,
 }: {
   audience: ExperienceAudience;
+  roles: readonly string[];
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -245,22 +286,37 @@ export function AppShell({
   const [announcement, setAnnouncement] = useState("");
   const runtimeEnvironment =
     process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? "local";
+  const availableAccounts =
+    runtimeEnvironment === "production"
+      ? accounts.filter((account) => {
+          const accountPortal = accountAudience.get(account.id);
+          return (
+            accountPortal !== undefined &&
+            roles.some((role) => roleCanAccess(accountPortal, role))
+          );
+        })
+      : accounts;
 
-  const commandItems = useMemo(() => getCommandItems(audience), [audience]);
+  const commandItems = useMemo(
+    () => getCommandItems(audience, roles),
+    [audience, roles],
+  );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(
     () => [
       {
         id: `${audience}-navigation`,
-        items: navigation[audience].map((item) => ({
-          id: item.href,
-          href: item.href,
-          label: t(item.label),
-          icon: navigationIcons[item.href],
-          active: isNavigationItemActive(item, pathname),
-        })),
+        items: navigation[audience]
+          .filter((item) => canAccessNavigationItem(item, roles))
+          .map((item) => ({
+            id: item.href,
+            href: item.href,
+            label: t(item.label),
+            icon: navigationIcons[item.href],
+            active: isNavigationItemActive(item, pathname),
+          })),
       },
     ],
-    [audience, pathname],
+    [audience, pathname, roles],
   );
 
   const resetDemo = () => {
@@ -292,9 +348,6 @@ export function AppShell({
     };
   }, []);
 
-  const assisted =
-    audience === "internal" && pathname.startsWith("/internal/assisted");
-
   const banner = (
     <>
       <p className="sr-only" aria-live="polite">
@@ -303,17 +356,6 @@ export function AppShell({
       {!online ? (
         <div className="connection-banner" role="status">
           {t("app.offline")}
-        </div>
-      ) : null}
-      {assisted ? (
-        <div className="assisted-banner" role="status">
-          <strong>{t("app.assisted")}</strong>
-          <span>
-            {t("app.assisted.description", {
-              account: "Northstar Archive Labs",
-            })}
-          </span>
-          <Link href="/internal">{t("app.assisted.exit")}</Link>
         </div>
       ) : null}
     </>
@@ -330,6 +372,7 @@ export function AppShell({
         organization={
           <OrganizationSwitcher
             audience={audience}
+            availableAccounts={availableAccounts}
             announce={setAnnouncement}
           />
         }
