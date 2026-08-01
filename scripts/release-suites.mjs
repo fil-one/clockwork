@@ -425,7 +425,11 @@ async function runSuite(name, index, context) {
     CLOCKWORK_STORAGE_ROOT: storageRoot,
     CLOCKWORK_ARTIFACT_DIR: suiteDirectory,
     PLAYWRIGHT_OUTPUT_DIR: path.join(suiteDirectory, "playwright"),
-    CLOCKWORK_NEXT_DIST_DIR: `.next-release-${namespace}`,
+    // Next's typed-route project is anchored to .next. Static runs in its own
+    // disposable workspace (or its own CI runner), so keep that canonical
+    // location while build/UI/proof retain explicit per-shard output roots.
+    CLOCKWORK_NEXT_DIST_DIR:
+      name === "static" ? ".next" : `.next-release-${namespace}`,
     CLOCKWORK_RELEASE_MODE: context.mode,
     CLOCKWORK_RELEASE_SHARD: name,
     CLOCKWORK_RELEASE_RUN_ID: context.runId,
