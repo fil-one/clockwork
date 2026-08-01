@@ -104,7 +104,7 @@ test.describe("internal operator operations journey", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("heading", {
-        level: 2,
+        level: 3,
         name: "Collections aging decision",
       }),
     ).toBeVisible();
@@ -184,7 +184,7 @@ test.describe("internal operator operations journey", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("heading", {
-        level: 2,
+        level: 3,
         name: "Collections aging decision",
       }),
     ).toBeVisible();

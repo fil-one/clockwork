@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { applyPersona } from "@clockwork/testing/playwright";
 
 const customerDestinations = [
   "Overview",
@@ -42,6 +43,7 @@ async function openDashboard(
   page: Page,
   viewport: { width: number; height: number },
 ) {
+  await applyPersona(page, "directOwner");
   await page.setViewportSize(viewport);
   await page.goto("/dashboard");
   await expect(page.locator(".experience-shell")).toHaveAttribute(
@@ -191,6 +193,9 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
       .getByRole("link", { name: "Agreements", exact: true })
       .click();
     await expect(page).toHaveURL(/\/agreements$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Agreements" }),
+    ).toBeVisible();
     await expect(reopened.drawer).toBeHidden();
     await expect(reopened.trigger).toBeFocused();
     await expectNoHorizontalOverflow(page);
@@ -288,6 +293,9 @@ test("command palette supports grouped search, no matches, and focus restoration
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/agreements$/);
   await expect(
+    page.getByRole("heading", { level: 1, name: "Agreements" }),
+  ).toBeVisible();
+  await expect(
     page.getByRole("dialog", { name: "Search and commands" }),
   ).toBeHidden();
 });
@@ -320,6 +328,7 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
       "10000000-0000-4000-8000-000000000001",
     );
     await expectNoHorizontalOverflow(page);
+    await applyPersona(page, "partnerAdmin");
     await organization.selectOption("10000000-0000-4000-8000-000000000002");
     await expect(page).toHaveURL(/\/partner$/);
     await expect(organization).toHaveValue(
