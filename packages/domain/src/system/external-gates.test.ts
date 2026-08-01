@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertExternalGateTransition,
+  evaluateExternalCapabilityAuthorization,
   evaluateExternalGate,
+  executeExternalCapabilityBoundary,
+  externalCapabilityGateMatrix,
   sanitizeActivationEvidenceReference,
   type ExternalGateRecord,
 } from "./external-gates";
@@ -26,6 +29,10 @@ const valid: ExternalGateRecord = {
   activationEvidenceReference: "evidence://gate/acc/2026-07-31",
   reviewOn: "2026-08-31",
   statusReason: "Staging activation verified",
+  emergencyDisabledAt: null,
+  emergencyDisabledBy: null,
+  emergencyDisableReason: null,
+  emergencyDisableEvidenceReference: null,
   rowVersion: 2,
   updatedAt: "2026-07-31T15:00:00Z",
 };
@@ -114,6 +121,125 @@ describe("external gate activation policy", () => {
       expect(() => assertExternalGateTransition(fixtureOnly, now)).toThrow(
         /cannot activate/,
       );
+    },
+  );
+
+  it("fails closed under emergency disable even when all activation evidence is current", () => {
+    expect(
+      evaluateExternalGate(
+        {
+          ...valid,
+          emergencyDisabledAt: "2026-07-31T15:30:00Z",
+          emergencyDisabledBy: "incident-commander",
+          emergencyDisableReason: "Provider authorization anomaly",
+          emergencyDisableEvidenceReference: "evidence://incident/1234",
+        },
+        now,
+      ),
+    ).toMatchObject({
+      effectiveStatus: "blocked",
+      activationAllowed: false,
+      blockedReasons: ["emergency_disabled"],
+    });
+  });
+});
+
+describe("capability-to-gate matrix", () => {
+  it("covers every required business capability at every effect boundary", () => {
+    expect(Object.keys(externalCapabilityGateMatrix).sort()).toEqual([
+      "legal_execution",
+      "marketplace",
+      "migration",
+      "new_business",
+      "partner",
+      "provisioning_invoicing",
+      "teardown",
+      "white_label",
+    ]);
+    const active = evaluateExternalGate(valid, now);
+    const gates = new Map(
+      externalCapabilityGateMatrix.marketplace.map((gateKey) => [
+        gateKey,
+        { ...active, gateKey },
+      ]),
+    );
+    gates.set("EXT-MARKETPLACE-01", {
+      ...active,
+      gateKey: "EXT-MARKETPLACE-01",
+      configuredStatus: "blocked",
+      effectiveStatus: "blocked",
+      activationAllowed: false,
+    });
+    expect(
+      evaluateExternalCapabilityAuthorization({
+        capability: "marketplace",
+        boundary: "redrive",
+        effectIntent: "external_effect",
+        gates,
+      }),
+    ).toMatchObject({
+      allowed: false,
+      deniedGateKeys: ["EXT-MARKETPLACE-01"],
+      permitsOutbox: false,
+      permitsProviderEffect: false,
+    });
+  });
+
+  it("permits independent local recovery without permitting a new effect or outbox", () => {
+    expect(
+      evaluateExternalCapabilityAuthorization({
+        capability: "provisioning_invoicing",
+        boundary: "recovery",
+        effectIntent: "local_recovery",
+        gates: new Map(),
+      }),
+    ).toEqual({
+      capability: "provisioning_invoicing",
+      boundary: "recovery",
+      effectIntent: "local_recovery",
+      allowed: true,
+      requiredGateKeys: [],
+      deniedGateKeys: [],
+      permitsOutbox: false,
+      permitsProviderEffect: false,
+    });
+  });
+
+  it.each([
+    "lifecycle",
+    "provider_effect",
+    "replay",
+    "assisted_action",
+    "redrive",
+    "recovery",
+  ] as const)(
+    "does not invoke an effect or outbox callback when %s is denied",
+    async (boundary) => {
+      let effects = 0;
+      let outbox = 0;
+      await expect(
+        executeExternalCapabilityBoundary({
+          authorization: {
+            capability: "teardown",
+            boundary,
+            effectIntent: "external_effect",
+            allowed: false,
+            requiredGateKeys: ["EXT-TEARDOWN-01"],
+            deniedGateKeys: ["EXT-TEARDOWN-01"],
+            permitsProviderEffect: false,
+            permitsOutbox: false,
+          },
+          performExternalEffect: () => {
+            effects += 1;
+            return Promise.resolve("forbidden");
+          },
+          enqueueOutbox: () => {
+            outbox += 1;
+            return Promise.resolve();
+          },
+        }),
+      ).rejects.toThrow("EXTERNAL_CAPABILITY_DENIED");
+      expect({ effects, outbox }).toEqual({ effects: 0, outbox: 0 });
     },
   );
 });

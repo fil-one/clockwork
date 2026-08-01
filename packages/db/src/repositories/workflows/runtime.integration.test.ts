@@ -13,6 +13,7 @@ import {
   providerOperations,
   workflowRuns,
 } from "../../schema";
+import { lifecycleDomainEvents } from "../../schema/lifecycle";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 import { DatabaseOutboxDispatcherStore } from "../system/outbox";
@@ -21,6 +22,7 @@ import {
   DatabaseWorkflowExceptionPort,
   DatabaseWorkflowRunStore,
 } from "./core";
+import { DatabaseAuthoritativeLifecycleTaskStore } from "./lifecycle";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -155,6 +157,127 @@ describe.sequential("database workflow claims", () => {
       output: { recovered: true },
     });
   });
+
+  it("uses distinct persisted workflow versions for retry and dead-letter audit/outbox", async () => {
+    let now = new Date("2031-01-01T00:00:00.000Z");
+    const store = new DatabaseWorkflowRunStore(db, { clock: () => now });
+    const request = {
+      taskId: `${prefix}dead-letter-version-regression`,
+      invocationKey: IdempotencyKeySchema.parse(
+        `${prefix}dead-letter-version-key`,
+      ),
+      payloadHash: "d".repeat(64),
+      aggregateId: randomUUID(),
+      // This source version deliberately stays constant across both failures.
+      aggregateVersion: 1,
+      requestId: `${prefix}dead-letter-version-claim`,
+    };
+    const first = await store.claim(request);
+    if (first.status !== "acquired") throw new Error("claim expected");
+    await store.markRetrying({
+      invocationKey: request.invocationKey,
+      leaseToken: first.leaseToken,
+      code: "PROVIDER_TIMEOUT",
+      failedAt: now.toISOString(),
+    });
+    now = new Date("2031-01-01T00:00:01.000Z");
+    const recovered = await store.claim(request);
+    if (recovered.status !== "acquired") throw new Error("reclaim expected");
+    await store.markPermanentFailure({
+      invocationKey: request.invocationKey,
+      leaseToken: recovered.leaseToken,
+      output: { code: "LIFECYCLE_TASK_FAILED" },
+      failedAt: now.toISOString(),
+    });
+
+    const persisted = await internal(
+      `${prefix}dead-letter-version-inspect`,
+      async (transaction) => {
+        const run = await transaction.query.workflowRuns.findFirst({
+          where: and(
+            eq(workflowRuns.taskIdentifier, request.taskId),
+            eq(workflowRuns.idempotencyKey, request.invocationKey),
+          ),
+        });
+        if (!run) throw new Error("workflow run expected");
+        const events = await transaction.query.auditEvents.findMany({
+          where: and(
+            eq(auditEvents.aggregateType, "workflow_run"),
+            eq(auditEvents.aggregateId, run.id),
+          ),
+          orderBy: (event, { asc }) => [asc(event.aggregateVersion)],
+        });
+        const messages = await transaction.query.outboxMessages.findMany({
+          where: inArray(
+            outboxMessages.eventId,
+            events.map((event) => event.id),
+          ),
+        });
+        return { run, events, messages };
+      },
+    );
+    expect(persisted.run.status).toBe("failed");
+    expect(
+      persisted.events.map((event) => [
+        event.aggregateVersion,
+        event.eventType,
+      ]),
+    ).toEqual([
+      [2, "workflow.task.retry_scheduled"],
+      [4, "workflow.task.dead_lettered"],
+    ]);
+    expect(persisted.messages).toHaveLength(2);
+    expect(
+      persisted.events.every((event) =>
+        persisted.messages.some((message) => message.eventId === event.id),
+      ),
+    ).toBe(true);
+  });
+
+  it("closes a persisted policy denial without creating audit or outbox work", async () => {
+    const now = new Date("2031-01-01T00:00:00.000Z");
+    const store = new DatabaseWorkflowRunStore(db, { clock: () => now });
+    const request = {
+      taskId: `${prefix}policy-denial`,
+      invocationKey: IdempotencyKeySchema.parse(`${prefix}policy-denial-key`),
+      payloadHash: "e".repeat(64),
+      aggregateId: randomUUID(),
+      aggregateVersion: 1,
+      requestId: `${prefix}policy-denial-claim`,
+    };
+    const claim = await store.claim(request);
+    if (claim.status !== "acquired") throw new Error("claim expected");
+    await store.markPolicyDenied({
+      invocationKey: request.invocationKey,
+      leaseToken: claim.leaseToken,
+      code: "PROVIDER_GATE_INACTIVE",
+    });
+    const persisted = await internal(
+      `${prefix}policy-denial-inspect`,
+      async (transaction) => {
+        const run = await transaction.query.workflowRuns.findFirst({
+          where: and(
+            eq(workflowRuns.taskIdentifier, request.taskId),
+            eq(workflowRuns.idempotencyKey, request.invocationKey),
+          ),
+        });
+        if (!run) throw new Error("workflow run expected");
+        const events = await transaction.query.auditEvents.findMany({
+          where: and(
+            eq(auditEvents.aggregateType, "workflow_run"),
+            eq(auditEvents.aggregateId, run.id),
+          ),
+        });
+        return { run, events };
+      },
+    );
+    expect(persisted.run).toMatchObject({
+      status: "failed",
+      lastError: "PROVIDER_GATE_INACTIVE",
+      output: { code: "PROVIDER_GATE_INACTIVE" },
+    });
+    expect(persisted.events).toEqual([]);
+  });
 });
 
 describe.sequential("workflow projection crash recovery", () => {
@@ -258,6 +381,112 @@ describe.sequential("workflow projection crash recovery", () => {
       caseId: opened.caseId,
       duplicate: true,
     });
+  });
+});
+
+describe.sequential("authoritative lifecycle effect recovery", () => {
+  it("checkpoints provider success, fences the crashed lease, and commits without re-invocation", async () => {
+    let now = new Date("2031-01-01T00:00:00.000Z");
+    const store = new DatabaseAuthoritativeLifecycleTaskStore(db, () => now);
+    const account = await internal(`${prefix}effect-account`, (transaction) =>
+      transaction.query.accounts.findFirst({
+        where: (table, { eq }) => eq(table.id, accountId),
+      }),
+    );
+    if (!account) throw new Error("seed account expected");
+    const transition = `${prefix}effect-transition-${randomUUID()}`;
+    const effect = {
+      effectKey: `${prefix}effect-provider-success`,
+      taskId: "lifecycle-onboarding-screening-refresh-v1",
+      aggregateId: account.id,
+      aggregateVersion: account.rowVersion,
+      loader: "account" as const,
+      transition,
+      effectBoundary: "screening_provider" as const,
+      persistedState: account,
+    };
+    const first = await store.claimEffect({
+      effect,
+      requestId: `${prefix}effect-claim-1`,
+    });
+    if (first.status !== "invoke") throw new Error("effect claim expected");
+    await store.checkpointEffectSuccess({
+      effect,
+      leaseToken: first.leaseToken,
+      reference: "screening-result-1",
+      requestId: `${prefix}effect-checkpoint`,
+    });
+
+    // The provider succeeded, then the local worker crashed before finalize.
+    now = new Date(now.getTime() + 60_001);
+    const recovered = await store.claimEffect({
+      effect,
+      requestId: `${prefix}effect-claim-2`,
+    });
+    if (recovered.status !== "provider_succeeded")
+      throw new Error("provider checkpoint recovery expected");
+    expect(recovered.reference).toBe("screening-result-1");
+    await expect(
+      store.checkpointEffectSuccess({
+        effect,
+        leaseToken: first.leaseToken,
+        reference: recovered.reference,
+        requestId: `${prefix}effect-stale-checkpoint`,
+      }),
+    ).rejects.toThrow("STALE_LIFECYCLE_EFFECT_LEASE");
+    await expect(
+      store.finalizeEffect({
+        effect,
+        leaseToken: first.leaseToken,
+        reference: recovered.reference,
+        requestId: `${prefix}effect-stale-finalize`,
+      }),
+    ).rejects.toThrow("STALE_LIFECYCLE_EFFECT_LEASE");
+    await store.finalizeEffect({
+      effect,
+      leaseToken: recovered.leaseToken,
+      reference: recovered.reference,
+      requestId: `${prefix}effect-finalize`,
+    });
+    await expect(
+      store.claimEffect({
+        effect,
+        requestId: `${prefix}effect-duplicate`,
+      }),
+    ).resolves.toEqual({
+      status: "committed",
+      reference: "screening-result-1",
+    });
+
+    const persisted = await internal(
+      `${prefix}effect-inspect`,
+      async (transaction) => {
+        const operation = await transaction.query.providerOperations.findFirst({
+          where: and(
+            eq(providerOperations.provider, "lifecycle-runtime"),
+            eq(providerOperations.idempotencyKey, effect.effectKey),
+          ),
+        });
+        if (!operation) throw new Error("effect operation expected");
+        return {
+          transitions: await transaction.query.lifecycleDomainEvents.findMany({
+            where: and(
+              eq(lifecycleDomainEvents.aggregateId, account.id),
+              eq(lifecycleDomainEvents.eventType, transition),
+            ),
+          }),
+          audits: await transaction.query.auditEvents.findMany({
+            where: and(
+              eq(auditEvents.requestId, `${prefix}effect-finalize`),
+              eq(auditEvents.aggregateId, operation.id),
+            ),
+          }),
+        };
+      },
+    );
+    expect(persisted.transitions).toHaveLength(1);
+    expect(persisted.audits).toHaveLength(1);
+    expect(persisted.audits[0]?.eventType).toBe("lifecycle.effect.committed");
   });
 });
 

@@ -188,7 +188,7 @@ export class DatabaseWorkflowRunStore {
     output: unknown;
     completedAt: string;
   }): Promise<void> {
-    return this.finish(input, "succeeded", null);
+    return this.finish(input, "succeeded", null, input.completedAt);
   }
 
   public markPermanentFailure(input: {
@@ -197,7 +197,54 @@ export class DatabaseWorkflowRunStore {
     output: unknown;
     failedAt: string;
   }): Promise<void> {
-    return this.finish(input, "failed", "WORKFLOW_PERMANENT_FAILURE");
+    return this.finish(
+      input,
+      "failed",
+      "WORKFLOW_PERMANENT_FAILURE",
+      input.failedAt,
+    );
+  }
+
+  /**
+   * Closes a task that was denied before any external effect was authorized.
+   * Deliberately emits no audit/outbox row: a closed gate must not manufacture
+   * a forbidden effect notification. Gate-state audit is owned by the gate
+   * register itself.
+   */
+  public async markPolicyDenied(input: {
+    invocationKey: IdempotencyKey;
+    leaseToken: string;
+    code: string;
+  }): Promise<void> {
+    const code = /^[A-Z0-9_]{3,100}$/.test(input.code)
+      ? input.code
+      : "WORKFLOW_POLICY_DENIED";
+    await withInternalTransaction(
+      this.db,
+      `workflow-denied:${input.invocationKey}`,
+      async (transaction) => {
+        const row = await this.leasedRow(
+          transaction,
+          input.invocationKey,
+          input.leaseToken,
+        );
+        const [updated] = await transaction
+          .update(workflowRuns)
+          .set({
+            status: "failed",
+            output: { code },
+            lastError: code,
+          })
+          .where(
+            and(
+              eq(workflowRuns.id, row.id),
+              eq(workflowRuns.rowVersion, row.rowVersion),
+            ),
+          )
+          .returning({ id: workflowRuns.id });
+        if (!updated) throw new Error("STALE_WORKFLOW_LEASE");
+      },
+    );
   }
 
   public async markRetrying(input: {
@@ -235,8 +282,20 @@ export class DatabaseWorkflowRunStore {
               eq(workflowRuns.rowVersion, row.rowVersion),
             ),
           )
-          .returning({ id: workflowRuns.id });
-        if (updated.length !== 1) throw new Error("STALE_WORKFLOW_LEASE");
+          .returning();
+        const transitioned = updated[0];
+        if (!transitioned) throw new Error("STALE_WORKFLOW_LEASE");
+        await appendWorkflowRunTransition(transaction, transitioned, {
+          eventType: "workflow.task.retry_scheduled",
+          requestId: `workflow-retry:${input.invocationKey}`,
+          occurredAt: new Date(input.failedAt),
+          after: {
+            status: transitioned.status,
+            attempt: transitioned.attemptCount,
+            retryAt,
+            code: transitioned.lastError,
+          },
+        });
       },
     );
   }
@@ -249,6 +308,7 @@ export class DatabaseWorkflowRunStore {
     },
     status: "succeeded" | "failed",
     lastError: string | null,
+    transitionedAt: string,
   ): Promise<void> {
     await withInternalTransaction(
       this.db,
@@ -268,8 +328,23 @@ export class DatabaseWorkflowRunStore {
               eq(workflowRuns.rowVersion, row.rowVersion),
             ),
           )
-          .returning({ id: workflowRuns.id });
-        if (updated.length !== 1) throw new Error("STALE_WORKFLOW_LEASE");
+          .returning();
+        const transitioned = updated[0];
+        if (!transitioned) throw new Error("STALE_WORKFLOW_LEASE");
+        const occurredAt = new Date(transitionedAt);
+        await appendWorkflowRunTransition(transaction, transitioned, {
+          eventType:
+            status === "succeeded"
+              ? "workflow.task.completed"
+              : "workflow.task.dead_lettered",
+          requestId: `workflow-finish:${input.invocationKey}`,
+          occurredAt,
+          after: {
+            status: transitioned.status,
+            attempt: transitioned.attemptCount,
+            ...(lastError ? { code: lastError } : {}),
+          },
+        });
       },
     );
   }
@@ -297,6 +372,40 @@ export class DatabaseWorkflowRunStore {
       throw new Error("STALE_WORKFLOW_LEASE");
     return row;
   }
+}
+
+async function appendWorkflowRunTransition(
+  transaction: RuntimeTransaction,
+  run: typeof workflowRuns.$inferSelect,
+  input: {
+    eventType:
+      | "workflow.task.completed"
+      | "workflow.task.retry_scheduled"
+      | "workflow.task.dead_lettered";
+    requestId: string;
+    occurredAt: Date;
+    after: Record<string, unknown>;
+  },
+): Promise<void> {
+  if (!Number.isFinite(input.occurredAt.valueOf()))
+    throw new Error("WORKFLOW_TRANSITION_TIME_INVALID");
+  // rowVersion is incremented by the database trigger on every workflow state
+  // transition. It is the audit aggregate version; source aggregate versions
+  // and attempt numbers are not monotonic across crash recovery and redrive.
+  await appendAuditAndOutbox(transaction, {
+    aggregateType: "workflow_run",
+    aggregateId: run.id,
+    aggregateVersion: run.rowVersion,
+    eventType: input.eventType,
+    actor: workflowActor,
+    requestId: input.requestId,
+    occurredAt: input.occurredAt,
+    after: {
+      taskId: run.taskIdentifier,
+      invocationKey: run.idempotencyKey,
+      ...input.after,
+    },
+  });
 }
 
 export interface WorkflowExceptionRouting {

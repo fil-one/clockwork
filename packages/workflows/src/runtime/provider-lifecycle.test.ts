@@ -1,9 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { lifecycleWorkflowRegistry } from "../lifecycle";
-import { createAuthoritativeLifecycleHandlers } from "./provider-lifecycle";
+import { ProviderRuntimeDeniedError } from "@clockwork/integrations";
 
-function dependencies() {
+import { lifecycleWorkflowRegistry } from "../lifecycle";
+import {
+  type AuthoritativeLifecycleTaskStore,
+  createAuthoritativeLifecycleHandlers,
+  type LifecycleEffectExecutor,
+  type LifecyclePreparedEffect,
+  lifecycleTaskExecutionSpecs,
+} from "./provider-lifecycle";
+
+function dependencies(authoritative?: {
+  store: AuthoritativeLifecycleTaskStore;
+  effects: LifecycleEffectExecutor;
+}) {
   const record = vi.fn(() => Promise.resolve({}));
   const provision = vi.fn(() =>
     Promise.resolve({
@@ -15,12 +26,20 @@ function dependencies() {
     record,
     provision,
     handlers: createAuthoritativeLifecycleHandlers({
-      store: {
-        run: (input) =>
+      store: authoritative?.store ?? {
+        prepare: () => Promise.resolve([]),
+        claimEffect: () =>
+          Promise.resolve({ status: "invoke", leaseToken: "lease-1" }),
+        checkpointEffectSuccess: () => Promise.resolve(),
+        finalizeEffect: () => Promise.resolve(),
+        failEffect: () => Promise.resolve(),
+      },
+      effects: authoritative?.effects ?? {
+        authorize: () => Promise.resolve(),
+        execute: () =>
           Promise.resolve({
-            taskId: input.taskId,
-            status: "authoritative_state_loaded",
-            candidateIds: [input.aggregateId],
+            ok: true,
+            value: { reference: "lifecycle-effect-1" },
           }),
       },
       provisioning: {
@@ -66,6 +85,10 @@ function dependencies() {
                 operatorRecovery: null,
               },
             }),
+          claimProviderEffect: () =>
+            Promise.resolve({ status: "invoke", leaseToken: "lease-provider" }),
+          checkpointProviderEffect: () => Promise.resolve(),
+          finalizeProviderEffect: () => Promise.resolve(),
           record,
         },
       },
@@ -79,6 +102,22 @@ describe("authoritative lifecycle task handlers", () => {
     expect([...handlers.keys()].sort()).toEqual(
       [...lifecycleWorkflowRegistry].sort(),
     );
+  });
+
+  it("declares a persisted loader, planner, and typed effect boundary for all 24 IDs", () => {
+    expect(lifecycleWorkflowRegistry).toHaveLength(24);
+    expect(Object.keys(lifecycleTaskExecutionSpecs).sort()).toEqual(
+      [...lifecycleWorkflowRegistry].sort(),
+    );
+    for (const taskId of lifecycleWorkflowRegistry) {
+      const spec = lifecycleTaskExecutionSpecs[taskId];
+      expect(spec.taskId).toBe(taskId);
+      expect(spec.loader.length).toBeGreaterThan(0);
+      expect(spec.transition).toMatch(/^plan_/);
+      expect(spec.effectBoundary).toMatch(
+        /^(screening|notification|signature|evidence|provisioning)_provider$|^persisted_transition$|^human_wait$/,
+      );
+    }
   });
 
   it("derives domain and scheduled aggregate identities without replay drift", () => {
@@ -162,5 +201,158 @@ describe("authoritative lifecycle task handlers", () => {
       }),
     );
     expect(record).toHaveBeenCalledOnce();
+  });
+
+  it("recovers provider success after a local commit failure without invoking the provider again", async () => {
+    const effect: LifecyclePreparedEffect = {
+      effectKey: "lifecycle-effect:provider-success-recovery",
+      taskId: "lifecycle-pocs-conversion-v1",
+      aggregateId: "poc-1",
+      aggregateVersion: 7,
+      loader: "poc",
+      transition: "plan_poc_conversion",
+      effectBoundary: "provisioning_provider",
+      persistedState: { id: "poc-1", rowVersion: 7, status: "converted" },
+    };
+    const claimEffect = vi
+      .fn<AuthoritativeLifecycleTaskStore["claimEffect"]>()
+      .mockResolvedValueOnce({ status: "invoke", leaseToken: "lease-1" })
+      .mockResolvedValueOnce({
+        status: "provider_succeeded",
+        leaseToken: "lease-2",
+        reference: "provider-operation-1",
+      });
+    const finalizeEffect = vi
+      .fn<AuthoritativeLifecycleTaskStore["finalizeEffect"]>()
+      .mockRejectedValueOnce(new Error("LOCAL_COMMIT_FAILED"))
+      .mockResolvedValueOnce(undefined);
+    const executeEffect = vi.fn<LifecycleEffectExecutor["execute"]>(() =>
+      Promise.resolve({
+        ok: true,
+        value: { reference: "provider-operation-1" },
+      }),
+    );
+    const { handlers } = dependencies({
+      store: {
+        prepare: () => Promise.resolve([effect]),
+        claimEffect,
+        checkpointEffectSuccess: () => Promise.resolve(),
+        finalizeEffect,
+        failEffect: () => Promise.resolve(),
+      },
+      effects: {
+        authorize: () => Promise.resolve(),
+        execute: executeEffect,
+      },
+    });
+    const handler = handlers.get(effect.taskId);
+    const invocation = {
+      taskId: effect.taskId,
+      triggerRunId: "run-provider-success-recovery",
+      attempt: 1,
+      idempotencyKey: "lifecycle:poc:provider-success-recovery",
+      payload: { pocId: "poc-1", version: 7 },
+    };
+    await expect(handler?.execute(invocation)).rejects.toThrow(
+      "LOCAL_COMMIT_FAILED",
+    );
+    await expect(
+      handler?.execute({ ...invocation, attempt: 2 }),
+    ).resolves.toMatchObject({
+      effects: 1,
+      invoked: 0,
+      recovered: 1,
+    });
+    expect(executeEffect).toHaveBeenCalledOnce();
+    expect(finalizeEffect).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ leaseToken: "lease-2" }),
+    );
+  });
+
+  it("authorizes before claiming an external effect and creates no ledger on gate denial", async () => {
+    const effect: LifecyclePreparedEffect = {
+      effectKey: "lifecycle-effect:denied",
+      taskId: "lifecycle-pocs-conversion-v1",
+      aggregateId: "poc-1",
+      aggregateVersion: 7,
+      loader: "poc",
+      transition: "plan_poc_conversion",
+      effectBoundary: "provisioning_provider",
+      persistedState: { id: "poc-1", rowVersion: 7, status: "converted" },
+    };
+    const claimEffect = vi.fn<AuthoritativeLifecycleTaskStore["claimEffect"]>();
+    const executeEffect = vi.fn<LifecycleEffectExecutor["execute"]>();
+    const { handlers } = dependencies({
+      store: {
+        prepare: () => Promise.resolve([effect]),
+        claimEffect,
+        checkpointEffectSuccess: () => Promise.resolve(),
+        finalizeEffect: () => Promise.resolve(),
+        failEffect: () => Promise.resolve(),
+      },
+      effects: {
+        authorize: () =>
+          Promise.reject(
+            new ProviderRuntimeDeniedError("PROVIDER_GATE_INACTIVE"),
+          ),
+        execute: executeEffect,
+      },
+    });
+    await expect(
+      handlers.get(effect.taskId)?.execute({
+        taskId: effect.taskId,
+        triggerRunId: "run-denied",
+        attempt: 1,
+        idempotencyKey: "lifecycle:poc:denied",
+        payload: { pocId: "poc-1", version: 7 },
+      }),
+    ).rejects.toThrow("PROVIDER_GATE_INACTIVE");
+    expect(claimEffect).not.toHaveBeenCalled();
+    expect(executeEffect).not.toHaveBeenCalled();
+  });
+
+  it("does not persist retry/dead-letter state when a provider returns a typed gate denial", async () => {
+    const effect: LifecyclePreparedEffect = {
+      effectKey: "lifecycle-effect:returned-denial",
+      taskId: "lifecycle-pocs-conversion-v1",
+      aggregateId: "poc-1",
+      aggregateVersion: 7,
+      loader: "poc",
+      transition: "plan_poc_conversion",
+      effectBoundary: "provisioning_provider",
+      persistedState: { id: "poc-1", rowVersion: 7, status: "converted" },
+    };
+    const failEffect = vi.fn<AuthoritativeLifecycleTaskStore["failEffect"]>();
+    const { handlers } = dependencies({
+      store: {
+        prepare: () => Promise.resolve([effect]),
+        claimEffect: () =>
+          Promise.resolve({ status: "invoke", leaseToken: "lease-denied" }),
+        checkpointEffectSuccess: () => Promise.resolve(),
+        finalizeEffect: () => Promise.resolve(),
+        failEffect,
+      },
+      effects: {
+        authorize: () => Promise.resolve(),
+        execute: () =>
+          Promise.resolve({
+            ok: false,
+            kind: "permanent",
+            code: "PROVIDER_GATE_INACTIVE",
+            message: "Provider gate is inactive",
+          }),
+      },
+    });
+    await expect(
+      handlers.get(effect.taskId)?.execute({
+        taskId: effect.taskId,
+        triggerRunId: "run-returned-denial",
+        attempt: 1,
+        idempotencyKey: "lifecycle:poc:returned-denial",
+        payload: { pocId: "poc-1", version: 7 },
+      }),
+    ).rejects.toBeInstanceOf(ProviderRuntimeDeniedError);
+    expect(failEffect).not.toHaveBeenCalled();
   });
 });

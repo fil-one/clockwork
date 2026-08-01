@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 
-import type { WorkflowExceptionRouting } from "@clockwork/db";
 import {
   FetchJsonProviderTransport,
   HttpAccountingExportSink,
   HttpCoreEvidenceStorageAdapter,
   HttpLifecycleEvidenceStorageAdapter,
+  HttpLifecycleScreeningAdapter,
+  HttpLifecycleSignatureAdapter,
   HttpNotificationProviderClient,
   HttpProviderActivationTestClient,
   HttpProvisioningAdapter,
@@ -128,17 +129,6 @@ function documentRenderers(rendererTransport: FetchJsonProviderTransport): {
   };
 }
 
-const ExceptionRoutesSchema = z.array(
-  z.object({
-    queue: z.string().min(1),
-    accountId: z.uuid(),
-    ownerUserId: z.uuid(),
-    backupUserId: z.uuid().optional(),
-    objectType: z.string().min(1),
-    targetMinutes: z.number().int().min(1).max(43_200),
-  }),
-);
-
 export class WorkflowEnvironmentAdapterConfigurationError extends Error {
   public constructor(
     public readonly missing: readonly string[],
@@ -171,44 +161,6 @@ function json<T>(
     return schema.parse(JSON.parse(value));
   } catch {
     throw new WorkflowEnvironmentAdapterConfigurationError([name], [gate]);
-  }
-}
-
-class ConfiguredWorkflowExceptionRouting implements WorkflowExceptionRouting {
-  private readonly routes: ReadonlyMap<
-    string,
-    z.output<typeof ExceptionRoutesSchema>[number]
-  >;
-
-  public constructor(routes: z.output<typeof ExceptionRoutesSchema>) {
-    this.routes = new Map(routes.map((route) => [route.queue, route]));
-    if (this.routes.size !== routes.length)
-      throw new WorkflowEnvironmentAdapterConfigurationError(
-        ["WORKFLOW_EXCEPTION_ROUTES_JSON:duplicate_queue"],
-        ["EXT-APPROVERS-01"],
-      );
-  }
-
-  public resolve(input: {
-    queue: string;
-    aggregateId: string;
-    occurredAt: string;
-    severity: "warning" | "blocking";
-  }) {
-    const route = this.routes.get(input.queue);
-    if (!route)
-      return Promise.reject(
-        new Error(`WORKFLOW_EXCEPTION_ROUTE_NOT_CONFIGURED:${input.queue}`),
-      );
-    return Promise.resolve({
-      accountId: route.accountId,
-      ownerUserId: route.ownerUserId,
-      ...(route.backupUserId ? { backupUserId: route.backupUserId } : {}),
-      objectType: route.objectType,
-      targetAt: new Date(
-        Date.parse(input.occurredAt) + route.targetMinutes * 60_000,
-      ).toISOString(),
-    });
   }
 }
 
@@ -290,6 +242,20 @@ export function createEnvironmentWorkflowAdapterFactory(
     "EXT-PROVISION-01",
     allowInsecureLocalhost,
   );
+  const screeningTransport = transport(
+    source,
+    "SCREENING_PROVIDER",
+    "screening",
+    "EXT-PROVIDER-01",
+    allowInsecureLocalhost,
+  );
+  const signatureTransport = transport(
+    source,
+    "SIGNATURE_PROVIDER",
+    "signature",
+    "EXT-LEGAL-01",
+    allowInsecureLocalhost,
+  );
   const evidenceTransport = transport(
     source,
     "EVIDENCE_PROVIDER",
@@ -318,14 +284,6 @@ export function createEnvironmentWorkflowAdapterFactory(
     json(source, "PLATFORM_ISSUER_JSON", "EXT-LEGAL-01", PartySchema),
   );
   const renderers = documentRenderers(documentRendererTransport);
-  const exceptionRouting = new ConfiguredWorkflowExceptionRouting(
-    json(
-      source,
-      "WORKFLOW_EXCEPTION_ROUTES_JSON",
-      "EXT-APPROVERS-01",
-      ExceptionRoutesSchema,
-    ),
-  );
   const evidence = {
     core: new HttpCoreEvidenceStorageAdapter(evidenceTransport),
     lifecycle: new HttpLifecycleEvidenceStorageAdapter(evidenceTransport),
@@ -382,8 +340,29 @@ export function createEnvironmentWorkflowAdapterFactory(
         value: { provider: new HttpProvisioningAdapter(provisioningTransport) },
         activationTest: activationTest("provisioning"),
       },
+      screening: {
+        mode: "live",
+        value: {
+          provider: new HttpLifecycleScreeningAdapter(screeningTransport),
+        },
+        activationTest: activationTest("screening"),
+      },
+      signature: {
+        mode: "live",
+        value: {
+          provider: new HttpLifecycleSignatureAdapter(
+            signatureTransport,
+            json(
+              source,
+              "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
+              "EXT-LEGAL-01",
+              z.array(z.url()).min(1).max(20),
+            ),
+          ),
+        },
+        activationTest: activationTest("signature"),
+      },
     },
-    exceptionRouting,
     deletionCertificates: {
       issuer,
       automatedTeardownEnabled: source.AUTOMATED_TEARDOWN_ENABLED === "true",

@@ -10,6 +10,13 @@ export interface LifecycleTaskInvocation {
   attempt: number;
   idempotencyKey: string;
   payload: unknown;
+  replay?: LifecycleTaskReplay | undefined;
+}
+
+export interface LifecycleTaskReplay {
+  requestedBy: string;
+  reason: string;
+  ticketReference?: string | undefined;
 }
 
 export interface LifecycleTaskRuntime {
@@ -86,6 +93,30 @@ export function taskInvocation(input: {
       .update(stablePayload(input.payload))
       .digest("hex")}`;
   return { ...input, idempotencyKey };
+}
+
+/**
+ * Builds an explicit operator redrive without changing the original effect
+ * identity. Replay authority is supplied by the trusted operator boundary and
+ * is never read from the task payload.
+ */
+export function lifecycleTaskRedrive(
+  invocation: LifecycleTaskInvocation,
+  replay: LifecycleTaskReplay,
+): LifecycleTaskInvocation {
+  const requestedBy = replay.requestedBy.trim();
+  const reason = replay.reason.trim();
+  if (!requestedBy) throw new Error("LIFECYCLE_REDRIVE_ACTOR_REQUIRED");
+  if (reason.length < 8) throw new Error("LIFECYCLE_REDRIVE_REASON_REQUIRED");
+  const ticketReference = replay.ticketReference?.trim();
+  return {
+    ...invocation,
+    replay: {
+      requestedBy,
+      reason,
+      ...(ticketReference ? { ticketReference } : {}),
+    },
+  };
 }
 
 export async function executeLifecycleTask(

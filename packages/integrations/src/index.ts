@@ -4,5 +4,7 @@ export * from "./lifecycle";
 export * from "./migration/source";
 export * from "./production-adapters";
 export * from "./provider-transport";
+export * from "./runtime";
 export * from "./system";
+export * from "./telemetry";
 export * from "./workos/management-client";

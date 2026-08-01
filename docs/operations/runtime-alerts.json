@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "backend": "opentelemetry-neutral",
+  "externalLiveInputs": [
+    "collector/backend selection",
+    "scoped collector credentials",
+    "paging delivery integration and rota",
+    "staging synthetic and dashboard evidence"
+  ],
+  "externalGate": "EXT-ACC-01",
+  "alerts": [
+    {
+      "id": "runtime-auth-anomaly",
+      "severity": "P1",
+      "filter": "clockwork.boundary=api and error.code in [AUTHORIZATION_DENIED,CROSS_ACCOUNT_DENIED,WEBHOOK_SIGNATURE_INVALID]",
+      "condition": "count >= 5 in 5m or CROSS_ACCOUNT_DENIED >= 1",
+      "synthetic": "auth_anomaly",
+      "runbook": "docs/operations/auth-anomalies.md"
+    },
+    {
+      "id": "runtime-db-pitr",
+      "severity": "P1",
+      "filter": "clockwork.boundary=db",
+      "condition": "error_ratio > 0.05 for 5m or synthetic DB_PITR",
+      "synthetic": "db_pitr",
+      "runbook": "docs/operations/disaster-recovery.md"
+    },
+    {
+      "id": "runtime-queue-age",
+      "severity": "P1",
+      "filter": "clockwork.boundary=queue",
+      "condition": "max(queue.age_ms) > 300000 for 10m",
+      "synthetic": "queue_age",
+      "runbook": "docs/operations/queue-outbox-health.md"
+    },
+    {
+      "id": "runtime-dead-letter",
+      "severity": "P1",
+      "filter": "clockwork.boundary=queue and error.code=DEAD_LETTERED",
+      "condition": "count >= 1",
+      "synthetic": "dead_letter",
+      "runbook": "docs/operations/queue-outbox-health.md"
+    },
+    {
+      "id": "runtime-outbox-backlog",
+      "severity": "P1",
+      "filter": "clockwork.boundary=outbox",
+      "condition": "max(outbox.age_ms) > 300000 for 10m",
+      "synthetic": "outbox_backlog",
+      "runbook": "docs/operations/queue-outbox-health.md"
+    },
+    {
+      "id": "runtime-provisioning",
+      "severity": "P1",
+      "filter": "provider.operation starts_with provisioning and clockwork.outcome=error",
+      "condition": "count >= 3 in 10m or permanent_count >= 1",
+      "synthetic": "provisioning",
+      "runbook": "docs/operations/stuck-provisioning.md"
+    },
+    {
+      "id": "runtime-reconciliation",
+      "severity": "P1",
+      "filter": "workflow.name contains reconciliation and clockwork.outcome=error",
+      "condition": "count >= 1",
+      "synthetic": "reconciliation",
+      "runbook": "docs/operations/billing-reconciliation.md"
+    },
+    {
+      "id": "runtime-unhandled-error",
+      "severity": "P1",
+      "filter": "error.type=UnhandledRuntimeError",
+      "condition": "count >= 1",
+      "synthetic": "unhandled_error",
+      "runbook": "docs/operations/unhandled-errors.md"
+    }
+  ]
+}

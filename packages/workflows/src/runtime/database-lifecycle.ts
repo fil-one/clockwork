@@ -1,5 +1,6 @@
 import { IdempotencyKeySchema } from "@clockwork/contracts";
 import type { DatabaseWorkflowRunStore } from "@clockwork/db";
+import { isProviderRuntimeDeniedError } from "@clockwork/integrations";
 
 import { payloadHash } from "../core/determinism";
 import { LIFECYCLE_RETRY_POLICY } from "../onboarding/durable";
@@ -37,6 +38,7 @@ export class DatabaseLifecycleTaskRuntime implements LifecycleTaskRuntime {
       aggregateId: aggregate.aggregateId,
       aggregateVersion: aggregate.aggregateVersion,
       requestId: `task:${invocation.triggerRunId}`,
+      ...(invocation.replay ? { replay: invocation.replay } : {}),
     });
     if (claimed.status === "completed")
       return { status: "duplicate", output: claimed.output };
@@ -75,9 +77,15 @@ export class DatabaseLifecycleTaskRuntime implements LifecycleTaskRuntime {
   public fail(
     invocation: LifecycleTaskInvocation,
     leaseToken: string,
-    _error: unknown,
+    error: unknown,
   ): Promise<void> {
     const invocationKey = IdempotencyKeySchema.parse(invocation.idempotencyKey);
+    if (isProviderRuntimeDeniedError(error))
+      return this.runs.markPolicyDenied({
+        invocationKey,
+        leaseToken,
+        code: error.code,
+      });
     if (invocation.attempt >= LIFECYCLE_RETRY_POLICY.maxAttempts)
       return this.runs.markPermanentFailure({
         invocationKey,

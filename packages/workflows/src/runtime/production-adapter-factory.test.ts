@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "@clockwork/db";
-import type {
-  ExternalGateActivationTestResult,
-  ExternalGateKey,
+import {
+  evaluateExternalGate,
+  type ExternalGateRecord,
+  type ExternalGateActivationTestResult,
+  type ExternalGateKey,
 } from "@clockwork/domain/system";
 import {
   FakeEvidenceStorageAdapter as LifecycleFakeEvidenceStorageAdapter,
@@ -15,11 +17,14 @@ import {
   FakeEvidenceStorageAdapter as CoreFakeEvidenceStorageAdapter,
   FakeProviderKernel,
   FakeProvisioningAdapter,
+  FakeScreeningAdapter,
+  FakeSignatureAdapter,
 } from "@clockwork/integrations/fakes";
 
 import { lifecycleWorkflowRegistry } from "../lifecycle";
 import {
   createProductionWorkflowAdapterFactory,
+  PersistedWorkflowProviderActivationGuard,
   type ProductionWorkflowProviderSelections,
   type WorkflowProviderActivationGuard,
 } from "./production-adapter-factory";
@@ -130,6 +135,16 @@ function selections(): ProductionWorkflowProviderSelections {
       mode: "simulator",
       value: { provider: new FakeProvisioningAdapter(kernel) },
       activationTest: activationTest("provisioning"),
+    },
+    screening: {
+      mode: "simulator",
+      value: { provider: new FakeScreeningAdapter(kernel) },
+      activationTest: activationTest("screening"),
+    },
+    signature: {
+      mode: "simulator",
+      value: { provider: new FakeSignatureAdapter(kernel) },
+      activationTest: activationTest("signature"),
     },
   };
 }
@@ -302,5 +317,64 @@ describe("production workflow adapter factory", () => {
         }),
       ),
     ).rejects.toThrow("WORKFLOW_PROVIDER_ACTIVATION_TEST_FAILED:notifications");
+  });
+});
+
+describe("persisted activation bootstrap preflight", () => {
+  it("allows the bounded runner to refresh stale persisted evidence before active enforcement", async () => {
+    const staleRecord: ExternalGateRecord = {
+      id: "90000000-0000-4000-8000-000000000001",
+      gateKey: "EXT-ACC-01",
+      title: "Hosted accounts",
+      owner: "Platform owner",
+      inputRequired: "Scoped live provider account",
+      affectedFeature: "Runtime",
+      severity: "path_blocker",
+      configuredStatus: "active",
+      simulatorState: "ready",
+      simulatorDetails: "Previous bounded probe passed",
+      inputProvenance: "live_signed",
+      lastActivationTestStatus: "passed",
+      lastActivationTestAt: "2026-07-29T16:00:00.000Z",
+      lastActivationTestedBy: "previous-runner",
+      activationEvidenceReference: "evidence://activation/previous",
+      reviewOn: "2099-12-31",
+      statusReason: "Configured for activation refresh",
+      emergencyDisabledAt: null,
+      emergencyDisabledBy: null,
+      emergencyDisableReason: null,
+      emergencyDisableEvidenceReference: null,
+      rowVersion: 3,
+      updatedAt: "2026-07-29T16:00:00.000Z",
+    };
+    let persisted = evaluateExternalGate(staleRecord, now);
+    const reader = {
+      list: () => Promise.resolve([persisted]),
+    };
+    const guard = new PersistedWorkflowProviderActivationGuard(
+      undefined as never,
+      () => now,
+      reader,
+    );
+    await expect(
+      guard.requireConfiguredForActivation(["EXT-ACC-01"], "preflight"),
+    ).resolves.toBeUndefined();
+    await expect(
+      guard.requireActive(["EXT-ACC-01"], "before-refresh"),
+    ).rejects.toThrow("WORKFLOW_EXTERNAL_GATE_INACTIVE:EXT-ACC-01");
+    persisted = evaluateExternalGate(
+      {
+        ...staleRecord,
+        lastActivationTestAt: now.toISOString(),
+        lastActivationTestedBy: "bounded-http-probe",
+        activationEvidenceReference: "evidence://activation/current",
+        rowVersion: 4,
+        updatedAt: now.toISOString(),
+      },
+      now,
+    );
+    await expect(
+      guard.requireActive(["EXT-ACC-01"], "after-refresh"),
+    ).resolves.toBeUndefined();
   });
 });
