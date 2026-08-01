@@ -492,7 +492,7 @@ test("@customer proves authoritative quote completion and the remaining queue co
   const initialDrain = await drainProductionExperienceOutbox(
     "release-proof-authoritative-quote-materialize",
   );
-  expect(initialDrain.delivered).toBeGreaterThanOrEqual(2);
+  expect(initialDrain.delivered).toBe(2);
   const navigation = await page.goto("/dashboard");
   const navigationTraceparent = navigation?.headers()["traceparent"];
   if (!navigationTraceparent)
@@ -532,7 +532,7 @@ test("@customer proves authoritative quote completion and the remaining queue co
   const terminalDrain = await drainProductionExperienceOutbox(
     "release-proof-authoritative-quote-expire",
   );
-  expect(terminalDrain.delivered).toBeGreaterThanOrEqual(4);
+  expect(terminalDrain.delivered).toBe(4);
   const terminalAuthoritative = await projectionActionReceipt(page, {
     audience: "customer",
     channel: "quotes",
@@ -617,6 +617,67 @@ test("@customer proves authoritative quote completion and the remaining queue co
         materialized_version_two: true,
       },
     ]);
+
+    const materializations = await authoritativeSql<
+      {
+        aggregate_version: number;
+        event_type: string;
+        outbox_processed: boolean;
+        outbox_last_error: string | null;
+      }[]
+    >`
+      select receipt.aggregate_version,
+             receipt.event_type,
+             source_outbox.processed_at is not null as outbox_processed,
+             source_outbox.last_error as outbox_last_error
+      from public.experience_projection_materialization_receipts receipt
+      join public.outbox_messages source_outbox
+        on source_outbox.event_id = receipt.event_id
+      where receipt.aggregate_type = 'quote'
+        and receipt.aggregate_id = ${authoritativeQuoteProof.quoteId}::uuid
+      order by receipt.aggregate_version
+    `;
+    expect(materializations).toEqual([
+      {
+        aggregate_version: 1,
+        event_type: "core.quotes.issue",
+        outbox_processed: true,
+        outbox_last_error: null,
+      },
+      {
+        aggregate_version: 2,
+        event_type: "core.quotes.expire",
+        outbox_processed: true,
+        outbox_last_error: null,
+      },
+    ]);
+
+    const drained = await authoritativeSql<
+      { pending: number; failed: number }[]
+    >`
+      select count(*) filter (where outbox.processed_at is null)::int as pending,
+             count(*) filter (where outbox.last_error is not null)::int as failed
+      from public.outbox_messages outbox
+      join public.audit_events event on event.id = outbox.event_id
+      where (
+              event.aggregate_type = 'quote'
+              and event.aggregate_id = ${authoritativeQuoteProof.quoteId}::uuid
+            )
+         or (
+              event.aggregate_type = 'experience_action_request'
+              and event.aggregate_id = ${queuedAuthoritative.body.id}::uuid
+            )
+         or (
+              event.aggregate_type = 'portal_projection'
+              and event.aggregate_id in (
+                select receipt.id
+                from public.experience_projection_materialization_receipts receipt
+                where receipt.aggregate_type = 'quote'
+                  and receipt.aggregate_id = ${authoritativeQuoteProof.quoteId}::uuid
+              )
+            )
+    `;
+    expect(drained).toEqual([{ pending: 0, failed: 0 }]);
   } finally {
     await authoritativeSql.end();
   }

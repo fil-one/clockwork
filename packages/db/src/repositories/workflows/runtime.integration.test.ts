@@ -533,6 +533,61 @@ describe.sequential("database outbox dispatch leases", () => {
     expect(row?.lastError).not.toContain("secret");
   });
 
+  it("claims a successor appended while its predecessor was handled", async () => {
+    const topic = `${prefix}chain-${randomUUID()}`;
+    const store = new DatabaseOutboxDispatcherStore(db);
+    const append = async (aggregateVersion: number) => {
+      const appended = await internal(`${prefix}outbox-chain`, (transaction) =>
+        appendAuditAndOutbox(transaction, {
+          aggregateType: "audit_event",
+          aggregateId: randomUUID(),
+          aggregateVersion,
+          eventType: topic,
+          actor: { kind: "system", id: "integration-runtime" },
+          requestId: `${prefix}outbox-chain`,
+        }),
+      );
+      return appended.message.id;
+    };
+    const claim = (link: number) =>
+      store.claimNext({ workerId: `${prefix}chain-${link}`, topics: [topic] });
+
+    // The successor is stamped by the database while its predecessor is still
+    // being handled, so a claim reading any other clock can place its cutoff
+    // behind that row. Repeating the hand-off keeps the case decisive on hosts
+    // whose clock happens to track the database closely.
+    const links = 20;
+    let expected = await append(1);
+    const delivered: string[] = [];
+    for (let link = 1; link <= links; link += 1) {
+      const claimed = await claim(link);
+      if (!claimed) throw new Error(`outbox link ${link} was not claimable`);
+      expect(claimed.id).toBe(expected);
+      expected = await append(link + 1);
+      await store.complete(claimed);
+      delivered.push(claimed.id);
+    }
+    const last = await claim(links + 1);
+    if (!last) throw new Error("final outbox link was not claimable");
+    expect(last.id).toBe(expected);
+    await store.complete(last);
+    delivered.push(last.id);
+
+    expect(new Set(delivered).size).toBe(links + 1);
+    await expect(claim(links + 2)).resolves.toBeNull();
+    const rows = await internal(
+      `${prefix}outbox-chain-inspect`,
+      (transaction) =>
+        transaction.query.outboxMessages.findMany({
+          where: inArray(outboxMessages.id, delivered),
+        }),
+    );
+    expect(rows).toHaveLength(links + 1);
+    expect(
+      rows.every((row) => row.processedAt !== null && row.lastError === null),
+    ).toBe(true);
+  });
+
   it("fails closed when persisted lease metadata is corrupt", async () => {
     const appended = await internal(`${prefix}outbox-corrupt`, (transaction) =>
       appendAuditAndOutbox(transaction, {

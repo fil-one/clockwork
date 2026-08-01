@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -23,6 +23,8 @@ const ClaimedRowSchema = z.object({
   payload: z.unknown(),
   attempt_count: z.number().int().nonnegative(),
 });
+
+const DatabaseNowSchema = z.object({ now: z.coerce.date() });
 
 interface OutboxLease {
   payloadHash: string;
@@ -72,8 +74,31 @@ export class DatabaseOutboxDispatcherStore {
     } = {},
   ) {}
 
-  private now(): Date {
-    return this.options.clock?.() ?? new Date();
+  /**
+   * Availability and lease expiry compare against database time evaluated
+   * inside the statement: writers stamp available_at with microsecond database
+   * time, and a cutoff read into a millisecond JavaScript Date truncates below
+   * a row a sibling transaction just committed. statement_timestamp() is stable
+   * across the statement, so the comparison stays usable as an index qual on
+   * outbox_dispatch_queue_idx, while now() reads the strictly later
+   * clock_timestamp(), which can only lengthen a lease relative to the cutoff
+   * that granted it. An injected clock is read independently by both, so a test
+   * clock must report one instant for a whole operation.
+   */
+  private cutoff(): SQL {
+    const clock = this.options.clock;
+    return clock
+      ? sql`${clock().toISOString()}::timestamptz`
+      : sql`statement_timestamp()`;
+  }
+
+  private async now(transaction: RuntimeTransaction): Promise<Date> {
+    const clock = this.options.clock;
+    if (clock) return clock();
+    const rows = await transaction.execute(
+      sql`select clock_timestamp() as now`,
+    );
+    return DatabaseNowSchema.parse(rows[0]).now;
   }
 
   private leaseMs(): number {
@@ -92,8 +117,7 @@ export class DatabaseOutboxDispatcherStore {
       this.db,
       `outbox-claim:${input.workerId}`,
       async (transaction) => {
-        const now = this.now();
-        const nowIso = now.toISOString();
+        const cutoff = this.cutoff();
         const topics = input.topics ? [...input.topics] : null;
         const topicFilter =
           topics === null
@@ -111,13 +135,13 @@ export class DatabaseOutboxDispatcherStore {
             on w.task_identifier = 'system.outbox.dispatch.v1'
            and w.idempotency_key = 'outbox:' || o.id::text
           where o.processed_at is null
-            and o.available_at <= ${nowIso}::timestamptz
+            and o.available_at <= ${cutoff}
             and o.attempt_count < ${this.maxAttempts()}
             and ${topicFilter}
             and (
               w.id is null
-              or (w.status = 'running' and (w.input->>'leaseUntil')::timestamptz <= ${nowIso}::timestamptz)
-              or (w.status = 'retrying' and coalesce((w.input->>'retryAt')::timestamptz, ${nowIso}::timestamptz) <= ${nowIso}::timestamptz)
+              or (w.status = 'running' and (w.input->>'leaseUntil')::timestamptz <= ${cutoff})
+              or (w.status = 'retrying' and coalesce((w.input->>'retryAt')::timestamptz, '-infinity'::timestamptz) <= ${cutoff})
             )
           order by o.available_at, o.created_at, o.id
           for update of o skip locked
@@ -126,6 +150,7 @@ export class DatabaseOutboxDispatcherStore {
         const rawRow = rows[0];
         if (!rawRow) return null;
         const row = ClaimedRowSchema.parse(rawRow);
+        const now = await this.now(transaction);
         const leaseToken = randomUUID();
         const nextAttempt = row.attempt_count + 1;
         const runInput: OutboxLease = {
@@ -192,10 +217,11 @@ export class DatabaseOutboxDispatcherStore {
       this.db,
       `outbox-complete:${message.id}`,
       async (transaction) => {
-        const run = await this.leasedRun(transaction, message);
+        const now = await this.now(transaction);
+        const run = await this.leasedRun(transaction, message, now);
         await transaction
           .update(outboxMessages)
-          .set({ processedAt: this.now(), lastError: null })
+          .set({ processedAt: now, lastError: null })
           .where(
             and(
               eq(outboxMessages.id, message.id),
@@ -226,8 +252,8 @@ export class DatabaseOutboxDispatcherStore {
       this.db,
       `outbox-fail:${message.id}`,
       async (transaction) => {
-        const run = await this.leasedRun(transaction, message);
-        const now = this.now();
+        const now = await this.now(transaction);
+        const run = await this.leasedRun(transaction, message, now);
         const exhausted = message.attempt >= this.maxAttempts();
         const delay = Math.min(300_000, 1_000 * 2 ** (message.attempt - 1));
         const retryAt = new Date(now.getTime() + delay);
@@ -268,6 +294,7 @@ export class DatabaseOutboxDispatcherStore {
   private async leasedRun(
     transaction: RuntimeTransaction,
     message: ClaimedOutboxMessage,
+    now: Date,
   ) {
     const run = await transaction.query.workflowRuns.findFirst({
       where: and(
@@ -280,7 +307,7 @@ export class DatabaseOutboxDispatcherStore {
     const currentLease = lease(run.input);
     if (
       currentLease.leaseToken !== message.leaseToken ||
-      Date.parse(currentLease.leaseUntil) <= this.now().getTime()
+      Date.parse(currentLease.leaseUntil) <= now.getTime()
     )
       throw new Error("STALE_OUTBOX_LEASE");
     return run;

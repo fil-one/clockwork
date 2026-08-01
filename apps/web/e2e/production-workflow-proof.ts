@@ -53,7 +53,7 @@ export async function drainProductionExperienceOutbox(workerId: string) {
   const clock = () => new Date();
   try {
     const dispatcher = new DurableOutboxDispatcher(
-      new DatabaseOutboxDispatcherStore(runtime.db, { clock }),
+      new DatabaseOutboxDispatcherStore(runtime.db),
       createProductionExperienceOutboxHandlers({
         database: runtime.db,
         authorizationSecret,
