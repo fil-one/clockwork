@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:19:00Z",
+  "capturedAt": "2026-08-01T02:22:00Z",
   "captureRef": "main",
-  "captureCommit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
-  "captureTree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
+  "captureCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+  "captureTree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
   "captureMode": "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
   "mainBase": "92d10d3b8a12728804b70215799f9929e880c996",
   "releaseCandidateBaseRef": "rc-lanes-base-20260731^{commit}",
@@ -90,19 +90,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "object": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
       "objectType": "commit",
-      "peeledCommit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
-      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
-      "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
-      "treeEntryCount": 690,
-      "treeListingSha256": "a0497c116e7d04d225be642328d3b2b09cbfed0ad409917a3116eee646896d25",
-      "parents": [
-        "114d144c23294c16520f2d5389955ff2ab7f661b",
-        "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-      ],
-      "subject": "merge: integrate complete reviewed UX history",
-      "mergeBaseWithMain": "e95ca99f6a085a4bafa46fb81edee73d56eb0914"
+      "peeledCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "tree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
+      "treeEntryCount": 708,
+      "treeListingSha256": "bc417740c602e55d20d3de1b6a3efe054da579eb11de7e0fb4488e2555d24d65",
+      "parents": ["e95ca99f6a085a4bafa46fb81edee73d56eb0914"],
+      "subject": "chore: establish consolidated main baseline",
+      "mergeBaseWithMain": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"
     },
     {
       "ref": "ux/customer-partner",
@@ -364,45 +361,15 @@
     },
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
-      "head": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "head": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
       "branch": "main",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
         "staged": [],
-        "unstaged": [
-          ".github/workflows/ci.yml",
-          "commerce_platform_spec.md",
-          "docs/adr/0001-standalone-next-vercel.md",
-          "docs/adr/0003-drizzle-canonical-sql.md",
-          "docs/agent-lanes.md",
-          "docs/backlog.md",
-          "docs/foundation-handoff.md",
-          "docs/release-candidate-report.md",
-          "eslint.config.mjs",
-          "package.json"
-        ],
-        "untracked": [
-          "docs/baseline/README.md",
-          "docs/baseline/artifact-hashes.json",
-          "docs/baseline/artifacts-documents.json",
-          "docs/baseline/database.json",
-          "docs/baseline/environment-gates-capabilities.json",
-          "docs/baseline/git-provenance.json",
-          "docs/baseline/openapi-clients.json",
-          "docs/baseline/routes-api-auth.json",
-          "docs/baseline/schema.json",
-          "docs/baseline/tests-baseline-artifacts.json",
-          "docs/baseline/workflows.json",
-          "docs/implementation-lanes.md",
-          "docs/sprint-checklist.md",
-          "docs/traceability/launch-requirements.json",
-          "docs/traceability/launch-requirements.schema.json",
-          "scripts/generate-baseline-manifests.mjs",
-          "scripts/run-baseline-qualification.mjs",
-          "scripts/validate-traceability.mjs"
-        ],
+        "unstaged": ["docs/sprint-checklist.md"],
+        "untracked": [],
         "ignoredRoots": [
           "apps",
           "apps/web/.next",
@@ -432,7 +399,7 @@
         ],
         "ignoredArtifactCount": 61287,
         "ignoredArtifactListingSha256": "981e34e0ccdc76716f70a516ff62de6292d73c0fa028e32069ba24cceb41aed2",
-        "porcelainSha256": "3d32a71ab709992f33a25a20a0cf80f51a5d5ab6de049a81aecebccf674da910"
+        "porcelainSha256": "ac6f0b6eb47311f5d087adc812e1ef00d8c1987fb49c1b18d90ae92c0ea7c74e"
       }
     },
     {
@@ -581,6 +548,12 @@
   ],
   "allReachableCommits": [
     {
+      "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "tree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
+      "parents": ["e95ca99f6a085a4bafa46fb81edee73d56eb0914"],
+      "subject": "chore: establish consolidated main baseline"
+    },
+    {
       "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
       "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
       "parents": [
@@ -716,7 +689,7 @@
       "subject": "feat: establish Clockwork commerce foundation"
     }
   ],
-  "reachableCommitCount": 19,
+  "reachableCommitCount": 20,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1007,6 +980,16 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "selector": "refs/heads/main@{2026-07-31T22:18:17-04:00}",
+      "subject": "commit: chore: establish consolidated main baseline"
+    },
+    {
+      "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "selector": "HEAD@{2026-07-31T22:18:17-04:00}",
+      "subject": "commit: chore: establish consolidated main baseline"
+    },
     {
       "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
       "selector": "refs/heads/main@{2026-07-31T21:09:26-04:00}",

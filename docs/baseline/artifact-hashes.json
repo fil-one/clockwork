@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:19:00Z",
-  "captureCommit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
-  "captureTree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
-  "captureTreeListingSha256": "a0497c116e7d04d225be642328d3b2b09cbfed0ad409917a3116eee646896d25",
+  "capturedAt": "2026-08-01T02:22:00Z",
+  "captureCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+  "captureTree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
+  "captureTreeListingSha256": "bc417740c602e55d20d3de1b6a3efe054da579eb11de7e0fb4488e2555d24d65",
   "artifactCount": 489,
   "categories": {
     "contract-release": {
       "artifactCount": 27,
-      "aggregateSha256": "7be6a9285257287041fdf372560975c1cfb86d9073d816a5d3dc1d6dfb3df517",
+      "aggregateSha256": "1b5c92d54c802cbd4241a0d1415d2ab5f441752bd510116ff8943cd2b8ee6ff7",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -1449,8 +1449,8 @@
     },
     {
       "path": "docs/sprint-checklist.md",
-      "bytes": 38258,
-      "sha256": "4177cf37319c0e1e4ccd5695596dc394ca21c27acb4587cebb77d9369992a957"
+      "bytes": 38253,
+      "sha256": "7d69d047a6ce1b400bb0b268941191b0030f3e4ff245677b2b62a3bc32405bc7"
     },
     {
       "path": "docs/traceability/launch-requirements.json",

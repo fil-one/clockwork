@@ -4,8 +4,10 @@
 > July 31 consolidation. Source SHA-256 before repository formatting:
 > `49cb4d84262e745e761882c82e8018f5d5d7cf82eab2f530becc4c6a55d83097`.
 
-**Sprint dates:** August 3 to October 30, 2026  
-**Operating mode:** Founder-led, weekly decisions, short feedback loops  
+**Sprint dates:** August 3 to October 30, 2026
+
+**Operating mode:** Founder-led, weekly decisions, short feedback loops
+
 **Primary sales play:** Secondary object storage for backup, archive, and
 data-heavy workloads where predictable billing and low-cost retrieval matter.
 Sell Object Lock, write once, read many (WORM), or regulatory retention only in
@@ -77,9 +79,12 @@ direct-sales team.
 
 ## Priority and ownership
 
-**P0:** Revenue or truth gate for the first 30 days.  
-**P1:** Required to close and support the next five deals.  
-**P2:** Build only after a buyer or producing partner creates the need.  
+**P0:** Revenue or truth gate for the first 30 days.
+
+**P1:** Required to close and support the next five deals.
+
+**P2:** Build only after a buyer or producing partner creates the need.
+
 **Directly responsible individual (DRI):** One owner per line item.
 
 At kickoff, reclassify any P0 that lacks a current buyer, a scheduled
