@@ -333,6 +333,11 @@ const refs = refRecords.map(({ fullRef, name, refType }) => {
 
 const bundleRepositoryPath =
   ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle";
+const retainedQualificationEvidencePrefixes = [
+  ".artifacts/release-benchmark/",
+  ".artifacts/release-smoke/",
+];
+const retainedArchivePrefix = ".clockwork-archives/";
 const worktreeBlocks = git("worktree", "list", "--porcelain").split("\n\n");
 const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
   const fields = Object.fromEntries(
@@ -362,12 +367,66 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
     "--exclude-standard",
   ]);
   const ignoredArtifactPaths = ignoredListing.split("\n").filter(Boolean);
-  const retainedArchivePaths = ignoredArtifactPaths.filter(
-    (path) => path === bundleRepositoryPath,
+  const retainedArchivePaths = ignoredArtifactPaths.filter((path) =>
+    path.startsWith(retainedArchivePrefix),
   );
+  const retainedQualificationEvidencePaths = ignoredArtifactPaths.filter(
+    (path) =>
+      retainedQualificationEvidencePrefixes.some((prefix) =>
+        path.startsWith(prefix),
+      ),
+  );
+  const retainedEvidencePaths = unique([
+    ...retainedArchivePaths,
+    ...retainedQualificationEvidencePaths,
+  ]);
   const rejectedIgnoredArtifactPaths = ignoredArtifactPaths.filter(
-    (path) => !retainedArchivePaths.includes(path),
+    (path) => !retainedEvidencePaths.includes(path),
   );
+  const evidenceArtifacts = retainedEvidencePaths.map((path) => {
+    const absolute = join(fields.worktree, path);
+    return {
+      path,
+      kind: path.startsWith(retainedArchivePrefix)
+        ? "archive"
+        : "qualification-evidence",
+      bytes: statSync(absolute).size,
+      sha256: sha256File(absolute),
+    };
+  });
+  const qualificationEvidenceArtifacts = evidenceArtifacts.filter(
+    ({ kind }) => kind === "qualification-evidence",
+  );
+  const qualificationSummaries = qualificationEvidenceArtifacts
+    .filter(({ path }) => /\/(?:stress-)?summary\.json$/.test(path))
+    .map(({ path, bytes, sha256 }) => {
+      const summary = JSON.parse(readFileSync(join(fields.worktree, path)));
+      const passed = summary.accepted === true || summary.status === "passed";
+      const failed = summary.accepted === false || summary.status === "failed";
+      return {
+        path,
+        bytes,
+        sha256,
+        runId: summary.runId ?? summary.token ?? null,
+        mode: summary.mode ?? null,
+        outcome: passed ? "passed" : failed ? "failed" : "incomplete",
+        durationMs: summary.durationMs ?? null,
+        sourceRevision:
+          summary.sourceIdentity?.revision ?? summary.sourceIdentity ?? null,
+      };
+    });
+  const archiveArtifacts = evidenceArtifacts.filter(
+    ({ kind }) => kind === "archive",
+  );
+  const evidenceAggregate = (artifacts) =>
+    sha256Bytes(
+      `${artifacts
+        .map(({ path, bytes, sha256 }) => `${path}:${bytes}:${sha256}`)
+        .join("\n")}\n`,
+    );
+  const rejectedIgnoredListing = `${rejectedIgnoredArtifactPaths.join("\n")}${
+    rejectedIgnoredArtifactPaths.length > 0 ? "\n" : ""
+  }`;
   const ignoredRoots = unique(
     ignoredArtifactPaths.map((path) => {
       const match = path.match(
@@ -399,8 +458,23 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
       ignoredRoots,
       ignoredArtifactCount: ignoredArtifactPaths.length,
       retainedArchivePaths,
+      retainedQualificationEvidencePaths,
+      retainedEvidence: {
+        qualification: {
+          artifactCount: qualificationEvidenceArtifacts.length,
+          aggregateSha256: evidenceAggregate(qualificationEvidenceArtifacts),
+          summaries: qualificationSummaries,
+          artifacts: qualificationEvidenceArtifacts,
+        },
+        archives: {
+          artifactCount: archiveArtifacts.length,
+          aggregateSha256: evidenceAggregate(archiveArtifacts),
+          artifacts: archiveArtifacts,
+        },
+      },
       rejectedIgnoredArtifactCount: rejectedIgnoredArtifactPaths.length,
       ignoredArtifactListingSha256: sha256Bytes(ignoredListing),
+      rejectedIgnoredArtifactListingSha256: sha256Bytes(rejectedIgnoredListing),
       porcelainSha256: sha256Bytes(`${statusLines.join("\n")}\n`),
     },
   };
@@ -690,13 +764,22 @@ writeJson("git-provenance.json", {
         (rootPath) => rootPath !== ".clockwork-archives",
       ),
       artifactCount: status.rejectedIgnoredArtifactCount,
-      listingSha256: status.ignoredArtifactListingSha256,
+      listingSha256: status.rejectedIgnoredArtifactListingSha256,
       decision: "rejected-generated-or-local-only",
       retainedArchives: status.retainedArchivePaths,
       retainedArchiveDecision:
         status.retainedArchivePaths.length > 0
-          ? "retained-and-independently-hashed-in-preConsolidation"
+          ? "retained-and-file-hashed-in-worktree-status"
           : "not-present-in-this-worktree",
+      retainedQualificationEvidence: {
+        artifactCount: status.retainedEvidence.qualification.artifactCount,
+        aggregateSha256: status.retainedEvidence.qualification.aggregateSha256,
+        summaries: status.retainedEvidence.qualification.summaries,
+        decision:
+          status.retainedEvidence.qualification.artifactCount > 0
+            ? "retained-failure-and-pass-evidence-with-file-hashes"
+            : "not-present-in-this-worktree",
+      },
     })),
   },
   mergeCommits,
