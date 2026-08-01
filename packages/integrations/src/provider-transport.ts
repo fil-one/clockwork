@@ -1,6 +1,8 @@
 import type { ProviderResult } from "@clockwork/contracts";
 import type { ZodType } from "zod";
 
+import { isProviderRuntimeDeniedError } from "./runtime/provider-runtime";
+
 const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_RESPONSE_BYTES = 1_048_576;
 
@@ -213,6 +215,13 @@ export function providerTransportFailure(
   error: unknown,
   fallbackCode: string,
 ): ProviderResult<never> {
+  if (isProviderRuntimeDeniedError(error))
+    return {
+      ok: false,
+      kind: "permanent",
+      code: error.code,
+      message: "Provider effect denied by persisted runtime policy",
+    };
   if (error instanceof ProviderTransportError)
     return {
       ok: false,
