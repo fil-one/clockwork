@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:24:20Z",
-  "captureCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
-  "captureTree": "674e7dce37418952479374a914670127a189e803",
+  "capturedAt": "2026-08-01T14:28:18Z",
+  "captureCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+  "captureTree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "b8238e617226feb350924334eb34568a9d95b3627949b623bfaafc7da42ca4ad",
+  "captureTreeListingSha256": "61dd595ff7467cb7ea6fb1686bc5b0e0a6c491357a7bc7b889ce91e70e8b0779",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "75a409d869a70fccc2562722de25ad9bd19680e5303a25a9d6d201dac0ca1ae6",
+      "aggregateSha256": "e62350656385e3a137774e2e0d26055d54e8a4159f160f54fe55febd3c7af571",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -3596,8 +3596,8 @@
     },
     {
       "path": "pnpm-workspace.yaml",
-      "bytes": 714,
-      "sha256": "77665dd5ca458f3e83f97e31573a9749de54cffee687d57eea712518309e0f7a"
+      "bytes": 741,
+      "sha256": "a6c207eeb5b1d32005babf436a11d9ffe680c659f9397850a0e8fd1b77f3a59a"
     },
     {
       "path": "prettier.config.mjs",

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:24:20Z",
+  "capturedAt": "2026-08-01T14:28:18Z",
   "captureRef": "main",
-  "captureCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
-  "captureTree": "674e7dce37418952479374a914670127a189e803",
+  "captureCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+  "captureTree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "object": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
       "objectType": "commit",
-      "peeledCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
-      "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
-      "tree": "674e7dce37418952479374a914670127a189e803",
+      "peeledCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "tree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
       "treeEntryCount": 896,
-      "treeListingSha256": "b8238e617226feb350924334eb34568a9d95b3627949b623bfaafc7da42ca4ad",
-      "parents": ["6a0d5033a3326bae347d2dd713f341ea63a3c2fe"],
-      "subject": "fix: isolate qualification store population",
-      "mergeBaseWithMain": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72"
+      "treeListingSha256": "61dd595ff7467cb7ea6fb1686bc5b0e0a6c491357a7bc7b889ce91e70e8b0779",
+      "parents": ["ba47e44eaf2957512ef46af1e994c20142cce083"],
+      "subject": "fix: suppress unnecessary resolver lifecycle",
+      "mergeBaseWithMain": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "head": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 74206,
+        "ignoredArtifactCount": 122792,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 74205,
-        "ignoredArtifactListingSha256": "e677be1828c8e0cb14c9a9dbf6528877ddfa9d2dd790751880972398e0734a9d",
+        "rejectedIgnoredArtifactCount": 122791,
+        "ignoredArtifactListingSha256": "d0dc9558caab1f3545309128917a52fcb78a24a36696b91a5b4d4c2e5c6f5dcb",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "tree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
+      "parents": ["ba47e44eaf2957512ef46af1e994c20142cce083"],
+      "subject": "fix: suppress unnecessary resolver lifecycle"
+    },
+    {
+      "commit": "ba47e44eaf2957512ef46af1e994c20142cce083",
+      "tree": "290f4589067a9b672fc74981ef63c31501bad282",
+      "parents": ["3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72"],
+      "subject": "docs: capture corrected qualification harness"
+    },
     {
       "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
       "tree": "674e7dce37418952479374a914670127a189e803",
@@ -729,7 +741,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 56,
+  "reachableCommitCount": 58,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1200,6 +1212,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "selector": "refs/heads/main@{2026-08-01T10:26:53-04:00}",
+      "subject": "commit: fix: suppress unnecessary resolver lifecycle"
+    },
+    {
+      "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "selector": "HEAD@{2026-08-01T10:26:53-04:00}",
+      "subject": "commit: fix: suppress unnecessary resolver lifecycle"
+    },
+    {
+      "commit": "ba47e44eaf2957512ef46af1e994c20142cce083",
+      "selector": "refs/heads/main@{2026-08-01T10:24:28-04:00}",
+      "subject": "commit: docs: capture corrected qualification harness"
+    },
+    {
+      "commit": "ba47e44eaf2957512ef46af1e994c20142cce083",
+      "selector": "HEAD@{2026-08-01T10:24:28-04:00}",
+      "subject": "commit: docs: capture corrected qualification harness"
+    },
     {
       "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
       "selector": "refs/heads/main@{2026-08-01T10:23:28-04:00}",
@@ -1738,8 +1770,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 74205,
-        "listingSha256": "e677be1828c8e0cb14c9a9dbf6528877ddfa9d2dd790751880972398e0734a9d",
+        "artifactCount": 122791,
+        "listingSha256": "d0dc9558caab1f3545309128917a52fcb78a24a36696b91a5b4d4c2e5c6f5dcb",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
