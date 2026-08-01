@@ -8,52 +8,73 @@ import {
 } from "../copy";
 import styles from "./operations-home.module.css";
 
-function SignalCard({ signal }: { signal: OperationalSignal }) {
+function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
+  return signals.map((signal) => (
+    <tr key={signal.label} data-tone={signal.tone}>
+      <th scope="row">
+        <span className={styles.signalLabel}>{signal.label}</span>
+        <strong className={styles.signalValue}>{signal.value}</strong>
+      </th>
+      <td>{signal.detail}</td>
+      <td>{signal.truth ?? "Unclassified"}</td>
+      <td>{signal.owner}</td>
+      <td>
+        <time dateTime={signal.observedAt}>{signal.freshness}</time>
+      </td>
+      <td>
+        <Link href={signal.href}>
+          {signal.action}
+          <span aria-hidden="true"> →</span>
+        </Link>
+      </td>
+    </tr>
+  ));
+}
+
+function SignalTable({
+  label,
+  signals,
+}: {
+  label: string;
+  signals: readonly OperationalSignal[];
+}) {
   return (
-    <article className={styles.signal} data-tone={signal.tone}>
-      <div className={styles.signalHeading}>
-        <div>
-          <p className={styles.label}>{signal.label}</p>
-          <strong className={styles.value}>{signal.value}</strong>
-        </div>
-        {signal.truth ? (
-          <span className={styles.truth}>{signal.truth}</span>
-        ) : null}
-      </div>
-      <p className={styles.detail}>{signal.detail}</p>
-      <dl className={styles.metadata}>
-        <div>
-          <dt>{internalOpsCopy.home.owner}</dt>
-          <dd>{signal.owner}</dd>
-        </div>
-        <div>
-          <dt>{internalOpsCopy.home.fresh}</dt>
-          <dd>
-            <time dateTime={signal.observedAt}>{signal.freshness}</time>
-          </dd>
-        </div>
-      </dl>
-      <Link className={styles.cardLink} href={signal.href}>
-        {signal.action}
-        <span aria-hidden="true"> →</span>
-      </Link>
-    </article>
+    <div
+      className={styles.tableRegion}
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+    >
+      <table className={styles.signalTable}>
+        <thead>
+          <tr>
+            <th scope="col">Signal</th>
+            <th scope="col">Consequence</th>
+            <th scope="col">Truth source</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Freshness</th>
+            <th scope="col">
+              <span className="sr-only">Action</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <SignalRows signals={signals} />
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 export function OperationsHome() {
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
+      <header className={styles.taskHeader}>
         <div>
-          <p className={styles.eyebrow}>{internalOpsCopy.home.eyebrow}</p>
           <h1>{internalOpsCopy.home.title}</h1>
-          <p className={styles.description}>
-            {internalOpsCopy.home.description}
-          </p>
+          <p>{internalOpsCopy.home.description}</p>
         </div>
         <p className={styles.freshness} role="status">
-          <span aria-hidden="true" />
           {internalOpsCopy.home.refreshed}
         </p>
       </header>
@@ -61,7 +82,6 @@ export function OperationsHome() {
       <section aria-labelledby="recommended-actions-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Priority order</p>
             <h2 id="recommended-actions-title">
               {internalOpsCopy.home.actionHeading}
             </h2>
@@ -113,34 +133,34 @@ export function OperationsHome() {
       <section aria-labelledby="action-health-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Attention needed</p>
             <h2 id="action-health-title">
               {internalOpsCopy.home.healthHeading}
             </h2>
+            <p>
+              Severity, consequence, source, owner, and age remain comparable in
+              one row.
+            </p>
           </div>
         </div>
-        <div className={styles.grid}>
-          {actionSignals.map((signal) => (
-            <SignalCard key={signal.label} signal={signal} />
-          ))}
-        </div>
+        <SignalTable
+          label="Work requiring action table"
+          signals={actionSignals}
+        />
       </section>
 
       <section aria-labelledby="monitoring-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>No action required</p>
             <h2 id="monitoring-title">
               {internalOpsCopy.home.monitoringHeading}
             </h2>
             <p>{internalOpsCopy.home.monitoringDescription}</p>
           </div>
         </div>
-        <div className={styles.grid}>
-          {monitoringSignals.map((signal) => (
-            <SignalCard key={signal.label} signal={signal} />
-          ))}
-        </div>
+        <SignalTable
+          label="Monitoring signals table"
+          signals={monitoringSignals}
+        />
       </section>
     </main>
   );

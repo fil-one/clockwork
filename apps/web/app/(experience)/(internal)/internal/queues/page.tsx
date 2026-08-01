@@ -1,21 +1,11 @@
-import { Suspense } from "react";
+import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 
-import { QUEUE_COPY } from "@/src/features/internal-ops/queue-search/copy";
-import { QueueWorkspace } from "@/src/features/internal-ops/queue-search/queue-workspace";
-import type { OperationalRole } from "@/src/features/internal-ops/queue-search/model";
-import { getRouteRoles } from "@/src/features/shell/route-session";
-
-export default async function Page() {
-  const roles = (await getRouteRoles("internal")) as readonly OperationalRole[];
+export default function Page() {
   return (
-    <Suspense
-      fallback={
-        <main id="main-content" aria-busy="true">
-          {QUEUE_COPY.loading}
-        </main>
-      }
-    >
-      <QueueWorkspace roles={roles} />
-    </Suspense>
+    <InternalProjectionPage
+      channel="queues"
+      title="Operational queues"
+      description="Work the next authorized task from freshness-labeled projections."
+    />
   );
 }

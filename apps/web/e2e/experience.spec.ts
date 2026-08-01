@@ -1,6 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { createHash } from "node:crypto";
 
 const journeys = [
   {
@@ -43,13 +42,13 @@ const journeys = [
     persona: "legal approver",
     role: "legal_approver",
     path: "/internal/agreements",
-    heading: "Agreement templates",
+    heading: "Agreement administration",
   },
   {
     persona: "finance approver",
     role: "finance_approver",
     path: "/internal/reports",
-    heading: "Operational reports",
+    heading: "Reports",
   },
   {
     persona: "internal operator",
@@ -123,119 +122,51 @@ test("new buyer registers a verified legal entity through the bootstrap contract
   });
 });
 
-test("direct buyer executes terms, creates a quote, and accepts the order through generated operations", async ({
+test("direct buyer submits a record-bound quote action with an optimistic version", async ({
   page,
 }) => {
-  const exactText = "Cloud Service Agreement\nVersion 1.0.0\n";
-  const exactTextHash = createHash("sha256")
-    .update(exactText, "utf8")
-    .digest("hex");
-  const operations: { path: string; body: Record<string, unknown> }[] = [];
+  await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+  let requestBody: Record<string, unknown> | undefined;
   await page.route(
-    "**/api/v1/lifecycle/agreement-templates/active?**",
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "55555555-5555-4555-8555-555555555555",
-          type: "csa",
-          semanticVersion: "1.0.0",
-          jurisdiction: "US",
-          effectiveOn: "2026-01-01",
-          canonicalDocumentId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          exactText,
-          exactTextHash,
-          executionMode: "click_through",
-        }),
-      });
-    },
-  );
-  await page.route(
-    "**/api/v1/lifecycle/agreements/click-through",
+    "**/api/experience/projections/customer/quotes/**/actions**",
     async (route) => {
       const request = route.request();
       expect(request.headers()["idempotency-key"]).toBeTruthy();
       expect(request.headers()["x-csrf-token"]).toBeTruthy();
-      operations.push({
-        path: new URL(request.url()).pathname,
-        body: request.postDataJSON() as Record<string, unknown>,
-      });
+      requestBody = request.postDataJSON() as Record<string, unknown>;
       await route.fulfill({
-        status: 200,
+        status: 202,
         contentType: "application/json",
-        body: JSON.stringify({ id: "agreement-demo", status: "executed" }),
+        body: JSON.stringify({
+          id: "action-demo",
+          projectionId: requestBody.projectionId,
+          aggregateType: "quotes",
+          aggregateId: "quote-demo",
+          action: requestBody.action,
+          expectedVersion: requestBody.expectedVersion,
+          status: "queued",
+          createdAt: "2026-07-31T16:00:00.000Z",
+          auditEventId: "audit-demo",
+          outboxMessageId: "outbox-demo",
+        }),
       });
     },
   );
-  await page.route("**/api/v1/core/commands/**", async (route) => {
-    const request = route.request();
-    expect(request.headers()["idempotency-key"]).toBeTruthy();
-    expect(request.headers()["x-csrf-token"]).toBeTruthy();
-    const body = request.postDataJSON() as Record<string, unknown>;
-    operations.push({ path: new URL(request.url()).pathname, body });
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        record: {
-          id: body.id,
-          resource: new URL(request.url()).pathname.split("/").at(-1),
-          rowVersion: 1,
-          data: body.payload,
-        },
-        auditEventId: "audit-demo",
-        outboxEventId: "outbox-demo",
-      }),
-    });
-  });
-
-  await page.goto("/agreements/execute");
-  await expect(page.getByLabel("Exact agreement text")).toContainText(
-    "Cloud Service Agreement Version 1.0.0",
-  );
-  await page.getByRole("checkbox", { name: /authorized to bind/i }).check();
-  await page.getByRole("button", { name: "Accept and execute" }).click();
-  await expect(
-    page.getByText(/recorded the authority evidence/i),
-  ).toBeVisible();
 
   await page.goto("/quotes/new");
-  await page.getByRole("button", { name: "Continue" }).click();
-  const capacity = page.getByLabel("Committed capacity (TB)");
-  await capacity.fill("4");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByText(/at least 10 TB/)).toBeVisible();
-  await capacity.fill("120");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Create priced draft" }).click();
   await expect(
-    page.getByText(/server created the priced draft/i),
+    page.getByRole("heading", { level: 1, name: "Quote workspace" }),
   ).toBeVisible();
-
-  await page.goto("/orders/accept");
-  await page.getByRole("checkbox").check();
   await page
-    .getByRole("button", { name: "Accept order and create commitment" })
+    .getByRole("button", { name: "accept", exact: true })
+    .first()
     .click();
-  await expect(page.getByText(/server created the order/i)).toBeVisible();
-
-  expect(operations.map((operation) => operation.path)).toEqual([
-    "/api/v1/lifecycle/agreements/click-through",
-    "/api/v1/core/commands/quotes",
-    "/api/v1/core/commands/orders",
-  ]);
-  expect(operations[0]?.body).toMatchObject({
-    authorityAttested: true,
-    exactTextHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-  });
-  expect(operations[1]?.body).toMatchObject({
-    action: "create",
-    payload: { route: "direct" },
-  });
-  expect(operations[2]?.body).toMatchObject({
-    action: "create",
-    payload: { authorityAttested: true, poNumber: "PO-NA-1092" },
+  await expect(page.getByText("accept queued")).toBeVisible();
+  expect(requestBody).toMatchObject({
+    action: "accept",
+    expectedVersion: expect.any(Number),
+    projectionId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    payload: {},
   });
 });
 
@@ -243,25 +174,26 @@ test("redirect signing creates an envelope without activating the agreement", as
   page,
 }) => {
   let envelopeRequest: Record<string, unknown> | undefined;
-  await page.route(
-    "**/api/v1/lifecycle/agreements/envelopes",
-    async (route) => {
-      const request = route.request();
-      expect(request.headers()["idempotency-key"]).toBeTruthy();
-      expect(request.headers()["x-csrf-token"]).toBeTruthy();
-      envelopeRequest = request.postDataJSON() as Record<string, unknown>;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "envelope-demo",
-          status: "requested",
-          signingUrl: "https://esign.clockwork.test/redirect/envelope-demo",
-        }),
-      });
-    },
-  );
+  await page.route("**/api/experience/esign/launches", async (route) => {
+    const request = route.request();
+    expect(request.headers()["idempotency-key"]).toBeTruthy();
+    expect(request.headers()["x-csrf-token"]).toBeTruthy();
+    envelopeRequest = request.postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        envelopeId: "envelope-demo",
+        status: "pending",
+        signingUrl: "https://esign.clockwork.test/redirect/envelope-demo",
+        returnState: "opaque-server-state",
+      }),
+    });
+  });
   await page.goto("/signing/redirect");
+  await page
+    .getByLabel("Agreement ID")
+    .fill("99999999-9999-4999-8999-999999999999");
   const continueButton = page.getByRole("button", {
     name: "Continue to secure signing",
   });
@@ -278,7 +210,7 @@ test("redirect signing creates an envelope without activating the agreement", as
   );
   expect(envelopeRequest).toMatchObject({
     mode: "redirect",
-    signerEmail: "maya@northstar.example",
+    agreementId: "99999999-9999-4999-8999-999999999999",
   });
 });
 
@@ -325,7 +257,7 @@ test("billing prepares a Stripe handoff while payment truth remains webhook-deri
   });
 });
 
-test("internal assisted review preserves actor attribution without a local mutation", async ({
+test("internal assisted review names the immutable actor before starting a server session", async ({
   page,
 }) => {
   let commandCalls = 0;
@@ -333,17 +265,26 @@ test("internal assisted review preserves actor attribution without a local mutat
     commandCalls += 1;
     await route.abort();
   });
+  await page.setExtraHTTPHeaders({
+    "x-clockwork-persona": "internal_operator",
+  });
   await page.goto("/internal/assisted");
   await expect(
     page.getByRole("complementary", { name: "Assisted mode active" }),
-  ).toContainText("Morgan Ellis · Internal operator");
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(/Demo internal operator · operator@clockwork.test/),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: /Assisted-mode reason/ })
+    .fill("Customer requested an attributed quote review.");
   await page.getByRole("button", { name: "Review assisted action" }).click();
   await expect(
     page.getByRole("heading", { name: "Assisted action review" }),
   ).toBeVisible();
   await expect(page.getByText("Assisted action not submitted")).toBeVisible();
   await expect(
-    page.getByText(/server preserves the staff actor/i),
+    page.getByRole("button", { name: "Start 15-minute assisted session" }),
   ).toBeVisible();
   expect(commandCalls).toBe(0);
 });

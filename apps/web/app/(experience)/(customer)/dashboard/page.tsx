@@ -1,4 +1,5 @@
 import { CustomerDashboard } from "@/src/features/customer-partner/customer/customer-dashboard";
+import { loadCustomerDashboardProjection } from "@/src/features/experience-server/dashboard-loader";
 import { getRouteRoles } from "@/src/features/shell/route-session";
 
 export default async function Page() {
@@ -6,5 +7,10 @@ export default async function Page() {
   const canCreateQuote = roles.some(
     (role) => role === "owner" || role === "admin",
   );
-  return <CustomerDashboard canCreateQuote={canCreateQuote} />;
+  return (
+    <CustomerDashboard
+      canCreateQuote={canCreateQuote}
+      projection={await loadCustomerDashboardProjection()}
+    />
+  );
 }

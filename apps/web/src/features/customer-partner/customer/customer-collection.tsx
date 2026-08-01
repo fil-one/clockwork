@@ -18,6 +18,7 @@ import {
 } from "./collection-state";
 import type { CustomerCollectionConfig } from "./customer-data";
 import styles from "./customer-collection.module.css";
+import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
 
 const common = customerPartnerCopy.common;
 
@@ -172,9 +173,11 @@ function CollectionCards({
 function SelectedRecord({
   record,
   closeHref,
+  config,
 }: {
   record: CustomerCollectionRecord;
   closeHref: Route;
+  config: CustomerCollectionConfig;
 }) {
   return (
     <section
@@ -215,6 +218,14 @@ function SelectedRecord({
         <summary>{common.technicalDetails}</summary>
         <p>Record reference: {record.id}</p>
       </details>
+      {config.key === "procurement" && record.aggregateId ? (
+        <EvidenceUploadControl
+          journey="procurement"
+          targetId={record.aggregateId}
+          kind="approval"
+          label="Attach procurement evidence"
+        />
+      ) : null}
     </section>
   );
 }
@@ -418,6 +429,7 @@ export function CustomerCollection({
         <SelectedRecord
           record={selected}
           closeHref={stateHref(config.path, activeParams)}
+          config={config}
         />
       ) : null}
 

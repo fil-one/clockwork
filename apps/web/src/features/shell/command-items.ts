@@ -8,13 +8,6 @@ import {
 } from "@clockwork/contracts";
 import type { CommandPaletteItem } from "@clockwork/ui";
 
-import {
-  endClients,
-  invoices,
-  orders,
-  queues,
-  quotes,
-} from "@/src/features/shared/demo-data";
 import { t } from "@/src/i18n/en";
 
 import {
@@ -31,6 +24,10 @@ interface CommandAction {
   keywords: readonly string[];
   requiredPermission?: Permission;
   allowedRoles?: readonly Role[];
+}
+
+export interface CommandItemContext {
+  providerBacked: boolean;
 }
 
 const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
@@ -93,62 +90,6 @@ const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
     ],
   };
 
-function recordItems(audience: ExperienceAudience): CommandPaletteItem[] {
-  if (audience === "partner") {
-    return endClients.slice(0, 3).map((record) => ({
-      id: `record-${record.id}`,
-      label: `${record.id} · ${record.title}`,
-      category: "records",
-      description: record.meta,
-      keywords: [record.id, record.title, record.value ?? "", "end client"],
-      href: `/partner/portfolio/${record.id}`,
-      audiences: [audience],
-    }));
-  }
-
-  if (audience === "internal") {
-    return queues.slice(0, 4).map((record) => ({
-      id: `record-${record.id}`,
-      label: `${record.id} · ${record.title}`,
-      category: "records",
-      description: record.meta,
-      keywords: [record.id, record.title, record.value ?? "", "exception"],
-      href: `/internal/queues/${record.id}`,
-      audiences: [audience],
-    }));
-  }
-
-  return [
-    ...quotes.slice(0, 2).map((record) => ({
-      id: `record-${record.id}`,
-      label: `${record.id} · ${record.title}`,
-      category: "records" as const,
-      description: record.meta,
-      keywords: [record.id, record.title, record.value ?? "", "quote"],
-      href: `/quotes/${record.id}`,
-      audiences: [audience],
-    })),
-    ...orders.slice(0, 2).map((record) => ({
-      id: `record-${record.id}`,
-      label: `${record.id} · ${record.title}`,
-      category: "records" as const,
-      description: record.meta,
-      keywords: [record.id, record.title, record.value ?? "", "order"],
-      href: `/orders/${record.id}`,
-      audiences: [audience],
-    })),
-    ...invoices.slice(0, 2).map((record) => ({
-      id: `record-${record.id}`,
-      label: `${record.id} · ${record.title}`,
-      category: "records" as const,
-      description: record.meta,
-      keywords: [record.id, record.title, record.value ?? "", "invoice"],
-      href: "/billing",
-      audiences: [audience],
-    })),
-  ];
-}
-
 function isCommerceRole(role: string): role is Role {
   return (commerceRoles as readonly string[]).includes(role);
 }
@@ -176,6 +117,7 @@ function canAccessAction(
 export function getCommandItems(
   audience: ExperienceAudience,
   roles: readonly string[],
+  context: CommandItemContext,
 ): CommandPaletteItem[] {
   const navigationItems: CommandPaletteItem[] = navigation[audience]
     .filter((item) => canAccessNavigationItem(item, roles))
@@ -201,5 +143,11 @@ export function getCommandItems(
       audiences: [audience],
     }));
 
-  return [...navigationItems, ...actionItems, ...recordItems(audience)];
+  // Record search must be populated by an account-scoped search projection.
+  // Until that projection is supplied to the shell, fail closed instead of
+  // presenting fixture records as production truth.
+  const items = [...navigationItems, ...actionItems];
+  return context.providerBacked
+    ? items.filter((item) => item.category !== "records")
+    : items;
 }

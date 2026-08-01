@@ -256,7 +256,7 @@ test("command palette supports grouped search, no matches, and focus restoration
   await expectMinimumTarget(trigger);
 
   let { palette, search } = await openCommandPalette(page);
-  for (const group of ["Navigation", "Actions", "Records"] as const) {
+  for (const group of ["Navigation", "Actions"] as const) {
     await expect(
       palette.getByRole("heading", { name: group, exact: true }),
     ).toBeVisible();
@@ -265,8 +265,9 @@ test("command palette supports grouped search, no matches, and focus restoration
     palette.getByText("Build a quote", { exact: true }),
   ).toBeVisible();
   await expect(
-    palette.getByText(/INV-2026-0781.*Northstar Archive Labs/),
-  ).toBeVisible();
+    palette.getByRole("heading", { name: "Records", exact: true }),
+  ).toHaveCount(0);
+  await expect(palette.getByText(/INV-2026-0781/)).toHaveCount(0);
   await expect(palette.getByText("Global search", { exact: true })).toHaveCount(
     0,
   );
@@ -315,11 +316,15 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
       exact: true,
     });
     await expectMinimumTarget(organization);
-    await expect(organization).toHaveValue("acct_northstar");
+    await expect(organization).toHaveValue(
+      "10000000-0000-4000-8000-000000000001",
+    );
     await expectNoHorizontalOverflow(page);
-    await organization.selectOption("acct_meridian");
+    await organization.selectOption("10000000-0000-4000-8000-000000000002");
     await expect(page).toHaveURL(/\/partner$/);
-    await expect(organization).toHaveValue("acct_meridian");
+    await expect(organization).toHaveValue(
+      "10000000-0000-4000-8000-000000000002",
+    );
 
     const header = page.locator("header").filter({ has: organization }).first();
     const box = await header.boundingBox();

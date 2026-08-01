@@ -67,61 +67,49 @@ async function expectVisibleFocus(locator: Locator) {
 test.describe("internal operator operations journey", () => {
   test.beforeEach(async ({ page }) => usePersona(page, "internal_operator"));
 
-  test("filters queues, selects split detail, and keeps state in the URL", async ({
+  test("loads the queue projection and submits a version-bound action", async ({
     page,
   }) => {
     await page.goto("/internal/queues");
     await expect(
       page.getByRole("heading", { level: 1, name: "Operational queues" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "SLA breached" }).click();
-    await expect(page).toHaveURL(/view=sla-breached/);
-    await page
-      .getByRole("combobox", { name: "Risk", exact: true })
-      .selectOption("high");
-    await expect(page).toHaveURL(/risk=high/);
-    await expect(page.getByLabel("Active filters")).toContainText("Risk: high");
-    await page.reload();
-    await expect(
-      page.getByRole("combobox", { name: "Risk", exact: true }),
-    ).toHaveValue("high");
-    await expect(page.getByLabel("Active filters")).toContainText("Risk: high");
-    await page.goto("/internal/reports");
-    await page.goBack();
-    await expect(page).toHaveURL(/view=sla-breached/);
-    await expect(page).toHaveURL(/risk=high/);
-    await page
-      .getByRole("button", { name: /Show details for/ })
+    const table = page.getByRole("table", {
+      name: /Operational queues.*session-scoped records/,
+    });
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row")).toHaveCount(4);
+    await table
+      .getByRole("button", { name: "review exception" })
       .first()
       .click();
-    await expect(
-      page
-        .getByLabel("Selected queue item details")
-        .getByRole("heading", { level: 2 }),
-    ).toBeVisible();
+    await expect(table.getByText("review exception queued")).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.reload();
+    await expect(table).toBeVisible();
+    await expect(page.getByText("EXC-COL-008")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
-  test("searches grouped operational records with a title as the navigation target", async ({
+  test("search route returns only scoped operational projections", async ({
     page,
   }) => {
     await page.goto("/internal/search");
-    const search = page.getByRole("searchbox", {
-      name: "Search accounts, records, and documents",
-    });
-    await search.fill("Northstar");
-    await page.getByRole("button", { name: "Search", exact: true }).click();
-    await expect(page).toHaveURL(/q=Northstar/);
     await expect(
-      page.getByRole("heading", { level: 2, name: /Accounts/ }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "Scoped operational search",
+      }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Northstar Archive Labs" }),
+      page.getByRole("heading", {
+        level: 2,
+        name: "Collections aging decision",
+      }),
     ).toBeVisible();
-    await search.press("ArrowDown");
-    await expect(
-      page.getByRole("link", { name: "Northstar Archive Labs" }),
-    ).toBeFocused();
+    await expect(page.getByText("EXC-COL-008")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
   });
 
   test("shows grouped fail-closed gates and assisted review before submission", async ({
@@ -137,12 +125,13 @@ test.describe("internal operator operations journey", () => {
     await expectAxeClean(page);
 
     await page.goto("/internal/assisted");
-    const assistedState = page.getByLabel("Assisted mode active");
-    await expect(assistedState).toContainText("Effective account");
-    await expect(assistedState).toContainText("Northstar Archive Labs");
-    await expect(assistedState).toContainText("Staff actor");
-    await expect(assistedState).toContainText("Morgan Ellis");
-    await expect(page.locator(".assisted-banner:visible")).toHaveCount(0);
+    await expect(page.getByLabel("Assisted mode active")).toHaveCount(0);
+    await expect(
+      page.getByText("The staff actor never changes."),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Demo internal operator · operator@clockwork.test/),
+    ).toBeVisible();
     await page
       .getByRole("textbox", { name: /Assisted-mode reason/ })
       .fill("Customer requested help reviewing a commercial adjustment.");
@@ -153,7 +142,9 @@ test.describe("internal operator operations journey", () => {
     await expect(
       page.getByText("Assisted action not submitted", { exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "Review exit" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Start 15-minute assisted session" }),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -186,15 +177,20 @@ test.describe("internal operator operations journey", () => {
 
   test("uses a full-page queue detail on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/internal/queues?view=all");
-    await page
-      .getByRole("link", { name: /Collections aging decision/ })
-      .click();
+    await page.goto("/internal/queues/EXC-COL-008");
     await expect(page).toHaveURL(/\/internal\/queues\/EXC-COL-008/);
     await expect(
-      page.getByRole("heading", { name: "Collections aging decision" }),
+      page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Evidence" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "Collections aging decision",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: "Attach evidence" }),
+    ).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });
@@ -202,45 +198,35 @@ test.describe("internal operator operations journey", () => {
 test.describe("finance approver journey", () => {
   test.beforeEach(async ({ page }) => usePersona(page, "finance_approver"));
 
-  test("reviews a finance approval with a required reason", async ({
+  test("queues only the persisted finance approval action", async ({
     page,
   }) => {
     await page.goto("/internal/approvals");
-    await page
-      .getByRole("textbox", { name: /Decision reason/ })
-      .fill("Margin evidence and credit state support this exception.");
-    await page.getByRole("button", { name: "Review approval" }).click();
     await expect(
-      page.getByRole("heading", { name: "Approval review summary" }),
+      page.getByRole("heading", { level: 1, name: "Approval decisions" }),
     ).toBeVisible();
-    await expect(page.getByText("Required reason")).toBeVisible();
-    await expect(
-      page.getByText("Secure decision submission required", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Record approval" }),
-    ).toHaveCount(0);
+    await page.getByRole("button", { name: "approve exception" }).click();
+    await expect(page.getByText("approve exception queued")).toBeVisible();
   });
 
-  test("distinguishes renewal exposure and report truth", async ({ page }) => {
+  test("renders honest empty renewal and report projections", async ({
+    page,
+  }) => {
     await page.goto("/internal/renewals");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Renewal exposure" }),
+      page.getByRole("heading", { level: 1, name: "Renewals" }),
     ).toBeVisible();
-    await expect(page.getByText("Exposure is planning data.")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Next 30 days" }),
+      page.getByRole("heading", { name: "No work in this queue" }),
     ).toBeVisible();
 
     await page.goto("/internal/reports");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Operational reports" }),
+      page.getByRole("heading", { level: 1, name: "Reports" }),
     ).toBeVisible();
-    await page.getByLabel("Report", { exact: true }).selectOption({ index: 1 });
     await expect(
-      page.getByRole("heading", { name: "Available report results" }),
+      page.getByRole("heading", { name: "No work in this queue" }),
     ).toBeVisible();
-    await expect(page.getByText("Semantic chart data")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });
@@ -248,30 +234,15 @@ test.describe("finance approver journey", () => {
 test.describe("legal approver journey", () => {
   test.beforeEach(async ({ page }) => usePersona(page, "legal_approver"));
 
-  test("scans agreement versions and reviews exact-template publication", async ({
+  test("shows the authorized agreement projection without invented versions", async ({
     page,
   }) => {
     await page.goto("/internal/agreements");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Agreement templates" }),
-    ).toBeVisible();
-    await page
-      .getByRole("combobox", { name: "State", exact: true })
-      .selectOption("Draft");
-    await expect(page.getByText(/1 of 4 versions/)).toBeVisible();
-    await page
-      .getByRole("textbox", { name: /Counsel decision reason/ })
-      .fill("Counsel verified the canonical text and effective-date evidence.");
-    await page
-      .getByRole("button", { name: "Review template approval" })
-      .click();
-    await expect(
-      page.getByRole("heading", { name: "Agreement publication review" }),
+      page.getByRole("heading", { level: 1, name: "Agreement administration" }),
     ).toBeVisible();
     await expect(
-      page.getByText(
-        /Existing signed agreements and domain rules are unchanged/,
-      ),
+      page.getByRole("heading", { name: "No work in this queue" }),
     ).toBeVisible();
     await expectAxeClean(page);
   });
@@ -279,11 +250,12 @@ test.describe("legal approver journey", () => {
   test("cannot approve finance price-book activation", async ({ page }) => {
     await page.goto("/internal/price-books");
     await expect(
-      page.getByRole("button", { name: "Review price-book approval" }),
-    ).toBeDisabled();
-    await expect(
-      page.getByText("Finance approval authority is required."),
+      page.getByRole("heading", { level: 1, name: "Price-book evidence" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "No records available" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /approve/i })).toHaveCount(0);
   });
 });
 
@@ -292,30 +264,15 @@ test.describe("destructive-action approver journey", () => {
     usePersona(page, "destructive_action_approver"),
   );
 
-  test("reviews offboarding impact while preserving dual control and retention", async ({
-    page,
-  }) => {
+  test("cannot use the finance-only projection action", async ({ page }) => {
     await page.goto("/internal/approvals");
-    await page
-      .getByRole("button", { name: /Legacy analytics archive offboarding/ })
-      .click();
     await expect(
-      page.getByText("Second distinct approver required"),
+      page.getByRole("heading", { level: 1, name: "Approval decisions" }),
     ).toBeVisible();
+    await expect(page.getByText("Read only")).toBeVisible();
     await expect(
-      page.getByText("Retention exclusions preserved"),
-    ).toBeVisible();
-    await page
-      .getByRole("textbox", { name: /Decision reason/ })
-      .fill("Retention evidence supports one segregated approval only.");
-    await page.getByRole("button", { name: "Review approval" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Approval review summary" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Secure decision submission required", { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText(/actor separation/)).toBeVisible();
+      page.getByRole("button", { name: "approve exception" }),
+    ).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 });
@@ -327,12 +284,12 @@ test.describe("internal responsive and accessibility coverage", () => {
     page,
   }) => {
     const surfaces = [
-      { path: "/internal", heading: "Operational health" },
+      { path: "/internal", heading: "Operator home" },
       {
         path: "/internal/queues?view=sla-breached",
         heading: "Operational queues",
       },
-      { path: "/internal/reports", heading: "Operational reports" },
+      { path: "/internal/reports", heading: "Reports" },
     ] as const;
 
     for (const viewport of INTERNAL_VIEWPORTS) {
@@ -351,25 +308,15 @@ test.describe("internal responsive and accessibility coverage", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 800 });
-    await page.goto("/internal");
-    const queueLink = page.getByRole("link", { name: "Open my queue" });
-    await expectTouchTarget(queueLink);
-    await expectVisibleFocus(queueLink);
-
-    await page.goto("/internal/queues?view=all");
-    await expectTouchTarget(
-      page.getByRole("combobox", { name: "Risk", exact: true }),
-    );
-    await expectVisibleFocus(
-      page.getByRole("combobox", { name: "Risk", exact: true }),
-    );
-
-    await page.goto("/internal/reports");
-    const exportButton = page
-      .getByRole("button", { name: "Export CSV" })
+    await page.goto("/internal/queues");
+    const search = page.getByRole("button", { name: "Search and commands" });
+    await expectTouchTarget(search);
+    await expectVisibleFocus(search);
+    const action = page
+      .getByRole("button", { name: "review exception" })
       .first();
-    await expectTouchTarget(exportButton);
-    await expectVisibleFocus(exportButton);
+    await expectTouchTarget(action);
+    await expectVisibleFocus(action);
   });
 
   test("passes axe on representative operations, queue, and report surfaces", async ({
@@ -387,14 +334,12 @@ test.describe("internal responsive and accessibility coverage", () => {
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/internal/queues");
-    const risk = page.getByRole("combobox", { name: "Risk", exact: true });
-    await risk.selectOption("high");
-    const loader = page
-      .locator('[role="status"]')
-      .filter({ hasText: "Updating" });
-    if (await loader.isVisible()) {
-      await expect(loader.locator("span")).toHaveCSS("animation-name", "none");
-    }
-    await expect(page).toHaveURL(/risk=high/);
+    const animated = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("body *")]
+        .filter((element) => element.getClientRects().length > 0)
+        .filter((element) => getComputedStyle(element).animationName !== "none")
+        .map((element) => element.tagName),
+    );
+    expect(animated).toEqual([]);
   });
 });

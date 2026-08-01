@@ -350,7 +350,9 @@ export class DatabaseExternalGateActivationTaskStore {
         const testAllowsActivation =
           result.status === "passed" &&
           result.simulatorState === "ready" &&
-          (!externalGateRequiresLiveSignedInput(task.gateKey) ||
+          (!externalGateRequiresLiveSignedInput(
+            ExternalGateKeySchema.parse(task.gateKey),
+          ) ||
             result.inputProvenance === "live_signed") &&
           externalGateActivationTestIsCurrent(result.testedAt, input.now);
         const configuredStatus =

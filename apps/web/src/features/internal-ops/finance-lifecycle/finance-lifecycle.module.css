@@ -17,21 +17,21 @@
 }
 
 .eyebrow {
-  margin: 0 0 0.45rem;
-  color: var(--web-warm);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  margin: 0 0 0.35rem;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .title {
   margin: 0;
   color: var(--web-ink);
-  font-size: clamp(1.85rem, 4vw, 3rem);
-  font-weight: 680;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  max-width: 32ch;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
 .description {

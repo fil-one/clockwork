@@ -4,11 +4,10 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
 
 import {
   AppShell as StructuralAppShell,
-  Bell,
   BadgeDollarSign,
   Building2,
   Button,
@@ -35,7 +34,7 @@ import {
   type NavigationGroup,
 } from "@clockwork/ui";
 
-import { accounts } from "@/src/features/shared/demo-data";
+import { switchCommerceAccount } from "@/src/auth/actions";
 import { t } from "@/src/i18n/en";
 
 import { getCommandItems } from "./command-items";
@@ -43,33 +42,15 @@ import {
   canAccessNavigationItem,
   isNavigationItemActive,
   navigation,
-  roleCanAccess,
   type ExperienceAudience,
 } from "./navigation";
+import type { RouteSession } from "./route-session";
 
 const audienceHome: Readonly<Record<ExperienceAudience, Route>> = {
   customer: "/dashboard",
   partner: "/partner",
   internal: "/internal",
 };
-
-const audienceAccount: Readonly<Record<ExperienceAudience, string>> = {
-  customer: accounts[0].id,
-  partner: accounts[1].id,
-  internal: accounts[2].id,
-};
-
-const accountDestination = new Map<string, Route>([
-  [accounts[0].id, audienceHome.customer],
-  [accounts[1].id, audienceHome.partner],
-  [accounts[2].id, audienceHome.internal],
-]);
-
-const accountAudience = new Map<string, ExperienceAudience>([
-  [accounts[0].id, "customer"],
-  [accounts[1].id, "partner"],
-  [accounts[2].id, "internal"],
-]);
 
 const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/dashboard": <LayoutDashboard size={19} strokeWidth={1.8} />,
@@ -124,30 +105,57 @@ function Wordmark({ audience }: { audience: ExperienceAudience }) {
 }
 
 function OrganizationSwitcher({
-  audience,
-  availableAccounts,
+  session,
   announce,
 }: {
-  audience: ExperienceAudience;
-  availableAccounts: readonly (typeof accounts)[number][];
+  session: RouteSession;
   announce: (message: string) => void;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState(audienceAccount[audience]);
+  const [selected, setSelected] = useState(session.selectedAccountId);
+  const [pending, startTransition] = useTransition();
   const selectId = useId();
+  const organizationSwitchAllowed =
+    session.authenticationSource === "local" ||
+    (session.authenticationSource === "workos" && !session.assistedSession);
 
-  useEffect(() => setSelected(audienceAccount[audience]), [audience]);
+  useEffect(
+    () => setSelected(session.selectedAccountId),
+    [session.selectedAccountId],
+  );
 
   const changeOrganization = (accountId: string) => {
-    const account = availableAccounts.find(
-      (candidate) => candidate.id === accountId,
+    if (!organizationSwitchAllowed) {
+      announce(
+        session.assistedSession
+          ? "Exit assisted mode before switching organizations."
+          : "Organization switching is unavailable for this authenticated proof session.",
+      );
+      return;
+    }
+    const membership = session.memberships.find(
+      (candidate) => candidate.accountId === accountId,
     );
-    const destination = accountDestination.get(accountId);
-    if (!account || !destination) return;
+    if (!membership) {
+      announce("That account is not an authorized membership.");
+      return;
+    }
 
     setSelected(accountId);
-    announce(t("app.account.switched", { account: account.name }));
-    router.push(destination);
+    announce(t("app.account.switched", { account: membership.accountName }));
+    if (!session.providerBacked) {
+      router.push(membership.home);
+      return;
+    }
+    startTransition(async () => {
+      const result = await switchCommerceAccount(accountId);
+      if (!result.ok) {
+        setSelected(session.selectedAccountId);
+        announce(
+          "Organization switch was denied. Your session was not changed.",
+        );
+      }
+    });
   };
 
   return (
@@ -158,16 +166,32 @@ function OrganizationSwitcher({
         <select
           id={selectId}
           value={selected}
+          disabled={pending || !organizationSwitchAllowed}
+          aria-describedby={
+            !organizationSwitchAllowed
+              ? `${selectId}-switch-disabled`
+              : undefined
+          }
           onChange={(event) => changeOrganization(event.target.value)}
         >
-          {availableAccounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
+          {session.memberships.map((membership) => (
+            <option
+              key={membership.organizationId}
+              value={membership.accountId}
+            >
+              {membership.accountName}
             </option>
           ))}
         </select>
         <ChevronDown aria-hidden="true" size={16} strokeWidth={1.8} />
       </span>
+      {!organizationSwitchAllowed ? (
+        <span className="sr-only" id={`${selectId}-switch-disabled`}>
+          {session.assistedSession
+            ? "Exit assisted mode before switching organizations."
+            : "Organization switching is unavailable for this authenticated proof session."}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -175,9 +199,13 @@ function OrganizationSwitcher({
 function ShellUtilities({
   audience,
   commandItems,
+  profile,
+  providerBacked,
 }: {
   audience: ExperienceAudience;
   commandItems: readonly CommandPaletteItem[];
+  profile: RouteSession["profile"];
+  providerBacked: boolean;
 }) {
   const router = useRouter();
   const helpHref: Route =
@@ -194,6 +222,12 @@ function ShellUtilities({
       ? "app.help.internal.description"
       : "app.help.description",
   );
+  const initials = profile.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 
   return (
     <nav className="header-actions" aria-label={t("app.nav.secondary")}>
@@ -226,25 +260,9 @@ function ShellUtilities({
           </Button>
         }
       />
-      <StatusBadge tone="warning">{t("app.demo.short")}</StatusBadge>
-      <details className="utility-menu">
-        <summary
-          className="icon-action"
-          aria-label={t("app.notifications.count")}
-          title={t("app.notifications")}
-        >
-          <Bell aria-hidden="true" size={19} strokeWidth={1.8} />
-          <span className="notification-indicator" aria-hidden="true" />
-        </summary>
-        <div className="utility-popover">
-          <strong>{t("app.notifications")}</strong>
-          <ul>
-            <li>{t("app.notifications.renewal")}</li>
-            <li>{t("app.notifications.invoice")}</li>
-            <li>{t("app.notifications.poc")}</li>
-          </ul>
-        </div>
-      </details>
+      {!providerBacked ? (
+        <StatusBadge tone="warning">{t("app.demo.short")}</StatusBadge>
+      ) : null}
       <Link
         className="icon-action"
         href={helpHref}
@@ -259,11 +277,11 @@ function ShellUtilities({
           aria-label={t("app.profile")}
           title={t("app.profile")}
         >
-          MC
+          {initials || "U"}
         </summary>
         <div className="utility-popover">
-          <strong>{t("app.profile.name")}</strong>
-          <p>{t("app.profile.role")}</p>
+          <strong>{profile.name}</strong>
+          <p>{profile.email}</p>
         </div>
       </details>
     </nav>
@@ -272,13 +290,14 @@ function ShellUtilities({
 
 export function AppShell({
   audience,
-  roles,
+  session,
   children,
 }: {
   audience: ExperienceAudience;
-  roles: readonly string[];
+  session: RouteSession;
   children: ReactNode;
 }) {
+  const roles = session.roles;
   const pathname = usePathname();
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
@@ -286,20 +305,12 @@ export function AppShell({
   const [announcement, setAnnouncement] = useState("");
   const runtimeEnvironment =
     process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? "local";
-  const availableAccounts =
-    runtimeEnvironment === "production"
-      ? accounts.filter((account) => {
-          const accountPortal = accountAudience.get(account.id);
-          return (
-            accountPortal !== undefined &&
-            roles.some((role) => roleCanAccess(accountPortal, role))
-          );
-        })
-      : accounts;
-
   const commandItems = useMemo(
-    () => getCommandItems(audience, roles),
-    [audience, roles],
+    () =>
+      getCommandItems(audience, roles, {
+        providerBacked: session.providerBacked,
+      }),
+    [audience, roles, session.providerBacked],
   );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(
     () => [
@@ -370,31 +381,33 @@ export function AppShell({
         navigation={navigationGroups}
         brand={<Wordmark audience={audience} />}
         organization={
-          <OrganizationSwitcher
-            audience={audience}
-            availableAccounts={availableAccounts}
-            announce={setAnnouncement}
-          />
+          <OrganizationSwitcher session={session} announce={setAnnouncement} />
         }
         utilities={
-          <ShellUtilities audience={audience} commandItems={commandItems} />
+          <ShellUtilities
+            audience={audience}
+            commandItems={commandItems}
+            profile={session.profile}
+            providerBacked={session.providerBacked}
+          />
         }
         banner={banner}
         footer={
           <div className="shell-footer-content">
-            <div className="sidebar-meta">
-              <StatusBadge tone="warning">{t("app.demo")}</StatusBadge>
-              <button
-                type="button"
-                className="text-action"
-                onClick={resetDemo}
-                disabled={runtimeEnvironment === "production"}
-              >
-                <RotateCcw aria-hidden="true" size={15} strokeWidth={1.8} />
-                {t("app.demo.reset")}
-              </button>
-              <span>{t("app.requestId", { id: "req_demo_8F4A" })}</span>
-            </div>
+            {!session.providerBacked ? (
+              <div className="sidebar-meta">
+                <StatusBadge tone="warning">{t("app.demo")}</StatusBadge>
+                <button
+                  type="button"
+                  className="text-action"
+                  onClick={resetDemo}
+                  disabled={runtimeEnvironment === "production"}
+                >
+                  <RotateCcw aria-hidden="true" size={15} strokeWidth={1.8} />
+                  {t("app.demo.reset")}
+                </button>
+              </div>
+            ) : null}
             <p>{t("app.footer")}</p>
           </div>
         }

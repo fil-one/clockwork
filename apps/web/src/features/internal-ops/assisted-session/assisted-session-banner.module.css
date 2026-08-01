@@ -55,7 +55,7 @@
   line-height: 1.35;
 }
 
-.banner a {
+.banner button {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
@@ -64,12 +64,14 @@
   border: 1px solid currentColor;
   border-radius: 0.4rem;
   color: inherit;
+  background: transparent;
+  font: inherit;
   font-weight: 750;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.banner a:focus-visible {
+.banner button:focus-visible {
   outline: 3px solid #174f42;
   outline-offset: 2px;
 }
@@ -97,7 +99,7 @@
     grid-column: 1 / -1;
   }
 
-  .banner a {
+  .banner form {
     grid-column: 2;
     grid-row: 1;
   }
@@ -113,7 +115,7 @@
     grid-template-columns: 1fr;
   }
 
-  .banner a {
+  .banner form {
     grid-column: 1;
     grid-row: auto;
     width: fit-content;

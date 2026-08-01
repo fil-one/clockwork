@@ -5,10 +5,25 @@ import {
   type SessionResolver,
 } from "@clockwork/api";
 import {
-  resolveActiveImpersonation,
-  resolveWorkosIdentity,
-} from "@clockwork/db";
+  listAuthorizedMemberships,
+  listAuthorizedMembershipsForUser,
+  selectedMembership,
+  type AuthorizedMembership,
+} from "@/src/auth/identity-repository";
+import { resolveReleaseProofIdentity } from "@/src/auth/release-proof-repository";
+import {
+  releaseProofConfiguration,
+  releaseProofCookieName,
+  verifyReleaseProofCookieValue,
+} from "@/src/auth/release-proof";
+import {
+  resolveAssistedSession,
+  resolveProviderAssistedSession,
+  type AssistedSessionView,
+} from "@/src/features/internal-ops/assisted-session/repository";
+import { resolveWorkosIdentity } from "@clockwork/db";
 import { checkRecentAuth, withAuth } from "@workos-inc/authkit-nextjs";
+import { cookies, headers } from "next/headers";
 
 import { getServiceDatabase } from "@/src/db/service";
 
@@ -19,61 +34,51 @@ const configured = () =>
     process.env.WORKOS_COOKIE_PASSWORD,
   );
 
+export const assistedSessionCookieName = "clockwork-assisted-session";
+
+export interface CommerceSession extends SessionClaims {
+  authenticationSessionId?: string;
+  profile: { name: string; email: string };
+  memberships: readonly AuthorizedMembership[];
+  selectedAccountId?: string;
+  effectiveAccountId?: string;
+  assistedSession?: AssistedSessionView;
+  assistedSessionProvider?: "clockwork" | "workos";
+  providerBacked: boolean;
+  authenticationSource: "local" | "workos" | "release-proof";
+}
+
+export function explicitDemoIdentityEnabled(
+  environment: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return (
+    environment.NODE_ENV !== "production" &&
+    environment.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production" &&
+    environment.CLOCKWORK_EXPERIENCE_ADAPTER === "demo"
+  );
+}
+
 function assertAuthenticationConfiguration() {
-  if (!configured() && process.env.NODE_ENV === "production")
+  if (
+    !configured() &&
+    !releaseProofConfiguration() &&
+    process.env.NODE_ENV === "production"
+  )
     throw new Error("WorkOS credentials are required in production");
 }
 
-export async function requireRecentAuthentication(maxAge = 300) {
-  assertAuthenticationConfiguration();
-  if (!configured()) return;
-  const recent = await checkRecentAuth({ maxAge });
-  if (recent.isStale)
-    throw new Error("Sensitive action requires recent authentication");
-}
-
-export async function getCommerceSession(): Promise<SessionClaims> {
-  assertAuthenticationConfiguration();
-  if (!configured()) {
-    return {
-      userId: "20000000-0000-4000-8000-000000000001",
-      organizationId: "30000000-0000-4000-8000-000000000008",
-      accountIds: [],
-      roles: ["internal_operator"],
-      isInternalStaff: true,
-      mfaVerified: true,
-      recentAuthenticationVerified: true,
-    };
-  }
-
-  const session = await withAuth({ ensureSignedIn: true });
-  if (!session.organizationId)
-    throw new Error("Organization selection is required");
-  const identity = await resolveWorkosIdentity(getServiceDatabase(), {
-    workosUserId: session.user.id,
-    workosOrganizationId: session.organizationId,
-    requestId: `auth:${session.sessionId}`,
-  });
-  const impersonation = session.impersonator
-    ? await resolveActiveImpersonation(getServiceDatabase(), {
-        impersonatorEmail: session.impersonator.email,
-        targetAccountId: identity.accountId,
-        reason: session.impersonator.reason ?? "",
-        requestId: `impersonation:${session.sessionId}`,
-      })
-    : undefined;
-  const normalizedRoles = impersonation?.actualRoles ?? [identity.role];
-  const actorEmail = impersonation?.actualActorEmail ?? session.user.email;
+function assertStaffBoundary(
+  roles: readonly SessionClaims["roles"][number][],
+  isInternalStaff: boolean,
+  actorEmail: string,
+) {
   const emailDomain = actorEmail.split("@")[1]?.toLowerCase() ?? "";
   const staffDomains = (process.env.INTERNAL_EMAIL_DOMAINS ?? "filone.com")
     .split(",")
     .map((domain) => domain.trim().toLowerCase());
-  const hasInternalRole = normalizedRoles.some((role) =>
+  const hasInternalRole = roles.some((role) =>
     internalRoles.includes(role as (typeof internalRoles)[number]),
   );
-  const isInternalStaff = impersonation
-    ? impersonation.isInternalStaff
-    : identity.isInternalStaff;
   if (
     hasInternalRole !== isInternalStaff ||
     (isInternalStaff && !staffDomains.includes(emailDomain))
@@ -81,46 +86,348 @@ export async function getCommerceSession(): Promise<SessionClaims> {
     throw new Error(
       "Commerce role violates the internal-staff identity boundary",
     );
+}
+
+function assertPrivilegedMfa(
+  roles: readonly SessionClaims["roles"][number][],
+  mfaVerified: boolean,
+) {
+  if (
+    roles.some((role) =>
+      privilegedRoles.includes(role as (typeof privilegedRoles)[number]),
+    ) &&
+    !mfaVerified
+  )
+    throw new Error(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+}
+
+function cookieValue(header: string | null, name: string): string | undefined {
+  return header
+    ?.split(";")
+    .map((part) => part.trim().split("="))
+    .find(([candidate]) => candidate === name)
+    ?.slice(1)
+    .join("=");
+}
+
+async function getReleaseProofCommerceSession(input: {
+  proofCookie: string | undefined;
+  assistedCookie: string | undefined;
+  requestOrigin: string | undefined;
+}): Promise<CommerceSession> {
+  const configuration = releaseProofConfiguration();
+  if (
+    !configuration ||
+    input.requestOrigin !== configuration.origin ||
+    !input.proofCookie
+  )
+    throw new Error("Release-proof authentication is unavailable");
+  const payload = verifyReleaseProofCookieValue(
+    input.proofCookie,
+    configuration,
+  );
+  const database = getServiceDatabase();
+  const proof = await resolveReleaseProofIdentity(database, {
+    payload,
+    requestId: `release-proof:${payload.sessionId}`,
+  });
+  let assistedSession: AssistedSessionView | undefined;
+  if (input.assistedCookie && proof.selected.isInternalStaff) {
+    try {
+      assistedSession = await resolveAssistedSession(database, {
+        id: input.assistedCookie,
+        authenticationSessionId: payload.sessionId,
+        internalUserId: proof.selected.userId,
+        requestId: `release-proof-assisted:${payload.sessionId}`,
+      });
+    } catch {
+      // Invalid or expired assisted proof never establishes effective scope.
+    }
+  }
+  const roles = assistedSession?.actualRoles ?? [proof.selected.role];
+  const actorEmail =
+    assistedSession?.actualActorEmail ?? proof.selected.userEmail;
+  const isInternalStaff = assistedSession
+    ? true
+    : proof.selected.isInternalStaff;
+  assertStaffBoundary(roles, isInternalStaff, actorEmail);
+  assertPrivilegedMfa(roles, proof.mfaVerified);
+  const effectiveAccountId =
+    assistedSession?.targetAccountId ?? proof.selected.accountId;
+  return {
+    userId: proof.selected.userId,
+    organizationId: proof.selected.organizationId,
+    accountIds: isInternalStaff
+      ? assistedSession
+        ? [assistedSession.targetAccountId]
+        : []
+      : [proof.selected.accountId],
+    roles,
+    isInternalStaff,
+    mfaVerified: proof.mfaVerified,
+    recentAuthenticationVerified: proof.recentAuthenticationVerified,
+    authenticationSessionId: payload.sessionId,
+    profile: {
+      name: assistedSession?.actualActorName ?? proof.selected.userName,
+      email: actorEmail,
+    },
+    memberships: proof.memberships,
+    selectedAccountId: proof.selected.accountId,
+    effectiveAccountId,
+    providerBacked: true,
+    authenticationSource: "release-proof",
+    ...(assistedSession ? { assistedSession } : {}),
+    ...(assistedSession
+      ? { assistedSessionProvider: "clockwork" as const }
+      : {}),
+    ...(assistedSession
+      ? {
+          impersonation: {
+            accountId: effectiveAccountId,
+            reason: assistedSession.reason,
+            sessionId: assistedSession.id,
+            actualUserId: assistedSession.actualUserId,
+            actualActorEmail: assistedSession.actualActorEmail,
+          },
+        }
+      : {}),
+  };
+}
+
+export async function requireRecentAuthentication(maxAge = 300) {
+  assertAuthenticationConfiguration();
+  if (releaseProofConfiguration()) {
+    const session = await getCommerceSession();
+    if (!session.recentAuthenticationVerified)
+      throw new Error("Sensitive action requires recent authentication");
+    return;
+  }
+  if (!configured()) {
+    if (!explicitDemoIdentityEnabled())
+      throw new Error(
+        "Authentication is unavailable without an explicit non-production demo adapter",
+      );
+    return;
+  }
+  const recent = await checkRecentAuth({ maxAge });
+  if (recent.isStale)
+    throw new Error("Sensitive action requires recent authentication");
+}
+
+export async function getCommerceSession(): Promise<CommerceSession> {
+  assertAuthenticationConfiguration();
+  if (releaseProofConfiguration()) {
+    const [cookieStore, headerStore] = await Promise.all([
+      cookies(),
+      headers(),
+    ]);
+    return getReleaseProofCommerceSession({
+      proofCookie: cookieStore.get(releaseProofCookieName)?.value,
+      assistedCookie: cookieStore.get(assistedSessionCookieName)?.value,
+      requestOrigin: headerStore.get("x-clockwork-proof-origin") ?? undefined,
+    });
+  }
+  if (!configured()) {
+    if (!explicitDemoIdentityEnabled())
+      throw new Error(
+        "Authentication is unavailable without an explicit non-production demo adapter",
+      );
+    const requestHeaders = await headers();
+    const requestedRole = requestHeaders.get("x-clockwork-persona");
+    const role = (
+      requestedRole &&
+      (internalRoles as readonly string[]).includes(requestedRole)
+        ? requestedRole
+        : requestedRole &&
+            [
+              "owner",
+              "admin",
+              "billing",
+              "member",
+              "partner_admin",
+              "partner_seller",
+            ].includes(requestedRole)
+          ? requestedRole
+          : "internal_operator"
+    ) as SessionClaims["roles"][number];
+    const isInternalStaff = internalRoles.includes(
+      role as (typeof internalRoles)[number],
+    );
+    const selectedAccountId =
+      requestHeaders.get("x-clockwork-account") ??
+      (isInternalStaff
+        ? "10000000-0000-4000-8000-000000000009"
+        : role === "partner_admin" || role === "partner_seller"
+          ? "10000000-0000-4000-8000-000000000002"
+          : "10000000-0000-4000-8000-000000000001");
+    return {
+      userId: isInternalStaff
+        ? "20000000-0000-4000-8000-000000000001"
+        : "20000000-0000-4000-8000-000000000002",
+      organizationId: isInternalStaff
+        ? "30000000-0000-4000-8000-000000000008"
+        : "30000000-0000-4000-8000-000000000001",
+      accountIds: isInternalStaff ? [] : [selectedAccountId],
+      roles: [role],
+      isInternalStaff,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+      profile: isInternalStaff
+        ? { name: "Local operator", email: "operator@clockwork.test" }
+        : { name: "Local portal user", email: "portal-user@demo.test" },
+      memberships: [],
+      selectedAccountId,
+      effectiveAccountId: selectedAccountId,
+      providerBacked: false,
+      authenticationSource: "local",
+    };
+  }
+
+  const session = await withAuth({ ensureSignedIn: true });
+  if (!session.organizationId)
+    throw new Error("Organization selection is required");
+  const database = getServiceDatabase();
+  const [identity, memberships] = await Promise.all([
+    resolveWorkosIdentity(database, {
+      workosUserId: session.user.id,
+      workosOrganizationId: session.organizationId,
+      requestId: `auth:${session.sessionId}`,
+    }),
+    listAuthorizedMemberships(database, {
+      workosUserId: session.user.id,
+      requestId: `auth-memberships:${session.sessionId}`,
+    }),
+  ]);
+  const selected = selectedMembership(memberships, session.organizationId);
+  if (
+    selected.userId !== identity.userId ||
+    selected.organizationId !== identity.organizationId ||
+    selected.accountId !== identity.accountId ||
+    selected.role !== identity.role
+  )
+    throw new Error("Selected WorkOS membership does not match commerce scope");
+
+  const assistedCookie = (await cookies()).get(
+    assistedSessionCookieName,
+  )?.value;
+  let assistedSession: AssistedSessionView | undefined;
+  if (assistedCookie && identity.isInternalStaff) {
+    try {
+      assistedSession = await resolveAssistedSession(database, {
+        id: assistedCookie,
+        authenticationSessionId: session.sessionId,
+        internalUserId: identity.userId,
+        requestId: `assisted-session:${session.sessionId}`,
+      });
+    } catch {
+      // An expired, ended, forged, or role-revoked session grants no effective
+      // account. The underlying staff session remains valid and unassisted.
+    }
+  }
+  const providerAssistedSession = session.impersonator
+    ? await resolveProviderAssistedSession(database, {
+        authenticationSessionId: session.sessionId,
+        impersonatorEmail: session.impersonator.email,
+        targetAccountId: identity.accountId,
+        reason: session.impersonator.reason ?? "",
+        requestId: `provider-impersonation:${session.sessionId}`,
+      })
+    : undefined;
+  if (providerAssistedSession && identity.isInternalStaff)
+    throw new Error("Provider assisted access requires a tenant target");
+  const actorMemberships = providerAssistedSession
+    ? await listAuthorizedMembershipsForUser(database, {
+        userId: providerAssistedSession.actualUserId,
+        requestId: `provider-actor-memberships:${session.sessionId}`,
+      })
+    : memberships;
+  const internalActorMemberships = providerAssistedSession
+    ? actorMemberships.filter(
+        ({ audience, isInternalStaff }) =>
+          audience === "internal" && isInternalStaff,
+      )
+    : [];
+  if (providerAssistedSession && internalActorMemberships.length !== 1)
+    throw new Error(
+      "Provider assisted actor is not linked to exactly one staff organization",
+    );
+  const actorSelected = providerAssistedSession
+    ? internalActorMemberships[0]
+    : selected;
+  if (!actorSelected)
+    throw new Error("Provider assisted actor membership is unavailable");
+  const activeAssistedSession = assistedSession ?? providerAssistedSession;
+  const normalizedRoles = activeAssistedSession?.actualRoles ?? [identity.role];
+  const actorEmail =
+    activeAssistedSession?.actualActorEmail ?? selected.userEmail;
+  const isInternalStaff = activeAssistedSession
+    ? true
+    : identity.isInternalStaff;
+  assertStaffBoundary(normalizedRoles, isInternalStaff, actorEmail);
   const policyOrganizations = (
     process.env.WORKOS_MFA_POLICY_ORGANIZATION_IDS ?? ""
   )
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
-  const assuranceOrganizations = impersonation
-    ? impersonation.actualWorkosOrganizationIds
+  const assuranceOrganizations = providerAssistedSession
+    ? internalActorMemberships.map(
+        ({ workosOrganizationId }) => workosOrganizationId,
+      )
     : [session.organizationId];
   const mfaVerified = assuranceOrganizations.some((organizationId) =>
     policyOrganizations.includes(organizationId),
   );
-  if (
-    normalizedRoles.some((role) =>
-      privilegedRoles.includes(role as (typeof privilegedRoles)[number]),
-    ) &&
-    !mfaVerified
-  ) {
-    throw new Error(
-      "Privileged commerce roles require an MFA-policy-enforced session",
-    );
-  }
+  assertPrivilegedMfa(normalizedRoles, mfaVerified);
   const recentAuthentication = await checkRecentAuth({ maxAge: 300 });
-  const accountIds = isInternalStaff ? [] : [identity.accountId];
+  const accountIds = activeAssistedSession
+    ? [activeAssistedSession.targetAccountId]
+    : isInternalStaff
+      ? []
+      : [identity.accountId];
   return {
-    userId: identity.userId,
-    organizationId: identity.organizationId,
+    userId: activeAssistedSession?.actualUserId ?? identity.userId,
+    organizationId: providerAssistedSession
+      ? actorSelected.organizationId
+      : identity.organizationId,
     accountIds,
     roles: normalizedRoles,
     isInternalStaff,
     mfaVerified,
     recentAuthenticationVerified: !recentAuthentication.isStale,
-    ...(session.impersonator && impersonation
+    authenticationSessionId: session.sessionId,
+    profile: {
+      name: activeAssistedSession?.actualActorName ?? selected.userName,
+      email: actorEmail,
+    },
+    memberships: providerAssistedSession ? actorMemberships : memberships,
+    selectedAccountId: providerAssistedSession
+      ? actorSelected.accountId
+      : selected.accountId,
+    effectiveAccountId:
+      activeAssistedSession?.targetAccountId ?? selected.accountId,
+    providerBacked: true,
+    authenticationSource: "workos",
+    ...(activeAssistedSession
+      ? { assistedSession: activeAssistedSession }
+      : {}),
+    ...(activeAssistedSession
+      ? {
+          assistedSessionProvider: providerAssistedSession
+            ? ("workos" as const)
+            : ("clockwork" as const),
+        }
+      : {}),
+    ...(activeAssistedSession
       ? {
           impersonation: {
-            accountId: identity.accountId,
-            reason: session.impersonator.reason ?? "",
-            sessionId: impersonation.sessionId,
-            actualUserId: impersonation.actualUserId,
-            actualActorEmail: impersonation.actualActorEmail,
+            accountId: activeAssistedSession.targetAccountId,
+            reason: activeAssistedSession.reason,
+            sessionId: activeAssistedSession.id,
+            actualUserId: activeAssistedSession.actualUserId,
+            actualActorEmail: actorEmail,
           },
         }
       : {}),
@@ -135,7 +442,27 @@ export class WorkosNextSessionResolver implements SessionResolver {
       new URL(request.url).pathname.endsWith("/v1/lifecycle/registrations")
     )
       return null;
-    if (!configured()) return new LocalSessionResolver().resolve(request);
+    if (releaseProofConfiguration()) {
+      const requestUrl = new URL(request.url);
+      return getReleaseProofCommerceSession({
+        proofCookie: cookieValue(
+          request.headers.get("cookie"),
+          releaseProofCookieName,
+        ),
+        assistedCookie: cookieValue(
+          request.headers.get("cookie"),
+          assistedSessionCookieName,
+        ),
+        requestOrigin: requestUrl.origin,
+      });
+    }
+    if (!configured()) {
+      if (!explicitDemoIdentityEnabled())
+        throw new Error(
+          "Authentication is unavailable without an explicit non-production demo adapter",
+        );
+      return new LocalSessionResolver().resolve(request);
+    }
     return getCommerceSession();
   }
 }

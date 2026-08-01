@@ -276,9 +276,49 @@ export interface GateRecord {
   freshness: string;
   reason: string;
   technicalEvidence?: string;
+  configuredState?: string;
+  effectiveState?: string;
+  activationAllowed?: boolean;
+  blockedReasons?: readonly string[];
+  inputRequired?: string;
+  reviewOn?: string | null;
+  rowVersion?: number;
 }
 
 export const fallbackGates: readonly GateRecord[] = [
+  {
+    id: "EXT-ACC-01",
+    group: "Provider",
+    title: "Hosted accounts and credentials",
+    owner: "Platform owner",
+    capability: "Hosted runtime, MFA, and signed callbacks",
+    activationTest: "Hosted credential suite not run",
+    severity: "Launch blocker",
+    state: "Blocked",
+    freshness: "No production evidence",
+    reason:
+      "Scoped hosted credentials and a passing callback test are required.",
+    configuredState: "pending",
+    effectiveState: "blocked",
+    activationAllowed: false,
+    blockedReasons: ["activation_test_missing", "evidence_missing"],
+  },
+  {
+    id: "EXT-COMMERCIAL-01",
+    group: "Operations",
+    title: "Approved commercial model",
+    owner: "Commercial operations",
+    capability: "Quotes, commitments, floors, and renewals",
+    activationTest: "Golden quote fixtures pass; approval missing",
+    severity: "Launch blocker",
+    state: "Blocked",
+    freshness: "Awaiting dated approval",
+    reason: "A named approver and current pricing evidence are required.",
+    configuredState: "review",
+    effectiveState: "blocked",
+    activationAllowed: false,
+    blockedReasons: ["review_missing_or_expired"],
+  },
   {
     id: "EXT-PROVIDER-01",
     group: "Provider",
@@ -377,5 +417,38 @@ export const fallbackGates: readonly GateRecord[] = [
     freshness: "Tested today at 09:15",
     reason:
       "Recent-authentication and provider authority tests remain pending.",
+  },
+  {
+    id: "EXT-MARKETPLACE-01",
+    group: "Brand",
+    title: "Marketplace identities and settlement",
+    owner: "Marketplace operations",
+    capability: "Private offers, order identity, and settlement replay",
+    activationTest: "Provider-boundary replay not run",
+    severity: "Path blocker",
+    state: "Blocked",
+    freshness: "No provider evidence",
+    reason: "Marketplace identity and settlement replay must pass.",
+    configuredState: "pending",
+    effectiveState: "blocked",
+    activationAllowed: false,
+    blockedReasons: ["activation_test_missing"],
+  },
+  {
+    id: "EXT-MIGRATION-01",
+    group: "Operations",
+    title: "Production migration authority",
+    owner: "Migration lead",
+    capability: "Snapshot, resume, rollback, and readback",
+    activationTest: "Local rehearsal passed; production evidence missing",
+    severity: "Launch blocker",
+    state: "Blocked",
+    freshness: "Awaiting production rehearsal",
+    reason:
+      "A dated production-shaped rehearsal and rollback owner are required.",
+    configuredState: "review",
+    effectiveState: "blocked",
+    activationAllowed: false,
+    blockedReasons: ["evidence_missing"],
   },
 ] as const;

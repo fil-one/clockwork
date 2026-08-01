@@ -3,8 +3,10 @@
 .env.*
 !.env.example
 .next/
+.next-release-*/
 next-env.d.ts
 .turbo/
+.artifacts/
 coverage/
 dist/
 node_modules/

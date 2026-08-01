@@ -1,4 +1,13 @@
-import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
+"use client";
+
+import { useEffect, useState, useTransition, type FormEvent } from "react";
+
+import {
+  ExternalGateClientError,
+  runGeneratedExternalGateActivationTest,
+  updateGeneratedExternalGate,
+  type GeneratedExternalGate,
+} from "@/src/features/contracts/external-gates-client";
 
 import { adminSafetyCopy } from "./copy";
 import type { GateGroup, GateRecord } from "./data";
@@ -19,7 +28,8 @@ const groupOrder: readonly GateGroup[] = [
 
 function gateGroup(key: GeneratedExternalGate["gateKey"]): GateGroup {
   if (["EXT-LEGAL-01", "EXT-TAX-01"].includes(key)) return "Legal";
-  if (["EXT-BRAND-01", "EXT-MARKETPLACE-01"].includes(key)) return "Brand";
+  if (["EXT-BRAND-01", "EXT-DOMAIN-01", "EXT-MARKETPLACE-01"].includes(key))
+    return "Brand";
   if (
     [
       "EXT-COMMERCIAL-01",
@@ -75,10 +85,169 @@ export function presentGeneratedGate(gate: GeneratedExternalGate): GateRecord {
     state: stateLabel(gate.effectiveStatus),
     freshness: `Updated ${updated}`,
     reason: gate.statusReason,
+    configuredState: gate.configuredStatus,
+    effectiveState: gate.effectiveStatus,
+    activationAllowed: gate.activationAllowed,
+    blockedReasons: gate.blockedReasons,
+    inputRequired: gate.inputRequired,
+    reviewOn: gate.reviewOn,
+    rowVersion: gate.rowVersion,
     ...(gate.activationEvidenceReference
       ? { technicalEvidence: gate.activationEvidenceReference }
       : {}),
   };
+}
+
+function GateControls({
+  gate,
+  onUpdated,
+}: {
+  gate: GateRecord;
+  onUpdated: (gate: GeneratedExternalGate) => void;
+}) {
+  const [owner, setOwner] = useState(gate.owner);
+  const [inputRequired, setInputRequired] = useState(gate.inputRequired ?? "");
+  const [configuredStatus, setConfiguredStatus] = useState(
+    gate.configuredState ?? "blocked",
+  );
+  const [reviewOn, setReviewOn] = useState(gate.reviewOn ?? "");
+  const [reason, setReason] = useState(gate.reason);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  const operate = (operation: () => Promise<GeneratedExternalGate>) => {
+    setMessage("");
+    setError("");
+    startTransition(async () => {
+      try {
+        const updated = await operation();
+        onUpdated(updated);
+        setMessage(
+          updated.activationAllowed
+            ? "Server policy allows activation."
+            : "Saved. Activation remains denied by server policy.",
+        );
+      } catch (caught) {
+        setError(
+          caught instanceof ExternalGateClientError
+            ? caught.message
+            : "The gate operation is unavailable. Nothing was changed.",
+        );
+      }
+    });
+  };
+
+  const save = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!gate.rowVersion) return;
+    operate(() =>
+      updateGeneratedExternalGate(gate.id as GeneratedExternalGate["gateKey"], {
+        expectedRowVersion: gate.rowVersion as number,
+        owner,
+        inputRequired,
+        configuredStatus:
+          configuredStatus as GeneratedExternalGate["configuredStatus"],
+        reviewOn: reviewOn || null,
+        statusReason: reason,
+      }),
+    );
+  };
+
+  return (
+    <details>
+      <summary>Update or test gate</summary>
+      <form className={styles.panelBody} onSubmit={save}>
+        <p className={styles.fieldHint}>
+          Both operations require recent authentication. A configured active
+          value never bypasses the server&apos;s test, evidence, owner, and
+          review checks.
+        </p>
+        <label className={styles.field}>
+          Owner
+          <input
+            value={owner}
+            minLength={2}
+            maxLength={200}
+            required
+            onChange={(event) => setOwner(event.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          Required activation input or evidence
+          <textarea
+            value={inputRequired}
+            minLength={8}
+            maxLength={2000}
+            required
+            onChange={(event) => setInputRequired(event.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          Configured state
+          <select
+            value={configuredStatus}
+            onChange={(event) => setConfiguredStatus(event.target.value)}
+          >
+            <option value="blocked">Blocked</option>
+            <option value="review">Review</option>
+            <option value="pending">Pending</option>
+            <option value="active">Active (still policy checked)</option>
+            <option value="not_required">Not required</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          Review date
+          <input
+            type="date"
+            value={reviewOn}
+            onChange={(event) => setReviewOn(event.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          Decision reason
+          <textarea
+            value={reason}
+            minLength={8}
+            maxLength={2000}
+            required
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </label>
+        <div className={styles.inlineActions}>
+          <button className={styles.buttonSecondary} disabled={pending}>
+            {pending ? "Saving…" : "Save configured state"}
+          </button>
+          <button
+            className={styles.button}
+            disabled={pending}
+            type="button"
+            onClick={() => {
+              if (!gate.rowVersion) return;
+              operate(() =>
+                runGeneratedExternalGateActivationTest(
+                  gate.id as GeneratedExternalGate["gateKey"],
+                  gate.rowVersion as number,
+                ),
+              );
+            }}
+          >
+            {pending ? "Testing…" : "Run server activation test"}
+          </button>
+        </div>
+        {message ? (
+          <p className={styles.success} role="status">
+            {message}
+          </p>
+        ) : null}
+        {error ? (
+          <p className={styles.danger} role="alert">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    </details>
+  );
 }
 
 export function GateRegister({
@@ -91,6 +260,14 @@ export function GateRegister({
   source: "System gate registry" | "Fail-closed operational fallback";
 }) {
   const mayOperate = canDecide(roles, "assisted");
+  const [displayGates, setDisplayGates] = useState(gates);
+  useEffect(() => setDisplayGates(gates), [gates]);
+  const updateGate = (updated: GeneratedExternalGate) =>
+    setDisplayGates((current) =>
+      current.map((gate) =>
+        gate.id === updated.gateKey ? presentGeneratedGate(updated) : gate,
+      ),
+    );
   return (
     <AdministrationPage {...adminSafetyCopy.gates}>
       <section className={styles.notice} role="note">
@@ -109,7 +286,9 @@ export function GateRegister({
 
       <div className={styles.gateGroups}>
         {groupOrder.map((group) => {
-          const groupGates = gates.filter((gate) => gate.group === group);
+          const groupGates = displayGates.filter(
+            (gate) => gate.group === group,
+          );
           const blockers = groupGates.filter(
             (gate) => gate.state === "Blocked",
           ).length;
@@ -143,7 +322,7 @@ export function GateRegister({
                         <th scope="col">Affected capability</th>
                         <th scope="col">Activation test</th>
                         <th scope="col">Severity</th>
-                        <th scope="col">State</th>
+                        <th scope="col">Configured / effective</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -166,6 +345,15 @@ export function GateRegister({
                                   : []),
                               ]}
                             />
+                            {mayOperate &&
+                            source === "System gate registry" &&
+                            gate.rowVersion ? (
+                              <GateControls
+                                key={`${gate.id}:${gate.rowVersion}`}
+                                gate={gate}
+                                onUpdated={updateGate}
+                              />
+                            ) : null}
                           </td>
                           <td>{gate.owner}</td>
                           <td>{gate.capability}</td>
@@ -174,7 +362,25 @@ export function GateRegister({
                             <StatusPill state={gate.severity} />
                           </td>
                           <td>
-                            <StatusPill state={gate.state} />
+                            <div>
+                              <small>
+                                Configured: {gate.configuredState ?? "unknown"}
+                              </small>
+                              <StatusPill state={gate.state} />
+                              <small>
+                                Effective: {gate.effectiveState ?? gate.state}
+                              </small>
+                              <strong>
+                                {gate.activationAllowed
+                                  ? "Activation allowed"
+                                  : "Activation denied"}
+                              </strong>
+                              {gate.blockedReasons?.length ? (
+                                <small>
+                                  Blockers: {gate.blockedReasons.join(", ")}
+                                </small>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       ))}

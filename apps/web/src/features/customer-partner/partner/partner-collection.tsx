@@ -8,14 +8,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ApplicationStatePanel, Button } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
-import { requestRenewal } from "@/src/features/contracts/commerce-client";
+import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
 import type {
   PartnerRecord,
   PartnerSurfaceConfig,
   PartnerSurfaceKey,
 } from "./partner-data";
-import { partnerIds } from "./partner-data";
 import {
   filterPartnerRecords,
   paginatePartnerRecords,
@@ -23,7 +22,7 @@ import {
   updatePartnerQuery,
   type PartnerQueryKey,
 } from "./partner-query";
-import { renewalReviewSummary, roleCanUseSurface } from "./partner-rules";
+import { roleCanUseSurface } from "./partner-rules";
 import styles from "./partner.module.css";
 
 const copy = customerPartnerCopy.common;
@@ -176,7 +175,13 @@ function RecordCards({ records }: { records: readonly PartnerRecord[] }) {
   );
 }
 
-function PriceBoundary({ surface }: { surface: PartnerSurfaceKey }) {
+function PriceBoundary({
+  surface,
+  partnerName,
+}: {
+  surface: PartnerSurfaceKey;
+  partnerName: string;
+}) {
   if (
     !["portfolio", "quotes", "billing", "renewals", "commissions"].includes(
       surface,
@@ -185,8 +190,8 @@ function PriceBoundary({ surface }: { surface: PartnerSurfaceKey }) {
     return null;
   const merchant =
     surface === "billing"
-      ? "Meridian Channel Group for end-client resale; Clockwork invoices Meridian"
-      : "Meridian Channel Group on resale routes";
+      ? `${partnerName} for end-client resale; Clockwork invoices the selected partner account`
+      : `${partnerName} on resale routes`;
   return (
     <section className={styles.boundary} aria-label="Commercial price boundary">
       <div>
@@ -197,7 +202,9 @@ function PriceBoundary({ surface }: { surface: PartnerSurfaceKey }) {
       </div>
       <div>
         <h2>{partnerCopy.partnerPrice}</h2>
-        <p>Set and controlled by Meridian; shown to the named end client.</p>
+        <p>
+          Set and controlled by {partnerName}; shown to the named end client.
+        </p>
       </div>
       <div>
         <h2>{partnerCopy.merchantOfRecord}</h2>
@@ -209,34 +216,43 @@ function PriceBoundary({ surface }: { surface: PartnerSurfaceKey }) {
   );
 }
 
-function RenewalPanel() {
+function RenewalPanel({ record }: { record: PartnerRecord | undefined }) {
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [message, setMessage] = useState("");
   const idempotencyKeyRef = useRef<string | null>(null);
-  const summary = renewalReviewSummary({
-    client: "Halcyon Research Cooperative",
-    action: "renew",
-    currentEnd: "December 31, 2026",
-    requestedMonths: 12,
-    transferPrice: "$91,200 annually",
-    resalePrice: "$112,000 annually",
-    merchantOfRecord: "Meridian Channel Group",
-  });
+  const canRequest = Boolean(
+    record?.projectionId &&
+    record.recordKey &&
+    record.recordVersion &&
+    record.allowedActions?.includes("request_renewal"),
+  );
+  const summary = record
+    ? [record.name, record.context, record.value, record.secondary]
+    : [];
   async function submit() {
-    if (!confirmed) return;
+    if (
+      !confirmed ||
+      !record?.projectionId ||
+      !record.recordKey ||
+      !record.recordVersion
+    )
+      return;
     setPending(true);
     setMessage("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      await requestRenewal(
+      await sendProjectionAction(
         {
-          orderId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-          accountId: partnerIds.endClient,
-          requestedAction: "renew",
-          requestedTermMonths: 12,
+          audience: "partner",
+          channel: "renewals",
+          recordKey: record.recordKey,
+          projectionId: record.projectionId,
+          action: "request_renewal",
+          expectedVersion: record.recordVersion,
+          payload: {},
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
@@ -264,7 +280,7 @@ function RenewalPanel() {
             an explicit review.
           </p>
           <Button onClick={() => setReviewing(true)}>
-            Review Halcyon renewal
+            {record ? `Review ${record.name}` : "No renewal selected"}
           </Button>
         </>
       ) : (
@@ -296,7 +312,7 @@ function RenewalPanel() {
               Back
             </Button>
             <Button
-              disabled={!confirmed || succeeded}
+              disabled={!confirmed || succeeded || !canRequest}
               loading={pending}
               onClick={() => {
                 void submit();
@@ -320,10 +336,12 @@ export function PartnerCollection({
   surface,
   config,
   roles,
+  partnerName,
 }: {
   surface: PartnerSurfaceKey;
   config: PartnerSurfaceConfig;
   roles: readonly string[];
+  partnerName: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -380,7 +398,7 @@ export function PartnerCollection({
         ) : null}
       </header>
 
-      <PriceBoundary surface={surface} />
+      <PriceBoundary partnerName={partnerName} surface={surface} />
       {config.gate ? <p className={styles.gate}>{config.gate}</p> : null}
 
       <form
@@ -551,7 +569,9 @@ export function PartnerCollection({
           </nav>
         ) : null}
       </section>
-      {surface === "renewals" && canUse ? <RenewalPanel /> : null}
+      {surface === "renewals" && canUse ? (
+        <RenewalPanel record={config.records[0]} />
+      ) : null}
     </main>
   );
 }

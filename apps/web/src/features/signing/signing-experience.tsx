@@ -1,53 +1,83 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button, Input, StatusBadge } from "@clockwork/ui";
 
 import {
-  CommerceApiError,
-  startAgreementEnvelope,
-} from "@/src/features/contracts/commerce-client";
+  readAuthoritativeSigningReturn,
+  startAuthoritativeSigning,
+} from "@/src/features/contracts/experience-client";
 import { trustedSigningUrl } from "@/src/features/contracts/provider-navigation";
-import { signingFixture } from "@/src/features/shared/demo-data";
+import type { EsignReturnStatus } from "@/src/features/experience-server/model";
 import { t } from "@/src/i18n/en";
 
-type SigningState = "review" | "loading" | "failed" | "requested" | "returned";
+type SigningState =
+  | "review"
+  | "loading"
+  | "failed"
+  | "requested"
+  | "pending"
+  | "completed"
+  | "declined"
+  | "expired";
 
 function value(data: FormData, name: string): string {
   const raw = data.get(name);
   return typeof raw === "string" ? raw.trim() : "";
 }
 
-const demoMode = ["development", "test"].includes(
-  process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? process.env.NODE_ENV ?? "",
-);
-const demoIds = {
-  account: "11111111-1111-4111-8111-111111111111",
-  agreement: "99999999-9999-4999-8999-999999999999",
-  document: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-};
-
 export function SigningExperience({
   mode,
-  verified = false,
+  returnState,
+  agreementId = "",
 }: {
   mode: "redirect" | "embedded" | "return";
-  verified?: boolean;
+  returnState?: string;
+  agreementId?: string;
 }) {
   const [state, setState] = useState<SigningState>(
-    mode === "return" && verified && demoMode
-      ? "returned"
-      : mode === "return"
-        ? "failed"
-        : "review",
+    mode === "return" ? "loading" : "review",
   );
   const [error, setError] = useState("");
   const [providerUrl, setProviderUrl] = useState("");
+  const [returnStatus, setReturnStatus] = useState<EsignReturnStatus | null>(
+    null,
+  );
   const [hydrated, setHydrated] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setHydrated(true), []);
+
+  const reconcileReturn = useCallback(async () => {
+    if (!returnState) {
+      setError(
+        "The signing return does not contain an authoritative state reference.",
+      );
+      setState("failed");
+      return;
+    }
+    setError("");
+    setState("loading");
+    try {
+      const status = await readAuthoritativeSigningReturn(returnState);
+      setReturnStatus(status);
+      setState(status.state);
+    } catch (caught) {
+      setReturnStatus(null);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The signing state could not be verified by the server.",
+      );
+      setState("failed");
+      window.setTimeout(() => errorRef.current?.focus(), 0);
+    }
+  }, [returnState]);
+
+  useEffect(() => {
+    if (mode === "return") void reconcileReturn();
+  }, [mode, reconcileReturn]);
 
   const beginSigning = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -57,38 +87,17 @@ export function SigningExperience({
       form.querySelector<HTMLElement>(":invalid")?.focus();
       return;
     }
-    const data = new FormData(form);
     setError("");
     setProviderUrl("");
     setState("loading");
     try {
-      const session = await startAgreementEnvelope({
-        accountId: value(data, "accountId"),
-        agreementId: value(data, "agreementId"),
-        documentId: value(data, "documentId"),
-        signerEmail: value(data, "signerEmail"),
+      const session = await startAuthoritativeSigning({
+        agreementId: value(new FormData(form), "agreementId"),
         mode: mode === "embedded" ? "embedded" : "redirect",
-        returnUrl: `${window.location.origin}/signing/return`,
       });
-      if (!session.signingUrl)
-        throw new Error(
-          "The e-sign provider did not return a signing session URL.",
-        );
       setProviderUrl(trustedSigningUrl(session.signingUrl));
       setState("requested");
     } catch (caught) {
-      if (
-        caught instanceof CommerceApiError &&
-        caught.code === "unavailable" &&
-        demoMode
-      ) {
-        if (mode === "redirect") {
-          window.location.assign(
-            `/signing/return?envelope=${signingFixture.envelope}&status=${signingFixture.status}&hash=${signingFixture.hash}`,
-          );
-        } else setState("returned");
-        return;
-      }
       setError(
         caught instanceof Error
           ? caught.message
@@ -100,11 +109,19 @@ export function SigningExperience({
   };
 
   const tone =
-    state === "returned"
+    state === "completed"
       ? "success"
-      : state === "failed"
+      : ["failed", "declined", "expired"].includes(state)
         ? "danger"
         : "neutral";
+  const statusLabel =
+    state === "completed"
+      ? t("status.signed")
+      : state === "pending" || state === "requested" || state === "loading"
+        ? t("status.pending")
+        : ["failed", "declined", "expired"].includes(state)
+          ? t("status.blocked")
+          : t("status.ready");
 
   return (
     <main className="signing-main" id="main-content">
@@ -112,54 +129,28 @@ export function SigningExperience({
         <div className="signing-wordmark">
           FIL ONE <span>{t("app.product")}</span>
         </div>
-        <StatusBadge tone={tone}>
-          {t(
-            state === "returned"
-              ? "status.signed"
-              : state === "failed"
-                ? "status.blocked"
-                : state === "requested"
-                  ? "status.pending"
-                  : "status.ready",
-          )}
-        </StatusBadge>
+        <StatusBadge tone={tone}>{statusLabel}</StatusBadge>
       </header>
       <section className="signing-card" aria-live="polite">
         <p className="eyebrow">{t("signing.eyebrow")}</p>
         <h1>{t(mode === "embedded" ? "signing.embedded" : "signing.title")}</h1>
         <p>{t("signing.description")}</p>
         {mode !== "return" ? (
-          <form
-            onSubmit={(event) => {
-              void beginSigning(event);
-            }}
-            noValidate
-          >
-            <Input
-              label="Account ID"
-              name="accountId"
-              defaultValue={demoMode ? demoIds.account : ""}
-              required
-            />
-            <Input
-              label="Agreement ID"
-              name="agreementId"
-              defaultValue={demoMode ? demoIds.agreement : ""}
-              required
-            />
-            <Input
-              label="Exact document ID"
-              name="documentId"
-              defaultValue={demoMode ? demoIds.document : ""}
-              required
-            />
-            <Input
-              label="Signer email"
-              name="signerEmail"
-              type="email"
-              defaultValue={demoMode ? "maya@northstar.example" : ""}
-              required
-            />
+          <form onSubmit={(event) => void beginSigning(event)} noValidate>
+            {agreementId ? (
+              <>
+                <input type="hidden" name="agreementId" value={agreementId} />
+                <p>
+                  Agreement reference: <strong>{agreementId}</strong>
+                </p>
+              </>
+            ) : (
+              <Input label="Agreement ID" name="agreementId" required />
+            )}
+            <p>
+              Your account, signer identity, and immutable agreement document
+              are selected by the server from this persisted agreement.
+            </p>
             {state === "loading" ? (
               <div className="provider-state" role="status">
                 <span className="provider-progress" aria-hidden="true" />
@@ -226,10 +217,50 @@ export function SigningExperience({
             </div>
           </form>
         ) : null}
-        {state === "returned" ? (
+
+        {mode === "return" && state === "loading" ? (
+          <div className="provider-state" role="status">
+            <p>Checking the persisted envelope status…</p>
+          </div>
+        ) : null}
+        {mode === "return" && state === "completed" ? (
           <div className="provider-state provider-state--success" role="status">
             <h2>{t("state.success.title")}</h2>
             <p>{t("signing.returned")}</p>
+            {returnStatus?.signedDocumentId && returnState ? (
+              <a
+                className="cw-button cw-button--secondary"
+                href={`/api/experience/esign/returns/${encodeURIComponent(returnState)}/signed-document`}
+              >
+                Download signed agreement
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+        {mode === "return" && state === "pending" ? (
+          <div className="provider-state" role="status">
+            <h2>Signature pending</h2>
+            <p>The provider has not yet confirmed a completed signature.</p>
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => void reconcileReturn()}
+            >
+              Refresh status
+            </Button>
+          </div>
+        ) : null}
+        {mode === "return" && (state === "declined" || state === "expired") ? (
+          <div className="provider-state provider-state--error" role="alert">
+            <h2>
+              {state === "declined"
+                ? "Signature declined"
+                : "Signing session expired"}
+            </h2>
+            <p>
+              The agreement remains unchanged. Return to the agreement to review
+              next steps.
+            </p>
           </div>
         ) : null}
         {mode === "return" && state === "failed" ? (
@@ -240,7 +271,7 @@ export function SigningExperience({
             role="alert"
           >
             <h2>{t("signing.failed")}</h2>
-            <p>{t("signing.unverified")}</p>
+            <p>{error || t("signing.unverified")}</p>
           </div>
         ) : null}
       </section>
