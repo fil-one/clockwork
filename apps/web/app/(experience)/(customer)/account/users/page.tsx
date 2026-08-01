@@ -1,4 +1,22 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
-export default function Page() {
-  return <ExperiencePage surface="users" />;
+import { CustomerCollection } from "@/src/features/customer-partner/customer/customer-collection";
+import { customerCollections } from "@/src/features/customer-partner/customer/customer-data";
+import type { RawCollectionSearchParams } from "@/src/features/customer-partner/customer/collection-state";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<RawCollectionSearchParams>;
+}) {
+  return (
+    <SurfacePermissionGate
+      audience="customer"
+      requiredPermission="account:write"
+    >
+      <CustomerCollection
+        config={customerCollections.users}
+        searchParams={await searchParams}
+      />
+    </SurfacePermissionGate>
+  );
 }

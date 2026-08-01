@@ -1,4 +1,4 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { PartnerDashboard } from "@/src/features/customer-partner/partner/partner-dashboard";
 export default function Page() {
-  return <ExperiencePage surface="partner" />;
+  return <PartnerDashboard />;
 }
