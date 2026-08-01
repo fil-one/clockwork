@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "title": "Clockwork runtime operations",
+  "backend": "opentelemetry-neutral",
+  "externalGate": "EXT-ACC-01",
+  "requiredCorrelation": [
+    "clockwork.request.id",
+    "clockwork.workflow.id",
+    "clockwork.task.id",
+    "clockwork.audit.id",
+    "clockwork.outbox.id"
+  ],
+  "panels": [
+    {
+      "id": "server-api-errors",
+      "title": "Server and API error rate",
+      "source": "spans",
+      "filter": "clockwork.boundary in [server,api]",
+      "measure": "error_ratio",
+      "groupBy": ["http.route", "error.code"]
+    },
+    {
+      "id": "database-latency",
+      "title": "Database latency and errors",
+      "source": "spans",
+      "filter": "clockwork.boundary=db",
+      "measure": "duration_p95_and_error_ratio",
+      "groupBy": ["db.operation.name"]
+    },
+    {
+      "id": "workflow-tasks",
+      "title": "Workflow/task attempts",
+      "source": "spans",
+      "filter": "clockwork.boundary=workflow",
+      "measure": "count_duration_and_error_ratio",
+      "groupBy": ["workflow.name", "clockwork.task.id"]
+    },
+    {
+      "id": "provider-effects",
+      "title": "Provider effects",
+      "source": "spans",
+      "filter": "clockwork.boundary=provider",
+      "measure": "count_duration_error_and_denial",
+      "groupBy": ["provider.name", "provider.operation", "error.code"]
+    },
+    {
+      "id": "webhook-processing",
+      "title": "Webhook verification and apply",
+      "source": "spans",
+      "filter": "clockwork.boundary=webhook",
+      "measure": "count_duration_and_error_ratio",
+      "groupBy": ["webhook.provider", "error.code"]
+    },
+    {
+      "id": "queue-age-dead-letter",
+      "title": "Queue age and dead letters",
+      "source": "spans",
+      "filter": "clockwork.boundary=queue",
+      "measure": "max(queue.age_ms)_and_error_count",
+      "groupBy": ["messaging.destination.name", "error.code"]
+    },
+    {
+      "id": "outbox-backlog",
+      "title": "Outbox age and delivery",
+      "source": "spans",
+      "filter": "clockwork.boundary=outbox",
+      "measure": "max(outbox.age_ms)_and_error_count",
+      "groupBy": ["messaging.destination.name", "error.code"]
+    },
+    {
+      "id": "correlation-search",
+      "title": "Request to effect correlation",
+      "source": "spans",
+      "filter": "clockwork.request.id exists",
+      "measure": "trace_table",
+      "groupBy": [
+        "clockwork.request.id",
+        "clockwork.workflow.id",
+        "clockwork.task.id",
+        "clockwork.audit.id",
+        "clockwork.outbox.id"
+      ]
+    }
+  ]
+}
