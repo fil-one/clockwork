@@ -486,6 +486,18 @@ export function releaseSummaryIssues(
   )
     issues.push("summary installation mode is invalid");
   if (
+    !["fresh-ci-checkout", "detached-clean-worktree"].includes(
+      summary.installationPolicy?.fetchWorkspaceIsolation,
+    ) ||
+    (summary.installationPolicy?.mode === "fresh-ci-checkout" &&
+      summary.installationPolicy?.fetchWorkspaceIsolation !==
+        "fresh-ci-checkout") ||
+    (summary.installationPolicy?.mode === "detached-clean-worktrees" &&
+      summary.installationPolicy?.fetchWorkspaceIsolation !==
+        "detached-clean-worktree")
+  )
+    issues.push("summary fetch workspace isolation is invalid");
+  if (
     typeof summary.installationPolicy?.isolatedStore !== "string" ||
     typeof summary.cachePolicy?.pnpmStore !== "string" ||
     path.resolve(summary.installationPolicy.isolatedStore) !==

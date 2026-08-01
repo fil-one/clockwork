@@ -101,6 +101,7 @@ const installationPolicy = {
   frozenLockfile: true,
   isolatedStore: cachePolicy.pnpmStore,
   mode: "detached-clean-worktrees",
+  fetchWorkspaceIsolation: "detached-clean-worktree",
 };
 
 function result(suite) {
@@ -491,6 +492,7 @@ test("requires an attested frozen install in the isolated release store", () => 
       frozenLockfile: false,
       isolatedStore: "/unrelated/pnpm-store",
       mode: "unverified-shared-workspace",
+      fetchWorkspaceIsolation: "source-workspace",
     },
     results: [result("static")],
   };
@@ -500,7 +502,40 @@ test("requires an attested frozen install in the isolated release store", () => 
   });
   assert.ok(issues.some((issue) => issue.includes("frozen install")));
   assert.ok(issues.some((issue) => issue.includes("installation mode")));
+  assert.ok(
+    issues.some((issue) => issue.includes("fetch workspace isolation")),
+  );
   assert.ok(issues.some((issue) => issue.includes("differs")));
+});
+
+test("rejects a detached install that populates its store from the source workspace", () => {
+  const summary = {
+    mode: "parallel",
+    debug: false,
+    status: "passed",
+    toolchain: {
+      node: "v24.18.1",
+      pnpm: "10.34.5",
+      pnpmNode: "v24.18.1",
+    },
+    durationMs: 1_000,
+    budgetMs: 60_000,
+    withinBudget: true,
+    sourceIdentity,
+    cachePolicy,
+    installationPolicy: {
+      ...installationPolicy,
+      fetchWorkspaceIsolation: "source-workspace",
+    },
+    results: [result("static")],
+  };
+  const issues = releaseSummaryIssues(summary, {
+    expectedMode: "parallel",
+    requireEverySuite: false,
+  });
+  assert.ok(
+    issues.some((issue) => issue.includes("fetch workspace isolation")),
+  );
 });
 
 test("rejects cleanup roots that could delete retained artifacts or the source workspace", () => {

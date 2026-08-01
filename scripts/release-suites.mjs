@@ -951,6 +951,7 @@ async function main() {
   const cleanupFailures = [];
   let frozenInstallVerified = false;
   let installationMode = "plan";
+  let fetchWorkspaceIsolation = "plan";
   let executionError;
   let completedSummary;
   let completedSummaryPath;
@@ -969,6 +970,7 @@ async function main() {
       for (const name of names) workspaces.set(name, process.cwd());
       frozenInstallVerified = true;
       installationMode = "fresh-ci-checkout";
+      fetchWorkspaceIsolation = "fresh-ci-checkout";
     } else {
       for (const name of names) {
         const temporaryRoot = await mkdtemp(
@@ -988,13 +990,21 @@ async function main() {
       }
       const setupDirectory = path.join(artifactRoot, "setup");
       await mkdir(setupDirectory, { recursive: true });
+      const storePopulationWorkspace = workspaces.values().next().value;
+      if (
+        !storePopulationWorkspace ||
+        path.resolve(storePopulationWorkspace) === path.resolve(process.cwd())
+      )
+        throw new Error("No isolated workspace is available for setup.");
       const fetched = await runCommand(
         "pnpm",
         ["fetch", "--store-dir", pnpmStore],
         baseEnvironment,
         path.join(setupDirectory, "frozen-fetch.log"),
         "setup:fetch",
-        process.cwd(),
+        // Populate from a clean detached checkout. Running with a different
+        // store in the source checkout would make pnpm replace its node_modules.
+        storePopulationWorkspace,
         deadlineAt,
       );
       if (fetched.exitCode !== 0)
@@ -1038,6 +1048,7 @@ async function main() {
         throw new Error("At least one isolated dependency rebuild failed.");
       frozenInstallVerified = true;
       installationMode = "detached-clean-worktrees";
+      fetchWorkspaceIsolation = "detached-clean-worktree";
       if (names.some((name) => name === "ui" || name === "proof")) {
         const browserWorkspace = workspaces.values().next().value;
         const browserInstall = await runCommand(
@@ -1126,6 +1137,7 @@ async function main() {
         frozenLockfile: true,
         isolatedStore: pnpmStore,
         mode: installationMode,
+        fetchWorkspaceIsolation,
       },
       status: results.every(
         (result) => result.status === "passed" || result.status === "planned",
