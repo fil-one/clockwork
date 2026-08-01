@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:30:00Z",
-  "captureCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
-  "captureTree": "5e1229b8c1ddba956262e476c18f7682280c458c",
-  "captureTreeListingSha256": "48f5c3e02a9e73d085efc4afbe39e54a0fa5531607c8bd873615c10501236f24",
+  "capturedAt": "2026-08-01T02:39:00Z",
+  "captureCommit": "34c2a5001859221dc3def61d7d86231fe2026151",
+  "captureTree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
+  "captureTreeListingSha256": "1924447e79611215e72d2cd2e3181ff43bf3465e82e22158913609d0f50cb80a",
   "artifactCount": 489,
   "categories": {
     "contract-release": {
@@ -50,7 +50,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 68,
-      "aggregateSha256": "1c70ffa3ce446d37691ec7cc53a3d8f9b794bb360ca0f10aa9132aec210b3605",
+      "aggregateSha256": "6b78e128e3ef8a475145bcfc5c63ba301b821c47325e31cefd16076ed1d51f0f",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -579,8 +579,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 4079,
-      "sha256": "b18dcdd07ea82e2fac7ff5a44a3ce1c20ccae525ab0cefc7550b2315d0e7905b"
+      "bytes": 4141,
+      "sha256": "3b7108397c17935769d1467b7dc9e65db89d12974daffc484bf730c696bbd98d"
     },
     {
       "path": ".node-version",
@@ -2839,8 +2839,8 @@
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",
-      "bytes": 23085,
-      "sha256": "ea675b8dab48542af6801a49506c919fe20b292a7bc80c4136792e51572df365"
+      "bytes": 23189,
+      "sha256": "3b07bf9b1926b0709803196cc1ac0e264c96ad362fe064309b25c58f97347912"
     },
     {
       "path": "scripts/validate-traceability.mjs",

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:30:00Z",
+  "capturedAt": "2026-08-01T02:39:00Z",
   "captureRef": "main",
-  "captureCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
-  "captureTree": "5e1229b8c1ddba956262e476c18f7682280c458c",
+  "captureCommit": "34c2a5001859221dc3def61d7d86231fe2026151",
+  "captureTree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
   "captureMode": "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
   "mainBase": "92d10d3b8a12728804b70215799f9929e880c996",
   "releaseCandidateBaseRef": "rc-lanes-base-20260731^{commit}",
@@ -90,16 +90,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "object": "34c2a5001859221dc3def61d7d86231fe2026151",
       "objectType": "commit",
-      "peeledCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
-      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
-      "tree": "5e1229b8c1ddba956262e476c18f7682280c458c",
+      "peeledCommit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "tree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
       "treeEntryCount": 708,
-      "treeListingSha256": "48f5c3e02a9e73d085efc4afbe39e54a0fa5531607c8bd873615c10501236f24",
-      "parents": ["f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"],
-      "subject": "docs: refresh committed baseline evidence",
-      "mergeBaseWithMain": "7ae3fbcb01c736004faf73419b0092c905d61090"
+      "treeListingSha256": "1924447e79611215e72d2cd2e3181ff43bf3465e82e22158913609d0f50cb80a",
+      "parents": ["7ae3fbcb01c736004faf73419b0092c905d61090"],
+      "subject": "fix: make clean qualification deterministic",
+      "mergeBaseWithMain": "34c2a5001859221dc3def61d7d86231fe2026151"
     },
     {
       "ref": "ux/customer-partner",
@@ -361,7 +361,7 @@
     },
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
-      "head": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "head": "34c2a5001859221dc3def61d7d86231fe2026151",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -370,8 +370,6 @@
         "staged": [],
         "unstaged": [
           ".github/workflows/ci.yml",
-          "docs/release-candidate-report.md",
-          "package.json",
           "scripts/run-baseline-qualification.mjs"
         ],
         "untracked": [],
@@ -404,7 +402,7 @@
         ],
         "ignoredArtifactCount": 61283,
         "ignoredArtifactListingSha256": "5e4e05e18cf7d0939a2e2e7135236737539cb3fcf339513d724cb3fc9b4f73b9",
-        "porcelainSha256": "c4429070c80ecc6b67571ae04db9a277856c045a4ea56223f22a6199ffdb034d"
+        "porcelainSha256": "fdbf9fae7b7f503099d5bd7088bac0cc31cd09b87e4c93f5c6e5f4f82ad350b3"
       }
     },
     {
@@ -553,6 +551,12 @@
   ],
   "allReachableCommits": [
     {
+      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "tree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
+      "parents": ["7ae3fbcb01c736004faf73419b0092c905d61090"],
+      "subject": "fix: make clean qualification deterministic"
+    },
+    {
       "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
       "tree": "5e1229b8c1ddba956262e476c18f7682280c458c",
       "parents": ["f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"],
@@ -700,7 +704,7 @@
       "subject": "feat: establish Clockwork commerce foundation"
     }
   ],
-  "reachableCommitCount": 21,
+  "reachableCommitCount": 22,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -991,6 +995,16 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "selector": "refs/heads/main@{2026-07-31T22:29:23-04:00}",
+      "subject": "commit: fix: make clean qualification deterministic"
+    },
+    {
+      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "selector": "HEAD@{2026-07-31T22:29:23-04:00}",
+      "subject": "commit: fix: make clean qualification deterministic"
+    },
     {
       "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
       "selector": "refs/heads/main@{2026-07-31T22:19:16-04:00}",

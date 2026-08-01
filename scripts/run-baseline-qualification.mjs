@@ -352,6 +352,7 @@ const steps = [
     environment: {
       ...databaseEnvironment,
       APP_ORIGIN: "http://localhost:3000",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     },
     dependsOn: databaseReady,
   },
@@ -378,6 +379,7 @@ const steps = [
     environment: {
       ...databaseEnvironment,
       APP_ORIGIN: "http://localhost:3000",
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     },
     dependsOn: ["db-reset-before-serial"],
   },
