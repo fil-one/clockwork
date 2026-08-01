@@ -1,5 +1,21 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { resetDemoExperience } from "@clockwork/testing/demo-reset";
+import { FileDemoAdapterStateStore } from "@clockwork/testing/demo-state";
+
+async function resetDurableDemoState() {
+  if (process.env.CLOCKWORK_EXPERIENCE_ADAPTER !== "demo")
+    throw new Error(
+      "Visual browser tests require the explicit non-production demo adapter.",
+    );
+  await resetDemoExperience(new FileDemoAdapterStateStore(), {
+    environment: process.env,
+    target: "demo",
+  });
+}
+
+test.beforeAll(resetDurableDemoState);
+test.afterAll(resetDurableDemoState);
 
 const desktopSurfaces = [
   { name: "customer-dashboard", path: "/dashboard" },

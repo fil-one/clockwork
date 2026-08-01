@@ -53,5 +53,18 @@ export default defineConfig({
       !process.env.CI && !process.env.CLOCKWORK_RELEASE_SHARD,
     timeout: 120_000,
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "functional-chromium",
+      testIgnore: ["production-proof.spec.ts", "visual.spec.ts"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "chromium",
+      testMatch: "visual.spec.ts",
+      dependencies: ["functional-chromium"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
 });
