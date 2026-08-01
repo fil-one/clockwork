@@ -2238,6 +2238,10 @@ const visualFiles = walk(
   (path) => path.includes("-snapshots/") && path.endsWith(".png"),
 );
 const browserSpecs = walk("apps/web/e2e", (path) => path.endsWith(".spec.ts"));
+const browserSupportFiles = walk(
+  "apps/web/e2e",
+  (path) => /\.(?:ts|mjs)$/.test(path) && !path.endsWith(".spec.ts"),
+);
 const browserScenarios = browserSpecs.flatMap((path) =>
   [...source(path).matchAll(/\btest\(\s*["'`]([^"'`]+)["'`]/g)].map((item) => ({
     source: path,
@@ -2340,6 +2344,7 @@ writeJson("tests-baseline-artifacts.json", {
     integrationFiles: integrationTestFiles.length,
     scriptFiles: scriptTestFiles.length,
     playwrightSpecFiles: browserSpecs.length,
+    playwrightSupportFiles: browserSupportFiles.length,
     browserSourceDeclarations: browserScenarios.length,
     browserExpandedExecutableTests: expandedBrowserTests.length,
     pgTapFiles: pgTapFiles.length,
@@ -2351,6 +2356,7 @@ writeJson("tests-baseline-artifacts.json", {
     integration: integrationTestFiles,
     scripts: scriptTestFiles,
     playwright: browserSpecs,
+    playwrightSupport: browserSupportFiles,
     pgTap: pgTapFiles,
   },
   pgTapPlans,
@@ -2491,6 +2497,7 @@ const artifactCategories = {
     experienceClientPath,
     "packages/testing/src/visual/scenarios.ts",
     ...browserSpecs,
+    ...browserSupportFiles,
     ...pgTapFiles,
     ...testFiles,
     ...walk("apps", (path) => path.endsWith(".stories.tsx")),
