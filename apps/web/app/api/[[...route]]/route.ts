@@ -32,7 +32,6 @@ import {
   MarketplaceWebhookVerifier,
   NormalizedStripeFinancialWebhookVerifier,
   ProvisioningWebhookVerifier,
-  parseTraceparent,
   S3ImmutableArtifactReader,
   SupportWebhookVerifier,
   StripeFinancialWebhookVerifier,
@@ -41,6 +40,7 @@ import {
   WorkosRegistrationBootstrapVerifier,
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
+import { parseTraceparent } from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
 import { WorkosNextSessionResolver } from "@/src/auth/session";

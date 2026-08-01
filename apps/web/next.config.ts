@@ -6,6 +6,10 @@ const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: [
+    // Next externalizes these packages by default. Bundle their complete runtime
+    // closures so copied server externals never depend on pnpm's symlink layout.
+    "@aws-sdk/client-s3",
+    "@react-pdf/renderer",
     "@clockwork/api",
     "@clockwork/contracts",
     "@clockwork/domain",

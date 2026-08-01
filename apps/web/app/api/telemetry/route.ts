@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import type { TelemetrySpanRecord } from "@clockwork/integrations";
+import type { TelemetrySpanRecord } from "@clockwork/integrations/telemetry";
 
 import {
   redactTelemetryAttributes,

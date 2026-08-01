@@ -1,4 +1,4 @@
-import { OtlpHttpTelemetrySink } from "@clockwork/integrations";
+import { OtlpHttpTelemetrySink } from "@clockwork/integrations/telemetry";
 import { describe, expect, it } from "vitest";
 
 import { resolveTelemetryRuntimeEnvironment } from "./runtime";

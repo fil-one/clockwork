@@ -7,7 +7,7 @@ import {
   ClockworkTelemetry,
   OtlpHttpTelemetrySink,
   RuntimeBoundaryInstrumentation,
-} from "@clockwork/integrations";
+} from "@clockwork/integrations/telemetry";
 import {
   createProductionExperienceOutboxHandlers,
   DurableOutboxDispatcher,

@@ -3,8 +3,8 @@ import {
   OtlpHttpTelemetrySink,
   RuntimeBoundaryInstrumentation,
   TelemetryProviderJsonTransport,
-  type ProviderJsonTransport,
-} from "@clockwork/integrations";
+} from "@clockwork/integrations/telemetry";
+import type { ProviderJsonTransport } from "@clockwork/integrations/provider-transport";
 
 export function resolveTelemetryRuntimeEnvironment(
   environment: Readonly<Record<string, string | undefined>>,

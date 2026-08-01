@@ -3,7 +3,10 @@ import type { NextFetchEvent } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
 
 import { uuidV7 } from "@clockwork/contracts";
-import { formatTraceparent, parseTraceparent } from "@clockwork/integrations";
+import {
+  formatTraceparent,
+  parseTraceparent,
+} from "@clockwork/integrations/telemetry";
 
 import { releaseProofConfiguration } from "@/src/auth/release-proof";
 import { runtimeTelemetry } from "@/src/telemetry/runtime";
