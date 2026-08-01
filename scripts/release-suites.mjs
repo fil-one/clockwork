@@ -182,20 +182,23 @@ async function databaseInputInventory(workspace) {
     const files = (await listFiles(path.join(workspace, directory)))
       .filter((file) => file.endsWith(".sql"))
       .map((file) => path.join(directory, file));
-    const entries = await digestFiles(workspace, files);
+    const inventory = await digestFiles(workspace, files);
     return {
-      count: entries.length,
-      files: entries,
-      fingerprint: createHash("sha256")
-        .update(JSON.stringify(entries))
-        .digest("hex"),
+      count: inventory.files.length,
+      files: inventory.files,
+      fingerprint: inventory.fingerprint,
     };
   };
   const [migrations, pgTapTests] = await Promise.all([
     collect(path.join("supabase", "migrations")),
     collect(path.join("supabase", "tests")),
   ]);
-  if (migrations.count === 0 || pgTapTests.count === 0)
+  if (
+    migrations.count === 0 ||
+    pgTapTests.count === 0 ||
+    migrations.count !== migrations.files.length ||
+    pgTapTests.count !== pgTapTests.files.length
+  )
     throw new Error(
       "Release database qualification requires migration and pgTAP inputs.",
     );
