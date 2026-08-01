@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:13:04Z",
-  "captureCommit": "bb796853cbf24289414e52a157903a61b64f4740",
-  "captureTree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
+  "capturedAt": "2026-08-01T15:23:52Z",
+  "captureCommit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+  "captureTree": "1401f630a8415a9d83a38e9fb3291aef1fe20e58",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "2ab511dbf5b9b69fca9bc1d8ccc1349fbb4aa16389d63d27d62896dfc7d8df45",
+  "captureTreeListingSha256": "5c42d054b2d353fbfa96b1986528bf6b9a742e2e6a986c6383c64a47f02930db",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "0823f7538167040cc17cec021c1d02be8c020038ccf2298268a8529b3e43ae14",
+      "aggregateSha256": "89aadc45dfb23154ba380d3a0ebabb24f94b71fc30bc2b98b9d12c974084ac26",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 254,
-      "aggregateSha256": "650eae76bff5e745a193f07623425324d4d06aa320eba98349c19c143345057e",
+      "aggregateSha256": "086af572d3f0ae8f591efe87f0d027fc4b1f1553612c67e28e9e1e1772b5cb0c",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -1231,8 +1231,8 @@
     },
     {
       "path": "apps/web/e2e/visual.spec.ts",
-      "bytes": 8851,
-      "sha256": "caa08df33f6d64ceb5e7920d315b0d205f8d130865e6888d8534a38b08c882c5"
+      "bytes": 9403,
+      "sha256": "f24bc414a39c80ae149ebf17f9012ddc6d3a7fee44979c22c908f668acc9e0bb"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
@@ -1296,8 +1296,8 @@
     },
     {
       "path": "apps/web/playwright.config.ts",
-      "bytes": 1901,
-      "sha256": "b74120347c86da198004e58cecb7d37953305156688dcc818055cf9411deaf91"
+      "bytes": 2194,
+      "sha256": "2206d1099b6ee1e194d839676bd8e8c76a6cde972b3106f0efefba44d4f8d273"
     },
     {
       "path": "apps/web/playwright.proof.config.ts",

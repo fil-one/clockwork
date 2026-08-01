@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:13:04Z",
+  "capturedAt": "2026-08-01T15:23:52Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -963,12 +963,13 @@
       "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
       "declared": true,
       "sources": [
+        "apps/web/e2e/visual.spec.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "runtimeSources": [
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
-      "toolingOrTestSources": []
+      "toolingOrTestSources": ["apps/web/e2e/visual.spec.ts"]
     },
     {
       "key": "CLOCKWORK_NEXT_DIST_DIR",

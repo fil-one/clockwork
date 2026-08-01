@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:13:04Z",
+  "capturedAt": "2026-08-01T15:23:52Z",
   "captureRef": "main",
-  "captureCommit": "bb796853cbf24289414e52a157903a61b64f4740",
-  "captureTree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
+  "captureCommit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+  "captureTree": "1401f630a8415a9d83a38e9fb3291aef1fe20e58",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "bb796853cbf24289414e52a157903a61b64f4740",
+      "object": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
       "objectType": "commit",
-      "peeledCommit": "bb796853cbf24289414e52a157903a61b64f4740",
-      "commit": "bb796853cbf24289414e52a157903a61b64f4740",
-      "tree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
+      "peeledCommit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+      "commit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+      "tree": "1401f630a8415a9d83a38e9fb3291aef1fe20e58",
       "treeEntryCount": 896,
-      "treeListingSha256": "2ab511dbf5b9b69fca9bc1d8ccc1349fbb4aa16389d63d27d62896dfc7d8df45",
-      "parents": ["5af2de1b687cb814926d7ac143e4b321baf27e17"],
-      "subject": "test: align browser fixtures with authoritative projections",
-      "mergeBaseWithMain": "bb796853cbf24289414e52a157903a61b64f4740"
+      "treeListingSha256": "5c42d054b2d353fbfa96b1986528bf6b9a742e2e6a986c6383c64a47f02930db",
+      "parents": ["203f4871d3e24f4d1f279faebc7ddf23e89c7838"],
+      "subject": "test: isolate durable demo visuals from mutations",
+      "mergeBaseWithMain": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "bb796853cbf24289414e52a157903a61b64f4740",
+      "head": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 75726,
+        "ignoredArtifactCount": 75855,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 75725,
-        "ignoredArtifactListingSha256": "4267310300f049b14eab69d8e626c8591efc4845b0514b032902b2cdc11d1ef5",
+        "rejectedIgnoredArtifactCount": 75854,
+        "ignoredArtifactListingSha256": "036816cdcd4980bc6d2bcbd62311918e00dbdfbf383ee7dfe5ffb6b2c412ac6e",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+      "tree": "1401f630a8415a9d83a38e9fb3291aef1fe20e58",
+      "parents": ["203f4871d3e24f4d1f279faebc7ddf23e89c7838"],
+      "subject": "test: isolate durable demo visuals from mutations"
+    },
+    {
+      "commit": "203f4871d3e24f4d1f279faebc7ddf23e89c7838",
+      "tree": "91dd817077c0e7cb9131eb0b19fd6a79c204ac0d",
+      "parents": ["bb796853cbf24289414e52a157903a61b64f4740"],
+      "subject": "docs: refresh browser qualification baselines"
+    },
     {
       "commit": "bb796853cbf24289414e52a157903a61b64f4740",
       "tree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
@@ -777,7 +789,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 64,
+  "reachableCommitCount": 66,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1248,6 +1260,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+      "selector": "refs/heads/main@{2026-08-01T11:23:01-04:00}",
+      "subject": "commit: test: isolate durable demo visuals from mutations"
+    },
+    {
+      "commit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
+      "selector": "HEAD@{2026-08-01T11:23:01-04:00}",
+      "subject": "commit: test: isolate durable demo visuals from mutations"
+    },
+    {
+      "commit": "203f4871d3e24f4d1f279faebc7ddf23e89c7838",
+      "selector": "refs/heads/main@{2026-08-01T11:13:32-04:00}",
+      "subject": "commit: docs: refresh browser qualification baselines"
+    },
+    {
+      "commit": "203f4871d3e24f4d1f279faebc7ddf23e89c7838",
+      "selector": "HEAD@{2026-08-01T11:13:32-04:00}",
+      "subject": "commit: docs: refresh browser qualification baselines"
+    },
     {
       "commit": "bb796853cbf24289414e52a157903a61b64f4740",
       "selector": "refs/heads/main@{2026-08-01T11:12:14-04:00}",
@@ -1866,8 +1898,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 75725,
-        "listingSha256": "4267310300f049b14eab69d8e626c8591efc4845b0514b032902b2cdc11d1ef5",
+        "artifactCount": 75854,
+        "listingSha256": "036816cdcd4980bc6d2bcbd62311918e00dbdfbf383ee7dfe5ffb6b2c412ac6e",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
