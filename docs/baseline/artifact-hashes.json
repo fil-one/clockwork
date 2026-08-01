@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:51:00Z",
-  "captureCommit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
-  "captureTree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
+  "capturedAt": "2026-08-01T15:13:04Z",
+  "captureCommit": "bb796853cbf24289414e52a157903a61b64f4740",
+  "captureTree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "9012e695b60a696cfeb6d14961f372036fd84943c8799d4b7a9b8b02f1cbd0fb",
+  "captureTreeListingSha256": "2ab511dbf5b9b69fca9bc1d8ccc1349fbb4aa16389d63d27d62896dfc7d8df45",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 254,
-      "aggregateSha256": "650c84455d7befc6dcc4d5b5d03d9ec334f5b6cbaeed8c138cdbcbc1aa619e86",
+      "aggregateSha256": "650eae76bff5e745a193f07623425324d4d06aa320eba98349c19c143345057e",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -1222,12 +1222,12 @@
     {
       "path": "apps/web/e2e/ux-internal-ops.spec.ts",
       "bytes": 11504,
-      "sha256": "0574dc5df1076d6c31be11197f11fb03a61c9bec54799e6d5b212d43625482c8"
+      "sha256": "553ec0bf5a32c32fcaa2877bbf99a48373cdeea641b0de0827e0fb94728a4bec"
     },
     {
       "path": "apps/web/e2e/ux-shell.spec.ts",
-      "bytes": 12334,
-      "sha256": "01881fc9eccdef11ed2a6305235c24b9681e0b72389c4d8fa779a4cdb97a65cd"
+      "bytes": 12691,
+      "sha256": "63265b5bbc16ceee9e6a396283dc986a03fd2bb69c7329506e80765621dd7d62"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts",

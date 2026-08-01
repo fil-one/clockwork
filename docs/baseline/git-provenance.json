@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:51:00Z",
+  "capturedAt": "2026-08-01T15:13:04Z",
   "captureRef": "main",
-  "captureCommit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
-  "captureTree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
+  "captureCommit": "bb796853cbf24289414e52a157903a61b64f4740",
+  "captureTree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "object": "bb796853cbf24289414e52a157903a61b64f4740",
       "objectType": "commit",
-      "peeledCommit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
-      "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
-      "tree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
+      "peeledCommit": "bb796853cbf24289414e52a157903a61b64f4740",
+      "commit": "bb796853cbf24289414e52a157903a61b64f4740",
+      "tree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
       "treeEntryCount": 896,
-      "treeListingSha256": "9012e695b60a696cfeb6d14961f372036fd84943c8799d4b7a9b8b02f1cbd0fb",
-      "parents": ["0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd"],
-      "subject": "fix qualification database inventory evidence",
-      "mergeBaseWithMain": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b"
+      "treeListingSha256": "2ab511dbf5b9b69fca9bc1d8ccc1349fbb4aa16389d63d27d62896dfc7d8df45",
+      "parents": ["5af2de1b687cb814926d7ac143e4b321baf27e17"],
+      "subject": "test: align browser fixtures with authoritative projections",
+      "mergeBaseWithMain": "bb796853cbf24289414e52a157903a61b64f4740"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "head": "bb796853cbf24289414e52a157903a61b64f4740",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 74262,
+        "ignoredArtifactCount": 75726,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 74261,
-        "ignoredArtifactListingSha256": "54c2fedbd65e99af3f98e37089c4db6c0a97979719ef127610a49b1f8671c419",
+        "rejectedIgnoredArtifactCount": 75725,
+        "ignoredArtifactListingSha256": "4267310300f049b14eab69d8e626c8591efc4845b0514b032902b2cdc11d1ef5",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "bb796853cbf24289414e52a157903a61b64f4740",
+      "tree": "2f5a095c0a3127ce0e8a370a5324fff3e65221d0",
+      "parents": ["5af2de1b687cb814926d7ac143e4b321baf27e17"],
+      "subject": "test: align browser fixtures with authoritative projections"
+    },
+    {
+      "commit": "5af2de1b687cb814926d7ac143e4b321baf27e17",
+      "tree": "244b18718ab7c50c978113317311bf0aec491199",
+      "parents": ["e5c88eb1cf280e0eff65d0f8adcce0217ef4011b"],
+      "subject": "docs: refresh inventory evidence"
+    },
     {
       "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
       "tree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
@@ -765,7 +777,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 62,
+  "reachableCommitCount": 64,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1236,6 +1248,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "bb796853cbf24289414e52a157903a61b64f4740",
+      "selector": "refs/heads/main@{2026-08-01T11:12:14-04:00}",
+      "subject": "commit: test: align browser fixtures with authoritative projections"
+    },
+    {
+      "commit": "bb796853cbf24289414e52a157903a61b64f4740",
+      "selector": "HEAD@{2026-08-01T11:12:14-04:00}",
+      "subject": "commit: test: align browser fixtures with authoritative projections"
+    },
+    {
+      "commit": "5af2de1b687cb814926d7ac143e4b321baf27e17",
+      "selector": "refs/heads/main@{2026-08-01T10:51:18-04:00}",
+      "subject": "commit: docs: refresh inventory evidence"
+    },
+    {
+      "commit": "5af2de1b687cb814926d7ac143e4b321baf27e17",
+      "selector": "HEAD@{2026-08-01T10:51:18-04:00}",
+      "subject": "commit: docs: refresh inventory evidence"
+    },
     {
       "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
       "selector": "refs/heads/main@{2026-08-01T10:50:05-04:00}",
@@ -1834,8 +1866,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 74261,
-        "listingSha256": "54c2fedbd65e99af3f98e37089c4db6c0a97979719ef127610a49b1f8671c419",
+        "artifactCount": 75725,
+        "listingSha256": "4267310300f049b14eab69d8e626c8591efc4845b0514b032902b2cdc11d1ef5",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
