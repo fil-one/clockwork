@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:44:36Z",
+  "capturedAt": "2026-08-01T14:51:00Z",
   "captureRef": "main",
-  "captureCommit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
-  "captureTree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
+  "captureCommit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+  "captureTree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "object": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
       "objectType": "commit",
-      "peeledCommit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
-      "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
-      "tree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
+      "peeledCommit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "tree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
       "treeEntryCount": 896,
-      "treeListingSha256": "eb68d22708c2bf822b49d89fccc8dad84990c42e054608ffd1f838b9fca72c3d",
-      "parents": ["820a8c66ea7b9b68657a0849e65b72da2a06243a"],
-      "subject": "fix isolated qualification database identity",
-      "mergeBaseWithMain": "833f2e0e3794985b74a0fe5ae2bb91413436b21c"
+      "treeListingSha256": "9012e695b60a696cfeb6d14961f372036fd84943c8799d4b7a9b8b02f1cbd0fb",
+      "parents": ["0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd"],
+      "subject": "fix qualification database inventory evidence",
+      "mergeBaseWithMain": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "head": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 74249,
+        "ignoredArtifactCount": 74262,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 74248,
-        "ignoredArtifactListingSha256": "3b165b2486ef1df4897906528847758146b95b40e26fc818c6e9a0aaaee4a8c5",
+        "rejectedIgnoredArtifactCount": 74261,
+        "ignoredArtifactListingSha256": "54c2fedbd65e99af3f98e37089c4db6c0a97979719ef127610a49b1f8671c419",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "tree": "2aa1658fa1b197e10e67dfd8fabfc63de9947a09",
+      "parents": ["0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd"],
+      "subject": "fix qualification database inventory evidence"
+    },
+    {
+      "commit": "0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd",
+      "tree": "a61f4cc225d6b4667e1a753397ab029ffa234dd7",
+      "parents": ["833f2e0e3794985b74a0fe5ae2bb91413436b21c"],
+      "subject": "docs: refresh qualification baselines"
+    },
     {
       "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
       "tree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
@@ -753,7 +765,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 60,
+  "reachableCommitCount": 62,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1224,6 +1236,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "selector": "refs/heads/main@{2026-08-01T10:50:05-04:00}",
+      "subject": "commit: fix qualification database inventory evidence"
+    },
+    {
+      "commit": "e5c88eb1cf280e0eff65d0f8adcce0217ef4011b",
+      "selector": "HEAD@{2026-08-01T10:50:05-04:00}",
+      "subject": "commit: fix qualification database inventory evidence"
+    },
+    {
+      "commit": "0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd",
+      "selector": "refs/heads/main@{2026-08-01T10:44:52-04:00}",
+      "subject": "commit: docs: refresh qualification baselines"
+    },
+    {
+      "commit": "0ddf741c5f36981bcb4ff87c1559a6840f6cd7dd",
+      "selector": "HEAD@{2026-08-01T10:44:52-04:00}",
+      "subject": "commit: docs: refresh qualification baselines"
+    },
     {
       "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
       "selector": "refs/heads/main@{2026-08-01T10:43:39-04:00}",
@@ -1802,8 +1834,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 74248,
-        "listingSha256": "3b165b2486ef1df4897906528847758146b95b40e26fc818c6e9a0aaaee4a8c5",
+        "artifactCount": 74261,
+        "listingSha256": "54c2fedbd65e99af3f98e37089c4db6c0a97979719ef127610a49b1f8671c419",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
