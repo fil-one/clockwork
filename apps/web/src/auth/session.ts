@@ -234,16 +234,52 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       throw new Error(
         "Authentication is unavailable without an explicit non-production demo adapter",
       );
+    const requestHeaders = await headers();
+    const requestedRole = requestHeaders.get("x-clockwork-persona");
+    const role = (
+      requestedRole &&
+      (internalRoles as readonly string[]).includes(requestedRole)
+        ? requestedRole
+        : requestedRole &&
+            [
+              "owner",
+              "admin",
+              "billing",
+              "member",
+              "partner_admin",
+              "partner_seller",
+            ].includes(requestedRole)
+          ? requestedRole
+          : "internal_operator"
+    ) as SessionClaims["roles"][number];
+    const isInternalStaff = internalRoles.includes(
+      role as (typeof internalRoles)[number],
+    );
+    const selectedAccountId =
+      requestHeaders.get("x-clockwork-account") ??
+      (isInternalStaff
+        ? "10000000-0000-4000-8000-000000000009"
+        : role === "partner_admin" || role === "partner_seller"
+          ? "10000000-0000-4000-8000-000000000002"
+          : "10000000-0000-4000-8000-000000000001");
     return {
-      userId: "20000000-0000-4000-8000-000000000001",
-      organizationId: "30000000-0000-4000-8000-000000000008",
-      accountIds: [],
-      roles: ["internal_operator"],
-      isInternalStaff: true,
+      userId: isInternalStaff
+        ? "20000000-0000-4000-8000-000000000001"
+        : "20000000-0000-4000-8000-000000000002",
+      organizationId: isInternalStaff
+        ? "30000000-0000-4000-8000-000000000008"
+        : "30000000-0000-4000-8000-000000000001",
+      accountIds: isInternalStaff ? [] : [selectedAccountId],
+      roles: [role],
+      isInternalStaff,
       mfaVerified: true,
       recentAuthenticationVerified: true,
-      profile: { name: "Local operator", email: "operator@clockwork.test" },
+      profile: isInternalStaff
+        ? { name: "Local operator", email: "operator@clockwork.test" }
+        : { name: "Local portal user", email: "portal-user@demo.test" },
       memberships: [],
+      selectedAccountId,
+      effectiveAccountId: selectedAccountId,
       providerBacked: false,
       authenticationSource: "local",
     };

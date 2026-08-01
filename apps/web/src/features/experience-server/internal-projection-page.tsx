@@ -2,6 +2,7 @@ import { ProjectionActionButtons } from "./projection-action-buttons";
 import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
+import { getRouteRoles } from "@/src/features/shell/route-session";
 import styles from "./internal-projection-page.module.css";
 
 function value(
@@ -32,7 +33,10 @@ export async function InternalProjectionPage({
   title: string;
   description: string;
 }) {
-  const projection = await loadPortalRecords("internal", channel);
+  const [projection, roles] = await Promise.all([
+    loadPortalRecords("internal", channel),
+    getRouteRoles("internal"),
+  ]);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
@@ -121,6 +125,7 @@ export async function InternalProjectionPage({
                       projectionId={record.id}
                       version={record.version}
                       actions={actions(record)}
+                      roles={roles}
                     />
                     {channel === "queues" ? (
                       <EvidenceUploadControl
@@ -128,6 +133,7 @@ export async function InternalProjectionPage({
                         targetId={record.aggregateId}
                         kind="screening"
                         label="Attach exception evidence"
+                        headingLevel={2}
                       />
                     ) : channel === "approvals" ? (
                       <EvidenceUploadControl
@@ -135,6 +141,7 @@ export async function InternalProjectionPage({
                         targetId={record.aggregateId}
                         kind="approval"
                         label="Attach approval evidence"
+                        headingLevel={2}
                       />
                     ) : null}
                   </td>

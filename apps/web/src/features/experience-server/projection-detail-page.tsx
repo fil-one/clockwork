@@ -2,6 +2,7 @@ import { ProjectionActionButtons } from "./projection-action-buttons";
 import Link from "next/link";
 import type { Route } from "next";
 import { EvidenceUploadControl } from "./evidence-upload-control";
+import { getRouteRoles } from "@/src/features/shell/route-session";
 import {
   ArtifactDeliveryList,
   type ProjectedArtifact,
@@ -74,7 +75,10 @@ export async function ProjectionDetailPage({
   description: string;
   recordKey?: string;
 }) {
-  const projection = await loadPortalRecords(audience, channel);
+  const [projection, roles] = await Promise.all([
+    loadPortalRecords(audience, channel),
+    getRouteRoles(audience),
+  ]);
   const records = recordKey
     ? projection.records.filter((record) => record.recordKey === recordKey)
     : projection.records;
@@ -134,6 +138,7 @@ export async function ProjectionDetailPage({
                 projectionId={record.id}
                 version={record.version}
                 actions={allowedActions(record)}
+                roles={roles}
               />
               <ArtifactDeliveryList artifacts={artifacts(record)} />
               {audience === "customer" && channel === "agreements" ? (

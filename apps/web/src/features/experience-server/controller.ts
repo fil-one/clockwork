@@ -40,6 +40,7 @@ import {
   createOpaqueEsignState,
   DatabaseExperienceRepository,
 } from "./repository";
+import { requireProjectionActionAuthority } from "./projection-authorization";
 
 interface ControllerDependencies {
   repository?: DatabaseExperienceRepository;
@@ -206,8 +207,28 @@ function equalSecret(left: string, right: string): boolean {
 
 export function requireMutationSecurity(request: Request): void {
   const requestUrl = new URL(request.url);
+  const configured = process.env.CLOCKWORK_CANONICAL_ORIGIN?.trim();
+  let expectedOrigin: string;
+  if (configured) {
+    expectedOrigin = new URL(configured).origin;
+  } else if (process.env.NODE_ENV === "production") {
+    throw new ExperienceProblem(
+      503,
+      "CANONICAL_ORIGIN_REQUIRED",
+      "Canonical origin is not configured",
+    );
+  } else {
+    const host = request.headers.get("host")?.trim();
+    if (!host || !/^(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/.test(host))
+      throw new ExperienceProblem(
+        403,
+        "ORIGIN_FORBIDDEN",
+        "Same-origin request required",
+      );
+    expectedOrigin = `${requestUrl.protocol}//${host}`;
+  }
   const origin = request.headers.get("origin");
-  if (!origin || origin !== requestUrl.origin)
+  if (!origin || origin !== expectedOrigin)
     throw new ExperienceProblem(
       403,
       "ORIGIN_FORBIDDEN",
@@ -270,8 +291,9 @@ export async function handleExperienceRequest(
       await resolver.resolve(request),
     );
     const now = dependencies.now?.() ?? new Date();
-    const repository =
-      dependencies.repository ?? new DatabaseExperienceRepository();
+    let resolvedRepository = dependencies.repository;
+    const repository = () =>
+      (resolvedRepository ??= new DatabaseExperienceRepository());
 
     if (segments[0] === "projections") {
       const audienceValue = segments[1] ?? "";
@@ -324,6 +346,13 @@ export async function handleExperienceRequest(
       if (segments[4] === "actions" && request.method === "POST") {
         requireMutationSecurity(request);
         const value = await body(request);
+        const action = requiredString(value, "action");
+        requireProjectionActionAuthority(
+          session.roles,
+          input.audience,
+          input.channel,
+          action,
+        );
         return json(
           await source.action({
             session,
@@ -332,7 +361,7 @@ export async function handleExperienceRequest(
             accountId: input.accountId,
             recordKey,
             projectionId: requiredString(value, "projectionId"),
-            action: requiredString(value, "action"),
+            action,
             expectedVersion: requiredInteger(value, "expectedVersion"),
             idempotencyKey: idempotencyKey(request),
             payload: record(value.payload ?? {}),
@@ -369,7 +398,7 @@ export async function handleExperienceRequest(
           "Signing mode is invalid",
         );
       const origin = routeOrigin(request);
-      const target = await repository.signingTarget(
+      const target = await repository().signingTarget(
         session,
         uuid(value, "agreementId"),
         accountId,
@@ -417,7 +446,7 @@ export async function handleExperienceRequest(
       const launched = record(await response.json());
       const envelopeId = requiredString(launched, "id");
       const signingUrl = requiredString(launched, "signingUrl");
-      await repository.createEsignCorrelation({
+      await repository().createEsignCorrelation({
         session,
         target,
         envelopeId,
@@ -441,7 +470,7 @@ export async function handleExperienceRequest(
       request.method === "GET"
     )
       return json(
-        await repository.readEsignReturn({
+        await repository().readEsignReturn({
           session,
           opaqueState: segments[2],
           now,
@@ -457,7 +486,7 @@ export async function handleExperienceRequest(
       segments.length === 4 &&
       request.method === "GET"
     ) {
-      const signed = await repository.readEsignSignedDocument({
+      const signed = await repository().readEsignSignedDocument({
         session,
         opaqueState: segments[2],
         now,
@@ -553,7 +582,7 @@ export async function handleExperienceRequest(
         const retainUntil = new Date(
           now.getTime() + retentionDays[journey] * 24 * 60 * 60 * 1000,
         ).toISOString();
-        const reserved = await repository.reserveEvidence({
+        const reserved = await repository().reserveEvidence({
           session,
           accountId,
           organizationId: optionalString(value, "organizationId"),
@@ -573,7 +602,7 @@ export async function handleExperienceRequest(
           return json({ upload: reserved, replayed: true }, 200);
         const gateway = dependencies.evidence ?? configuredEvidenceGateway();
         const provider = await gateway.reserveUpload(reserved);
-        const bound = await repository.bindEvidenceProvider({
+        const bound = await repository().bindEvidenceProvider({
           session,
           uploadId: reserved.uploadId,
           providerUploadId: provider.providerUploadId,
@@ -592,10 +621,10 @@ export async function handleExperienceRequest(
         );
       }
       if (uploadId && segments.length === 3 && request.method === "GET")
-        return json(await repository.readEvidence(session, uploadId, id));
+        return json(await repository().readEvidence(session, uploadId, id));
       if (uploadId && segments[3] === "complete" && request.method === "POST") {
         requireMutationSecurity(request);
-        let upload = await repository.readEvidence(session, uploadId, id);
+        let upload = await repository().readEvidence(session, uploadId, id);
         if (upload.status === "promoted")
           return json({ upload, duplicate: true });
         if (upload.status === "quarantined")
@@ -605,7 +634,7 @@ export async function handleExperienceRequest(
             "Evidence remains quarantined",
           );
         if (Date.parse(upload.expiresAt) <= now.getTime()) {
-          await repository.expireEvidence(session, uploadId, id);
+          await repository().expireEvidence(session, uploadId, id);
           throw new ExperienceProblem(
             410,
             "EVIDENCE_UPLOAD_EXPIRED",
@@ -613,7 +642,11 @@ export async function handleExperienceRequest(
           );
         }
         if (upload.status === "uploaded")
-          upload = await repository.markEvidenceScanning(session, uploadId, id);
+          upload = await repository().markEvidenceScanning(
+            session,
+            uploadId,
+            id,
+          );
         if (upload.status !== "scanning")
           throw new ExperienceProblem(
             409,
@@ -623,7 +656,7 @@ export async function handleExperienceRequest(
         const gateway = dependencies.evidence ?? configuredEvidenceGateway();
         const completed = await gateway.completeUpload(upload);
         if (!completed.clean) {
-          const quarantined = await repository.quarantineEvidence({
+          const quarantined = await repository().quarantineEvidence({
             session,
             uploadId,
             scanReference: completed.scanReference,
@@ -643,7 +676,7 @@ export async function handleExperienceRequest(
             "Scanned evidence metadata does not match its declaration",
           );
         return json({
-          upload: await repository.promoteEvidence({
+          upload: await repository().promoteEvidence({
             session,
             uploadId,
             immutableStorageKey: completed.immutableStorageKey,
@@ -654,7 +687,7 @@ export async function handleExperienceRequest(
         });
       }
       if (uploadId && segments[3] === "download" && request.method === "GET") {
-        const upload = await repository.readEvidence(session, uploadId, id);
+        const upload = await repository().readEvidence(session, uploadId, id);
         if (
           upload.status !== "promoted" ||
           !upload.documentId ||
@@ -677,7 +710,7 @@ export async function handleExperienceRequest(
       request.method === "POST"
     ) {
       requireMutationSecurity(request);
-      const renderRequest = await repository.findRenderRequest(
+      const renderRequest = await repository().findRenderRequest(
         session,
         segments[2],
         id,
@@ -694,7 +727,7 @@ export async function handleExperienceRequest(
           "RENDER_STATE_CONFLICT",
           "Render request is not pending",
         );
-      await repository.claimRenderRequest(renderRequest, id);
+      await repository().claimRenderRequest(renderRequest, id);
       try {
         const rendered = await renderAuthorizedCommerceDocument(
           renderRequest.input as unknown as CommerceDocumentInput,
@@ -732,7 +765,7 @@ export async function handleExperienceRequest(
             "Stored artifact metadata does not match rendered bytes",
           );
         return json(
-          await repository.storeArtifact({
+          await repository().storeArtifact({
             request: renderRequest,
             contentHash: rendered.contentHash,
             byteLength: rendered.bytes.byteLength,
@@ -745,7 +778,7 @@ export async function handleExperienceRequest(
           201,
         );
       } catch (error) {
-        await repository.failRenderRequest(
+        await repository().failRenderRequest(
           renderRequest,
           error instanceof ExperienceProblem ? error.code : "RENDER_FAILED",
           id,
@@ -766,7 +799,7 @@ export async function handleExperienceRequest(
           "ARTIFACT_KIND_NOT_FOUND",
           "Artifact kind not found",
         );
-      const artifact = await repository.findArtifact(
+      const artifact = await repository().findArtifact(
         session,
         segments[1],
         segments[2],

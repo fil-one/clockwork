@@ -37,11 +37,13 @@ export function EvidenceUploadControl({
   targetId,
   kind,
   label = "Attach evidence",
+  headingLevel = 3,
 }: {
   journey: EvidenceJourney;
   targetId: string;
   kind: EvidenceKind;
   label?: string;
+  headingLevel?: 2 | 3;
 }) {
   const inputId = useId();
   const [upload, setUpload] = useState<EvidenceUploadRecord | null>(null);
@@ -113,9 +115,10 @@ export function EvidenceUploadControl({
     }
   }
 
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
-    <section aria-labelledby={`${inputId}-title`}>
-      <h3 id={`${inputId}-title`}>{label}</h3>
+    <div role="group" aria-labelledby={`${inputId}-title`}>
+      <Heading id={`${inputId}-title`}>{label}</Heading>
       <p>
         PDF, PNG, JPEG, or plain text · 50 MB maximum · retention is server
         managed.
@@ -167,6 +170,6 @@ export function EvidenceUploadControl({
           Download verified evidence
         </Button>
       ) : null}
-    </section>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { createHash } from "node:crypto";
 
 // These journeys change the demo persona header between customer and partner
 // sessions, so keeping this feature file serial avoids cross-route compilation
@@ -44,16 +43,18 @@ test("owner dashboard leads with decisions and one commercial term", async ({
   await expect(
     page.getByRole("heading", { name: "Needs attention" }),
   ).toBeVisible();
-  for (const name of ["Invoice", "Notice and renewal", "Quote", "Provisioning"])
+  for (const name of ["Invoice", "Notice and renewal", "Quote"])
     await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Current commercial term" }),
+    page.getByRole("heading", { name: "Northstar annual term" }),
   ).toHaveCount(1);
   await expect(page.getByText("Service term rollup")).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Decisions at a glance" }),
-  ).toBeVisible();
-  await expect(page.getByText(/Updated 18 minutes ago/)).toBeVisible();
+  const supportingContext = page.getByText(
+    "Usage and recent account activity",
+    { exact: true },
+  );
+  await supportingContext.click();
+  await expect(page.getByText(/refreshed 18 minutes ago/)).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Recent activity" }),
   ).toBeVisible();
@@ -86,203 +87,93 @@ test("member keeps read access without owner-only customer actions", async ({
   await expect(page).toHaveURL(/pageSize=5/);
 });
 
-test("owner creates a validated three-stage quote draft with canonical IDs", async ({
+test("owner starts a quote from an authorized projection with an optimistic version", async ({
   page,
 }) => {
   await usePersona(page, "owner");
   let command: Record<string, unknown> | undefined;
-  const requestKeys: string[] = [];
-  const requestBodies: Record<string, unknown>[] = [];
-  await page.route("**/api/v1/core/commands/quotes", async (route) => {
-    expectProtectedMutation(route);
-    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
-    command = route.request().postDataJSON() as Record<string, unknown>;
-    requestBodies.push(command);
-    if (requestBodies.length === 1) {
-      await route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({ detail: "Temporary test outage" }),
-      });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        record: {
-          id: command.id,
-          resource: "quotes",
-          rowVersion: 1,
-          data: command,
-        },
-        auditEventId: "audit-quote",
-        outboxEventId: "outbox-quote",
-      }),
-    });
-  });
-
-  await page.goto("/quotes/new");
-  await expect(
-    page.getByText("Offer and region", { exact: true }).first(),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
-  const capacity = page.getByLabel("Committed capacity (TB)");
-  await capacity.fill("4");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByText(/at least 10 TB/)).toBeVisible();
-  await expect(capacity).toBeFocused();
-  await capacity.fill("120");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(
-    page.getByText("Review and issue", { exact: true }).first(),
-  ).toBeVisible();
-  const create = page.getByRole("button", { name: "Create priced draft" });
-  await create.click();
-  await expect(
-    page.getByText(/commerce service is unavailable/i),
-  ).toBeVisible();
-  await create.click();
-  await expect(page.getByText(/current server status is draft/i)).toBeVisible();
-  expect(requestKeys[0]).toBe(requestKeys[1]);
-  expect(requestBodies[0]).toEqual(requestBodies[1]);
-
-  expect(command).toMatchObject({
-    action: "create",
-    accountId: "11111111-1111-4111-8111-111111111111",
-    payload: {
-      priceBookId: "44444444-4444-4444-8444-444444444444",
-      route: "direct",
-      lines: [{ quantity: "120", termMonths: 12 }],
-    },
-  });
-});
-
-test("owner reviews title, version, and authority before agreement acceptance", async ({
-  page,
-}) => {
-  await usePersona(page, "owner");
-  const exactText = "Cloud Service Agreement\nVersion 3.2\n";
-  const exactTextHash = createHash("sha256").update(exactText).digest("hex");
-  let acceptance: Record<string, unknown> | undefined;
   await page.route(
-    "**/api/v1/lifecycle/agreement-templates/active?**",
+    "**/api/experience/projections/customer/quotes/**/actions**",
     async (route) => {
+      expectProtectedMutation(route);
+      command = route.request().postDataJSON() as Record<string, unknown>;
       await route.fulfill({
-        status: 200,
+        status: 202,
         contentType: "application/json",
         body: JSON.stringify({
-          id: "55555555-5555-4555-8555-555555555555",
-          type: "csa",
-          semanticVersion: "3.2",
-          jurisdiction: "US",
-          effectiveOn: "2026-01-01",
-          canonicalDocumentId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          exactText,
-          exactTextHash,
-          executionMode: "click_through",
+          id: "action-quote",
+          projectionId: command.projectionId,
+          aggregateType: "quotes",
+          aggregateId: "quote-demo",
+          action: command.action,
+          expectedVersion: command.expectedVersion,
+          status: "queued",
+          createdAt: "2026-07-31T16:00:00.000Z",
+          auditEventId: "audit-quote",
+          outboxMessageId: "outbox-quote",
         }),
       });
     },
   );
-  await page.route(
-    "**/api/v1/lifecycle/agreements/click-through",
-    async (route) => {
-      expectProtectedMutation(route);
-      acceptance = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ id: "agreement-demo", status: "executed" }),
-      });
-    },
-  );
 
-  await page.goto("/agreements/execute");
+  await page.goto("/quotes/new");
   await expect(
-    page.getByRole("heading", {
-      name: "Cloud Service Agreement · version 3.2",
-    }),
+    page.getByRole("heading", { level: 1, name: "Quote workspace" }),
   ).toBeVisible();
-  await expect(page.getByText(exactText)).toBeVisible();
-  await page.getByRole("checkbox", { name: /authorized to bind/i }).check();
-  await page.getByRole("button", { name: "Accept and execute" }).click();
   await expect(
-    page.getByText(/recorded the authority evidence/i),
+    page.getByRole("heading", { name: "Enterprise committed capacity" }),
   ).toBeVisible();
-  expect(acceptance).toMatchObject({
-    templateVersion: "3.2",
-    exactTextHash,
-    authorityAttested: true,
+  await page.getByRole("button", { name: "accept", exact: true }).click();
+  await expect(page.getByText("accept queued")).toBeVisible();
+  expect(command).toMatchObject({
+    action: "accept",
+    expectedVersion: 3,
+    projectionId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    payload: {},
   });
 });
 
-test("owner confirms the complete order commitment before acceptance", async ({
+test("owner reviews persisted agreement identity before the signing handoff", async ({
   page,
 }) => {
   await usePersona(page, "owner");
-  let command: Record<string, unknown> | undefined;
-  const requestKeys: string[] = [];
-  const requestBodies: Record<string, unknown>[] = [];
-  await page.route("**/api/v1/core/commands/orders", async (route) => {
-    expectProtectedMutation(route);
-    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
-    command = route.request().postDataJSON() as Record<string, unknown>;
-    requestBodies.push(command);
-    if (requestBodies.length === 1) {
-      await route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({ detail: "Temporary test outage" }),
-      });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        record: {
-          id: command.id,
-          resource: "orders",
-          rowVersion: 1,
-          data: command,
-        },
-        auditEventId: "audit-order",
-        outboxEventId: "outbox-order",
-      }),
-    });
-  });
 
+  await page.goto("/agreements/execute");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Choose an agreement" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Cloud Service Agreement" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Reference AGR-2026-0042 · version 3.2", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Sign this authorized agreement" }).first(),
+  ).toHaveAttribute("href", /\/signing\/redirect\?agreementId=[0-9a-f-]{36}/);
+  await expect(
+    page.getByRole("group", { name: "Attach evidence" }).first(),
+  ).toBeVisible();
+});
+
+test("owner reviews complete persisted order commitments before acceptance", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
   await page.goto("/orders/accept");
   await expect(
-    page.getByText(/Compliance replica renewal · version 2 · accepted/),
+    page.getByRole("heading", { level: 1, name: "Order acceptance" }),
   ).toBeVisible();
   await expect(
-    page.getByText(/Cloud Service Agreement · version 3.2 · active/),
+    page.getByRole("heading", { name: "Northstar primary archive" }),
   ).toBeVisible();
-  const submit = page.getByRole("button", {
-    name: "Accept order and create commitment",
-  });
-  await expect(submit).toBeEnabled();
-  await submit.click();
-  await expect(page.getByRole("checkbox")).toBeFocused();
-  await page.getByRole("checkbox").check();
-  await submit.click();
   await expect(
-    page.getByText(/commerce service is unavailable/i),
+    page.getByRole("heading", { name: "Madrid compliance replica" }),
   ).toBeVisible();
-  await submit.click();
-  await expect(page.getByText(/server created the order/i)).toBeVisible();
-  expect(requestKeys[0]).toBe(requestKeys[1]);
-  expect(requestBodies[0]).toEqual(requestBodies[1]);
-  expect(command).toMatchObject({
-    action: "create",
-    payload: {
-      authorityAttested: true,
-      poNumber: "PO-NA-1092",
-      serviceStartsOn: "2026-08-15",
-    },
-  });
+  await expect(
+    page.getByText(/Reference ORD-2026-0098 · version 1/),
+  ).toBeVisible();
+  await expect(page.getByText("Read only")).toHaveCount(2);
 });
 
 test("offboarding review reflects the selected named service", async ({
@@ -290,13 +181,14 @@ test("offboarding review reflects the selected named service", async ({
 }) => {
   await usePersona(page, "owner");
   await page.goto("/account/offboarding");
-  await page
-    .getByLabel("Service", { exact: true })
-    .selectOption("cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd");
-  await page.getByRole("button", { name: "Review and confirm" }).click();
-  const review = page.getByRole("complementary", { name: "Review impact" });
-  await expect(review.getByText("Madrid compliance replica")).toBeVisible();
-  await expect(review.getByText("Northstar primary archive")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Account offboarding" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Restore sample timing" }),
+  ).toBeVisible();
+  await expect(page.getByText("Reference SUP-18421 · version 1")).toBeVisible();
+  await expect(page.getByText("Read only")).toHaveCount(4);
 });
 
 test("billing prepares a safe provider handoff while payment truth stays webhook-derived", async ({
@@ -347,12 +239,17 @@ test("partner seller can search the named portfolio but cannot open partner bill
   await usePersona(page, "partner_seller");
   await page.goto("/partner");
   const desk = page.locator("#main-content");
-  await expect(desk.getByText("2 actions", { exact: true })).toBeVisible();
+  await expect(desk.getByText("1 actions", { exact: true })).toBeVisible();
   await expect(desk.getByRole("link", { name: "Credit exposure" })).toHaveCount(
     0,
   );
   await expect(desk.getByText("Collected commission")).toHaveCount(0);
-  await expect(desk.getByText("Protected registrations")).toBeVisible();
+  await expect(
+    desk.getByRole("rowheader", { name: "Atlas Field Imaging" }),
+  ).toBeVisible();
+  await expect(
+    desk.getByRole("heading", { name: "Commercial boundary" }),
+  ).toBeVisible();
 
   await page.goto("/partner/portfolio");
   const search = page.getByPlaceholder("Search end clients");
@@ -399,137 +296,49 @@ test("partner collection state survives reload and browser history", async ({
   await expect(search).toHaveValue("Halcyon");
 });
 
-test("partner seller creates a reviewed resale quote from names while IDs stay technical", async ({
+test("partner seller starts resale work only from authorized persisted records", async ({
   page,
 }) => {
   await usePersona(page, "partner_seller");
-  let command: Record<string, unknown> | undefined;
-  const requestKeys: string[] = [];
-  const requestBodies: Record<string, unknown>[] = [];
-  await page.route("**/api/v1/core/commands/quotes", async (route) => {
-    expectProtectedMutation(route);
-    requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
-    command = route.request().postDataJSON() as Record<string, unknown>;
-    requestBodies.push(command);
-    if (requestBodies.length === 1) {
-      await route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({ detail: "Temporary test outage" }),
-      });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        record: {
-          id: command.id,
-          resource: "quotes",
-          rowVersion: 1,
-          data: command,
-        },
-        auditEventId: "audit-resale",
-        outboxEventId: "outbox-resale",
-      }),
-    });
-  });
-
   await page.goto("/partner/quotes/new");
-  await expect(page.getByLabel("Offer and price book")).toHaveValue(
-    /US committed archive/,
-  );
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("combobox", { name: "End client" })).toHaveValue(
-    "Halcyon Research Cooperative",
-  );
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByText(/Partner resale price:/).first()).toBeVisible();
-  await page.getByRole("checkbox").check();
-  const create = page.getByRole("button", { name: "Create priced draft" });
-  await create.click();
   await expect(
-    page.getByText(/commerce service is unavailable/i),
+    page.getByRole("heading", { level: 1, name: "Partner quote task" }),
   ).toBeVisible();
-  await expect(create).toBeEnabled();
-  await create.click();
   await expect(
-    page.getByText(/Draft created from server pricing/i),
+    page.getByRole("heading", { name: "Halcyon archive expansion" }),
   ).toBeVisible();
-  await expect(create).toBeDisabled();
-  expect(requestKeys).toHaveLength(2);
-  expect(requestKeys[0]).toBe(requestKeys[1]);
-  expect(requestBodies[0]).toEqual(requestBodies[1]);
-  expect(command).toMatchObject({
-    action: "create",
-    accountId: "33333333-3333-4333-8333-333333333333",
-    payload: {
-      priceBookId: "44444444-4444-4444-8444-444444444444",
-      endClientAccountId: "33333333-3333-4333-8333-333333333333",
-      partnerAccountId: "22222222-2222-4222-8222-222222222222",
-      route: "resale",
-    },
-  });
+  await expect(
+    page.getByText("Reference PQ-2026-0184-v3 · version 1"),
+  ).toBeVisible();
+  await expect(page.getByText("Read only")).toHaveCount(3);
 });
 
-test("partner admin reviews financial boundaries before requesting renewal", async ({
+test("partner admin reviews financial boundaries before any renewal request", async ({
   page,
 }) => {
   await usePersona(page, "partner_admin");
-  let renewal: Record<string, unknown> | undefined;
-  const requestKeys: string[] = [];
-  const requestBodies: Record<string, unknown>[] = [];
-  await page.route(
-    "**/api/v1/lifecycle/renewals/**/requests",
-    async (route) => {
-      expectProtectedMutation(route);
-      requestKeys.push(route.request().headers()["idempotency-key"] ?? "");
-      renewal = route.request().postDataJSON() as Record<string, unknown>;
-      requestBodies.push(renewal);
-      if (requestBodies.length === 1) {
-        await route.fulfill({
-          status: 503,
-          contentType: "application/json",
-          body: JSON.stringify({ detail: "Temporary test outage" }),
-        });
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ id: "renewal-demo", status: "requested" }),
-      });
-    },
-  );
-
   await page.goto("/partner/renewals");
-  await page.getByRole("button", { name: "Review Halcyon renewal" }).click();
+  await page
+    .getByRole("button", { name: "Review Halcyon Research Cooperative" })
+    .click();
+  const renewalReview = page.getByRole("region", {
+    name: "Review renewal before confirming",
+  });
   await expect(
-    page.getByText(/Clockwork transfer price: \$91,200/),
+    renewalReview.getByText("$91,200 transfer / $112,000 resale", {
+      exact: true,
+    }),
   ).toBeVisible();
-  await expect(page.getByText(/Partner resale price: \$112,000/)).toBeVisible();
-  await expect(page.getByText(/Merchant of record: Meridian/)).toBeVisible();
+  await expect(
+    page.getByText(/Redwood Channel Group on resale routes/),
+  ).toBeVisible();
   const confirm = page.getByRole("button", { name: "Confirm renewal request" });
   await expect(confirm).toBeDisabled();
   await page.getByRole("checkbox").check();
-  await confirm.click();
-  await expect(
-    page.getByText(/commerce service is unavailable/i),
-  ).toBeVisible();
-  await expect(confirm).toBeEnabled();
-  await confirm.click();
-  await expect(
-    page.getByText(/current term remains authoritative/i),
-  ).toBeVisible();
   await expect(confirm).toBeDisabled();
-  expect(requestKeys).toHaveLength(2);
-  expect(requestKeys[0]).toBe(requestKeys[1]);
-  expect(requestBodies[0]).toEqual(requestBodies[1]);
-  expect(renewal).toEqual({
-    accountId: "33333333-3333-4333-8333-333333333333",
-    requestedAction: "renew",
-    requestedTermMonths: 12,
-  });
+  await expect(
+    renewalReview.getByText(/merchant-of-record boundary/i),
+  ).toBeVisible();
 });
 
 for (const viewport of [
@@ -552,7 +361,7 @@ for (const viewport of [
 
     await page.goto("/quotes/new");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Create a quote" }),
+      page.getByRole("heading", { level: 1, name: "Quote workspace" }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
 

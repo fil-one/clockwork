@@ -11,7 +11,7 @@ vi.mock("@/src/auth/session", () => ({
   },
 }));
 
-import { handleExperienceRequest } from "./controller";
+import { handleExperienceRequest, requireMutationSecurity } from "./controller";
 import type { EvidenceGateway } from "./evidence-gateway";
 import { ExperienceProblem, type ProjectionPage } from "./model";
 import type { ProjectionSource } from "./projection-source";
@@ -119,6 +119,34 @@ afterEach(() => {
 });
 
 describe("experience controller security", () => {
+  it("uses exact same-origin equality at a local Next boundary without trusting its rewritten request URL", () => {
+    delete process.env.CLOCKWORK_CANONICAL_ORIGIN;
+    const headers = {
+      host: "127.0.0.1:32124",
+      origin: "http://127.0.0.1:32124",
+      cookie: `clockwork-csrf=${csrf}`,
+      "x-csrf-token": csrf,
+    };
+    expect(() =>
+      requireMutationSecurity(
+        new Request("http://localhost:3000/api/experience/projections", {
+          method: "POST",
+          headers,
+        }),
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireMutationSecurity(
+        new Request("http://localhost:3000/api/experience/projections", {
+          method: "POST",
+          headers: { ...headers, origin: "http://preview.example" },
+        }),
+      ),
+    ).toThrowError(
+      expect.objectContaining({ status: 403, code: "ORIGIN_FORBIDDEN" }),
+    );
+  });
+
   it.each([
     ["hostile origin", "https://app.example", "https://attacker.example"],
     ["preview origin", "https://preview.example", "https://preview.example"],

@@ -339,6 +339,15 @@ async function prepareDatabaseProject(name, index, context, environment) {
       recursive: true,
     },
   );
+  // Supabase mounts this path as a file. Docker turns a missing bind source
+  // into a directory, which makes pgsodium fail before PostgreSQL can become
+  // healthy. Create the per-shard secret before `supabase start` so the mount
+  // type and credential are both deterministic for the lifetime of the shard.
+  await writeFile(
+    path.join(projectRoot, "supabase", ".temp", "pgsodium_root.key"),
+    randomBytes(32).toString("hex"),
+    { encoding: "utf8", mode: 0o600 },
+  );
   const projectId = `clockwork-${context.runId}-${name}`;
   const databasePortBase = context.databasePortBase + index * 20;
   const configPath = path.join(projectRoot, "supabase", "config.toml");

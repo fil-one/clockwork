@@ -8,6 +8,7 @@ import { Button } from "@clockwork/ui";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
 import type { ExperienceAudience, ProjectionChannel } from "./model";
+import { canRunProjectionAction } from "./projection-authorization";
 
 export function ProjectionActionButtons({
   audience,
@@ -16,6 +17,7 @@ export function ProjectionActionButtons({
   projectionId,
   version,
   actions,
+  roles,
 }: {
   audience: ExperienceAudience;
   channel: ProjectionChannel;
@@ -23,16 +25,20 @@ export function ProjectionActionButtons({
   projectionId: string;
   version: number;
   actions: readonly string[];
+  roles: readonly string[];
 }) {
   const router = useRouter();
   const keys = useRef(new Map<string, string>());
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
-  if (actions.length === 0) return <span>Read only</span>;
+  const authorizedActions = actions.filter((action) =>
+    canRunProjectionAction(roles, audience, channel, action),
+  );
+  if (authorizedActions.length === 0) return <span>Read only</span>;
   return (
     <div>
-      {actions.map((action) => (
+      {authorizedActions.map((action) => (
         <Button
           key={action}
           size="small"

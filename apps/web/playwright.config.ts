@@ -16,6 +16,9 @@ const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Production proof owns its migrated database, signed session cookies, and
+  // provider fake through the dedicated proof configuration.
+  testIgnore: "production-proof.spec.ts",
   fullyParallel: !serial,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
