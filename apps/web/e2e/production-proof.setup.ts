@@ -311,12 +311,17 @@ async function revokeProofSessions(
 export default async function productionProofSetup(config: FullConfig) {
   const databaseUrl = process.env.DIRECT_DATABASE_URL;
   const secret = process.env.CLOCKWORK_PROOF_AUTH_SECRET;
+  const authorizationSecret = process.env.AUTHORIZATION_CONTEXT_SECRET;
   const projectUrl = config.projects[0]?.use.baseURL;
   if (!databaseUrl)
     throw new Error("DIRECT_DATABASE_URL is required for release proof");
   if (!secret || Buffer.byteLength(secret) < 32)
     throw new Error(
       "CLOCKWORK_PROOF_AUTH_SECRET is required for release proof",
+    );
+  if (!authorizationSecret || Buffer.byteLength(authorizationSecret) < 32)
+    throw new Error(
+      "AUTHORIZATION_CONTEXT_SECRET is required for release proof",
     );
   if (typeof projectUrl !== "string")
     throw new Error("Release proof requires a configured baseURL");
@@ -330,6 +335,19 @@ export default async function productionProofSetup(config: FullConfig) {
   const sql = createDirectMigrationClient(databaseUrl);
   const browser = await chromium.launch();
   try {
+    await sql`
+      update private.authorization_secrets
+      set active = false, rotated_at = now()
+      where active
+    `;
+    await sql`
+      insert into private.authorization_secrets (id, secret, active)
+      values ('release-proof', ${authorizationSecret}, true)
+      on conflict (id) do update set
+        secret = excluded.secret,
+        active = true,
+        rotated_at = now()
+    `;
     await seedProofProjections(sql);
     for (const identity of proofIdentities) {
       const nonce = createHash("sha256")
