@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:52:14Z",
+  "capturedAt": "2026-08-01T16:19:41Z",
   "testFiles": [
     "apps/web/app/api/telemetry/route.test.ts",
     "apps/web/e2e/experience.spec.ts",
@@ -235,10 +235,11 @@
     "integrationFiles": 30,
     "scriptFiles": 1,
     "playwrightSpecFiles": 7,
+    "playwrightSupportFiles": 4,
     "browserSourceDeclarations": 55,
     "browserExpandedExecutableTests": 79,
     "pgTapFiles": 16,
-    "pgTapPlannedAssertions": 430
+    "pgTapPlannedAssertions": 431
   },
   "suites": {
     "unit": [
@@ -459,6 +460,12 @@
       "apps/web/e2e/ux-shell.spec.ts",
       "apps/web/e2e/visual.spec.ts"
     ],
+    "playwrightSupport": [
+      "apps/web/e2e/production-proof.setup.ts",
+      "apps/web/e2e/production-proof.teardown.ts",
+      "apps/web/e2e/production-provider-fake.mjs",
+      "apps/web/e2e/production-workflow-proof.ts"
+    ],
     "pgTap": [
       "supabase/tests/000_schema.test.sql",
       "supabase/tests/010_constraints.test.sql",
@@ -516,8 +523,8 @@
     },
     {
       "path": "supabase/tests/1300_release_integrity.test.sql",
-      "plannedAssertions": 76,
-      "sha256": "3580046232f51e9ccb4e2b65ef9a7c295b35285fce2f82edf9c5131bb00d0dab"
+      "plannedAssertions": 77,
+      "sha256": "c9ffee8061e932e7826e958aa471bed4daa25804b3455739923c2e1532fd9383"
     },
     {
       "path": "supabase/tests/200_lifecycle_platform.test.sql",

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:52:14Z",
+  "capturedAt": "2026-08-01T16:19:41Z",
   "captureRef": "main",
-  "captureCommit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
-  "captureTree": "62e6e5f78b1b6804e4ed06f5611fcf3641663af1",
+  "captureCommit": "caa99415d408a8dc7df97ced216379986848f93f",
+  "captureTree": "2f2861c3ea4fd57bcac6910db98db6d4c3ac2d4a",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
+      "object": "caa99415d408a8dc7df97ced216379986848f93f",
       "objectType": "commit",
-      "peeledCommit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
-      "commit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
-      "tree": "62e6e5f78b1b6804e4ed06f5611fcf3641663af1",
+      "peeledCommit": "caa99415d408a8dc7df97ced216379986848f93f",
+      "commit": "caa99415d408a8dc7df97ced216379986848f93f",
+      "tree": "2f2861c3ea4fd57bcac6910db98db6d4c3ac2d4a",
       "treeEntryCount": 896,
-      "treeListingSha256": "8c3c04229870adb4e017d853a0b3eed995200326bcd93a19c0b12255ff5bdac4",
-      "parents": ["3a368cf9a6ac8c8291f13fac6aaa05844f60acf2"],
-      "subject": "docs: reconcile final inventory semantics",
-      "mergeBaseWithMain": "56439ac369480c4f2a224cc4aa56efe2b7a08272"
+      "treeListingSha256": "48a2059a238321380cf478f0b1038a7060b37e63b1c38b724be519315dbdacc2",
+      "parents": ["2bc67dbb20393f042766c780ca55e738289a4fe0"],
+      "subject": "docs: reconcile final pgTAP count",
+      "mergeBaseWithMain": "caa99415d408a8dc7df97ced216379986848f93f"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
+      "head": "caa99415d408a8dc7df97ced216379986848f93f",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,41 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 75996,
+        "ignoredArtifactCount": 76057,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 75995,
-        "ignoredArtifactListingSha256": "98aee7c9d0c77040c529509839168147b6d0beb2dc18b02a653c8b3ada6cb278",
+        "rejectedIgnoredArtifactCount": 76056,
+        "ignoredArtifactListingSha256": "ecab885e46df32a6d05b1d6aa01dabe00262b98d9ff1c1333c5644b0240b6c6b",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "caa99415d408a8dc7df97ced216379986848f93f",
+      "tree": "2f2861c3ea4fd57bcac6910db98db6d4c3ac2d4a",
+      "parents": ["2bc67dbb20393f042766c780ca55e738289a4fe0"],
+      "subject": "docs: reconcile final pgTAP count"
+    },
+    {
+      "commit": "2bc67dbb20393f042766c780ca55e738289a4fe0",
+      "tree": "e0a0aeec7fae92e1e7174af211aa6fe68162f466",
+      "parents": ["34fbd79daadf2f43df937d04ce50c248cf86c478"],
+      "subject": "docs: inventory browser proof support files"
+    },
+    {
+      "commit": "34fbd79daadf2f43df937d04ce50c248cf86c478",
+      "tree": "3ad62324e9a34fd1e0cc2f8fb8f8bca386ba025f",
+      "parents": ["b7340cbe23d1c990b88971504737571de12a1fa1"],
+      "subject": "test: bind production proof artifact source truth"
+    },
+    {
+      "commit": "b7340cbe23d1c990b88971504737571de12a1fa1",
+      "tree": "1daaf89acd2630b0cd1a67e447055fd189082a17",
+      "parents": ["56439ac369480c4f2a224cc4aa56efe2b7a08272"],
+      "subject": "docs: capture final consolidated manifests"
+    },
     {
       "commit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
       "tree": "62e6e5f78b1b6804e4ed06f5611fcf3641663af1",
@@ -819,7 +843,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 71,
+  "reachableCommitCount": 75,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1290,6 +1314,56 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "caa99415d408a8dc7df97ced216379986848f93f",
+      "selector": "refs/heads/main@{2026-08-01T12:18:45-04:00}",
+      "subject": "commit: docs: reconcile final pgTAP count"
+    },
+    {
+      "commit": "caa99415d408a8dc7df97ced216379986848f93f",
+      "selector": "HEAD@{2026-08-01T12:18:45-04:00}",
+      "subject": "commit: docs: reconcile final pgTAP count"
+    },
+    {
+      "commit": "2bc67dbb20393f042766c780ca55e738289a4fe0",
+      "selector": "refs/heads/main@{2026-08-01T12:18:30-04:00}",
+      "subject": "commit (amend): docs: inventory browser proof support files"
+    },
+    {
+      "commit": "2bc67dbb20393f042766c780ca55e738289a4fe0",
+      "selector": "HEAD@{2026-08-01T12:18:30-04:00}",
+      "subject": "commit (amend): docs: inventory browser proof support files"
+    },
+    {
+      "commit": "fec0d0455f22c68228ac17824b7a58d3ba02f01a",
+      "selector": "refs/heads/main@{2026-08-01T12:16:49-04:00}",
+      "subject": "commit: docs: inventory browser proof support files"
+    },
+    {
+      "commit": "fec0d0455f22c68228ac17824b7a58d3ba02f01a",
+      "selector": "HEAD@{2026-08-01T12:16:49-04:00}",
+      "subject": "commit: docs: inventory browser proof support files"
+    },
+    {
+      "commit": "34fbd79daadf2f43df937d04ce50c248cf86c478",
+      "selector": "refs/heads/main@{2026-08-01T12:14:37-04:00}",
+      "subject": "commit: test: bind production proof artifact source truth"
+    },
+    {
+      "commit": "34fbd79daadf2f43df937d04ce50c248cf86c478",
+      "selector": "HEAD@{2026-08-01T12:14:37-04:00}",
+      "subject": "commit: test: bind production proof artifact source truth"
+    },
+    {
+      "commit": "b7340cbe23d1c990b88971504737571de12a1fa1",
+      "selector": "refs/heads/main@{2026-08-01T11:55:02-04:00}",
+      "subject": "commit: docs: capture final consolidated manifests"
+    },
+    {
+      "commit": "b7340cbe23d1c990b88971504737571de12a1fa1",
+      "selector": "HEAD@{2026-08-01T11:55:02-04:00}",
+      "subject": "commit: docs: capture final consolidated manifests"
+    },
     {
       "commit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
       "selector": "refs/heads/main@{2026-08-01T11:51:27-04:00}",
@@ -1978,8 +2052,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 75995,
-        "listingSha256": "98aee7c9d0c77040c529509839168147b6d0beb2dc18b02a653c8b3ada6cb278",
+        "artifactCount": 76056,
+        "listingSha256": "ecab885e46df32a6d05b1d6aa01dabe00262b98d9ff1c1333c5644b0240b6c6b",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
@@ -2299,6 +2373,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "9da71172347f1a1ba58ff0a8163a3bff46bbcb48"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "bca76d63262adf0011c376abfafbd3f5fedaeea5"
         },
@@ -2430,6 +2509,11 @@
         {
           "state": "unreachable",
           "type": "blob",
+          "object": "de51a0afc1953c373d62f8c44f74f11a3829d8df"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
           "object": "e531bf7d00385114f39d24088c8882537bf1d68b"
         },
         {
@@ -2481,6 +2565,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "4777fc5e3119448712f7776947aef070f255082a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "5d777a0178cb7265757d1f7f0b8c418654a3a4d8"
         },
         {
           "state": "unreachable",

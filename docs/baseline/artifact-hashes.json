@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:52:14Z",
-  "captureCommit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
-  "captureTree": "62e6e5f78b1b6804e4ed06f5611fcf3641663af1",
+  "capturedAt": "2026-08-01T16:19:41Z",
+  "captureCommit": "caa99415d408a8dc7df97ced216379986848f93f",
+  "captureTree": "2f2861c3ea4fd57bcac6910db98db6d4c3ac2d4a",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "8c3c04229870adb4e017d853a0b3eed995200326bcd93a19c0b12255ff5bdac4",
-  "artifactCount": 632,
+  "captureTreeListingSha256": "48a2059a238321380cf478f0b1038a7060b37e63b1c38b724be519315dbdacc2",
+  "artifactCount": 636,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
-      "aggregateSha256": "98b241f28eeba2a9981e74b235e1a1be06022a64f8f2f36dedd6443f9b04ba74",
+      "aggregateSha256": "393af888c27e5df5ff704baba03786bda00eb56816f203b17a81d435f8f08ef1",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "96f764650f69be6d00b126f2add973362618fefb6ef3471ba8a03508904b36bb",
+      "aggregateSha256": "b288f61560d1b6d7b725a4340ca6c98be9059e4de02e1f2ee50244583d5bc9d9",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -478,12 +478,16 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 254,
-      "aggregateSha256": "b5ecbb43051d368f36a2fda828bdc2a3c251a8ce6a30f8abd6fdad34149ab797",
+      "artifactCount": 258,
+      "aggregateSha256": "cc42b565a1e6803d74f4abc51882902bbd8ef6d49f9020a617c1182ecd2920d9",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
+        "apps/web/e2e/production-proof.setup.ts",
         "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/e2e/production-provider-fake.mjs",
+        "apps/web/e2e/production-workflow-proof.ts",
         "apps/web/e2e/smoke.spec.ts",
         "apps/web/e2e/ux-customer-partner.spec.ts",
         "apps/web/e2e/ux-internal-ops.spec.ts",
@@ -1205,9 +1209,29 @@
       "sha256": "6c672cc293f8f76215a982bea502724384335135f37caad7190f207fe2a2e0f8"
     },
     {
+      "path": "apps/web/e2e/production-proof.setup.ts",
+      "bytes": 21445,
+      "sha256": "524a256c35989d9f1ea0122afbf9f947c63032d00e3b6b7c74fb000888b44486"
+    },
+    {
       "path": "apps/web/e2e/production-proof.spec.ts",
-      "bytes": 29962,
-      "sha256": "192319b5bd9aad894d990cbc4df1534e8f9137a096640b0bb3c62b54761352e7"
+      "bytes": 30359,
+      "sha256": "b902eb877b2d31c6ac2a1186d3563d6d53d7d632cb07ba92644c996518fbdd82"
+    },
+    {
+      "path": "apps/web/e2e/production-proof.teardown.ts",
+      "bytes": 1467,
+      "sha256": "f0e993db8c74fbe2954a85e764f59950cf29d93e638a70dc144c2dff86bf4637"
+    },
+    {
+      "path": "apps/web/e2e/production-provider-fake.mjs",
+      "bytes": 6225,
+      "sha256": "92712ac9634cc07d0668dde996a217f245d248f9e5ce568a36c454bb065d8c8b"
+    },
+    {
+      "path": "apps/web/e2e/production-workflow-proof.ts",
+      "bytes": 2577,
+      "sha256": "ce1623b7f134e726ce6b39f8d3cb1d4d042870b223cd585bcf5fdd1ded3cf084"
     },
     {
       "path": "apps/web/e2e/smoke.spec.ts",
@@ -1777,7 +1801,7 @@
     {
       "path": "docs/backlog.md",
       "bytes": 15163,
-      "sha256": "3de7868bbe9daff698694e1a8389064568423a89939e9d2e1d607157ce3fa74f"
+      "sha256": "3df1743f101f1525c78895000f78b72bfbaad1faac95e95d171ff8529f34c555"
     },
     {
       "path": "docs/external-gates.md",
@@ -1827,7 +1851,7 @@
     {
       "path": "docs/launch-checklist.md",
       "bytes": 15725,
-      "sha256": "0f1d0e81088f2e653a901232b52591f08767f7bdcc75cc033c87a14b4310eb49"
+      "sha256": "e5cb31681a2e3c23e96385d6513c07cb3d389716e8606586b6a7a9b461a2a887"
     },
     {
       "path": "docs/operations/auth-anomalies.md",
@@ -1912,7 +1936,7 @@
     {
       "path": "docs/release-candidate-report.md",
       "bytes": 15562,
-      "sha256": "f4a6407fc5436a310639e8fa2925292e0e413aadcda90f0ab8a9bc1c66528ba1"
+      "sha256": "24cad774c4125695344f6720907e93f24fd1931e0a9f92a1502220de97280a95"
     },
     {
       "path": "docs/sprint-checklist.md",
@@ -3621,8 +3645,8 @@
     },
     {
       "path": "scripts/generate-baseline-manifests.mjs",
-      "bytes": 88788,
-      "sha256": "8ac5bd6a63e2963de438710a4314197f332e256b648f85e8c63155cc596a11c4"
+      "bytes": 89041,
+      "sha256": "e2e0cc12388ad2f144176e3b0febca17894bcf012d44ab0e8f956d4c8ee32e3a"
     },
     {
       "path": "scripts/qualify-populated-upgrade.mjs",
@@ -3836,8 +3860,8 @@
     },
     {
       "path": "supabase/tests/1300_release_integrity.test.sql",
-      "bytes": 32718,
-      "sha256": "3580046232f51e9ccb4e2b65ef9a7c295b35285fce2f82edf9c5131bb00d0dab"
+      "bytes": 32879,
+      "sha256": "c9ffee8061e932e7826e958aa471bed4daa25804b3455739923c2e1532fd9383"
     },
     {
       "path": "supabase/tests/200_lifecycle_platform.test.sql",
