@@ -1,3 +1,4 @@
+import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 export type RiskLevel = "none" | "low" | "moderate" | "high" | "critical";
@@ -69,7 +70,13 @@ export function StatTile({
           {change ? (
             <span className="cw-stat__change">
               <span className="cw-stat__trend" aria-hidden="true">
-                {trend === "up" ? "↗" : trend === "down" ? "↘" : "→"}
+                {trend === "up" ? (
+                  <ArrowUpRight />
+                ) : trend === "down" ? (
+                  <ArrowDownRight />
+                ) : (
+                  <Minus />
+                )}
               </span>
               {change}
             </span>

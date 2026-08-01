@@ -1,4 +1,13 @@
-import type { ReactNode } from "react";
+"use client";
+
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Menu, X } from "lucide-react";
+import type {
+  AnchorHTMLAttributes,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
+import { useState } from "react";
 
 import { BrandSlot } from "./brand";
 
@@ -11,12 +20,32 @@ export interface NavigationItem {
   active?: boolean;
   disabled?: boolean;
   description?: string;
+  /** Optional product-owned side effect, such as telemetry. */
+  onSelect?: () => void;
 }
 
 export interface NavigationGroup {
   id: string;
   label?: string;
   items: readonly NavigationItem[];
+}
+
+export interface NavigationProps {
+  groups: readonly NavigationGroup[];
+  label?: string;
+  density?: "comfortable" | "compact";
+  /** Runs after an enabled navigation link is activated. */
+  onNavigate?: (
+    item: NavigationItem,
+    event: ReactMouseEvent<HTMLAnchorElement>,
+  ) => void;
+  /** Render a framework link. Spread every supplied link prop to retain semantics. */
+  renderNavigationItem?: (
+    item: NavigationItem,
+    children: ReactNode,
+    linkProps: AnchorHTMLAttributes<HTMLAnchorElement>,
+  ) => ReactNode;
+  className?: string;
 }
 
 export function SkipLink({
@@ -33,30 +62,29 @@ export function SkipLink({
   );
 }
 
+/** Semantic grouped navigation shared by the rail and mobile drawer. */
 export function Navigation({
   groups,
   label = "Primary",
-}: {
-  groups: readonly NavigationGroup[];
-  label?: string;
-}) {
+  density = "comfortable",
+  onNavigate,
+  renderNavigationItem,
+  className = "",
+}: NavigationProps) {
   return (
-    <nav className="cw-navigation" aria-label={label}>
+    <nav
+      className={`cw-navigation cw-navigation--${density} ${className}`.trim()}
+      aria-label={label}
+    >
       {groups.map((group) => (
         <section className="cw-navigation__group" key={group.id}>
           {group.label ? (
             <h2 className="cw-navigation__label">{group.label}</h2>
           ) : null}
           <ul className="cw-navigation__list">
-            {group.items.map((item) => (
-              <li key={item.id}>
-                <a
-                  className="cw-navigation__link"
-                  href={item.disabled ? undefined : item.href}
-                  aria-current={item.active ? "page" : undefined}
-                  aria-disabled={item.disabled || undefined}
-                  tabIndex={item.disabled ? -1 : undefined}
-                >
+            {group.items.map((item) => {
+              const content = (
+                <>
                   {item.icon ? (
                     <span className="cw-navigation__icon" aria-hidden="true">
                       {item.icon}
@@ -73,13 +101,129 @@ export function Navigation({
                   {item.badge ? (
                     <span className="cw-navigation__badge">{item.badge}</span>
                   ) : null}
-                </a>
-              </li>
-            ))}
+                </>
+              );
+              const linkProps: AnchorHTMLAttributes<HTMLAnchorElement> = {
+                className: "cw-navigation__link",
+                href: item.disabled ? undefined : item.href,
+                "aria-current": item.active ? "page" : undefined,
+                "aria-disabled": item.disabled || undefined,
+                "aria-label":
+                  density === "compact"
+                    ? item.description
+                      ? `${item.label}. ${item.description}`
+                      : item.label
+                    : undefined,
+                title: density === "compact" ? item.label : undefined,
+                tabIndex: item.disabled ? -1 : undefined,
+                onClick: (event) => {
+                  if (item.disabled) return;
+                  item.onSelect?.();
+                  onNavigate?.(item, event);
+                },
+              };
+              return (
+                <li key={item.id}>
+                  {renderNavigationItem ? (
+                    renderNavigationItem(item, content, linkProps)
+                  ) : (
+                    <a {...linkProps}>{content}</a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}
     </nav>
+  );
+}
+
+export interface ResponsiveNavigationDrawerProps extends NavigationProps {
+  triggerLabel?: string;
+  title?: string;
+  description?: string;
+  closeLabel?: string;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: ReactNode;
+}
+
+/** Modal mobile navigation with focus trapping and focus restoration via Radix. */
+export function ResponsiveNavigationDrawer({
+  groups,
+  label = "Primary",
+  triggerLabel = "Open navigation",
+  title = "Navigation",
+  description = "Browse every destination.",
+  closeLabel = "Close navigation",
+  open,
+  defaultOpen,
+  onOpenChange,
+  onNavigate,
+  renderNavigationItem,
+  trigger,
+}: ResponsiveNavigationDrawerProps) {
+  return (
+    <DialogPrimitive.Root
+      {...(open === undefined ? {} : { open })}
+      {...(defaultOpen === undefined ? {} : { defaultOpen })}
+      {...(onOpenChange ? { onOpenChange } : {})}
+    >
+      <DialogPrimitive.Trigger asChild>
+        {trigger ?? (
+          <button
+            className="cw-shell__drawer-trigger"
+            type="button"
+            aria-label={triggerLabel}
+            title={triggerLabel}
+          >
+            <Menu aria-hidden="true" />
+            <span>{title}</span>
+          </button>
+        )}
+      </DialogPrimitive.Trigger>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="cw-drawer-overlay" />
+        <DialogPrimitive.Content
+          className="cw-drawer-content"
+          aria-modal="true"
+        >
+          <header className="cw-drawer-header">
+            <div>
+              <DialogPrimitive.Title className="cw-drawer-title">
+                {title}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="cw-drawer-description">
+                {description}
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close asChild>
+              <button
+                className="cw-icon-button"
+                type="button"
+                aria-label={closeLabel}
+                title={closeLabel}
+              >
+                <X aria-hidden="true" />
+              </button>
+            </DialogPrimitive.Close>
+          </header>
+          <div className="cw-drawer-body">
+            <Navigation
+              groups={groups}
+              label={label}
+              onNavigate={(item, event) => {
+                onNavigate?.(item, event);
+                onOpenChange?.(false);
+              }}
+              {...(renderNavigationItem ? { renderNavigationItem } : {})}
+            />
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -90,14 +234,27 @@ export interface AppShellProps {
   organization?: ReactNode;
   utilities?: ReactNode;
   banner?: ReactNode;
+  bannerLabel?: string;
   footer?: ReactNode;
   navigationLabel?: string;
   mobileNavigationLabel?: string;
+  mobileNavigationTitle?: string;
+  mobileNavigationDescription?: string;
+  mobileNavigationCloseLabel?: string;
+  navigationDensity?: "comfortable" | "compact";
+  onNavigate?: NavigationProps["onNavigate"];
+  renderNavigationItem?: NavigationProps["renderNavigationItem"];
   mainId?: string;
+  contentElement?: "main" | "div";
+  /** Set false when children provide the mainId target and main landmark. */
+  contentOwnsTarget?: boolean;
   className?: string;
 }
 
-/** Responsive landmark structure. Product code owns routing and session behavior. */
+/**
+ * Shared responsive application structure. Product code owns routing, session,
+ * organization, command, and demo behavior through the supplied slots.
+ */
 export function AppShell({
   children,
   navigation,
@@ -105,15 +262,23 @@ export function AppShell({
   organization,
   utilities,
   banner,
+  bannerLabel = "Application status",
   footer,
   navigationLabel = "Primary",
-  mobileNavigationLabel = "Navigation",
+  mobileNavigationLabel = "Open navigation",
+  mobileNavigationTitle = "Navigation",
+  mobileNavigationDescription = "Browse every destination.",
+  mobileNavigationCloseLabel = "Close navigation",
+  navigationDensity = "compact",
+  onNavigate,
+  renderNavigationItem,
   mainId = "main-content",
+  contentElement = "main",
+  contentOwnsTarget = true,
   className = "",
 }: AppShellProps) {
-  const navigationContent = (
-    <Navigation groups={navigation} label={navigationLabel} />
-  );
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const ContentElement = contentElement;
 
   return (
     <div className={`cw-shell ${className}`.trim()}>
@@ -122,16 +287,45 @@ export function AppShell({
         <div className="cw-shell__brand">{brand}</div>
         <div className="cw-shell__organization">{organization}</div>
         <div className="cw-shell__utilities">{utilities}</div>
-        <details className="cw-shell__mobile-navigation">
-          <summary>{mobileNavigationLabel}</summary>
-          <div className="cw-shell__mobile-panel">{navigationContent}</div>
-        </details>
+        <div className="cw-shell__mobile-navigation">
+          <ResponsiveNavigationDrawer
+            groups={navigation}
+            label={navigationLabel}
+            triggerLabel={mobileNavigationLabel}
+            title={mobileNavigationTitle}
+            description={mobileNavigationDescription}
+            closeLabel={mobileNavigationCloseLabel}
+            open={mobileOpen}
+            onOpenChange={setMobileOpen}
+            onNavigate={(item, event) => {
+              onNavigate?.(item, event);
+              setMobileOpen(false);
+            }}
+            {...(renderNavigationItem ? { renderNavigationItem } : {})}
+          />
+        </div>
       </header>
-      {banner ? <div className="cw-shell__banner">{banner}</div> : null}
-      <aside className="cw-shell__rail">{navigationContent}</aside>
-      <main className="cw-shell__main" id={mainId} tabIndex={-1}>
+      {banner ? (
+        <section className="cw-shell__banner" aria-label={bannerLabel}>
+          {banner}
+        </section>
+      ) : null}
+      <aside className="cw-shell__rail">
+        <Navigation
+          groups={navigation}
+          label={navigationLabel}
+          density={navigationDensity}
+          {...(onNavigate ? { onNavigate } : {})}
+          {...(renderNavigationItem ? { renderNavigationItem } : {})}
+        />
+      </aside>
+      <ContentElement
+        className="cw-shell__main"
+        id={contentOwnsTarget ? mainId : undefined}
+        tabIndex={contentOwnsTarget ? -1 : undefined}
+      >
         {children}
-      </main>
+      </ContentElement>
       {footer ? <footer className="cw-shell__footer">{footer}</footer> : null}
     </div>
   );
@@ -202,15 +396,13 @@ export function PageHeader({
   );
 }
 
-export function Toolbar({
-  label,
-  children,
-  className = "",
-}: {
+export interface ToolbarProps {
   label: string;
   children: ReactNode;
   className?: string;
-}) {
+}
+
+export function Toolbar({ label, children, className = "" }: ToolbarProps) {
   return (
     <div
       className={`cw-toolbar ${className}`.trim()}
@@ -222,19 +414,21 @@ export function Toolbar({
   );
 }
 
+export interface SectionProps {
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
 export function Section({
   title,
   description,
   actions,
   children,
   className = "",
-}: {
-  title: ReactNode;
-  description?: ReactNode;
-  actions?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
+}: SectionProps) {
   return (
     <section className={`cw-section ${className}`.trim()}>
       <header className="cw-section__header">

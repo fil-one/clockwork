@@ -12,7 +12,9 @@ export default async function PartnerLayout({
   const roles = await getRouteRoles("partner");
   return (
     <RoutePermissionGate audience="partner" roles={roles}>
-      <AppShell audience="partner">{children}</AppShell>
+      <AppShell audience="partner" roles={roles}>
+        {children}
+      </AppShell>
     </RoutePermissionGate>
   );
 }

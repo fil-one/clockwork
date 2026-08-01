@@ -53,6 +53,7 @@ export function IconButton({
     <Button
       className={`cw-icon-button ${className}`.trim()}
       aria-label={label}
+      title={label}
       {...props}
     >
       <span aria-hidden="true">{children}</span>

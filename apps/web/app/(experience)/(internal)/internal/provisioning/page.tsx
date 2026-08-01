@@ -1,4 +1,5 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { ProvisioningView } from "@/src/features/internal-ops/finance-lifecycle/provisioning-view";
+
 export default function Page() {
-  return <ExperiencePage surface="provisioning" />;
+  return <ProvisioningView />;
 }

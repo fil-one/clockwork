@@ -12,7 +12,9 @@ export default async function InternalLayout({
   const roles = await getRouteRoles("internal");
   return (
     <RoutePermissionGate audience="internal" roles={roles}>
-      <AppShell audience="internal">{children}</AppShell>
+      <AppShell audience="internal" roles={roles}>
+        {children}
+      </AppShell>
     </RoutePermissionGate>
   );
 }

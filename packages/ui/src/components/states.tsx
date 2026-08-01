@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 export type ApplicationState =
@@ -284,7 +285,7 @@ export function ProgressSteps({
           key={step.id}
         >
           <span className="cw-steps__number" aria-hidden="true">
-            {step.state === "complete" ? "✓" : index + 1}
+            {step.state === "complete" ? <Check /> : index + 1}
           </span>
           <span>
             <strong

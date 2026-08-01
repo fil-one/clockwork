@@ -12,7 +12,9 @@ export default async function CustomerLayout({
   const roles = await getRouteRoles("customer");
   return (
     <RoutePermissionGate audience="customer" roles={roles}>
-      <AppShell audience="customer">{children}</AppShell>
+      <AppShell audience="customer" roles={roles}>
+        {children}
+      </AppShell>
     </RoutePermissionGate>
   );
 }

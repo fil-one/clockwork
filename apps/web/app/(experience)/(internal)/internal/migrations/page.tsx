@@ -1,4 +1,5 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { MigrationsView } from "@/src/features/internal-ops/finance-lifecycle/migrations-view";
+
 export default function Page() {
-  return <ExperiencePage surface="migrations" />;
+  return <MigrationsView />;
 }

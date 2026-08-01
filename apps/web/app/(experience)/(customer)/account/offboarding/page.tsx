@@ -1,4 +1,13 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { OffboardingWorkflow } from "@/src/features/customer-partner/commercial/offboarding";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+
 export default function Page() {
-  return <ExperiencePage surface="offboarding" />;
+  return (
+    <SurfacePermissionGate
+      audience="customer"
+      requiredPermission="destructive:request"
+    >
+      <OffboardingWorkflow />
+    </SurfacePermissionGate>
+  );
 }
