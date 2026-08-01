@@ -1,4 +1,4 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { ResaleQuoteBuilder } from "@/src/features/customer-partner/partner/resale-quote-builder";
 export default function Page() {
-  return <ExperiencePage surface="partnerQuotes" />;
+  return <ResaleQuoteBuilder />;
 }

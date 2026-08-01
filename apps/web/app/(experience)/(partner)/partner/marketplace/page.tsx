@@ -1,4 +1,4 @@
-import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { PartnerCollectionRoute } from "@/src/features/customer-partner/partner/partner-route";
 export default function Page() {
-  return <ExperiencePage surface="partnerMarketplace" />;
+  return <PartnerCollectionRoute surface="marketplace" />;
 }

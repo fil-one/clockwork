@@ -1,0 +1,560 @@
+.main {
+  display: grid;
+  min-width: 0;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 4vw, 3.25rem);
+}
+
+.header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.header > div:first-child {
+  max-width: 52rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--web-accent);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  max-width: 48rem;
+  margin: 0;
+  font-size: clamp(2rem, 4.4vw, 3.65rem);
+  font-weight: 650;
+  letter-spacing: -0.052em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 47rem;
+  margin: 1rem 0 0;
+  color: var(--web-muted);
+  font-size: clamp(0.96rem, 1.4vw, 1.08rem);
+}
+
+.primaryLink,
+.secondaryLink {
+  display: inline-flex;
+  min-height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--web-accent);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.primaryLink {
+  background: var(--web-accent);
+  color: white;
+}
+
+.secondaryLink {
+  background: transparent;
+  color: var(--web-accent);
+}
+
+.primaryLink:focus-visible,
+.secondaryLink:focus-visible,
+.attentionLink:focus-visible,
+.accountCard:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--web-accent) 36%, transparent);
+  outline-offset: 2px;
+}
+
+.section {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionHeading h2,
+.panel h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sectionHeading p,
+.panelIntro {
+  margin: 0.3rem 0 0;
+  color: var(--web-muted);
+  font-size: 0.8rem;
+}
+
+.attentionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--web-line);
+  border-radius: 0.8rem;
+  background: var(--web-paper);
+  overflow: hidden;
+}
+
+.attentionLink {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+  border-right: 1px solid var(--web-line);
+  color: inherit;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.attentionLink:last-child {
+  border-right: 0;
+}
+
+.attentionLink:hover {
+  background: color-mix(in srgb, var(--web-soft) 52%, transparent);
+}
+
+.attentionTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.attentionType {
+  color: var(--web-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.attentionLink h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.attentionLink p {
+  margin: 0;
+  color: var(--web-muted);
+  font-size: 0.74rem;
+}
+
+.attentionAction {
+  align-self: end;
+  color: var(--web-accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.commercialGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr);
+  gap: 1rem;
+}
+
+.termCard,
+.rollup,
+.panel,
+.chart,
+.activity,
+.accountCard {
+  border: 1px solid var(--web-line);
+  border-radius: 0.8rem;
+  background: var(--web-paper);
+}
+
+.termCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+}
+
+.termTop {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.termCard h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.termRange {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 690;
+  letter-spacing: -0.025em;
+}
+
+.termTrack {
+  position: relative;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--web-soft);
+  overflow: hidden;
+}
+
+.termProgress {
+  width: 58%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--web-accent);
+}
+
+.termMilestones,
+.accountFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.termMilestones div,
+.accountFacts div {
+  min-width: 0;
+  border-left: 2px solid var(--web-line);
+  padding-left: 0.65rem;
+}
+
+.termMilestones dt,
+.accountFacts dt {
+  color: var(--web-muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+.termMilestones dd,
+.accountFacts dd {
+  margin: 0.22rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  font-weight: 720;
+}
+
+.rollup {
+  align-self: start;
+  overflow: hidden;
+}
+
+.rollup summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rollup summary::marker {
+  color: var(--web-accent);
+}
+
+.rollupCount {
+  color: var(--web-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.serviceList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.serviceList li {
+  display: grid;
+  gap: 0.25rem;
+  border-top: 1px solid var(--web-line);
+  padding: 0.85rem 1rem;
+}
+
+.serviceList strong {
+  font-size: 0.82rem;
+}
+
+.serviceList span {
+  color: var(--web-muted);
+  font-size: 0.7rem;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.metricGrid > article {
+  min-height: 9rem;
+}
+
+.dashboardLower {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.chart,
+.activity,
+.panel {
+  padding: 1.1rem;
+}
+
+.chartHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chartHeader h2,
+.activity h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.freshness,
+.comparison {
+  margin: 0.25rem 0 0;
+  color: var(--web-muted);
+  font-size: 0.7rem;
+}
+
+.comparison {
+  color: var(--web-accent);
+  font-weight: 720;
+  text-align: right;
+}
+
+.bars {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.barRow span,
+.barRow strong {
+  font-size: 0.74rem;
+}
+
+.barRow strong {
+  text-align: right;
+}
+
+.barTrack {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: var(--web-soft);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--web-accent);
+}
+
+.barFillPrevious {
+  background: color-mix(in srgb, var(--web-accent) 48%, var(--web-line));
+}
+
+.activity {
+  opacity: 0.9;
+}
+
+.activityList {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activityList li {
+  display: grid;
+  gap: 0.2rem;
+  border-left: 2px solid var(--web-line);
+  padding-left: 0.7rem;
+}
+
+.activityList strong {
+  font-size: 0.78rem;
+}
+
+.activityList span,
+.activityList time {
+  color: var(--web-muted);
+  font-size: 0.68rem;
+}
+
+.accountFacts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.accountGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.accountCard {
+  display: grid;
+  min-height: 11rem;
+  gap: 0.8rem;
+  align-content: start;
+  color: inherit;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.accountCard:hover {
+  border-color: color-mix(in srgb, var(--web-accent) 48%, var(--web-line));
+  background: color-mix(in srgb, var(--web-soft) 42%, var(--web-paper));
+}
+
+.accountCard h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.accountCard p {
+  margin: 0;
+  color: var(--web-muted);
+  font-size: 0.78rem;
+}
+
+.accountCard span {
+  align-self: end;
+  color: var(--web-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.permissionNote {
+  max-width: 36rem;
+  margin: 0;
+  border-left: 3px solid var(--web-line);
+  padding: 0.75rem 1rem;
+  color: var(--web-muted);
+  font-size: 0.78rem;
+}
+
+.stateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.stateGrid > section {
+  max-width: none;
+}
+
+@media (max-width: 70rem) {
+  .attentionGrid,
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attentionLink:nth-child(2) {
+    border-right: 0;
+  }
+
+  .attentionLink:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--web-line);
+  }
+
+  .commercialGrid,
+  .dashboardLower {
+    grid-template-columns: 1fr;
+  }
+
+  .activity {
+    order: 2;
+  }
+
+  .accountFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 52rem) {
+  .main {
+    padding: 1.4rem 1rem 2.5rem;
+  }
+
+  .header,
+  .sectionHeading,
+  .chartHeader {
+    align-items: start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .comparison {
+    text-align: left;
+  }
+
+  .accountGrid,
+  .stateGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 35rem) {
+  .attentionGrid,
+  .metricGrid,
+  .termMilestones,
+  .accountFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .attentionLink,
+  .attentionLink:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--web-line);
+  }
+
+  .attentionLink:last-child {
+    border-bottom: 0;
+  }
+
+  .termTop {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .barRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .barTrack {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

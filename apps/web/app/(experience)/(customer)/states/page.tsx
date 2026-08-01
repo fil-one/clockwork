@@ -1,4 +1,5 @@
-import { StateGallery } from "@/src/features/states/state-gallery";
+import { CustomerStateGallery } from "@/src/features/customer-partner/customer/customer-state-gallery";
+
 export default function Page() {
-  return <StateGallery />;
+  return <CustomerStateGallery />;
 }
