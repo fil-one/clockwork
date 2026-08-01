@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BrowserHttpTelemetryExporter,
   BrowserOpenTelemetry,
   parseTraceparent,
   redactTelemetryAttributes,
@@ -127,5 +128,38 @@ describe("browser OpenTelemetry boundary", () => {
     expect(
       telemetry.span("api_key=sk_live_secret maya@example.com", {}).name,
     ).toBe("telemetry.redacted");
+  });
+
+  it("delivers CSRF-bound records with the global fetch receiver", () => {
+    document.cookie = "clockwork-csrf=0123456789abcdef0123456789abcdef";
+    const calls: {
+      receiver: unknown;
+      url: RequestInfo | URL;
+      init: RequestInit;
+    }[] = [];
+    const exporter = new BrowserHttpTelemetryExporter(
+      "/api/telemetry",
+      function (this: unknown, url: RequestInfo | URL, init?: RequestInit) {
+        calls.push({ receiver: this, url, init: init ?? {} });
+        return Promise.resolve(new Response(null, { status: 202 }));
+      },
+    );
+    const record = new BrowserOpenTelemetry({
+      exporter,
+      parentTraceparent:
+        "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      randomValues: (target) => target.fill(2),
+    }).span("document.load", { "app.route": "/dashboard" });
+    // Browsers reject `fetch` calls made through any other receiver, so the
+    // exporter must never invoke it as one of its own properties.
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.receiver).toBe(globalThis);
+    expect(calls[0]?.url).toBe("/api/telemetry");
+    expect(calls[0]?.init.keepalive).toBe(true);
+    expect(calls[0]?.init.credentials).toBe("same-origin");
+    expect(calls[0]?.init.body).toBe(JSON.stringify(record));
+    expect(new Headers(calls[0]?.init.headers).get("x-clockwork-csrf")).toBe(
+      "0123456789abcdef0123456789abcdef",
+    );
   });
 });

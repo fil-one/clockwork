@@ -247,10 +247,16 @@ function csrfToken(): string | undefined {
 
 /** Same-origin, CSRF-bound delivery into the server OTLP boundary. */
 export class BrowserHttpTelemetryExporter implements BrowserTelemetryExporter {
+  private readonly fetcher: typeof fetch | undefined;
+
   public constructor(
     private readonly endpoint = "/api/telemetry",
-    private readonly fetcher: typeof fetch | undefined = globalThis.fetch,
-  ) {}
+    fetcher: typeof fetch | undefined = globalThis.fetch,
+  ) {
+    // `fetch` accepts only its own global as the receiver. Calling it as a
+    // property of this exporter throws before the request leaves the browser.
+    this.fetcher = fetcher?.bind(globalThis);
+  }
 
   export(record: OpenTelemetryRecord): void {
     const token = csrfToken();
