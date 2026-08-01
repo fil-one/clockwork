@@ -339,6 +339,9 @@ async function prepareDatabaseProject(name, index, context, environment) {
       recursive: true,
     },
   );
+  await mkdir(path.join(projectRoot, "supabase", ".temp"), {
+    recursive: true,
+  });
   // Supabase mounts this path as a file. Docker turns a missing bind source
   // into a directory, which makes pgsodium fail before PostgreSQL can become
   // healthy. Create the per-shard secret before `supabase start` so the mount
