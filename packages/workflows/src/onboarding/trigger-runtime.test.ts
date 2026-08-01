@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   configureLifecycleTaskRuntime,
   executeLifecycleTask,
+  lifecycleTaskRedrive,
   resetLifecycleTaskRuntimeForTests,
   taskInvocation,
 } from "./trigger-runtime";
@@ -75,5 +76,27 @@ describe("Trigger lifecycle runtime", () => {
       "provider timeout",
     );
     expect(fail).toHaveBeenCalledWith(invocation, "lease-2", expect.any(Error));
+  });
+
+  it("keeps the original idempotency identity for an authorized redrive", () => {
+    const original = taskInvocation({
+      taskId: "lifecycle-test-v1",
+      triggerRunId: "run-failed",
+      attempt: 8,
+      payload: { aggregateId: "aggregate-1", version: 1 },
+    });
+    const redrive = lifecycleTaskRedrive(original, {
+      requestedBy: " operator-1 ",
+      reason: " Incident INC-1234 was remediated ",
+      ticketReference: " INC-1234 ",
+    });
+    expect(redrive).toMatchObject({
+      idempotencyKey: original.idempotencyKey,
+      replay: {
+        requestedBy: "operator-1",
+        reason: "Incident INC-1234 was remediated",
+        ticketReference: "INC-1234",
+      },
+    });
   });
 });
