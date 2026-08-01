@@ -142,6 +142,7 @@ export const IssueInvoiceInputSchema = z
 export const SyncOverageInputSchema = z
   .object({
     context: CoreWorkflowContextSchema,
+    periodId: z.uuid(),
     ledgerId: ids.commitmentLedger,
     orderId: ids.order,
     invoiceId: ids.invoice,
@@ -289,7 +290,23 @@ export const SettleCommissionsInputSchema = z
         message: "Commission period must not end before it starts",
       });
     }
+    const accrualIds = new Set<string>();
     for (const [index, accrual] of input.accruals.entries()) {
+      if (accrualIds.has(accrual.accrualId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["accruals", index, "accrualId"],
+          message: "A commission statement cannot settle one accrual twice",
+        });
+      }
+      accrualIds.add(accrual.accrualId);
+      if (accrual.status !== "stated") {
+        context.addIssue({
+          code: "custom",
+          path: ["accruals", index, "status"],
+          message: "Every included commission accrual must be stated",
+        });
+      }
       if (accrual.currency !== input.currency) {
         context.addIssue({
           code: "custom",
@@ -298,7 +315,20 @@ export const SettleCommissionsInputSchema = z
         });
       }
       const commission = BigInt(accrual.commissionMinor);
+      const collected = BigInt(accrual.collectedRevenueMinor);
       const holdback = BigInt(accrual.holdbackMinor);
+      if (
+        (collected > 0n && commission < 0n) ||
+        (collected < 0n && commission > 0n) ||
+        (collected === 0n && commission !== 0n)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["accruals", index, "commissionMinor"],
+          message:
+            "Commission direction must match persisted collected revenue",
+        });
+      }
       if (commission < 0n && holdback > 0n) {
         context.addIssue({
           code: "custom",

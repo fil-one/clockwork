@@ -19,6 +19,7 @@ const valid: ExternalGateRecord = {
   configuredStatus: "active",
   simulatorState: "ready",
   simulatorDetails: "Provider contract simulator passed",
+  inputProvenance: "live_signed",
   lastActivationTestStatus: "passed",
   lastActivationTestAt: "2026-07-31T15:00:00Z",
   lastActivationTestedBy: "platform-owner@filone.test",
@@ -96,4 +97,23 @@ describe("external gate activation policy", () => {
       ),
     ).toThrow(/not-required decision/);
   });
+
+  it.each(["EXT-COMMERCIAL-01", "EXT-TAX-01"] as const)(
+    "keeps %s blocked when only repository fixtures were exercised",
+    (gateKey) => {
+      const fixtureOnly = {
+        ...valid,
+        gateKey,
+        inputProvenance: "repository_fixture" as const,
+      };
+      expect(evaluateExternalGate(fixtureOnly, now)).toMatchObject({
+        effectiveStatus: "blocked",
+        activationAllowed: false,
+        blockedReasons: ["live_signed_input_missing"],
+      });
+      expect(() => assertExternalGateTransition(fixtureOnly, now)).toThrow(
+        /cannot activate/,
+      );
+    },
+  );
 });

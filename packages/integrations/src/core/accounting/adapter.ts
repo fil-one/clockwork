@@ -104,6 +104,10 @@ export interface AccountingExportPort {
   exportCommissionBill(input: {
     readonly statementId: string;
     readonly partnerId: string;
+    readonly vendorId: string;
+    readonly vendorMappingVersion: number;
+    readonly accrualIds: readonly string[];
+    readonly lineBindingHash: string;
     readonly statementOn: string;
     readonly amount: Money;
     readonly idempotencyKey: IdempotencyKey;
@@ -120,6 +124,53 @@ export interface AccountingExportPort {
     readonly amount: Money;
     readonly idempotencyKey: IdempotencyKey;
   }): Promise<ProviderResult<{ batchId: string }>>;
+}
+
+export interface VerifiedQboVendorMapping {
+  readonly provider: "qbo";
+  readonly partnerAccountId: string;
+  readonly vendorId: string;
+  readonly mappingVersion: number;
+  readonly verifiedAt: string;
+  readonly status: "verified";
+}
+
+export interface QboVendorMappingResolver {
+  resolve(input: {
+    readonly partnerAccountId: string;
+  }): Promise<ProviderResult<VerifiedQboVendorMapping>>;
+}
+
+/**
+ * Finance-local contract for the shared AccountingPort follow-up. The caller
+ * supplies persisted statement identity and exact line binding; the adapter
+ * independently resolves the verified QBO vendor mapping.
+ */
+export interface CommissionSettlementAccountingPort {
+  postVerifiedCommissionBill(input: {
+    readonly statementId: string;
+    readonly partnerAccountId: string;
+    readonly statementOn: string;
+    readonly accrualIds: readonly string[];
+    readonly lineBindingHash: string;
+    readonly amount: Money;
+    readonly idempotencyKey: IdempotencyKey;
+  }): Promise<ProviderResult<{ billId: string; vendorId: string }>>;
+}
+
+export function commissionLineBindingHash(input: {
+  readonly statementId: string;
+  readonly partnerAccountId: string;
+  readonly amount: Money;
+  readonly accrualIds: readonly string[];
+}): string {
+  return stableExternalId("commission_lines", {
+    statementId: input.statementId,
+    partnerAccountId: input.partnerAccountId,
+    currency: input.amount.currency,
+    amountMinor: input.amount.minor,
+    accrualIds: [...input.accrualIds].sort(),
+  });
 }
 
 export interface ThreeWayTieOutLine {
@@ -276,7 +327,10 @@ export function threeWayTieOut(input: {
 
 /** Emits provider-neutral, balanced records; a selected QBO connector maps accounts. */
 export class QboNeutralAccountingAdapter
-  implements AccountingPort, AccountingExportPort
+  implements
+    AccountingPort,
+    AccountingExportPort,
+    CommissionSettlementAccountingPort
 {
   private readonly accounts: AccountingAccountMap;
 
@@ -285,13 +339,16 @@ export class QboNeutralAccountingAdapter
     configuration: {
       readonly accounts?: Partial<AccountingAccountMap>;
       readonly now?: () => Date;
+      readonly vendorMappings?: QboVendorMappingResolver;
     } = {},
   ) {
     this.accounts = { ...defaultAccountMap, ...configuration.accounts };
     this.now = configuration.now ?? (() => new Date());
+    this.vendorMappings = configuration.vendorMappings;
   }
 
   private readonly now: () => Date;
+  private readonly vendorMappings: QboVendorMappingResolver | undefined;
 
   private async write(
     records: readonly AccountingExportRecord[],
@@ -311,6 +368,7 @@ export class QboNeutralAccountingAdapter
               batchId: batch.batchId,
               externalBatchId: written.value.externalBatchId,
             },
+            ...(written.duplicate ? { duplicate: true } : {}),
           }
         : written;
     } catch (error) {
@@ -341,17 +399,97 @@ export class QboNeutralAccountingAdapter
   }
 
   public async postCommissionBill(
-    input: Parameters<AccountingPort["postCommissionBill"]>[0],
+    _input: Parameters<AccountingPort["postCommissionBill"]>[0],
   ): ReturnType<AccountingPort["postCommissionBill"]> {
+    return Promise.resolve({
+      ok: false,
+      kind: "permanent",
+      code: "COMMISSION_PARTNER_BINDING_REQUIRED",
+      message:
+        "Commission bills require persisted partner, exact statement lines, and a verified QBO vendor mapping",
+    });
+  }
+
+  public async postVerifiedCommissionBill(
+    input: Parameters<
+      CommissionSettlementAccountingPort["postVerifiedCommissionBill"]
+    >[0],
+  ): ReturnType<
+    CommissionSettlementAccountingPort["postVerifiedCommissionBill"]
+  > {
+    if (!this.vendorMappings)
+      return {
+        ok: false,
+        kind: "permanent",
+        code: "QBO_VENDOR_MAPPING_NOT_CONFIGURED",
+        message: "A verified QBO vendor mapping resolver is required",
+      };
+    const uniqueAccrualIds = [...new Set(input.accrualIds)].sort();
+    if (
+      uniqueAccrualIds.length === 0 ||
+      uniqueAccrualIds.length !== input.accrualIds.length
+    )
+      return {
+        ok: false,
+        kind: "permanent",
+        code: "COMMISSION_LINE_BINDING_INVALID",
+        message: "Commission statement accrual IDs must be unique",
+      };
+    const expectedBindingHash = commissionLineBindingHash({
+      statementId: input.statementId,
+      partnerAccountId: input.partnerAccountId,
+      amount: input.amount,
+      accrualIds: uniqueAccrualIds,
+    });
+    if (input.lineBindingHash !== expectedBindingHash)
+      return {
+        ok: false,
+        kind: "permanent",
+        code: "COMMISSION_LINE_BINDING_MISMATCH",
+        message: "Commission statement line binding did not match",
+      };
+    let resolved: Awaited<ReturnType<QboVendorMappingResolver["resolve"]>>;
+    try {
+      resolved = await this.vendorMappings.resolve({
+        partnerAccountId: input.partnerAccountId,
+      });
+    } catch (error) {
+      return toProviderFailure(error);
+    }
+    if (!resolved.ok) return resolved;
+    const mapping = resolved.value;
+    if (
+      mapping.provider !== "qbo" ||
+      mapping.status !== "verified" ||
+      mapping.partnerAccountId !== input.partnerAccountId ||
+      !mapping.vendorId.trim() ||
+      !Number.isInteger(mapping.mappingVersion) ||
+      mapping.mappingVersion < 1 ||
+      !Number.isFinite(Date.parse(mapping.verifiedAt))
+    )
+      return {
+        ok: false,
+        kind: "permanent",
+        code: "QBO_VENDOR_MAPPING_INVALID",
+        message: "The QBO vendor mapping does not bind the persisted partner",
+      };
     const result = await this.exportCommissionBill({
       statementId: input.statementId,
-      partnerId: "unspecified",
-      statementOn: this.now().toISOString().slice(0, 10),
+      partnerId: input.partnerAccountId,
+      vendorId: mapping.vendorId,
+      vendorMappingVersion: mapping.mappingVersion,
+      accrualIds: uniqueAccrualIds,
+      lineBindingHash: expectedBindingHash,
+      statementOn: input.statementOn,
       amount: input.amount,
       idempotencyKey: input.idempotencyKey,
     });
     return result.ok
-      ? { ok: true, value: { billId: result.value.billId } }
+      ? {
+          ok: true,
+          value: { billId: result.value.billId, vendorId: mapping.vendorId },
+          ...(result.duplicate ? { duplicate: true } : {}),
+        }
       : result;
   }
 
@@ -542,6 +680,21 @@ export class QboNeutralAccountingAdapter
   ): ReturnType<AccountingExportPort["exportCommissionBill"]> {
     try {
       positive(input.amount, "Commission bill");
+      if (BigInt(input.amount.minor) === 0n)
+        throw new RangeError("Commission bill must be positive");
+      if (
+        !input.partnerId.trim() ||
+        !input.vendorId.trim() ||
+        !Number.isInteger(input.vendorMappingVersion) ||
+        input.vendorMappingVersion < 1
+      )
+        throw new TypeError("Commission bill vendor mapping is invalid");
+      if (
+        input.accrualIds.length === 0 ||
+        new Set(input.accrualIds).size !== input.accrualIds.length ||
+        !input.lineBindingHash.trim()
+      )
+        throw new TypeError("Commission bill line binding is invalid");
       const record: AccountingExportRecord = {
         recordId: stableExternalId("acct_record", input),
         kind: "commission_bill",
@@ -556,7 +709,10 @@ export class QboNeutralAccountingAdapter
             input.amount.minor,
             "0",
             "Partner commission expense",
-            { partner_id: input.partnerId },
+            {
+              partner_id: input.partnerId,
+              qbo_vendor_id: input.vendorId,
+            },
           ),
           line(
             this.accounts.accountsPayable,
@@ -564,10 +720,19 @@ export class QboNeutralAccountingAdapter
             "0",
             input.amount.minor,
             "Partner commission payable",
-            { partner_id: input.partnerId },
+            {
+              partner_id: input.partnerId,
+              qbo_vendor_id: input.vendorId,
+            },
           ),
         ],
-        attributes: { partner_id: input.partnerId },
+        attributes: {
+          partner_id: input.partnerId,
+          qbo_vendor_id: input.vendorId,
+          vendor_mapping_version: input.vendorMappingVersion.toString(),
+          accrual_ids: [...input.accrualIds].sort().join(","),
+          line_binding_hash: input.lineBindingHash,
+        },
       };
       const written = await this.write([record], input.idempotencyKey);
       return written.ok
@@ -577,6 +742,7 @@ export class QboNeutralAccountingAdapter
               batchId: written.value.batchId,
               billId: stableExternalId("bill", record.recordId),
             },
+            ...(written.duplicate ? { duplicate: true } : {}),
           }
         : written;
     } catch (error) {

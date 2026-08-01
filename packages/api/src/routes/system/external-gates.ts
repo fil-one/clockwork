@@ -32,6 +32,11 @@ const ConfiguredStatusSchema = z.enum([
 ]);
 const SimulatorStateSchema = z.enum(["ready", "degraded", "unavailable"]);
 const ActivationTestStatusSchema = z.enum(["never", "passed", "failed"]);
+const InputProvenanceSchema = z.enum([
+  "unverified",
+  "repository_fixture",
+  "live_signed",
+]);
 const NullableInstantSchema = z.iso.datetime({ offset: true }).nullable();
 const NullableDateSchema = z.iso.date().nullable();
 
@@ -48,6 +53,7 @@ export const ExternalGateViewSchema = z
     effectiveStatus: ConfiguredStatusSchema,
     simulatorState: SimulatorStateSchema,
     simulatorDetails: z.string().min(1),
+    inputProvenance: InputProvenanceSchema,
     lastActivationTestStatus: ActivationTestStatusSchema,
     lastActivationTestAt: NullableInstantSchema,
     lastActivationTestedBy: z.string().min(1).nullable(),
@@ -84,6 +90,7 @@ const ActivationTestResultSchema = z
     evidenceReference: z.string().trim().min(8).max(2_000),
     simulatorState: SimulatorStateSchema,
     simulatorDetails: z.string().trim().min(8).max(2_000),
+    inputProvenance: InputProvenanceSchema,
   })
   .strict();
 
@@ -177,6 +184,7 @@ export class MemoryExternalGateService implements ExternalGateService {
           : existing.configuredStatus,
       simulatorState: result.simulatorState,
       simulatorDetails: result.simulatorDetails,
+      inputProvenance: result.inputProvenance,
       lastActivationTestStatus: result.status,
       lastActivationTestAt: result.testedAt,
       lastActivationTestedBy: result.testedBy,

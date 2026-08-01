@@ -6,6 +6,7 @@ import type {
 import {
   DatabaseAuthoritativeLifecycleTaskStore,
   DatabaseExternalGateService,
+  DatabaseQboVendorMappingResolver,
   DatabaseProvisioningDispatchStore,
   type RuntimeDatabase,
   type WorkflowExceptionRouting,
@@ -25,6 +26,7 @@ import {
   type EvidenceStoragePort as LifecycleEvidenceStoragePort,
   type NotificationProviderClient,
   type StripeLedgerBillingPort,
+  type StripeCommercialGateway,
   type UsageProviderClient,
   type WorkosClient,
 } from "@clockwork/integrations";
@@ -33,6 +35,8 @@ import type {
   CommercialArtifactParty,
   CommercialArtifactRenderer,
 } from "../core/commercial-artifact-handler";
+import { createCoreScheduledOutboxHandler } from "../core/scheduled-outbox-handler";
+import { createStripeAdjustmentOutboxHandlers } from "../core/stripe-adjustment-handler";
 import {
   createCoreWorkflowOutboxHandlers,
   type CoreWorkflowTaskSubmitter,
@@ -99,6 +103,10 @@ export interface ProductionWorkflowProviderSelections {
   billing: SelectedProvider<{
     billing: BillingPort;
     metering: StripeLedgerBillingPort;
+    adjustments: Pick<
+      StripeCommercialGateway,
+      "issueCreditNote" | "refundPayment"
+    >;
   }>;
   accounting: SelectedProvider<{ sink: AccountingExportSink }>;
   notifications: SelectedProvider<{ client: NotificationProviderClient }>;
@@ -135,8 +143,10 @@ export interface ProductionWorkflowProviderFactoryOptions {
 
 const providerActivationGates = [
   "EXT-ACC-01",
+  "EXT-COMMERCIAL-01",
   "EXT-PROVIDER-01",
   "EXT-PROVISION-01",
+  "EXT-TAX-01",
   "EXT-APPROVERS-01",
   "EXT-LEGAL-01",
 ] as const satisfies readonly ExternalGateKey[];
@@ -224,7 +234,22 @@ export function createProductionWorkflowAdapterFactory(
           authorizationSecret: options.authorizationSecret,
           submit: options.coreTaskSubmitter,
         }),
+        createStripeAdjustmentOutboxHandlers({
+          db,
+          stripe: providers.billing.value.adjustments,
+        }),
       ];
+      const scheduledTopic = "core.schedule.dispatch.v1";
+      if (outboxHandlers.has(scheduledTopic))
+        throw new Error(`WORKFLOW_PROVIDER_DUPLICATE:${scheduledTopic}`);
+      outboxHandlers.set(
+        scheduledTopic,
+        createCoreScheduledOutboxHandler({
+          db,
+          authorizationSecret: options.authorizationSecret,
+          submit: options.coreTaskSubmitter,
+        }),
+      );
       for (const handlers of requiredHandlers) {
         for (const [topic, handler] of handlers) {
           if (configuredTopics.has(topic))
@@ -242,14 +267,19 @@ export function createProductionWorkflowAdapterFactory(
           outboxHandlers.set(topic, handler);
         }
       }
+      const accounting = new QboNeutralAccountingAdapter(
+        providers.accounting.value.sink,
+        {
+          ...(options.clock ? { now: options.clock } : {}),
+          vendorMappings: new DatabaseQboVendorMappingResolver(db),
+        },
+      );
       return {
         coreProviders: {
           billing: providers.billing.value.billing,
           metering: providers.billing.value.metering,
-          accounting: new QboNeutralAccountingAdapter(
-            providers.accounting.value.sink,
-            options.clock ? { now: options.clock } : {},
-          ),
+          accounting,
+          commissionAccounting: accounting,
           notifications: new CoreNotificationAdapter(
             providers.notifications.value.client,
           ),

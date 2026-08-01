@@ -1,4 +1,4 @@
-import { eq, inArray, like } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../../client";
@@ -14,7 +14,7 @@ const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable";
 const gateKey = "EXT-ACC-01" as const;
-const requestPrefix = "integration:external-gate-activation";
+const requestPrefix = `integration:external-gate-activation:${crypto.randomUUID()}`;
 const now = new Date("2026-07-31T16:00:00.000Z");
 const actor = { kind: "user" as const, id: "integration-gate-runner" };
 
@@ -26,30 +26,6 @@ const { client, db } = createRuntimeDatabase({
 });
 const repository = new DatabaseExternalGateService(db);
 let original: typeof externalGates.$inferSelect | undefined;
-
-async function removeTestEvents() {
-  await withInternalTransaction(
-    db,
-    `${requestPrefix}:cleanup-events`,
-    async (tx) => {
-      const events = await tx
-        .select({ id: auditEvents.id })
-        .from(auditEvents)
-        .where(like(auditEvents.requestId, `${requestPrefix}:%`));
-      if (events.length > 0) {
-        await tx.delete(outboxMessages).where(
-          inArray(
-            outboxMessages.eventId,
-            events.map((event) => event.id),
-          ),
-        );
-        await tx
-          .delete(auditEvents)
-          .where(like(auditEvents.requestId, `${requestPrefix}:%`));
-      }
-    },
-  );
-}
 
 beforeAll(async () => {
   await withInternalTransaction(db, `${requestPrefix}:setup`, async (tx) => {
@@ -63,6 +39,7 @@ beforeAll(async () => {
         configuredStatus: "blocked",
         simulatorState: "ready",
         simulatorDetails: "Controlled integration simulator state",
+        inputProvenance: "unverified",
         lastActivationTestStatus: "never",
         lastActivationTestAt: null,
         lastActivationTestedBy: null,
@@ -72,11 +49,9 @@ beforeAll(async () => {
       })
       .where(eq(externalGates.gateKey, gateKey));
   });
-  await removeTestEvents();
 });
 
 afterAll(async () => {
-  await removeTestEvents();
   if (original)
     await withInternalTransaction(
       db,
@@ -90,6 +65,7 @@ afterAll(async () => {
             configuredStatus: original?.configuredStatus,
             simulatorState: original?.simulatorState,
             simulatorDetails: original?.simulatorDetails,
+            inputProvenance: original?.inputProvenance,
             lastActivationTestStatus: original?.lastActivationTestStatus,
             lastActivationTestAt: original?.lastActivationTestAt,
             lastActivationTestedBy: original?.lastActivationTestedBy,
@@ -161,6 +137,7 @@ describe.sequential("database external-gate activation evidence", () => {
           "https://evidence.fil.one/activation/db-test?temporary-secret=removed#download",
         simulatorState: "ready",
         simulatorDetails: "All database activation scenarios passed",
+        inputProvenance: "repository_fixture",
       },
       actor,
       requestId: `${requestPrefix}:runner`,
@@ -169,6 +146,7 @@ describe.sequential("database external-gate activation evidence", () => {
     expect(result).toMatchObject({
       simulatorState: "ready",
       simulatorDetails: "All database activation scenarios passed",
+      inputProvenance: "repository_fixture",
       lastActivationTestStatus: "passed",
       lastActivationTestAt: now.toISOString(),
       lastActivationTestedBy: "deterministic-runner:integration-gate-runner",
@@ -228,6 +206,7 @@ describe.sequential("database external-gate activation evidence", () => {
         evidenceReference: "evidence://activation-tests/db-failure",
         simulatorState: "degraded",
         simulatorDetails: "Database denial scenario did not pass",
+        inputProvenance: "repository_fixture",
       },
       actor,
       requestId: `${requestPrefix}:runner-failed`,

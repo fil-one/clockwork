@@ -29,11 +29,41 @@ insert into core_billing_policies (
   consolidate_partner_invoices, dunning_policy_version, require_po, require_vendor_setup
 ) values
 ('10000000-0000-4000-8000-000000000001','net_terms','wire',30,false,'demo-v1',true,false),
+('10000000-0000-4000-8000-000000000002','net_terms','bacs',30,true,'demo-v1',false,false),
 ('10000000-0000-4000-8000-000000000003','net_terms','sepa_credit',30,true,'demo-v1',true,false),
 ('10000000-0000-4000-8000-000000000004','auto_charge','card',null,false,'demo-v1',true,false),
 ('10000000-0000-4000-8000-000000000005','net_terms','wire',30,true,'demo-v1',true,false),
+('10000000-0000-4000-8000-000000000006','net_terms','wire',30,true,'demo-v1',true,false),
 ('10000000-0000-4000-8000-000000000007','net_terms','wire',30,true,'demo-v1',true,false),
 ('10000000-0000-4000-8000-000000000008','prepay','marketplace',null,true,'demo-v1',true,false);
+
+-- Persisted commercial profiles are authoritative acceptance inputs, not
+-- values synthesized by the command path. Credit limits remain exactly the
+-- account limits above; zero-limit net-terms accounts stay unapproved.
+insert into core_account_commercial_profiles(
+  account_id, legal_entity_fingerprint, billing_model, payment_terms_days,
+  credit_status, approved_credit_limit_minor, current_exposure_minor,
+  new_service_blocked
+)
+select
+  account_record.id,
+  encode(extensions.digest(
+    account_record.id::text || '|' || account_record.legal_name || '|'
+      || account_record.country || '|' || account_record.currency,
+    'sha256'
+  ), 'hex'),
+  policy.collection_method,
+  policy.terms_days,
+  case
+    when policy.collection_method = 'net_terms'
+      and account_record.aggregate_credit_limit_minor > 0 then 'approved'
+    else 'not_requested'
+  end,
+  account_record.aggregate_credit_limit_minor,
+  0,
+  false
+from accounts account_record
+join core_billing_policies policy on policy.account_id = account_record.id;
 
 insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled) values
 ('20000000-0000-4000-8000-000000000001','local_internal_operator','operator@clockwork.test','Iris Operator',true,true),
@@ -96,7 +126,8 @@ insert into documents (id, account_id, kind, storage_key, content_hash, mime_typ
 ('40000000-0000-4000-8000-000000000026','10000000-0000-4000-8000-000000000001','deletion_certificate','demo/deletion-certificate.pdf',lpad('26',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1'),
 ('40000000-0000-4000-8000-000000000027','10000000-0000-4000-8000-000000000004','agreement','demo/agreement-conversion.pdf',lpad('27',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1'),
 ('40000000-0000-4000-8000-000000000028','10000000-0000-4000-8000-000000000004','quote','demo/quote-conversion.pdf',lpad('28',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1'),
-('40000000-0000-4000-8000-000000000029','10000000-0000-4000-8000-000000000004','order_form','demo/order-conversion.pdf',lpad('29',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1');
+('40000000-0000-4000-8000-000000000029','10000000-0000-4000-8000-000000000004','order_form','demo/order-conversion.pdf',lpad('29',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1'),
+('40000000-0000-4000-8000-000000000030','10000000-0000-4000-8000-000000000002','agreement','demo/agreement-referral-partner.pdf',lpad('30',64,'0'),'application/pdf',2048,'COMPLIANCE','2033-07-31T16:00:00Z','demo-v1');
 
 insert into agreement_templates (id, type, semantic_version, jurisdiction, effective_on, canonical_document_id, text_hash, execution_mode, approval_status, approved_by) values
 ('50000000-0000-4000-8000-000000000001','csa','1.0.0','US','2026-01-01','40000000-0000-4000-8000-000000000001',repeat('a',64),'click_through','approved','20000000-0000-4000-8000-000000000001');
@@ -110,7 +141,8 @@ insert into agreements (id, account_id, template_id, paper, execution_mode, exec
 ('51000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000005','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000009','standard','2026-06-01',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000005','Distribution Director',true,'192.0.2.5','Clockwork distributor seed',lpad('104',64,'0')),
 ('51000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000007','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000010','standard','2026-06-01',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000006','Embedded Director',true,'192.0.2.7','Clockwork white-label seed',lpad('105',64,'0')),
 ('51000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000008','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000011','standard','2026-06-01',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000007','Marketplace Director',true,'192.0.2.8','Clockwork marketplace seed',lpad('106',64,'0')),
-('51000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000027','standard','2026-07-15',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000004','Chief Demo Officer',true,'192.0.2.4','Clockwork conversion seed',lpad('107',64,'0'));
+('51000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000027','standard','2026-07-15',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000004','Chief Demo Officer',true,'192.0.2.4','Clockwork conversion seed',lpad('107',64,'0')),
+('51000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000001','ours','counter_signed','40000000-0000-4000-8000-000000000030','standard','2026-06-01',12,'auto_renew',60,'active','20000000-0000-4000-8000-000000000003','Partner Director',true,'192.0.2.3','Clockwork referral partner seed',lpad('108',64,'0'));
 
 insert into key_terms (id, agreement_id, breach_notice_hours, audit_rights, retention_liability_rule) values
 ('52000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000001',72,'Annual evidence review','liable_through_retention');
@@ -118,9 +150,9 @@ insert into key_terms (id, agreement_id, breach_notice_hours, audit_rights, rete
 insert into price_books (id, name, currency, effective_from, status, version) values
 ('60000000-0000-4000-8000-000000000001','Demo USD 2026','USD','2026-01-01','active',1),
 ('60000000-0000-4000-8000-000000000002','Demo EUR 2026','EUR','2026-01-01','active',1);
-insert into rate_cards (id, price_book_id, sku, approved_claim, region, unit, unit_price_minor, floor_price_minor, overage_rate_minor, minimum_quantity, trial_limit, egress_treatment, commit_type, stripe_tax_code, qbo_income_account) values
-('61000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','LOCKED-STORAGE-TB','Fictional immutable storage capacity','us-east-2','TB-month',15000,10000,18000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage'),
-('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000002','LOCKED-STORAGE-TB','Fictional immutable storage capacity','eu-west-1','TB-month',14000,9500,17000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage');
+insert into rate_cards (id, price_book_id, sku, approved_claim, region, unit, unit_price_minor, floor_price_minor, overage_rate_minor, minimum_quantity, trial_limit, egress_treatment, commit_type, stripe_tax_code, qbo_income_account, partner_transfer_prices) values
+('61000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','LOCKED-STORAGE-TB','Fictional immutable storage capacity','us-east-2','TB-month',15000,10000,18000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage','{"gold":{"currency":"USD","minor":"12500"},"silver":{"currency":"USD","minor":"12000"},"distributor":{"currency":"USD","minor":"11000"},"two-tier":{"currency":"USD","minor":"11500"},"white-label":{"currency":"USD","minor":"12000"},"marketplace":{"currency":"USD","minor":"13000"}}'),
+('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000002','LOCKED-STORAGE-TB','Fictional immutable storage capacity','eu-west-1','TB-month',14000,9500,17000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage','{"silver":{"currency":"EUR","minor":"14000"}}');
 
 insert into quotes (id, account_id, end_client_account_id, partner_account_id, price_book_id, series_id, revision, status, currency, total_minor, margin_floor_result, expires_at, created_by, rendered_document_id, partner_document_id, partner_resale_total_minor, immutable_at) values
 ('70000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',null,null,'60000000-0000-4000-8000-000000000001','70100000-0000-4000-8000-000000000001',1,'accepted','USD',180000,'pass','2026-08-31T16:00:00Z','20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000003',null,null,'2026-01-01T16:00:00Z'),
@@ -268,6 +300,40 @@ insert into commission_accruals (id, partner_account_id, invoice_id, source_type
 
 insert into terminations (id, account_id, order_id, effective_at, final_billing_status, teardown_status, deletion_scheduled_at) values
 ('93600000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001','2027-01-01T00:00:00Z','settled','retention_blocked','2033-01-01T00:00:00Z');
+insert into lifecycle_offboarding_plans (
+  termination_id, account_id, organization_id, requested_by, reason, plan
+) values (
+  '93600000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  '30000000-0000-4000-8000-000000000001',
+  '20000000-0000-4000-8000-000000000002',
+  'customer_request',
+  jsonb_build_object(
+    'terminationId','93600000-0000-4000-8000-000000000001',
+    'accountId','10000000-0000-4000-8000-000000000001',
+    'orderId','80000000-0000-4000-8000-000000000001',
+    'organizationId','30000000-0000-4000-8000-000000000001',
+    'reason','customer_request',
+    'requestedBy','20000000-0000-4000-8000-000000000002',
+    'effectiveAt','2027-01-01T00:00:00.000Z',
+    'finalBillingStatus','settled',
+    'retrievalStartsAt','2027-01-01T00:00:00.000Z',
+    'retrievalEndsAt','2027-01-31T00:00:00.000Z',
+    'maximumRetentionAt','2033-07-31T16:00:00.000Z',
+    'status','retention_blocked',
+    'lockedExclusions',jsonb_build_array(jsonb_build_object(
+      'objectId','40000000-0000-4000-8000-000000000002',
+      'scope','document:agreement',
+      'retainUntil','2033-07-31T16:00:00.000Z',
+      'legalHold',false
+    )),
+    'deletionScheduledAt','2033-07-31T16:00:00.000Z',
+    'approvals',jsonb_build_array(),
+    'teardownOperationId',null,
+    'teardownConfirmedAt',null,
+    'teardownExcludedObjectIds',jsonb_build_array()
+  )
+);
 insert into deletion_certificates (id, termination_id, document_id, scope, method, completed_at, locked_exclusions) values
 ('93700000-0000-4000-8000-000000000001','93600000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000026','eligible metadata and expired evidence','cryptographic erasure plus provider deletion','2033-01-02T16:00:00Z','[{"scope":"fictional-retention-locked-tenant","retainedUntil":"2033-07-31T16:00:00Z","reason":"S3 Object Lock COMPLIANCE"}]');
 

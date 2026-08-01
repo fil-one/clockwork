@@ -8,6 +8,7 @@ import {
   ExternalGateActivationTestStatusSchema,
   ExternalGateConfiguredStatusSchema,
   ExternalGateKeySchema,
+  ExternalGateInputProvenanceSchema,
   ExternalGateSimulatorStateSchema,
   sanitizeActivationEvidenceReference,
   type ExternalGateActivationTestResult,
@@ -51,6 +52,9 @@ function mapGate(row: typeof externalGates.$inferSelect): ExternalGateRecord {
       row.configuredStatus,
     ),
     simulatorState: ExternalGateSimulatorStateSchema.parse(row.simulatorState),
+    inputProvenance: ExternalGateInputProvenanceSchema.parse(
+      row.inputProvenance,
+    ),
     lastActivationTestStatus: ExternalGateActivationTestStatusSchema.parse(
       row.lastActivationTestStatus,
     ),
@@ -158,6 +162,7 @@ export class DatabaseExternalGateService {
           configuredStatus,
           simulatorState: input.result.simulatorState,
           simulatorDetails: input.result.simulatorDetails,
+          inputProvenance: input.result.inputProvenance,
           lastActivationTestStatus: input.result.status,
           lastActivationTestAt: new Date(input.result.testedAt),
           lastActivationTestedBy: input.result.testedBy,

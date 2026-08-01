@@ -35,6 +35,11 @@ export const ExternalGateActivationTestStatusSchema = z.enum([
   "passed",
   "failed",
 ]);
+export const ExternalGateInputProvenanceSchema = z.enum([
+  "unverified",
+  "repository_fixture",
+  "live_signed",
+]);
 
 export type ExternalGateKey = z.infer<typeof ExternalGateKeySchema>;
 export type ExternalGateConfiguredStatus = z.infer<
@@ -46,6 +51,9 @@ export type ExternalGateSimulatorState = z.infer<
 export type ExternalGateActivationTestStatus = z.infer<
   typeof ExternalGateActivationTestStatusSchema
 >;
+export type ExternalGateInputProvenance = z.infer<
+  typeof ExternalGateInputProvenanceSchema
+>;
 
 export const EXTERNAL_GATE_ACTIVATION_TEST_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
 
@@ -56,6 +64,7 @@ export interface ExternalGateActivationTestResult {
   evidenceReference: string;
   simulatorState: ExternalGateSimulatorState;
   simulatorDetails: string;
+  inputProvenance: ExternalGateInputProvenance;
 }
 
 export interface ActivationTestRunner {
@@ -78,6 +87,7 @@ export interface ExternalGateRecord {
   configuredStatus: ExternalGateConfiguredStatus;
   simulatorState: ExternalGateSimulatorState;
   simulatorDetails: string;
+  inputProvenance: ExternalGateInputProvenance;
   lastActivationTestStatus: ExternalGateActivationTestStatus;
   lastActivationTestAt: string | null;
   lastActivationTestedBy: string | null;
@@ -113,6 +123,17 @@ function reviewIsCurrent(reviewOn: string | null, now: Date): boolean {
   if (!reviewOn) return false;
   const reviewEndsAt = Date.parse(`${reviewOn}T23:59:59.999Z`);
   return Number.isFinite(reviewEndsAt) && reviewEndsAt >= now.getTime();
+}
+
+const liveSignedInputGates = new Set<ExternalGateKey>([
+  "EXT-COMMERCIAL-01",
+  "EXT-TAX-01",
+]);
+
+export function externalGateRequiresLiveSignedInput(
+  gateKey: ExternalGateKey,
+): boolean {
+  return liveSignedInputGates.has(gateKey);
 }
 
 export function externalGateActivationTestIsCurrent(
@@ -158,6 +179,11 @@ export function externalGateBlockedReasons(
   if (!nonEmpty(record.owner)) reasons.push("owner_missing");
   if (!nonEmpty(record.inputRequired)) reasons.push("input_missing");
   if (record.simulatorState !== "ready") reasons.push("simulator_not_ready");
+  if (
+    externalGateRequiresLiveSignedInput(record.gateKey) &&
+    record.inputProvenance !== "live_signed"
+  )
+    reasons.push("live_signed_input_missing");
   if (record.lastActivationTestStatus !== "passed")
     reasons.push("activation_test_not_passed");
   if (!record.lastActivationTestAt)

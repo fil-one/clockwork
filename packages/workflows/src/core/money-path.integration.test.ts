@@ -25,6 +25,7 @@ const idsFixture = {
   order: ids.order.parse("b0000000-0000-4000-8000-000000000001"),
   invoice: ids.invoice.parse("c0000000-0000-4000-8000-000000000001"),
   ledger: ids.commitmentLedger.parse("d0000000-0000-4000-8000-000000000001"),
+  period: "d0000000-0000-4000-8000-000000000003",
   ledgerEntry: ids.commitmentEntry.parse(
     "d0000000-0000-4000-8000-000000000002",
   ),
@@ -49,11 +50,33 @@ describe("partner consolidated billing money path", () => {
       CoreWorkflowDependencies["metering"]["syncOverage"]
     >[0][] = [];
     const dependencies: CoreWorkflowDependencies = {
+      capabilities: {
+        require: () => Promise.resolve({ allowed: true, disabled: [] }),
+      },
       runs: new InMemoryWorkflowRunStore(),
       exceptions: new InMemoryWorkflowExceptionPort(),
       records,
       billing: providers.billing,
       accounting: providers.accounting,
+      commissionAccounting: {
+        postVerifiedCommissionBill: async (input) => {
+          const posted = await providers.accounting.postCommissionBill({
+            statementId: ids.document.parse(input.statementId),
+            amount: input.amount,
+            idempotencyKey: input.idempotencyKey,
+          });
+          return posted.ok
+            ? {
+                ok: true as const,
+                value: { ...posted.value, vendorId: "vendor_verified" },
+              }
+            : posted;
+        },
+      },
+      commissionSettlements: {
+        validate: () => Promise.resolve({}),
+        finalize: () => Promise.resolve({}),
+      },
       notifications: providers.notifications,
       usage: providers.usage,
       exports: providers.evidence,
@@ -126,7 +149,8 @@ describe("partner consolidated billing money path", () => {
     });
 
     const overageInput = SyncOverageInputSchema.parse({
-      context: workflowContext(idsFixture.ledger, 12),
+      context: workflowContext(idsFixture.period, 12),
+      periodId: idsFixture.period,
       ledgerId: idsFixture.ledger,
       orderId: idsFixture.order,
       invoiceId: idsFixture.invoice,

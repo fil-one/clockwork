@@ -3,6 +3,7 @@ import {
   MoneySchema,
   type ProviderFailureKind,
 } from "@clockwork/contracts";
+import { commissionLineBindingHash } from "@clockwork/integrations/core";
 
 import { workflowIdempotencyKey } from "../policy";
 import { renderCsv } from "./csv";
@@ -16,6 +17,7 @@ import {
 } from "./determinism";
 import type {
   CoreWorkflowDependencies,
+  CoreCapabilityKey,
   CoreWorkflowRecord,
   CoreWorkflowTaskId,
   ExceptionQueue,
@@ -73,6 +75,46 @@ export class WorkflowPayloadError extends Error {
     );
   }
 }
+
+const coreCapabilityRequirements: Readonly<
+  Record<
+    CoreWorkflowTaskId,
+    { capabilities: readonly CoreCapabilityKey[]; recovery: boolean }
+  >
+> = {
+  "core.billing.issue-invoice.v1": {
+    capabilities: ["billing"],
+    recovery: false,
+  },
+  "core.billing.sync-overage.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
+  "core.collections.dunning.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
+  "core.collections.partner-credit.v1": {
+    capabilities: ["new_business", "partner"],
+    recovery: false,
+  },
+  "core.commissions.settle.v1": {
+    capabilities: ["billing", "partner"],
+    recovery: true,
+  },
+  "core.reconciliation.usage.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
+  "core.reconciliation.three-way.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
+  "core.reporting.export.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
+};
 
 type PermanentFailure = Extract<
   WorkflowExecution<never>,
@@ -323,8 +365,8 @@ export class CoreFinanceWorkflowEngine {
     const input = parsePayload(SyncOverageInputSchema, raw);
     assertAggregate(
       input.context.aggregateId,
-      input.ledgerId,
-      "commitment ledger",
+      input.periodId,
+      "commitment period",
     );
     return this.runControlled(
       TASKS.syncOverage,
@@ -519,6 +561,7 @@ export class CoreFinanceWorkflowEngine {
     WorkflowExecution<{
       payableMinor: string;
       heldMinor: string;
+      lineBindingHash: string;
       billId?: string;
     }>
   > {
@@ -526,45 +569,80 @@ export class CoreFinanceWorkflowEngine {
     assertAggregate(input.context.aggregateId, input.statementId, "statement");
     return this.runControlled(
       TASKS.settleCommissions,
-      "document",
+      "report_export",
       input,
       async (key) => {
-        const eligible = input.accruals.filter(
-          (accrual) => accrual.status === "stated",
+        const commission = input.accruals.reduce(
+          (sum, accrual) => sum + BigInt(accrual.commissionMinor),
+          0n,
         );
-        if (eligible.length === 0) {
+        const held = input.accruals.reduce(
+          (sum, accrual) => sum + BigInt(accrual.holdbackMinor),
+          0n,
+        );
+        const payable = commission - held;
+        if (payable < 0n)
           return this.permanentFailure(
             input.context,
             key,
             TASKS.settleCommissions,
             "commissions",
-            "NO_ELIGIBLE_ACCRUALS",
-            "The statement has no eligible, unstated commission accruals.",
+            "NEGATIVE_COMMISSION_PAYABLE_REQUIRES_CARRY_FORWARD",
+            "Commission clawbacks exceed the current statement payable and require an authorized carry-forward before settlement.",
+            { statementId: input.statementId },
+          );
+        const amount = MoneySchema.parse({
+          currency: input.currency,
+          minor: payable.toString(),
+        });
+        const accrualIds = input.accruals
+          .map((accrual) => accrual.accrualId)
+          .sort();
+        const lineBindingHash = commissionLineBindingHash({
+          statementId: input.statementId,
+          partnerAccountId: input.partnerAccountId,
+          amount,
+          accrualIds,
+        });
+        let billId: string | undefined;
+        const exportKey = downstreamIdempotencyKey(
+          key,
+          "accounting-commission-bill",
+        );
+        try {
+          await this.dependencies.commissionSettlements.validate({
+            statementId: input.statementId,
+            partnerAccountId: input.partnerAccountId,
+            expectedRowVersion: input.context.aggregateVersion,
+            currency: input.currency,
+            payableMinor: payable.toString(),
+            accrualIds,
+            exportKey,
+          });
+        } catch {
+          return this.permanentFailure(
+            input.context,
+            key,
+            TASKS.settleCommissions,
+            "commissions",
+            "COMMISSION_SETTLEMENT_BINDING_INVALID",
+            "The persisted statement, partner, currency, line set, or state did not match the requested settlement.",
             { statementId: input.statementId },
           );
         }
-        const commission = eligible.reduce(
-          (sum, accrual) => sum + BigInt(accrual.commissionMinor),
-          0n,
-        );
-        const held = eligible.reduce(
-          (sum, accrual) => sum + BigInt(accrual.holdbackMinor),
-          0n,
-        );
-        const payable = commission - held;
-        let billId: string | undefined;
-        if (payable !== 0n) {
-          const posted = await this.dependencies.accounting.postCommissionBill({
-            statementId: input.statementId,
-            amount: MoneySchema.parse({
-              currency: input.currency,
-              minor: payable.toString(),
-            }),
-            idempotencyKey: downstreamIdempotencyKey(
-              key,
-              "accounting-commission-bill",
-            ),
-          });
+        if (payable > 0n) {
+          const posted =
+            await this.dependencies.commissionAccounting.postVerifiedCommissionBill(
+              {
+                statementId: input.statementId,
+                partnerAccountId: input.partnerAccountId,
+                statementOn: input.periodEnd,
+                accrualIds,
+                lineBindingHash,
+                amount,
+                idempotencyKey: exportKey,
+              },
+            );
           if (!posted.ok)
             return this.providerFailure(
               input.context,
@@ -576,15 +654,35 @@ export class CoreFinanceWorkflowEngine {
             );
           billId = posted.value.billId;
         }
+        try {
+          await this.dependencies.commissionSettlements.finalize({
+            statementId: input.statementId,
+            partnerAccountId: input.partnerAccountId,
+            expectedRowVersion: input.context.aggregateVersion,
+            currency: input.currency,
+            payableMinor: payable.toString(),
+            accrualIds,
+            exportKey,
+            ...(billId === undefined ? {} : { providerBillId: billId }),
+            requestId: input.context.requestId,
+            occurredAt: input.context.occurredAt,
+          });
+        } catch {
+          throw new TransientWorkflowError(
+            "COMMISSION_SETTLEMENT_COMMIT_UNAVAILABLE",
+          );
+        }
         const value = {
           payableMinor: payable.toString(),
           heldMinor: held.toString(),
+          lineBindingHash,
           ...(billId === undefined ? {} : { billId }),
         };
         await this.record(key, input.context, {
           kind: "commissions_settled",
           taskId: TASKS.settleCommissions,
           input,
+          accrualIds,
           ...value,
         });
         return { kind: "success", value };
@@ -1018,7 +1116,25 @@ export class CoreFinanceWorkflowEngine {
     }
 
     try {
-      const outcome = await work(key);
+      const requirement = coreCapabilityRequirements[taskId];
+      const authorization = await this.dependencies.capabilities.require({
+        ...requirement,
+        requestId: input.context.requestId,
+      });
+      const outcome = authorization.allowed
+        ? await work(key)
+        : await this.permanentFailure(
+            input.context,
+            key,
+            taskId,
+            "workflow_operations",
+            "PERSISTED_CAPABILITY_DISABLED",
+            "This command is disabled by the authoritative capability register.",
+            {
+              disabledCapabilities: authorization.disabled.join(","),
+              recovery: String(requirement.recovery),
+            },
+          );
       if (outcome.kind === "permanent_failure") {
         const failure: PermanentFailure = {
           status: "permanent_failure",

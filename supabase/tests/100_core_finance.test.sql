@@ -12,31 +12,37 @@ select is(
 select has_view('public', 'core_revenue_forecast', 'revenue forecast report is installed');
 
 select lives_ok($$
-  insert into core_account_commercial_profiles (
-    account_id, legal_entity_fingerprint, billing_model, payment_terms_days, credit_status,
-    approved_credit_limit_minor, current_exposure_minor, contractual_time_zone
-  ) values (
-    '10000000-0000-4000-8000-000000000001', repeat('1',64), 'net_terms', 30, 'approved', 500000, 125000, 'America/New_York'
-  )
+  update core_account_commercial_profiles
+  set billing_model = 'net_terms', payment_terms_days = 30,
+    credit_status = 'approved', approved_credit_limit_minor = 500000,
+    current_exposure_minor = 125000,
+    contractual_time_zone = 'America/New_York'
+  where account_id = '10000000-0000-4000-8000-000000000001'
 $$, 'a valid net-terms commercial profile is accepted');
 
 select throws_ok($$
-  insert into core_account_commercial_profiles (account_id, legal_entity_fingerprint)
-  values ('10000000-0000-4000-8000-000000000004', repeat('1',64))
+  update core_account_commercial_profiles
+  set legal_entity_fingerprint = (
+    select source_profile.legal_entity_fingerprint
+    from core_account_commercial_profiles source_profile
+    where source_profile.account_id = '10000000-0000-4000-8000-000000000001'
+  )
+  where account_id = '10000000-0000-4000-8000-000000000004'
 $$, '23505', null, 'one-entity fingerprint blocks a duplicate account signal');
 
 select throws_ok($$
-  insert into core_account_commercial_profiles (account_id, legal_entity_fingerprint, billing_model, payment_terms_days)
-  values ('10000000-0000-4000-8000-000000000004', repeat('4',64), 'auto_charge', 30)
+  update core_account_commercial_profiles
+  set billing_model = 'auto_charge', payment_terms_days = 30
+  where account_id = '10000000-0000-4000-8000-000000000004'
 $$, '23514', null, 'non-terms billing cannot carry net terms');
 
 select lives_ok($$
   update core_account_commercial_profiles set current_exposure_minor = 150000
-  where account_id = '10000000-0000-4000-8000-000000000001' and row_version = 1
+  where account_id = '10000000-0000-4000-8000-000000000001' and row_version = 2
 $$, 'credit exposure updates optimistically');
 select is(
   (select row_version from core_account_commercial_profiles where account_id = '10000000-0000-4000-8000-000000000001'),
-  2, 'optimistic update increments the row version'
+  3, 'optimistic update increments the row version'
 );
 
 select lives_ok($$
@@ -52,22 +58,34 @@ select lives_ok($$
   values ('10000000-0000-4000-8000-000000000001','accounts_payable','Alex AP','ap@northstar.test',true,true)
 $$, 'procurement contacts are normalized and typed');
 
-select lives_ok($$
-  insert into core_quote_commercial_profiles(
-    quote_id, channel_shape, merchant_of_record, pricing_authority, billing_account_id,
-    pricing_inputs, pricing_calculated_at
-  ) values (
-    '70000000-0000-4000-8000-000000000003','resale','partner','partner',
-    '10000000-0000-4000-8000-000000000003','{"tier":"silver"}','2026-07-21T16:00:00Z'
-  )
-$$, 'a resale quote preserves partner pricing authority and MoR');
+select is(
+  (select concat_ws(':', channel_shape, merchant_of_record, pricing_authority)
+   from core_quote_commercial_profiles
+   where quote_id = '70000000-0000-4000-8000-000000000003'),
+  'resale:partner:partner',
+  'a resale quote preserves partner pricing authority and MoR'
+);
 select throws_ok($$
+  insert into quotes(
+    id, account_id, end_client_account_id, partner_account_id, price_book_id,
+    series_id, revision, status, currency, total_minor, margin_floor_result,
+    expires_at, created_by
+  ) values (
+    'a1100000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000004',
+    '10000000-0000-4000-8000-000000000004',
+    '10000000-0000-4000-8000-000000000003',
+    '60000000-0000-4000-8000-000000000002',
+    'a1100000-0000-4000-8000-000000000002', 1, 'accepted', 'EUR',
+    168000, 'pass', '2027-01-01T00:00:00Z',
+    '20000000-0000-4000-8000-000000000008'
+  );
   insert into core_quote_commercial_profiles(
     quote_id, channel_shape, merchant_of_record, pricing_authority, billing_account_id,
     pricing_inputs, pricing_calculated_at
   ) values (
-    '70000000-0000-4000-8000-000000000002','resale','fil_one','fil_one',
-    '10000000-0000-4000-8000-000000000004','{}','2026-07-20T16:00:00Z'
+    'a1100000-0000-4000-8000-000000000001','resale','fil_one','fil_one',
+    '10000000-0000-4000-8000-000000000003','{}','2026-07-20T16:00:00Z'
   )
 $$, '23514', 'quote channel, pricing authority, and merchant of record are inconsistent',
   'resale cannot be rewritten as Fil One merchant of record');
@@ -81,21 +99,51 @@ select throws_ok($$
   update core_quote_snapshots set snapshot = '{}' where id = 'a1000000-0000-4000-8000-000000000001'
 $$, '55000', 'core_quote_snapshots is append-only/immutable', 'quote snapshots are immutable');
 
-select lives_ok($$
-  insert into core_order_commercial_profiles(
-    order_id, merchant_of_record, billing_shape, provisioning_idempotency_key,
-    governing_agreement_version, contractual_time_zone, accepted_at
-  ) values (
-    '80000000-0000-4000-8000-000000000003','partner','resale','provision:order:80000000-0000-4000-8000-000000000003:v1',
-    1,'Europe/Madrid','2026-07-21T16:00:00Z'
-  )
-$$, 'an accepted resale order pins MoR, agreement version, and provisioning key');
+select is(
+  (select concat_ws(':', merchant_of_record, billing_shape,
+    governing_agreement_version::text)
+   from core_order_commercial_profiles
+   where order_id = '80000000-0000-4000-8000-000000000003'),
+  'partner:resale:1',
+  'an accepted resale order pins MoR, agreement version, and provisioning key'
+);
 select throws_ok($$
+  insert into quotes(
+    id, account_id, price_book_id, series_id, revision, status, currency,
+    total_minor, margin_floor_result, expires_at, created_by
+  ) values (
+    'a1200000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    '60000000-0000-4000-8000-000000000001',
+    'a1200000-0000-4000-8000-000000000002', 1, 'accepted', 'USD',
+    180000, 'pass', '2027-01-01T00:00:00Z',
+    '20000000-0000-4000-8000-000000000002'
+  );
+  insert into core_quote_commercial_profiles(
+    quote_id, channel_shape, merchant_of_record, pricing_authority,
+    billing_account_id, pricing_inputs, pricing_calculated_at
+  ) values (
+    'a1200000-0000-4000-8000-000000000001','direct','fil_one','fil_one',
+    '10000000-0000-4000-8000-000000000001','{}','2026-07-20T16:00:00Z'
+  );
+  insert into orders(
+    id, quote_id, agreement_id, account_id, invoicing_account_id,
+    sourcing, signer_user_id, authority_title, authority_attested, status,
+    service_starts_on
+  ) values (
+    'a1200000-0000-4000-8000-000000000003',
+    'a1200000-0000-4000-8000-000000000001',
+    '51000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001','direct',
+    '20000000-0000-4000-8000-000000000002','Owner',true,'accepted','2026-08-01'
+  );
   insert into core_order_commercial_profiles(
     order_id, merchant_of_record, billing_shape, provisioning_idempotency_key,
     governing_agreement_version, accepted_at
   ) values (
-    '80000000-0000-4000-8000-000000000002','fil_one','referral','bad-agreement-version',99,'2026-07-20T16:00:00Z'
+    'a1200000-0000-4000-8000-000000000003','fil_one','direct',
+    'bad-agreement-version',99,'2026-07-20T16:00:00Z'
   )
 $$, '23514', 'order must pin the governing agreement version', 'an order cannot pin a nonexistent agreement version');
 
@@ -109,11 +157,20 @@ select throws_ok($$
 $$, '55000', 'core_order_line_snapshots is append-only/immutable', 'order line snapshots cannot be deleted');
 
 select lives_ok($$
+  insert into commitment_ledgers(
+    id, order_id, order_line_id, commit_type, committed_quantity,
+    period_starts_at, period_ends_at
+  ) values (
+    'a3100000-0000-4000-8000-000000000001',
+    '80000000-0000-4000-8000-000000000001',
+    '81000000-0000-4000-8000-000000000001','period_allowance',6,
+    '2026-01-01T00:00:00Z','2026-07-01T00:00:00Z'
+  );
   insert into core_commitment_periods(
     id, ledger_id, sequence, starts_at, ends_at, contractual_time_zone,
     allowance_quantity, contracted_overage_rate_minor
   ) values (
-    'a3000000-0000-4000-8000-000000000001','84000000-0000-4000-8000-000000000001',1,
+    'a3000000-0000-4000-8000-000000000001','a3100000-0000-4000-8000-000000000001',1,
     '2026-01-01T00:00:00Z','2026-07-01T00:00:00Z','America/New_York',6,18000
   )
 $$, 'a partial commitment period is recorded with timezone and contracted rate');
@@ -122,7 +179,7 @@ select throws_ok($$
     ledger_id, sequence, starts_at, ends_at, contractual_time_zone,
     allowance_quantity, contracted_overage_rate_minor
   ) values (
-    '84000000-0000-4000-8000-000000000001',2,'2026-06-30T00:00:00Z','2027-01-01T00:00:00Z','America/New_York',6,18000
+    'a3100000-0000-4000-8000-000000000001',2,'2026-06-30T00:00:00Z','2027-01-01T00:00:00Z','America/New_York',6,18000
   )
 $$, '23P01', 'commitment periods cannot overlap', 'commitment allowance periods cannot overlap');
 
@@ -155,7 +212,7 @@ select lives_ok($$
     occurred_at, currency, gross_minor, fee_minor, tax_minor, net_minor, payload_hash, normalized_payload
   ) values (
     'a6000000-0000-4000-8000-000000000001','aws','aws-fixture-1','settlement','aws-customer-1',
-    '10000000-0000-4000-8000-000000000008','80000000-0000-4000-8000-000000000006',
+    '10000000-0000-4000-8000-000000000004','80000000-0000-4000-8000-000000000006',
     '2026-07-31T16:00:00Z','USD',10000,1000,0,9000,repeat('c',64),'{"provider":"aws"}'
   )
 $$, 'AWS settlement normalizes with gross, fee, tax, and net');

@@ -1,10 +1,13 @@
 import type { RuntimeDatabase, WorkflowExceptionRouting } from "@clockwork/db";
 import {
   DatabaseCommercialArtifactStore,
+  DatabaseCommissionStatementRepository,
+  DatabaseCoreScheduleOccurrenceStore,
   DatabaseCoreWorkflowRecordPort,
   DatabaseDeletionCertificateStore,
   DatabaseOutboxDispatcherStore,
   DatabaseReportingDataPort,
+  DatabaseSystemCapabilityGuard,
   DatabaseWorkosOrganizationProvisioningStore,
   DatabaseWorkflowExceptionPort,
   DatabaseWorkflowRunStore,
@@ -20,6 +23,7 @@ import {
 } from "../core/commercial-artifact-handler";
 import { CoreFinanceWorkflowEngine } from "../core/engine";
 import type { CoreWorkflowDependencies } from "../core/ports";
+import { configureCoreScheduleOccurrenceStore } from "../core/scheduled-runtime";
 import { configureCoreFinanceWorkflowEngine } from "../core/task-runtime";
 import { lifecycleWorkflowRegistry } from "../lifecycle";
 import {
@@ -51,6 +55,7 @@ export interface ProductionWorkflowRuntimeInput {
     | "billing"
     | "metering"
     | "accounting"
+    | "commissionAccounting"
     | "notifications"
     | "usage"
     | "exports"
@@ -90,6 +95,7 @@ export function createProductionWorkflowRuntime(
   core: CoreFinanceWorkflowEngine;
   lifecycle: LifecycleTaskRuntime;
   outbox: DurableOutboxDispatcher;
+  schedules: DatabaseCoreScheduleOccurrenceStore;
   activate(): void;
 } {
   requireConfigured(input.db, "database");
@@ -98,6 +104,7 @@ export function createProductionWorkflowRuntime(
     "billing",
     "metering",
     "accounting",
+    "commissionAccounting",
     "notifications",
     "usage",
     "exports",
@@ -155,15 +162,29 @@ export function createProductionWorkflowRuntime(
     input.exceptionRouting,
   );
   const records = new DatabaseCoreWorkflowRecordPort(input.db);
+  const commissionStatements = new DatabaseCommissionStatementRepository(
+    input.db,
+  );
   const reporting = new DatabaseReportingDataPort(input.db);
   const dependencies: CoreWorkflowDependencies = {
+    capabilities: new DatabaseSystemCapabilityGuard(input.db),
     runs,
     exceptions,
     records,
     reporting,
+    commissionSettlements: {
+      validate: (settlement) =>
+        commissionStatements.validateSettlement(settlement),
+      finalize: (settlement) =>
+        commissionStatements.finalizeSettlement({
+          ...settlement,
+          actor: { kind: "system", id: "commission-settlement-workflow" },
+        }),
+    },
     ...input.coreProviders,
   };
   const core = new CoreFinanceWorkflowEngine(dependencies);
+  const schedules = new DatabaseCoreScheduleOccurrenceStore(input.db);
   const lifecycle = new DatabaseLifecycleTaskRuntime(
     runs,
     input.lifecycleHandlers,
@@ -180,8 +201,10 @@ export function createProductionWorkflowRuntime(
     core,
     lifecycle,
     outbox,
+    schedules,
     activate() {
       configureCoreFinanceWorkflowEngine(core);
+      configureCoreScheduleOccurrenceStore(schedules);
       configureLifecycleTaskRuntime(lifecycle);
       configureOutboxDispatcher(outbox);
     },

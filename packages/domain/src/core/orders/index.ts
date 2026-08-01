@@ -38,6 +38,10 @@ export interface AcceptedOrder {
   quoteRevision: number;
   agreementId: string;
   agreementVersion: number;
+  buyerAgreementId: string;
+  buyerAgreementVersion: number;
+  partnerAgreementId?: string;
+  partnerAgreementVersion?: number;
   accountId: string;
   invoicingAccountId: string;
   partnerAccountId?: string;
@@ -63,6 +67,24 @@ export interface AcceptedOrder {
   acceptedAt: string;
   orderFormDocumentId: string;
   provisioningKey: string;
+}
+
+export const recoverableOffboardingSourceStatuses = [
+  "accepted",
+  "provisioning",
+  "active",
+  "amended",
+] as const;
+
+export function assertRecoverableOffboardingSourceStatus(
+  status: string,
+): asserts status is (typeof recoverableOffboardingSourceStatuses)[number] {
+  if (
+    !recoverableOffboardingSourceStatuses.includes(
+      status as (typeof recoverableOffboardingSourceStatuses)[number],
+    )
+  )
+    throw new Error("ORDER_NOT_ELIGIBLE_FOR_OFFBOARDING");
 }
 
 function toOrderLine(line: PricedQuoteLine, id: string): OrderLineSnapshot {
@@ -114,6 +136,20 @@ export function acceptOrder(input: AcceptOrderInput): AcceptedOrder {
     throw new Error("Binding authority title and attestation are required");
   if (quote.accountId !== input.buyer.id)
     throw new Error("Quote and buyer account differ");
+  if (input.agreement.accountId !== input.buyer.id)
+    throw new Error("Buyer agreement belongs to another commercial party");
+  if (
+    input.agreement.status !== "active" &&
+    input.agreement.status !== "in_notice"
+  )
+    throw new Error("A current buyer agreement is required");
+  if (
+    input.agreement.effectiveOn > input.serviceStartsOn ||
+    (input.agreement.endsOn && input.agreement.endsOn < input.serviceStartsOn)
+  )
+    throw new Error(
+      "Buyer agreement is not effective on the service start date",
+    );
   const readiness = procurementReadiness(input.buyer, input.poNumber);
   if (!readiness.ready)
     throw new Error(
@@ -154,7 +190,10 @@ export function acceptOrder(input: AcceptOrderInput): AcceptedOrder {
     if (
       input.partnerAgreement.accountId !== input.partner?.id ||
       (input.partnerAgreement.status !== "active" &&
-        input.partnerAgreement.status !== "in_notice")
+        input.partnerAgreement.status !== "in_notice") ||
+      input.partnerAgreement.effectiveOn > input.serviceStartsOn ||
+      (input.partnerAgreement.endsOn &&
+        input.partnerAgreement.endsOn < input.serviceStartsOn)
     )
       throw new Error(
         "Partner agreement is inactive or belongs to another account",
@@ -211,6 +250,14 @@ export function acceptOrder(input: AcceptOrderInput): AcceptedOrder {
     quoteRevision: quote.revision,
     agreementId: governingAgreement.id,
     agreementVersion: governingAgreement.version,
+    buyerAgreementId: input.agreement.id,
+    buyerAgreementVersion: input.agreement.version,
+    ...(input.partnerAgreement
+      ? {
+          partnerAgreementId: input.partnerAgreement.id,
+          partnerAgreementVersion: input.partnerAgreement.version,
+        }
+      : {}),
     accountId: input.buyer.id,
     invoicingAccountId,
     ...(input.partner ? { partnerAccountId: input.partner.id } : {}),

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import type { RuntimeDatabase } from "../../client";
-import { exceptionCases, pocs } from "../../schema";
+import { exceptionCases, orders, pocs } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
 
 const PersistedLifecycleExceptionQueueSchema = z.enum([
@@ -73,6 +73,41 @@ export class DatabaseLifecycleAuthorizationScopeResolver {
     return {
       accountId: exceptionCase.accountId,
       queue: persistedQueue(exceptionCase.queue),
+    };
+  }
+
+  public async resolveOrderScope(input: {
+    orderId: string;
+    requestId: string;
+  }): Promise<{
+    accountId: string;
+    partnerAccountId: string | null;
+    authorizationAccountId: string;
+  }> {
+    const order = await withInternalTransaction(
+      this.db,
+      input.requestId,
+      (transaction) =>
+        transaction.query.orders.findFirst({
+          columns: { accountId: true, partnerAccountId: true, sourcing: true },
+          where: eq(orders.id, input.orderId),
+        }),
+    );
+    if (!order) throw new Error("LIFECYCLE_AUTHORIZATION_TARGET_NOT_FOUND");
+    const partnerIsMerchantOfRecord = ["resale", "distributor"].includes(
+      order.sourcing,
+    );
+    if (partnerIsMerchantOfRecord && !order.partnerAccountId)
+      throw new Error("LIFECYCLE_ORDER_PARTNER_SCOPE_INVALID");
+    const authorizationAccountId = partnerIsMerchantOfRecord
+      ? order.partnerAccountId
+      : order.accountId;
+    if (!authorizationAccountId)
+      throw new Error("LIFECYCLE_ORDER_PARTNER_SCOPE_INVALID");
+    return {
+      accountId: order.accountId,
+      partnerAccountId: order.partnerAccountId,
+      authorizationAccountId,
     };
   }
 }

@@ -19,6 +19,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import {
   accounts,
+  agreements,
   amendments,
   commerceUsers,
   commissionAccruals,
@@ -409,6 +410,14 @@ export const orderCommercialProfiles = pgTable(
       .notNull()
       .unique(),
     governingAgreementVersion: integer("governing_agreement_version").notNull(),
+    buyerAgreementId: uuid("buyer_agreement_id")
+      .notNull()
+      .references(() => agreements.id),
+    buyerAgreementVersion: integer("buyer_agreement_version").notNull(),
+    partnerAgreementId: uuid("partner_agreement_id").references(
+      () => agreements.id,
+    ),
+    partnerAgreementVersion: integer("partner_agreement_version"),
     dealRegistrationId: uuid("deal_registration_id").references(
       () => dealRegistrations.id,
     ),
@@ -436,7 +445,11 @@ export const orderCommercialProfiles = pgTable(
     ),
     check(
       "core_order_agreement_version_check",
-      sql`${table.governingAgreementVersion} > 0`,
+      sql`${table.governingAgreementVersion} > 0 and ${table.buyerAgreementVersion} > 0 and (${table.partnerAgreementId} is null) = (${table.partnerAgreementVersion} is null) and (${table.partnerAgreementVersion} is null or ${table.partnerAgreementVersion} > 0)`,
+    ),
+    check(
+      "core_order_partner_agreement_route_check",
+      sql`(${table.billingShape} in ('referral','resale','distributor')) = (${table.partnerAgreementId} is not null)`,
     ),
   ],
 );
@@ -954,7 +967,7 @@ export const commissionStatementLines = pgTable(
     index("core_commission_statement_line_idx").on(table.statementId),
     check(
       "core_commission_statement_line_source_check",
-      sql`${table.sourceType} in ('payment','credit_note','refund','dispute')`,
+      sql`${table.sourceType} in ('payment','credit_note','credit_note_void','refund','dispute')`,
     ),
   ],
 );
@@ -976,6 +989,106 @@ export const commissionSettlementExports = pgTable(
     rowVersion: rowVersion(),
   },
   (table) => [index("core_commission_settlement_queue_idx").on(table.status)],
+);
+
+/**
+ * Service-owned binding from the persisted partner account to a verified QBO
+ * vendor. Raw realm identifiers and provider credentials are intentionally not
+ * stored here; the realm reference is a one-way fingerprint.
+ */
+export const partnerQboVendorMappings = pgTable(
+  "core_partner_qbo_vendor_mappings",
+  {
+    partnerAccountId: uuid("partner_account_id")
+      .primaryKey()
+      .references(() => accounts.id),
+    provider: text("provider").notNull().default("qbo"),
+    realmReferenceHash: text("realm_reference_hash").notNull(),
+    vendorId: text("vendor_id").notNull(),
+    verificationStatus: text("verification_status").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
+    verifiedBy: uuid("verified_by")
+      .notNull()
+      .references(() => commerceUsers.id),
+    sourceReference: text("source_reference").notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    rowVersion: rowVersion(),
+  },
+  (table) => [
+    uniqueIndex("core_partner_qbo_vendor_provider_unique").on(
+      table.provider,
+      table.vendorId,
+    ),
+    check(
+      "core_partner_qbo_vendor_provider_check",
+      sql`${table.provider} = 'qbo'`,
+    ),
+    check(
+      "core_partner_qbo_vendor_realm_hash_check",
+      sql`${table.realmReferenceHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "core_partner_qbo_vendor_status_check",
+      sql`${table.verificationStatus} in ('verified','revoked')`,
+    ),
+  ],
+);
+
+export const stripeAdjustmentOperations = pgTable(
+  "core_stripe_adjustment_operations",
+  {
+    adjustmentId: uuid("adjustment_id").primaryKey(),
+    kind: text("kind").notNull(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id),
+    sourceId: uuid("source_id").notNull(),
+    sourceCurrency: text("source_currency").notNull(),
+    providerInvoiceId: text("provider_invoice_id"),
+    providerPaymentIntentId: text("provider_payment_intent_id"),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    individualCapMinor: bigint("individual_cap_minor", {
+      mode: "bigint",
+    }).notNull(),
+    aggregateCapMinor: bigint("aggregate_cap_minor", {
+      mode: "bigint",
+    }).notNull(),
+    providerReason: text("provider_reason").notNull(),
+    internalReasonCode: text("internal_reason_code").notNull(),
+    providerIdempotencyKey: text("provider_idempotency_key").notNull().unique(),
+    state: text("state").notNull().default("approved"),
+    leaseToken: uuid("lease_token"),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    providerObjectId: text("provider_object_id").unique(),
+    providerStatus: text("provider_status"),
+    lastErrorCode: text("last_error_code"),
+    commandVersion: integer("command_version").notNull().default(1),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    rowVersion: rowVersion(),
+  },
+  (table) => [
+    index("core_stripe_adjustment_source_idx").on(
+      table.kind,
+      table.sourceId,
+      table.sourceCurrency,
+      table.state,
+    ),
+    check(
+      "core_stripe_adjustment_kind_check",
+      sql`${table.kind} in ('credit_note','refund')`,
+    ),
+    check(
+      "core_stripe_adjustment_state_check",
+      sql`${table.state} in ('approved','submitting','retrying','provider_accepted','rejected')`,
+    ),
+    check(
+      "core_stripe_adjustment_amount_check",
+      sql`${table.amountMinor} > 0 and ${table.amountMinor} <= ${table.individualCapMinor} and ${table.individualCapMinor} <= ${table.aggregateCapMinor}`,
+    ),
+  ],
 );
 
 export const marketplaceEvents = pgTable(
@@ -1232,6 +1345,8 @@ export const coreFinanceTables = {
   commissionStatements,
   commissionStatementLines,
   commissionSettlementExports,
+  partnerQboVendorMappings,
+  stripeAdjustmentOperations,
   marketplaceEvents,
   marketplaceFinancialEntries,
   marketplaceReconciliations,

@@ -1,5 +1,6 @@
 import type { Actor } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
+import { redactPartnerQuoteData } from "@clockwork/domain/core";
 
 export const coreResourceNames = [
   "accounts",
@@ -118,16 +119,11 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "accept",
     "revise",
   ]),
-  orders: new Set([
-    "prepare_artifact",
-    "create",
-    "accept",
-    "provision",
-    "activate",
-    "complete",
-    "cancel",
-    "terminate",
-  ]),
+  // Order state is advanced only by the accepted-order transaction,
+  // authenticated provider confirmations, or the lifecycle offboarding
+  // commands. Keeping generic state verbs here would let an ordinary
+  // order:write caller bypass those boundaries.
+  orders: new Set(["prepare_artifact", "create"]),
   amendments: new Set(["prepare_artifact", "create", "accept", "apply"]),
   commitments: new Set([
     "create",
@@ -295,7 +291,14 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
       )
       .sort((left, right) => left.id.localeCompare(right.id))
       .filter((record) => after === undefined || record.id > after);
-    const page = eligible.slice(0, input.limit);
+    const page = eligible.slice(0, input.limit).map((record) =>
+      record.resource === "quotes"
+        ? {
+            ...record,
+            data: redactPartnerQuoteData(record.data, input.authorization),
+          }
+        : record,
+    );
     const finalRecord = page.at(-1);
     return Promise.resolve({
       items: page,

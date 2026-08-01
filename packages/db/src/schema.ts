@@ -869,7 +869,7 @@ export const creditNotes = pgTable(
     orderId: uuid("order_id")
       .notNull()
       .references(() => orders.id),
-    stripeCreditNoteId: text("stripe_credit_note_id").notNull().unique(),
+    stripeCreditNoteId: text("stripe_credit_note_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
     reasonCode: text("reason_code").notNull(),
@@ -877,13 +877,21 @@ export const creditNotes = pgTable(
       .notNull()
       .references(() => commerceUsers.id),
     status: text("status").notNull(),
+    stripeLastOccurredAt: timestamp("stripe_last_occurred_at", {
+      withTimezone: true,
+    }),
+    stripeLastEventId: text("stripe_last_event_id"),
     createdAt: createdAt(),
     version: integer("version").notNull().default(1),
   },
   (table) => [
     check(
       "credit_notes_status_check",
-      sql`${table.status} in ('issued','void')`,
+      sql`${table.status} in ('approved','pending','issued','failed','void')`,
+    ),
+    check(
+      "credit_notes_stripe_watermark_check",
+      sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
   ],
 );
@@ -897,18 +905,26 @@ export const refunds = pgTable(
     orderId: uuid("order_id")
       .notNull()
       .references(() => orders.id),
-    stripeRefundId: text("stripe_refund_id").notNull().unique(),
+    stripeRefundId: text("stripe_refund_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
     reasonCode: text("reason_code").notNull(),
     status: text("status").notNull(),
+    stripeLastOccurredAt: timestamp("stripe_last_occurred_at", {
+      withTimezone: true,
+    }),
+    stripeLastEventId: text("stripe_last_event_id"),
     createdAt: createdAt(),
     version: integer("version").notNull().default(1),
   },
   (table) => [
     check(
       "refunds_status_check",
-      sql`${table.status} in ('pending','succeeded','failed')`,
+      sql`${table.status} in ('approved','pending','succeeded','failed')`,
+    ),
+    check(
+      "refunds_stripe_watermark_check",
+      sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
   ],
 );
@@ -1133,7 +1149,7 @@ export const commissionAccruals = pgTable(
     ),
     check(
       "commission_accruals_source_type_check",
-      sql`${table.sourceType} in ('payment','credit_note','refund','dispute')`,
+      sql`${table.sourceType} in ('payment','credit_note','credit_note_void','refund','dispute')`,
     ),
     check(
       "commission_accruals_policy_check",
@@ -1141,7 +1157,7 @@ export const commissionAccruals = pgTable(
     ),
     check(
       "commission_accruals_sign_check",
-      sql`(${table.sourceType} = 'payment' and ${table.adjustmentSourceId} is null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} <> 'payment' and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} <= 0 and ${table.amountMinor} <= 0 and ${table.holdbackMinor} <= 0)`,
+      sql`(${table.sourceType} = 'payment' and ${table.adjustmentSourceId} is null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} = 'credit_note_void' and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} in ('credit_note','refund','dispute') and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} <= 0 and ${table.amountMinor} <= 0 and ${table.holdbackMinor} <= 0)`,
     ),
   ],
 );

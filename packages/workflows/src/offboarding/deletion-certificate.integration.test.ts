@@ -4,10 +4,14 @@ import {
   type OffboardingPlan,
 } from "@clockwork/domain/lifecycle";
 import {
+  approvals as durableApprovals,
   createRuntimeDatabase,
   DatabaseDeletionCertificateStore,
   DatabaseLifecycleCommandRepository,
   type DatabaseLifecycleCommandInput,
+  orders,
+  providerOperations,
+  quotes,
   terminations,
   withInternalTransaction,
 } from "@clockwork/db";
@@ -86,9 +90,10 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
   const accountId = input.failed
     ? "10000000-0000-4000-8000-000000000004"
     : "10000000-0000-4000-8000-000000000001";
-  const orderId = input.failed
+  const sourceOrderId = input.failed
     ? "80000000-0000-4000-8000-000000000007"
     : "80000000-0000-4000-8000-000000000001";
+  const orderId = crypto.randomUUID();
   const organizationId = input.failed
     ? "30000000-0000-4000-8000-000000000003"
     : "30000000-0000-4000-8000-000000000001";
@@ -163,6 +168,30 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
     requestedAt: "2026-07-31T15:55:00.000Z",
   };
   await withInternalTransaction(db, `fixture-${input.suffix}`, async (tx) => {
+    const sourceOrder = await tx.query.orders.findFirst({
+      where: (row, { eq: equals }) => equals(row.id, sourceOrderId),
+    });
+    const sourceQuote = sourceOrder
+      ? await tx.query.quotes.findFirst({
+          where: (row, { eq: equals }) => equals(row.id, sourceOrder.quoteId),
+        })
+      : undefined;
+    if (!sourceOrder || !sourceQuote)
+      throw new Error("OFFBOARDING_SOURCE_FIXTURE_MISSING");
+    const quoteId = crypto.randomUUID();
+    await tx.insert(quotes).values({
+      ...sourceQuote,
+      id: quoteId,
+      seriesId: crypto.randomUUID(),
+      previousRevisionId: null,
+      rowVersion: 1,
+    });
+    await tx.insert(orders).values({
+      ...sourceOrder,
+      id: orderId,
+      quoteId,
+      rowVersion: 1,
+    });
     await tx.insert(terminations).values({
       id: terminationId,
       accountId,
@@ -172,6 +201,43 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
       teardownStatus: "teardown_requested",
       deletionScheduledAt: new Date("2033-07-31T16:00:00.000Z"),
     });
+    await tx.insert(durableApprovals).values(
+      approvals.map((approval) => ({
+        id: approval.approvalId,
+        accountId,
+        action: "termination_teardown",
+        objectType: "termination",
+        objectId: terminationId,
+        requestedBy,
+        approvedBy: approval.approverId,
+        status: approval.decision,
+        requestedAt: new Date(plan.effectiveAt),
+        decidedAt: new Date(approval.decidedAt),
+      })),
+    );
+    const retryingAttempt = {
+      ...beginProvisioning(command),
+      state: "retry_scheduled" as const,
+      nextAttemptAt: command.requestedAt,
+    };
+    await tx.insert(lifecycleProvisioningAttempts).values({
+      commandId,
+      accountId,
+      orderId,
+      organizationId,
+      operation: "teardown",
+      state: "retry_scheduled",
+      attempt: retryingAttempt,
+    });
+    await tx.insert(providerOperations).values({
+      provider: "provisioning",
+      operation: "teardown",
+      idempotencyKey: command.idempotencyKey,
+      aggregateType: "termination",
+      aggregateId: terminationId,
+      status: "retrying",
+      nextAttemptAt: new Date(command.requestedAt),
+    });
     await tx.insert(lifecycleOffboardingPlans).values({
       terminationId,
       accountId,
@@ -179,15 +245,6 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
       requestedBy,
       reason: plan.reason,
       plan,
-    });
-    await tx.insert(lifecycleProvisioningAttempts).values({
-      commandId,
-      accountId,
-      orderId,
-      organizationId,
-      operation: "teardown",
-      state: "pending",
-      attempt: beginProvisioning(command),
     });
   });
   const occurredAt = "2026-07-31T16:00:00.000Z";
@@ -217,7 +274,7 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
     },
   };
   const result = await repository.executeInTransaction(providerExecution);
-  return { terminationId, commandId, result, providerExecution };
+  return { terminationId, commandId, orderId, result, providerExecution };
 }
 
 async function certificateInvocation(terminationId: string) {
@@ -346,6 +403,16 @@ describe("deletion certificate production issuance", () => {
           issuedEventIds.has(message.eventId),
         ),
       ).toHaveLength(2);
+      expect(
+        (await tx.query.orders.findMany()).find(
+          (order) => order.id === normal.orderId,
+        )?.status,
+      ).toBe("terminated");
+      expect(
+        (await tx.query.orders.findMany()).find(
+          (order) => order.id === crash.orderId,
+        )?.status,
+      ).toBe("terminated");
     });
   });
 
@@ -374,6 +441,11 @@ describe("deletion certificate production issuance", () => {
             JSON.stringify(event.after).includes(failed.terminationId),
           ),
         ).toBe(false);
+        expect(
+          (await tx.query.orders.findMany()).find(
+            (order) => order.id === failed.orderId,
+          )?.status,
+        ).toBe("active");
       },
     );
   });

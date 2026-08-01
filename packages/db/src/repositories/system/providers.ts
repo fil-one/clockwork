@@ -668,6 +668,34 @@ async function assertVerifiedStripeInboxEvent(
     inbox.occurredAt.valueOf() !== new Date(event.occurredAt).valueOf()
   )
     throw new Error("Verified Stripe inbox event is missing or mismatched");
+
+  const payload = jsonRecord(inbox.payload);
+  const persistedEvent = jsonRecord(payload.event);
+  const projectionFields = [
+    "eventId",
+    "eventType",
+    "category",
+    "aggregateKey",
+    "occurredAt",
+    "invoiceId",
+    "paymentIntentId",
+    "customerId",
+    "creditNoteId",
+    "refundId",
+    "disputeId",
+    "amount",
+    "status",
+  ] as const;
+  if (
+    payload.type !== event.eventType ||
+    persistedEvent.provider !== "stripe" ||
+    projectionFields.some(
+      (field) => stableJson(persistedEvent[field]) !== stableJson(event[field]),
+    )
+  )
+    throw new Error(
+      "Stripe projection facts do not match the signed persisted payload",
+    );
 }
 
 async function claimProjectionCheckpoint(
@@ -943,17 +971,51 @@ async function projectCreditNote(
   });
   if (!before)
     throw new Error("Stripe credit note is not linked to an invoice");
-  const status = event.eventType === "credit_note.voided" ? "void" : "issued";
+  const invoice = await transaction.query.invoices.findFirst({
+    where: eq(invoices.id, before.invoiceId),
+  });
+  if (
+    !invoice?.stripeInvoiceId ||
+    event.invoiceId !== invoice.stripeInvoiceId ||
+    !event.amount ||
+    event.amount.currency !== before.currency ||
+    BigInt(event.amount.minor) !== before.amountMinor
+  )
+    throw new Error("Stripe credit-note source or money binding mismatched");
+  if (!isNewerFinancialEvent(event, before)) return;
+  const status =
+    event.eventType === "credit_note.voided" || event.status === "void"
+      ? "void"
+      : event.status === "issued"
+        ? "issued"
+        : event.status === "draft"
+          ? "pending"
+          : undefined;
+  if (!status) throw new Error("Stripe credit-note status is unsupported");
+  if (
+    (before.status === "issued" ||
+      before.status === "failed" ||
+      before.status === "void") &&
+    before.status !== status &&
+    !(before.status === "issued" && status === "void")
+  )
+    throw new Error("Stripe credit-note terminal status conflicted");
   const [after] = await transaction
     .update(creditNotes)
-    .set({ status })
-    .where(eq(creditNotes.id, before.id))
+    .set({
+      status,
+      stripeLastOccurredAt: new Date(event.occurredAt),
+      stripeLastEventId: event.eventId,
+      version: sql`${creditNotes.version} + 1`,
+    })
+    .where(
+      and(
+        eq(creditNotes.id, before.id),
+        eq(creditNotes.version, before.version),
+      ),
+    )
     .returning();
   if (!after) throw new Error("Stripe credit-note projection failed");
-  const invoice = await transaction.query.invoices.findFirst({
-    where: eq(invoices.id, after.invoiceId),
-  });
-  if (!invoice) throw new Error("Stripe credit-note invoice is missing");
   await appendFinancialProjection(transaction, event, {
     aggregateType: "credit_note",
     id: after.id,
@@ -973,20 +1035,47 @@ async function projectRefund(
     where: eq(refunds.stripeRefundId, event.refundId),
   });
   if (!before) throw new Error("Stripe refund is not linked to a payment");
-  const status = event.eventType.endsWith(".failed")
-    ? "failed"
-    : event.eventType.endsWith(".updated") && event.status === "pending"
-      ? "pending"
-      : "succeeded";
+  const payment = await transaction.query.payments.findFirst({
+    where: eq(payments.id, before.paymentId),
+  });
+  if (
+    !payment ||
+    event.paymentIntentId !== payment.stripePaymentIntentId ||
+    !event.amount ||
+    event.amount.currency !== before.currency ||
+    BigInt(event.amount.minor) !== before.amountMinor
+  )
+    throw new Error("Stripe refund source or money binding mismatched");
+  if (!isNewerFinancialEvent(event, before)) return;
+  const status =
+    event.eventType === "refund.created"
+      ? before.status
+      : event.eventType === "refund.updated" &&
+          (event.status === "pending" || event.status === "requires_action")
+        ? "pending"
+        : event.eventType === "refund.updated" && event.status === "succeeded"
+          ? "succeeded"
+          : event.eventType === "refund.updated" &&
+              (event.status === "failed" || event.status === "canceled")
+            ? "failed"
+            : undefined;
+  if (!status) throw new Error("Stripe refund status is unsupported");
+  if (
+    (before.status === "succeeded" || before.status === "failed") &&
+    before.status !== status
+  )
+    throw new Error("Stripe refund terminal status conflicted");
   const [after] = await transaction
     .update(refunds)
-    .set({ status })
-    .where(eq(refunds.id, before.id))
+    .set({
+      status,
+      stripeLastOccurredAt: new Date(event.occurredAt),
+      stripeLastEventId: event.eventId,
+      version: sql`${refunds.version} + 1`,
+    })
+    .where(and(eq(refunds.id, before.id), eq(refunds.version, before.version)))
     .returning();
   if (!after) throw new Error("Stripe refund projection failed");
-  const payment = await transaction.query.payments.findFirst({
-    where: eq(payments.id, after.paymentId),
-  });
   const invoice = payment
     ? await transaction.query.invoices.findFirst({
         where: eq(invoices.id, payment.invoiceId),

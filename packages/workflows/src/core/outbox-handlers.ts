@@ -38,7 +38,9 @@ const commissionTopics = {
   "provider.stripe.invoice.payment_succeeded": "payment",
   "provider.stripe.credit_note.created": "credit_note",
   "provider.stripe.credit_note.updated": "credit_note",
-  "provider.stripe.refund.created": "refund",
+  "provider.stripe.credit_note.voided": "credit_note_void",
+  // refund.created is provider acceptance, not terminal refund truth. Stripe
+  // status projection and commission clawback begin only from signed updates.
   "provider.stripe.refund.updated": "refund",
   "provider.stripe.charge.dispute.created": "chargeback",
   "provider.stripe.charge.dispute.updated": "chargeback",
@@ -61,7 +63,7 @@ export const coreWorkflowDispatchPlan = {
   },
   "core.collections.partner-credit.v1": {
     events: ["core.orders.create"],
-    schedules: [],
+    schedules: ["0 6 * * *"],
   },
   "core.commissions.settle.v1": {
     events: [commissionStatementTopic],
@@ -179,6 +181,7 @@ function handlers(input: {
       const aggregateTypes = {
         payment: "payment",
         credit_note: "credit_note",
+        credit_note_void: "credit_note",
         refund: "refund",
         chargeback: "dispute_case",
       } as const;

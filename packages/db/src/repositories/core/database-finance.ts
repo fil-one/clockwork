@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import { and, asc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 
-import { MoneySchema, type Actor, type EntityName } from "@clockwork/contracts";
+import {
+  ids,
+  MoneySchema,
+  type Actor,
+  type EntityName,
+} from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import {
   accrueCommission,
@@ -19,11 +24,13 @@ import {
   normalizeLegalName,
   priceQuote,
   registerDeal,
+  redactPartnerQuoteData,
 } from "@clockwork/domain/core";
 import type {
   AccountCommercialRecord,
   AcceptedOrder,
   DealRegistration,
+  GoverningAgreement,
   PriceBook,
   PricedQuoteLine,
   QuoteSnapshot,
@@ -33,6 +40,7 @@ import {
   accounts,
   agreements,
   amendments,
+  commerceUsers,
   commissionAccruals,
   creditNotes,
   dealRegistrations,
@@ -52,6 +60,7 @@ import {
   workflowRuns,
 } from "../../schema";
 import {
+  accountCommercialProfiles,
   billingPolicies,
   collectionActions,
   collectionCases,
@@ -80,6 +89,8 @@ import { CoreFinanceRepository, coreSnapshotHash } from "./finance";
 import { z } from "zod";
 
 type JsonRecord = Record<string, unknown>;
+type CoreCapabilityKey =
+  "new_business" | "legal" | "billing" | "partner" | "marketplace" | "teardown";
 
 export const databaseCoreResourceNames = [
   "accounts",
@@ -222,7 +233,19 @@ interface QuoteCommercialContext {
   };
 }
 
-type CommissionSourceType = "payment" | "credit_note" | "refund" | "dispute";
+interface OrderAcceptanceContext {
+  quote: typeof quotes.$inferSelect;
+  snapshot: QuoteSnapshot;
+  buyer: AccountCommercialRecord;
+  partner?: AccountCommercialRecord;
+  buyerAgreement: GoverningAgreement;
+  partnerAgreement?: GoverningAgreement;
+  dealRegistrationId?: string;
+  reviewOwnerUserId: string;
+}
+
+type CommissionSourceType =
+  "payment" | "credit_note" | "credit_note_void" | "refund" | "dispute";
 
 type CommissionSourceContext =
   | {
@@ -232,7 +255,12 @@ type CommissionSourceContext =
       existing?: never;
       sourceType: CommissionSourceType;
       sourceId: string;
-      eventType: "payment" | "credit_note" | "refund" | "chargeback";
+      eventType:
+        | "payment"
+        | "credit_note"
+        | "credit_note_void"
+        | "refund"
+        | "chargeback";
       invoiceId: string;
       partnerAccountId: string;
       occurredAt: string;
@@ -260,6 +288,12 @@ const CoreMutationResultSchema = z.object({
 });
 const CurrencySchema = z.enum(["USD", "EUR", "GBP"]);
 const CommercialRoleSchema = z.enum(["direct_client", "partner", "end_client"]);
+const OrderAcceptanceReservationSchema = z.object({
+  order_id: z.uuid(),
+  decision: z.enum(["approved", "rejected", "released"]),
+  reason: z.string().min(1),
+  review_case_id: z.uuid().nullable(),
+});
 
 function parsedMoney(currency: unknown, minor: string) {
   return MoneySchema.parse({ currency, minor });
@@ -413,29 +447,28 @@ const AmendmentInputSchema = z.object({
   documentId: z.uuid().optional(),
   acceptedAt: z.iso.datetime(),
 });
-const OrderCreateCommandSchema = z.object({
-  quoteId: z.uuid(),
-  agreementId: z.uuid(),
-  partnerAgreementId: z.uuid().optional(),
-  signerUserId: z.uuid(),
-  authorityTitle: z.string().min(1),
-  authorityAttested: z.literal(true),
-  poNumber: z.string().optional(),
-  poDocumentId: z.uuid().optional(),
-  serviceStartsOn: z.iso.date(),
-  serviceEndsOn: z.iso.date().optional(),
-  coTerminateOn: z.iso.date().optional(),
-  noticeOn: z.iso.date().optional(),
-  acceptedAt: z.iso.datetime(),
-  orderFormDocumentId: z.uuid(),
-  orderLineIds: z.array(z.uuid()).min(1),
-  dealRegistrationId: z.uuid().optional(),
-  invoiceGroupingKey: z.string().min(1).optional(),
-  contractualTimeZone: z.string().min(1).optional(),
-});
+const OrderCreateCommandSchema = z
+  .object({
+    quoteId: z.uuid(),
+    signerUserId: z.uuid(),
+    authorityTitle: z.string().min(1),
+    authorityAttested: z.literal(true),
+    poNumber: z.string().optional(),
+    poDocumentId: z.uuid().optional(),
+    serviceStartsOn: z.iso.date(),
+    serviceEndsOn: z.iso.date().optional(),
+    coTerminateOn: z.iso.date().optional(),
+    noticeOn: z.iso.date().optional(),
+    acceptedAt: z.iso.datetime(),
+    orderFormDocumentId: z.uuid(),
+    orderLineIds: z.array(z.uuid()).min(1),
+  })
+  .strict();
 const OrderArtifactCommandSchema = OrderCreateCommandSchema.omit({
   orderFormDocumentId: true,
-});
+})
+  .extend({ retainUntil: z.iso.datetime({ offset: true }) })
+  .strict();
 const ArtifactPreparationSchema = z.object({
   audience: z.enum(["end_client", "partner"]),
   issuedAt: z.iso.datetime({ offset: true }),
@@ -443,24 +476,39 @@ const ArtifactPreparationSchema = z.object({
 });
 const CommissionSourceCommandSchema = z
   .object({
-    sourceType: z.enum(["payment", "credit_note", "refund", "chargeback"]),
+    sourceType: z.enum([
+      "payment",
+      "credit_note",
+      "credit_note_void",
+      "refund",
+      "chargeback",
+    ]),
     sourceId: z.uuid(),
   })
   .strict();
 const CreditNoteIssueCommandSchema = z
   .object({
     invoiceId: z.uuid(),
-    stripeCreditNoteId: z.string().regex(/^cn_[A-Za-z0-9_]+$/),
     amount: MoneySchema,
-    reasonCode: z.string().min(3).max(120),
+    providerReason: z.enum([
+      "duplicate",
+      "fraudulent",
+      "order_change",
+      "product_unsatisfactory",
+    ]),
+    internalReasonCode: z.string().min(3).max(120),
   })
   .strict();
 const RefundSubmitCommandSchema = z
   .object({
     paymentId: z.uuid(),
-    stripeRefundId: z.string().regex(/^re_[A-Za-z0-9_]+$/),
     amount: MoneySchema,
-    reasonCode: z.string().min(3).max(120),
+    providerReason: z.enum([
+      "duplicate",
+      "fraudulent",
+      "requested_by_customer",
+    ]),
+    internalReasonCode: z.string().min(3).max(120),
   })
   .strict();
 const DisputeCreateCommandSchema = z
@@ -552,6 +600,14 @@ function acceptedOrder(value: AcceptedOrder): AcceptedOrder {
     quoteRevision: value.quoteRevision,
     agreementId: value.agreementId,
     agreementVersion: value.agreementVersion,
+    buyerAgreementId: value.buyerAgreementId,
+    buyerAgreementVersion: value.buyerAgreementVersion,
+    ...(value.partnerAgreementId
+      ? { partnerAgreementId: value.partnerAgreementId }
+      : {}),
+    ...(value.partnerAgreementVersion
+      ? { partnerAgreementVersion: value.partnerAgreementVersion }
+      : {}),
     accountId: value.accountId,
     invoicingAccountId: value.invoicingAccountId,
     ...(value.partnerAccountId
@@ -634,6 +690,14 @@ async function persistedAcceptedOrder(
     quoteRevision: quote.revision,
     agreementId: order.agreementId,
     agreementVersion: profile.governingAgreementVersion,
+    buyerAgreementId: profile.buyerAgreementId,
+    buyerAgreementVersion: profile.buyerAgreementVersion,
+    ...(profile.partnerAgreementId
+      ? { partnerAgreementId: profile.partnerAgreementId }
+      : {}),
+    ...(profile.partnerAgreementVersion
+      ? { partnerAgreementVersion: profile.partnerAgreementVersion }
+      : {}),
     accountId: order.accountId,
     invoicingAccountId: order.invoicingAccountId,
     ...(order.partnerAccountId
@@ -796,12 +860,17 @@ async function audited(
   input: CoreMutation,
   record: CoreRecord,
   before?: JsonRecord,
+  auditAggregate?: {
+    type: EntityName;
+    id: string;
+    version: number;
+  },
 ): Promise<CoreMutationResult> {
   const result = await appendAuditAndOutbox(transaction, {
     ...(record.accountId ? { accountId: record.accountId } : {}),
-    aggregateType: entityByResource[input.resource],
-    aggregateId: record.id,
-    aggregateVersion: record.rowVersion,
+    aggregateType: auditAggregate?.type ?? entityByResource[input.resource],
+    aggregateId: auditAggregate?.id ?? record.id,
+    aggregateVersion: auditAggregate?.version ?? record.rowVersion,
     eventType: `core.${input.resource}.${input.action}`,
     actor: input.actor,
     requestId: input.requestId,
@@ -1175,6 +1244,27 @@ async function persistedCommissionSource(
       occurredAt: creditNote.createdAt.toISOString(),
     };
   }
+  if (sourceType === "credit_note_void") {
+    const creditNote = await transaction.query.creditNotes.findFirst({
+      where: eq(creditNotes.id, sourceId),
+    });
+    if (
+      !creditNote ||
+      creditNote.status !== "void" ||
+      !creditNote.stripeLastOccurredAt
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Only a signed voided credit note can reverse its commission clawback",
+      );
+    return {
+      invoiceId: creditNote.invoiceId,
+      orderId: creditNote.orderId,
+      currency: creditNote.currency,
+      amountMinor: creditNote.amountMinor,
+      occurredAt: creditNote.stripeLastOccurredAt.toISOString(),
+    };
+  }
   if (sourceType === "refund") {
     const refund = await transaction.query.refunds.findFirst({
       where: eq(refunds.id, sourceId),
@@ -1255,11 +1345,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       confidentialPriceBook,
       dealRegistrationContext,
       quoteCommercialContext,
+      orderAcceptanceContext,
       commissionContext,
     ] = await Promise.all([
       this.loadConfidentialPriceBook(input),
       this.loadDealRegistrationContext(input),
       this.loadQuoteCommercialContext(input),
+      this.loadOrderAcceptanceContext(input),
       this.loadCommissionContext(input),
     ]);
     return withAuthorizedTransaction(
@@ -1273,6 +1365,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           confidentialPriceBook,
           dealRegistrationContext,
           quoteCommercialContext,
+          orderAcceptanceContext,
           commissionContext,
         ),
     );
@@ -1284,6 +1377,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     confidentialPriceBook?: PriceBook,
     dealRegistrationContext?: DealRegistrationDecisionContext,
     quoteCommercialContext?: QuoteCommercialContext,
+    orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
   ): Promise<CoreMutationResult> {
     const key = z.string().min(16).max(255).parse(input.idempotencyKey);
@@ -1323,12 +1417,19 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       };
     }
 
+    await this.assertPersistedCapabilities(
+      transaction,
+      input,
+      orderAcceptanceContext,
+    );
+
     const response = await this.mutateInTransaction(
       transaction,
       input,
       confidentialPriceBook,
       dealRegistrationContext,
       quoteCommercialContext,
+      orderAcceptanceContext,
       commissionContext,
     );
     const [completed] = await transaction
@@ -1352,6 +1453,79 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     if (!completed)
       throw new Error("STALE_CORE_IDEMPOTENCY_LEASE_CANNOT_COMPLETE_RESPONSE");
     return response;
+  }
+
+  private async assertPersistedCapabilities(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    orderAcceptanceContext?: OrderAcceptanceContext,
+  ): Promise<void> {
+    let capabilities: readonly CoreCapabilityKey[] = [];
+    let recovery = false;
+    switch (input.resource) {
+      case "accounts":
+        capabilities = ["new_business", "legal"];
+        break;
+      case "procurement_profiles":
+      case "price_books":
+        capabilities = ["legal"];
+        break;
+      case "quotes":
+        capabilities = ["new_business", "legal"];
+        break;
+      case "orders": {
+        capabilities = ["new_business", "legal", "billing"];
+        const route = orderAcceptanceContext?.snapshot.route;
+        if (["referral", "resale", "distributor"].includes(route ?? ""))
+          capabilities = [...capabilities, "partner"];
+        if (route === "marketplace")
+          capabilities = [...capabilities, "marketplace"];
+        break;
+      }
+      case "amendments":
+      case "commitments":
+        capabilities = ["new_business", "legal", "billing"];
+        break;
+      case "invoices":
+        capabilities = ["billing"];
+        recovery = input.action === "evaluate_dunning";
+        break;
+      case "credit_notes":
+      case "refunds":
+      case "disputes":
+        capabilities = ["billing"];
+        recovery = true;
+        break;
+      case "deal_registrations":
+        capabilities = ["new_business", "partner"];
+        break;
+      case "commissions":
+        capabilities = ["billing", "partner"];
+        recovery = true;
+        break;
+      case "accounting_exports":
+      case "reports":
+        capabilities = ["billing"];
+        recovery = true;
+        break;
+      case "marketplace_reconciliations":
+        capabilities = ["marketplace"];
+        recovery = true;
+        break;
+    }
+    for (const capability of new Set(capabilities)) {
+      const [row] = await transaction.execute<{ enabled: boolean }>(sql`
+        select public.system_capability_is_enabled(
+          ${capability}::text,
+          ${recovery}::boolean
+        ) as enabled
+      `);
+      if (row?.enabled !== true)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          `Persisted ${capability} capability is disabled for this command`,
+        );
+    }
   }
 
   private async claimUserIdempotency(
@@ -1476,36 +1650,51 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         let holdbackBps = partner.commissionHoldbackBps;
         let adjustmentSourceId: string | undefined;
         if (sourceType !== "payment") {
-          const original = source.paymentId
-            ? await transaction.query.commissionAccruals.findFirst({
-                where: and(
-                  eq(commissionAccruals.sourceType, "payment"),
-                  eq(commissionAccruals.sourceId, source.paymentId),
-                  eq(commissionAccruals.invoiceId, invoice.id),
-                  eq(
-                    commissionAccruals.partnerAccountId,
-                    order.partnerAccountId,
+          const original =
+            sourceType === "credit_note_void"
+              ? await transaction.query.commissionAccruals.findFirst({
+                  where: and(
+                    eq(commissionAccruals.sourceType, "credit_note"),
+                    eq(commissionAccruals.sourceId, command.sourceId),
+                    eq(commissionAccruals.invoiceId, invoice.id),
+                    eq(
+                      commissionAccruals.partnerAccountId,
+                      order.partnerAccountId,
+                    ),
                   ),
-                ),
-              })
-            : await transaction.query.commissionAccruals.findFirst({
-                where: and(
-                  eq(commissionAccruals.sourceType, "payment"),
-                  eq(commissionAccruals.invoiceId, invoice.id),
-                  eq(
-                    commissionAccruals.partnerAccountId,
-                    order.partnerAccountId,
-                  ),
-                ),
-                orderBy: (row, { asc: ascending }) => [
-                  ascending(row.createdAt),
-                  ascending(row.id),
-                ],
-              });
+                })
+              : source.paymentId
+                ? await transaction.query.commissionAccruals.findFirst({
+                    where: and(
+                      eq(commissionAccruals.sourceType, "payment"),
+                      eq(commissionAccruals.sourceId, source.paymentId),
+                      eq(commissionAccruals.invoiceId, invoice.id),
+                      eq(
+                        commissionAccruals.partnerAccountId,
+                        order.partnerAccountId,
+                      ),
+                    ),
+                  })
+                : await transaction.query.commissionAccruals.findFirst({
+                    where: and(
+                      eq(commissionAccruals.sourceType, "payment"),
+                      eq(commissionAccruals.invoiceId, invoice.id),
+                      eq(
+                        commissionAccruals.partnerAccountId,
+                        order.partnerAccountId,
+                      ),
+                    ),
+                    orderBy: (row, { asc: ascending }) => [
+                      ascending(row.createdAt),
+                      ascending(row.id),
+                    ],
+                  });
           if (!original)
             throw new CoreServiceError(
               "INVALID_STATE",
-              "A clawback requires a persisted collected-payment accrual",
+              sourceType === "credit_note_void"
+                ? "A credit-note void requires its persisted commission clawback"
+                : "A clawback requires a persisted collected-payment accrual",
             );
           rateBps = original.rateBps;
           holdbackBps = original.holdbackBps;
@@ -1572,6 +1761,209 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
             endClient.roles.includes("direct_client") ? [endClient.id] : [],
           ),
           priorActiveDeals,
+        };
+      },
+    );
+  }
+
+  private async loadOrderAcceptanceContext(
+    input: CoreMutation,
+  ): Promise<OrderAcceptanceContext | undefined> {
+    if (
+      input.resource !== "orders" ||
+      (input.action !== "create" && input.action !== "prepare_artifact")
+    )
+      return undefined;
+    if (!input.accountId)
+      throw new CoreServiceError("INVALID_STATE", "Order account is required");
+    const command =
+      input.action === "prepare_artifact"
+        ? OrderArtifactCommandSchema.parse(input.payload)
+        : OrderCreateCommandSchema.parse(input.payload);
+    return withInternalTransaction(
+      this.options.pricingDatabase,
+      input.requestId,
+      async (transaction) => {
+        const [quote, snapshotEvidence, quoteProfile] = await Promise.all([
+          transaction.query.quotes.findFirst({
+            where: eq(quotes.id, command.quoteId),
+          }),
+          transaction.query.quoteSnapshots.findFirst({
+            where: eq(quoteSnapshots.quoteId, command.quoteId),
+          }),
+          transaction.query.quoteCommercialProfiles.findFirst({
+            where: eq(quoteCommercialProfiles.quoteId, command.quoteId),
+          }),
+        ]);
+        if (!quote || !snapshotEvidence || !quoteProfile)
+          throw new CoreServiceError("NOT_FOUND", "Issued quote was not found");
+        const snapshot = quoteSnapshot(snapshotEvidence.snapshot);
+        if (
+          quote.accountId !== input.accountId ||
+          snapshot.accountId !== input.accountId ||
+          snapshot.id !== quote.id
+        )
+          throw new CoreServiceError(
+            "NOT_FOUND",
+            "Issued quote was not found for the order account",
+          );
+        const partnerRoute =
+          snapshot.route === "referral" ||
+          snapshot.route === "resale" ||
+          snapshot.route === "distributor";
+        const partnerId = partnerRoute
+          ? z.uuid().parse(snapshot.partnerAccountId)
+          : undefined;
+        const acceptanceAuthorityAccountId =
+          snapshot.route === "resale" || snapshot.route === "distributor"
+            ? z.uuid().parse(partnerId)
+            : input.accountId;
+        if (
+          !input.authorization.isInternalStaff &&
+          !input.authorization.accountIds.includes(
+            ids.account.parse(acceptanceAuthorityAccountId),
+          )
+        )
+          throw new CoreServiceError(
+            "NOT_FOUND",
+            "Issued quote was not found for its authorized accepting party",
+          );
+        const billingAccountId =
+          snapshot.route === "resale" || snapshot.route === "distributor"
+            ? z.uuid().parse(partnerId)
+            : input.accountId;
+        const agreementOn = async (
+          accountId: string,
+        ): Promise<GoverningAgreement> => {
+          const agreement = await transaction.query.agreements.findFirst({
+            where: and(
+              eq(agreements.accountId, accountId),
+              eq(agreements.status, "active"),
+              lte(agreements.effectiveOn, command.serviceStartsOn),
+              isNull(agreements.supersededById),
+            ),
+            orderBy: (row, { desc }) => [
+              desc(row.effectiveOn),
+              desc(row.version),
+              desc(row.createdAt),
+              desc(row.id),
+            ],
+          });
+          if (!agreement)
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              `No authoritative governing agreement is effective for account ${accountId}`,
+            );
+          return {
+            id: agreement.id,
+            accountId: agreement.accountId,
+            version: agreement.version,
+            status: z
+              .enum(["active", "in_notice", "expired", "terminated"])
+              .parse(agreement.status),
+            effectiveOn: agreement.effectiveOn,
+          };
+        };
+        const reviewOwnerFor = async (accountId: string): Promise<string> => {
+          const profile =
+            await transaction.query.accountCommercialProfiles.findFirst({
+              where: eq(accountCommercialProfiles.accountId, accountId),
+              columns: { collectionsOwnerId: true },
+            });
+          if (profile?.collectionsOwnerId) {
+            const configuredOwner =
+              await transaction.query.commerceUsers.findFirst({
+                where: and(
+                  eq(commerceUsers.id, profile.collectionsOwnerId),
+                  eq(commerceUsers.isInternalStaff, true),
+                ),
+                columns: { id: true },
+              });
+            if (!configuredOwner)
+              throw new CoreServiceError(
+                "INVALID_STATE",
+                "Configured order review owner is not an internal finance user",
+              );
+            return configuredOwner.id;
+          }
+          const fallbackOwner = await transaction.query.commerceUsers.findFirst(
+            {
+              where: eq(commerceUsers.isInternalStaff, true),
+              columns: { id: true },
+              orderBy: (row, { asc: ascending }) => [ascending(row.id)],
+            },
+          );
+          if (!fallbackOwner)
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              "Order acceptance requires an internal review owner",
+            );
+          return fallbackOwner.id;
+        };
+        const [
+          buyer,
+          partner,
+          buyerAgreement,
+          rawPartnerAgreement,
+          reviewOwnerUserId,
+        ] = await Promise.all([
+          accountCommercial(transaction, input.accountId),
+          partnerId
+            ? accountCommercial(transaction, partnerId)
+            : Promise.resolve(undefined),
+          agreementOn(input.accountId),
+          partnerId ? agreementOn(partnerId) : Promise.resolve(undefined),
+          reviewOwnerFor(billingAccountId),
+        ]);
+        const partnerAgreement =
+          rawPartnerAgreement && partner?.partner
+            ? {
+                ...rawPartnerAgreement,
+                partnerAgreementType: partner.partner.agreementType,
+              }
+            : rawPartnerAgreement;
+        const pricingInputs = JsonRecordSchema.parse(
+          quoteProfile.pricingInputs,
+        );
+        const persistedRegistrationId = z
+          .uuid()
+          .safeParse(pricingInputs.dealRegistrationId);
+        if (
+          pricingInputs.dealRegistrationId &&
+          !persistedRegistrationId.success
+        )
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Quote deal-registration provenance is malformed",
+          );
+        if (persistedRegistrationId.success) {
+          const registration =
+            await transaction.query.dealRegistrations.findFirst({
+              where: eq(dealRegistrations.id, persistedRegistrationId.data),
+            });
+          if (
+            !registration ||
+            registration.partnerAccountId !== partnerId ||
+            registration.endClientAccountId !== input.accountId ||
+            (registration.status !== "approved" &&
+              registration.status !== "converted")
+          )
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              "Quote deal-registration provenance no longer matches its commercial parties",
+            );
+        }
+        return {
+          quote,
+          snapshot,
+          buyer,
+          ...(partner ? { partner } : {}),
+          buyerAgreement,
+          ...(partnerAgreement ? { partnerAgreement } : {}),
+          ...(persistedRegistrationId.success
+            ? { dealRegistrationId: persistedRegistrationId.data }
+            : {}),
+          reviewOwnerUserId,
         };
       },
     );
@@ -1678,6 +2070,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     confidentialPriceBook?: PriceBook,
     dealRegistrationContext?: DealRegistrationDecisionContext,
     quoteCommercialContext?: QuoteCommercialContext,
+    orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
   ): Promise<CoreMutationResult> {
     switch (input.resource) {
@@ -1695,7 +2088,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           quoteCommercialContext,
         );
       case "orders":
-        return this.mutateOrder(transaction, input);
+        return this.mutateOrder(transaction, input, orderAcceptanceContext);
       case "amendments":
         return this.mutateAmendment(transaction, input);
       case "invoices":
@@ -1982,10 +2375,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       command.route === "resale" ||
       command.route === "distributor";
     if (!partnerRoute) {
-      if (command.partnerAccountId || command.endClientAccountId)
+      if (
+        command.partnerAccountId ||
+        command.endClientAccountId ||
+        command.partnerTier
+      )
         throw new CoreServiceError(
           "INVALID_STATE",
-          "Direct and marketplace quotes cannot carry partner relationship identifiers",
+          "Direct and marketplace quotes cannot carry partner relationship or pricing identifiers",
         );
       if (context.buyer.currency !== book.currency)
         throw new CoreServiceError(
@@ -2034,6 +2431,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       throw new CoreServiceError(
         "INVALID_STATE",
         "Quote route conflicts with the persisted partner agreement",
+      );
+    const partnerPriced =
+      command.route === "resale" || command.route === "distributor";
+    const authoritativePartnerTier = context.partner.partner.transferTier;
+    if (
+      (!partnerPriced && command.partnerTier) ||
+      (partnerPriced &&
+        (!authoritativePartnerTier ||
+          (command.partnerTier !== undefined &&
+            command.partnerTier !== authoritativePartnerTier)))
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Partner transfer pricing tier must match persisted partner policy",
       );
     if (
       command.route === "distributor" &&
@@ -2117,11 +2528,17 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           : { discountBps: line.discountBps }),
       }));
       const whiteLabel = whiteLabelMetadata(command.whiteLabel);
+      const authoritativePartnerTier =
+        command.route === "resale" || command.route === "distributor"
+          ? commercialContext?.partner?.partner?.transferTier
+          : undefined;
       const priced = priceQuote({
         book,
         lines: requestLines,
         route: command.route,
-        ...(command.partnerTier ? { partnerTier: command.partnerTier } : {}),
+        ...(authoritativePartnerTier
+          ? { partnerTier: authoritativePartnerTier }
+          : {}),
         ...(command.partnerResaleTotal
           ? { partnerResaleTotal: command.partnerResaleTotal }
           : {}),
@@ -2202,7 +2619,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           : undefined,
         whiteLabelMetadata: whiteLabel ?? {},
         pricingInputs: {
-          request: command,
+          request: {
+            ...command,
+            ...(authoritativePartnerTier
+              ? { partnerTier: authoritativePartnerTier }
+              : {}),
+          },
+          ...(commercialContext?.registration
+            ? { dealRegistrationId: commercialContext.registration.id }
+            : {}),
           exceptionReasons: priced.exceptionReasons,
           ...(whiteLabel ? { whiteLabel } : {}),
         },
@@ -2391,8 +2816,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   private async mutateOrder(
     transaction: RuntimeTransaction,
     input: CoreMutation,
+    acceptanceContext?: OrderAcceptanceContext,
   ) {
     if (input.action === "create" || input.action === "prepare_artifact") {
+      if (!acceptanceContext)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Authoritative order acceptance context is unavailable",
+        );
       const preparingArtifact = input.action === "prepare_artifact";
       const command = preparingArtifact
         ? OrderArtifactCommandSchema.parse(input.payload)
@@ -2400,76 +2831,57 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       const orderFormDocumentId = preparingArtifact
         ? "00000000-0000-4000-8000-000000000000"
         : OrderCreateCommandSchema.parse(input.payload).orderFormDocumentId;
-      const [persistedQuote, snapshotEvidence, agreement, buyer] =
-        await Promise.all([
-          transaction.query.quotes.findFirst({
-            where: eq(quotes.id, command.quoteId),
-          }),
-          transaction.query.quoteSnapshots.findFirst({
-            where: eq(quoteSnapshots.quoteId, command.quoteId),
-          }),
-          transaction.query.agreements.findFirst({
-            where: eq(agreements.id, command.agreementId),
-          }),
-          input.accountId
-            ? accountCommercial(transaction, input.accountId)
-            : Promise.reject(
-                new CoreServiceError(
-                  "INVALID_STATE",
-                  "Order account is required",
-                ),
-              ),
-        ]);
-      if (!persistedQuote || !snapshotEvidence || !agreement)
+      if (
+        input.actor.kind !== "user" ||
+        command.signerUserId !== input.authorization.userId ||
+        command.signerUserId !== input.actor.id
+      )
         throw new CoreServiceError(
-          "NOT_FOUND",
-          "Issued quote or governing agreement was not found",
+          "INVALID_STATE",
+          "Order signer must be the authenticated acting user",
         );
+      const [persistedQuote, snapshotEvidence] = await Promise.all([
+        transaction.query.quotes.findFirst({
+          where: eq(quotes.id, command.quoteId),
+        }),
+        transaction.query.quoteSnapshots.findFirst({
+          where: eq(quoteSnapshots.quoteId, command.quoteId),
+        }),
+      ]);
+      if (!persistedQuote || !snapshotEvidence)
+        throw new CoreServiceError("NOT_FOUND", "Issued quote was not found");
       const snapshot = quoteSnapshot(snapshotEvidence.snapshot);
       if (
         snapshot.id !== persistedQuote.id ||
+        acceptanceContext.quote.id !== persistedQuote.id ||
+        acceptanceContext.quote.rowVersion !== persistedQuote.rowVersion ||
+        coreSnapshotHash(snapshot) !== snapshotEvidence.snapshotHash ||
+        coreSnapshotHash(acceptanceContext.snapshot) !==
+          snapshotEvidence.snapshotHash ||
         persistedQuote.status !== "issued" ||
         snapshot.status !== "issued"
       )
         throw new CoreServiceError("INVALID_STATE", "Quote is not issuable");
-      const partner = snapshot.partnerAccountId
-        ? await accountCommercial(transaction, snapshot.partnerAccountId)
-        : undefined;
-      const persistedPartnerAgreement = command.partnerAgreementId
-        ? await transaction.query.agreements.findFirst({
-            where: eq(agreements.id, command.partnerAgreementId),
-          })
-        : undefined;
-      const governing = {
-        id: agreement.id,
-        accountId: agreement.accountId,
-        version: agreement.version,
-        status: z
-          .enum(["active", "in_notice", "expired", "terminated"])
-          .parse(agreement.status),
-        effectiveOn: agreement.effectiveOn,
-      };
-      const partnerGoverning = persistedPartnerAgreement
-        ? {
-            id: persistedPartnerAgreement.id,
-            accountId: persistedPartnerAgreement.accountId,
-            version: persistedPartnerAgreement.version,
-            status: z
-              .enum(["active", "in_notice", "expired", "terminated"])
-              .parse(persistedPartnerAgreement.status),
-            effectiveOn: persistedPartnerAgreement.effectiveOn,
-            ...(partner?.partner
-              ? { partnerAgreementType: partner.partner.agreementType }
-              : {}),
-          }
-        : undefined;
+      if (
+        !preparingArtifact &&
+        (Date.parse(command.acceptedAt) !== Date.parse(input.occurredAt) ||
+          Date.parse(input.occurredAt) >= Date.parse(snapshot.expiresAt))
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Order acceptance time must be current server evidence for an unexpired quote",
+        );
       const accepted = acceptOrder({
         orderId: input.id,
         quote: snapshot,
-        agreement: governing,
-        ...(partnerGoverning ? { partnerAgreement: partnerGoverning } : {}),
-        buyer,
-        ...(partner ? { partner } : {}),
+        agreement: acceptanceContext.buyerAgreement,
+        ...(acceptanceContext.partnerAgreement
+          ? { partnerAgreement: acceptanceContext.partnerAgreement }
+          : {}),
+        buyer: acceptanceContext.buyer,
+        ...(acceptanceContext.partner
+          ? { partner: acceptanceContext.partner }
+          : {}),
         signerUserId: command.signerUserId,
         authorityTitle: command.authorityTitle,
         authorityAttested: command.authorityAttested,
@@ -2483,7 +2895,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           ? { coTerminateOn: command.coTerminateOn }
           : {}),
         ...(command.noticeOn ? { noticeOn: command.noticeOn } : {}),
-        acceptedAt: command.acceptedAt,
+        acceptedAt: preparingArtifact ? command.acceptedAt : input.occurredAt,
         orderFormDocumentId,
         orderLineIds: command.orderLineIds,
       });
@@ -2593,22 +3005,30 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           overageRateMinor: BigInt(line.overageRate.minor),
         })),
       );
+      const invoiceGroupingKey =
+        accepted.sourcing === "resale" || accepted.sourcing === "distributor"
+          ? `partner:${z.uuid().parse(accepted.partnerAccountId)}:${accepted.serviceStartsOn.slice(0, 7)}`
+          : accepted.sourcing === "marketplace"
+            ? `marketplace:${accepted.accountId}:${accepted.serviceStartsOn.slice(0, 7)}`
+            : undefined;
       await transaction.insert(orderCommercialProfiles).values({
         orderId: accepted.id,
         merchantOfRecord: accepted.merchantOfRecord,
         billingShape: accepted.sourcing,
         provisioningIdempotencyKey: accepted.provisioningKey,
         governingAgreementVersion: accepted.agreementVersion,
-        ...(command.dealRegistrationId
-          ? { dealRegistrationId: command.dealRegistrationId }
+        buyerAgreementId: accepted.buyerAgreementId,
+        buyerAgreementVersion: accepted.buyerAgreementVersion,
+        partnerAgreementId: accepted.partnerAgreementId,
+        partnerAgreementVersion: accepted.partnerAgreementVersion,
+        ...(acceptanceContext.dealRegistrationId
+          ? { dealRegistrationId: acceptanceContext.dealRegistrationId }
           : {}),
         ...(accepted.sourcing === "distributor" && accepted.partnerAccountId
           ? { distributorAccountId: accepted.partnerAccountId }
           : {}),
-        ...(command.invoiceGroupingKey
-          ? { invoiceGroupingKey: command.invoiceGroupingKey }
-          : {}),
-        contractualTimeZone: command.contractualTimeZone ?? "UTC",
+        ...(invoiceGroupingKey ? { invoiceGroupingKey } : {}),
+        contractualTimeZone: "UTC",
         acceptedAt: new Date(accepted.acceptedAt),
       });
       const persistedLineSnapshots = await transaction
@@ -2621,55 +3041,49 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           })),
         )
         .returning();
-      await createAcceptedOrderProvisioningAttempt(transaction, {
-        orderId: row.id,
-        orderVersion: row.rowVersion,
-        accountId: row.accountId,
-        provisioningIdempotencyKey: accepted.provisioningKey,
-        requestedAt: new Date(accepted.acceptedAt),
-        actor: input.actor,
-        requestId: input.requestId,
-        lineSnapshots: persistedLineSnapshots,
-      });
-      return audited(
-        transaction,
-        input,
-        coreRecord("orders", row, row.accountId),
+      const [reservationResult] = await transaction.execute<{
+        reservation: unknown;
+      }>(sql`
+        select to_jsonb(reservation_row) as reservation
+        from public.core_reserve_order_acceptance(
+          ${row.id}::uuid,
+          ${row.rowVersion}::integer,
+          ${acceptanceContext.reviewOwnerUserId}::uuid,
+          ${input.requestId}::text
+        ) as reservation_row
+      `);
+      const reservation = OrderAcceptanceReservationSchema.parse(
+        reservationResult?.reservation,
       );
+      if (reservation.order_id !== row.id)
+        throw new Error("ORDER_ACCEPTANCE_RESERVATION_ID_MISMATCH");
+      if (reservation.decision === "approved")
+        await createAcceptedOrderProvisioningAttempt(transaction, {
+          orderId: row.id,
+          orderVersion: row.rowVersion,
+          accountId: row.accountId,
+          provisioningIdempotencyKey: accepted.provisioningKey,
+          requestedAt: new Date(accepted.acceptedAt),
+          actor: input.actor,
+          requestId: input.requestId,
+          lineSnapshots: persistedLineSnapshots,
+        });
+      const orderRecord = coreRecord("orders", row, row.accountId);
+      return audited(transaction, input, {
+        ...orderRecord,
+        data: {
+          ...orderRecord.data,
+          acceptanceReservation: {
+            decision: reservation.decision,
+            reason: reservation.reason,
+            reviewCaseId: reservation.review_case_id,
+          },
+        },
+      });
     }
-    const prior = await transaction.query.orders.findFirst({
-      where: eq(orders.id, input.id),
-    });
-    if (!prior) throw new CoreServiceError("NOT_FOUND", "Order was not found");
-    if (input.expectedVersion !== prior.rowVersion)
-      throw new CoreServiceError("VERSION_CONFLICT", "Order version is stale");
-    const transitions: Record<string, readonly [string, string]> = {
-      provision: ["accepted", "provisioning"],
-      activate: ["provisioning", "active"],
-      complete: ["active", "completed"],
-      cancel: [prior.status, "cancelled"],
-      terminate: [prior.status, "terminated"],
-    };
-    const transition = transitions[input.action];
-    if (!transition || transition[0] !== prior.status)
-      throw new CoreServiceError("INVALID_STATE", "Invalid order transition");
-    const [row] = await transaction
-      .update(orders)
-      .set({
-        status: transition[1],
-        updatedAt: this.now(),
-      })
-      .where(
-        and(eq(orders.id, prior.id), eq(orders.rowVersion, prior.rowVersion)),
-      )
-      .returning();
-    if (!row)
-      throw new CoreServiceError("VERSION_CONFLICT", "Order version is stale");
-    return audited(
-      transaction,
-      input,
-      coreRecord("orders", row, row.accountId),
-      prior,
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Order state changes require provider confirmation or lifecycle offboarding",
     );
   }
 
@@ -2972,14 +3386,24 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         occurredAt: new Date(input.occurredAt),
       });
       const record = coreRecord("invoices", invoice, invoice.accountId);
-      return audited(transaction, input, {
-        ...record,
-        data: JsonRecordSchema.parse({
-          ...record.data,
-          collectionCase: json(collectionCase),
-          dunningDecision: json(decision),
-        }),
-      });
+      return audited(
+        transaction,
+        input,
+        {
+          ...record,
+          data: JsonRecordSchema.parse({
+            ...record.data,
+            collectionCase: json(collectionCase),
+            dunningDecision: json(decision),
+          }),
+        },
+        undefined,
+        {
+          type: "collection_case",
+          id: collectionCase.id,
+          version: collectionCase.rowVersion,
+        },
+      );
     }
     throw new CoreServiceError(
       "INVALID_STATE",
@@ -2998,25 +3422,25 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "Unsupported credit-note action",
       );
     const command = CreditNoteIssueCommandSchema.parse(input.payload);
-    await transaction.execute(
-      sql`select id from invoices where id = ${command.invoiceId} for update`,
-    );
     const invoice = await transaction.query.invoices.findFirst({
       where: eq(invoices.id, command.invoiceId),
     });
     if (!invoice) throw new CoreServiceError("NOT_FOUND", "Invoice not found");
     assertBillingAccount(input, invoice.accountId);
     if (
-      !(["open", "paid"] as const).includes(invoice.status as "open" | "paid")
+      !(["open", "paid"] as const).includes(
+        invoice.status as "open" | "paid",
+      ) ||
+      !invoice.stripeInvoiceId
     )
       throw new CoreServiceError(
         "INVALID_STATE",
-        "Credit notes require an open or paid invoice",
+        "Credit notes require an open or paid provider-bound invoice",
       );
     const prior = await transaction.query.creditNotes.findMany({
       where: and(
         eq(creditNotes.invoiceId, invoice.id),
-        eq(creditNotes.status, "issued"),
+        inArray(creditNotes.status, ["approved", "pending", "issued"]),
       ),
       columns: { amountMinor: true },
     });
@@ -3044,15 +3468,23 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         id: input.id,
         invoiceId: invoice.id,
         orderId: invoice.orderId,
-        stripeCreditNoteId: command.stripeCreditNoteId,
+        stripeCreditNoteId: null,
         currency: invoice.currency,
         amountMinor: BigInt(command.amount.minor),
-        reasonCode: command.reasonCode,
+        reasonCode: command.internalReasonCode,
         approvedBy: input.authorization.userId,
-        status: "issued",
+        status: "approved",
       })
       .returning();
     if (!row) throw new Error("Credit-note insert returned no row");
+    await transaction.execute(sql`
+      select public.core_create_stripe_adjustment_operation(
+        ${row.id}::uuid,
+        'credit_note'::text,
+        ${command.providerReason}::text,
+        ${command.internalReasonCode}::text
+      )
+    `);
     return audited(
       transaction,
       input,
@@ -3068,9 +3500,6 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     if (input.action !== "submit")
       throw new CoreServiceError("INVALID_STATE", "Unsupported refund action");
     const command = RefundSubmitCommandSchema.parse(input.payload);
-    await transaction.execute(
-      sql`select id from payments where id = ${command.paymentId} for update`,
-    );
     const payment = await transaction.query.payments.findFirst({
       where: eq(payments.id, command.paymentId),
     });
@@ -3092,20 +3521,33 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       BigInt(command.amount.minor) <= 0n
     )
       throw new CoreServiceError("INVALID_STATE", "Refund amount is invalid");
+    if (BigInt(command.amount.minor) > payment.amountMinor)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Refund exceeds the persisted payment ceiling",
+      );
     const [row] = await transaction
       .insert(refunds)
       .values({
         id: input.id,
         paymentId: payment.id,
         orderId: payment.orderId,
-        stripeRefundId: command.stripeRefundId,
+        stripeRefundId: null,
         currency: payment.currency,
         amountMinor: BigInt(command.amount.minor),
-        reasonCode: command.reasonCode,
-        status: "pending",
+        reasonCode: command.internalReasonCode,
+        status: "approved",
       })
       .returning();
     if (!row) throw new Error("Refund insert returned no row");
+    await transaction.execute(sql`
+      select public.core_create_stripe_adjustment_operation(
+        ${row.id}::uuid,
+        'refund'::text,
+        ${command.providerReason}::text,
+        ${command.internalReasonCode}::text
+      )
+    `);
     return audited(
       transaction,
       input,
@@ -3121,9 +3563,6 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     if (input.action !== "create")
       throw new CoreServiceError("INVALID_STATE", "Unsupported dispute action");
     const command = DisputeCreateCommandSchema.parse(input.payload);
-    await transaction.execute(
-      sql`select id from payments where id = ${command.paymentId} for update`,
-    );
     const payment = await transaction.query.payments.findFirst({
       where: eq(payments.id, command.paymentId),
     });
@@ -3548,7 +3987,11 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
               : typeof row.partnerAccountId === "string"
                 ? row.partnerAccountId
                 : undefined;
-          return coreRecord(input.resource, row, accountId);
+          const visibleRow =
+            input.resource === "quotes"
+              ? redactPartnerQuoteData(row, input.authorization)
+              : row;
+          return coreRecord(input.resource, visibleRow, accountId);
         });
         const last = page.at(-1);
         return {

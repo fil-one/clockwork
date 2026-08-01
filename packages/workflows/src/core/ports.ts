@@ -7,7 +7,10 @@ import type {
   OrchestratorUsagePort,
   ProviderResult,
 } from "@clockwork/contracts";
-import type { StripeLedgerBillingPort } from "@clockwork/integrations/core";
+import type {
+  CommissionSettlementAccountingPort,
+  StripeLedgerBillingPort,
+} from "@clockwork/integrations/core";
 
 import type {
   CoreWorkflowContext,
@@ -33,6 +36,17 @@ export const coreWorkflowTaskIds = [
 ] as const;
 
 export type CoreWorkflowTaskId = (typeof coreWorkflowTaskIds)[number];
+
+export type CoreCapabilityKey =
+  "new_business" | "legal" | "billing" | "partner" | "marketplace" | "teardown";
+
+export interface CoreCapabilityGuard {
+  require(input: {
+    capabilities: readonly CoreCapabilityKey[];
+    recovery: boolean;
+    requestId: string;
+  }): Promise<{ allowed: boolean; disabled: readonly CoreCapabilityKey[] }>;
+}
 
 export type ExceptionQueue =
   | "billing_operations"
@@ -177,6 +191,8 @@ export type CoreWorkflowRecord =
       input: SettleCommissionsInput;
       payableMinor: string;
       heldMinor: string;
+      accrualIds: readonly string[];
+      lineBindingHash: string;
       billId?: string;
     }
   | {
@@ -233,13 +249,44 @@ export interface CoreWorkflowRecordPort {
   }): Promise<{ duplicate?: boolean }>;
 }
 
+/**
+ * Atomically commits the provider-accepted bill binding, the exact statement
+ * line/accrual set, and the settlement audit/outbox evidence.
+ */
+export interface CommissionSettlementPort {
+  validate(input: {
+    statementId: string;
+    partnerAccountId: string;
+    expectedRowVersion: number;
+    currency: SettleCommissionsInput["currency"];
+    payableMinor: string;
+    accrualIds: readonly string[];
+    exportKey: string;
+  }): Promise<{ duplicate?: boolean }>;
+  finalize(input: {
+    statementId: string;
+    partnerAccountId: string;
+    expectedRowVersion: number;
+    currency: SettleCommissionsInput["currency"];
+    payableMinor: string;
+    accrualIds: readonly string[];
+    exportKey: string;
+    providerBillId?: string;
+    requestId: string;
+    occurredAt: string;
+  }): Promise<{ duplicate?: boolean }>;
+}
+
 export interface CoreWorkflowDependencies {
+  capabilities: CoreCapabilityGuard;
   runs: WorkflowRunStore;
   exceptions: WorkflowExceptionPort;
   records: CoreWorkflowRecordPort;
   billing: BillingPort;
   metering: MeteredBillingPort;
   accounting: AccountingPort;
+  commissionAccounting: CommissionSettlementAccountingPort;
+  commissionSettlements: CommissionSettlementPort;
   notifications: NotificationPort;
   usage: OrchestratorUsagePort;
   reporting: ReportingDataPort;

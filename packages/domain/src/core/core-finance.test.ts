@@ -7,6 +7,7 @@ import {
   accrueCommission,
   activatePriceBook,
   addQuantities,
+  assertRecoverableOffboardingSourceStatus,
   compareQuantities,
   creditAmount,
   createQuoteDraft,
@@ -269,6 +270,135 @@ describe("core commercial domain", () => {
       quantity: "10",
       overageRate: money(12n),
     });
+  });
+
+  it("pins buyer and partner agreements and rejects forged resale counterparties", () => {
+    const priced = priceQuote({
+      book: book(),
+      route: "resale",
+      partnerTier: "gold",
+      partnerResaleTotal: money(1_200n),
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        {
+          lineId: "resale-quote-line-1",
+          sku: "storage",
+          region: "us-east",
+          quantity: "10",
+          termMonths: 12,
+        },
+      ],
+    });
+    const issued = issueQuote(
+      createQuoteDraft({
+        id: "resale-quote-1",
+        seriesId: "resale-series-1",
+        accountId: "end-client-1",
+        endClientAccountId: "end-client-1",
+        partnerAccountId: "partner-1",
+        priceBook: { id: "book-1", version: 1 },
+        route: "resale",
+        lines: priced.lines,
+        total: priced.total,
+        partnerResaleTotal: money(1_200n),
+        marginResult: priced.marginResult,
+        exceptionReasons: priced.exceptionReasons,
+        expiresAt: "2026-08-31T16:00:00Z",
+        createdBy: "partner-buyer",
+        createdAt: "2026-07-31T16:00:00Z",
+      }),
+      {
+        issuedAt: "2026-07-31T16:05:00Z",
+        renderedDocumentId: "end-client-resale-document",
+        partnerDocumentId: "partner-transfer-document",
+      },
+    );
+    const buyer = account({
+      id: "end-client-1",
+      roles: ["end_client"],
+    });
+    const partner = account({
+      id: "partner-1",
+      roles: ["partner"],
+      partner: {
+        agreementType: "resale",
+        creditLimit: money(100_000n),
+      },
+    });
+    const command = {
+      orderId: "resale-order-1",
+      quote: issued,
+      agreement: {
+        id: "buyer-agreement-9",
+        accountId: buyer.id,
+        version: 9,
+        status: "active" as const,
+        effectiveOn: "2026-01-01",
+      },
+      partnerAgreement: {
+        id: "partner-agreement-4",
+        accountId: partner.id,
+        version: 4,
+        status: "active" as const,
+        effectiveOn: "2026-01-01",
+        partnerAgreementType: "resale" as const,
+      },
+      buyer,
+      partner,
+      signerUserId: "partner-buyer",
+      authorityTitle: "Partner Commercial Officer",
+      authorityAttested: true,
+      serviceStartsOn: "2026-08-01",
+      serviceEndsOn: "2027-08-01",
+      acceptedAt: "2026-07-31T17:00:00Z",
+      orderFormDocumentId: "resale-order-document",
+      orderLineIds: ["resale-order-line-1"],
+    };
+
+    expect(acceptOrder(command)).toMatchObject({
+      agreementId: "partner-agreement-4",
+      agreementVersion: 4,
+      buyerAgreementId: "buyer-agreement-9",
+      buyerAgreementVersion: 9,
+      partnerAgreementId: "partner-agreement-4",
+      partnerAgreementVersion: 4,
+      accountId: "end-client-1",
+      invoicingAccountId: "partner-1",
+      partnerAccountId: "partner-1",
+      merchantOfRecord: "partner",
+    });
+    expect(() =>
+      acceptOrder({
+        ...command,
+        partner: { ...partner, id: "attacker-partner" },
+      }),
+    ).toThrow("Partner order must bind the quote partner account");
+    expect(() =>
+      acceptOrder({
+        ...command,
+        agreement: { ...command.agreement, accountId: "other-client" },
+      }),
+    ).toThrow("Buyer agreement belongs to another commercial party");
+    expect(() =>
+      acceptOrder({
+        ...command,
+        partnerAgreement: {
+          ...command.partnerAgreement,
+          partnerAgreementType: "referral",
+        },
+      }),
+    ).toThrow("Quote route conflicts with governing partner agreement");
+  });
+
+  it("allows offboarding only from recoverable order source states", () => {
+    for (const status of ["accepted", "provisioning", "active", "amended"])
+      expect(() =>
+        assertRecoverableOffboardingSourceStatus(status),
+      ).not.toThrow();
+    for (const status of ["submitted", "completed", "cancelled", "terminated"])
+      expect(() => assertRecoverableOffboardingSourceStatus(status)).toThrow(
+        "ORDER_NOT_ELIGIBLE_FOR_OFFBOARDING",
+      );
   });
 
   it("blocks only new partner service when aggregate exposure exceeds credit", () => {
@@ -601,6 +731,39 @@ describe("commissions, webhook projection, and exports", () => {
         ).toBe(0n);
       }),
     );
+  });
+
+  it("compensates an exact credit-note clawback after signed voiding", () => {
+    const clawback = accrueCommission({
+      event: {
+        id: "credit-note",
+        invoiceId: "invoice",
+        partnerAccountId: "partner",
+        occurredAt: "2026-07-31T16:00:00Z",
+        type: "credit_note",
+        amount: money(60_000n),
+      },
+      agreementType: "referral",
+      rateBps: 1200,
+      holdbackBps: 1000,
+    });
+    const reversal = accrueCommission({
+      event: {
+        id: "credit-note",
+        invoiceId: "invoice",
+        partnerAccountId: "partner",
+        occurredAt: "2026-07-31T17:00:00Z",
+        type: "credit_note_void",
+        amount: money(60_000n),
+      },
+      agreementType: "referral",
+      rateBps: 1200,
+      holdbackBps: 1000,
+    });
+    expect(
+      BigInt(clawback.payable.minor) + BigInt(reversal.payable.minor),
+    ).toBe(0n);
+    expect(reversal.kind).toBe("accrual");
   });
 
   it("deduplicates and refuses to regress Stripe truth on old delivery", () => {
