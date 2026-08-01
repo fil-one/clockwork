@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T22:21:56Z",
-  "captureCommit": "7b008785741805778d6a4e667d06b845b74b1532",
-  "captureTree": "41d67571a8c76c0104a5db236ecf444813a25ccb",
+  "capturedAt": "2026-08-01T23:00:15Z",
+  "captureCommit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
+  "captureTree": "97f52f485d43d92b7501a93676c124ab4ffe19df",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "b4e871ef0ffbfd89aa8804f28b4ba0cfd099ebffa033097db064d8b72d6a2a87",
+  "captureTreeListingSha256": "a76399bd107eb9935dd0542e4bed4bb848239452dac2cd1a3b83c61a66da82aa",
   "artifactCount": 638,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 81,
-      "aggregateSha256": "a4f60de377cdbe6864d2320b75304a4508bd95cd8c337af0a92a1b17644f4191",
+      "aggregateSha256": "5704d780cd3d30704bda7f7642c80d2fe76a25d2417aefb19eea25f7c4958e87",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -481,7 +481,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 260,
-      "aggregateSha256": "aad81545750f9d73a97a60fb0a886a37b37dcb42375bd28a3e5052c4df74fc9a",
+      "aggregateSha256": "b129588c7ba33132878c208eb02dfa070e7dd5809786100d276b1dcc0b65bf23",
       "paths": [
         "apps/web/app/api/experience/[[...segments]]/route.test.ts",
         "apps/web/app/api/telemetry/route.test.ts",
@@ -1754,8 +1754,8 @@
     },
     {
       "path": "apps/web/vitest.storybook.config.ts",
-      "bytes": 519,
-      "sha256": "4d707f0787cecb7753a59af0c934699dc880d7e6aeed0c87d007f85925fefda9"
+      "bytes": 776,
+      "sha256": "91c337f29c4fa446e63b53e193b99c37179ee528d7d6615a7021414d26ef93d7"
     },
     {
       "path": "commerce_platform_spec.md",
@@ -2630,7 +2630,7 @@
     {
       "path": "packages/documents/src/delivery.test.ts",
       "bytes": 4520,
-      "sha256": "db79b0e0ad6a671930a5d60dfc52af448ae8cd1b158da50af3207c1510024d80"
+      "sha256": "563458762df3cc55e95a351ccf06e8a87b0eedfef569adc1589af8d7dd51d511"
     },
     {
       "path": "packages/documents/src/delivery.ts",
@@ -3024,8 +3024,8 @@
     },
     {
       "path": "packages/testing/src/demo/state.test.ts",
-      "bytes": 4979,
-      "sha256": "cfd3c5dd2e003dd749365ee8675b832125b4cf1825822055b25d0020be02ebd4"
+      "bytes": 5003,
+      "sha256": "1f5055a1f63e668691ee237d337fc83facd5b1814cb4f2a1a5831d89b81d852c"
     },
     {
       "path": "packages/testing/src/personas/catalog.test.ts",
