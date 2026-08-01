@@ -14,6 +14,12 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
+import {
+  normalizeArtifactText,
+  normalizeReportValue,
+  semanticArtifactInventoryFingerprint,
+} from "./release-artifacts.mjs";
+
 const FIXED_CLOCK = "2026-07-31T16:00:00.000Z";
 const DEFAULT_BUDGET_MS = 45 * 60 * 1000;
 const CI_BUDGET_MS = 30 * 60 * 1000;
@@ -176,35 +182,6 @@ async function collectCoverageInventory(workspace) {
   return digestFiles(workspace, coverageFiles.sort());
 }
 
-const VOLATILE_REPORT_KEYS = new Set([
-  "duration",
-  "startTime",
-  "endTime",
-  "workerIndex",
-  "parallelIndex",
-]);
-
-function normalizeReportValue(value, roots, key = "") {
-  if (VOLATILE_REPORT_KEYS.has(key)) return "<runtime-value>";
-  if (Array.isArray(value))
-    return value.map((item) => normalizeReportValue(item, roots));
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([childKey, child]) => [
-        childKey,
-        normalizeReportValue(child, roots, childKey),
-      ]),
-    );
-  if (typeof value !== "string") return value;
-  let normalized = value;
-  for (const [root, token] of roots)
-    normalized = normalized.replaceAll(root, token);
-  return normalized.replace(
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g,
-    "<runtime-timestamp>",
-  );
-}
-
 async function artifactEntry(resolved, label, roots, normalizeJson = false) {
   const contents = await readFile(resolved);
   let semanticContents = contents;
@@ -218,9 +195,10 @@ async function artifactEntry(resolved, label, roots, normalizeJson = false) {
       "utf8",
     );
   } else if (textArtifact) {
-    let text = contents.toString("utf8");
-    for (const [root, token] of roots) text = text.replaceAll(root, token);
-    semanticContents = Buffer.from(text, "utf8");
+    semanticContents = Buffer.from(
+      normalizeArtifactText(contents.toString("utf8"), roots),
+      "utf8",
+    );
   }
   return {
     path: label,
@@ -259,7 +237,7 @@ async function collectArtifactInventory(
         path.join(suiteDirectory, file),
         `runtime/${file.replaceAll(path.sep, "/")}`,
         roots,
-        path.basename(file) === "playwright.json",
+        path.extname(file) === ".json",
       ),
     );
   }
@@ -290,6 +268,7 @@ async function collectArtifactInventory(
           .replace(nextDistDirectory, "<next-dist>")
           .replaceAll(path.sep, "/")}`,
         [...roots, [nextDistDirectory, "<next-dist>"]],
+        path.extname(relative) === ".json",
       ),
     );
   }
@@ -299,11 +278,10 @@ async function collectArtifactInventory(
     allowedNondeterminism: [
       "Playwright report wall-clock timings and worker indexes",
       "absolute disposable workspace and artifact roots",
-      "runtime ISO timestamps in Playwright JSON reports",
+      "runtime ISO timestamps in JSON reports",
+      "isolated localhost origins",
     ],
-    fingerprint: createHash("sha256")
-      .update(JSON.stringify(entries))
-      .digest("hex"),
+    fingerprint: semanticArtifactInventoryFingerprint(entries),
   };
 }
 
