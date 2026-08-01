@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:18:27Z",
-  "captureCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
-  "captureTree": "d8a521f88921d7da758e5c174cabec969a800c20",
+  "capturedAt": "2026-08-01T14:24:20Z",
+  "captureCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+  "captureTree": "674e7dce37418952479374a914670127a189e803",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "c8f78edc7a9f603ce6a78befa60d4faa7f34bc844453eda9718cca7d09fa67ac",
+  "captureTreeListingSha256": "b8238e617226feb350924334eb34568a9d95b3627949b623bfaafc7da42ca4ad",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "e0e3fe9d4e957d715030770993500a884ec81ca94d39280140a943566a4e1ef7",
+      "aggregateSha256": "75a409d869a70fccc2562722de25ad9bd19680e5303a25a9d6d201dac0ca1ae6",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 254,
-      "aggregateSha256": "1f61361321c7afacabd70ae3ec29c6985bd8cb5db8c27cb67410335c35fdbaa4",
+      "aggregateSha256": "fe8fd6f18033a1e07f889683c39c98961cb6be4e7a9b4228f73cc2a60c55b52e",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -3596,8 +3596,8 @@
     },
     {
       "path": "pnpm-workspace.yaml",
-      "bytes": 696,
-      "sha256": "56f01d6dfd4cf03c71efb6a0abf6ab01f0d128e5ef1fb9dd02540f39bc633fa1"
+      "bytes": 714,
+      "sha256": "77665dd5ca458f3e83f97e31573a9749de54cffee687d57eea712518309e0f7a"
     },
     {
       "path": "prettier.config.mjs",
@@ -3631,18 +3631,18 @@
     },
     {
       "path": "scripts/release-artifacts.mjs",
-      "bytes": 18803,
-      "sha256": "03698b8a1df2ba991bd41731fc682ba749cc1184d556cdf95baec46f88ed1f81"
+      "bytes": 19339,
+      "sha256": "beebf41b58042bdab5eb9565b67da8f37e2b36adcb2f3001295e92928dee5c66"
     },
     {
       "path": "scripts/release-artifacts.test.mjs",
-      "bytes": 14718,
-      "sha256": "e552d092f4de32a0ee1c0ddadd764c554e85f474ced886e5cb8c47ca8d33387d"
+      "bytes": 15657,
+      "sha256": "a7d0d9f86d97babd8f31b3486cd391b4ac62441f4c8a65b77e01ba5d0cf8d6c6"
     },
     {
       "path": "scripts/release-suites.mjs",
-      "bytes": 38823,
-      "sha256": "7bd00739562fce9ee175fa3a0f97e06650cbf5f98bfe47c1d41d7391d7a58bb8"
+      "bytes": 39460,
+      "sha256": "00261de98f409b10665cd7b2106615cc2fce0dbaff787d4b4d28cd2858c283fa"
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",

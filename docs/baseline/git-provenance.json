@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:18:27Z",
+  "capturedAt": "2026-08-01T14:24:20Z",
   "captureRef": "main",
-  "captureCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
-  "captureTree": "d8a521f88921d7da758e5c174cabec969a800c20",
+  "captureCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+  "captureTree": "674e7dce37418952479374a914670127a189e803",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "object": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
       "objectType": "commit",
-      "peeledCommit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
-      "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
-      "tree": "d8a521f88921d7da758e5c174cabec969a800c20",
+      "peeledCommit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "tree": "674e7dce37418952479374a914670127a189e803",
       "treeEntryCount": 896,
-      "treeListingSha256": "c8f78edc7a9f603ce6a78befa60d4faa7f34bc844453eda9718cca7d09fa67ac",
-      "parents": ["be355e65e14f87b761621ce8d3f5dacf35de46c9"],
-      "subject": "fix: make qualification installs non-interactive",
-      "mergeBaseWithMain": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc"
+      "treeListingSha256": "b8238e617226feb350924334eb34568a9d95b3627949b623bfaafc7da42ca4ad",
+      "parents": ["6a0d5033a3326bae347d2dd713f341ea63a3c2fe"],
+      "subject": "fix: isolate qualification store population",
+      "mergeBaseWithMain": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
+      "head": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -362,6 +362,18 @@
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "tree": "674e7dce37418952479374a914670127a189e803",
+      "parents": ["6a0d5033a3326bae347d2dd713f341ea63a3c2fe"],
+      "subject": "fix: isolate qualification store population"
+    },
+    {
+      "commit": "6a0d5033a3326bae347d2dd713f341ea63a3c2fe",
+      "tree": "2b33d62e176f5e4f28a5aca3271aca5812034291",
+      "parents": ["ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc"],
+      "subject": "docs: refresh qualification provenance"
+    },
     {
       "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
       "tree": "d8a521f88921d7da758e5c174cabec969a800c20",
@@ -717,7 +729,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 54,
+  "reachableCommitCount": 56,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1188,6 +1200,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "selector": "refs/heads/main@{2026-08-01T10:23:28-04:00}",
+      "subject": "commit: fix: isolate qualification store population"
+    },
+    {
+      "commit": "3ef2e4468061ab8c1f23d0a3bea47e2bfa6f1f72",
+      "selector": "HEAD@{2026-08-01T10:23:28-04:00}",
+      "subject": "commit: fix: isolate qualification store population"
+    },
+    {
+      "commit": "6a0d5033a3326bae347d2dd713f341ea63a3c2fe",
+      "selector": "refs/heads/main@{2026-08-01T10:18:40-04:00}",
+      "subject": "commit: docs: refresh qualification provenance"
+    },
+    {
+      "commit": "6a0d5033a3326bae347d2dd713f341ea63a3c2fe",
+      "selector": "HEAD@{2026-08-01T10:18:40-04:00}",
+      "subject": "commit: docs: refresh qualification provenance"
+    },
     {
       "commit": "ecd1c4b1f211a92c5c34a1f459b8f5deb92130dc",
       "selector": "refs/heads/main@{2026-08-01T10:17:35-04:00}",
