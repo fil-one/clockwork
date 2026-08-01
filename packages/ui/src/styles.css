@@ -1173,13 +1173,15 @@ body {
     var(--cw-canvas-deep);
 }
 
+/* Strong, not brand: this fill sits on the canvas-deep track, where the brand
+   blue measures 2.72:1 and misses the 3:1 non-text minimum. */
 .cw-term__elapsed {
   position: absolute;
   z-index: 1;
   inset-block: 0;
   left: 0;
   border-radius: inherit;
-  background: var(--cw-brand);
+  background: var(--cw-brand-strong);
 }
 
 .cw-term__notice {
@@ -1755,12 +1757,13 @@ body {
   background: var(--cw-canvas-deep);
 }
 
+/* Strong, not brand: same canvas-deep track as the term bar. */
 .cw-capacity__value {
   position: absolute;
   inset-block: 0;
   left: 0;
   border-radius: inherit;
-  background: var(--cw-brand);
+  background: var(--cw-brand-strong);
 }
 
 .cw-capacity__threshold {
