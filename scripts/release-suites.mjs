@@ -18,14 +18,18 @@ import { clearTimeout, setTimeout } from "node:timers";
 
 import {
   expectedReleaseCommands as commandsForSuite,
+  isolatedReleaseGitEnvironment,
   normalizeArtifactText,
   normalizeReportValue,
   releaseDatabaseProjectId,
   releaseCacheRootIssues,
   releaseAssertionFingerprint,
+  releaseLocalDatabaseEnvironmentIssues,
+  releasePortAllocationIssues,
   RELEASE_FIXED_CLOCK as FIXED_CLOCK,
   RELEASE_SUITE_ASSERTIONS as suiteAssertions,
   semanticArtifactInventoryFingerprint,
+  isolatedReleaseEnvironment,
 } from "./release-artifacts.mjs";
 
 const DEFAULT_BUDGET_MS = 45 * 60 * 1000;
@@ -41,44 +45,8 @@ const ORCHESTRATION_ARTIFACTS = new Set([
   "summary.json",
 ]);
 
-const PROOF_INHERITED_PROVIDER_ENVIRONMENT = [
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-  "AWS_SESSION_TOKEN",
-  "ESIGN_API_BASE_URL",
-  "ESIGN_API_KEY",
-  "ESIGN_SIGNING_ORIGINS",
-  "ESIGN_WEBHOOK_SECRET",
-  "EVIDENCE_ACCOUNT_ID",
-  "EVIDENCE_AWS_ACCOUNT_ID",
-  "EVIDENCE_AWS_REGION",
-  "EVIDENCE_BUCKET",
-  "MARKETPLACE_WEBHOOK_SECRET",
-  "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
-  "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
-  "MIGRATION_SOURCE_BASE_URL",
-  "MIGRATION_SOURCE_EXECUTION_ENABLED",
-  "MIGRATION_SOURCE_TOKEN",
-  "MIGRATION_SOURCE_WINDOW_ID",
-  "OTEL_EXPORTER_OTLP_HEADERS",
-  "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-  "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
-  "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
-  "OTEL_RESOURCE_ATTRIBUTES",
-  "OTEL_SDK_DISABLED",
-  "PROVISIONING_WEBHOOK_SECRET",
-  "STRIPE_SECRET_KEY",
-  "STRIPE_WEBHOOK_SECRET",
-  "SUPPORT_PROVIDER",
-  "SUPPORT_WEBHOOK_SECRET",
-  "TRIGGER_PROJECT_REF",
-  "TRIGGER_SECRET_KEY",
-  "WORKOS_API_KEY",
-  "WORKOS_CLIENT_ID",
-  "WORKOS_COOKIE_PASSWORD",
-  "WORKOS_REDIRECT_URI",
-  "WORKOS_WEBHOOK_SECRET",
-];
+const ACTIVE_CHILDREN = new Set();
+let terminationSignal = null;
 
 function option(name, fallback) {
   const prefix = `--${name}=`;
@@ -121,17 +89,20 @@ function safeToken(value, label) {
   return value;
 }
 
-function sourceIdentity(cwd = process.cwd()) {
+function sourceIdentity(cwd = process.cwd(), environment = process.env) {
   const revision = execFileSync("git", ["rev-parse", "HEAD"], {
     cwd,
     encoding: "utf8",
+    env: environment,
   }).trim();
   const tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], {
     cwd,
     encoding: "utf8",
+    env: environment,
   }).trim();
   const manifest = execFileSync("git", ["ls-files", "-s", "-z"], {
     cwd,
+    env: environment,
   });
   return {
     revision,
@@ -439,6 +410,13 @@ function signalChild(child, signal) {
   }
 }
 
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.on(signal, () => {
+    terminationSignal ??= signal;
+    process.exitCode = signal === "SIGINT" ? 130 : 143;
+    for (const child of ACTIVE_CHILDREN) signalChild(child, "SIGTERM");
+  });
+
 async function runCommand(
   command,
   args,
@@ -447,13 +425,16 @@ async function runCommand(
   prefix,
   cwd,
   deadlineAt,
+  allowDuringTermination = false,
 ) {
   let output = "";
   const startedAt = Date.now();
   const remainingMs = deadlineAt - startedAt;
-  if (remainingMs <= 0) {
+  if (remainingMs <= 0 || (terminationSignal && !allowDuringTermination)) {
     output =
-      "Release command was not started because the hard deadline expired.\n";
+      terminationSignal === null
+        ? "Release command was not started because the hard deadline expired.\n"
+        : `Release command was not started because ${terminationSignal} requested cleanup.\n`;
     await writeFile(logPath, output, "utf8");
     return { exitCode: 124, durationMs: 0, output, timedOut: true };
   }
@@ -464,6 +445,7 @@ async function runCommand(
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  ACTIVE_CHILDREN.add(child);
   const consume = (chunk, stream) => {
     const text = chunk.toString();
     output += text;
@@ -491,6 +473,7 @@ async function runCommand(
       resolve(timedOut ? 124 : startFailed ? 127 : (code ?? 1)),
     );
   });
+  ACTIVE_CHILDREN.delete(child);
   clearTimeout(deadlineTimer);
   clearTimeout(forceTimer);
   await writeFile(logPath, output, "utf8");
@@ -511,7 +494,10 @@ async function runSuite(name, index, context) {
   const providerFakePort = context.providerFakePortBase + index;
   const namespace = `${context.runId}_${name}`.replaceAll("-", "_");
   const commands = commandsForSuite(name, context.serial);
-  const workspaceIdentity = sourceIdentity(context.workspaces.get(name));
+  const workspaceIdentity = sourceIdentity(
+    context.workspaces.get(name),
+    context.gitEnvironment,
+  );
   if (
     JSON.stringify(workspaceIdentity) !== JSON.stringify(context.sourceIdentity)
   )
@@ -538,9 +524,17 @@ async function runSuite(name, index, context) {
     CLOCKWORK_RELEASE_MODE: context.mode,
     CLOCKWORK_RELEASE_SHARD: name,
     CLOCKWORK_RELEASE_RUN_ID: context.runId,
+    CLOCKWORK_ENABLE_SIMULATORS: "false",
+    AUTHORIZATION_CONTEXT_SECRET: context.authorizationContextSecret,
+    AUTHORIZATION_CONTEXT_SECRET_ID: "release-qualification",
+    NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA: context.sourceIdentity.revision,
+    ...(DATABASE_SUITES.has(name) && !context.manageDatabases
+      ? context.localDatabaseEnvironment
+      : {}),
     ...(name === "ui"
       ? {
           CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
+          CLOCKWORK_EVIDENCE_ADAPTER: "demo",
           NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "test",
         }
       : {}),
@@ -556,6 +550,7 @@ async function runSuite(name, index, context) {
           NEXT_PUBLIC_APP_URL: `http://localhost:${port}`,
           CLOCKWORK_CANONICAL_ORIGIN: `http://localhost:${port}`,
           CLOCKWORK_EXPERIENCE_ADAPTER: "database",
+          CLOCKWORK_EVIDENCE_ADAPTER: "production",
           CLOCKWORK_PROVIDER_FAKE_PORT: String(providerFakePort),
           OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${providerFakePort}`,
           OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf",
@@ -569,9 +564,6 @@ async function runSuite(name, index, context) {
       : {}),
     ...(context.debug ? { DEBUG: "clockwork:*", PWDEBUG: "0" } : {}),
   };
-  if (name === "proof")
-    for (const variable of PROOF_INHERITED_PROVIDER_ENVIRONMENT)
-      delete environment[variable];
   const databaseProject = await prepareDatabaseProject(
     name,
     index,
@@ -613,6 +605,24 @@ async function runSuite(name, index, context) {
             projectId: `${context.runId}-${name}`,
           },
     },
+    environmentIsolation: {
+      policy: "documented-runtime-and-credential-files-v1",
+      documentedRuntimeVariableCount:
+        context.environmentIsolation.documentedVariableCount,
+      documentedRuntimeVariables:
+        context.environmentIsolation.documentedVariables,
+      documentedRuntimeVariablesSha256:
+        context.environmentIsolation.documentedVariablesSha256,
+      scrubbedInheritedVariables:
+        context.environmentIsolation.scrubbedVariables,
+      fileCredentialVariables:
+        context.environmentIsolation.fileCredentialVariables,
+      packageManagerConfiguration: "empty-disposable-user-and-global-npmrc",
+      localDatabaseInherited:
+        context.useSharedWorkspace && DATABASE_SUITES.has(name),
+      providers: "scrubbed; proof uses only the loopback replay and OTLP fake",
+      simulatorsEnabled: false,
+    },
     commands,
     databaseInputs,
     assertionFingerprint: releaseAssertionFingerprint(name, workspaceIdentity),
@@ -648,6 +658,7 @@ async function runSuite(name, index, context) {
       `${name}:${phase}`,
       context.workspaces.get(name),
       cleanup ? Date.now() + CLEANUP_TIMEOUT_MS : context.deadlineAt,
+      cleanup,
     );
     const printableCommand = [command, ...args].map((part) =>
       databaseProject
@@ -738,7 +749,10 @@ async function runSuite(name, index, context) {
     ),
     collectCoverageInventory(context.workspaces.get(name)),
   ]);
-  const finalWorkspaceIdentity = sourceIdentity(context.workspaces.get(name));
+  const finalWorkspaceIdentity = sourceIdentity(
+    context.workspaces.get(name),
+    context.gitEnvironment,
+  );
   const result = {
     ...contract,
     status,
@@ -754,6 +768,7 @@ async function runSuite(name, index, context) {
       execFileSync("git", ["status", "--porcelain"], {
         cwd: context.workspaces.get(name),
         encoding: "utf8",
+        env: context.gitEnvironment,
       }).trim() === "",
   };
   if (!result.trackedWorkspaceClean || !result.candidateIdentityPreserved)
@@ -836,6 +851,8 @@ async function main() {
     if (!suiteAssertions[name])
       throw new Error(`Unknown release shard: ${name}`);
   }
+  const useSharedWorkspace =
+    process.env.CLOCKWORK_RELEASE_SHARED_WORKSPACE === "1";
   const portBase = Number.parseInt(
     option("port-base", process.env.CLOCKWORK_RELEASE_PORT_BASE ?? "32000"),
     10,
@@ -873,11 +890,20 @@ async function main() {
   if (
     !Number.isInteger(providerFakePortBase) ||
     providerFakePortBase < 1024 ||
-    providerFakePortBase + names.length > 65_535 ||
-    names.some((_, index) => providerFakePortBase + index === portBase + index)
+    providerFakePortBase + names.length > 65_535
   )
     throw new Error(
-      "Release provider-fake port base is outside the safe range or overlaps an application port.",
+      "Release provider-fake port base is outside the safe range.",
+    );
+  const portAllocationIssues = releasePortAllocationIssues({
+    suiteNames: names,
+    portBase,
+    databasePortBase,
+    providerFakePortBase,
+  });
+  if (portAllocationIssues.length > 0)
+    throw new Error(
+      `Release port allocation is not isolated: ${portAllocationIssues.join("; ")}`,
     );
   const artifactRoot = path.resolve(
     option(
@@ -899,6 +925,14 @@ async function main() {
     process.env.CLOCKWORK_RELEASE_CACHE_ROOT ??
       path.join(artifactRoot, ".isolated-cache"),
   );
+  const allowedCacheRoots = [
+    path.join(artifactRoot, ".isolated-cache"),
+    path.resolve(
+      ".artifacts",
+      "release-cache",
+      selected === "all" ? runId : selected,
+    ),
+  ];
   const cacheRelativeToArtifacts = path.relative(
     path.resolve(".artifacts"),
     cacheRoot,
@@ -915,6 +949,7 @@ async function main() {
     cacheRoot,
     artifactRoot,
     workspaceRoot: process.cwd(),
+    allowedRoots: allowedCacheRoots,
   });
   if (cacheRootIssues.length > 0)
     throw new Error(
@@ -922,12 +957,35 @@ async function main() {
     );
   await assertNoSymlinkComponents(cacheRoot, process.cwd());
   const pnpmStore = path.join(cacheRoot, "pnpm-store");
-  const baseEnvironment = { ...toolchainEnvironment };
+  const npmUserConfig = path.join(cacheRoot, "empty-user.npmrc");
+  const npmGlobalConfig = path.join(cacheRoot, "empty-global.npmrc");
+  const localDatabaseEnvironment = Object.fromEntries(
+    [
+      "DATABASE_URL",
+      "CLOCKWORK_SERVICE_DATABASE_URL",
+      "DIRECT_DATABASE_URL",
+    ].flatMap((variable) =>
+      typeof toolchainEnvironment[variable] === "string"
+        ? [[variable, toolchainEnvironment[variable]]]
+        : [],
+    ),
+  );
+  if (useSharedWorkspace && names.some((name) => DATABASE_SUITES.has(name))) {
+    const databaseEnvironmentIssues = releaseLocalDatabaseEnvironmentIssues(
+      localDatabaseEnvironment,
+    );
+    if (databaseEnvironmentIssues.length > 0)
+      throw new Error(
+        `Shared release database configuration is unsafe: ${databaseEnvironmentIssues.join("; ")}`,
+      );
+  }
+  const environmentIsolation = isolatedReleaseEnvironment(
+    toolchainEnvironment,
+    await readFile(path.join(process.cwd(), ".env.example"), "utf8"),
+  );
+  const baseEnvironment = environmentIsolation.environment;
   delete baseEnvironment.FORCE_COLOR;
   delete baseEnvironment.NO_COLOR;
-  delete baseEnvironment.CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY;
-  delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID;
-  delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_WORKDIR;
   Object.assign(baseEnvironment, {
     // Every qualification subprocess is non-interactive, including local
     // benchmarks. This makes pnpm's module-store replacement behavior explicit
@@ -940,22 +998,32 @@ async function main() {
     TURBO_CACHE_DIR: path.join(cacheRoot, "turbo"),
     TURBO_TELEMETRY_DISABLED: "1",
     XDG_CACHE_HOME: path.join(cacheRoot, "xdg"),
+    XDG_CONFIG_HOME: path.join(cacheRoot, "xdg-config"),
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    NPM_CONFIG_GLOBALCONFIG: npmGlobalConfig,
+    NPM_CONFIG_USERCONFIG: npmUserConfig,
+    npm_config_globalconfig: npmGlobalConfig,
     npm_config_store_dir: pnpmStore,
+    npm_config_userconfig: npmUserConfig,
     npm_config_update_notifier: "false",
   });
-  const identity = sourceIdentity();
+  const gitEnvironment = isolatedReleaseGitEnvironment(baseEnvironment);
+  const identity = sourceIdentity(process.cwd(), gitEnvironment);
   const sourceStatus = execFileSync(
     "git",
     ["status", "--porcelain=v1", "--untracked-files=all"],
-    { cwd: process.cwd(), encoding: "utf8" },
+    { cwd: process.cwd(), encoding: "utf8", env: gitEnvironment },
   ).trim();
   if (sourceStatus)
     throw new Error(
       "Release execution requires a clean committed candidate before any shard starts.",
     );
   await mkdir(cacheRoot, { recursive: true });
-  const useSharedWorkspace =
-    process.env.CLOCKWORK_RELEASE_SHARED_WORKSPACE === "1";
+  await Promise.all([
+    writeFile(npmUserConfig, "", { encoding: "utf8", mode: 0o600 }),
+    writeFile(npmGlobalConfig, "", { encoding: "utf8", mode: 0o600 }),
+  ]);
   const workspaces = new Map();
   const cleanupFailures = [];
   let frozenInstallVerified = false;
@@ -992,6 +1060,7 @@ async function main() {
           ["worktree", "add", "--detach", workspace, "HEAD"],
           {
             cwd: process.cwd(),
+            env: gitEnvironment,
             stdio: "inherit",
             timeout: Math.max(1, deadlineAt - Date.now()),
           },
@@ -1087,6 +1156,9 @@ async function main() {
       databasePortBase,
       deadlineAt,
       debug: hasFlag("debug"),
+      environmentIsolation,
+      gitEnvironment,
+      localDatabaseEnvironment,
       manageDatabases: !hasFlag("plan") && !useSharedWorkspace,
       mode,
       planOnly: hasFlag("plan"),
@@ -1096,6 +1168,7 @@ async function main() {
       proofSecret: randomBytes(32).toString("base64url"),
       providerFakePortBase,
       sourceIdentity: identity,
+      useSharedWorkspace,
       workspaces,
     };
     const results = [];
@@ -1176,6 +1249,7 @@ async function main() {
         try {
           execFileSync("git", ["worktree", "remove", "--force", workspace], {
             cwd: process.cwd(),
+            env: gitEnvironment,
             stdio: "inherit",
             timeout: CLEANUP_TIMEOUT_MS,
           });
@@ -1195,6 +1269,7 @@ async function main() {
       try {
         execFileSync("git", ["worktree", "prune"], {
           cwd: process.cwd(),
+          env: gitEnvironment,
           stdio: "ignore",
           timeout: CLEANUP_TIMEOUT_MS,
         });
@@ -1208,6 +1283,21 @@ async function main() {
       cleanupFailures.push(error);
     }
   }
+  if (completedSummary && completedSummaryPath) {
+    completedSummary.cachePolicy.cleanupVerified = cleanupFailures.length === 0;
+    completedSummary.durationMs = Date.now() - overallStartedAt;
+    completedSummary.withinBudget = completedSummary.durationMs <= budgetMs;
+    if (terminationSignal) completedSummary.status = "failed";
+    await writeFile(
+      completedSummaryPath,
+      `${JSON.stringify(completedSummary, null, 2)}\n`,
+      "utf8",
+    );
+  }
+  if (terminationSignal && !executionError)
+    executionError = new Error(
+      `Release execution received ${terminationSignal}; owned resources were cleaned before exit.`,
+    );
   if (executionError && cleanupFailures.length)
     throw new AggregateError(
       [executionError, ...cleanupFailures],
@@ -1220,14 +1310,6 @@ async function main() {
       "One or more disposable worktrees could not be deregistered.",
     );
   if (completedSummary && completedSummaryPath) {
-    completedSummary.cachePolicy.cleanupVerified = true;
-    completedSummary.durationMs = Date.now() - overallStartedAt;
-    completedSummary.withinBudget = completedSummary.durationMs <= budgetMs;
-    await writeFile(
-      completedSummaryPath,
-      `${JSON.stringify(completedSummary, null, 2)}\n`,
-      "utf8",
-    );
     process.stdout.write(`Release ${mode} summary: ${completedSummaryPath}\n`);
     process.stdout.write(
       `Duration ${(completedSummary.durationMs / 1000).toFixed(1)}s / budget ${(budgetMs / 60000).toFixed(0)}m\n`,

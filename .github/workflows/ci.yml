@@ -77,6 +77,18 @@ jobs:
         run: |
           test "$(node --version)" = "v24.18.1"
           test "$(pnpm --version)" = "10.34.5"
+      - name: Isolate package-manager configuration
+        run: |
+          mkdir -p "$CLOCKWORK_RELEASE_CACHE_ROOT"
+          install -m 600 /dev/null "$CLOCKWORK_RELEASE_CACHE_ROOT/empty-user.npmrc"
+          install -m 600 /dev/null "$CLOCKWORK_RELEASE_CACHE_ROOT/empty-global.npmrc"
+          {
+            echo "NPM_CONFIG_USERCONFIG=$CLOCKWORK_RELEASE_CACHE_ROOT/empty-user.npmrc"
+            echo "NPM_CONFIG_GLOBALCONFIG=$CLOCKWORK_RELEASE_CACHE_ROOT/empty-global.npmrc"
+            echo "XDG_CONFIG_HOME=$CLOCKWORK_RELEASE_CACHE_ROOT/xdg-config"
+            echo "GIT_CONFIG_GLOBAL=/dev/null"
+            echo "GIT_CONFIG_NOSYSTEM=1"
+          } >> "$GITHUB_ENV"
       - name: Frozen install in a fresh isolated store
         run: |
           pnpm install --frozen-lockfile --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"

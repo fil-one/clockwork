@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -98,8 +99,9 @@ const parallelPassed = run(
   ],
   "parallel candidate",
 );
+let comparisonPassed = false;
 if (serialPassed && parallelPassed)
-  run(
+  comparisonPassed = run(
     [
       "scripts/compare-release-results.mjs",
       serialPath,
@@ -164,6 +166,27 @@ if (parallelPassed) {
   }
 }
 const durationMs = Date.now() - startedAt;
+const evidenceFiles = [];
+for (const relativePath of [
+  "serial/summary.json",
+  "parallel/summary.json",
+  "comparison.json",
+  ...Array.from(
+    { length: stressRuns },
+    (_, index) => `stress-${index + 1}/summary.json`,
+  ),
+]) {
+  try {
+    const contents = await readFile(path.join(root, relativePath));
+    evidenceFiles.push({
+      path: relativePath,
+      bytes: contents.byteLength,
+      sha256: createHash("sha256").update(contents).digest("hex"),
+    });
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 const report = {
   token,
   sourceIdentity:
@@ -171,16 +194,21 @@ const report = {
       ? JSON.parse(await readFile(parallelPath, "utf8")).sourceIdentity
       : null,
   stressRuns,
+  serialAccepted: serialPassed,
+  parallelAccepted: parallelPassed,
+  comparisonAccepted: comparisonPassed,
   stressAccepted,
   durationMs,
   budgetMs,
   withinBudget: durationMs <= budgetMs,
   failures,
   stressEvidence,
+  evidenceFiles,
 };
 report.accepted =
   serialPassed &&
   parallelPassed &&
+  comparisonPassed &&
   stressAccepted &&
   report.withinBudget &&
   failures.length === 0;

@@ -10,6 +10,13 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
+import {
+  RELEASE_SUITE_NAMES,
+  releaseStressSummaryIssues,
+  releaseSummaryIssues,
+  sourceIdentityKey,
+} from "./release-artifacts.mjs";
+
 const root = resolve(import.meta.dirname, "..");
 const outputDirectory = join(root, "docs", "baseline");
 const capturedAt =
@@ -56,6 +63,158 @@ function tryGit(...arguments_) {
     env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
   });
   return result.status === 0 ? result.stdout.trim() : null;
+}
+
+function retainedStressEvidenceIssues(
+  summary,
+  runRoot,
+  worktree,
+  qualificationEvidenceArtifacts,
+) {
+  const issues = [...releaseStressSummaryIssues(summary)];
+  const expectedPaths = [
+    "serial/summary.json",
+    "parallel/summary.json",
+    "comparison.json",
+    ...Array.from(
+      { length: Number.isInteger(summary.stressRuns) ? summary.stressRuns : 0 },
+      (_, index) => `stress-${index + 1}/summary.json`,
+    ),
+  ];
+  const parsed = new Map();
+  for (const evidencePath of expectedPaths) {
+    const record = Array.isArray(summary.evidenceFiles)
+      ? summary.evidenceFiles.find((file) => file?.path === evidencePath)
+      : null;
+    const retained = qualificationEvidenceArtifacts.find(
+      (artifact) => artifact.path === `${runRoot}/${evidencePath}`,
+    );
+    if (
+      !record ||
+      !retained ||
+      retained.bytes !== record.bytes ||
+      retained.sha256 !== record.sha256
+    ) {
+      issues.push(`stress evidence file differs: ${evidencePath}`);
+      continue;
+    }
+    try {
+      parsed.set(
+        evidencePath,
+        JSON.parse(readFileSync(join(worktree, retained.path), "utf8")),
+      );
+    } catch {
+      issues.push(`stress evidence file is not valid JSON: ${evidencePath}`);
+    }
+  }
+  const serial = parsed.get("serial/summary.json");
+  const parallel = parsed.get("parallel/summary.json");
+  for (const [path, child, mode, debug] of [
+    ["serial/summary.json", serial, "serial", true],
+    ["parallel/summary.json", parallel, "parallel", false],
+    ...Array.from(
+      { length: Number.isInteger(summary.stressRuns) ? summary.stressRuns : 0 },
+      (_, index) => [
+        `stress-${index + 1}/summary.json`,
+        parsed.get(`stress-${index + 1}/summary.json`),
+        "parallel",
+        false,
+      ],
+    ),
+  ]) {
+    const childIssues = releaseSummaryIssues(child, {
+      expectedMode: mode,
+      expectedDebug: debug,
+    });
+    issues.push(...childIssues.map((issue) => `${path}: ${issue}`));
+    if (
+      sourceIdentityKey(child?.sourceIdentity) !==
+      sourceIdentityKey(summary.sourceIdentity)
+    )
+      issues.push(`${path}: source identity differs from stress summary`);
+    if (path.startsWith("stress-")) {
+      const recordedEvidence = Array.isArray(summary.stressEvidence)
+        ? summary.stressEvidence.find((item) => item?.summaryPath === path)
+        : null;
+      if (recordedEvidence?.durationMs !== child?.durationMs)
+        issues.push(`${path}: recorded duration differs from child summary`);
+      const parallelBySuite = new Map(
+        (parallel?.results ?? []).map((result) => [result.suite, result]),
+      );
+      const childBySuite = new Map(
+        (child?.results ?? []).map((result) => [result.suite, result]),
+      );
+      if (
+        !RELEASE_SUITE_NAMES.every((suite) => {
+          const baseline = parallelBySuite.get(suite);
+          const candidate = childBySuite.get(suite);
+          return (
+            baseline?.assertionFingerprint ===
+              candidate?.assertionFingerprint &&
+            baseline?.artifactInventory?.fingerprint ===
+              candidate?.artifactInventory?.fingerprint &&
+            baseline?.coverageInventory?.fingerprint ===
+              candidate?.coverageInventory?.fingerprint
+          );
+        })
+      )
+        issues.push(`${path}: result fingerprints differ from parallel`);
+    }
+  }
+  const comparison = parsed.get("comparison.json");
+  const serialBySuite = new Map(
+    (serial?.results ?? []).map((result) => [result.suite, result]),
+  );
+  const parallelBySuite = new Map(
+    (parallel?.results ?? []).map((result) => [result.suite, result]),
+  );
+  const equivalent = RELEASE_SUITE_NAMES.every((suite) => {
+    const left = serialBySuite.get(suite);
+    const right = parallelBySuite.get(suite);
+    return (
+      left?.status === "passed" &&
+      right?.status === "passed" &&
+      sourceIdentityKey(left?.sourceIdentity) !== null &&
+      sourceIdentityKey(left?.sourceIdentity) ===
+        sourceIdentityKey(right?.sourceIdentity) &&
+      left?.assertionFingerprint === right?.assertionFingerprint &&
+      left?.artifactInventory?.fingerprint ===
+        right?.artifactInventory?.fingerprint &&
+      left?.coverageInventory?.fingerprint ===
+        right?.coverageInventory?.fingerprint &&
+      left?.retryPolicy === "none" &&
+      right?.retryPolicy === "none" &&
+      left?.steps?.every((step) => step.retries === 0) === true &&
+      right?.steps?.every((step) => step.retries === 0) === true
+    );
+  });
+  const improvementMs =
+    Number(serial?.durationMs) - Number(parallel?.durationMs);
+  const improvementPercent = Number(serial?.durationMs)
+    ? (improvementMs / Number(serial.durationMs)) * 100
+    : 0;
+  const materiallyFaster = improvementMs >= 30_000 || improvementPercent >= 15;
+  if (
+    comparison?.accepted !== true ||
+    comparison?.sameSourceIdentity !== true ||
+    comparison?.equivalent !== true ||
+    comparison?.materiallyFaster !== true ||
+    !Array.isArray(comparison?.serialIssues) ||
+    comparison.serialIssues.length !== 0 ||
+    !Array.isArray(comparison?.parallelIssues) ||
+    comparison.parallelIssues.length !== 0 ||
+    sourceIdentityKey(comparison?.sourceIdentity) !==
+      sourceIdentityKey(summary.sourceIdentity) ||
+    comparison?.serialDurationMs !== serial?.durationMs ||
+    comparison?.parallelDurationMs !== parallel?.durationMs ||
+    comparison?.improvementMs !== improvementMs ||
+    !equivalent ||
+    !materiallyFaster
+  )
+    issues.push(
+      "comparison.json does not match the validated serial and parallel summaries",
+    );
+  return issues;
 }
 
 function sha256Bytes(value) {
@@ -416,15 +575,47 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
     .filter(({ path }) => /\/(?:stress-)?summary\.json$/.test(path))
     .map(({ path, bytes, sha256 }) => {
       const summary = JSON.parse(readFileSync(join(fields.worktree, path)));
-      const passed = summary.accepted === true || summary.status === "passed";
-      const failed = summary.accepted === false || summary.status === "failed";
+      const stressSummary = path.endsWith("/stress-summary.json");
+      const stressRoot = stressSummary
+        ? path.slice(0, -"/stress-summary.json".length)
+        : null;
+      const validationIssues = stressSummary
+        ? retainedStressEvidenceIssues(
+            summary,
+            stressRoot,
+            fields.worktree,
+            qualificationEvidenceArtifacts,
+          )
+        : summary.status === "passed"
+          ? releaseSummaryIssues(summary, {
+              expectedMode: summary.mode,
+              expectedDebug: summary.debug,
+              requireEverySuite:
+                !Array.isArray(summary.results) || summary.results.length !== 1,
+            })
+          : [];
+      const passed = stressSummary
+        ? summary.accepted === true && validationIssues.length === 0
+        : summary.status === "passed" && validationIssues.length === 0;
+      const failed = stressSummary
+        ? summary.accepted === false
+        : summary.status === "failed";
       return {
         path,
         bytes,
         sha256,
         runId: summary.runId ?? summary.token ?? null,
         mode: summary.mode ?? null,
-        outcome: passed ? "passed" : failed ? "failed" : "incomplete",
+        outcome: passed
+          ? "passed"
+          : failed
+            ? "failed"
+            : summary.status === "passed" ||
+                (stressSummary && summary.accepted === true)
+              ? "reported-passed-unvalidated"
+              : "incomplete",
+        reportedOutcome: summary.accepted ?? summary.status ?? null,
+        validationIssues,
         durationMs: summary.durationMs ?? null,
         sourceRevision:
           summary.sourceIdentity?.revision ?? summary.sourceIdentity ?? null,
@@ -483,6 +674,8 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
       aggregateSha256: evidenceAggregate(artifacts),
       summaryPaths: summaryRecords.map(({ path }) => path),
       completionEvidence: primarySummary?.path ?? null,
+      reportedOutcome: primarySummary?.reportedOutcome ?? null,
+      validationIssues: primarySummary?.validationIssues ?? [],
       incompleteReason:
         primarySummary === null
           ? "No run summary was written; retained artifacts record an interrupted or aborted qualification attempt."
@@ -847,7 +1040,7 @@ writeJson("git-provenance.json", {
         summaries: status.retainedEvidence.qualification.summaries,
         decision:
           status.retainedEvidence.qualification.artifactCount > 0
-            ? "retained-passed-failed-and-incomplete-evidence-with-file-hashes"
+            ? "retained-validated-passed-failed-incomplete-and-unvalidated-reported-pass-evidence-with-file-hashes"
             : "not-present-in-this-worktree",
       },
     })),
