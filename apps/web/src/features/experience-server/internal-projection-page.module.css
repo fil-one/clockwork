@@ -1,0 +1,131 @@
+.main {
+  display: grid;
+  min-width: 0;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 4vw, 3.25rem);
+  color: var(--web-ink);
+}
+
+.header {
+  display: grid;
+  gap: 0.45rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 2px solid var(--web-ink);
+}
+
+.header h1 {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.eyebrow,
+.description,
+.freshness,
+.stale {
+  margin: 0;
+}
+
+.eyebrow {
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.description {
+  max-width: 62ch;
+  color: var(--web-muted);
+}
+
+.freshness,
+.stale {
+  font-family: var(--cw-font-mono);
+  font-size: 0.72rem;
+}
+
+.stale {
+  color: var(--web-danger);
+}
+
+.empty {
+  max-width: 42rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--web-line);
+}
+
+.empty h2,
+.empty p {
+  margin: 0;
+}
+
+.empty p {
+  margin-top: 0.4rem;
+  color: var(--web-muted);
+}
+
+.tableRegion {
+  max-width: 100%;
+  overflow-x: auto;
+  border-block: 1px solid var(--web-line);
+}
+
+.tableRegion:focus-visible {
+  outline: 3px solid var(--cw-focus);
+  outline-offset: 3px;
+}
+
+.table {
+  width: 100%;
+  min-width: 62rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table caption {
+  padding: 0.8rem 0.7rem;
+  color: var(--web-muted);
+  font-family: var(--cw-font-mono);
+  font-size: 0.72rem;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 0.85rem 0.7rem;
+  border-top: 1px solid var(--web-line);
+  vertical-align: top;
+}
+
+.table thead th {
+  color: var(--web-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.025em;
+}
+
+.table tbody th {
+  max-width: 16rem;
+  font-size: 0.84rem;
+}
+
+.recordKey {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--web-muted);
+  font-family: var(--cw-font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+@media (max-width: 40rem) {
+  .main {
+    gap: 1.1rem;
+    padding: 1rem;
+  }
+
+  .tableRegion {
+    box-shadow: inset -1rem 0 1rem -1.2rem var(--web-muted);
+  }
+}

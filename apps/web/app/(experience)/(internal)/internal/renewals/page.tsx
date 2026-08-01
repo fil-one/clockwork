@@ -1,5 +1,11 @@
-import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
+import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 
 export default function Page() {
-  return <RenewalsView />;
+  return (
+    <InternalProjectionPage
+      channel="renewals"
+      title="Renewals"
+      description="Review deadlines, owners, and record-bound next actions."
+    />
+  );
 }

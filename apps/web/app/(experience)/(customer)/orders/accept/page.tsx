@@ -1,10 +1,11 @@
-import { OrderAcceptance } from "@/src/features/customer-partner/commercial/order-acceptance";
-import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default function Page() {
   return (
-    <SurfacePermissionGate audience="customer" requiredPermission="order:write">
-      <OrderAcceptance />
-    </SurfacePermissionGate>
+    <ProjectionDetailPage
+      audience="customer"
+      channel="orders"
+      title="Order acceptance"
+      description="Review the persisted order and optimistic version before acceptance."
+    />
   );
 }

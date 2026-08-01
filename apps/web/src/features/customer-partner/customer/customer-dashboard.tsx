@@ -1,59 +1,67 @@
 import Link from "next/link";
+import type { Route } from "next";
 
-import { StatTile, StatusBadge } from "@clockwork/ui";
+import { StatusBadge } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
 
 const copy = customerPartnerCopy.customer;
 
-const attention = [
-  {
-    type: "Invoice",
-    title: "$15,400 due Aug 15",
-    detail: "Invoice INV-2026-0781 is awaiting payment.",
-    action: "Review invoice",
-    href: "/billing" as const,
-    tone: "warning" as const,
-  },
-  {
-    type: "Notice and renewal",
-    title: "Notice window opens Nov 1",
-    detail: "Review the service plan 93 days before the account notice date.",
-    action: "Review services",
-    href: "/services" as const,
-    tone: "warning" as const,
-  },
-  {
-    type: "Quote",
-    title: "Enterprise quote expires Aug 3",
-    detail: "Three days remain to accept or let the open quote expire.",
-    action: "Review quote",
-    href: "/quotes/Q-2026-0184-v3" as const,
-    tone: "warning" as const,
-  },
-  {
-    type: "Provisioning",
-    title: "Madrid replica is 78% ready",
-    detail: "A customer validation step will be available after provisioning.",
-    action: "Track order",
-    href: "/orders/ORD-2026-0112" as const,
-    tone: "neutral" as const,
-  },
-] as const;
+export interface CustomerDashboardProjection {
+  generatedAt: string;
+  stale: boolean;
+  obligations: readonly {
+    id: string;
+    priority: number;
+    type: string;
+    title: string;
+    detail: string;
+    actionLabel: string;
+    href: Route;
+    tone: "neutral" | "success" | "warning" | "danger";
+    state: string;
+    recordVersion: number;
+  }[];
+  term: {
+    title: string;
+    rangeLabel: string;
+    progressPercent: number;
+    progressLabel: string;
+    renewalState: string;
+    noticeLabel: string;
+    renewalLabel: string;
+    agreementLabel: string;
+  };
+  services: readonly { id: string; name: string; detail: string }[];
+  capacity: {
+    committed: string;
+    current: string;
+    prior: string;
+    freshnessLabel: string;
+  };
+  activity: readonly {
+    id: string;
+    title: string;
+    detail: string;
+    occurredAt: string;
+    occurredLabel: string;
+  }[];
+}
 
 export function CustomerDashboard({
+  projection,
   canCreateQuote = true,
 }: {
+  projection: CustomerDashboardProjection;
   canCreateQuote?: boolean;
 }) {
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
+      <header className={styles.taskHeader}>
         <div>
-          <p className={styles.eyebrow}>Customer workspace</p>
           <h1>{copy.dashboardTitle}</h1>
-          <p className={styles.description}>{copy.dashboardDescription}</p>
+          <p>{copy.dashboardDescription}</p>
         </div>
         {canCreateQuote ? (
           <Link className={styles.primaryLink} href="/quotes/new">
@@ -64,32 +72,50 @@ export function CustomerDashboard({
         )}
       </header>
 
-      <section className={styles.section} aria-labelledby="attention-title">
-        <div className={styles.sectionHeading}>
+      <section className={styles.obligations} aria-labelledby="attention-title">
+        <div className={styles.obligationHeading}>
           <div>
             <h2 id="attention-title">{copy.attentionTitle}</h2>
             <p>{copy.attentionDescription}</p>
           </div>
+          <p className={styles.asOf}>
+            {projection.stale
+              ? "Stale account facts from "
+              : "Account facts as of "}
+            <time dateTime={projection.generatedAt}>
+              {new Intl.DateTimeFormat("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: "America/New_York",
+              }).format(new Date(projection.generatedAt))}
+            </time>
+          </p>
         </div>
-        <div className={styles.attentionGrid}>
-          {attention.map((item) => (
-            <Link
-              className={styles.attentionLink}
-              href={item.href}
-              key={item.type}
-            >
-              <div className={styles.attentionTop}>
-                <span className={styles.attentionType}>{item.type}</span>
-                <StatusBadge tone={item.tone}>
-                  {item.type === "Provisioning" ? "In progress" : "Action due"}
-                </StatusBadge>
+        <ol className={styles.obligationList}>
+          {projection.obligations.map((item) => (
+            <li key={item.id}>
+              <span className={styles.obligationPriority} aria-hidden="true">
+                {item.priority}
+              </span>
+              <div className={styles.obligationCopy}>
+                <div>
+                  <span className={styles.attentionType}>{item.type}</span>
+                  <StatusBadge tone={item.tone}>{item.state}</StatusBadge>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
               </div>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
-              <span className={styles.attentionAction}>{item.action} →</span>
-            </Link>
+              <Link
+                className={styles.obligationAction}
+                href={item.href}
+                data-record-version={item.recordVersion}
+              >
+                {item.actionLabel}
+                <span aria-hidden="true"> →</span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       <div className={styles.commercialGrid}>
@@ -97,30 +123,35 @@ export function CustomerDashboard({
           <div className={styles.termTop}>
             <div>
               <p className={styles.eyebrow}>Account agreement</p>
-              <h2 id="term-title">{copy.termTitle}</h2>
-              <p className={styles.termRange}>Jan 1 – Dec 31, 2026</p>
+              <h2 id="term-title">{projection.term.title}</h2>
+              <p className={styles.termRange}>{projection.term.rangeLabel}</p>
             </div>
-            <StatusBadge tone="success">Auto-renews</StatusBadge>
+            <StatusBadge tone="success">
+              {projection.term.renewalState}
+            </StatusBadge>
           </div>
           <div
             className={styles.termTrack}
             role="img"
-            aria-label="58 percent of the current commercial term elapsed"
+            aria-label={projection.term.progressLabel}
           >
-            <div className={styles.termProgress} />
+            <div
+              className={styles.termProgress}
+              style={{ width: `${projection.term.progressPercent}%` }}
+            />
           </div>
           <dl className={styles.termMilestones}>
             <div>
               <dt>Notice window</dt>
-              <dd>Opens Nov 1 · 93 days</dd>
+              <dd>{projection.term.noticeLabel}</dd>
             </div>
             <div>
               <dt>Renewal</dt>
-              <dd>Jan 1, 2027</dd>
+              <dd>{projection.term.renewalLabel}</dd>
             </div>
             <div>
               <dt>Governing agreement</dt>
-              <dd>Cloud Service Agreement v3.2</dd>
+              <dd>{projection.term.agreementLabel}</dd>
             </div>
           </dl>
         </section>
@@ -128,122 +159,58 @@ export function CustomerDashboard({
         <details className={styles.rollup}>
           <summary>
             <span>{copy.serviceRollup}</span>
-            <span className={styles.rollupCount}>2 services</span>
+            <span className={styles.rollupCount}>
+              {projection.services.length} services
+            </span>
           </summary>
           <ul className={styles.serviceList}>
-            <li>
-              <strong>Northstar primary archive</strong>
-              <span>500 TB · active · follows account term</span>
-            </li>
-            <li>
-              <strong>Madrid compliance replica</strong>
-              <span>120 TB · provisioning · ends Dec 31, 2026</span>
-            </li>
+            {projection.services.map((service) => (
+              <li key={service.id}>
+                <strong>{service.name}</strong>
+                <span>{service.detail}</span>
+              </li>
+            ))}
           </ul>
         </details>
       </div>
 
-      <section className={styles.section} aria-labelledby="metrics-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <h2 id="metrics-title">{copy.metricsTitle}</h2>
-            <p>Ordered by the decisions most likely to require action.</p>
-          </div>
-        </div>
-        <div className={styles.metricGrid}>
-          <StatTile
-            label="Invoice due"
-            value="$15,400"
-            detail="Due Aug 15"
-            change="Payment action available"
-            tone="attention"
-          />
-          <StatTile
-            label="Committed capacity used"
-            value="50.2%"
-            detail="311 TB of 620 TB"
-            change="6.5% more than prior 30 days"
-            trend="up"
-          />
-          <StatTile
-            label="Days to notice window"
-            value="93"
-            detail="Opens Nov 1"
-            change="No renewal choice due today"
-          />
-          <StatTile
-            label="Open quote exposure"
-            value="$184,800"
-            detail="One open · expires Aug 3"
-            change="Acceptance would add 400 TB"
-            tone="attention"
-          />
-        </div>
-      </section>
-
-      <div className={styles.dashboardLower}>
-        <figure className={styles.chart} aria-labelledby="capacity-chart-title">
-          <figcaption className={styles.chartHeader}>
-            <div>
-              <h2 id="capacity-chart-title">{copy.chartTitle}</h2>
-              <p className={styles.freshness}>{copy.chartFreshness}</p>
-            </div>
-            <p className={styles.comparison}>
-              +19 TB / +6.5%
-              <br />
-              {copy.chartComparison}
+      <details className={styles.supportingContext}>
+        <summary>Usage and recent account activity</summary>
+        <div className={styles.contextColumns}>
+          <section aria-labelledby="capacity-facts-title">
+            <h2 id="capacity-facts-title">Capacity facts</h2>
+            <dl className={styles.capacityFacts}>
+              <div>
+                <dt>Committed</dt>
+                <dd>{projection.capacity.committed}</dd>
+              </div>
+              <div>
+                <dt>Current use</dt>
+                <dd>{projection.capacity.current}</dd>
+              </div>
+              <div>
+                <dt>Prior 30 days</dt>
+                <dd>{projection.capacity.prior}</dd>
+              </div>
+            </dl>
+            <p className={styles.freshness}>
+              {projection.capacity.freshnessLabel}
             </p>
-          </figcaption>
-          <div className={styles.bars}>
-            <div className={styles.barRow}>
-              <span>Committed</span>
-              <div className={styles.barTrack} aria-hidden="true">
-                <div className={styles.barFill} style={{ width: "100%" }} />
-              </div>
-              <strong>620 TB</strong>
-            </div>
-            <div className={styles.barRow}>
-              <span>Current use</span>
-              <div className={styles.barTrack} aria-hidden="true">
-                <div className={styles.barFill} style={{ width: "50.2%" }} />
-              </div>
-              <strong>311 TB</strong>
-            </div>
-            <div className={styles.barRow}>
-              <span>Prior 30 days</span>
-              <div className={styles.barTrack} aria-hidden="true">
-                <div
-                  className={`${styles.barFill} ${styles.barFillPrevious}`}
-                  style={{ width: "47.1%" }}
-                />
-              </div>
-              <strong>292 TB</strong>
-            </div>
-          </div>
-        </figure>
-
-        <section className={styles.activity} aria-labelledby="activity-title">
-          <h2 id="activity-title">{copy.activityTitle}</h2>
-          <p className={styles.panelIntro}>Supporting context, newest first.</p>
-          <ol className={styles.activityList}>
-            <li>
-              <strong>Marketplace fulfillment synchronized</strong>
-              <span>AWS private offer · provider-reported</span>
-              <time dateTime="2026-07-31T15:42:00Z">18 minutes ago</time>
-            </li>
-            <li>
-              <strong>Provisioning advanced to 78%</strong>
-              <span>Madrid compliance replica</span>
-              <time dateTime="2026-07-31T13:12:00Z">3 hours ago</time>
-            </li>
-            <li>
-              <strong>Quote v3 issued</strong>
-              <span>Enterprise committed capacity</span>
-              <time dateTime="2026-07-30T16:30:00Z">Yesterday</time>
-            </li>
-          </ol>
-        </section>
-      </div>
+          </section>
+          <section aria-labelledby="activity-title">
+            <h2 id="activity-title">{copy.activityTitle}</h2>
+            <ol className={styles.activityList}>
+              {projection.activity.map((item) => (
+                <li key={item.id}>
+                  <strong>{item.title}</strong>
+                  <span>{item.detail}</span>
+                  <time dateTime={item.occurredAt}>{item.occurredLabel}</time>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+      </details>
     </main>
   );
 }

@@ -1,13 +1,11 @@
-import { OffboardingWorkflow } from "@/src/features/customer-partner/commercial/offboarding";
-import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default function Page() {
   return (
-    <SurfacePermissionGate
+    <ProjectionDetailPage
       audience="customer"
-      requiredPermission="destructive:request"
-    >
-      <OffboardingWorkflow />
-    </SurfacePermissionGate>
+      channel="support"
+      title="Account offboarding"
+      description="Review record-bound retention and offboarding work before requesting change."
+    />
   );
 }

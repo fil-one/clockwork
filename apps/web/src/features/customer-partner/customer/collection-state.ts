@@ -53,6 +53,9 @@ export interface CustomerCollectionRecord {
   updatedLabel: string;
   href?: string;
   context: readonly { label: string; value: string }[];
+  recordVersion?: number;
+  projectionId?: string;
+  aggregateId?: string;
 }
 
 const defaultState: CollectionUrlState = {

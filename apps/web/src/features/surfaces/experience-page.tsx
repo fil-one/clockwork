@@ -3,11 +3,7 @@ import Link from "next/link";
 
 import { AccountTermRollup, StatusBadge, TermBar } from "@clockwork/ui";
 
-import {
-  DEMO_NOW,
-  timeline,
-  type DemoRecord,
-} from "@/src/features/shared/demo-data";
+import type { DemoRecord } from "@/src/features/shared/demo-data";
 import { plural, t } from "@/src/i18n/en";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
@@ -15,24 +11,23 @@ import { DataChart } from "./data-chart";
 import { surfaces, type SurfaceKey } from "./surface-catalog";
 import { WorkflowPanel } from "./workflow-panel";
 
-function StatGrid({
+function SurfaceFacts({
   stats,
 }: {
   stats: (typeof surfaces)[SurfaceKey]["stats"];
 }) {
   return (
-    <section className="stat-grid" aria-label={t("common.status")}>
+    <dl className="surface-facts" aria-label={t("common.status")}>
       {stats.map((stat) => (
-        <article
-          className={`stat-tile stat-tile--${stat.tone ?? "neutral"}`}
-          key={stat.label}
-        >
-          <p>{t(stat.label)}</p>
-          <strong>{stat.value}</strong>
-          <span>{stat.detail}</span>
-        </article>
+        <div key={stat.label} data-tone={stat.tone ?? "neutral"}>
+          <dt>{t(stat.label)}</dt>
+          <dd>
+            <strong>{stat.value}</strong>
+            <span>{stat.detail}</span>
+          </dd>
+        </div>
       ))}
-    </section>
+    </dl>
   );
 }
 
@@ -69,16 +64,15 @@ function RecordList({
     <section className="record-panel" aria-labelledby="records-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">{t("table.records")}</p>
           <h2 id="records-title">{t("common.updated")}</h2>
         </div>
         <Link className="text-action" href="/states">
           {t("action.view")}
         </Link>
       </div>
-      <div className="record-list">
+      <ol className="record-list">
         {records.map((record) => (
-          <article className="record-row" key={record.id}>
+          <li className="record-row" key={record.id}>
             <div className="record-id">
               <span aria-hidden="true" />
               <strong>{record.id}</strong>
@@ -103,20 +97,25 @@ function RecordList({
             >
               →
             </Link>
-          </article>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
 
-function Timeline() {
+interface SurfaceTimelineItem {
+  at: string;
+  title: string;
+  detail: string;
+}
+
+function Timeline({ items }: { items: readonly SurfaceTimelineItem[] }) {
   return (
     <section className="timeline-panel" aria-labelledby="timeline-title">
-      <p className="eyebrow">{t("dashboard.chain")}</p>
       <h2 id="timeline-title">{t("dashboard.chain")}</h2>
       <ol className="timeline">
-        {timeline.map((item) => (
+        {items.map((item) => (
           <li key={item.at}>
             <time>{item.at}</time>
             <strong>{item.title}</strong>
@@ -130,13 +129,16 @@ function Timeline() {
 
 export function ExperiencePage({
   surface,
-  records: recordsOverride,
+  records,
+  now,
+  timelineItems,
 }: {
   surface: SurfaceKey;
-  records?: readonly DemoRecord[];
+  records: readonly DemoRecord[];
+  now: Date;
+  timelineItems: readonly SurfaceTimelineItem[];
 }) {
   const config = surfaces[surface];
-  const records = recordsOverride ?? config.records;
   const isPartnerSurface = config.eyebrow === "partner.eyebrow";
   return (
     <SurfacePermissionGate
@@ -146,7 +148,7 @@ export function ExperiencePage({
       <main className="experience-main" id="main-content">
         <header className="page-header">
           <div>
-            <p className="eyebrow">{t(config.eyebrow)}</p>
+            <p className="surface-context">{t(config.eyebrow)}</p>
             <h1>{t(config.title)}</h1>
             <p className="page-description">{t(config.description)}</p>
           </div>
@@ -178,7 +180,7 @@ export function ExperiencePage({
               start={new Date("2026-01-01T00:00:00Z")}
               noticeDate={new Date("2026-11-01T00:00:00Z")}
               end={new Date("2026-12-31T00:00:00Z")}
-              now={DEMO_NOW}
+              now={now}
               renewalState={isPartnerSurface ? "notice-open" : "auto-renews"}
             />
           </section>
@@ -190,7 +192,7 @@ export function ExperiencePage({
             </h2>
             <AccountTermRollup
               label={t("term.rollup")}
-              now={DEMO_NOW}
+              now={now}
               termCountLabel={(count) =>
                 plural(count, t("term.count.one"), t("term.count.other"))
               }
@@ -217,17 +219,18 @@ export function ExperiencePage({
             />
           </section>
         ) : null}
-        <StatGrid stats={config.stats} />
+        <SurfaceFacts stats={config.stats} />
         {config.workflow ? (
           <WorkflowPanel workflow={config.workflow} surface={surface} />
         ) : null}
-        <div className="content-grid">
-          <RecordList records={records} surface={surface} />
-          <div className="side-stack">
+        <RecordList records={records} surface={surface} />
+        <details className="supporting-disclosure">
+          <summary>{t("dashboard.chain")} and supporting trend</summary>
+          <div className="supporting-disclosure__content">
             {config.chart ? <DataChart kind={config.chart} /> : null}
-            <Timeline />
+            <Timeline items={timelineItems} />
           </div>
-        </div>
+        </details>
       </main>
     </SurfacePermissionGate>
   );

@@ -1,13 +1,11 @@
-import { AgreementAcceptance } from "@/src/features/customer-partner/commercial/agreement-acceptance";
-import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default function Page() {
   return (
-    <SurfacePermissionGate
+    <ProjectionDetailPage
       audience="customer"
-      requiredPermission="agreement:execute"
-    >
-      <AgreementAcceptance />
-    </SurfacePermissionGate>
+      channel="agreements"
+      title="Choose an agreement"
+      description="Execution starts only from a persisted, authorized agreement version."
+    />
   );
 }

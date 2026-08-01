@@ -29,6 +29,9 @@ export interface CommercialRecord {
   term: string;
   nextAction: string;
   version?: string;
+  projectionId?: string;
+  aggregateId?: string;
+  allowedActions?: readonly string[];
 }
 
 export interface CollectionDefinition {

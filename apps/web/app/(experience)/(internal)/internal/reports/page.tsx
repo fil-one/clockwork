@@ -1,5 +1,11 @@
-import { ReportsView } from "@/src/features/internal-ops/finance-lifecycle/reports-view";
+import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 
 export default function Page() {
-  return <ReportsView />;
+  return (
+    <InternalProjectionPage
+      channel="reports"
+      title="Reports"
+      description="Inspect generated report requests and immutable output status."
+    />
+  );
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import { internalOpsCopy } from "@/src/features/internal-ops/copy";
+import { startAssistedSession } from "@/src/auth/actions";
 
 import { adminSafetyCopy } from "./copy";
-import { accounts } from "./data";
+import type { SelectOption } from "./data";
 import {
   assistedCommercialActionReady,
   buildReviewSummary,
@@ -20,13 +20,6 @@ import {
   TechnicalEvidence,
   styles,
 } from "./ui";
-
-const staffActors: Readonly<Record<string, string>> = {
-  internal_operator: "Morgan Ellis · Internal operator",
-  finance_approver: "Elena Torres · Finance approver",
-  legal_approver: "Priya Nair · Legal approver",
-  destructive_action_approver: "Sasha Reed · Destructive-action approver",
-};
 
 const assistedActions = {
   quote_adjustment: {
@@ -56,20 +49,24 @@ const assistedActions = {
 
 type AssistedActionKey = keyof typeof assistedActions;
 
-export function AssistedMode({ roles }: { roles: readonly string[] }) {
+export function AssistedMode({
+  roles,
+  accounts,
+  actor,
+  sessionActive = false,
+}: {
+  roles: readonly string[];
+  accounts: readonly SelectOption[];
+  actor: string;
+  sessionActive?: boolean;
+}) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [reason, setReason] = useState<string>(internalOpsCopy.assisted.reason);
+  const [reason, setReason] = useState("");
   const [actionKey, setActionKey] =
     useState<AssistedActionKey>("quote_adjustment");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const account = accounts.find((item) => item.id === accountId) ?? accounts[0];
   const action = assistedActions[actionKey];
-  const actor = useMemo(
-    () =>
-      roles.map((role) => staffActors[role]).find(Boolean) ??
-      "Authenticated staff actor",
-    [roles],
-  );
   const mayAssume = canDecide(roles, "assisted");
   const reviewed = Boolean(summary);
   const ready = assistedCommercialActionReady({
@@ -79,7 +76,28 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
     effectiveAccountId: accountId,
   });
 
-  if (!account) return null;
+  if (!account)
+    return (
+      <AdministrationPage {...adminSafetyCopy.assisted}>
+        <section className={styles.roleNotice} role="note">
+          <strong>Assisted authority is required.</strong>
+          This session cannot load or select customer accounts for assisted
+          action.
+        </section>
+      </AdministrationPage>
+    );
+
+  if (sessionActive)
+    return (
+      <AdministrationPage {...adminSafetyCopy.assisted}>
+        <section className={styles.notice} role="note">
+          <strong>An assisted session is already active.</strong>
+          The effective account remains locked to {account.label}. Use the
+          active-session banner to exit before starting a different assisted
+          session.
+        </section>
+      </AdministrationPage>
+    );
 
   const resetReview = () => {
     setSummary(null);
@@ -229,10 +247,23 @@ export function AssistedMode({ roles }: { roles: readonly string[] }) {
                 : "Assisted action remains blocked"}
             </strong>
             <p>
-              Continue in the secure assisted workflow. The server preserves the
-              staff actor and re-evaluates account, role, commercial, screening,
-              credit, retention, and provider gates before any mutation.
+              Start the time-limited server session to preserve the staff actor
+              and re-evaluate account, role, commercial, screening, credit,
+              retention, and provider gates before every mutation.
             </p>
+            {ready ? (
+              <form action={startAssistedSession}>
+                <input
+                  type="hidden"
+                  name="targetAccountId"
+                  value={account.id}
+                />
+                <input type="hidden" name="reason" value={reason} />
+                <button className={styles.button} type="submit">
+                  Start 15-minute assisted session
+                </button>
+              </form>
+            ) : null}
           </section>
         </>
       ) : null}

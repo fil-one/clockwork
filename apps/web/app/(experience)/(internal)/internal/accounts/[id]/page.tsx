@@ -1,9 +1,17 @@
-import { RecordDetailPage } from "@/src/features/surfaces/record-detail";
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <RecordDetailPage id={id} backHref="/internal/search" />;
+  return (
+    <ProjectionDetailPage
+      audience="internal"
+      channel="queues"
+      recordKey={id}
+      title="Account operations"
+      description="Assisted access remains restricted to the persisted effective account."
+    />
+  );
 }

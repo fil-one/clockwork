@@ -4,6 +4,7 @@ import { getCommandItems } from "./command-items";
 import { isNavigationItemActive, navigation } from "./navigation";
 
 describe("audience-aware shell commands", () => {
+  const providerContext = { providerBacked: true } as const;
   const audienceRoles = {
     customer: ["owner"],
     partner: ["partner_admin"],
@@ -16,12 +17,16 @@ describe("audience-aware shell commands", () => {
   } as const;
 
   it.each(["customer", "partner", "internal"] as const)(
-    "provides every result group for the %s portal",
+    "provides account-safe navigation and actions for the %s portal",
     (audience) => {
-      const items = getCommandItems(audience, audienceRoles[audience]);
+      const items = getCommandItems(
+        audience,
+        audienceRoles[audience],
+        providerContext,
+      );
 
       expect(new Set(items.map((item) => item.category))).toEqual(
-        new Set(["navigation", "actions", "records"]),
+        new Set(["navigation", "actions"]),
       );
       expect(items.every((item) => item.audiences?.includes(audience))).toBe(
         true,
@@ -30,12 +35,16 @@ describe("audience-aware shell commands", () => {
   );
 
   it("does not leak routes from another audience", () => {
-    const customerHrefs = getCommandItems("customer", ["owner"]).flatMap(
-      (item) => (item.href ? [item.href] : []),
-    );
-    const partnerHrefs = getCommandItems("partner", ["partner_admin"]).flatMap(
-      (item) => (item.href ? [item.href] : []),
-    );
+    const customerHrefs = getCommandItems(
+      "customer",
+      ["owner"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
+    const partnerHrefs = getCommandItems(
+      "partner",
+      ["partner_admin"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(customerHrefs.some((href) => href.startsWith("/partner"))).toBe(
       false,
@@ -45,21 +54,21 @@ describe("audience-aware shell commands", () => {
     );
   });
 
-  it("includes representative commercial records", () => {
-    const customerItems = getCommandItems("customer", ["owner"]);
+  it("does not expose fixture records in a provider-backed shell", () => {
+    const items = getCommandItems("customer", ["owner"], providerContext);
 
-    expect(
-      customerItems.some((item) => item.label.includes("INV-2026-0781")),
-    ).toBe(true);
-    expect(
-      customerItems.some((item) => item.label.includes("Q-2026-0184-v3")),
-    ).toBe(true);
+    expect(items.some((item) => item.category === "records")).toBe(false);
+    expect(items.map((item) => item.label).join(" ")).not.toMatch(
+      /Northstar|Meridian|INV-2026|Q-2026|ORD-2026/,
+    );
   });
 
   it("hides customer write actions and agreement navigation from billing users", () => {
-    const hrefs = getCommandItems("customer", ["billing"]).flatMap((item) =>
-      item.href ? [item.href] : [],
-    );
+    const hrefs = getCommandItems(
+      "customer",
+      ["billing"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/quotes/new");
     expect(hrefs).not.toContain("/account/users");
@@ -68,9 +77,11 @@ describe("audience-aware shell commands", () => {
   });
 
   it("hides partner administration destinations from sellers", () => {
-    const hrefs = getCommandItems("partner", ["partner_seller"]).flatMap(
-      (item) => (item.href ? [item.href] : []),
-    );
+    const hrefs = getCommandItems(
+      "partner",
+      ["partner_seller"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/partner/billing");
     expect(hrefs).not.toContain("/partner/commissions");
@@ -82,9 +93,11 @@ describe("audience-aware shell commands", () => {
   });
 
   it("hides approval and finance destinations from internal operators", () => {
-    const hrefs = getCommandItems("internal", ["internal_operator"]).flatMap(
-      (item) => (item.href ? [item.href] : []),
-    );
+    const hrefs = getCommandItems(
+      "internal",
+      ["internal_operator"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/internal/approvals");
     expect(hrefs).not.toContain("/internal/collections");

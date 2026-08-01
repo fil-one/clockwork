@@ -17,18 +17,16 @@
 }
 
 .eyebrow {
-  margin: 0 0 0.5rem;
-  color: var(--web-accent);
-  font-size: 0.68rem;
-  font-weight: 850;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  margin: 0 0 0.35rem;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .header h1 {
   max-width: 48rem;
   margin: 0;
-  font-size: clamp(2rem, 4.4vw, 3.65rem);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
   font-weight: 650;
   letter-spacing: -0.052em;
   line-height: 0.98;
@@ -101,9 +99,9 @@
 
 .attentionGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   border: 1px solid var(--web-line);
-  border-radius: 0.8rem;
+  border-radius: 0.25rem;
   background: var(--web-paper);
   overflow: hidden;
 }
@@ -173,7 +171,7 @@
 .activity,
 .accountCard {
   border: 1px solid var(--web-line);
-  border-radius: 0.8rem;
+  border-radius: 0.25rem;
   background: var(--web-paper);
 }
 
@@ -298,7 +296,7 @@
 
 .metricGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: 0.8rem;
 }
 
@@ -414,7 +412,7 @@
 }
 
 .accountFacts {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
 
 .accountGrid {
@@ -556,5 +554,218 @@
   .barTrack {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+}
+
+/* Customer home: a dated obligation list and documentary term, not a tile dashboard. */
+.taskHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem 2rem;
+  padding-block-end: 1.25rem;
+  border-bottom: 2px solid var(--web-ink);
+}
+
+.taskHeader h1 {
+  max-width: 24ch;
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.taskHeader p {
+  max-width: 58ch;
+  margin: 0.45rem 0 0;
+  color: var(--web-muted);
+}
+
+.obligations {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.obligationHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.obligationHeading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.obligationHeading p {
+  margin: 0.25rem 0 0;
+  color: var(--web-muted);
+  font-size: 0.8rem;
+}
+
+.asOf {
+  flex: 0 0 auto;
+  font-family: var(--cw-font-mono);
+}
+
+.obligationList {
+  margin: 0;
+  padding: 0;
+  border-block: 1px solid var(--web-line);
+  list-style: none;
+}
+
+.obligationList > li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 5.75rem;
+  padding: 0.9rem 0;
+}
+
+.obligationList > li + li {
+  border-top: 1px solid var(--web-line);
+}
+
+.obligationPriority {
+  align-self: start;
+  padding-top: 0.15rem;
+  color: var(--web-accent);
+  font-family: var(--cw-font-display);
+  font-size: 1.5rem;
+}
+
+.obligationCopy {
+  min-width: 0;
+}
+
+.obligationCopy > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.obligationCopy h3,
+.obligationCopy p {
+  margin: 0;
+}
+
+.obligationCopy h3 {
+  margin-top: 0.3rem;
+  font-size: 1rem;
+}
+
+.obligationCopy p {
+  margin-top: 0.2rem;
+  color: var(--web-muted);
+  font-size: 0.82rem;
+}
+
+.obligationAction {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  color: var(--web-accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.supportingContext {
+  border-block: 1px solid var(--web-line);
+}
+
+.supportingContext > summary {
+  min-height: 3.25rem;
+  padding-block: 0.85rem;
+  color: var(--web-accent);
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.contextColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  padding: 0.5rem 0 1.25rem;
+}
+
+.contextColumns h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.capacityFacts {
+  margin: 0;
+}
+
+.capacityFacts div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) auto;
+  gap: 1rem;
+  padding-block: 0.55rem;
+  border-top: 1px solid var(--web-line);
+}
+
+.capacityFacts dt,
+.capacityFacts dd {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.capacityFacts dd {
+  font-weight: 750;
+  text-align: right;
+}
+
+@media (max-width: 52rem) {
+  .taskHeader {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .obligationHeading {
+    display: grid;
+  }
+
+  .asOf {
+    justify-self: start;
+  }
+
+  .obligationList > li {
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+  }
+
+  .obligationAction {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .contextColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 35rem) {
+  .obligationList > li {
+    gap: 0.6rem;
+  }
+
+  .obligationCopy > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .capacityFacts div {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .capacityFacts dd {
+    text-align: left;
   }
 }

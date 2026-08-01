@@ -1,18 +1,11 @@
-import { Suspense } from "react";
-
-import { SEARCH_COPY } from "@/src/features/internal-ops/queue-search/copy";
-import { GlobalSearch } from "@/src/features/internal-ops/queue-search/global-search";
-
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default function Page() {
   return (
-    <Suspense
-      fallback={
-        <main id="main-content" aria-busy="true">
-          {SEARCH_COPY.loading}
-        </main>
-      }
-    >
-      <GlobalSearch />
-    </Suspense>
+    <ProjectionDetailPage
+      audience="internal"
+      channel="queues"
+      title="Scoped operational search"
+      description="Only session-authorized projections are searchable in this experience."
+    />
   );
 }

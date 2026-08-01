@@ -1,10 +1,11 @@
-import { AccountOverview } from "@/src/features/customer-partner/customer/account-overview";
-import { getRouteRoles } from "@/src/features/shell/route-session";
-
-export default async function Page() {
-  const roles = await getRouteRoles("customer");
-  const canManageAccount = roles.some(
-    (role) => role === "owner" || role === "admin",
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+export default function Page() {
+  return (
+    <ProjectionDetailPage
+      audience="customer"
+      channel="users"
+      title="Account access"
+      description="Review authorized membership records and their current server state."
+    />
   );
-  return <AccountOverview canManageAccount={canManageAccount} />;
 }

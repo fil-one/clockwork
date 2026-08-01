@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
-export default function HomePage() {
-  redirect("/dashboard");
+import { getAuthenticatedHome } from "@/src/features/shell/route-session";
+
+export default async function HomePage() {
+  redirect(await getAuthenticatedHome());
 }

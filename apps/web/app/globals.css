@@ -261,28 +261,29 @@ input {
 }
 .page-header {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem 2rem;
+  padding-block-end: 1.1rem;
+  border-bottom: 2px solid var(--web-ink);
 }
 .page-header > div:first-child {
   max-width: 52rem;
 }
 .eyebrow {
-  margin: 0 0 0.5rem;
-  color: var(--web-accent);
-  font-size: 0.68rem;
-  font-weight: 850;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  margin: 0 0 0.35rem;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 .page-header h1 {
-  max-width: 48rem;
+  max-width: 32ch;
   margin: 0;
-  font-size: clamp(2rem, 4.4vw, 3.65rem);
-  font-weight: 650;
-  letter-spacing: -0.052em;
-  line-height: 0.98;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
   text-wrap: balance;
 }
 .page-description {
@@ -303,23 +304,22 @@ input {
 }
 .signature-term {
   border: 1px solid var(--web-line);
-  border-radius: 0.8rem;
+  border-radius: 0.25rem;
   background: var(--web-paper);
   padding: 1rem 1.2rem;
 }
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid var(--web-line);
-  border-radius: 0.8rem;
-  background: var(--web-paper);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  border-block: 1px solid var(--web-line);
+  background: transparent;
   overflow: hidden;
 }
 .stat-tile {
   position: relative;
   display: grid;
   align-content: start;
-  min-height: 8.2rem;
+  min-height: 5.5rem;
   border-right: 1px solid var(--web-line);
   padding: 1rem 1.1rem;
 }
@@ -353,7 +353,7 @@ input {
 }
 .stat-tile strong {
   margin-top: auto;
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
   font-weight: 620;
   letter-spacing: -0.04em;
 }
@@ -363,7 +363,7 @@ input {
 }
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(17rem, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
@@ -371,9 +371,8 @@ input {
 .timeline-panel,
 .data-chart,
 .workflow-panel {
-  border: 1px solid var(--web-line);
-  border-radius: 0.8rem;
-  background: var(--web-paper);
+  border-block: 1px solid var(--web-line);
+  background: transparent;
 }
 .record-panel {
   min-width: 0;
@@ -593,7 +592,7 @@ input {
 
 .workflow-panel {
   display: grid;
-  grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   padding: 1.25rem;
 }
@@ -659,7 +658,7 @@ input {
   min-height: 15rem;
   border: 1px solid var(--web-line);
   border-top: 3px solid var(--web-line);
-  border-radius: 0.8rem;
+  border-radius: 0.25rem;
   background: var(--web-paper);
   padding: 1.25rem;
 }
@@ -990,5 +989,127 @@ input {
   .provider-progress::after {
     animation: none;
     width: 100%;
+  }
+}
+
+/* Audience composition is distinct without depending on gated licensed marks. */
+.web-shell--customer {
+  --web-accent: #245a40;
+  --web-soft: #e0eee5;
+}
+
+.web-shell--partner {
+  --web-accent: #6e4a19;
+  --web-soft: #f2e8d8;
+}
+
+.web-shell--internal {
+  --web-accent: #245565;
+  --web-soft: #e3edf0;
+  --web-canvas: #f2f4f2;
+}
+
+.web-shell--partner .cw-shell__rail {
+  border-right-color: #c9b493;
+}
+
+.web-shell--internal .cw-navigation__link,
+.web-shell--internal .sidebar-meta {
+  font-family: var(--cw-font-mono);
+}
+
+/* Shared legacy surfaces use a work heading, fact ledger, and disclosed context. */
+.page-header {
+  padding-block-end: 1.1rem;
+  border-bottom: 2px solid var(--web-ink);
+}
+
+.surface-context {
+  margin: 0 0 0.35rem;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.page-header h1 {
+  max-width: 32ch;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  line-height: 1.08;
+}
+
+.surface-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--web-line);
+}
+
+.surface-facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-left: 3px solid var(--web-line);
+}
+
+.surface-facts > div[data-tone="attention"] {
+  border-left-color: var(--web-warm);
+}
+
+.surface-facts dt,
+.surface-facts dd {
+  margin: 0;
+}
+
+.surface-facts dt,
+.surface-facts span {
+  color: var(--web-muted);
+  font-size: 0.72rem;
+}
+
+.surface-facts dd {
+  display: grid;
+  justify-items: end;
+  font-size: 0.82rem;
+}
+
+.record-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.supporting-disclosure {
+  border-block: 1px solid var(--web-line);
+}
+
+.supporting-disclosure > summary {
+  min-height: 3.25rem;
+  padding-block: 0.85rem;
+  color: var(--web-accent);
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.supporting-disclosure__content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  padding-block-end: 1rem;
+}
+
+@media (max-width: 52rem) {
+  .supporting-disclosure__content {
+    grid-template-columns: 1fr;
+  }
+
+  .surface-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .surface-facts dd {
+    justify-items: start;
   }
 }

@@ -4,10 +4,18 @@ import { describe, expect, it } from "vitest";
 
 import { StateGallery } from "@/src/features/states/state-gallery";
 import { ExperiencePage } from "@/src/features/surfaces/experience-page";
+import { DEMO_NOW, orders, timeline } from "@/src/features/shared/demo-data";
 
 describe("experience accessibility", () => {
   it("has no axe violations in the customer dashboard", async () => {
-    render(<ExperiencePage surface="dashboard" />);
+    render(
+      <ExperiencePage
+        surface="dashboard"
+        records={orders}
+        now={DEMO_NOW}
+        timelineItems={timeline}
+      />,
+    );
     expect((await axe.run(document.body)).violations).toEqual([]);
   });
 

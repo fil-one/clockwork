@@ -24,6 +24,10 @@ export interface PartnerRecord {
   value: string;
   secondary: string;
   href?: Route;
+  recordVersion?: number;
+  projectionId?: string;
+  recordKey?: string;
+  allowedActions?: readonly string[];
 }
 
 export type PartnerSurfaceKey =

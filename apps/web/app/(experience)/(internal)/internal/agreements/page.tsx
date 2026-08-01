@@ -1,6 +1,11 @@
-import { AgreementAdministration } from "@/src/features/internal-ops/administration-safety/agreements";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 
-export default async function Page() {
-  return <AgreementAdministration roles={await getRouteRoles("internal")} />;
+export default function Page() {
+  return (
+    <InternalProjectionPage
+      channel="agreements"
+      title="Agreement administration"
+      description="Review canonical agreement versions and their authorized next task."
+    />
+  );
 }

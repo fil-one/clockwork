@@ -43,6 +43,12 @@
     "verify:database": "pnpm db:reset && pnpm db:test && pnpm test",
     "verify:build": "turbo run build build:storybook",
     "verify:ui": "turbo run test:storybook test:e2e",
+    "release:parallel": "node scripts/release-suites.mjs --mode=parallel",
+    "release:serial": "node scripts/release-suites.mjs --mode=serial",
+    "release:debug": "node scripts/release-suites.mjs --mode=serial --debug",
+    "release:plan": "node scripts/release-suites.mjs --mode=parallel --plan",
+    "release:compare": "node scripts/compare-release-results.mjs",
+    "release:benchmark": "node scripts/benchmark-release.mjs",
     "verify": "pnpm verify:static && pnpm verify:database && pnpm verify:build && pnpm verify:ui"
   },
   "devDependencies": {
@@ -66,6 +72,18 @@
   },
   "pnpm": {
     "overrides": {
+      "@esbuild-kit/core-utils@3.3.2>esbuild": "0.25.12",
+      "@trigger.dev/core@4.5.9>@opentelemetry/api-logs": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/core": "2.10.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/exporter-logs-otlp-http": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/exporter-metrics-otlp-http": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/exporter-trace-otlp-http": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/instrumentation": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/resources": "2.10.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/sdk-logs": "0.221.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/sdk-metrics": "2.10.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/sdk-trace-base": "2.10.0",
+      "@trigger.dev/core@4.5.9>@opentelemetry/sdk-trace-node": "2.10.0",
       "brace-expansion": "5.0.9",
       "engine.io@<6.6.7": "6.6.7",
       "postcss@<8.5.17": "8.5.25",

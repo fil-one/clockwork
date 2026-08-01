@@ -2,17 +2,17 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/src/features/shell/app-shell";
 import { RoutePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRouteSession } from "@/src/features/shell/route-session";
 
 export default async function PartnerLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const roles = await getRouteRoles("partner");
+  const session = await getRouteSession("partner");
   return (
-    <RoutePermissionGate audience="partner" roles={roles}>
-      <AppShell audience="partner" roles={roles}>
+    <RoutePermissionGate audience="partner" roles={session.roles}>
+      <AppShell audience="partner" session={session}>
         {children}
       </AppShell>
     </RoutePermissionGate>

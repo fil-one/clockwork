@@ -8,6 +8,7 @@ import {
   CommercialErrorState,
   CommercialLoadingState,
 } from "./collection-page";
+import { recordsFor } from "./model";
 
 describe("commercial collection states", () => {
   it("renders loading and retryable error guidance", () => {
@@ -26,6 +27,7 @@ describe("commercial collection states", () => {
     rerender(
       <CommercialCollectionPage
         kind="quotes"
+        records={recordsFor("quotes")}
         searchParams={{ q: "does-not-exist" }}
       />,
     );

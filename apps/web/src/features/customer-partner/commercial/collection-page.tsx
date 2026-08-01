@@ -4,7 +4,6 @@ import Link from "next/link";
 import { customerPartnerCopy } from "../copy";
 import {
   collectionDefinitions,
-  recordsFor,
   type CollectionKind,
   type CommercialRecord,
 } from "./model";
@@ -155,16 +154,15 @@ export function CommercialErrorState({ retry }: { retry?: () => void }) {
 export function CommercialCollectionPage({
   kind,
   searchParams,
-  records: recordsOverride,
+  records: allRecords,
   canUsePrimaryAction = true,
 }: {
   kind: CollectionKind;
   searchParams: RawSearchParams;
-  records?: readonly CommercialRecord[];
+  records: readonly CommercialRecord[];
   canUsePrimaryAction?: boolean;
 }) {
   const definition = collectionDefinitions[kind];
-  const allRecords = recordsOverride ?? recordsFor(kind);
   const state = parseCollectionState(searchParams);
   const filtered = filterAndSortRecords(allRecords, state);
   const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));

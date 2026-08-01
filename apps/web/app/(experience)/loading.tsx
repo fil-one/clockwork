@@ -11,11 +11,7 @@ export default function ExperienceLoading() {
     >
       <Skeleton width="28%" height="1rem" label={t("state.loading.title")} />
       <Skeleton width="66%" height="3.5rem" label={t("state.loading.title")} />
-      <div className="stat-grid">
-        {[0, 1, 2, 3].map((item) => (
-          <Skeleton key={item} height="8rem" label={t("state.loading.title")} />
-        ))}
-      </div>
+      <Skeleton height="14rem" label={t("state.loading.description")} />
       <Skeleton height="24rem" label={t("state.loading.description")} />
     </main>
   );

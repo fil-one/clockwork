@@ -46,7 +46,7 @@ export const en = {
   "app.account.switched": "Switched to {account}.",
   "app.account.choose.title": "Choose an organization",
   "app.account.choose.description":
-    "Select an organization in WorkOS AuthKit. Local development uses the deterministic Northstar organization.",
+    "Select one of the active organizations authorized for your signed-in WorkOS identity.",
   "app.profile": "Open profile menu",
   "app.profile.name": "Maya Chen",
   "app.profile.role": "Commerce owner · MFA verified",

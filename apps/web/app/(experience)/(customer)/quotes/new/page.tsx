@@ -1,10 +1,11 @@
-import { QuoteBuilder } from "@/src/features/customer-partner/commercial/quote-builder";
-import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-
+import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 export default function Page() {
   return (
-    <SurfacePermissionGate audience="customer" requiredPermission="quote:write">
-      <QuoteBuilder />
-    </SurfacePermissionGate>
+    <ProjectionDetailPage
+      audience="customer"
+      channel="quotes"
+      title="Quote workspace"
+      description="Choose the authorized commercial record that should produce a new quote task."
+    />
   );
 }

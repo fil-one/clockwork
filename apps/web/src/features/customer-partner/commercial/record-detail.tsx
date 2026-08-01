@@ -3,9 +3,10 @@ import Link from "next/link";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
-import { recordById, type CommercialRecord } from "./model";
+import type { CommercialRecord } from "./model";
 import { PaymentHandoff } from "./payment-handoff";
 import { validQuoteActions, type QuoteStatus } from "./workflow-model";
+import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
 
 function detailLabel(record: CommercialRecord) {
   if (record.kind === "agreements") return "Agreement detail";
@@ -17,143 +18,22 @@ function detailLabel(record: CommercialRecord) {
 }
 
 function commercialSummary(record: CommercialRecord) {
-  if (record.kind === "agreements")
-    return [
-      { label: "Agreement", value: record.title },
-      {
-        label: "Version",
-        value: record.version ? `Version ${record.version}` : "Current",
-      },
-      { label: "Legal entity", value: "Northstar Archive Labs" },
-      {
-        label: "Authority evidence",
-        value: "Maya Chen · Chief Operating Officer",
-      },
-    ];
-  if (record.kind === "quotes")
-    return [
-      {
-        label: customerPartnerCopy.commercial.estimatedSpend,
-        value: record.value,
-      },
-      { label: "Offer", value: record.title },
-      {
-        label: "Capacity and region",
-        value: record.description.split(" · ").slice(0, 2).join(" · "),
-      },
-      { label: "Commercial route", value: "Direct" },
-    ];
-  if (record.kind === "orders")
-    return [
-      { label: "Resulting commitment", value: record.value },
-      {
-        label: "Accepted quote",
-        value: "Compliance replica renewal · version 2",
-      },
-      {
-        label: "Governing agreement",
-        value: "Cloud Service Agreement · version 3.2",
-      },
-      {
-        label: "Purchase order",
-        value: record.id === "ORD-2026-0098" ? "PO-NA-1048" : "PO-NA-1081",
-      },
-    ];
-  if (record.kind === "billing")
-    return [
-      {
-        label: customerPartnerCopy.commercial.invoiceTruth,
-        value: record.value,
-      },
-      {
-        label: customerPartnerCopy.commercial.estimatedSpend,
-        value: "$15,400.00 monthly estimate",
-      },
-      {
-        label: customerPartnerCopy.commercial.paymentTruth,
-        value:
-          record.status === "paid"
-            ? "Paid · provider confirmed"
-            : "Awaiting provider confirmation",
-      },
-      { label: "Purchase order", value: "PO-NA-1048" },
-    ];
-  if (record.kind === "pocs")
-    return [
-      {
-        label: "Capacity safeguard",
-        value: record.id.endsWith("31") ? "20 TB cap" : "12 TB cap",
-      },
-      { label: "Permitted data", value: "Confidential · isolated environment" },
-      {
-        label: "Success tests",
-        value: record.status === "complete" ? "4 of 4 passed" : "3 of 4 passed",
-      },
-      { label: "Conversion", value: "Requires accepted paid quote and order" },
-    ];
   return [
-    { label: "Service", value: record.title },
-    { label: "Usage", value: record.value },
-    {
-      label: "Region",
-      value: record.description.includes("EU West")
-        ? "EU West · Madrid"
-        : "US East · Virginia",
-    },
-    { label: "Service owner", value: record.owner },
+    { label: "Record", value: record.title },
+    { label: "Authoritative status", value: record.statusLabel },
+    { label: record.valueLabel, value: record.value },
+    { label: "Owner", value: record.owner },
+    { label: "Term / timing", value: record.term },
+    { label: "Projection version", value: record.version ?? "Unavailable" },
   ];
 }
 
 function artifactChain(record: CommercialRecord) {
-  if (record.kind === "agreements")
-    return [
-      [
-        "Counsel-approved template",
-        `Cloud Service Agreement · version ${record.version ?? "current"}`,
-      ],
-      [
-        "Execution evidence",
-        "Authority attestation · exact text integrity verified",
-      ],
-      ["Governing record", record.id],
-    ];
-  if (record.kind === "quotes")
-    return [
-      ["Current price book", "USD 2026.3 · server-priced"],
-      ["Rendered offer", `${record.title} · version ${record.version ?? "1"}`],
-      ["Quote status", record.statusLabel],
-    ];
-  if (record.kind === "orders")
-    return [
-      ["Accepted quote", "Compliance replica renewal · version 2"],
-      ["Governing agreement", "Cloud Service Agreement · version 3.2"],
-      ["Resulting order", record.id],
-      ["Service", record.title],
-    ];
-  if (record.kind === "billing")
-    return [
-      ["Order", "Northstar primary archive"],
-      ["Invoice", record.id],
-      [
-        "Provider payment event",
-        record.status === "paid" ? "Signed webhook confirmed" : "Not received",
-      ],
-    ];
-  if (record.kind === "pocs")
-    return [
-      ["Approved evaluation scope", record.title],
-      ["Isolated environment", "Capacity and expiry safeguards active"],
-      [
-        "Result evidence",
-        record.status === "complete"
-          ? "Final report ready"
-          : "Final test pending",
-      ],
-    ];
   return [
-    ["Accepted order", record.id.replace("SVC", "ORD")],
-    ["Provisioning", record.statusLabel],
-    ["Metering", record.dateLabel],
+    ["Persisted record", record.id],
+    ["Projection version", record.version ?? "Unavailable"],
+    ["Source update", record.dateLabel],
+    ["Next valid task", record.nextAction],
   ];
 }
 
@@ -190,11 +70,12 @@ function DetailActions({
 export function CommercialRecordDetail({
   id,
   canMutate = false,
+  record,
 }: {
   id: string;
   canMutate?: boolean;
+  record: CommercialRecord | null;
 }) {
-  const record = recordById(id);
   if (!record) {
     return (
       <main className={styles.main} id="main-content">
@@ -202,7 +83,7 @@ export function CommercialRecordDetail({
           <h1>Record not found</h1>
           <p>
             The requested commercial record is unavailable or outside your
-            account.
+            account. Requested reference: {id}.
           </p>
           <Link className={styles.secondary} href="/dashboard">
             Return to dashboard
@@ -242,6 +123,16 @@ export function CommercialRecordDetail({
             {record.statusLabel}
           </span>
           <DetailActions canMutate={canMutate} record={record} />
+          {record.kind === "agreements" && record.aggregateId ? (
+            <Link
+              className={styles.primary}
+              href={
+                `/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}` as Route
+              }
+            >
+              Sign this agreement
+            </Link>
+          ) : null}
         </div>
       </header>
 
@@ -344,10 +235,6 @@ export function CommercialRecordDetail({
                 <strong>Record state synchronized</strong>
               </li>
               <li>
-                <span>Jul 25, 2026</span>
-                <strong>Commercial artifact verified</strong>
-              </li>
-              <li>
                 <span>Actor</span>
                 <strong>{record.owner}</strong>
               </li>
@@ -364,18 +251,28 @@ export function CommercialRecordDetail({
                 <div>
                   <dt>Row version</dt>
                   <dd>
-                    <code>3</code>
-                  </dd>
-                </div>
-                <div className={styles.spanTwo}>
-                  <dt>Artifact SHA-256</dt>
-                  <dd>
-                    <code>73be9f02a87c3c7f6311a3210cb922e2</code>
+                    <code>{record.version ?? "Unavailable"}</code>
                   </dd>
                 </div>
               </dl>
             </details>
           </section>
+          {record.aggregateId && record.kind === "agreements" ? (
+            <EvidenceUploadControl
+              journey="customer_paper"
+              targetId={record.aggregateId}
+              kind="agreement"
+              label="Attach customer agreement paper"
+            />
+          ) : null}
+          {record.aggregateId && record.kind === "pocs" ? (
+            <EvidenceUploadControl
+              journey="poc"
+              targetId={record.aggregateId}
+              kind="acceptance"
+              label="Attach POC acceptance or result evidence"
+            />
+          ) : null}
         </div>
       </div>
     </main>

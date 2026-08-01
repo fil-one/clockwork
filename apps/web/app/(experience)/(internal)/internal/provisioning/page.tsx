@@ -1,5 +1,11 @@
-import { ProvisioningView } from "@/src/features/internal-ops/finance-lifecycle/provisioning-view";
+import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 
 export default function Page() {
-  return <ProvisioningView />;
+  return (
+    <InternalProjectionPage
+      channel="provisioning"
+      title="Provisioning recovery"
+      description="Review provider state and idempotency evidence before recovery."
+    />
+  );
 }

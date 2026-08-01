@@ -15,17 +15,20 @@
     "build:storybook": "storybook build",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
     "test:e2e": "playwright test",
-    "test:e2e:smoke": "playwright test --grep @smoke"
+    "test:e2e:smoke": "playwright test --grep @smoke",
+    "test:e2e:proof": "playwright test --config playwright.proof.config.ts"
   },
   "dependencies": {
     "@clockwork/api": "workspace:*",
     "@clockwork/contracts": "workspace:*",
     "@clockwork/db": "workspace:*",
+    "@clockwork/documents": "workspace:*",
     "@clockwork/integrations": "workspace:*",
     "@clockwork/ui": "workspace:*",
     "@workos-inc/authkit-nextjs": "catalog:",
     "@workos-inc/node": "catalog:",
     "hono": "catalog:",
+    "drizzle-orm": "catalog:",
     "next": "16.2.12",
     "react": "catalog:",
     "react-dom": "catalog:"
