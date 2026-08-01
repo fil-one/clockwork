@@ -26,12 +26,12 @@ const suites = {
     ["pnpm", "boundaries"],
     ["pnpm", "scan:secrets"],
     ["pnpm", "audit:dependencies"],
-    ["pnpm", "--filter", "@clockwork/db", "check"],
     ["node", "scripts/check-generated-dry-run.mjs"],
     ["pnpm", "check:traceability"],
   ],
   unit: [["pnpm", "test:unit"]],
   integration: [
+    ["pnpm", "--filter", "@clockwork/db", "check"],
     ["pnpm", "db:test"],
     ["pnpm", "test:integration"],
   ],
