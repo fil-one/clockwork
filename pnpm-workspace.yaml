@@ -34,4 +34,6 @@ onlyBuiltDependencies:
   - msw
   - sharp
   - supabase
+
+ignoredBuiltDependencies:
   - unrs-resolver
