@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { uuidV7 } from "@clockwork/contracts";
 import { Button, Input, Select, Textarea } from "@clockwork/ui";
 
 import {
@@ -99,13 +100,13 @@ function quotePayload(data: FormData) {
   const endClientAccountId = value(data, "endClientAccountId");
   return {
     priceBookId: value(data, "priceBookId"),
-    seriesId: crypto.randomUUID(),
+    seriesId: uuidV7(),
     route: value(data, "route"),
     ...(endClientAccountId ? { endClientAccountId } : {}),
     ...(partnerAccountId ? { partnerAccountId } : {}),
     lines: [
       {
-        lineId: crypto.randomUUID(),
+        lineId: uuidV7(),
         sku: value(data, "sku"),
         region: value(data, "region"),
         quantity: value(data, "capacity"),
@@ -442,6 +443,11 @@ function mutationFields(
           label="Success test"
           name="successTest"
           defaultValue="Restore validation completes within the agreed recovery objective"
+        />
+        <Input
+          label="Success target"
+          name="successTarget"
+          defaultValue="100% of the validation suite passes"
         />
         <Input
           label="Capacity cap (TB)"
@@ -1077,7 +1083,7 @@ export function WorkflowPanel({
       } else if (workflow === "quote" || workflow === "assisted") {
         result = await sendCoreCommand({
           resource: "quotes",
-          id: crypto.randomUUID(),
+          id: uuidV7(),
           accountId: value(data, "accountId"),
           action: "create",
           payload: quotePayload(data),
@@ -1087,7 +1093,7 @@ export function WorkflowPanel({
         const poDocumentId = value(data, "poDocumentId");
         result = await sendCoreCommand({
           resource: "orders",
-          id: crypto.randomUUID(),
+          id: uuidV7(),
           accountId: value(data, "accountId"),
           action: "create",
           payload: {
@@ -1129,8 +1135,9 @@ export function WorkflowPanel({
                 permittedDataClass: value(data, "permittedDataClass"),
                 successTests: [
                   {
-                    id: crypto.randomUUID(),
+                    id: uuidV7(),
                     description: value(data, "successTest"),
+                    target: value(data, "successTarget"),
                   },
                 ],
                 capacityCap: value(data, "capacityCap"),
@@ -1174,7 +1181,7 @@ export function WorkflowPanel({
       } else if (workflow === "registration") {
         result = await sendCoreCommand({
           resource: "deal_registrations",
-          id: crypto.randomUUID(),
+          id: uuidV7(),
           accountId: value(data, "partnerAccountId"),
           action: "create",
           payload: {
@@ -1227,7 +1234,7 @@ export function WorkflowPanel({
             : action === "issue_credit"
               ? await sendCoreCommand({
                   resource: "credit_notes",
-                  id: crypto.randomUUID(),
+                  id: uuidV7(),
                   accountId,
                   action: "issue",
                   payload: {
@@ -1240,7 +1247,7 @@ export function WorkflowPanel({
               : action === "submit_refund"
                 ? await sendCoreCommand({
                     resource: "refunds",
-                    id: crypto.randomUUID(),
+                    id: uuidV7(),
                     accountId,
                     action: "submit",
                     payload: {
@@ -1252,7 +1259,7 @@ export function WorkflowPanel({
                   })
                 : await sendCoreCommand({
                     resource: "disputes",
-                    id: crypto.randomUUID(),
+                    id: uuidV7(),
                     accountId,
                     action: "create",
                     payload: {

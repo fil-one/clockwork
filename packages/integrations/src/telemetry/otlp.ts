@@ -31,10 +31,12 @@ export class OtlpHttpTelemetrySink implements TelemetrySink {
     runtimeEnvironment: "development" | "test" | "staging" | "production";
     fetch?: typeof fetch;
     timeoutMs?: number;
+    allowInsecureLocalhost?: boolean;
   }) {
     this.configuration = resolveOtlpConfiguration(
       options.environment,
       options.runtimeEnvironment,
+      options.allowInsecureLocalhost ?? false,
     );
     this.fetcher = options.fetch ?? fetch;
     this.timeoutMs = options.timeoutMs ?? 10_000;
@@ -74,6 +76,7 @@ export class OtlpHttpTelemetrySink implements TelemetrySink {
 function resolveOtlpConfiguration(
   environment: Readonly<Record<string, string | undefined>>,
   runtimeEnvironment: "development" | "test" | "staging" | "production",
+  allowInsecureLocalhost = false,
 ): ResolvedOtlpConfiguration {
   const disabled = environment.OTEL_SDK_DISABLED === "true";
   const protocol =
@@ -92,7 +95,12 @@ function resolveOtlpConfiguration(
   if (
     endpoint &&
     runtimeEnvironment === "production" &&
-    !endpoint.startsWith("https://")
+    !endpoint.startsWith("https://") &&
+    !(
+      allowInsecureLocalhost &&
+      endpoint.startsWith("http://") &&
+      ["127.0.0.1", "localhost", "::1"].includes(new URL(endpoint).hostname)
+    )
   )
     throw new Error("OTEL_EXPORTER_OTLP_HTTPS_REQUIRED");
   const headers = parsePairs(

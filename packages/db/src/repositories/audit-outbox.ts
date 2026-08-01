@@ -1,4 +1,4 @@
-import type { Actor, EntityName } from "@clockwork/contracts";
+import { uuidV7, type Actor, type EntityName } from "@clockwork/contracts";
 
 import type { RuntimeTransaction } from "../client";
 import { auditEvents, outboxMessages } from "../schema";
@@ -44,7 +44,7 @@ export async function appendAuditAndOutbox(
 
   if (!event) throw new Error("Audit insert did not return a row");
 
-  const messageId = crypto.randomUUID();
+  const messageId = uuidV7();
   await transaction.insert(outboxMessages).values({
     id: messageId,
     eventId: event.id,

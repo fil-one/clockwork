@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 
-import { ProblemError } from "@clockwork/contracts";
+import { ProblemError, uuidV7 } from "@clockwork/contracts";
 import { createMiddleware } from "hono/factory";
 
 import type { ApiVariables } from "../context";
@@ -108,9 +108,7 @@ export const requestContextMiddleware = createMiddleware<{
 }>(async (context, next) => {
   const incoming = context.req.header("x-request-id");
   const requestId =
-    incoming && requestIdPattern.test(incoming)
-      ? incoming
-      : crypto.randomUUID();
+    incoming && requestIdPattern.test(incoming) ? incoming : uuidV7();
   const rawWebhookBody = context.req.path.startsWith("/v1/webhooks/")
     ? await readLimitedWebhookBody(context.req.raw.clone(), requestId)
     : undefined;

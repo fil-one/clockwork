@@ -547,6 +547,8 @@ export interface paths {
                                 /** @enum {string} */
                                 marketplaceWebhook: "configured" | "missing";
                                 /** @enum {string} */
+                                supportWebhook: "configured" | "missing";
+                                /** @enum {string} */
                                 evidenceStorage: "configured" | "missing";
                             };
                         };
@@ -1448,7 +1450,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/webhooks/marketplaces-platform": {
+    "/v1/webhooks/marketplaces/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1463,7 +1465,9 @@ export interface paths {
                 header: {
                     "marketplace-signature": string;
                 };
-                path?: never;
+                path: {
+                    provider: "aws" | "azure" | "google";
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -1485,6 +1489,66 @@ export interface paths {
                     };
                 };
                 /** @description Marketplace webhook adapter unavailable or busy */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/support/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "support-signature": string;
+                };
+                path: {
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Verified support signal metadata recorded or deduplicated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "processed" | "duplicate";
+                        };
+                    };
+                };
+                /** @description Verified support provider does not match the path */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Support webhook adapter unavailable or busy */
                 503: {
                     headers: {
                         [name: string]: unknown;
@@ -1603,6 +1667,7 @@ export interface paths {
                         successTests: {
                             id: string;
                             description: string;
+                            target: string;
                         }[];
                         capacityCap: string;
                         egressCap: string;
@@ -2807,6 +2872,8 @@ export interface paths {
                                 simulatorState: "ready" | "degraded" | "unavailable";
                                 simulatorDetails: string;
                                 /** @enum {string} */
+                                inputProvenance: "unverified" | "repository_fixture" | "live_signed";
+                                /** @enum {string} */
                                 lastActivationTestStatus: "never" | "passed" | "failed";
                                 /** Format: date-time */
                                 lastActivationTestAt: string | null;
@@ -2815,6 +2882,11 @@ export interface paths {
                                 /** Format: date */
                                 reviewOn: string | null;
                                 statusReason: string;
+                                /** Format: date-time */
+                                emergencyDisabledAt: string | null;
+                                emergencyDisabledBy: string | null;
+                                emergencyDisableReason: string | null;
+                                emergencyDisableEvidenceReference: string | null;
                                 activationAllowed: boolean;
                                 blockedReasons: string[];
                                 rowVersion: number;
@@ -2906,6 +2978,8 @@ export interface paths {
                             simulatorState: "ready" | "degraded" | "unavailable";
                             simulatorDetails: string;
                             /** @enum {string} */
+                            inputProvenance: "unverified" | "repository_fixture" | "live_signed";
+                            /** @enum {string} */
                             lastActivationTestStatus: "never" | "passed" | "failed";
                             /** Format: date-time */
                             lastActivationTestAt: string | null;
@@ -2914,6 +2988,11 @@ export interface paths {
                             /** Format: date */
                             reviewOn: string | null;
                             statusReason: string;
+                            /** Format: date-time */
+                            emergencyDisabledAt: string | null;
+                            emergencyDisabledBy: string | null;
+                            emergencyDisableReason: string | null;
+                            emergencyDisableEvidenceReference: string | null;
                             activationAllowed: boolean;
                             blockedReasons: string[];
                             rowVersion: number;
@@ -3018,6 +3097,8 @@ export interface paths {
                             simulatorState: "ready" | "degraded" | "unavailable";
                             simulatorDetails: string;
                             /** @enum {string} */
+                            inputProvenance: "unverified" | "repository_fixture" | "live_signed";
+                            /** @enum {string} */
                             lastActivationTestStatus: "never" | "passed" | "failed";
                             /** Format: date-time */
                             lastActivationTestAt: string | null;
@@ -3026,6 +3107,11 @@ export interface paths {
                             /** Format: date */
                             reviewOn: string | null;
                             statusReason: string;
+                            /** Format: date-time */
+                            emergencyDisabledAt: string | null;
+                            emergencyDisabledBy: string | null;
+                            emergencyDisableReason: string | null;
+                            emergencyDisableEvidenceReference: string | null;
                             activationAllowed: boolean;
                             blockedReasons: string[];
                             rowVersion: number;
@@ -3056,6 +3142,456 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Activation-test runner or persistence unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/external-gates/{gateKey}/emergency-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedRowVersion: number;
+                        disabled: boolean;
+                        reason: string;
+                        evidenceReference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description External gate emergency disable or restore recorded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                            title: string;
+                            owner: string;
+                            inputRequired: string;
+                            affectedFeature: string;
+                            severity: string;
+                            /** @enum {string} */
+                            configuredStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            effectiveStatus: "blocked" | "review" | "pending" | "active" | "not_required";
+                            /** @enum {string} */
+                            simulatorState: "ready" | "degraded" | "unavailable";
+                            simulatorDetails: string;
+                            /** @enum {string} */
+                            inputProvenance: "unverified" | "repository_fixture" | "live_signed";
+                            /** @enum {string} */
+                            lastActivationTestStatus: "never" | "passed" | "failed";
+                            /** Format: date-time */
+                            lastActivationTestAt: string | null;
+                            lastActivationTestedBy: string | null;
+                            activationEvidenceReference: string | null;
+                            /** Format: date */
+                            reviewOn: string | null;
+                            statusReason: string;
+                            /** Format: date-time */
+                            emergencyDisabledAt: string | null;
+                            emergencyDisabledBy: string | null;
+                            emergencyDisableReason: string | null;
+                            emergencyDisableEvidenceReference: string | null;
+                            activationAllowed: boolean;
+                            blockedReasons: string[];
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Gate not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic row-version conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Emergency control policy denied the update */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Persistent external-gate service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/external-gates/{gateKey}/activation-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedRowVersion: number;
+                        taskKey: string;
+                        provider: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Durable external-gate activation task accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            runId: string;
+                            taskKey: string;
+                            /** @enum {string} */
+                            gateKey: "EXT-ACC-01" | "EXT-LEGAL-01" | "EXT-COMMERCIAL-01" | "EXT-PROVIDER-01" | "EXT-PROVISION-01" | "EXT-TAX-01" | "EXT-DOMAIN-01" | "EXT-BRAND-01" | "EXT-APPROVERS-01" | "EXT-TEARDOWN-01" | "EXT-MARKETPLACE-01" | "EXT-MIGRATION-01";
+                            provider: string;
+                            expectedGateRowVersion: number;
+                            /** @enum {string} */
+                            status: "queued" | "duplicate";
+                            /** Format: date-time */
+                            submittedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Gate not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic gate-version or idempotency conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Durable activation scheduler unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/exception-roster/{rosterEntryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    rosterEntryId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedRowVersion: number;
+                        /** Format: uuid */
+                        accountId: string;
+                        queue: string;
+                        /** Format: uuid */
+                        userId: string;
+                        /** @enum {string} */
+                        role: "primary" | "backup" | "escalation";
+                        active: boolean;
+                        qualificationEvidenceReference: string;
+                        /** Format: date-time */
+                        qualifiedUntil: string;
+                        /** Format: date-time */
+                        absentFrom: string | null;
+                        /** Format: date-time */
+                        absentUntil: string | null;
+                        targetMinutes: number;
+                        priority: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Existing exception-roster assignment updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            accountId: string;
+                            queue: string;
+                            /** Format: uuid */
+                            userId: string;
+                            /** @enum {string} */
+                            role: "primary" | "backup" | "escalation";
+                            active: boolean;
+                            qualificationEvidenceReference: string;
+                            /** Format: date-time */
+                            qualifiedUntil: string;
+                            /** Format: date-time */
+                            absentFrom: string | null;
+                            /** Format: date-time */
+                            absentUntil: string | null;
+                            targetMinutes: number;
+                            priority: number;
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Exception-roster assignment created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            accountId: string;
+                            queue: string;
+                            /** Format: uuid */
+                            userId: string;
+                            /** @enum {string} */
+                            role: "primary" | "backup" | "escalation";
+                            active: boolean;
+                            qualificationEvidenceReference: string;
+                            /** Format: date-time */
+                            qualifiedUntil: string;
+                            /** Format: date-time */
+                            absentFrom: string | null;
+                            /** Format: date-time */
+                            absentUntil: string | null;
+                            targetMinutes: number;
+                            priority: number;
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic row-version conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Roster eligibility or assignment policy failed */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Persistent exception-roster service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/system/exception-cases/{caseId}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path: {
+                    caseId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        requestedBy: string;
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Open exception case reassigned from the persisted roster */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            accountId: string;
+                            queue: string;
+                            status: string;
+                            /** Format: uuid */
+                            ownerUserId: string;
+                            /** Format: uuid */
+                            backupUserId: string | null;
+                            /** Format: date-time */
+                            targetAt: string;
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Operator permission or recent authentication failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Exception case not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Optimistic reassignment conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Roster or open-case policy denied reassignment */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Persistent exception-roster service unavailable */
                 503: {
                     headers: {
                         [name: string]: unknown;
@@ -3121,6 +3657,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/experience/projections/{audience}/{channel}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List authoritative portal projections */
+        get: operations["listExperienceProjections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/projections/{audience}/{channel}/{recordKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one authoritative portal projection */
+        get: operations["readExperienceProjection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/projections/{audience}/{channel}/{recordKey}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue a version-bound authoritative portal command */
+        post: operations["createExperienceProjectionAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read an actor-scoped portal action receipt */
+        get: operations["readExperienceProjectionActionReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/artifacts/render-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve authoritative persisted truth for an artifact render
+         * @description Accepts only artifact identity, optimistic source version, and audience scope. Document facts are resolved server-side from persisted records.
+         */
+        post: operations["createArtifactRenderRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/artifacts/render-requests/{requestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render, redrive when failed, and immutably store an authoritative artifact request */
+        post: operations["renderArtifactRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/experience/artifacts/{kind}/{artifactId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read metadata or download verified immutable PDF bytes */
+        get: operations["readExperienceArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3132,4 +3790,930 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    listExperienceProjections: {
+        parameters: {
+            query?: {
+                accountId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                audience: "customer" | "partner" | "internal";
+                channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized projection page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            recordKey: string;
+                            aggregateType: string;
+                            /** Format: uuid */
+                            aggregateId: string;
+                            accountId: string | null;
+                            /** @enum {string} */
+                            audience: "customer" | "partner" | "internal";
+                            /** @enum {string} */
+                            channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+                            version: number;
+                            /** Format: date-time */
+                            sourceUpdatedAt: string;
+                            /** Format: date-time */
+                            projectedAt: string;
+                            stale: boolean;
+                            data: {
+                                [key: string]: unknown;
+                            };
+                        }[];
+                        nextCursor: string | null;
+                        /** Format: date-time */
+                        generatedAt: string;
+                        freshnessSeconds: number;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    readExperienceProjection: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path: {
+                audience: "customer" | "partner" | "internal";
+                channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+                recordKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized projection record */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        recordKey: string;
+                        aggregateType: string;
+                        /** Format: uuid */
+                        aggregateId: string;
+                        accountId: string | null;
+                        /** @enum {string} */
+                        audience: "customer" | "partner" | "internal";
+                        /** @enum {string} */
+                        channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+                        version: number;
+                        /** Format: date-time */
+                        sourceUpdatedAt: string;
+                        /** Format: date-time */
+                        projectedAt: string;
+                        stale: boolean;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    createExperienceProjectionAction: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header: {
+                "x-csrf-token": string;
+                "idempotency-key": string;
+            };
+            path: {
+                audience: "customer" | "partner" | "internal";
+                channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+                recordKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    projectionId: string;
+                    action: string;
+                    expectedVersion: number;
+                    payload: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Durable projection action receipt */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        projectionId: string;
+                        aggregateType: string;
+                        /** Format: uuid */
+                        aggregateId: string;
+                        action: string;
+                        expectedVersion: number;
+                        /** @enum {string} */
+                        status: "queued" | "applied" | "rejected" | "failed";
+                        resultReference: string | null;
+                        resultCode: string | null;
+                        authoritativeVersion: number | null;
+                        /** @description Null while queued and for migrated LEGACY_ terminal outcomes whose original command replay truth is unknowable. */
+                        commandReplayed: boolean | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        completedAt: string | null;
+                        /** Format: uuid */
+                        auditEventId: string;
+                        /** Format: uuid */
+                        outboxMessageId: string;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    readExperienceProjectionActionReceipt: {
+        parameters: {
+            query?: {
+                accountId?: string;
+            };
+            header?: never;
+            path: {
+                audience: "customer" | "partner" | "internal";
+                channel: "dashboard" | "agreements" | "quotes" | "orders" | "services" | "pocs" | "billing" | "amendments" | "procurement" | "users" | "marketplace" | "support" | "portfolio" | "registrations" | "disputes" | "commissions" | "renewals" | "sandboxes" | "brand" | "queues" | "approvals" | "collections" | "provisioning" | "reports";
+                recordKey: string;
+                actionRequestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued or terminal projection action receipt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        projectionId: string;
+                        aggregateType: string;
+                        /** Format: uuid */
+                        aggregateId: string;
+                        action: string;
+                        expectedVersion: number;
+                        /** @enum {string} */
+                        status: "queued" | "applied" | "rejected" | "failed";
+                        resultReference: string | null;
+                        resultCode: string | null;
+                        authoritativeVersion: number | null;
+                        /** @description Null while queued and for migrated LEGACY_ terminal outcomes whose original command replay truth is unknowable. */
+                        commandReplayed: boolean | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        completedAt: string | null;
+                        /** Format: uuid */
+                        auditEventId: string;
+                        /** Format: uuid */
+                        outboxMessageId: string;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    createArtifactRenderRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-csrf-token": string;
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "direct_quote" | "partner_transfer_quote" | "partner_resale_quote" | "order_form" | "amendment" | "poc_summary" | "poc_final_report" | "invoice_companion" | "receipt" | "commission_statement" | "renewal_confirmation" | "decline_confirmation" | "deletion_certificate" | "reconciliation_report" | "report_export";
+                    /** Format: uuid */
+                    subjectId: string;
+                    expectedVersion: string;
+                    /** @enum {string} */
+                    audience: "customer" | "partner" | "internal";
+                    accountId?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Authoritative render request created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        accountId: string | null;
+                        /** @enum {string} */
+                        audience: "customer" | "partner" | "internal";
+                        audienceAccountId: string | null;
+                        subjectType: string;
+                        /** Format: uuid */
+                        subjectId: string;
+                        /** @enum {string} */
+                        kind: "direct_quote" | "partner_transfer_quote" | "partner_resale_quote" | "order_form" | "amendment" | "poc_summary" | "poc_final_report" | "invoice_companion" | "receipt" | "commission_statement" | "renewal_confirmation" | "decline_confirmation" | "deletion_certificate" | "reconciliation_report" | "report_export";
+                        sourceHash: string;
+                        sourceVersion: string;
+                        /** Format: date-time */
+                        retainUntil: string;
+                        /** @enum {string} */
+                        status: "pending" | "rendering" | "stored" | "failed";
+                        version: number;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    renderArtifactRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-csrf-token": string;
+                "idempotency-key": string;
+            };
+            path: {
+                requestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Immutable PDF representation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "direct_quote" | "partner_transfer_quote" | "partner_resale_quote" | "order_form" | "amendment" | "poc_summary" | "poc_final_report" | "invoice_companion" | "receipt" | "commission_statement" | "renewal_confirmation" | "decline_confirmation" | "deletion_certificate" | "reconciliation_report" | "report_export";
+                        subjectType: string;
+                        /** Format: uuid */
+                        subjectId: string;
+                        accountId: string | null;
+                        /** @enum {string} */
+                        audience: "customer" | "partner" | "internal";
+                        audienceAccountId: string | null;
+                        /** Format: uuid */
+                        documentId: string;
+                        version: string;
+                        sourceHash: string;
+                        contentHash: string;
+                        /** @constant */
+                        mimeType: "application/pdf";
+                        byteLength: string;
+                        filename: string;
+                        /** Format: date-time */
+                        retainUntil: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadHref: string;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    readExperienceArtifact: {
+        parameters: {
+            query?: {
+                /** @description Return public metadata as JSON; omit to download verified PDF bytes. */
+                representation?: "json";
+            };
+            header?: never;
+            path: {
+                kind: "direct_quote" | "partner_transfer_quote" | "partner_resale_quote" | "order_form" | "amendment" | "poc_summary" | "poc_final_report" | "invoice_companion" | "receipt" | "commission_statement" | "renewal_confirmation" | "decline_confirmation" | "deletion_certificate" | "reconciliation_report" | "report_export";
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public artifact metadata or verified immutable PDF */
+            200: {
+                headers: {
+                    /** @description Present for a binary PDF response. */
+                    "Content-Length"?: string;
+                    /** @description Safe attachment filename for a binary PDF response. */
+                    "Content-Disposition"?: string;
+                    /** @description Prevents storage of private artifact bytes. */
+                    "Cache-Control"?: "private, no-store";
+                    "X-Content-Type-Options"?: "nosniff";
+                    /** @description Present for a binary PDF response. */
+                    "x-content-sha256"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "direct_quote" | "partner_transfer_quote" | "partner_resale_quote" | "order_form" | "amendment" | "poc_summary" | "poc_final_report" | "invoice_companion" | "receipt" | "commission_statement" | "renewal_confirmation" | "decline_confirmation" | "deletion_certificate" | "reconciliation_report" | "report_export";
+                        subjectType: string;
+                        /** Format: uuid */
+                        subjectId: string;
+                        accountId: string | null;
+                        /** @enum {string} */
+                        audience: "customer" | "partner" | "internal";
+                        audienceAccountId: string | null;
+                        /** Format: uuid */
+                        documentId: string;
+                        version: string;
+                        sourceHash: string;
+                        contentHash: string;
+                        /** @constant */
+                        mimeType: "application/pdf";
+                        byteLength: string;
+                        filename: string;
+                        /** Format: date-time */
+                        retainUntil: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        downloadHref: string;
+                    };
+                    "application/pdf": string;
+                };
+            };
+            /** @description Problem details response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+            /** @description Problem details response */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** Format: uri */
+                        type?: string;
+                        title?: string;
+                        status: number;
+                        code: string;
+                        detail?: string;
+                        requestId: string;
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+}

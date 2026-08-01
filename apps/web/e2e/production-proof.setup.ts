@@ -36,6 +36,15 @@ const accounts = {
 
 const sourceTime = "2026-07-31T16:00:00.000Z";
 
+export const authoritativeQuoteProof = {
+  quoteId: "97000000-0000-4000-8000-000000000001",
+  seriesId: "97000000-0000-4000-8000-000000000002",
+  lineId: "97000000-0000-4000-8000-000000000003",
+  eventId: "97000000-0000-4000-8000-000000000004",
+  outboxMessageId: "97000000-0000-4000-8000-000000000005",
+  recordKey: "quote-97000000-0000-4000-8000-000000000001",
+} as const;
+
 const customerCommercial = (
   kind: "agreements" | "quotes" | "orders" | "billing",
   id: string,
@@ -247,17 +256,19 @@ async function seedProofProjections(
       insert into public.experience_portal_projections (
         id, audience, audience_account_id, subject_account_id, channel,
         record_key, aggregate_type, aggregate_id, command_resource, payload,
-        source_hash, source_updated_at, projected_at, row_version
+        source_hash, source_aggregate_version, source_updated_at, projected_at,
+        row_version
       ) values (
         ${projection.id}::uuid, ${projection.audience},
         ${projection.accountId}::uuid, ${projection.subjectAccountId}::uuid,
         ${projection.channel}, ${projection.recordKey}, ${projection.channel},
         ${projection.id}::uuid, ${projection.commandResource}, ${payloadParameter},
-        ${sourceHash}, ${sourceTime}::timestamptz, now(), 1
+        ${sourceHash}, 1, ${sourceTime}::timestamptz, now(), 1
       )
       on conflict (id) do update set
         payload = excluded.payload,
         source_hash = excluded.source_hash,
+        source_aggregate_version = excluded.source_aggregate_version,
         source_updated_at = excluded.source_updated_at,
         projected_at = excluded.projected_at,
         row_version = excluded.row_version
@@ -293,6 +304,89 @@ async function seedProofProjections(
       'application/pdf', 2048, 'direct-quote-proof-v1.pdf',
       '2033-07-31T16:00:00.000Z'::timestamptz
     ) on conflict (id) do nothing
+  `;
+}
+
+async function seedAuthoritativeQuoteProof(
+  sql: ReturnType<typeof createDirectMigrationClient>,
+) {
+  const now = new Date();
+  const createdAt = new Date(now.getTime() - 24 * 60 * 60_000).toISOString();
+  const expiresAt = new Date(now.getTime() - 5 * 60_000).toISOString();
+  const issuedAt = new Date(now.getTime() - 10 * 60_000).toISOString();
+  const payload = {
+    eventId: authoritativeQuoteProof.eventId,
+    eventType: "core.quotes.issue",
+    aggregateType: "quote",
+    aggregateId: authoritativeQuoteProof.quoteId,
+    aggregateVersion: 1,
+    occurredAt: issuedAt,
+    requestId: "release-proof-authoritative-quote-issue",
+    actor: {
+      kind: "user",
+      id: "20000000-0000-4000-8000-000000000002",
+    },
+    data: { status: "issued" },
+  };
+  await sql`
+    insert into public.quotes (
+      id, account_id, price_book_id, series_id, revision, status, currency,
+      total_minor, margin_floor_result, expires_at, created_by,
+      rendered_document_id, created_at, updated_at, row_version, immutable_at
+    ) values (
+      ${authoritativeQuoteProof.quoteId}::uuid, ${accounts.customer}::uuid,
+      '60000000-0000-4000-8000-000000000001'::uuid,
+      ${authoritativeQuoteProof.seriesId}::uuid, 1, 'issued', 'USD', 180000,
+      'pass', ${expiresAt}::timestamptz,
+      '20000000-0000-4000-8000-000000000002'::uuid,
+      '40000000-0000-4000-8000-000000000003'::uuid,
+      ${createdAt}::timestamptz, ${issuedAt}::timestamptz, 1,
+      ${issuedAt}::timestamptz
+    )
+  `;
+  await sql`
+    insert into public.core_quote_commercial_profiles (
+      quote_id, channel_shape, merchant_of_record, pricing_authority,
+      billing_account_id, white_label_metadata, pricing_inputs,
+      pricing_calculated_at
+    ) values (
+      ${authoritativeQuoteProof.quoteId}::uuid, 'direct', 'fil_one', 'fil_one',
+      ${accounts.customer}::uuid, '{}'::jsonb,
+      '{"exceptionReasons":[]}'::jsonb, ${createdAt}::timestamptz
+    )
+  `;
+  await sql`
+    insert into public.quote_lines (
+      id, quote_id, rate_card_id, sku, quantity, term_months,
+      unit_price_minor, overage_rate_minor, discount_bps, line_total_minor
+    ) values (
+      ${authoritativeQuoteProof.lineId}::uuid,
+      ${authoritativeQuoteProof.quoteId}::uuid,
+      '61000000-0000-4000-8000-000000000001'::uuid,
+      'LOCKED-STORAGE-TB', 1, 12, 15000, 18000, 0, 180000
+    )
+  `;
+  await sql`
+    insert into public.audit_events (
+      id, account_id, aggregate_type, aggregate_id, aggregate_version,
+      event_type, event_version, actor, occurred_at, request_id, after, metadata
+    ) values (
+      ${authoritativeQuoteProof.eventId}::uuid, ${accounts.customer}::uuid,
+      'quote', ${authoritativeQuoteProof.quoteId}::uuid, 1,
+      'core.quotes.issue', 1,
+      '{"kind":"user","id":"20000000-0000-4000-8000-000000000002"}'::jsonb,
+      ${issuedAt}::timestamptz, 'release-proof-authoritative-quote-issue',
+      '{"status":"issued"}'::jsonb, '{"proof":"authoritative"}'::jsonb
+    )
+  `;
+  await sql`
+    insert into public.outbox_messages (
+      id, event_id, topic, payload, available_at
+    ) values (
+      ${authoritativeQuoteProof.outboxMessageId}::uuid,
+      ${authoritativeQuoteProof.eventId}::uuid, 'core.quotes.issue',
+      ${sql.json(payload)}, ${issuedAt}::timestamptz
+    )
   `;
 }
 
@@ -349,6 +443,7 @@ export default async function productionProofSetup(config: FullConfig) {
         rotated_at = now()
     `;
     await seedProofProjections(sql);
+    await seedAuthoritativeQuoteProof(sql);
     for (const identity of proofIdentities) {
       const nonce = createHash("sha256")
         .update(`${identity.sessionId}:${expiresAt}:${secret}`)

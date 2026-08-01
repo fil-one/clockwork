@@ -1,4 +1,7 @@
+import { z } from "zod";
+
 import type { Actor, EventEnvelope } from "./events";
+import { CurrencySchema, MinorUnitSchema, QuantitySchema } from "./primitives";
 import type {
   AccountId,
   DocumentId,
@@ -8,6 +11,30 @@ import type {
   OrderId,
   OrganizationId,
 } from "./primitives";
+
+/** Canonical verified payload accepted by the marketplace persistence path. */
+export const MarketplaceEventPayloadSchema = z
+  .object({
+    type: z.string().trim().min(1),
+    eventId: z.string().trim().min(1),
+    provider: z.enum(["aws", "azure", "google"]),
+    providerAccountReference: z.string().trim().min(1),
+    accountId: z.uuid().nullable(),
+    orderId: z.uuid().nullable(),
+    entitlementId: z.uuid().nullable(),
+    occurredAt: z.iso.datetime({ offset: true }),
+    currency: CurrencySchema.nullable(),
+    grossMinor: MinorUnitSchema.nullable(),
+    feeMinor: MinorUnitSchema.nullable(),
+    taxMinor: MinorUnitSchema.nullable(),
+    netMinor: MinorUnitSchema.nullable(),
+    quantity: QuantitySchema.nullable(),
+    sequence: z.number().int().positive(),
+  })
+  .strict();
+export type MarketplaceEventPayload = z.infer<
+  typeof MarketplaceEventPayloadSchema
+>;
 
 export type ProviderFailureKind = "transient" | "permanent";
 export type ProviderResult<T> =

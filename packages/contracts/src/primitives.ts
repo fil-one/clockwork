@@ -49,6 +49,9 @@ export const entityNames = [
   "role_sync_event",
   "workflow_run",
   "external_gate",
+  "experience_action_request",
+  "experience_action_claim",
+  "portal_projection",
 ] as const;
 
 export type EntityName = (typeof entityNames)[number];
@@ -111,9 +114,19 @@ export const CurrencySchema = z.enum(["USD", "EUR", "GBP"]);
 export type Currency = z.infer<typeof CurrencySchema>;
 
 /** Integer minor units serialized as a string so JSON never loses precision. */
+const minimumPostgresBigint = -9_223_372_036_854_775_808n;
+const maximumPostgresBigint = 9_223_372_036_854_775_807n;
+const minorUnitPattern = /^-?(0|[1-9]\d*)$/;
 export const MinorUnitSchema = z
   .string()
-  .regex(/^-?(0|[1-9]\d*)$/)
+  .regex(minorUnitPattern)
+  .refine((value) => {
+    // Zod refinements can still run after a failed regex check. Guarding the
+    // conversion keeps malformed input on the controlled validation path.
+    if (!minorUnitPattern.test(value)) return true;
+    const parsed = BigInt(value);
+    return parsed >= minimumPostgresBigint && parsed <= maximumPostgresBigint;
+  }, "Minor units must fit a signed PostgreSQL bigint")
   .brand<"MinorUnit">();
 export type MinorUnit = z.infer<typeof MinorUnitSchema>;
 
@@ -122,10 +135,10 @@ export const MoneySchema = z
   .strict();
 export type Money = z.infer<typeof MoneySchema>;
 
-/** Arbitrary precision non-negative decimal, serialized without exponent notation. */
+/** PostgreSQL numeric(38,18) non-negative decimal, serialized without exponent notation. */
 export const QuantitySchema = z
   .string()
-  .regex(/^(0|[1-9]\d*)(\.\d{1,18})?$/)
+  .regex(/^(0|[1-9]\d{0,19})(\.\d{1,18})?$/)
   .brand<"Quantity">();
 export type Quantity = z.infer<typeof QuantitySchema>;
 

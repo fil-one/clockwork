@@ -1,5 +1,9 @@
 # Experience and documents handoff
 
+Current disposition: historical provenance. This lane and all documented
+cross-lane joins are represented and repository-qualified on `main`; lane-local
+limitations below do not describe current gaps or an RC/launch.
+
 ## Provenance
 
 - Lane: Agent 4 — experience and documents

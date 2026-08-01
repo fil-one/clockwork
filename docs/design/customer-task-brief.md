@@ -1,6 +1,7 @@
 # Customer experience brief
 
-Status: implemented prototype, pending human design approval
+Status: repository-qualified implementation; any human design approval is a
+future launch-only decision and is not claimed here
 
 ## Decision frame
 

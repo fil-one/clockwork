@@ -148,6 +148,7 @@ async function teardownFixture(input: { suffix: string; failed?: boolean }) {
         scope: "document:retained-agreement",
         retainUntil: "2033-07-31T16:00:00.000Z",
         legalHold: false,
+        reason: "object_lock_retention",
       },
     ],
     deletionScheduledAt: "2033-07-31T16:00:00.000Z",

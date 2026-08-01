@@ -1,4 +1,5 @@
 export const telemetryBoundaries = [
+  "browser",
   "server",
   "api",
   "db",
@@ -136,11 +137,11 @@ export class ClockworkTelemetry {
     const span = this.startSpan(input);
     try {
       const result = await input.operation(span);
-      await span.end("ok");
+      await endWithoutInterference(span, "ok");
       return result;
     } catch (error) {
       span.recordError(error);
-      await span.end("error");
+      await endWithoutInterference(span, "error");
       throw error;
     }
   }
@@ -170,6 +171,17 @@ export class ClockworkTelemetry {
       },
     });
     return span.end("error");
+  }
+}
+
+async function endWithoutInterference(
+  span: ClockworkSpan,
+  status: "ok" | "error",
+): Promise<void> {
+  try {
+    await span.end(status);
+  } catch {
+    // A telemetry backend outage must not change application control flow.
   }
 }
 

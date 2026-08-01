@@ -1,8 +1,9 @@
 # Clockwork Commerce Platform: Production Build Specification
 
-**Status:** Approved production target; current implementation and release
-evidence remain governed by the checked-in traceability ledger, backlog, and
-release report. Revised after three-lens adversarial review
+**Status:** Approved production target with repository-qualified implementation
+on `main`; production activation remains governed by the checked-in external
+gate register and future launch checklist. This is not an RC, launch, or human
+design approval. Revised after three-lens adversarial review
 (commercial/finance, buyer/legal/partner, engineering delivery) and aligned to
 the five-Codex production plan on July 31, 2026. **Author:** James Kurz, drafted
 with Claude. **Date:** July 31, 2026. **Source concept:** "The Frictionless
@@ -35,9 +36,10 @@ selling infrastructure against AWS, Wasabi, and Backblaze, a buying experience
 that looks and works like a mature cloud vendor's is proof of engineering
 quality. Every enterprise meeting and partner briefing demos the portal. The
 target is a complete and polished release; §22 records the historical five-lane
-build and the active three-lane release-candidate topology. Features may be
-activation-gated for a genuine external dependency, but internal implementation
-is not deferred.
+and three-lane consolidation topology, while `main` is the only active branch.
+The implementation is repository-qualified. Features remain activation-gated
+only for exact registered external inputs; internal implementation is not
+deferred.
 
 The platform is international by design. Spain and the UK are the first non-US
 markets, not special cases: currency, tax, agreement variants, and residency are
@@ -791,7 +793,7 @@ Ending well is a trust feature for a storage vendor:
   orders, entitlements, metering, fees, invoices, settlements, and refunds into
   provider-neutral records. Marketplace enrollment and credentials are
   activation gates; complete adapters, fixtures, replay behavior, and financial
-  reconciliation ship in the release candidate.
+  reconciliation are complete in the consolidated repository candidate.
 
 ---
 
@@ -941,10 +943,16 @@ are relative to `/api/v1`:
 Provider callbacks use `/v1/webhooks/*` in the Hono/OpenAPI contract and enter
 the deployed application through `/api/v1/webhooks/workos`,
 `/api/v1/webhooks/stripe`, `/api/v1/webhooks/esign`,
-`/api/v1/webhooks/marketplaces/*`, and `/api/v1/webhooks/support/*`. Every list
-endpoint uses a stable cursor and explicit account scope. Mutations return the
-aggregate version and any relevant workflow handle. Errors use RFC 9457
-`application/problem+json` with a request ID, a stable machine code, and a safe
+`/api/v1/webhooks/marketplaces/{provider}`, and
+`/api/v1/webhooks/support/{provider}`. A support callback verifies the raw body
+and provider identity, then records only safe signal metadata and the provider
+event reference in the durable webhook inbox/deduplication boundary. It does not
+create or update a support ticket and does not expose a Clockwork support write
+port; support intake remains provider-authoritative and read-only in Clockwork.
+Every list endpoint uses a stable cursor and explicit account scope. Mutations
+return the aggregate version and any relevant workflow handle. Errors use RFC
+9457 `application/problem+json` with a request ID, a stable machine code, and a
+safe
 user message.
 
 ### Provider boundaries
@@ -1142,38 +1150,47 @@ the checked-in Git baseline manifest.
 | 4 — experience and documents | `commerce/experience-docs` | `/Users/jameskurz/Downloads/Fil One/Clockwork-experience` | Customer, partner, and admin routes; design system; accessibility; localization; deterministic documents; demo and visual/persona tests |
 | 5 — integration | `commerce/integration` | `/Users/jameskurz/Downloads/Fil One/Clockwork-merge` | No-fast-forward lane merges, generated artifacts, all cross-lane joins, adversarial repair, release evidence, and operations runbooks |
 
-That historical run completed with explicit merge commits. Ongoing release-
-candidate work starts from one verified `main` commit and uses these three
-exclusive lanes; `docs/implementation-lanes.md` is the operational ownership
-record:
+That historical run completed with explicit merge commits. The subsequent
+release-candidate pass also started from one verified `main` commit and used
+three exclusive lanes. Those lanes are now integrated and historical:
 
-| Lane | Branch / fixed worktree | Exclusive implementation ownership | Migration range |
-| ---- | ----------------------- | ---------------------------------- | --------------- |
-| Commercial integrity | `rc/commercial-integrity` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial` | Core commercial domain, API, database repositories/schema, finance/provider adapters, and core acceptance tests | `001000`–`001099` |
-| Runtime operations | `rc/runtime-operations` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime` | Lifecycle/system runtime, workflows, schedules, outbox/provider execution, operational repositories, and recovery tests | `001100`–`001199` |
-| Experience release | `rc/experience-release` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience` | Web routes and projections, design system, documents/delivery, browser/visual/accessibility tests, and release-facing experience | `001200`–`001299` |
+| Order | Historical lane | Tip | Non-fast-forward merge | Migration range |
+| ----- | --------------- | --- | ---------------------- | --------------- |
+| 1 | Commercial integrity | `cc23bce784ee60a27ad3e34fd245136f37394a2d` | `1f070aaf0e59a2e289322b02725c2b950e667992` | `001000`–`001099` |
+| 2 | Runtime operations | `0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5` | `07023a40462cb432f595007c1f88365f14e0f5e8` | `001100`–`001199` |
+| 3 | Experience release | `b13a1ec6816b9a547aaa20bf8806cd3996c840be` | `ab0ae079e674feafd4ae86413d168e001416c0e2` | `001200`–`001299` |
 
-Root manifests and lockfile, shared contracts/barrels, generated OpenAPI/client
-artifacts, canonical specification, traceability and baseline manifests, and CI
-composition are integration-owned shared files. A lane records a handoff rather
-than editing a shared file. Lanes do not merge or cherry-pick one another and do
-not receive live production credentials.
+`main` is the only active source and release branch. Root manifests and lockfile,
+shared contracts/barrels, generated OpenAPI/client artifacts, the canonical
+specification, traceability/baseline manifests, and CI composition have one
+serial integration owner. The release archive retains historical tip and merge
+identifiers without requiring those branches or worktrees to remain active.
+
+The parallel ownership rule reserved shared files for integration. Commercial
+integrity nevertheless delivered isolated shared contract/schema-composition
+changes, and experience release delivered root manifest, lockfile, CI, and
+release-orchestration changes. The final integrator reviews those exceptions
+requirement by requirement, records their retained semantics and conflict
+resolutions, and regenerates shared artifacts after source settlement; the
+exceptions do not authorize future parallel edits to shared files.
 
 The architecture is collision-resistant: route groups, domain directories,
 workflow/integration registries, schema extensions, migrations, and tests have
 lane ownership. Shared generated OpenAPI clients, Drizzle metadata, and the
 lockfile are regenerated from sources during integration, never edited by hand.
-Historical and current lane migration number ranges do not overlap, and applied
-migrations never change.
+Historical lane migration number ranges do not overlap, and applied migrations
+never change. Future changes are forward-only on `main` in a newly assigned
+range.
 
 ### Completeness rule
 
 The release scope includes embedded signing, SSO, white-label, AWS/Azure/GCP
 marketplaces, two-tier distributor settlement, support visibility,
 existing-base migration tooling, automated teardown, and the complete report
-suite. Presence of a schema, fake, route shell, candidate task, or renderer does
-not make a capability complete; the traceability ledger and backlog remain the
-status authority. A feature can remain disabled only for a registered external
+suite. Presence of a schema, fake, route shell, candidate task, or renderer did
+not by itself establish completion; the repository-qualified traceability
+ledger and backlog are the current status authority. A feature can remain
+disabled only for a registered external
 account, credential, legal/commercial decision, production data set, or explicit
 authorization, and every disabled feature requires a simulator and activation
 test.
@@ -1184,10 +1201,10 @@ SQL outside approved repositories/migrations, or unregistered environment
 variable may survive the release gate unless it references a genuine registered
 external gate.
 
-### Release verification
+### Repository verification
 
-The release candidate is qualified from a clean standalone checkout of the exact
-resulting `main` SHA and must pass:
+The repository-complete consolidated `main` handoff has been qualified by the
+clean-checkout harness. Any future launch-designated SHA must reproduce:
 
 - frozen dependency installation; formatting, lint, strict typecheck, package
   boundaries, dependency audit, secret scan, and production build;
@@ -1244,11 +1261,14 @@ authorization must both fail closed.
   recovery have tested runbooks. No unfinished internal work is mislabeled as
   an external dependency.
 
-The integration/release owner produces the release-candidate report, final gate
-register, launch checklist, and operations runbooks. The launch checklist includes staging soak,
-rollback, isolated backup-restore drill, alert verification, feature-flag
-activation, and named approvals. Merging and producing a release candidate do
-not authorize a production deployment or contact with external parties.
+The integration/release owner maintains the consolidated-main report, final gate
+register, launch checklist, and operations runbooks. The launch checklist
+includes staging soak, rollback, isolated backup-restore drill, alert
+verification, feature-flag activation, and named approvals. The repository
+consolidation is complete. It does not declare a release candidate and does not
+authorize a production deployment or contact with external parties. A
+user-entered human design decision is required only before a future RC/launch
+designation; none is inferred or claimed by this document.
 
 ---
 
@@ -1257,8 +1277,9 @@ not authorize a production deployment or contact with external parties.
 - Sprint checklist: `docs/sprint-checklist.md`, reviewed July 2026 snapshot.
 - Concept document: "The Frictionless Commerce Platform" screenshots, July 2026.
 - Five-Codex implementation plan, July 31, 2026. This historical plan superseded
-  the former architecture during the initial pass; active release-candidate
-  ownership is now recorded in `docs/implementation-lanes.md`.
+  the former architecture during the initial pass; the later three-lane
+  consolidation topology is preserved in `docs/implementation-lanes.md`, and
+  `main` is the only active branch.
 - Adversarial review findings (three lenses, July 31, 2026): folded throughout;
   see §22 rules, §5 Account/Amendment/CommitmentLedger, §8 partner agreement
   contents, §10 posting model, §19.

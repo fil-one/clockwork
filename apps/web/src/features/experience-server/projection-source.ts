@@ -1,4 +1,13 @@
+import "server-only";
+
 import type { SessionClaims } from "@clockwork/api";
+import { uuidV7 } from "@clockwork/contracts";
+import {
+  FileDemoAdapterStateStore,
+  findDemoProductionMarker,
+  type DemoAdapterState,
+  type DemoAdapterStateStore,
+} from "@clockwork/testing/demo-state";
 
 import { commercialRecords } from "@/src/features/customer-partner/commercial/model";
 import { customerCollections } from "@/src/features/customer-partner/customer/customer-data";
@@ -25,6 +34,15 @@ export interface ProjectionSource {
     },
   ): Promise<ProjectionRecord>;
   action(input: ProjectionActionInput): Promise<ProjectionActionReceipt>;
+  receipt(input: {
+    session: SessionClaims;
+    audience: ExperienceAudience;
+    channel: ProjectionChannel;
+    accountId: string | null;
+    recordKey: string;
+    actionRequestId: string;
+    requestId: string;
+  }): Promise<ProjectionActionReceipt>;
 }
 
 export class DatabaseProjectionSource implements ProjectionSource {
@@ -46,6 +64,10 @@ export class DatabaseProjectionSource implements ProjectionSource {
 
   public action(input: ProjectionActionInput) {
     return this.repository.queueProjectionAction(input);
+  }
+
+  public receipt(input: Parameters<ProjectionSource["receipt"]>[0]) {
+    return this.repository.getProjectionAction(input);
   }
 }
 
@@ -198,6 +220,20 @@ const demoRecords = [
   ...internalRecords(),
 ];
 
+function applyDemoState(
+  record: DemoRecord,
+  state: DemoAdapterState,
+): DemoRecord {
+  const override = state.projectionOverrides[record.id];
+  if (!override) return record;
+  return {
+    ...record,
+    version: override.version,
+    updatedAt: override.updatedAt,
+    data: { ...record.data, ...override.data },
+  };
+}
+
 function asProjection(
   record: DemoRecord,
   accountId: string | null,
@@ -221,33 +257,38 @@ function asProjection(
 
 /** Deterministic fixtures selected only through CLOCKWORK_EXPERIENCE_ADAPTER=demo. */
 export class ExplicitDemoProjectionSource implements ProjectionSource {
-  public list(input: ProjectionListInput): Promise<ProjectionPage> {
-    return Promise.resolve().then(() => {
-      const offset = input.cursor ? Number.parseInt(input.cursor, 10) : 0;
-      if (!Number.isSafeInteger(offset) || offset < 0)
-        throw new ExperienceProblem(
-          422,
-          "INVALID_CURSOR",
-          "Projection cursor is invalid",
-        );
-      const matching = demoRecords.filter(
+  public constructor(
+    private readonly stateStore: DemoAdapterStateStore = new FileDemoAdapterStateStore(),
+  ) {}
+
+  public async list(input: ProjectionListInput): Promise<ProjectionPage> {
+    const offset = input.cursor ? Number.parseInt(input.cursor, 10) : 0;
+    if (!Number.isSafeInteger(offset) || offset < 0)
+      throw new ExperienceProblem(
+        422,
+        "INVALID_CURSOR",
+        "Projection cursor is invalid",
+      );
+    const state = await this.stateStore.read();
+    const matching = demoRecords
+      .filter(
         (record) =>
           record.audience === input.audience &&
           record.channel === input.channel,
-      );
-      const page = matching.slice(offset, offset + input.limit);
-      return {
-        items: page.map((record) =>
-          asProjection(record, input.accountId, input.now),
-        ),
-        nextCursor:
-          offset + page.length < matching.length
-            ? String(offset + page.length)
-            : null,
-        generatedAt: input.now.toISOString(),
-        freshnessSeconds: 300,
-      };
-    });
+      )
+      .map((record) => applyDemoState(record, state));
+    const page = matching.slice(offset, offset + input.limit);
+    return {
+      items: page.map((record) =>
+        asProjection(record, input.accountId, input.now),
+      ),
+      nextCursor:
+        offset + page.length < matching.length
+          ? String(offset + page.length)
+          : null,
+      generatedAt: input.now.toISOString(),
+      freshnessSeconds: 300,
+    };
   }
 
   public find(
@@ -255,21 +296,32 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       recordKey: string;
     },
   ): Promise<ProjectionRecord> {
-    return Promise.resolve().then(() => {
-      const record = demoRecords.find(
-        (item) =>
-          item.audience === input.audience &&
-          item.channel === input.channel &&
-          item.key === input.recordKey,
+    return this.findWithState(input);
+  }
+
+  private async findWithState(
+    input: Omit<ProjectionListInput, "cursor" | "limit"> & {
+      recordKey: string;
+    },
+  ): Promise<ProjectionRecord> {
+    const record = demoRecords.find(
+      (item) =>
+        item.audience === input.audience &&
+        item.channel === input.channel &&
+        item.key === input.recordKey,
+    );
+    if (!record)
+      throw new ExperienceProblem(
+        404,
+        "PROJECTION_NOT_FOUND",
+        "Projection record not found",
       );
-      if (!record)
-        throw new ExperienceProblem(
-          404,
-          "PROJECTION_NOT_FOUND",
-          "Projection record not found",
-        );
-      return asProjection(record, input.accountId, input.now);
-    });
+    const state = await this.stateStore.read();
+    return asProjection(
+      applyDemoState(record, state),
+      input.accountId,
+      input.now,
+    );
   }
 
   public async action(
@@ -304,32 +356,90 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "ACTION_FORBIDDEN",
         "Action is not allowed for this record",
       );
-    return {
-      id: crypto.randomUUID(),
+    const receipt: ProjectionActionReceipt = {
+      id: uuidV7(),
       projectionId: record.id,
       aggregateType: record.aggregateType,
       aggregateId: record.aggregateId,
       action: input.action,
       expectedVersion: input.expectedVersion,
       status: "queued",
+      resultReference: null,
+      resultCode: null,
+      authoritativeVersion: null,
+      commandReplayed: null,
       createdAt: new Date().toISOString(),
-      auditEventId: crypto.randomUUID(),
-      outboxMessageId: crypto.randomUUID(),
+      completedAt: null,
+      auditEventId: uuidV7(),
+      outboxMessageId: uuidV7(),
     };
+    await this.stateStore.update((state) => {
+      const currentOverride = state.projectionOverrides[record.id];
+      const currentVersion = currentOverride?.version ?? record.version;
+      if (currentVersion !== input.expectedVersion)
+        throw new ExperienceProblem(
+          409,
+          "VERSION_CONFLICT",
+          "Projection record changed",
+        );
+      return {
+        ...state,
+        revision: state.revision + 1,
+        projectionOverrides: {
+          ...state.projectionOverrides,
+          [record.id]: {
+            version: currentVersion + 1,
+            updatedAt: receipt.createdAt,
+            data: {
+              ...(currentOverride?.data ?? {}),
+              status: "pending",
+              statusLabel: "Action queued",
+              nextAction: `${input.action} queued`,
+              allowedActions: [],
+            },
+          },
+        },
+        actionReceipts: {
+          ...state.actionReceipts,
+          [receipt.id]: receipt,
+        },
+      };
+    });
+    return receipt;
+  }
+
+  public async receipt(
+    input: Parameters<ProjectionSource["receipt"]>[0],
+  ): Promise<ProjectionActionReceipt> {
+    const projection = await this.find({
+      session: input.session,
+      audience: input.audience,
+      channel: input.channel,
+      accountId: input.accountId,
+      recordKey: input.recordKey,
+      now: new Date(),
+    });
+    const state = await this.stateStore.read();
+    const receipt = state.actionReceipts[input.actionRequestId];
+    if (!receipt || receipt.projectionId !== projection.id)
+      throw new ExperienceProblem(
+        404,
+        "PROJECTION_ACTION_NOT_FOUND",
+        "Projection action receipt not found",
+      );
+    return receipt;
   }
 }
 
 export function configuredProjectionSource(): ProjectionSource {
   const adapter = process.env.CLOCKWORK_EXPERIENCE_ADAPTER?.trim();
   if (adapter === "demo") {
-    if (
-      process.env.NODE_ENV === "production" ||
-      process.env.CLOCKWORK_ENV === "production"
-    )
+    const productionMarker = findDemoProductionMarker(process.env);
+    if (productionMarker)
       throw new ExperienceProblem(
         503,
         "DEMO_ADAPTER_FORBIDDEN",
-        "Demo portal data is disabled in production",
+        `Demo portal data is disabled because ${productionMarker} identifies production`,
       );
     return demoProjectionSource;
   }

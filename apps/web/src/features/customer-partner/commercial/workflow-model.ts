@@ -1,3 +1,5 @@
+import { uuidV7 } from "@clockwork/contracts";
+
 import { customerPartnerCopy } from "../copy";
 
 export const quoteStageLabels = customerPartnerCopy.commercial.quoteStages;
@@ -147,13 +149,13 @@ export function quotePayload(draft: QuoteDraft) {
     accountId,
     payload: {
       priceBookId,
-      seriesId: crypto.randomUUID(),
+      seriesId: uuidV7(),
       route: draft.route,
       ...(endClientAccountId ? { endClientAccountId } : {}),
       ...(partnerAccountId ? { partnerAccountId } : {}),
       lines: [
         {
-          lineId: crypto.randomUUID(),
+          lineId: uuidV7(),
           sku:
             priceBookId === "44444444-4444-4444-8444-444444444445"
               ? "FIL-REPLICA-CAPACITY"

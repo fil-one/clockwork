@@ -461,7 +461,7 @@ export interface PocRequestInput {
   workload: string;
   buyerUserId: string;
   permittedDataClass: string;
-  successTests: { id: string; description: string }[];
+  successTests: { id: string; description: string; target: string }[];
   capacityCap: string;
   egressCap: string;
   expiresAt: string;

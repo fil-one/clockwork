@@ -1,7 +1,13 @@
 # Consolidation baseline manifests
 
-These JSON files are the checked-in, machine-readable inventory for the
-Clockwork consolidation boundary. Regenerate them with exact Node `24.18.1`:
+These JSON files are the checked-in, machine-readable inventory for the final
+three-lane consolidated `main` boundary. The earlier Instance 1 inventory
+remains recoverable from Git history and the verified pre-consolidation bundle,
+so every final delta can be compared without keeping obsolete worktrees or
+branches active.
+
+Before branch retirement, the final capture can be reproduced with exact Node
+`24.18.1` while all recorded refs still exist:
 
 ```sh
 BASELINE_CAPTURED_AT=<UTC timestamp> node scripts/generate-baseline-manifests.mjs
@@ -12,6 +18,11 @@ status. A route, schema, fake, task ID, renderer, or test file does not prove
 the corresponding launch requirement complete. Status is controlled by
 `docs/traceability/launch-requirements.json`, `docs/backlog.md`, and executed
 qualification evidence.
+
+Generated disposition metadata targets `consolidated-main-quality`; it does not
+declare a release candidate or approve a production launch. Human design
+approval is an external launch-only review recorded in
+`docs/launch-checklist.md` and does not block repository consolidation.
 
 | Manifest                              | Scope                                                                                               |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -27,7 +38,11 @@ qualification evidence.
 | `artifact-hashes.json`                | SHA-256 and byte size for contract, release, generated, migration, seed, and visual baselines       |
 
 `captureCommit` identifies the source commit visible when the manifests were
-generated. The manifest commit necessarily changes the Git tree, so the final
-lane base is identified separately by the annotated `rc-lanes-base-20260731`
-tag. Qualification evidence records the exact tested commit and never infers a
-pass from ignored `.turbo`, `.next`, or `test-results` output.
+generated. The manifest commit necessarily changes the Git tree, so final
+qualification and archive evidence is also recorded in the consolidated-main
+report, archival annotated tag, restored all-refs bundle, and their checksums.
+The `historicalRcLaneBase` and `historicalRcInputLanes` fields retain the exact
+`rc-lanes-base-20260731` and `rc/*` ancestry names solely as provenance. Those
+historical names and archival tags do not declare consolidated `main` to be an
+RC. No pass is inferred from ignored `.turbo`, `.next`, or `test-results`
+output.

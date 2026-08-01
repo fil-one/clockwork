@@ -13,12 +13,20 @@ import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 
 const Sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
-const LockedExclusionSchema = z.object({
-  objectId: z.string().min(1),
-  scope: z.string().min(1),
-  retainUntil: z.iso.datetime({ offset: true }),
-  legalHold: z.boolean(),
-});
+const LockedExclusionSchema = z
+  .object({
+    objectId: z.string().min(1),
+    scope: z.string().min(1),
+    retainUntil: z.iso.datetime({ offset: true }),
+    legalHold: z.boolean(),
+    reason: z.enum(["legal_hold", "object_lock_retention"]),
+  })
+  .refine(
+    (value) =>
+      value.reason ===
+      (value.legalHold ? "legal_hold" : "object_lock_retention"),
+    { message: "RETAINED_OBJECT_REASON_INVALID" },
+  );
 const PersistedPlanEvidenceSchema = z.object({
   status: z.literal("teardown_confirmed"),
   teardownOperationId: z.string().min(1),

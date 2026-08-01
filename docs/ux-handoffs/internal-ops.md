@@ -1,5 +1,9 @@
 # Internal operations UX handoff
 
+Current disposition: historical provenance. Internal operations UI, persisted
+gates/rosters, and record-bound actions are repository-qualified on `main`; this
+is not an active lane or RC/launch record.
+
 ## Scope
 
 The internal-operations lane now uses feature-local views under

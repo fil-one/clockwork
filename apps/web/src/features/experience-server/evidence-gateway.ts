@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
+
 import { ExperienceProblem, type EvidenceUploadRecord } from "./model";
 
 export interface GatewayUploadReservation {
@@ -58,7 +60,8 @@ export interface EvidenceGateway {
     contentHash: string;
     mimeType: string;
     retainUntil: string;
-    accountId: string;
+    accountId: string | null;
+    internalScopeId?: string;
     source: string;
   }): Promise<GatewayStoredObject>;
   readImmutable(input: {
@@ -106,11 +109,10 @@ function trustedProviderUrl(
       "Evidence provider returned an invalid URL",
     );
   }
+  const local = ["127.0.0.1", "localhost", "::1"].includes(url.hostname);
   if (
     !allowedOrigins.includes(url.origin) ||
-    (url.protocol !== "https:" &&
-      url.hostname !== "127.0.0.1" &&
-      url.hostname !== "localhost") ||
+    (url.protocol !== "https:" && !(url.protocol === "http:" && local)) ||
     url.username ||
     url.password
   )
@@ -175,10 +177,12 @@ export class HttpEvidenceGateway implements EvidenceGateway {
     fetchImplementation?: typeof fetch;
   }) {
     this.baseUrl = new URL(configuration.baseUrl);
+    const local = ["127.0.0.1", "localhost", "::1"].includes(
+      this.baseUrl.hostname,
+    );
     if (
       this.baseUrl.protocol !== "https:" &&
-      this.baseUrl.hostname !== "127.0.0.1" &&
-      this.baseUrl.hostname !== "localhost"
+      !(this.baseUrl.protocol === "http:" && local)
     )
       throw new Error("Evidence storage gateway must use HTTPS");
     if (configuration.bearerToken.length < 32)
@@ -317,7 +321,8 @@ export class HttpEvidenceGateway implements EvidenceGateway {
     contentHash: string;
     mimeType: string;
     retainUntil: string;
-    accountId: string;
+    accountId: string | null;
+    internalScopeId?: string;
     source: string;
   }): Promise<GatewayStoredObject> {
     const value = await this.call("v1/immutable-objects", {
@@ -326,7 +331,9 @@ export class HttpEvidenceGateway implements EvidenceGateway {
       contentLength: input.bytes.byteLength,
       contentType: input.mimeType,
       retainUntil: input.retainUntil,
-      scope: { kind: "account", id: input.accountId },
+      scope: input.accountId
+        ? { kind: "account", id: input.accountId }
+        : { kind: "internal", id: input.internalScopeId },
       source: input.source,
     });
     return {
@@ -470,10 +477,7 @@ export class DemoEvidenceGateway implements EvidenceGateway {
 export function configuredEvidenceGateway(): EvidenceGateway {
   const adapter = process.env.CLOCKWORK_EVIDENCE_ADAPTER?.trim();
   if (adapter === "demo") {
-    if (
-      process.env.NODE_ENV === "production" ||
-      process.env.CLOCKWORK_ENV === "production"
-    )
+    if (findDemoProductionMarker(process.env))
       throw new ExperienceProblem(
         503,
         "DEMO_ADAPTER_FORBIDDEN",

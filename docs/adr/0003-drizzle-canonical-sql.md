@@ -15,9 +15,10 @@ starts Supabase from an empty volume, applies every migration, seeds, and runs
 pgTAP. Runtime uses Supavisor transaction mode with SSL and prepared statements
 disabled. Only CI/deployment migration tooling may read `DIRECT_DATABASE_URL`.
 
-After consolidation, the release-candidate lanes use non-overlapping ranges:
+The historically named consolidation lanes used non-overlapping ranges:
 commercial integrity `001000`–`001099`, runtime operations `001100`–`001199`,
-and experience release `001200`–`001299`. The historical ranges and migrations
-remain immutable. Shared or cross-lane corrections are integrated only after a
-recorded handoff; they are never placed opportunistically in another lane's
-range.
+and experience release `001200`–`001299`; consolidated release-integrity work
+uses `001300`. Those ranges and migrations remain immutable. Future shared
+corrections are forward-only on `main`. The repository-qualified Drizzle
+authoring artifact is `0004_nosy_valkyrie` for 116 tables; reviewed Supabase SQL
+remains the execution authority.

@@ -36,7 +36,10 @@ import {
   rateCards,
 } from "../../schema";
 
-const id = (name = "id") => uuid(name).primaryKey().defaultRandom();
+const id = (name = "id") =>
+  uuid(name)
+    .primaryKey()
+    .default(sql`public.uuid_v7()`);
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -716,6 +719,58 @@ export const invoiceEndClientAllocations = pgTable(
   ],
 );
 
+/**
+ * Exact billable lines captured when the draft invoice is created. Invoice
+ * documents must never be rebuilt from mutable catalog or order projections.
+ */
+export const invoiceDocumentSnapshots = pgTable(
+  "core_invoice_document_snapshots",
+  {
+    invoiceId: uuid("invoice_id")
+      .primaryKey()
+      .references(() => invoices.id),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id),
+    currency: text("currency").notNull(),
+    lineItems: jsonb("line_items").notNull(),
+    subtotalMinor: minor("subtotal_minor"),
+    taxMinor: minor("tax_minor"),
+    totalMinor: minor("total_minor"),
+    sourceHash: text("source_hash").notNull(),
+    sourceVersion: text("source_version").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("core_invoice_document_snapshot_source_unique").on(
+      table.sourceHash,
+    ),
+    check(
+      "core_invoice_document_snapshot_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check(
+      "core_invoice_document_snapshot_lines_check",
+      sql`jsonb_typeof(${table.lineItems}) = 'array' and jsonb_array_length(${table.lineItems}) > 0`,
+    ),
+    check(
+      "core_invoice_document_snapshot_amounts_check",
+      sql`${table.subtotalMinor} >= 0 and ${table.taxMinor} >= 0 and ${table.totalMinor} = ${table.subtotalMinor} + ${table.taxMinor}`,
+    ),
+    check(
+      "core_invoice_document_snapshot_hash_check",
+      sql`${table.sourceHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "core_invoice_document_snapshot_version_check",
+      sql`length(${table.sourceVersion}) between 1 and 80`,
+    ),
+  ],
+);
+
 export const collectionCases = pgTable(
   "core_collection_cases",
   {
@@ -1336,6 +1391,7 @@ export const coreFinanceTables = {
   usageReconciliations,
   billingPolicies,
   invoiceEndClientAllocations,
+  invoiceDocumentSnapshots,
   collectionCases,
   collectionActions,
   partnerHierarchyEdges,

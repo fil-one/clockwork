@@ -10,11 +10,13 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+const uuidV7Default = sql`public.uuid_v7()`;
+
 /** Immutable provider-to-commerce identity bindings used before webhook apply. */
 export const providerResourceBindings = pgTable(
   "system_provider_resource_bindings",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(uuidV7Default),
     provider: text("provider").notNull(),
     providerResourceType: text("provider_resource_type").notNull(),
     providerResourceId: text("provider_resource_id").notNull(),
@@ -49,7 +51,7 @@ export const providerResourceBindings = pgTable(
 export const providerProjectionCheckpoints = pgTable(
   "system_provider_projection_checkpoints",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(uuidV7Default),
     provider: text("provider").notNull(),
     aggregateKey: text("aggregate_key").notNull(),
     providerEventId: text("provider_event_id").notNull(),

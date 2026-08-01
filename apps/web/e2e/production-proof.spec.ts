@@ -4,6 +4,9 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 import { createDirectMigrationClient } from "@clockwork/db/migration-client";
 
+import { authoritativeQuoteProof } from "./production-proof.setup";
+import { drainProductionExperienceOutbox } from "./production-workflow-proof";
+
 interface ProjectionRecord {
   id: string;
   recordKey: string;
@@ -25,7 +28,12 @@ interface ProjectionActionReceipt {
   action: string;
   expectedVersion: number;
   status: "queued" | "applied" | "rejected" | "failed";
+  resultReference: string | null;
+  resultCode: string | null;
+  authoritativeVersion: number | null;
+  commandReplayed: boolean | null;
   createdAt: string;
+  completedAt: string | null;
   auditEventId: string;
   outboxMessageId: string;
   code?: string;
@@ -172,6 +180,25 @@ async function projectionAction(
   );
 }
 
+async function projectionActionReceipt(
+  page: Page,
+  input: {
+    audience: "customer" | "partner" | "internal";
+    channel: string;
+    recordKey: string;
+    actionRequestId: string;
+    accountId?: string;
+  },
+) {
+  const query = input.accountId
+    ? `?accountId=${encodeURIComponent(input.accountId)}`
+    : "";
+  return browserRequest<ProjectionActionReceipt>(
+    page,
+    `/api/experience/projections/${input.audience}/${input.channel}/${encodeURIComponent(input.recordKey)}/actions/${input.actionRequestId}${query}`,
+  );
+}
+
 async function expectDurableActions(
   userId: string,
   actions: readonly ExpectedDurableAction[],
@@ -312,6 +339,70 @@ async function providerRequest(
   };
 }
 
+async function expectOtlpCorrelation(input: {
+  navigationTraceparent: string;
+  apiTraceparent: string;
+}) {
+  await expect
+    .poll(
+      async () => {
+        const response = await providerRequest("/v1/telemetry");
+        return Number(response.body.count ?? 0);
+      },
+      { timeout: 10_000 },
+    )
+    .toBeGreaterThan(8);
+  const response = await providerRequest("/v1/telemetry");
+  expect(response.status).toBe(200);
+  expect(response.body.credentialBearingRequests).toBe(0);
+  const encoded = response.body.requests;
+  if (
+    !Array.isArray(encoded) ||
+    !encoded.every((item) => typeof item === "string")
+  )
+    throw new Error("OTLP proof collector returned an invalid inventory");
+  const payloads = encoded.map((item) => Buffer.from(item, "base64"));
+  const text = Buffer.concat(payloads).toString("utf8");
+  for (const boundary of [
+    "server.request",
+    "document.load",
+    "api.request",
+    "db.authorized_transaction",
+    "workflow.experience_outbox.drain",
+    "queue.outbox.claim",
+    "queue.outbox.deliver",
+    "outbox.dispatch",
+  ])
+    expect(text, `captured OTLP boundary ${boundary}`).toContain(boundary);
+
+  const assertTrace = (traceparent: string, minimumPayloads: number) => {
+    const match = /^00-([0-9a-f]{32})-([0-9a-f]{16})-0[01]$/.exec(traceparent);
+    if (!match?.[1] || !match[2])
+      throw new Error(
+        `Release proof returned invalid traceparent ${traceparent}`,
+      );
+    const traceId = Buffer.from(match[1], "hex");
+    const spanId = Buffer.from(match[2], "hex");
+    expect(
+      payloads.filter((payload) => payload.includes(traceId)).length,
+    ).toBeGreaterThanOrEqual(minimumPayloads);
+    expect(
+      payloads.filter((payload) => payload.includes(spanId)).length,
+    ).toBeGreaterThanOrEqual(minimumPayloads);
+  };
+  assertTrace(input.navigationTraceparent, 2);
+  assertTrace(input.apiTraceparent, 2);
+
+  for (const forbidden of [
+    "__Host-clockwork-proof",
+    "clockwork-csrf",
+    "proof-customer-authoritative-expire-0001",
+    process.env.CLOCKWORK_PROOF_AUTH_SECRET,
+    process.env.AUTHORIZATION_CONTEXT_SECRET,
+  ].filter((value): value is string => Boolean(value)))
+    expect(text).not.toContain(forbidden);
+}
+
 async function expectProviderReplay(row: DurableActionRow) {
   expect(row.action).toBe("replay_provider_event");
   const eventId = row.outbox_payload.eventId;
@@ -393,17 +484,178 @@ async function expectAxeClean(page: Page) {
   expect(result.violations).toEqual([]);
 }
 
-test("@customer drives the record-bound agreement, quote, order, artifact, and payment boundary", async ({
+test("@customer proves authoritative quote completion and the remaining queue contracts", async ({
   context,
   page,
 }) => {
   const assertHeaders = expectProductionRequestShape(page);
-  await page.goto("/dashboard");
+  const initialDrain = await drainProductionExperienceOutbox(
+    "release-proof-authoritative-quote-materialize",
+  );
+  expect(initialDrain.delivered).toBeGreaterThanOrEqual(2);
+  const navigation = await page.goto("/dashboard");
+  const navigationTraceparent = navigation?.headers()["traceparent"];
+  if (!navigationTraceparent)
+    throw new Error("Production navigation did not return traceparent");
   await expectProofCookie(context, page.url());
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
     page.getByRole("heading", { level: 2, name: "Needs attention" }),
   ).toBeVisible();
+
+  const authoritativeProjection = await projection(
+    page,
+    "customer",
+    "quotes",
+    authoritativeQuoteProof.recordKey,
+  );
+  expect(authoritativeProjection.version).toBe(1);
+  expect(authoritativeProjection.data).toMatchObject({
+    status: "open",
+    allowedActions: ["expire"],
+  });
+  const authoritativeIdempotencyKey =
+    "proof-customer-authoritative-expire-0001";
+  const queuedAuthoritative = await projectionAction(page, {
+    audience: "customer",
+    channel: "quotes",
+    recordKey: authoritativeQuoteProof.recordKey,
+    projectionId: authoritativeProjection.id,
+    action: "expire",
+    expectedVersion: 1,
+    idempotencyKey: authoritativeIdempotencyKey,
+  });
+  expect(queuedAuthoritative).toMatchObject({
+    status: 202,
+    body: { status: "queued", expectedVersion: 1 },
+  });
+  const terminalDrain = await drainProductionExperienceOutbox(
+    "release-proof-authoritative-quote-expire",
+  );
+  expect(terminalDrain.delivered).toBeGreaterThanOrEqual(4);
+  const terminalAuthoritative = await projectionActionReceipt(page, {
+    audience: "customer",
+    channel: "quotes",
+    recordKey: authoritativeQuoteProof.recordKey,
+    actionRequestId: queuedAuthoritative.body.id,
+  });
+  expect(terminalAuthoritative).toMatchObject({
+    status: 200,
+    body: {
+      id: queuedAuthoritative.body.id,
+      status: "applied",
+      resultCode: "PORTAL_ACTION_APPLIED",
+      authoritativeVersion: 2,
+      commandReplayed: false,
+    },
+  });
+  expect(terminalAuthoritative.body.resultReference).toBe(
+    `core:quotes:${authoritativeQuoteProof.quoteId}:version:2`,
+  );
+  expect(terminalAuthoritative.body.completedAt).not.toBeNull();
+
+  const databaseUrl = process.env.DIRECT_DATABASE_URL;
+  if (!databaseUrl)
+    throw new Error("DIRECT_DATABASE_URL is required for release proof");
+  const authoritativeSql = createDirectMigrationClient(databaseUrl);
+  try {
+    const rows = await authoritativeSql<
+      {
+        quote_status: string;
+        quote_version: number;
+        action_status: string;
+        action_outbox_processed: boolean;
+        terminal_outbox_processed: boolean;
+        expire_outbox_processed: boolean;
+        materialized_version_two: boolean;
+      }[]
+    >`
+      select quote.status as quote_status,
+             quote.row_version as quote_version,
+             action.status as action_status,
+             action_outbox.processed_at is not null as action_outbox_processed,
+             exists (
+               select 1 from public.outbox_messages terminal_outbox
+               join public.audit_events terminal_event
+                 on terminal_event.id = terminal_outbox.event_id
+               where terminal_event.aggregate_type = 'experience_action_request'
+                 and terminal_event.aggregate_id = action.id
+                 and terminal_event.event_type = 'experience.projection_action.applied'
+                 and terminal_outbox.processed_at is not null
+             ) as terminal_outbox_processed,
+             exists (
+               select 1 from public.outbox_messages expire_outbox
+               join public.audit_events expire_event
+                 on expire_event.id = expire_outbox.event_id
+               where expire_event.aggregate_type = 'quote'
+                 and expire_event.aggregate_id = quote.id
+                 and expire_event.event_type = 'core.quotes.expire'
+                 and expire_outbox.processed_at is not null
+             ) as expire_outbox_processed,
+             exists (
+               select 1
+               from public.experience_projection_materialization_receipts receipt
+               where receipt.aggregate_type = 'quote'
+                 and receipt.aggregate_id = quote.id
+                 and receipt.aggregate_version = 2
+             ) as materialized_version_two
+      from public.quotes quote
+      join public.experience_projection_action_requests action
+        on action.id = ${queuedAuthoritative.body.id}::uuid
+      join public.outbox_messages action_outbox
+        on action_outbox.id = action.outbox_message_id
+      where quote.id = ${authoritativeQuoteProof.quoteId}::uuid
+    `;
+    expect(rows).toEqual([
+      {
+        quote_status: "expired",
+        quote_version: 2,
+        action_status: "applied",
+        action_outbox_processed: true,
+        terminal_outbox_processed: true,
+        expire_outbox_processed: true,
+        materialized_version_two: true,
+      },
+    ]);
+  } finally {
+    await authoritativeSql.end();
+  }
+
+  const rematerialized = await projection(
+    page,
+    "customer",
+    "quotes",
+    authoritativeQuoteProof.recordKey,
+  );
+  expect(rematerialized.version).toBe(2);
+  expect(rematerialized.data).toMatchObject({
+    status: "canceled",
+    allowedActions: [],
+  });
+  const terminalReplay = await projectionAction(page, {
+    audience: "customer",
+    channel: "quotes",
+    recordKey: authoritativeQuoteProof.recordKey,
+    projectionId: authoritativeProjection.id,
+    action: "expire",
+    expectedVersion: 1,
+    idempotencyKey: authoritativeIdempotencyKey,
+  });
+  expect(terminalReplay.status).toBe(202);
+  expect(terminalReplay.body).toEqual(terminalAuthoritative.body);
+  const staleAuthoritative = await projectionAction(page, {
+    audience: "customer",
+    channel: "quotes",
+    recordKey: authoritativeQuoteProof.recordKey,
+    projectionId: rematerialized.id,
+    action: "expire",
+    expectedVersion: 1,
+    idempotencyKey: "proof-customer-authoritative-expire-stale-0001",
+  });
+  expect(staleAuthoritative).toMatchObject({
+    status: 409,
+    body: { code: "VERSION_CONFLICT" },
+  });
 
   const chain = [
     ["agreements", "AGR-PROOF-0001", "execute_agreement"],
@@ -521,6 +773,10 @@ test("@customer drives the record-bound agreement, quote, order, artifact, and p
     "20000000-0000-4000-8000-000000000002",
     durableActions,
   );
+  const apiTraceparent = queuedAuthoritative.headers.traceparent;
+  if (!apiTraceparent)
+    throw new Error("Authoritative API response did not return traceparent");
+  await expectOtlpCorrelation({ navigationTraceparent, apiTraceparent });
   assertHeaders();
 });
 

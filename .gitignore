@@ -7,6 +7,7 @@
 next-env.d.ts
 .turbo/
 .artifacts/
+.clockwork-archives/
 coverage/
 dist/
 node_modules/

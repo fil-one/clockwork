@@ -13,6 +13,8 @@ if (!Number.isInteger(port) || port < 1024 || port > 65_535)
   throw new Error("Provider fake port must be an unprivileged TCP port.");
 
 const deliveries = new Map();
+const telemetryRequests = [];
+let credentialBearingTelemetryRequests = 0;
 const maximumBodyBytes = 256 * 1024;
 
 function canonicalize(value) {
@@ -56,6 +58,21 @@ async function readJson(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+async function readBytes(request) {
+  const chunks = [];
+  let bytes = 0;
+  for await (const chunk of request) {
+    bytes += chunk.byteLength;
+    if (bytes > maximumBodyBytes) {
+      const error = new Error("Telemetry body exceeds the test limit.");
+      error.code = "BODY_TOO_LARGE";
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 function hasCredentials(request) {
   return Boolean(request.headers.authorization || request.headers.cookie);
 }
@@ -64,6 +81,42 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://localhost:${port}`);
   if (request.method === "GET" && url.pathname === "/health") {
     reply(response, 200, { status: "ready" });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/v1/traces") {
+    if (hasCredentials(request)) {
+      credentialBearingTelemetryRequests += 1;
+      reply(response, 400, { code: "OTLP_CREDENTIALS_FORBIDDEN" });
+      return;
+    }
+    if (request.headers["content-type"] !== "application/x-protobuf") {
+      reply(response, 415, { code: "OTLP_CONTENT_TYPE_REQUIRED" });
+      return;
+    }
+    try {
+      const bytes = await readBytes(request);
+      telemetryRequests.push(bytes.toString("base64"));
+      response.writeHead(200, {
+        "cache-control": "no-store",
+        "content-type": "application/x-protobuf",
+        "x-content-type-options": "nosniff",
+      });
+      response.end();
+    } catch (error) {
+      reply(response, error?.code === "BODY_TOO_LARGE" ? 413 : 400, {
+        code: error?.code ?? "INVALID_OTLP",
+      });
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/v1/telemetry") {
+    reply(response, 200, {
+      count: telemetryRequests.length,
+      credentialBearingRequests: credentialBearingTelemetryRequests,
+      requests: telemetryRequests,
+    });
     return;
   }
 

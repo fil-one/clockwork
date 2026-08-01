@@ -56,6 +56,29 @@ describe("POC lifecycle", () => {
     ).toMatchObject({ qualified: false });
   });
 
+  it("rejects a whitespace-only success-test target", () => {
+    expect(
+      qualifyPoc({
+        workload: "Restore validation workload",
+        buyerUserId: "buyer-1",
+        permittedDataClass: "synthetic",
+        successTests: [
+          { id: "restore", description: "Restore succeeds", target: "   " },
+        ],
+        commercialRangeMinor: {
+          minimum: "100",
+          maximum: "1000",
+          currency: "USD",
+        },
+        expiresAt: "2026-08-31T16:00:00.000Z",
+        supportOwnerId: "support-1",
+      }),
+    ).toMatchObject({
+      qualified: false,
+      reasons: ["SUCCESS_TEST_TARGET_REQUIRED"],
+    });
+  });
+
   it.each(["NaN", "Infinity", "1e3", " 100", "00", "-1"])(
     "reports malformed commercial minor amount %s without throwing a parser error",
     (minimum) => {
@@ -64,7 +87,13 @@ describe("POC lifecycle", () => {
           workload: "Restore validation workload",
           buyerUserId: "buyer-1",
           permittedDataClass: "synthetic",
-          successTests: [{ id: "restore", description: "Restore succeeds" }],
+          successTests: [
+            {
+              id: "restore",
+              description: "Restore succeeds",
+              target: "Restore completes within the agreed objective",
+            },
+          ],
           commercialRangeMinor: { minimum, maximum: "1000", currency: "USD" },
           expiresAt: "2026-08-31T16:00:00.000Z",
           supportOwnerId: "support-1",

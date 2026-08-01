@@ -1,5 +1,9 @@
 # Foundation handoff
 
+Current disposition (2026-08-01): repository-qualified historical foundation
+provenance. All integration expectations are satisfied on `main`; this document
+does not identify an active lane or declare an RC/launch.
+
 ## Toolchain and commands
 
 Use Node `24.18.1` and pnpm `10.34.5` (`corepack pnpm`). Copy `.env.example`
@@ -51,8 +55,10 @@ repository operation, and atomic audit/outbox append.
 
 The API composed core, lifecycle, and system routers before the historical lane
 work began. Integrations and workflows had equivalent lane-owned registries.
-`docs/agent-lanes.md` preserves those historical paths; current ownership is in
-`docs/implementation-lanes.md`.
+`docs/agent-lanes.md` and `docs/implementation-lanes.md` preserve those
+historical paths. After the three historically named RC-lane merges, `main` owns
+all source, shared contracts, generated artifacts, release evidence, and future
+forward-only migrations.
 
 ## Generated artifacts
 
@@ -60,7 +66,8 @@ work began. Integrations and workflows had equivalent lane-owned registries.
 `schema.d.ts`; `client.ts` is the typed `openapi-fetch` entry. Commit changed
 generated artifacts with the route change. Drizzle metadata under
 `packages/db/drizzle/meta` is an aid; reviewed SQL in `supabase/migrations` is
-canonical. Drizzle configuration never writes into the Supabase migration
+canonical. The repository-qualified authoring output is `0004_nosy_valkyrie` for
+116 tables. Drizzle configuration never writes into the Supabase migration
 directory.
 
 ## Demo and testing

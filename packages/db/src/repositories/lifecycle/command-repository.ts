@@ -16,6 +16,7 @@ import {
 import {
   ActorSchema,
   ids,
+  uuidV7,
   type Actor,
   type EntityName,
 } from "@clockwork/contracts";
@@ -221,12 +222,32 @@ export interface DatabaseLifecyclePolicies {
   exceptionQueues: readonly QueuePolicy[];
 }
 
+export interface LifecycleExceptionRoutingPort {
+  resolve(input: {
+    queue: string;
+    aggregateId: string;
+    occurredAt: string;
+    severity: "warning" | "blocking";
+    requestedBy?: string;
+  }): Promise<{
+    accountId: string;
+    ownerUserId: string;
+    backupUserId: string;
+    escalationUserId: string;
+    objectType: string;
+    targetAt: string;
+    absenceEscalated: boolean;
+    rosterEntryIds: readonly string[];
+  }>;
+}
+
 export interface DatabaseLifecycleCommandRepositoryOptions {
   database: RuntimeDatabase;
   serviceDatabase?: RuntimeDatabase;
   authorizationSecret: string;
   now?: () => Date;
   policies: DatabaseLifecyclePolicies;
+  exceptionRouting?: LifecycleExceptionRoutingPort;
   migrationSource?: LifecycleMigrationSourcePort;
 }
 
@@ -491,12 +512,20 @@ const OffboardingPlanSchema: z.ZodType<OffboardingPlan> = z.object({
     "complete",
   ]),
   lockedExclusions: z.array(
-    z.object({
-      objectId: z.string(),
-      scope: z.string(),
-      retainUntil: z.string(),
-      legalHold: z.boolean(),
-    }),
+    z
+      .object({
+        objectId: z.string(),
+        scope: z.string(),
+        retainUntil: z.string(),
+        legalHold: z.boolean(),
+        reason: z.enum(["legal_hold", "object_lock_retention"]),
+      })
+      .refine(
+        (value) =>
+          value.reason ===
+          (value.legalHold ? "legal_hold" : "object_lock_retention"),
+        { message: "RETAINED_OBJECT_REASON_INVALID" },
+      ),
   ),
   deletionScheduledAt: z.string().nullable(),
   approvals: z.array(
@@ -638,6 +667,7 @@ export class DatabaseLifecycleCommandRepository {
     QueuePolicy["queue"],
     QueuePolicy
   >;
+  private readonly exceptionRouting: LifecycleExceptionRoutingPort | undefined;
 
   public constructor(
     private readonly options: DatabaseLifecycleCommandRepositoryOptions,
@@ -658,9 +688,10 @@ export class DatabaseLifecycleCommandRepository {
       throw new Error("DELETION_CERTIFICATE_RETENTION_POLICY_REQUIRED");
     this.serviceDatabase = options.serviceDatabase ?? options.database;
     this.now = options.now ?? (() => new Date());
-    this.queuePolicies = validateQueuePolicies(
-      options.policies.exceptionQueues,
-    );
+    this.queuePolicies = options.exceptionRouting
+      ? new Map()
+      : validateQueuePolicies(options.policies.exceptionQueues);
+    this.exceptionRouting = options.exceptionRouting;
   }
 
   public async executeInTransaction(
@@ -668,6 +699,13 @@ export class DatabaseLifecycleCommandRepository {
   ): Promise<DatabaseLifecycleCommandResult> {
     if (!(input.command in lifecyclePayloadSchemas))
       throw new Error("LIFECYCLE_COMMAND_UNKNOWN");
+    if (input.command === "ingest_marketplace_event")
+      input = {
+        ...input,
+        // Validate persistence-bound numerics before opening the service-role
+        // transaction or claiming an idempotency record.
+        payload: marketplaceEventPayloadSchema.parse(input.payload),
+      };
     if (!readCommand(input.command) && !input.context.idempotencyKey)
       throw new Error("LIFECYCLE_IDEMPOTENCY_KEY_REQUIRED");
     if (providerCommand(input.command)) {
@@ -1307,7 +1345,7 @@ export class DatabaseLifecycleCommandRepository {
     if (hashExactText(payload.exactText) !== payload.exactTextHash)
       throw new Error("CANONICAL_TEXT_HASH_MISMATCH");
     const approverId = userId(context);
-    const templateId = randomUUID();
+    const templateId = uuidV7();
     const agreementType = z
       .enum([
         "tos",
@@ -1542,10 +1580,10 @@ export class DatabaseLifecycleCommandRepository {
     const cumulativeValueBeforeMinor = acceptedQuotes
       .reduce((total, quote) => total + quote.totalMinor, 0n)
       .toString();
-    const agreementId = randomUUID();
+    const agreementId = uuidV7();
     const snapshotSource = "commerce_ledger" as const;
     const snapshotBody = {
-      snapshotId: randomUUID(),
+      snapshotId: uuidV7(),
       accountId: payload.accountId,
       source: snapshotSource,
       capturedAt: context.occurredAt,
@@ -1580,7 +1618,7 @@ export class DatabaseLifecycleCommandRepository {
     const identity = membership[0];
     if (!identity) throw new Error("ACCEPTING_MEMBERSHIP_NOT_FOUND");
     const clickEvidence = captureClickAcceptance({
-      evidenceId: randomUUID(),
+      evidenceId: uuidV7(),
       agreementId,
       legalEntityName: account.legalName,
       template: templateDomain,
@@ -2779,7 +2817,18 @@ export class DatabaseLifecycleCommandRepository {
     const authenticatedBuyerId = userId(context);
     if (payload.buyerUserId !== authenticatedBuyerId)
       throw new Error("POC_BUYER_MUST_BE_AUTHENTICATED_USER");
-    const supportOwnerId = this.queuePolicies.get("poc_qualification")?.ownerId;
+    const persistedOwnership = this.exceptionRouting
+      ? await this.exceptionRouting.resolve({
+          queue: "poc_qualification",
+          aggregateId: payload.accountId,
+          occurredAt: context.occurredAt,
+          severity: "blocking",
+          requestedBy: authenticatedBuyerId,
+        })
+      : undefined;
+    const supportOwnerId =
+      persistedOwnership?.ownerUserId ??
+      this.queuePolicies.get("poc_qualification")?.ownerId;
     if (!supportOwnerId) throw new Error("POC_SUPPORT_OWNER_POLICY_MISSING");
     const [account, buyer, persistedRelationships] = await Promise.all([
       transaction.query.accounts.findFirst({
@@ -2839,7 +2888,7 @@ export class DatabaseLifecycleCommandRepository {
       (expiresAt.getTime() - now.getTime()) / 86_400_000,
     );
     if (durationDays < 1) throw new Error("POC_EXPIRY_INVALID");
-    const pocId = randomUUID();
+    const pocId = uuidV7();
     const [organization] = await transaction
       .insert(organizations)
       .values({
@@ -3353,7 +3402,7 @@ export class DatabaseLifecycleCommandRepository {
       payload.evidenceDocumentId,
       payload.accountId,
     );
-    const noticeId = randomUUID();
+    const noticeId = uuidV7();
     const deliveryChannel = z.enum(["portal", "email", "post", "other"]).parse(
       {
         portal: "portal",
@@ -3563,7 +3612,7 @@ export class DatabaseLifecycleCommandRepository {
     const proposedEnd = new Date(`${renewable.endsOn}T00:00:00Z`);
     proposedEnd.setUTCMonth(proposedEnd.getUTCMonth() + requestedTermMonths);
     const renewal = prepopulateRenewalRequest({
-      requestId: randomUUID(),
+      requestId: uuidV7(),
       order: renewable,
       proposedEndsOn: proposedEnd.toISOString().slice(0, 10),
       requestedAction: payload.requestedAction,
@@ -3639,7 +3688,7 @@ export class DatabaseLifecycleCommandRepository {
     const role = requireAuthorization(context).roles[0];
     if (!role) throw new Error("RENEWAL_DECLINE_ROLE_REQUIRED");
     const decline = recordRenewalDecline({
-      declineId: randomUUID(),
+      declineId: uuidV7(),
       order: renewable,
       legalEntityName: account.legalName,
       userId: currentUser.id,
@@ -3788,7 +3837,7 @@ export class DatabaseLifecycleCommandRepository {
           ),
         }),
       ]);
-    const terminationId = randomUUID();
+    const terminationId = uuidV7();
     const plan = planOffboarding({
       terminationId,
       accountId: payload.accountId,
@@ -3805,6 +3854,9 @@ export class DatabaseLifecycleCommandRepository {
           scope: `document:${document.kind}`,
           retainUntil: document.retainUntil.toISOString(),
           legalHold: document.legalHold,
+          reason: document.legalHold
+            ? ("legal_hold" as const)
+            : ("object_lock_retention" as const),
         })),
         ...retainedEntitlements.flatMap((entitlement) =>
           entitlement.maximumRetentionAt
@@ -3814,6 +3866,7 @@ export class DatabaseLifecycleCommandRepository {
                   scope: `entitlement:${entitlement.sku}`,
                   retainUntil: entitlement.maximumRetentionAt.toISOString(),
                   legalHold: false,
+                  reason: "object_lock_retention" as const,
                 },
               ]
             : [],
@@ -3917,7 +3970,7 @@ export class DatabaseLifecycleCommandRepository {
               unsettledInvoices.length === 0 ? "settled" : "pending",
           };
     const approverId = userId(context);
-    const approvalId = randomUUID();
+    const approvalId = uuidV7();
     const authenticationEvidenceHash = hashEvidence({
       requestId: context.requestId,
       userId: approverId,
@@ -4176,16 +4229,49 @@ export class DatabaseLifecycleCommandRepository {
       payload.evidenceDocumentId,
       authoritativeAccountId,
     );
-    const caseId = randomUUID();
-    const exceptionCase = openExceptionCase({
-      caseId,
-      queue: payload.queue,
-      objectType: payload.objectType,
-      objectId: payload.objectId,
-      requestedBy: userId(context),
-      openedAt: context.occurredAt,
-      policies: this.queuePolicies,
-    });
+    const caseId = uuidV7();
+    const requestedBy = userId(context);
+    const routed = this.exceptionRouting
+      ? await this.exceptionRouting.resolve({
+          queue: payload.queue,
+          aggregateId: payload.objectId,
+          occurredAt: context.occurredAt,
+          severity: "blocking",
+          requestedBy,
+        })
+      : undefined;
+    if (
+      routed &&
+      (routed.accountId !== authoritativeAccountId ||
+        routed.objectType !== payload.objectType)
+    )
+      throw new Error("EXCEPTION_AUTHORITATIVE_ROUTING_MISMATCH");
+    const exceptionCase = routed
+      ? {
+          caseId,
+          queue: payload.queue,
+          objectType: payload.objectType,
+          objectId: payload.objectId,
+          requestedBy,
+          ownerId: routed.ownerUserId,
+          backupId: routed.backupUserId,
+          escalationOwnerId: routed.escalationUserId,
+          openedAt: context.occurredAt,
+          targetAt: routed.targetAt,
+          status: "open" as const,
+          separationRequired: true,
+          escalationLevel: 0,
+          decisions: [],
+        }
+      : openExceptionCase({
+          caseId,
+          queue: payload.queue,
+          objectType: payload.objectType,
+          objectId: payload.objectId,
+          requestedBy,
+          openedAt: context.occurredAt,
+          policies: this.queuePolicies,
+        });
     const [row] = await transaction
       .insert(exceptionCases)
       .values({
@@ -4196,6 +4282,11 @@ export class DatabaseLifecycleCommandRepository {
         objectId: exceptionCase.objectId,
         ownerUserId: exceptionCase.ownerId,
         backupUserId: exceptionCase.backupId,
+        requesterUserId: exceptionCase.requestedBy,
+        escalationOwnerUserId: exceptionCase.escalationOwnerId,
+        separationRequired: exceptionCase.separationRequired,
+        ownershipRosterEntryIds: [...(routed?.rosterEntryIds ?? [])],
+        ownershipAbsenceEscalated: routed?.absenceEscalated ?? false,
         targetAt: new Date(exceptionCase.targetAt),
         status: exceptionCase.status,
       })
@@ -4216,6 +4307,9 @@ export class DatabaseLifecycleCommandRepository {
         requestedBy: exceptionCase.requestedBy,
         ownerId: row.ownerUserId,
         backupId: row.backupUserId,
+        escalationOwnerId: exceptionCase.escalationOwnerId,
+        ownershipRosterEntryIds: routed?.rosterEntryIds ?? [],
+        ownershipAbsenceEscalated: routed?.absenceEscalated ?? false,
         targetAt: row.targetAt.toISOString(),
         reason: payload.reason,
         evidenceDocumentId: evidence.documentId,
@@ -4244,22 +4338,28 @@ export class DatabaseLifecycleCommandRepository {
       row.accountId,
     );
     const policy = this.queuePolicies.get(payload.queue);
-    if (!policy) throw new Error(`QUEUE_POLICY_MISSING:${payload.queue}`);
+    const backupId = row.backupUserId ?? policy?.backupId;
+    const escalationOwnerId =
+      row.escalationOwnerUserId ?? policy?.escalationOwnerId;
+    if (!backupId || !escalationOwnerId)
+      throw new Error(`EXCEPTION_PERSISTED_OWNERSHIP_MISSING:${payload.queue}`);
     const exceptionCase = {
       caseId: row.id,
       queue: payload.queue,
       objectType: row.objectType,
       objectId: row.objectId,
-      requestedBy: await this.exceptionRequester(transaction, row.id),
+      requestedBy:
+        row.requesterUserId ??
+        (await this.exceptionRequester(transaction, row.id)),
       ownerId: row.ownerUserId,
-      backupId: row.backupUserId ?? policy.backupId,
-      escalationOwnerId: policy.escalationOwnerId,
+      backupId,
+      escalationOwnerId,
       openedAt: row.createdAt.toISOString(),
       targetAt: row.targetAt.toISOString(),
       status: z
         .enum(["open", "approved", "rejected", "closed"])
         .parse(row.status),
-      separationRequired: policy.separationRequired,
+      separationRequired: row.separationRequired,
       escalationLevel: 0,
       decisions: [],
     };
@@ -4423,7 +4523,7 @@ export class DatabaseLifecycleCommandRepository {
         },
       });
     }
-    const runId = randomUUID();
+    const runId = uuidV7();
     const execution = payload.executionMode === "execute";
     const checkpoint = startMigration({
       runId,

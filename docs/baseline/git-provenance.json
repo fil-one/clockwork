@@ -1,14 +1,41 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:39:00Z",
+  "capturedAt": "2026-08-01T13:56:29Z",
   "captureRef": "main",
-  "captureCommit": "34c2a5001859221dc3def61d7d86231fe2026151",
-  "captureTree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
-  "captureMode": "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
-  "mainBase": "92d10d3b8a12728804b70215799f9929e880c996",
-  "releaseCandidateBaseRef": "rc-lanes-base-20260731^{commit}",
-  "releaseCandidateBaseCommit": null,
-  "releaseCandidateBaseTree": null,
+  "captureCommit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+  "captureTree": "5965cdbe18966e88304ee98ec41d804e0d4e9fae",
+  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
+  "captureWorkingTreePathCount": 215,
+  "qualityDisposition": {
+    "target": "consolidated-main-quality",
+    "declaresReleaseCandidate": false,
+    "declaresProductionLaunchApproval": false,
+    "humanDesignApproval": {
+      "scope": "external-launch-only",
+      "blocksRepositoryConsolidation": false,
+      "status": "not-evaluated-by-baseline-manifests",
+      "evidenceSource": "docs/launch-checklist.md",
+      "requiredUserEnteredFields": [
+        "approver name",
+        "approval decision",
+        "UTC timestamp",
+        "reviewed SHA",
+        "evidence/reference"
+      ]
+    }
+  },
+  "mainBase": {
+    "semantics": "Historical starting main tip before the three RC-named input lanes were consolidated; this is not the current consolidated main capture.",
+    "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+    "tree": "c463e9b62315c1a2349830a5dc526d0d158bbd4b"
+  },
+  "historicalRcLaneBase": {
+    "semantics": "Historical common base of the three RC-named input lanes; the name records ancestry and does not designate consolidated main as an RC.",
+    "ref": "rc-lanes-base-20260731",
+    "tagObject": "72d33977364bfcd8e4b303d85d6fe5145f13c858",
+    "commit": "27fb33bab754b001acf26134d988daa10d177390",
+    "tree": "47a76be91f3f95c9a429e57c203dad33b1692d8a"
+  },
   "remotes": [],
   "refs": [
     {
@@ -90,16 +117,64 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "object": "ab0ae079e674feafd4ae86413d168e001416c0e2",
       "objectType": "commit",
-      "peeledCommit": "34c2a5001859221dc3def61d7d86231fe2026151",
-      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
-      "tree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
-      "treeEntryCount": 708,
-      "treeListingSha256": "1924447e79611215e72d2cd2e3181ff43bf3465e82e22158913609d0f50cb80a",
-      "parents": ["7ae3fbcb01c736004faf73419b0092c905d61090"],
-      "subject": "fix: make clean qualification deterministic",
-      "mergeBaseWithMain": "34c2a5001859221dc3def61d7d86231fe2026151"
+      "peeledCommit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "commit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "tree": "5965cdbe18966e88304ee98ec41d804e0d4e9fae",
+      "treeEntryCount": 839,
+      "treeListingSha256": "c2c4e03c2ab04703dfed2d5d063104815f8f2b41b8c246968e516bcb303e3e36",
+      "parents": [
+        "07023a40462cb432f595007c1f88365f14e0f5e8",
+        "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
+      ],
+      "subject": "merge: integrate experience release RC lane",
+      "mergeBaseWithMain": "ab0ae079e674feafd4ae86413d168e001416c0e2"
+    },
+    {
+      "ref": "rc/commercial-integrity",
+      "fullRef": "refs/heads/rc/commercial-integrity",
+      "refType": "branch",
+      "object": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "objectType": "commit",
+      "peeledCommit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "tree": "10fb9f38f2a42e98b1a63b4011f54f7ef3942c1f",
+      "treeEntryCount": 729,
+      "treeListingSha256": "3d6be54b60d01f26913869a9626d5e5343bfc8a63870ddc7060a655955f080c2",
+      "parents": ["ecf5574c5f496475f57ff190f79a2e03df323892"],
+      "subject": "docs: record commercial integrity handoff",
+      "mergeBaseWithMain": "cc23bce784ee60a27ad3e34fd245136f37394a2d"
+    },
+    {
+      "ref": "rc/experience-release",
+      "fullRef": "refs/heads/rc/experience-release",
+      "refType": "branch",
+      "object": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "objectType": "commit",
+      "peeledCommit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "tree": "b6fa1d310adcc34fcb8292c057d079d73e0a2261",
+      "treeEntryCount": 778,
+      "treeListingSha256": "fa2ac2f8573f75aa5f1dbb337a42208e79bc52f8751597e28fb16484f70926da",
+      "parents": ["7ebae9ff01351671a34a972b8ad6f3440e1eda6c"],
+      "subject": "test(web): bound release browser concurrency",
+      "mergeBaseWithMain": "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
+    },
+    {
+      "ref": "rc/runtime-operations",
+      "fullRef": "refs/heads/rc/runtime-operations",
+      "refType": "branch",
+      "object": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "objectType": "commit",
+      "peeledCommit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "tree": "f1cae86ccb4782b8666c4bf0ed3a98eef95a6726",
+      "treeEntryCount": 748,
+      "treeListingSha256": "eb87269931d4f2c5b2b2dcf7f5a27d8183f8a522981e4e3c89ba2a5e7322274f",
+      "parents": ["cd9ac147de7fa9b998de762adb4b2c3d1f6110fe"],
+      "subject": "docs(runtime): hand off operations integration",
+      "mergeBaseWithMain": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
     },
     {
       "ref": "ux/customer-partner",
@@ -162,6 +237,36 @@
       "mergeBaseWithMain": "30ad76a8bb2118b2605358da1694d3aa54464eef"
     },
     {
+      "ref": "notes/clockwork-lane-topology",
+      "fullRef": "refs/notes/clockwork-lane-topology",
+      "refType": "note",
+      "object": "fe7911f544711bdcfbafa834d23c15d735b69113",
+      "objectType": "commit",
+      "peeledCommit": "fe7911f544711bdcfbafa834d23c15d735b69113",
+      "commit": "fe7911f544711bdcfbafa834d23c15d735b69113",
+      "tree": "3c4fabc7608ceb4b8d38ff5626b982dd82793f9d",
+      "treeEntryCount": 1,
+      "treeListingSha256": "ef91280c0d66704a9ab3dac044607e0f443fd508fd328e93c765bf3c31306f34",
+      "parents": [],
+      "subject": "Notes added by 'git notes add'",
+      "mergeBaseWithMain": null
+    },
+    {
+      "ref": "notes/clockwork-qualification",
+      "fullRef": "refs/notes/clockwork-qualification",
+      "refType": "note",
+      "object": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
+      "objectType": "commit",
+      "peeledCommit": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
+      "commit": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
+      "tree": "14c67a3a993d0b2c4696f101f48401b7953187f7",
+      "treeEntryCount": 1,
+      "treeListingSha256": "d82779a07d96f8330f9f2524cec5c9e85f8969a4e04fae46405646da61635725",
+      "parents": [],
+      "subject": "Notes added by 'git notes add'",
+      "mergeBaseWithMain": null
+    },
+    {
       "ref": "pre-consolidation-20260731",
       "fullRef": "refs/tags/pre-consolidation-20260731",
       "refType": "tag",
@@ -175,26 +280,268 @@
       "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
       "subject": "docs: preserve consolidation backlog",
       "mergeBaseWithMain": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "ref": "rc-lanes-base-20260731",
+      "fullRef": "refs/tags/rc-lanes-base-20260731",
+      "refType": "tag",
+      "object": "72d33977364bfcd8e4b303d85d6fe5145f13c858",
+      "objectType": "tag",
+      "peeledCommit": "27fb33bab754b001acf26134d988daa10d177390",
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "tree": "47a76be91f3f95c9a429e57c203dad33b1692d8a",
+      "treeEntryCount": 708,
+      "treeListingSha256": "d5d4484d4df1e2d72eab5f2753e64e2b33a2fb74e853b3dded468b150b688363",
+      "parents": ["34c2a5001859221dc3def61d7d86231fe2026151"],
+      "subject": "fix: align integration qualification origin",
+      "mergeBaseWithMain": "27fb33bab754b001acf26134d988daa10d177390"
     }
   ],
   "specialRefInventory": {
     "stash": [],
-    "notes": [],
+    "notes": [
+      {
+        "fullRef": "refs/notes/clockwork-lane-topology",
+        "name": "notes/clockwork-lane-topology"
+      },
+      {
+        "fullRef": "refs/notes/clockwork-qualification",
+        "name": "notes/clockwork-qualification"
+      }
+    ],
     "replacements": []
   },
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "branch": "commerce/foundation",
+      "head": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "branch": "main",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
         "staged": [],
-        "unstaged": [],
-        "untracked": [],
+        "unstaged": [
+          ".env.example",
+          ".github/workflows/ci.yml",
+          ".gitignore",
+          "apps/web/app/(experience)/(customer)/states/page.tsx",
+          "apps/web/app/api/[[...route]]/route.ts",
+          "apps/web/e2e/production-proof.setup.ts",
+          "apps/web/e2e/production-proof.spec.ts",
+          "apps/web/e2e/production-provider-fake.mjs",
+          "apps/web/e2e/visual.spec.ts",
+          "apps/web/package.json",
+          "apps/web/playwright.config.ts",
+          "apps/web/playwright.proof.config.ts",
+          "apps/web/proxy.ts",
+          "apps/web/src/features/contracts/commerce-client.ts",
+          "apps/web/src/features/contracts/experience-client.ts",
+          "apps/web/src/features/customer-partner/commercial/commercial.module.css",
+          "apps/web/src/features/customer-partner/commercial/order-acceptance.tsx",
+          "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
+          "apps/web/src/features/customer-partner/commercial/quote-builder.tsx",
+          "apps/web/src/features/customer-partner/commercial/workflow-model.ts",
+          "apps/web/src/features/customer-partner/partner/resale-quote-builder.tsx",
+          "apps/web/src/features/customer-partner/partner/resale-quote-model.ts",
+          "apps/web/src/features/experience-server/authorization.ts",
+          "apps/web/src/features/experience-server/controller.test.ts",
+          "apps/web/src/features/experience-server/controller.ts",
+          "apps/web/src/features/experience-server/evidence-gateway.ts",
+          "apps/web/src/features/experience-server/model.ts",
+          "apps/web/src/features/experience-server/projection-action-buttons.tsx",
+          "apps/web/src/features/experience-server/projection-detail-page.tsx",
+          "apps/web/src/features/experience-server/projection-source.ts",
+          "apps/web/src/features/experience-server/repository.test.ts",
+          "apps/web/src/features/experience-server/repository.ts",
+          "apps/web/src/features/internal-ops/administration-safety/gates.test.tsx",
+          "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
+          "apps/web/src/features/performance/client-telemetry.ts",
+          "apps/web/src/features/states/state-gallery.tsx",
+          "apps/web/src/features/surfaces/external-gate-records.test.ts",
+          "apps/web/src/features/surfaces/workflow-panel.tsx",
+          "apps/web/vitest.config.ts",
+          "commerce_platform_spec.md",
+          "docs/agent-lanes.md",
+          "docs/backlog.md",
+          "docs/baseline/README.md",
+          "docs/baseline/artifact-hashes.json",
+          "docs/baseline/artifacts-documents.json",
+          "docs/baseline/database.json",
+          "docs/baseline/environment-gates-capabilities.json",
+          "docs/baseline/git-provenance.json",
+          "docs/baseline/openapi-clients.json",
+          "docs/baseline/routes-api-auth.json",
+          "docs/baseline/schema.json",
+          "docs/baseline/tests-baseline-artifacts.json",
+          "docs/baseline/workflows.json",
+          "docs/design/reject-list-audit.md",
+          "docs/external-gates.md",
+          "docs/foundation-handoff.md",
+          "docs/implementation-lanes.md",
+          "docs/launch-checklist.md",
+          "docs/release-candidate-report.md",
+          "docs/traceability/launch-requirements.json",
+          "docs/traceability/launch-requirements.schema.json",
+          "package.json",
+          "packages/api/scripts/generate-openapi.ts",
+          "packages/api/src/app.ts",
+          "packages/api/src/generated/openapi.json",
+          "packages/api/src/generated/schema.d.ts",
+          "packages/api/src/index.ts",
+          "packages/api/src/middleware/idempotency.ts",
+          "packages/api/src/middleware/request-context.ts",
+          "packages/api/src/routes/core/service.ts",
+          "packages/api/src/routes/lifecycle/index.ts",
+          "packages/api/src/routes/lifecycle/lifecycle.integration.test.ts",
+          "packages/api/src/routes/lifecycle/types.ts",
+          "packages/api/src/routes/system/external-gates.integration.test.ts",
+          "packages/api/src/routes/system/external-gates.ts",
+          "packages/api/src/routes/system/index.ts",
+          "packages/api/src/webhooks.ts",
+          "packages/contracts/src/index.ts",
+          "packages/contracts/src/primitives.test.ts",
+          "packages/contracts/src/primitives.ts",
+          "packages/contracts/src/providers.ts",
+          "packages/db/drizzle/meta/_journal.json",
+          "packages/db/src/index.ts",
+          "packages/db/src/repositories/audit-outbox.ts",
+          "packages/db/src/repositories/core/database-finance.ts",
+          "packages/db/src/repositories/core/stripe-adjustments.ts",
+          "packages/db/src/repositories/idempotency.ts",
+          "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+          "packages/db/src/repositories/lifecycle/command-repository.ts",
+          "packages/db/src/repositories/lifecycle/deletion-certificates.ts",
+          "packages/db/src/repositories/lifecycle/schemas.ts",
+          "packages/db/src/repositories/system/exception-routing.integration.test.ts",
+          "packages/db/src/repositories/system/exception-routing.ts",
+          "packages/db/src/repositories/system/outbox.ts",
+          "packages/db/src/repositories/system/providers.ts",
+          "packages/db/src/repositories/webhooks.ts",
+          "packages/db/src/repositories/workflows/core-dispatch.ts",
+          "packages/db/src/repositories/workflows/core.ts",
+          "packages/db/src/schema.ts",
+          "packages/db/src/schema/core/commercial-artifacts.ts",
+          "packages/db/src/schema/core/finance.ts",
+          "packages/db/src/schema/index.ts",
+          "packages/db/src/schema/lifecycle/platform.ts",
+          "packages/db/src/schema/system/index.ts",
+          "packages/db/src/schema/system/providers.ts",
+          "packages/db/src/transaction.ts",
+          "packages/documents/package.json",
+          "packages/documents/src/delivery.test.ts",
+          "packages/documents/src/delivery.ts",
+          "packages/domain/src/pocs/index.ts",
+          "packages/domain/src/pocs/pocs.test.ts",
+          "packages/domain/src/terminations/index.ts",
+          "packages/domain/src/terminations/terminations.test.ts",
+          "packages/integrations/src/core/marketplaces/marketplaces.test.ts",
+          "packages/integrations/src/core/marketplaces/normalization.ts",
+          "packages/integrations/src/marketplaces-platform/index.ts",
+          "packages/integrations/src/marketplaces-platform/marketplaces-platform.contract.test.ts",
+          "packages/integrations/src/support/index.ts",
+          "packages/integrations/src/telemetry/instrumentation.test.ts",
+          "packages/integrations/src/telemetry/instrumentation.ts",
+          "packages/integrations/src/telemetry/otlp.test.ts",
+          "packages/integrations/src/telemetry/otlp.ts",
+          "packages/integrations/src/telemetry/telemetry.ts",
+          "packages/testing/package.json",
+          "packages/testing/src/demo/reset-command.ts",
+          "packages/testing/src/demo/reset.test.ts",
+          "packages/testing/src/demo/reset.ts",
+          "packages/testing/src/visual/scenarios.test.ts",
+          "packages/testing/src/visual/scenarios.ts",
+          "packages/workflows/src/core/commercial-artifact-handler.ts",
+          "packages/workflows/src/core/engine.ts",
+          "packages/workflows/src/core/ports.ts",
+          "packages/workflows/src/core/task-runtime.ts",
+          "packages/workflows/src/core/tasks.ts",
+          "packages/workflows/src/index.ts",
+          "packages/workflows/src/offboarding/deletion-certificate-handler.test.ts",
+          "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
+          "packages/workflows/src/offboarding/index.test.ts",
+          "packages/workflows/src/onboarding/trigger-runtime.ts",
+          "packages/workflows/src/runtime/environment-production-adapters.ts",
+          "packages/workflows/src/runtime/production-adapter-factory.test.ts",
+          "packages/workflows/src/runtime/production-adapter-factory.ts",
+          "packages/workflows/src/runtime/production.ts",
+          "packages/workflows/src/runtime/trigger-worker-bootstrap.ts",
+          "packages/workflows/src/system/gate-activation-tasks.ts",
+          "packages/workflows/src/system/outbox-dispatcher.test.ts",
+          "packages/workflows/src/system/outbox-dispatcher.ts",
+          "pnpm-lock.yaml",
+          "scripts/benchmark-release.mjs",
+          "scripts/check-generated-dry-run.mjs",
+          "scripts/compare-release-results.mjs",
+          "scripts/generate-baseline-manifests.mjs",
+          "scripts/release-artifacts.mjs",
+          "scripts/release-artifacts.test.mjs",
+          "scripts/release-suites.mjs",
+          "scripts/validate-release-join.mjs",
+          "scripts/validate-traceability.mjs",
+          "supabase/seed.sql",
+          "supabase/tests/100_core_finance.test.sql"
+        ],
+        "untracked": [
+          "apps/web/app/api/telemetry/route.test.ts",
+          "apps/web/app/api/telemetry/route.ts",
+          "apps/web/e2e/production-workflow-proof.ts",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-chromium-darwin.png",
+          "apps/web/src/features/contracts/experience-client.test.ts",
+          "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
+          "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
+          "apps/web/src/features/experience-server/artifact-sources.test.ts",
+          "apps/web/src/features/experience-server/artifact-sources.ts",
+          "apps/web/src/features/experience-server/projection-detail-page.module.css",
+          "apps/web/src/features/experience-server/projection-detail-page.test.tsx",
+          "apps/web/src/features/experience-server/projection-source.demo-reset.test.ts",
+          "apps/web/src/features/states/state-gallery.test.tsx",
+          "apps/web/src/proxy-auth-failure.test.ts",
+          "apps/web/src/proxy.test.ts",
+          "apps/web/src/telemetry/runtime.test.ts",
+          "apps/web/src/telemetry/runtime.ts",
+          "packages/api/src/experience-openapi.test.ts",
+          "packages/api/src/experience-openapi.ts",
+          "packages/contracts/src/uuid-v7.test.ts",
+          "packages/contracts/src/uuid-v7.ts",
+          "packages/db/drizzle/0004_nosy_valkyrie.sql",
+          "packages/db/drizzle/meta/0004_snapshot.json",
+          "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
+          "packages/db/src/repositories/experience/authoritative-command.test.ts",
+          "packages/db/src/repositories/experience/authoritative-command.ts",
+          "packages/db/src/repositories/experience/authoritative-state.test.ts",
+          "packages/db/src/repositories/experience/authoritative-state.ts",
+          "packages/db/src/repositories/experience/index.ts",
+          "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+          "packages/db/src/repositories/experience/portal-runtime.ts",
+          "packages/db/src/repositories/lifecycle/command-repository.test.ts",
+          "packages/db/src/repositories/lifecycle/schemas.test.ts",
+          "packages/db/src/schema/experience/index.ts",
+          "packages/integrations/src/support/webhooks.contract.test.ts",
+          "packages/integrations/src/support/webhooks.ts",
+          "packages/testing/src/demo/state.test.ts",
+          "packages/testing/src/demo/state.ts",
+          "packages/workflows/src/experience/index.ts",
+          "packages/workflows/src/experience/portal-action-handler.test.ts",
+          "packages/workflows/src/experience/portal-action-handler.ts",
+          "packages/workflows/src/experience/production-handlers.ts",
+          "packages/workflows/src/experience/projection-definitions.test.ts",
+          "packages/workflows/src/experience/projection-definitions.ts",
+          "packages/workflows/src/experience/projection-materializer.test.ts",
+          "packages/workflows/src/experience/projection-materializer.ts",
+          "scripts/qualify-populated-upgrade.mjs",
+          "scripts/validate-release-test-inventory.mjs",
+          "scripts/verify-demo-reset-safety.mjs",
+          "supabase/migrations/001300_release_integrity.sql",
+          "supabase/tests/1300_release_integrity.test.sql"
+        ],
         "ignoredRoots": [
+          ".clockwork-archives",
           ".turbo",
           "apps",
           "apps/web/.next",
@@ -223,8 +570,161 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 68362,
-        "ignoredArtifactListingSha256": "2acd22847714c6b2c68658816d25d520867a07d986b51e8ace06d1ba5052d270",
+        "ignoredArtifactCount": 74048,
+        "retainedArchivePaths": [
+          ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
+        ],
+        "rejectedIgnoredArtifactCount": 74047,
+        "ignoredArtifactListingSha256": "2a517179bff7064fd7c77e3c45b3dd775c3c11c2adfc35edf2679a41b17dcb9c",
+        "porcelainSha256": "eb2f891c3f03cf7d39d293c13df91eb701ec9e7ce7d5686390bd865be436bc3a"
+      }
+    },
+    {
+      "path": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-build-36ivTn/workspace",
+      "head": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "branch": null,
+      "detached": true,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          ".turbo",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 27629,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 27629,
+        "ignoredArtifactListingSha256": "85e0daee0849b8ed5d36f048ebfbd50d24ef37b880b197d29dd5191be4e0c41a",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-integration-k6VWdQ/workspace",
+      "head": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "branch": null,
+      "detached": true,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [
+          ".secretlintrc.json",
+          "commerce_platform_spec.md",
+          "patches/minimatch@3.1.5.patch",
+          "patches/minimatch@5.1.9.patch",
+          "pnpm-lock.yaml",
+          "trigger.config.ts",
+          "tsconfig.base.json",
+          "turbo.json"
+        ],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 9143,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 9143,
+        "ignoredArtifactListingSha256": "02c78f1d60a336549bdddbc73584fb529481c3f0886018e7e91439aff4afda17",
+        "porcelainSha256": "bb51c02bed5f784ca41650861d997b5b9152a464162d95b2ce5af3f2a4b69914"
+      }
+    },
+    {
+      "path": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-proof-HdAl8V/workspace",
+      "head": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "branch": null,
+      "detached": true,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next-release-candidate_3572eb2_parallel_proof/node_modules",
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 29077,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 29077,
+        "ignoredArtifactListingSha256": "f5ba661c6865246c5504b855f2a2916a77bddfa57d1d22a39bea03cfeaa7a9e5",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-ui-zRsVdA/workspace",
+      "head": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "branch": null,
+      "detached": true,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next-release-candidate_3572eb2_parallel_ui/dev/node_modules",
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 28730,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 28730,
+        "ignoredArtifactListingSha256": "499579419186991970cfcb3d199a3459479292d93ab275484b0a69a0d5d1a894",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -246,7 +746,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -267,8 +766,10 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 60015,
-        "ignoredArtifactListingSha256": "227ae638005e67d72c4e690304662ac67f4e1c6d86c2357fab24248a7760e875",
+        "ignoredArtifactCount": 699,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 699,
+        "ignoredArtifactListingSha256": "02fab0cde08569a3bfe3342578a5aa6812be4bd925c167f7a9d16344de21ed48",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -290,7 +791,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -310,8 +810,10 @@
           "packages/workflows/.turbo",
           "packages/workflows/node_modules"
         ],
-        "ignoredArtifactCount": 61235,
-        "ignoredArtifactListingSha256": "0e544da4540e3f2cc2339e482fad74ea956a4a1f9c610583e31afe796056186c",
+        "ignoredArtifactCount": 1957,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 1957,
+        "ignoredArtifactListingSha256": "d826a64a76cec5314d8a3797d57ed508902e3a94e0b4676d1b87f8c4927cc7f2",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -333,7 +835,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -354,24 +855,23 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 59974,
-        "ignoredArtifactListingSha256": "af90acaa7fbc703520a489e4e803f36d21ff619cb445b0446a64f2621075f390",
+        "ignoredArtifactCount": 700,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 700,
+        "ignoredArtifactListingSha256": "8c9a6fc711104e75752fdabb91518f27fdda21e77d81b0e4228809ad286b6653",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
-      "head": "34c2a5001859221dc3def61d7d86231fe2026151",
-      "branch": "main",
+      "head": "92d10d3b8a12728804b70215799f9929e880c996",
+      "branch": "commerce/integration",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
         "staged": [],
-        "unstaged": [
-          ".github/workflows/ci.yml",
-          "scripts/run-baseline-qualification.mjs"
-        ],
+        "unstaged": [],
         "untracked": [],
         "ignoredRoots": [
           "apps",
@@ -379,7 +879,6 @@
           "apps/web/.turbo",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -400,9 +899,134 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 61283,
-        "ignoredArtifactListingSha256": "5e4e05e18cf7d0939a2e2e7135236737539cb3fcf339513d724cb3fc9b4f73b9",
-        "porcelainSha256": "fdbf9fae7b7f503099d5bd7088bac0cc31cd09b87e4c93f5c6e5f4f82ad350b3"
+        "ignoredArtifactCount": 2009,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 2009,
+        "ignoredArtifactListingSha256": "fb185ce75c0f0496389265d5f92ad2b5622267c0f9c69c60d08f651a06e34530",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
+      "head": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "branch": "rc/commercial-integrity",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 1559,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 1559,
+        "ignoredArtifactListingSha256": "8cd2f9c5d165ef46bb4eb96f00461cf44536372d6d63eb8112bc146d353e9f45",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
+      "head": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "branch": "rc/experience-release",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          ".artifacts",
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 3363,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 3363,
+        "ignoredArtifactListingSha256": "f0ef6d5501f9c251ab2109d57c89e5ed63040803e95bce02d8f38ab021b53711",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
+      "head": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "branch": "rc/runtime-operations",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 167,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 167,
+        "ignoredArtifactListingSha256": "987df563c449850c1cfd31ff6f1498f00af01ed3ba3d59385a23385a8f8588f1",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
     {
@@ -421,7 +1045,6 @@
           "apps/web/.next",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -432,8 +1055,10 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "ignoredArtifactCount": 60349,
-        "ignoredArtifactListingSha256": "829128243ac6809eb139bf9eef2e6189c1882fd996ad59c188b3ad80621a308f",
+        "ignoredArtifactCount": 1075,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 1075,
+        "ignoredArtifactListingSha256": "9ef166a45bd81a1ba3bcf019110576113e2da2460400e96bb70d1f25ebf32039",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -454,7 +1079,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -465,8 +1089,10 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "ignoredArtifactCount": 61147,
-        "ignoredArtifactListingSha256": "fc7112fdfcf675236ff466f56ce3f146c8ad8f2966de973e40ef14e8ac0c5278",
+        "ignoredArtifactCount": 1873,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 1873,
+        "ignoredArtifactListingSha256": "ebdf1d4683af90c100ec3eb5fff3ee58394c726abe2b64537d81200021c05248",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -486,7 +1112,6 @@
           "apps/web/.next",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -497,8 +1122,10 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "ignoredArtifactCount": 61193,
-        "ignoredArtifactListingSha256": "a21a6e23599f07616b838c9b65ab1fdadb167ae2445e632dbb0b6ad5c055851f",
+        "ignoredArtifactCount": 1919,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 1919,
+        "ignoredArtifactListingSha256": "b77580ac733703500b42ed5e220eaed48ba7bd841f5e24cddc53703e7051af4d",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     },
@@ -522,7 +1149,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -543,13 +1169,186 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 62013,
-        "ignoredArtifactListingSha256": "f1a60778e82dcd95c76e9b702b02e36b92cd509587911e7254afd7cd65585207",
+        "ignoredArtifactCount": 2739,
+        "retainedArchivePaths": [],
+        "rejectedIgnoredArtifactCount": 2739,
+        "ignoredArtifactListingSha256": "dfc1960d441d5b3e40a7be1eee14db8a45c8da542f0a1bfd7707330b719a1fa6",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "tree": "5965cdbe18966e88304ee98ec41d804e0d4e9fae",
+      "parents": [
+        "07023a40462cb432f595007c1f88365f14e0f5e8",
+        "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
+      ],
+      "subject": "merge: integrate experience release RC lane"
+    },
+    {
+      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "tree": "b6fa1d310adcc34fcb8292c057d079d73e0a2261",
+      "parents": ["7ebae9ff01351671a34a972b8ad6f3440e1eda6c"],
+      "subject": "test(web): bound release browser concurrency"
+    },
+    {
+      "commit": "7ebae9ff01351671a34a972b8ad6f3440e1eda6c",
+      "tree": "8dc92e01ad4829f69f1f5471524161cb13bef507",
+      "parents": ["80ee2aaa0709596cc5f85aaca5d03edad1463628"],
+      "subject": "test(release): normalize Next build identity"
+    },
+    {
+      "commit": "80ee2aaa0709596cc5f85aaca5d03edad1463628",
+      "tree": "77e9b55a18b2e50128ea8d20b58ca5a0607b5ca4",
+      "parents": ["3572eb2ff7b575cc5a8d8d024c406e921c307d1c"],
+      "subject": "test(release): compare semantic shard artifacts"
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "tree": "14b6ff04486f6866a65cd9f28752859297032733",
+      "parents": ["637f906186b574886e26080356219582c764bd9e"],
+      "subject": "fix(test): rotate proof database authorization secret"
+    },
+    {
+      "commit": "637f906186b574886e26080356219582c764bd9e",
+      "tree": "6672f75662305a3370c26238db5cb361e54697cb",
+      "parents": ["8cfd5b1bb26687b6503daa568fe3e8caa91007bb"],
+      "subject": "fix(ci): sign proof authorization context"
+    },
+    {
+      "commit": "8cfd5b1bb26687b6503daa568fe3e8caa91007bb",
+      "tree": "354cffc62f20e4bbf71d133369dd16c28ba3f696",
+      "parents": ["cfb4c3535a497cda20838661916726a8d83e77f6"],
+      "subject": "Revert \"fix(ci): isolate database test fixtures from demo seed\""
+    },
+    {
+      "commit": "cfb4c3535a497cda20838661916726a8d83e77f6",
+      "tree": "0020b0df1a58a4dae770dd8ce14758678d2daa1d",
+      "parents": ["57b496171ecf758eea1ca3962734471fca587032"],
+      "subject": "fix(ci): isolate database test fixtures from demo seed"
+    },
+    {
+      "commit": "57b496171ecf758eea1ca3962734471fca587032",
+      "tree": "354cffc62f20e4bbf71d133369dd16c28ba3f696",
+      "parents": ["2d1511912c5f1be17e4e42091bfca73d1e921632"],
+      "subject": "fix(ci): use Docker-shared database scratch paths"
+    },
+    {
+      "commit": "2d1511912c5f1be17e4e42091bfca73d1e921632",
+      "tree": "7ac2b1cb9176f834905bf3391a26b2a45b01ba1d",
+      "parents": ["de8b6b719d43004d2ef8e2c40951fcfb40f31903"],
+      "subject": "fix(ci): create isolated Supabase secret directory"
+    },
+    {
+      "commit": "de8b6b719d43004d2ef8e2c40951fcfb40f31903",
+      "tree": "2129a3d809668b8659125f8798e6298a38190964",
+      "parents": ["38ab8bdffe4aa32499b05c195e90cfb51d731eea"],
+      "subject": "fix(experience): harden projection release gate"
+    },
+    {
+      "commit": "38ab8bdffe4aa32499b05c195e90cfb51d731eea",
+      "tree": "47e0d043499fa55046ad608dddfefdfb4ead7e86",
+      "parents": ["2d62c15811dd74e983285af2da17d5be6d0fa4cc"],
+      "subject": "fix(ci): run schema checks with database shard"
+    },
+    {
+      "commit": "2d62c15811dd74e983285af2da17d5be6d0fa4cc",
+      "tree": "75b0512316a586a7251b1bd3d30fa73eb0c7c739",
+      "parents": ["33645b076b98bbe97d505e49696b12c5b7c08396"],
+      "subject": "fix(ci): preserve canonical typed-route output"
+    },
+    {
+      "commit": "33645b076b98bbe97d505e49696b12c5b7c08396",
+      "tree": "32e6417e9bb531978d5f939977af99552f540d32",
+      "parents": ["302bd59742d3c83d55bab7db05c1eded3c44da33"],
+      "subject": "fix(ci): ignore isolated Next build outputs"
+    },
+    {
+      "commit": "302bd59742d3c83d55bab7db05c1eded3c44da33",
+      "tree": "115000c1a12fab4f56c98a38e7ea6355789254fe",
+      "parents": ["27fb33bab754b001acf26134d988daa10d177390"],
+      "subject": "feat(experience): harden release candidate experience"
+    },
+    {
+      "commit": "07023a40462cb432f595007c1f88365f14e0f5e8",
+      "tree": "975dcc1bd8a94d3e43af9d22391da75a8cb03d33",
+      "parents": [
+        "1f070aaf0e59a2e289322b02725c2b950e667992",
+        "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
+      ],
+      "subject": "merge: integrate runtime operations RC lane"
+    },
+    {
+      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "tree": "f1cae86ccb4782b8666c4bf0ed3a98eef95a6726",
+      "parents": ["cd9ac147de7fa9b998de762adb4b2c3d1f6110fe"],
+      "subject": "docs(runtime): hand off operations integration"
+    },
+    {
+      "commit": "cd9ac147de7fa9b998de762adb4b2c3d1f6110fe",
+      "tree": "9d804f6db6978af33bca73222b9749fa073b815d",
+      "parents": ["22caf99e0861dc2025077f2ae656701c807291df"],
+      "subject": "feat(runtime): activate persisted gates by default"
+    },
+    {
+      "commit": "22caf99e0861dc2025077f2ae656701c807291df",
+      "tree": "c846f47411a1c73a09c758c8d9f30e2065ab7470",
+      "parents": ["6fcf22915080024c7a57c2cf6770fb109486b3bf"],
+      "subject": "feat(runtime): persist gates and exception ownership"
+    },
+    {
+      "commit": "6fcf22915080024c7a57c2cf6770fb109486b3bf",
+      "tree": "9970ed4c2b2335de678aa0f5827d636eabdb7179",
+      "parents": ["0250e45d990ce660e5cf5bbce728f0b47c57134a"],
+      "subject": "feat(workflows): execute lifecycle transitions durably"
+    },
+    {
+      "commit": "0250e45d990ce660e5cf5bbce728f0b47c57134a",
+      "tree": "b76cc7b912259b6fab8b066321227a309ea3c563",
+      "parents": ["64c86b79adcaa6d534cf8605dd96b288678cbc06"],
+      "subject": "feat(observability): add vendor-neutral runtime telemetry"
+    },
+    {
+      "commit": "64c86b79adcaa6d534cf8605dd96b288678cbc06",
+      "tree": "57532cc2368cd96c704c8da8de4de939786c97d8",
+      "parents": ["27fb33bab754b001acf26134d988daa10d177390"],
+      "subject": "feat(runtime): enforce persisted provider effects"
+    },
+    {
+      "commit": "1f070aaf0e59a2e289322b02725c2b950e667992",
+      "tree": "10fb9f38f2a42e98b1a63b4011f54f7ef3942c1f",
+      "parents": [
+        "27fb33bab754b001acf26134d988daa10d177390",
+        "cc23bce784ee60a27ad3e34fd245136f37394a2d"
+      ],
+      "subject": "merge: integrate commercial integrity RC lane"
+    },
+    {
+      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "tree": "10fb9f38f2a42e98b1a63b4011f54f7ef3942c1f",
+      "parents": ["ecf5574c5f496475f57ff190f79a2e03df323892"],
+      "subject": "docs: record commercial integrity handoff"
+    },
+    {
+      "commit": "ecf5574c5f496475f57ff190f79a2e03df323892",
+      "tree": "6d44a439bf99a2064edc8af0a9b889c5e570b48e",
+      "parents": ["9ae768cb138940efaf1034d463aef1e43d0294e1"],
+      "subject": "fix: enforce commercial integrity boundaries"
+    },
+    {
+      "commit": "9ae768cb138940efaf1034d463aef1e43d0294e1",
+      "tree": "b39456ac94e12dfb81955b71fc9e02742da88c3e",
+      "parents": ["27fb33bab754b001acf26134d988daa10d177390"],
+      "subject": "contracts: add collection case audit aggregate"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "tree": "47a76be91f3f95c9a429e57c203dad33b1692d8a",
+      "parents": ["34c2a5001859221dc3def61d7d86231fe2026151"],
+      "subject": "fix: align integration qualification origin"
+    },
     {
       "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
       "tree": "5260a70a3cd8f6c269fcfa62cc7783f87f2d5514",
@@ -702,9 +1501,21 @@
       "tree": "a6c352428b7cbbeb39e8ab436ef0c3df5722a3c6",
       "parents": [],
       "subject": "feat: establish Clockwork commerce foundation"
+    },
+    {
+      "commit": "fe7911f544711bdcfbafa834d23c15d735b69113",
+      "tree": "3c4fabc7608ceb4b8d38ff5626b982dd82793f9d",
+      "parents": [],
+      "subject": "Notes added by 'git notes add'"
+    },
+    {
+      "commit": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
+      "tree": "14c67a3a993d0b2c4696f101f48401b7953187f7",
+      "parents": [],
+      "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 22,
+  "reachableCommitCount": 51,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -752,18 +1563,33 @@
       "ancestorOfMain": true
     },
     {
-      "ref": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "ref": "rc/commercial-integrity",
+      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
       "ancestorOfMain": true
     },
     {
-      "ref": "92d10d3b8a12728804b70215799f9929e880c996",
-      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "ref": "rc/runtime-operations",
+      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
       "ancestorOfMain": true
     },
     {
-      "ref": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
-      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "ref": "rc/experience-release",
+      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "qualification/27fb33b",
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "qualification/34c2a50",
+      "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "qualification/7ae3fbc",
+      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
       "ancestorOfMain": true
     }
   ],
@@ -791,6 +1617,21 @@
     {
       "left": "commerce/core-finance",
       "right": "main",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "rc/experience-release",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "rc/runtime-operations",
       "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
     },
     {
@@ -831,6 +1672,21 @@
     {
       "left": "commerce/experience-docs",
       "right": "main",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "rc/experience-release",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "rc/runtime-operations",
       "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
     },
     {
@@ -870,6 +1726,21 @@
     },
     {
       "left": "commerce/foundation",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "rc/experience-release",
+      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "rc/runtime-operations",
+      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+    },
+    {
+      "left": "commerce/foundation",
       "right": "ux/customer-partner",
       "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
     },
@@ -900,6 +1771,21 @@
     },
     {
       "left": "commerce/integration",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "rc/experience-release",
+      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "rc/runtime-operations",
+      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "left": "commerce/integration",
       "right": "ux/customer-partner",
       "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
     },
@@ -925,6 +1811,21 @@
     },
     {
       "left": "commerce/lifecycle-platform",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "rc/experience-release",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "rc/runtime-operations",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
       "right": "ux/customer-partner",
       "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
     },
@@ -945,6 +1846,21 @@
     },
     {
       "left": "main",
+      "right": "rc/commercial-integrity",
+      "mergeBase": "cc23bce784ee60a27ad3e34fd245136f37394a2d"
+    },
+    {
+      "left": "main",
+      "right": "rc/experience-release",
+      "mergeBase": "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
+    },
+    {
+      "left": "main",
+      "right": "rc/runtime-operations",
+      "mergeBase": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
+    },
+    {
+      "left": "main",
       "right": "ux/customer-partner",
       "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
     },
@@ -960,6 +1876,81 @@
     },
     {
       "left": "main",
+      "right": "ux/internal-ops",
+      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "rc/experience-release",
+      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "rc/runtime-operations",
+      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "ux/customer-partner",
+      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "ux/design-shell",
+      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "ux/integration",
+      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+    },
+    {
+      "left": "rc/commercial-integrity",
+      "right": "ux/internal-ops",
+      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    },
+    {
+      "left": "rc/experience-release",
+      "right": "rc/runtime-operations",
+      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "left": "rc/experience-release",
+      "right": "ux/customer-partner",
+      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "left": "rc/experience-release",
+      "right": "ux/design-shell",
+      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "left": "rc/experience-release",
+      "right": "ux/integration",
+      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+    },
+    {
+      "left": "rc/experience-release",
+      "right": "ux/internal-ops",
+      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    },
+    {
+      "left": "rc/runtime-operations",
+      "right": "ux/customer-partner",
+      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "left": "rc/runtime-operations",
+      "right": "ux/design-shell",
+      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "left": "rc/runtime-operations",
+      "right": "ux/integration",
+      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+    },
+    {
+      "left": "rc/runtime-operations",
       "right": "ux/internal-ops",
       "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
     },
@@ -996,13 +1987,368 @@
   ],
   "reflogEntries": [
     {
+      "commit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "selector": "refs/heads/main@{2026-08-01T06:37:24-04:00}",
+      "subject": "commit (merge): merge: integrate experience release RC lane"
+    },
+    {
+      "commit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "selector": "HEAD@{2026-08-01T06:37:24-04:00}",
+      "subject": "commit (merge): merge: integrate experience release RC lane"
+    },
+    {
+      "commit": "07023a40462cb432f595007c1f88365f14e0f5e8",
+      "selector": "refs/heads/main@{2026-08-01T06:34:35-04:00}",
+      "subject": "commit (merge): merge: integrate runtime operations RC lane"
+    },
+    {
+      "commit": "07023a40462cb432f595007c1f88365f14e0f5e8",
+      "selector": "HEAD@{2026-08-01T06:34:35-04:00}",
+      "subject": "commit (merge): merge: integrate runtime operations RC lane"
+    },
+    {
+      "commit": "1f070aaf0e59a2e289322b02725c2b950e667992",
+      "selector": "refs/heads/main@{2026-08-01T06:29:47-04:00}",
+      "subject": "commit (merge): merge: integrate commercial integrity RC lane"
+    },
+    {
+      "commit": "1f070aaf0e59a2e289322b02725c2b950e667992",
+      "selector": "HEAD@{2026-08-01T06:29:47-04:00}",
+      "subject": "commit (merge): merge: integrate commercial integrity RC lane"
+    },
+    {
+      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:59:53-04:00}",
+      "subject": "commit: test(web): bound release browser concurrency"
+    },
+    {
+      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:59:53-04:00}",
+      "subject": "commit: test(web): bound release browser concurrency"
+    },
+    {
+      "commit": "7ebae9ff01351671a34a972b8ad6f3440e1eda6c",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:47:26-04:00}",
+      "subject": "commit: test(release): normalize Next build identity"
+    },
+    {
+      "commit": "7ebae9ff01351671a34a972b8ad6f3440e1eda6c",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:47:26-04:00}",
+      "subject": "commit: test(release): normalize Next build identity"
+    },
+    {
+      "commit": "80ee2aaa0709596cc5f85aaca5d03edad1463628",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:34:27-04:00}",
+      "subject": "commit: test(release): compare semantic shard artifacts"
+    },
+    {
+      "commit": "80ee2aaa0709596cc5f85aaca5d03edad1463628",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:34:27-04:00}",
+      "subject": "commit: test(release): compare semantic shard artifacts"
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "worktrees/workspace5/HEAD@{2026-08-01T02:26:11-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "worktrees/workspace3/HEAD@{2026-08-01T02:26:10-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "worktrees/workspace4/HEAD@{2026-08-01T02:26:10-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "worktrees/workspace2/HEAD@{2026-08-01T02:26:10-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:14:40-04:00}",
+      "subject": "commit: fix(test): rotate proof database authorization secret"
+    },
+    {
+      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:14:40-04:00}",
+      "subject": "commit: fix(test): rotate proof database authorization secret"
+    },
+    {
+      "commit": "637f906186b574886e26080356219582c764bd9e",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:10:16-04:00}",
+      "subject": "commit: fix(ci): sign proof authorization context"
+    },
+    {
+      "commit": "637f906186b574886e26080356219582c764bd9e",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:10:16-04:00}",
+      "subject": "commit: fix(ci): sign proof authorization context"
+    },
+    {
+      "commit": "8cfd5b1bb26687b6503daa568fe3e8caa91007bb",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:08:01-04:00}",
+      "subject": "revert: Revert \"fix(ci): isolate database test fixtures from demo seed\""
+    },
+    {
+      "commit": "8cfd5b1bb26687b6503daa568fe3e8caa91007bb",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:08:01-04:00}",
+      "subject": "revert: Revert \"fix(ci): isolate database test fixtures from demo seed\""
+    },
+    {
+      "commit": "cfb4c3535a497cda20838661916726a8d83e77f6",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:06:03-04:00}",
+      "subject": "commit: fix(ci): isolate database test fixtures from demo seed"
+    },
+    {
+      "commit": "cfb4c3535a497cda20838661916726a8d83e77f6",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:06:03-04:00}",
+      "subject": "commit: fix(ci): isolate database test fixtures from demo seed"
+    },
+    {
+      "commit": "57b496171ecf758eea1ca3962734471fca587032",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:03:34-04:00}",
+      "subject": "commit: fix(ci): use Docker-shared database scratch paths"
+    },
+    {
+      "commit": "57b496171ecf758eea1ca3962734471fca587032",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T02:03:34-04:00}",
+      "subject": "commit: fix(ci): use Docker-shared database scratch paths"
+    },
+    {
+      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T02:01:24-04:00}",
+      "subject": "commit: docs: record commercial integrity handoff"
+    },
+    {
+      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
+      "selector": "worktrees/Clockwork-rc-commercial/HEAD@{2026-08-01T02:01:24-04:00}",
+      "subject": "commit: docs: record commercial integrity handoff"
+    },
+    {
+      "commit": "ecf5574c5f496475f57ff190f79a2e03df323892",
+      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T01:58:57-04:00}",
+      "subject": "commit: fix: enforce commercial integrity boundaries"
+    },
+    {
+      "commit": "ecf5574c5f496475f57ff190f79a2e03df323892",
+      "selector": "worktrees/Clockwork-rc-commercial/HEAD@{2026-08-01T01:58:57-04:00}",
+      "subject": "commit: fix: enforce commercial integrity boundaries"
+    },
+    {
+      "commit": "2d1511912c5f1be17e4e42091bfca73d1e921632",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:58:21-04:00}",
+      "subject": "commit: fix(ci): create isolated Supabase secret directory"
+    },
+    {
+      "commit": "2d1511912c5f1be17e4e42091bfca73d1e921632",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T01:58:21-04:00}",
+      "subject": "commit: fix(ci): create isolated Supabase secret directory"
+    },
+    {
+      "commit": "9ae768cb138940efaf1034d463aef1e43d0294e1",
+      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T01:56:42-04:00}",
+      "subject": "commit: contracts: add collection case audit aggregate"
+    },
+    {
+      "commit": "9ae768cb138940efaf1034d463aef1e43d0294e1",
+      "selector": "worktrees/Clockwork-rc-commercial/HEAD@{2026-08-01T01:56:42-04:00}",
+      "subject": "commit: contracts: add collection case audit aggregate"
+    },
+    {
+      "commit": "de8b6b719d43004d2ef8e2c40951fcfb40f31903",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:53:19-04:00}",
+      "subject": "commit: fix(experience): harden projection release gate"
+    },
+    {
+      "commit": "de8b6b719d43004d2ef8e2c40951fcfb40f31903",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T01:53:19-04:00}",
+      "subject": "commit: fix(experience): harden projection release gate"
+    },
+    {
+      "commit": "38ab8bdffe4aa32499b05c195e90cfb51d731eea",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:11:43-04:00}",
+      "subject": "commit: fix(ci): run schema checks with database shard"
+    },
+    {
+      "commit": "38ab8bdffe4aa32499b05c195e90cfb51d731eea",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T01:11:43-04:00}",
+      "subject": "commit: fix(ci): run schema checks with database shard"
+    },
+    {
+      "commit": "2d62c15811dd74e983285af2da17d5be6d0fa4cc",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:10:00-04:00}",
+      "subject": "commit: fix(ci): preserve canonical typed-route output"
+    },
+    {
+      "commit": "2d62c15811dd74e983285af2da17d5be6d0fa4cc",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T01:10:00-04:00}",
+      "subject": "commit: fix(ci): preserve canonical typed-route output"
+    },
+    {
+      "commit": "33645b076b98bbe97d505e49696b12c5b7c08396",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:03:55-04:00}",
+      "subject": "commit: fix(ci): ignore isolated Next build outputs"
+    },
+    {
+      "commit": "33645b076b98bbe97d505e49696b12c5b7c08396",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T01:03:55-04:00}",
+      "subject": "commit: fix(ci): ignore isolated Next build outputs"
+    },
+    {
+      "commit": "302bd59742d3c83d55bab7db05c1eded3c44da33",
+      "selector": "refs/heads/rc/experience-release@{2026-08-01T00:58:03-04:00}",
+      "subject": "commit: feat(experience): harden release candidate experience"
+    },
+    {
+      "commit": "302bd59742d3c83d55bab7db05c1eded3c44da33",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-08-01T00:58:03-04:00}",
+      "subject": "commit: feat(experience): harden release candidate experience"
+    },
+    {
+      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:40-04:00}",
+      "subject": "commit: docs(runtime): hand off operations integration"
+    },
+    {
+      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:23:40-04:00}",
+      "subject": "commit: docs(runtime): hand off operations integration"
+    },
+    {
+      "commit": "cd9ac147de7fa9b998de762adb4b2c3d1f6110fe",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:36-04:00}",
+      "subject": "commit: feat(runtime): activate persisted gates by default"
+    },
+    {
+      "commit": "cd9ac147de7fa9b998de762adb4b2c3d1f6110fe",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:23:36-04:00}",
+      "subject": "commit: feat(runtime): activate persisted gates by default"
+    },
+    {
+      "commit": "22caf99e0861dc2025077f2ae656701c807291df",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:31-04:00}",
+      "subject": "commit: feat(runtime): persist gates and exception ownership"
+    },
+    {
+      "commit": "22caf99e0861dc2025077f2ae656701c807291df",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:23:31-04:00}",
+      "subject": "commit: feat(runtime): persist gates and exception ownership"
+    },
+    {
+      "commit": "6fcf22915080024c7a57c2cf6770fb109486b3bf",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:22:42-04:00}",
+      "subject": "commit: feat(workflows): execute lifecycle transitions durably"
+    },
+    {
+      "commit": "6fcf22915080024c7a57c2cf6770fb109486b3bf",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:22:42-04:00}",
+      "subject": "commit: feat(workflows): execute lifecycle transitions durably"
+    },
+    {
+      "commit": "0250e45d990ce660e5cf5bbce728f0b47c57134a",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:22:36-04:00}",
+      "subject": "commit: feat(observability): add vendor-neutral runtime telemetry"
+    },
+    {
+      "commit": "0250e45d990ce660e5cf5bbce728f0b47c57134a",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:22:36-04:00}",
+      "subject": "commit: feat(observability): add vendor-neutral runtime telemetry"
+    },
+    {
+      "commit": "64c86b79adcaa6d534cf8605dd96b288678cbc06",
+      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:20:54-04:00}",
+      "subject": "commit: feat(runtime): enforce persisted provider effects"
+    },
+    {
+      "commit": "64c86b79adcaa6d534cf8605dd96b288678cbc06",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-08-01T00:20:54-04:00}",
+      "subject": "commit: feat(runtime): enforce persisted provider effects"
+    },
+    {
+      "commit": "fe7911f544711bdcfbafa834d23c15d735b69113",
+      "selector": "refs/notes/clockwork-lane-topology@{2026-07-31T22:47:05-04:00}",
+      "subject": "notes: Notes added by 'git notes add'"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "HEAD@{2026-07-31T22:46:38-04:00}",
+      "subject": "checkout: moving from commerce/foundation to main"
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T22:46:38-04:00}",
+      "subject": "checkout: moving from main to commerce/integration"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "refs/heads/rc/experience-release@{2026-07-31T22:46:31-04:00}",
+      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "refs/heads/rc/runtime-operations@{2026-07-31T22:46:31-04:00}",
+      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-07-31T22:46:31-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-runtime/HEAD@{2026-07-31T22:46:31-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-commercial/HEAD@{2026-07-31T22:46:31-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-07-31T22:46:31-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-experience/HEAD@{2026-07-31T22:46:31-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "refs/heads/rc/commercial-integrity@{2026-07-31T22:46:30-04:00}",
+      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-rc-commercial/HEAD@{2026-07-31T22:46:30-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
+      "selector": "refs/notes/clockwork-qualification@{2026-07-31T22:46:23-04:00}",
+      "subject": "notes: Notes added by 'git notes add'"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "refs/heads/main@{2026-07-31T22:38:10-04:00}",
+      "subject": "commit: fix: align integration qualification origin"
+    },
+    {
+      "commit": "27fb33bab754b001acf26134d988daa10d177390",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T22:38:10-04:00}",
+      "subject": "commit: fix: align integration qualification origin"
+    },
+    {
       "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
       "selector": "refs/heads/main@{2026-07-31T22:29:23-04:00}",
       "subject": "commit: fix: make clean qualification deterministic"
     },
     {
       "commit": "34c2a5001859221dc3def61d7d86231fe2026151",
-      "selector": "HEAD@{2026-07-31T22:29:23-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T22:29:23-04:00}",
       "subject": "commit: fix: make clean qualification deterministic"
     },
     {
@@ -1012,7 +2358,7 @@
     },
     {
       "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
-      "selector": "HEAD@{2026-07-31T22:19:16-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T22:19:16-04:00}",
       "subject": "commit: docs: refresh committed baseline evidence"
     },
     {
@@ -1022,7 +2368,7 @@
     },
     {
       "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
-      "selector": "HEAD@{2026-07-31T22:18:17-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T22:18:17-04:00}",
       "subject": "commit: chore: establish consolidated main baseline"
     },
     {
@@ -1042,17 +2388,17 @@
     },
     {
       "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
-      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T21:09:26-04:00}",
       "subject": "merge ux/integration: Merge made by the 'ort' strategy."
     },
     {
       "commit": "114d144c23294c16520f2d5389955ff2ab7f661b",
-      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T21:09:26-04:00}",
       "subject": "merge commerce/foundation: Merge made by the 'ort' strategy."
     },
     {
       "commit": "92d10d3b8a12728804b70215799f9929e880c996",
-      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T21:09:26-04:00}",
       "subject": "checkout: moving from commerce/integration to main"
     },
     {
@@ -1062,7 +2408,7 @@
     },
     {
       "commit": "92d10d3b8a12728804b70215799f9929e880c996",
-      "selector": "HEAD@{2026-07-31T21:08:27-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T21:08:27-04:00}",
       "subject": "commit: docs: preserve consolidation backlog"
     },
     {
@@ -1072,7 +2418,7 @@
     },
     {
       "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "selector": "main-worktree/HEAD@{2026-07-31T21:08:09-04:00}",
+      "selector": "HEAD@{2026-07-31T21:08:09-04:00}",
       "subject": "commit: docs: preserve production specification rewrite"
     },
     {
@@ -1212,7 +2558,7 @@
     },
     {
       "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "HEAD@{2026-07-31T19:29:20-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T19:29:20-04:00}",
       "subject": "commit: fix(web): stabilize generated Next type declarations"
     },
     {
@@ -1222,7 +2568,7 @@
     },
     {
       "commit": "19bef06887556490ff28d79b4f60154e9f0110d1",
-      "selector": "HEAD@{2026-07-31T19:19:25-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T19:19:25-04:00}",
       "subject": "commit: release: integrate commerce lanes and record RC gaps"
     },
     {
@@ -1232,7 +2578,7 @@
     },
     {
       "commit": "65c740e881c270065fb01e49c6911821177ea78e",
-      "selector": "HEAD@{2026-07-31T16:48:26-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T16:48:26-04:00}",
       "subject": "merge commerce/experience-docs: Merge made by the 'ort' strategy."
     },
     {
@@ -1242,7 +2588,7 @@
     },
     {
       "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
-      "selector": "HEAD@{2026-07-31T16:48:22-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T16:48:22-04:00}",
       "subject": "merge commerce/lifecycle-platform: Merge made by the 'ort' strategy."
     },
     {
@@ -1252,7 +2598,7 @@
     },
     {
       "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
-      "selector": "HEAD@{2026-07-31T16:48:20-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T16:48:20-04:00}",
       "subject": "merge commerce/core-finance: Merge made by the 'ort' strategy."
     },
     {
@@ -1297,12 +2643,12 @@
     },
     {
       "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "HEAD@{2026-07-31T15:27:43-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T15:27:43-04:00}",
       "subject": "reset: moving to HEAD"
     },
     {
       "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "HEAD@{2026-07-31T15:27:43-04:00}",
+      "selector": "worktrees/Clockwork-merge/HEAD@{2026-07-31T15:27:43-04:00}",
       "subject": ""
     },
     {
@@ -1352,7 +2698,7 @@
     },
     {
       "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "main-worktree/HEAD@{2026-07-31T15:26:50-04:00}",
+      "selector": "HEAD@{2026-07-31T15:26:50-04:00}",
       "subject": "commit (initial): feat: establish Clockwork commerce foundation"
     }
   ],
@@ -1492,9 +2838,113 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 68362,
-        "listingSha256": "2acd22847714c6b2c68658816d25d520867a07d986b51e8ace06d1ba5052d270",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 74047,
+        "listingSha256": "2a517179bff7064fd7c77e3c45b3dd775c3c11c2adfc35edf2679a41b17dcb9c",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [
+          ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
+        ],
+        "retainedArchiveDecision": "retained-and-independently-hashed-in-preConsolidation"
+      },
+      {
+        "worktree": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-build-36ivTn/workspace",
+        "roots": [
+          ".turbo",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 27629,
+        "listingSha256": "85e0daee0849b8ed5d36f048ebfbd50d24ef37b880b197d29dd5191be4e0c41a",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-integration-k6VWdQ/workspace",
+        "roots": [
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 9143,
+        "listingSha256": "02c78f1d60a336549bdddbc73584fb529481c3f0886018e7e91439aff4afda17",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-proof-HdAl8V/workspace",
+        "roots": [
+          "apps",
+          "apps/web/.next-release-candidate_3572eb2_parallel_proof/node_modules",
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 29077,
+        "listingSha256": "f5ba661c6865246c5504b855f2a2916a77bddfa57d1d22a39bea03cfeaa7a9e5",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/private/var/folders/5p/w85z5twn0mv0g6s1nn_jnsw40000gn/T/clockwork-candidate-3572eb2-parallel-ui-zRsVdA/workspace",
+        "roots": [
+          "apps",
+          "apps/web/.next-release-candidate_3572eb2_parallel_ui/dev/node_modules",
+          "apps/web/node_modules",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 28730,
+        "listingSha256": "499579419186991970cfcb3d199a3459479292d93ab275484b0a69a0d5d1a894",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-core-finance",
@@ -1505,7 +2955,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -1526,9 +2975,11 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 60015,
-        "listingSha256": "227ae638005e67d72c4e690304662ac67f4e1c6d86c2357fab24248a7760e875",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 699,
+        "listingSha256": "02fab0cde08569a3bfe3342578a5aa6812be4bd925c167f7a9d16344de21ed48",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-experience",
@@ -1539,7 +2990,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -1559,9 +3009,11 @@
           "packages/workflows/.turbo",
           "packages/workflows/node_modules"
         ],
-        "artifactCount": 61235,
-        "listingSha256": "0e544da4540e3f2cc2339e482fad74ea956a4a1f9c610583e31afe796056186c",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 1957,
+        "listingSha256": "d826a64a76cec5314d8a3797d57ed508902e3a94e0b4676d1b87f8c4927cc7f2",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-lifecycle",
@@ -1572,7 +3024,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -1593,9 +3044,11 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 59974,
-        "listingSha256": "af90acaa7fbc703520a489e4e803f36d21ff619cb445b0446a64f2621075f390",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 700,
+        "listingSha256": "8c9a6fc711104e75752fdabb91518f27fdda21e77d81b0e4228809ad286b6653",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
@@ -1605,7 +3058,6 @@
           "apps/web/.turbo",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -1626,9 +3078,104 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 61283,
-        "listingSha256": "5e4e05e18cf7d0939a2e2e7135236737539cb3fcf339513d724cb3fc9b4f73b9",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 2009,
+        "listingSha256": "fb185ce75c0f0496389265d5f92ad2b5622267c0f9c69c60d08f651a06e34530",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 1559,
+        "listingSha256": "8cd2f9c5d165ef46bb4eb96f00461cf44536372d6d63eb8112bc146d353e9f45",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
+        "roots": [
+          ".artifacts",
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 3363,
+        "listingSha256": "f0ef6d5501f9c251ab2109d57c89e5ed63040803e95bce02d8f38ab021b53711",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 167,
+        "listingSha256": "987df563c449850c1cfd31ff6f1498f00af01ed3ba3d59385a23385a8f8588f1",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-customer-partner",
@@ -1637,7 +3184,6 @@
           "apps/web/.next",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -1648,9 +3194,11 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "artifactCount": 60349,
-        "listingSha256": "829128243ac6809eb139bf9eef2e6189c1882fd996ad59c188b3ad80621a308f",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 1075,
+        "listingSha256": "9ef166a45bd81a1ba3bcf019110576113e2da2460400e96bb70d1f25ebf32039",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-design-shell",
@@ -1660,7 +3208,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -1671,9 +3218,11 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "artifactCount": 61147,
-        "listingSha256": "fc7112fdfcf675236ff466f56ce3f146c8ad8f2966de973e40ef14e8ac0c5278",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 1873,
+        "listingSha256": "ebdf1d4683af90c100ec3eb5fff3ee58394c726abe2b64537d81200021c05248",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-internal-ops",
@@ -1682,7 +3231,6 @@
           "apps/web/.next",
           "apps/web/node_modules",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/node_modules",
           "packages/contracts/node_modules",
           "packages/db/node_modules",
@@ -1693,9 +3241,11 @@
           "packages/ui/node_modules",
           "packages/workflows/node_modules"
         ],
-        "artifactCount": 61193,
-        "listingSha256": "a21a6e23599f07616b838c9b65ab1fdadb167ae2445e632dbb0b6ad5c055851f",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 1919,
+        "listingSha256": "b77580ac733703500b42ed5e220eaed48ba7bd841f5e24cddc53703e7051af4d",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       },
       {
         "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-merge",
@@ -1708,7 +3258,6 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
-          "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
           "packages/contracts/.turbo",
@@ -1729,13 +3278,42 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 62013,
-        "listingSha256": "f1a60778e82dcd95c76e9b702b02e36b92cd509587911e7254afd7cd65585207",
-        "decision": "rejected-generated-or-local-only"
+        "artifactCount": 2739,
+        "listingSha256": "dfc1960d441d5b3e40a7be1eee14db8a45c8da542f0a1bfd7707330b719a1fa6",
+        "decision": "rejected-generated-or-local-only",
+        "retainedArchives": [],
+        "retainedArchiveDecision": "not-present-in-this-worktree"
       }
     ]
   },
   "mergeCommits": [
+    {
+      "commit": "ab0ae079e674feafd4ae86413d168e001416c0e2",
+      "tree": "5965cdbe18966e88304ee98ec41d804e0d4e9fae",
+      "parents": [
+        "07023a40462cb432f595007c1f88365f14e0f5e8",
+        "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
+      ],
+      "subject": "merge: integrate experience release RC lane"
+    },
+    {
+      "commit": "07023a40462cb432f595007c1f88365f14e0f5e8",
+      "tree": "975dcc1bd8a94d3e43af9d22391da75a8cb03d33",
+      "parents": [
+        "1f070aaf0e59a2e289322b02725c2b950e667992",
+        "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
+      ],
+      "subject": "merge: integrate runtime operations RC lane"
+    },
+    {
+      "commit": "1f070aaf0e59a2e289322b02725c2b950e667992",
+      "tree": "10fb9f38f2a42e98b1a63b4011f54f7ef3942c1f",
+      "parents": [
+        "27fb33bab754b001acf26134d988daa10d177390",
+        "cc23bce784ee60a27ad3e34fd245136f37394a2d"
+      ],
+      "subject": "merge: integrate commercial integrity RC lane"
+    },
     {
       "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
       "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
@@ -1800,37 +3378,46 @@
       "subject": "merge: integrate core finance lane"
     }
   ],
-  "releaseCandidateLanes": [
-    {
-      "ref": "rc/commercial-integrity",
-      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
-      "migrationRange": "001000-001099",
-      "base": "rc-lanes-base-20260731^{commit}"
-    },
-    {
-      "ref": "rc/runtime-operations",
-      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
-      "migrationRange": "001100-001199",
-      "base": "rc-lanes-base-20260731^{commit}"
-    },
-    {
-      "ref": "rc/experience-release",
-      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
-      "migrationRange": "001200-001299",
-      "base": "rc-lanes-base-20260731^{commit}"
-    }
-  ],
+  "historicalRcInputLanes": {
+    "semantics": "These immutable RC-named refs are historical merge inputs only; their names do not declare consolidated main to be an RC.",
+    "lanes": [
+      {
+        "ref": "rc/commercial-integrity",
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
+        "migrationRange": "001000-001099",
+        "baseRef": "rc-lanes-base-20260731",
+        "baseCommit": "27fb33bab754b001acf26134d988daa10d177390",
+        "baseTree": "47a76be91f3f95c9a429e57c203dad33b1692d8a"
+      },
+      {
+        "ref": "rc/runtime-operations",
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
+        "migrationRange": "001100-001199",
+        "baseRef": "rc-lanes-base-20260731",
+        "baseCommit": "27fb33bab754b001acf26134d988daa10d177390",
+        "baseTree": "47a76be91f3f95c9a429e57c203dad33b1692d8a"
+      },
+      {
+        "ref": "rc/experience-release",
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
+        "migrationRange": "001200-001299",
+        "baseRef": "rc-lanes-base-20260731",
+        "baseCommit": "27fb33bab754b001acf26134d988daa10d177390",
+        "baseTree": "47a76be91f3f95c9a429e57c203dad33b1692d8a"
+      }
+    ]
+  },
   "preConsolidation": {
     "annotatedTag": "pre-consolidation-20260731",
     "tagObject": "94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136",
-    "bundlePath": "/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle",
+    "bundlePath": ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
     "bundleExists": true,
     "bundleBytes": 3340426,
     "bundleSha256": "78be81aeb4eef96c59545873c062e7415883e8150274128867d6f5a5422e1070",
     "bundleVerification": {
       "status": "verified-complete",
       "exitCode": 0,
-      "command": "git bundle verify /Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle",
+      "command": "git bundle verify .clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
       "output": [
         "The bundle contains these 19 refs:",
         "12c590d5d386066fc120f90792b2f3c038c294a8 refs/heads/commerce/core-finance",
@@ -1854,9 +3441,9 @@
         "de5f761ec82ccce4966b82825a3de9b356e953b7 worktrees/Clockwork-experience/HEAD",
         "The bundle records a complete history.",
         "The bundle uses this hash algorithm: sha1",
-        "/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle is okay"
+        ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle is okay"
       ],
-      "outputSha256": "108795fee1e40404770bde3ffc936e07888bd26fed6f1f8113528458bcc3a8de"
+      "outputSha256": "6d531a7dcef33b0e2dbc37ebb79913de2c2ac8e116cf4e6284686de821a983f7"
     },
     "bundleHeads": [
       {
@@ -1956,37 +3543,17 @@
         {
           "state": "unreachable",
           "type": "blob",
-          "object": "3bf0a762903d1bb0deb475aa523b3fc04604e9ba"
+          "object": "09412b61f3cd7264547b9480f8cac68c44380288"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "dad08bbf160cee98239b14c79cd35f67ff44dee6"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "5c31fe1c972b4a76afeccc1cf5cb10779fa8339f"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "7bb1c1e724370ecb8ab724e23f7297fd6afb7db2"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "e531bf7d00385114f39d24088c8882537bf1d68b"
+          "type": "tree",
+          "object": "1022ddd8e93f9d713a921b1ac979ece9e39a580b"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "a542b3016edbfc4368e2211c7e77415d3c94c784"
-        },
-        {
-          "state": "unreachable",
-          "type": "tree",
-          "object": "edb249b08f4f999ce94f0af57ee5cb0e3ebb5179"
         },
         {
           "state": "unreachable",
@@ -2005,13 +3572,13 @@
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "e0f4e4ca0aa2544275c4529a289376b8fefb4038"
+          "type": "tree",
+          "object": "2c45d84c1389c5a25a9a7a28fd44922507b35cc7"
         },
         {
           "state": "unreachable",
           "type": "blob",
-          "object": "0ab62ba581ed23dcee9913a8bef73e1b31cfd126"
+          "object": "e1257ed8c3be556989eca95d62ebbdff4c8422a4"
         },
         {
           "state": "unreachable",
@@ -2020,8 +3587,13 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "44e645d4409d698bf48079fb2604550306b031db"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
-          "object": "eed602bed27a58edb2487c7df6d27402877bfb4b"
+          "object": "31c77c28a121c8dd59b7f8068dec0c60138b2fd6"
         },
         {
           "state": "unreachable",
@@ -2035,8 +3607,8 @@
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "601812ac456b54e12be2c14e51f2685b5106095e"
+          "type": "tree",
+          "object": "07084a09a7d24f293d084df1691ededb4d531fd6"
         },
         {
           "state": "unreachable",
@@ -2086,12 +3658,22 @@
         {
           "state": "unreachable",
           "type": "blob",
-          "object": "3bdbf011a57e72711b6d7e50a35c88a227bec392"
+          "object": "928bfbe97c42004e7c7f4b99d8f1d2329451c133"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "68fbe689aa53cc4046b485ea3a647a4d7ced13a3"
+          "type": "tree",
+          "object": "3d8c17a8d4ed8c814b6c72cf1eaa8526b5769908"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "010d070cfcc920425ae94cbc7780ccbcfa4c36d2"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "29cdcdafa05d6d7be1008d81f85cc0546437f1a8"
         },
         {
           "state": "unreachable",
@@ -2106,12 +3688,167 @@
         {
           "state": "unreachable",
           "type": "blob",
+          "object": "3bf0a762903d1bb0deb475aa523b3fc04604e9ba"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "dad08bbf160cee98239b14c79cd35f67ff44dee6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5c31fe1c972b4a76afeccc1cf5cb10779fa8339f"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "63b120fecfcf5ce25ad4d28a86d892a78881e0f8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "73f13b1db20979af9d5087cb79d80e02146e65d1"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7bb1c1e724370ecb8ab724e23f7297fd6afb7db2"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "95d1f1aade0b7bc4f2aa8656eac2cca7bfc52bb6"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b5f1c0ef2c74ad27f086c14569986a1a2aab758c"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e531bf7d00385114f39d24088c8882537bf1d68b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "03f2f4aa4e8c84a5e6dad748bc13adde18704f6c"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "23f2b062c10dcef691e77edaec7cb10b7d4c6989"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "2e92f2665587ee2ac3d8b45ccc6e14ba167ed16d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8552b209cc6c4aac54754c349ff343782445d9fd"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "9152eb270e4bfff9b5ef63045ed1996217a44d19"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "edb249b08f4f999ce94f0af57ee5cb0e3ebb5179"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e0f4e4ca0aa2544275c4529a289376b8fefb4038"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "0ab62ba581ed23dcee9913a8bef73e1b31cfd126"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "eed602bed27a58edb2487c7df6d27402877bfb4b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "4777fc5e3119448712f7776947aef070f255082a"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "601812ac456b54e12be2c14e51f2685b5106095e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "ca981f7a05ed3eb5c8ac5f869d1a693041b8939c"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "075b9120c3642ae2ea29e7160bcd864a40a99f05"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "309bb19c0ccaffd81484d0aa987d936e3c9fc3df"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "3bdbf011a57e72711b6d7e50a35c88a227bec392"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "68fbe689aa53cc4046b485ea3a647a4d7ced13a3"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a59bd48059cac6c6b6d5749fa2e456c9c0586fe0"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "84bc68e4f0a3e9ae9d2b1b1329c4957a61295237"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "6fbea2fa5667fcc9f6294c184036e1d6c5b3aa55"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5b1fd4432504ff04292abceb911b83ec3e6102e6"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "787fe899bbde988aab34b17ba5b59fd272dec921"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
           "object": "7abf082439d223454a9513711add9135e59de321"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "7c9f5f41edbe2425d7e5b2bfa3bfb82288ebd190"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "809f5fb696f85cbb55c9b39ce1e55feef7a9a060"
         },
         {
           "state": "unreachable",

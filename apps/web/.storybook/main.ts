@@ -9,6 +9,16 @@ const config: StorybookConfig = {
   ],
   framework: { name: "@storybook/nextjs-vite", options: {} },
   staticDirs: [],
+  viteFinal: (viteConfig) => ({
+    ...viteConfig,
+    build: {
+      ...viteConfig.build,
+      // The preview is an internal verification bundle that intentionally keeps
+      // Storybook, Axe, and the component catalog together. Its largest emitted
+      // chunk is currently below this reviewed ceiling.
+      chunkSizeWarningLimit: 1_400,
+    },
+  }),
 };
 
 export default config;

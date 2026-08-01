@@ -10,6 +10,7 @@ import { verifyAndClaimWebhook } from "../../webhooks";
 import type { WebhookDeduplicator } from "../../webhooks";
 import {
   registerExternalGateRoutes,
+  type ExternalGateAdministrationServices,
   type ExternalGateService,
 } from "./external-gates";
 
@@ -68,6 +69,7 @@ const workosWebhookRoute = createRoute({
 export interface SystemRouteDependencies {
   externalGates?: ExternalGateService;
   externalGateActivationTests?: ActivationTestRunner;
+  externalGateAdministration?: ExternalGateAdministrationServices;
   workosWebhook?: {
     verifier: WebhookVerifier<unknown>;
     deduplicator: WebhookDeduplicator;
@@ -106,6 +108,7 @@ export function registerSystemRoutes(
     app,
     dependencies.externalGates,
     dependencies.externalGateActivationTests,
+    dependencies.externalGateAdministration,
   );
   app.openapi(workosWebhookRoute, async (context) => {
     const adapter = dependencies.workosWebhook;

@@ -1,4 +1,4 @@
-import { task } from "@trigger.dev/sdk";
+import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import { z } from "zod";
 
 import { ExternalGateKeySchema } from "@clockwork/domain/system";
@@ -10,6 +10,8 @@ const ActivationPayloadSchema = z.object({
   taskKey: z.string().min(8).max(255),
   gateKey: ExternalGateKeySchema,
   provider: z.string().regex(/^[a-z][a-z0-9_-]{1,63}$/),
+  expectedGateRowVersion: z.number().int().positive(),
+  requestedBy: z.uuid(),
 });
 
 export type ExternalGateActivationTaskPayload = z.infer<
@@ -20,6 +22,46 @@ export type ExternalGateActivationExecutor = (
   payload: ExternalGateActivationTaskPayload,
   requestId: string,
 ) => Promise<unknown>;
+
+/** Web/API submission boundary; Trigger provides the durable idempotent queue. */
+export class TriggerExternalGateActivationTaskSubmitter {
+  public async enqueue(input: {
+    gateKey: ExternalGateActivationTaskPayload["gateKey"];
+    expectedGateRowVersion: number;
+    taskKey: string;
+    provider: string;
+    idempotencyKey: string;
+    actor: { kind: "user" | "system"; id: string };
+    requestId: string;
+    now: Date;
+  }) {
+    if (input.actor.kind !== "user")
+      throw new Error("EXTERNAL_GATE_ACTIVATION_OPERATOR_REQUIRED");
+    const idempotencyKey = await idempotencyKeys.create(input.idempotencyKey, {
+      scope: "global",
+    });
+    const run = await tasks.trigger(
+      externalGateActivationTaskIds.activate,
+      ActivationPayloadSchema.parse({
+        taskKey: input.taskKey,
+        gateKey: input.gateKey,
+        provider: input.provider,
+        expectedGateRowVersion: input.expectedGateRowVersion,
+        requestedBy: input.actor.id,
+      }),
+      { idempotencyKey },
+    );
+    return {
+      runId: run.id,
+      taskKey: input.taskKey,
+      gateKey: input.gateKey,
+      provider: input.provider,
+      expectedGateRowVersion: input.expectedGateRowVersion,
+      status: "queued" as const,
+      submittedAt: input.now.toISOString(),
+    };
+  }
+}
 
 let configuredExecutor: ExternalGateActivationExecutor | undefined;
 

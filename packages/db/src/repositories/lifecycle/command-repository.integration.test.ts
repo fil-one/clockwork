@@ -275,6 +275,7 @@ describe.concurrent("database lifecycle production repository", () => {
           {
             id: `retention-${suffix}`,
             description: "Retention proof succeeds",
+            target: "All retained objects remain verifiable",
           },
         ],
         capacityCap: "10",
@@ -312,6 +313,7 @@ describe.concurrent("database lifecycle production repository", () => {
         {
           id: `relationship-${suffix}`,
           description: "Approved relationship remains tenant isolated",
+          target: "No cross-tenant object is accessible",
         },
       ],
       capacityCap: "10",

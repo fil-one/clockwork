@@ -1,5 +1,8 @@
 # Design shell handoff
 
+Current disposition: historical provenance. The shell is integrated and
+repository-qualified on `main`; this is not an active lane or RC/launch record.
+
 ## Outcome
 
 `@clockwork/ui` is the structural source of truth for the Fil One application

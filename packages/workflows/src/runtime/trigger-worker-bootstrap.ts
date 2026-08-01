@@ -1,4 +1,13 @@
-import { createRuntimeDatabase, type RuntimeDatabase } from "@clockwork/db";
+import {
+  configureDatabaseTransactionInstrumentation,
+  createRuntimeDatabase,
+  type RuntimeDatabase,
+} from "@clockwork/db";
+import {
+  ClockworkTelemetry,
+  OtlpHttpTelemetrySink,
+  RuntimeBoundaryInstrumentation,
+} from "@clockwork/integrations";
 
 import {
   createProductionWorkflowRuntime,
@@ -207,10 +216,41 @@ export async function createEnvironmentProductionWorkflowRuntime(
 ): Promise<ProductionWorkflowRuntime> {
   const source = input.source ?? process.env;
   const environment = validateTriggerWorkerEnvironment(source);
+  const telemetryEnvironment = {
+    ...source,
+    ...(!source.OTEL_EXPORTER_OTLP_ENDPOINT &&
+    !source.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      ? { OTEL_SDK_DISABLED: "true" }
+      : {}),
+  };
+  const telemetry = new ClockworkTelemetry(
+    new OtlpHttpTelemetrySink({
+      environment: telemetryEnvironment,
+      runtimeEnvironment: environment.runtimeEnvironment,
+    }),
+  );
+  const instrumentation = new RuntimeBoundaryInstrumentation(telemetry);
+  configureDatabaseTransactionInstrumentation({
+    trace: (transaction) =>
+      instrumentation.db({
+        name: `db.${transaction.kind}_transaction`,
+        correlation: { requestId: transaction.requestId },
+        attributes: {
+          "clockwork.operation": `db.${transaction.kind}_transaction`,
+          "db.operation.name": transaction.kind,
+          "db.system.name": "postgresql",
+        },
+        operation: () => transaction.operation(),
+      }),
+  });
   let adapterFactory = input.adapterFactory;
   if (!adapterFactory) {
     try {
-      adapterFactory = createEnvironmentWorkflowAdapterFactory(source);
+      adapterFactory = createEnvironmentWorkflowAdapterFactory(
+        source,
+        instrumentation,
+        telemetry,
+      );
     } catch (error) {
       if (error instanceof WorkflowEnvironmentAdapterConfigurationError)
         throw new WorkflowBootstrapConfigurationError(
@@ -230,7 +270,11 @@ export async function createEnvironmentProductionWorkflowRuntime(
       environment,
       source,
     });
-    return createProductionWorkflowRuntime({ db, ...adapters });
+    return createProductionWorkflowRuntime({
+      db,
+      ...adapters,
+      instrumentation,
+    });
   } catch (error) {
     await client.end();
     throw error;

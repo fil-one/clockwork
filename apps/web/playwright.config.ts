@@ -14,6 +14,13 @@ const artifactRoot = path.resolve(
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 const releaseShard = Boolean(process.env.CLOCKWORK_RELEASE_SHARD);
+if (
+  process.env.CLOCKWORK_RELEASE_SHARD === "ui" &&
+  process.platform !== "darwin"
+)
+  throw new Error(
+    "Release visual comparisons require the pinned Darwin runner used by the reviewed baselines.",
+  );
 const workerCount = serial ? 1 : releaseShard || process.env.CI ? 2 : undefined;
 
 export default defineConfig({
@@ -22,7 +29,7 @@ export default defineConfig({
   // provider fake through the dedicated proof configuration.
   testIgnore: "production-proof.spec.ts",
   fullyParallel: !serial,
-  forbidOnly: Boolean(process.env.CI),
+  forbidOnly: true,
   retries: 0,
   ...(workerCount ? { workers: workerCount } : {}),
   outputDir: path.join(artifactRoot, "playwright-output"),

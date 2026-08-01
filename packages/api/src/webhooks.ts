@@ -35,12 +35,14 @@ export async function verifyAndClaimWebhook<T>(input: {
   signature: string;
   verifier: WebhookVerifier<T>;
   deduplicator: WebhookDeduplicator;
+  validatePayload?: (payload: T) => void;
   persistedPayload?: (payload: T) => unknown;
 }) {
   const verified = await input.verifier.verify({
     rawBody: input.rawBody,
     signature: input.signature,
   });
+  input.validatePayload?.(verified.payload);
   const eventType = input.eventType(verified.payload);
   const payloadHash = createHash("sha256").update(input.rawBody).digest("hex");
   const claim = await input.deduplicator.claim({

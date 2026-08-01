@@ -16,7 +16,9 @@ import { accounts, commerceUsers, documents } from "../../schema";
 export const commercialArtifactRequests = pgTable(
   "core_commercial_artifact_requests",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`public.uuid_v7()`),
     subjectType: text("subject_type").notNull(),
     subjectId: uuid("subject_id").notNull(),
     commercialAccountId: uuid("commercial_account_id")

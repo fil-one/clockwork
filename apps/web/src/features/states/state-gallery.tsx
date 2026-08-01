@@ -1,65 +1,111 @@
 import Link from "next/link";
 
-import { Button, EmptyState, Skeleton, StatusBadge } from "@clockwork/ui";
+import {
+  ApplicationStatePanel,
+  Button,
+  SkeletonGroup,
+  type ApplicationState,
+} from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
+import { t, type MessageId } from "@/src/i18n/en";
+
+export const stateGalleryStateKeys = [
+  "loading",
+  "empty",
+  "partial",
+  "optimistic",
+  "success",
+  "validation",
+  "permission",
+  "stale",
+  "offline",
+  "recoverable-error",
+  "fatal-error",
+] as const satisfies readonly ApplicationState[];
 
 const designedStates = [
   {
-    key: "partial",
+    state: "loading",
+    title: "state.loading.title",
+    description: "state.loading.description",
+  },
+  {
+    state: "empty",
+    title: "state.empty.title",
+    description: "state.empty.description",
+  },
+  {
+    state: "partial",
     title: "state.partial.title",
     description: "state.partial.description",
-    tone: "warning",
   },
   {
-    key: "success",
-    title: "state.success.title",
-    description: "state.success.description",
-    tone: "success",
-  },
-  {
-    key: "validation",
-    title: "state.validation.title",
-    description: "state.validation.description",
-    tone: "danger",
-  },
-  {
-    key: "permission",
-    title: "session.permission.title",
-    description: "session.permission.description",
-    tone: "warning",
-  },
-  {
-    key: "stale",
-    title: "state.stale.title",
-    description: "state.stale.description",
-    tone: "warning",
-  },
-  {
-    key: "optimistic",
+    state: "optimistic",
     title: "states.optimistic.title",
     description: "states.optimistic.description",
-    tone: "neutral",
   },
   {
-    key: "offline",
+    state: "success",
+    title: "state.success.title",
+    description: "state.success.description",
+  },
+  {
+    state: "validation",
+    title: "state.validation.title",
+    description: "state.validation.description",
+  },
+  {
+    state: "permission",
+    title: "session.permission.title",
+    description: "session.permission.description",
+  },
+  {
+    state: "stale",
+    title: "state.stale.title",
+    description: "state.stale.description",
+  },
+  {
+    state: "offline",
     title: "states.offline.title",
     description: "states.offline.description",
-    tone: "neutral",
   },
   {
-    key: "recoverable",
+    state: "recoverable-error",
     title: "state.recoverable.title",
     description: "state.recoverable.description",
-    tone: "warning",
   },
   {
-    key: "fatal",
+    state: "fatal-error",
     title: "state.fatal.title",
     description: "state.fatal.description",
-    tone: "danger",
   },
-] as const;
+] as const satisfies readonly {
+  state: (typeof stateGalleryStateKeys)[number];
+  title: MessageId;
+  description: MessageId;
+}[];
+
+function stateAction(state: ApplicationState) {
+  if (
+    state === "loading" ||
+    state === "offline" ||
+    state === "optimistic" ||
+    state === "success"
+  )
+    return undefined;
+  if (state === "empty") return <Button>{t("action.createQuote")}</Button>;
+  if (state === "permission")
+    return <Link href="/dashboard">{t("session.permission.action")}</Link>;
+  if (state === "validation")
+    return <Button variant="secondary">Review value</Button>;
+  if (state === "stale")
+    return <Button variant="secondary">Review latest version</Button>;
+  return (
+    <Button variant="secondary">
+      {state === "fatal-error" ? t("app.help") : t("action.retry")}
+    </Button>
+  );
+}
 
 export function StateGallery() {
   return (
@@ -72,36 +118,20 @@ export function StateGallery() {
         </div>
       </header>
       <section className="state-grid" aria-label={t("states.title")}>
-        <article className="state-card">
-          <StatusBadge>{t("state.loading.title")}</StatusBadge>
-          <h2>{t("state.loading.title")}</h2>
-          <p>{t("state.loading.description")}</p>
-          <div className="skeleton-stack" aria-label={t("state.loading.title")}>
-            <Skeleton height="3rem" label={t("state.loading.title")} />
-            <Skeleton width="72%" label={t("state.loading.title")} />
-          </div>
-        </article>
-        <EmptyState
-          title={t("state.empty.title")}
-          description={t("state.empty.description")}
-          action={<Button>{t("action.createQuote")}</Button>}
-        />
         {designedStates.map((state) => (
-          <article
-            className={`state-card state-card--${state.tone}`}
-            key={state.key}
-          >
-            <StatusBadge tone={state.tone}>{t("common.status")}</StatusBadge>
-            <h2>{t(state.title)}</h2>
-            <p>{t(state.description)}</p>
-            {state.key === "permission" ? (
-              <Link href="/dashboard">{t("session.permission.action")}</Link>
-            ) : (
-              <Button variant="secondary">
-                {state.key === "fatal" ? t("app.help") : t("action.retry")}
-              </Button>
-            )}
-          </article>
+          <ApplicationStatePanel
+            className="state-card"
+            description={t(state.description)}
+            details={
+              state.state === "loading" ? (
+                <SkeletonGroup label={t("state.loading.title")} rows={2} />
+              ) : undefined
+            }
+            key={state.state}
+            state={state.state}
+            title={t(state.title)}
+            action={stateAction(state.state)}
+          />
         ))}
       </section>
     </main>

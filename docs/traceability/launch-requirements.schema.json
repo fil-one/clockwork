@@ -3,12 +3,42 @@
   "$id": "https://clockwork.fil.one/schemas/launch-requirements.schema.json",
   "title": "Clockwork launch-requirement traceability ledger",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "schemaVersion",
     "contract",
     "contractSha256",
     "statusPolicy",
     "requirements"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "statusPolicy": {
+            "properties": {
+              "reviewState": {
+                "enum": ["repository-qualified", "launch-qualified"]
+              }
+            },
+            "required": ["reviewState"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "requirements": {
+            "items": {
+              "properties": {
+                "status": {
+                  "enum": ["implemented", "external-gated", "historical"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
@@ -17,7 +47,7 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
-    "statusPolicy": { "type": "object" },
+    "statusPolicy": { "$ref": "#/$defs/statusPolicy" },
     "requirements": {
       "type": "array",
       "minItems": 1,
@@ -29,6 +59,89 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
       "uniqueItems": true
+    },
+    "referenceAliases": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "statusPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generatedFrom",
+        "requirementCount",
+        "requirementIdSetSha256",
+        "reviewState",
+        "activeBranch",
+        "reviewedAgainst",
+        "statuses",
+        "rule",
+        "mappingSemantics",
+        "evidenceManifests",
+        "backlogReferenceAliases",
+        "gateReferenceAliases",
+        "notes"
+      ],
+      "properties": {
+        "generatedFrom": {
+          "type": "string",
+          "const": "commerce_platform_spec.md"
+        },
+        "requirementCount": { "type": "integer", "minimum": 1 },
+        "requirementIdSetSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reviewState": {
+          "enum": [
+            "pre-merge",
+            "post-merge-pre-qualification",
+            "repository-qualified",
+            "launch-qualified"
+          ]
+        },
+        "activeBranch": { "type": "string", "const": "main" },
+        "reviewedAgainst": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "statuses": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "implemented",
+            "partial",
+            "unimplemented",
+            "external-gated",
+            "historical"
+          ],
+          "properties": {
+            "implemented": { "type": "string", "minLength": 1 },
+            "partial": { "type": "string", "minLength": 1 },
+            "unimplemented": { "type": "string", "minLength": 1 },
+            "external-gated": { "type": "string", "minLength": 1 },
+            "historical": { "type": "string", "minLength": 1 }
+          }
+        },
+        "rule": { "type": "string", "minLength": 1 },
+        "mappingSemantics": { "type": "string", "minLength": 1 },
+        "evidenceManifests": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "backlogReferenceAliases": { "$ref": "#/$defs/referenceAliases" },
+        "gateReferenceAliases": { "$ref": "#/$defs/referenceAliases" },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
     },
     "requirement": {
       "type": "object",

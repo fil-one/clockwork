@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { DatabaseExternalGateService } from "@clockwork/db";
+import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 
 import {
   fallbackGates,
@@ -31,8 +32,8 @@ const unavailableRegistry: GateRecord = {
 
 function failClosed(runtimeEnvironment: string): GateRecordResult {
   const allowDemoFallback =
-    process.env.NODE_ENV !== "production" &&
-    runtimeEnvironment !== "production";
+    !findDemoProductionMarker(process.env) &&
+    runtimeEnvironment.trim().toLowerCase() !== "production";
   return {
     gates: allowDemoFallback ? fallbackGates : [unavailableRegistry],
     source: "Fail-closed operational fallback",
@@ -63,6 +64,11 @@ export async function loadConfiguredGateRecords(
         presentGeneratedGate({
           ...gate,
           blockedReasons: [...gate.blockedReasons],
+          emergencyDisabledAt: gate.emergencyDisabledAt ?? null,
+          emergencyDisabledBy: gate.emergencyDisabledBy ?? null,
+          emergencyDisableReason: gate.emergencyDisableReason ?? null,
+          emergencyDisableEvidenceReference:
+            gate.emergencyDisableEvidenceReference ?? null,
         }),
       ),
       source: "System gate registry",

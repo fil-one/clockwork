@@ -1,14 +1,15 @@
-import { createMemoryDemoStore, resetDemoExperience } from "./reset";
+import { resetDemoExperience } from "./reset";
+import { FileDemoAdapterStateStore } from "./state";
 
 /**
- * Single-command reset for the deterministic fixture store:
+ * Single-command reset for the durable state read by the explicit web demo
+ * adapter:
  * `pnpm exec tsx packages/testing/src/demo/reset-command.ts`
  *
- * There is deliberately no commerce reset HTTP request here. The generated
- * OpenAPI contract currently has no reset operation, and inventing one in MSW
- * would hide that integration gap from Agent 5.
+ * There is deliberately no commerce reset HTTP request here. Demo reset is a
+ * local/demo-only operator boundary, never a production application route.
  */
-const store = createMemoryDemoStore();
+const store = new FileDemoAdapterStateStore();
 
 try {
   const result = await resetDemoExperience(store, {

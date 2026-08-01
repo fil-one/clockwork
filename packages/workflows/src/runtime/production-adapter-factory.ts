@@ -55,6 +55,7 @@ import type {
   DeletionCertificateRenderer,
 } from "../offboarding/deletion-certificate-handler";
 import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
+import { createProductionExperienceOutboxHandlers } from "../experience";
 import { createLifecycleTaskOutboxHandlers } from "../system/lifecycle-task-dispatch";
 import type {
   ProductionWorkflowAdapterBundle,
@@ -312,6 +313,10 @@ export function createProductionWorkflowAdapterFactory(
           name: keyof ProductionWorkflowProviderSelections,
           taskKey: string,
           requestId: string,
+          actor: { kind: "user" | "system"; id: string } = {
+            kind: "system",
+            id: "external-gate-activation-runner",
+          },
         ) => {
           const selection = byProvider.get(name);
           if (!selection)
@@ -322,7 +327,7 @@ export function createProductionWorkflowAdapterFactory(
             provider: name,
             mode: selection.mode,
             runtimeEnvironment: environment.runtimeEnvironment,
-            actor: { kind: "system", id: "external-gate-activation-runner" },
+            actor,
             requestId,
             probe: () => selection.activationTest(),
           });
@@ -341,7 +346,7 @@ export function createProductionWorkflowAdapterFactory(
           providerActivationGates,
           `workflow-bootstrap:post-activation:${crypto.randomUUID()}`,
         );
-        gateActivationExecutor = (payload, requestId) => {
+        gateActivationExecutor = async (payload, requestId) => {
           if (!(payload.provider in providerGate))
             throw new Error(
               `WORKFLOW_PROVIDER_NOT_CONFIGURED:${payload.provider}`,
@@ -350,7 +355,17 @@ export function createProductionWorkflowAdapterFactory(
             payload.provider as keyof ProductionWorkflowProviderSelections;
           if (providerGate[name] !== payload.gateKey)
             throw new Error("EXTERNAL_GATE_ACTIVATION_SCOPE_MISMATCH");
-          return execute(name, payload.taskKey, requestId);
+          const currentGate = await new DatabaseExternalGateService(db).get({
+            gateKey: payload.gateKey,
+            requestId: `${requestId}:version-check`,
+            now: (options.clock ?? (() => new Date()))(),
+          });
+          if (currentGate.rowVersion !== payload.expectedGateRowVersion)
+            throw new Error("EXTERNAL_GATE_VERSION_CONFLICT");
+          return execute(name, payload.taskKey, requestId, {
+            kind: "user",
+            id: payload.requestedBy,
+          });
         };
       }
 
@@ -412,6 +427,12 @@ export function createProductionWorkflowAdapterFactory(
           db,
           stripe: providers.billing.value.adjustments,
         }),
+        createProductionExperienceOutboxHandlers({
+          database: db,
+          authorizationSecret: options.authorizationSecret,
+          ...(options.leaseMs ? { leaseMs: options.leaseMs } : {}),
+          ...(options.clock ? { clock: options.clock } : {}),
+        }),
       ];
       const scheduledTopic = "core.schedule.dispatch.v1";
       if (outboxHandlers.has(scheduledTopic))
@@ -429,8 +450,6 @@ export function createProductionWorkflowAdapterFactory(
           if (configuredTopics.has(topic))
             throw new Error(`WORKFLOW_PROVIDER_DUPLICATE:${topic}`);
           const existing = outboxHandlers.get(topic);
-          if (existing && topic !== "order.provisioning_confirmed")
-            throw new Error(`WORKFLOW_PROVIDER_DUPLICATE:${topic}`);
           if (existing) {
             outboxHandlers.set(topic, async (delivery) => {
               await existing(delivery);

@@ -3,6 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { sql } from "drizzle-orm";
 
 import type { SessionClaims } from "@clockwork/api";
+import { uuidV7 } from "@clockwork/contracts";
+import type { CommerceDocumentInput } from "@clockwork/documents";
 import {
   withAuthorizedTransaction,
   withInternalTransaction,
@@ -13,6 +15,11 @@ import {
 import { getRuntimeDatabase, getServiceDatabase } from "@/src/db/service";
 
 import { authorizationContext } from "./authorization";
+import {
+  resolveArtifactSource,
+  verifyResolvedArtifactSource,
+  type ArtifactSourceRequest,
+} from "./artifact-sources";
 import {
   ExperienceProblem,
   type ArtifactKind,
@@ -28,6 +35,7 @@ import {
   type ProjectionListInput,
   type ProjectionPage,
   type ProjectionRecord,
+  type RenderRequestRepresentation,
 } from "./model";
 
 const UUID_PATTERN =
@@ -58,11 +66,21 @@ function numberValue(row: Row, key: string): number {
   throw new Error(`Expected integer column ${key}`);
 }
 
+function nullableNumber(row: Row, key: string): number | null {
+  const value = row[key];
+  return value === null || value === undefined ? null : numberValue(row, key);
+}
+
 function booleanValue(row: Row, key: string): boolean {
   const value = row[key];
   if (typeof value !== "boolean")
     throw new Error(`Expected boolean column ${key}`);
   return value;
+}
+
+function nullableBoolean(row: Row, key: string): boolean | null {
+  const value = row[key];
+  return value === null || value === undefined ? null : booleanValue(row, key);
 }
 
 function objectValue(row: Row, key: string): Readonly<Record<string, unknown>> {
@@ -76,6 +94,11 @@ function dateText(row: Row, key: string): string {
   const value = row[key];
   if (value instanceof Date) return value.toISOString();
   return textValue(row, key);
+}
+
+function nullableDateText(row: Row, key: string): string | null {
+  const value = row[key];
+  return value === null || value === undefined ? null : dateText(row, key);
 }
 
 function sha256(value: string): string {
@@ -143,7 +166,7 @@ function projectionRecord(row: Row, now: Date): ProjectionRecord {
     accountId: nullableText(row, "audience_account_id"),
     audience: textValue(row, "audience") as ExperienceAudience,
     channel: textValue(row, "channel") as ProjectionChannel,
-    version: numberValue(row, "row_version"),
+    version: numberValue(row, "source_aggregate_version"),
     sourceUpdatedAt,
     projectedAt: dateText(row, "projected_at"),
     stale:
@@ -162,7 +185,12 @@ function actionReceipt(row: Row): ProjectionActionReceipt {
     action: textValue(row, "action"),
     expectedVersion: numberValue(row, "expected_version"),
     status: textValue(row, "status") as ProjectionActionReceipt["status"],
+    resultReference: nullableText(row, "result_reference"),
+    resultCode: nullableText(row, "result_code"),
+    authoritativeVersion: nullableNumber(row, "authoritative_version"),
+    commandReplayed: nullableBoolean(row, "command_replayed"),
     createdAt: dateText(row, "created_at"),
+    completedAt: nullableDateText(row, "completed_at"),
     auditEventId: textValue(row, "audit_event_id"),
     outboxMessageId: textValue(row, "outbox_message_id"),
   };
@@ -201,7 +229,7 @@ function artifactRepresentation(row: Row): ArtifactRepresentation {
     kind,
     subjectType: textValue(row, "subject_type"),
     subjectId: textValue(row, "subject_id"),
-    accountId: textValue(row, "account_id"),
+    accountId: nullableText(row, "account_id"),
     audience: textValue(row, "audience") as ExperienceAudience,
     audienceAccountId: nullableText(row, "audience_account_id"),
     documentId: textValue(row, "document_id"),
@@ -225,19 +253,60 @@ export interface SigningTarget {
   signerEmail: string;
 }
 
-export interface RenderRequestRecord {
-  id: string;
-  accountId: string;
-  audience: ExperienceAudience;
-  audienceAccountId: string | null;
-  subjectType: string;
-  subjectId: string;
-  kind: ArtifactKind;
+export interface RenderRequestRecord extends RenderRequestRepresentation {
   input: Readonly<Record<string, unknown>>;
-  sourceHash: string;
-  retainUntil: string;
-  status: "pending" | "rendering" | "stored" | "failed";
-  version: number;
+}
+
+export function publicRenderRequest(
+  record: RenderRequestRecord,
+): RenderRequestRepresentation {
+  return {
+    id: record.id,
+    accountId: record.accountId,
+    audience: record.audience,
+    audienceAccountId: record.audienceAccountId,
+    subjectType: record.subjectType,
+    subjectId: record.subjectId,
+    kind: record.kind,
+    sourceHash: record.sourceHash,
+    sourceVersion: record.sourceVersion,
+    retainUntil: record.retainUntil,
+    status: record.status,
+    version: record.version,
+  };
+}
+
+export interface ArtifactDownloadRecord {
+  representation: ArtifactRepresentation;
+  storageKey: string;
+  storageVersionId: string;
+}
+
+function renderRequestRecord(row: Row): RenderRequestRecord {
+  const record: RenderRequestRecord = {
+    id: textValue(row, "id"),
+    accountId: nullableText(row, "account_id"),
+    audience: textValue(row, "audience") as ExperienceAudience,
+    audienceAccountId: nullableText(row, "audience_account_id"),
+    subjectType: textValue(row, "subject_type"),
+    subjectId: textValue(row, "subject_id"),
+    kind: textValue(row, "document_kind") as ArtifactKind,
+    input: objectValue(row, "input"),
+    sourceHash: textValue(row, "source_hash"),
+    sourceVersion: textValue(row, "source_version"),
+    retainUntil: dateText(row, "retain_until"),
+    status: textValue(row, "status") as RenderRequestRecord["status"],
+    version: numberValue(row, "row_version"),
+  };
+  verifyResolvedArtifactSource({
+    kind: record.kind,
+    subjectType: record.subjectType,
+    subjectId: record.subjectId,
+    sourceVersion: record.sourceVersion,
+    input: record.input as unknown as CommerceDocumentInput,
+    sourceHash: record.sourceHash,
+  });
+  return record;
 }
 
 export interface SignedDocumentDownload {
@@ -274,13 +343,13 @@ export class DatabaseExperienceRepository {
   public listProjections(input: ProjectionListInput): Promise<ProjectionPage> {
     return this.authorized(
       input.session,
-      `projection:${crypto.randomUUID()}`,
+      `projection:${uuidV7()}`,
       async (transaction) => {
         const cursor = cursorValue(input.cursor);
         const rows = await transaction.execute(sql<Row>`
         select id, audience, audience_account_id, channel, record_key,
                aggregate_type, aggregate_id, payload, source_updated_at,
-               projected_at, row_version
+               projected_at, source_aggregate_version
         from experience_portal_projections
         where audience = ${input.audience}
           and audience_account_id is not distinct from ${input.accountId}::uuid
@@ -319,12 +388,12 @@ export class DatabaseExperienceRepository {
   ) {
     return this.authorized(
       input.session,
-      `projection-detail:${crypto.randomUUID()}`,
+      `projection-detail:${uuidV7()}`,
       async (transaction) => {
         const rows = await transaction.execute(sql<Row>`
         select id, audience, audience_account_id, channel, record_key,
                aggregate_type, aggregate_id, payload, source_updated_at,
-               projected_at, row_version
+               projected_at, source_aggregate_version
         from experience_portal_projections
         where audience = ${input.audience}
           and audience_account_id is not distinct from ${input.accountId}::uuid
@@ -359,7 +428,9 @@ export class DatabaseExperienceRepository {
         const replayRows = await transaction.execute(sql<Row>`
         select action.id, action.projection_id, action.aggregate_type,
                action.aggregate_id, action.action, action.expected_version,
-               action.status, action.created_at, action.request_payload,
+               action.status, action.result_reference, action.result_code,
+               action.authoritative_version, action.command_replayed,
+               action.created_at, action.completed_at, action.request_payload,
                action.audit_event_id, action.outbox_message_id
         from experience_projection_action_requests action
         join experience_portal_projections projection on projection.id = action.projection_id
@@ -390,7 +461,7 @@ export class DatabaseExperienceRepository {
           );
         const projectionRows = await transaction.execute(sql<Row>`
         select id, aggregate_type, aggregate_id, command_resource,
-               subject_account_id, row_version
+               subject_account_id, source_aggregate_version
         from experience_portal_projections
         where id = ${input.projectionId}::uuid
           and audience = ${input.audience}
@@ -411,7 +482,10 @@ export class DatabaseExperienceRepository {
             "PROJECTION_NOT_FOUND",
             "Projection record not found",
           );
-        if (numberValue(projection, "row_version") !== input.expectedVersion)
+        if (
+          numberValue(projection, "source_aggregate_version") !==
+          input.expectedVersion
+        )
           throw new ExperienceProblem(
             409,
             "VERSION_CONFLICT",
@@ -431,6 +505,7 @@ export class DatabaseExperienceRepository {
             aggregate_type, aggregate_id,
             command_resource, action, expected_version, actor_user_id,
             effective_account_id, assisted_session_id, assisted_reason,
+            mfa_verified, recent_authentication_verified,
             idempotency_key, request_payload
           ) values (
             ${input.projectionId}::uuid, ${input.accountId}::uuid,
@@ -442,6 +517,8 @@ export class DatabaseExperienceRepository {
             ${input.session.impersonation?.accountId ?? input.accountId}::uuid,
             ${input.session.impersonation?.sessionId ?? null}::uuid,
             ${input.session.impersonation?.reason ?? null},
+            ${input.session.mfaVerified},
+            ${input.session.recentAuthenticationVerified},
             ${input.idempotencyKey},
             ${JSON.stringify(input.payload)}::jsonb
           )
@@ -479,6 +556,54 @@ export class DatabaseExperienceRepository {
             );
           throw error;
         }
+      },
+    );
+  }
+
+  public getProjectionAction(input: {
+    session: SessionClaims;
+    audience: ExperienceAudience;
+    channel: ProjectionChannel;
+    accountId: string | null;
+    recordKey: string;
+    actionRequestId: string;
+    requestId: string;
+  }): Promise<ProjectionActionReceipt> {
+    return this.authorized(
+      input.session,
+      input.requestId,
+      async (transaction) => {
+        const rows = await transaction.execute(sql<Row>`
+        select action.id, action.projection_id, action.aggregate_type,
+               action.aggregate_id, action.action, action.expected_version,
+               action.status, action.result_reference, action.result_code,
+               action.authoritative_version, action.command_replayed,
+               action.created_at, action.completed_at,
+               action.audit_event_id, action.outbox_message_id
+        from experience_projection_action_requests action
+        join experience_portal_projections projection
+          on projection.id = action.projection_id
+        where action.id = ${input.actionRequestId}::uuid
+          and action.actor_user_id = ${input.session.userId}::uuid
+          and projection.audience = ${input.audience}
+          and projection.audience_account_id
+            is not distinct from ${input.accountId}::uuid
+          and projection.channel = ${input.channel}
+          and projection.record_key = ${input.recordKey}
+          and (
+            ${input.audience} <> 'internal'
+            or experience_session_assisted_account() is null
+            or action.subject_account_id = experience_session_assisted_account()
+          )
+        limit 1
+      `);
+        if (!rows[0])
+          throw new ExperienceProblem(
+            404,
+            "PROJECTION_ACTION_NOT_FOUND",
+            "Projection action receipt not found",
+          );
+        return actionReceipt(rows[0]);
       },
     );
   }
@@ -990,7 +1115,7 @@ export class DatabaseExperienceRepository {
       this.service,
       input.requestId,
       async (transaction) => {
-        const documentId = crypto.randomUUID();
+        const documentId = uuidV7();
         await transaction.execute(sql`
         insert into documents (
           id, account_id, kind, storage_key, content_hash, mime_type,
@@ -1045,20 +1170,67 @@ export class DatabaseExperienceRepository {
             "RENDER_REQUEST_NOT_FOUND",
             "Render request not found",
           );
-        return {
-          id: textValue(row, "id"),
-          accountId: textValue(row, "account_id"),
-          audience: textValue(row, "audience") as ExperienceAudience,
-          audienceAccountId: nullableText(row, "audience_account_id"),
-          subjectType: textValue(row, "subject_type"),
-          subjectId: textValue(row, "subject_id"),
-          kind: textValue(row, "document_kind") as ArtifactKind,
-          input: objectValue(row, "input"),
-          sourceHash: textValue(row, "source_hash"),
-          retainUntil: dateText(row, "retain_until"),
-          status: textValue(row, "status") as RenderRequestRecord["status"],
-          version: numberValue(row, "row_version"),
-        };
+        return renderRequestRecord(row);
+      },
+    );
+  }
+
+  public createRenderRequest(input: {
+    session: SessionClaims;
+    source: ArtifactSourceRequest;
+    requestId: string;
+  }): Promise<RenderRequestRecord> {
+    return withInternalTransaction(
+      this.service,
+      input.requestId,
+      async (transaction) => {
+        const source = await resolveArtifactSource(
+          transaction,
+          input.session,
+          input.source,
+        );
+        const inserted = await transaction.execute(sql<Row>`
+          insert into experience_document_render_requests (
+            account_id, audience, audience_account_id, subject_type, subject_id,
+            document_kind, input, source_hash, source_version, requested_by,
+            retain_until
+          ) values (
+            ${source.accountId}::uuid, ${source.audience},
+            ${source.audienceAccountId}::uuid, ${source.subjectType},
+            ${source.subjectId}::uuid, ${source.kind},
+            ${JSON.stringify(source.input)}::jsonb, ${source.sourceHash},
+            ${source.sourceVersion}, ${input.session.userId}::uuid,
+            ${source.retainUntil}::timestamptz
+          )
+          on conflict (subject_type, subject_id, document_kind, source_hash)
+          do nothing
+          returning *
+        `);
+        const replay = inserted[0]
+          ? []
+          : await transaction.execute(sql<Row>`
+              select * from experience_document_render_requests
+              where subject_type = ${source.subjectType}
+                and subject_id = ${source.subjectId}::uuid
+                and document_kind = ${source.kind}
+                and source_hash = ${source.sourceHash}
+              limit 1
+            `);
+        const row = inserted[0] ?? replay[0];
+        if (!row) throw new Error("ARTIFACT_RENDER_REQUEST_INSERT_FAILED");
+        const record = renderRequestRecord(row);
+        if (
+          record.accountId !== source.accountId ||
+          record.audience !== source.audience ||
+          record.audienceAccountId !== source.audienceAccountId ||
+          record.sourceVersion !== source.sourceVersion
+        )
+          throw new ExperienceProblem(
+            409,
+            "ARTIFACT_RENDER_REQUEST_CONFLICT",
+            "An existing render request has conflicting source scope",
+          );
+        return record;
       },
     );
   }
@@ -1070,8 +1242,9 @@ export class DatabaseExperienceRepository {
       async (transaction) => {
         const rows = await transaction.execute(sql<Row>`
         update experience_document_render_requests
-        set status = 'rendering', updated_at = now(), row_version = row_version + 1
-        where id = ${request.id}::uuid and status = 'pending'
+        set status = 'rendering', failure_code = null,
+            updated_at = now(), row_version = row_version + 1
+        where id = ${request.id}::uuid and status in ('pending','failed')
           and row_version = ${request.version}
         returning row_version
       `);
@@ -1094,12 +1267,20 @@ export class DatabaseExperienceRepository {
       this.service,
       requestId,
       async (transaction) => {
-        await transaction.execute(sql`
+        const rows = await transaction.execute(sql<Row>`
         update experience_document_render_requests
         set status = 'failed', failure_code = ${failureCode}, updated_at = now(),
             row_version = row_version + 1
         where id = ${request.id}::uuid and status = 'rendering'
+          and row_version = ${request.version + 1}
+        returning row_version
       `);
+        if (!rows[0])
+          throw new ExperienceProblem(
+            409,
+            "RENDER_VERSION_CONFLICT",
+            "Render request changed",
+          );
       },
     );
   }
@@ -1118,7 +1299,7 @@ export class DatabaseExperienceRepository {
       this.service,
       input.requestId,
       async (transaction) => {
-        const documentId = crypto.randomUUID();
+        const documentId = uuidV7();
         await transaction.execute(sql`
         insert into documents (
           id, account_id, kind, storage_key, content_hash, mime_type,
@@ -1149,12 +1330,20 @@ export class DatabaseExperienceRepository {
         )
         returning *
       `);
-        await transaction.execute(sql`
+        const transitioned = await transaction.execute(sql<Row>`
         update experience_document_render_requests
         set status = 'stored', failure_code = null, updated_at = now(),
             row_version = row_version + 1
         where id = ${input.request.id}::uuid and status = 'rendering'
+          and row_version = ${input.request.version + 1}
+        returning row_version
       `);
+        if (!transitioned[0])
+          throw new ExperienceProblem(
+            409,
+            "RENDER_VERSION_CONFLICT",
+            "Render request changed before artifact storage committed",
+          );
         const row = rows[0];
         if (!row) throw new Error("Artifact delivery was not stored");
         return artifactRepresentation(row);
@@ -1167,9 +1356,7 @@ export class DatabaseExperienceRepository {
     kind: ArtifactKind,
     id: string,
     requestId: string,
-  ): Promise<
-    ArtifactRepresentation & { storageKey: string; storageVersionId: string }
-  > {
+  ): Promise<ArtifactDownloadRecord> {
     return this.authorized(session, requestId, async (transaction) => {
       const rows = await transaction.execute(sql<Row>`
         select delivery.*, document.storage_key
@@ -1178,7 +1365,38 @@ export class DatabaseExperienceRepository {
         where delivery.id = ${id}::uuid and delivery.document_kind = ${kind}
         limit 1
       `);
-      const row = rows[0];
+      let row = rows[0];
+      if (!row) {
+        const canonical = await transaction.execute(sql<Row>`
+          select request.id,
+                 request.audience_account_id as account_id,
+                 case when request.audience = 'partner'
+                   then 'partner' else 'customer' end as audience,
+                 request.audience_account_id,
+                 request.subject_type,
+                 request.subject_id,
+                 request.document_kind,
+                 request.document_id,
+                 request.source_definition->>'documentVersion' as immutable_version,
+                 request.source_hash,
+                 request.content_hash,
+                 request.storage_version_id,
+                 document.mime_type,
+                 document.byte_length,
+                 request.document_kind || '-' || request.subject_id::text || '.pdf' as filename,
+                 request.retain_until,
+                 request.created_at,
+                 document.storage_key
+          from public.core_commercial_artifact_requests request
+          join public.documents document on document.id = request.document_id
+          where request.id = ${id}::uuid
+            and request.document_kind = ${kind}
+            and request.status = 'stored'
+            and request.document_id is not null
+          limit 1
+        `);
+        row = canonical[0];
+      }
       if (!row)
         throw new ExperienceProblem(
           404,
@@ -1186,7 +1404,7 @@ export class DatabaseExperienceRepository {
           "Artifact not found",
         );
       return {
-        ...artifactRepresentation(row),
+        representation: artifactRepresentation(row),
         storageKey: textValue(row, "storage_key"),
         storageVersionId: textValue(row, "storage_version_id"),
       };

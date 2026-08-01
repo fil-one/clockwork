@@ -6,7 +6,15 @@ import {
   RuntimeBoundaryInstrumentation,
   TelemetryProviderJsonTransport,
 } from "./instrumentation";
-import { ClockworkTelemetry, InMemoryTelemetrySink } from "./telemetry";
+import {
+  ClockworkTelemetry,
+  InMemoryTelemetrySink,
+  type TelemetrySink,
+} from "./telemetry";
+
+const failingSink: TelemetrySink = {
+  export: () => Promise.reject(new Error("collector unavailable")),
+};
 
 describe("TelemetryProviderJsonTransport", () => {
   it("traces a concrete provider request without capturing body, path, or idempotency value", async () => {
@@ -26,6 +34,8 @@ describe("TelemetryProviderJsonTransport", () => {
         auditId: "audit-provider-telemetry",
         outboxId: "outbox-provider-telemetry",
       }),
+      undefined,
+      "accounting",
     );
     await expect(
       transport.request({
@@ -44,10 +54,46 @@ describe("TelemetryProviderJsonTransport", () => {
       boundary: "provider",
       attributes: {
         "provider.operation": "objects.create",
+        "provider.name": "accounting",
         "clockwork.request.id": "request-provider-telemetry",
         "clockwork.outbox.id": "outbox-provider-telemetry",
       },
     });
+  });
+
+  it("does not turn exporter failure into provider success failure or mask the provider error", async () => {
+    const telemetry = new ClockworkTelemetry(failingSink);
+    const successful = new TelemetryProviderJsonTransport(
+      {
+        request: (input) =>
+          Promise.resolve(input.response.parse({ id: "provider-object-2" })),
+      },
+      telemetry,
+      () => ({ requestId: "request-provider-export-failure" }),
+    );
+    await expect(
+      successful.request({
+        operation: "objects.create",
+        path: "/v1/objects",
+        body: {},
+        response: z.object({ id: z.string() }),
+      }),
+    ).resolves.toEqual({ id: "provider-object-2" });
+
+    const providerError = new Error("provider operation failed");
+    const failed = new TelemetryProviderJsonTransport(
+      { request: () => Promise.reject(providerError) },
+      telemetry,
+      () => ({ requestId: "request-provider-operation-failure" }),
+    );
+    await expect(
+      failed.request({
+        operation: "objects.create",
+        path: "/v1/objects",
+        body: {},
+        response: z.object({ id: z.string() }),
+      }),
+    ).rejects.toBe(providerError);
   });
 
   it("exposes production-callable wrappers for every non-provider runtime boundary", async () => {
@@ -84,5 +130,71 @@ describe("TelemetryProviderJsonTransport", () => {
       "webhook",
       "workflow",
     ]);
+  });
+
+  it("inherits one trace through nested API, database, workflow, and provider boundaries", async () => {
+    const sink = new InMemoryTelemetrySink();
+    const boundaries = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(sink),
+    );
+    await boundaries.api({
+      name: "api.request",
+      correlation: { requestId: "request-correlated-runtime" },
+      operation: () =>
+        boundaries.db({
+          name: "db.authorized_transaction",
+          correlation: { requestId: "request-correlated-runtime" },
+          operation: () =>
+            boundaries.workflow({
+              name: "workflow.execute",
+              correlation: { workflowId: "workflow-correlated-runtime" },
+              operation: () =>
+                boundaries.provider({
+                  name: "provider.send",
+                  correlation: { taskId: "task-correlated-runtime" },
+                  operation: () => Promise.resolve("complete"),
+                }),
+            }),
+        }),
+    });
+
+    expect(new Set(sink.spans.map(({ traceId }) => traceId)).size).toBe(1);
+    const byBoundary = new Map(sink.spans.map((span) => [span.boundary, span]));
+    expect(byBoundary.get("db")?.parentSpanId).toBe(
+      byBoundary.get("api")?.spanId,
+    );
+    expect(byBoundary.get("workflow")?.parentSpanId).toBe(
+      byBoundary.get("db")?.spanId,
+    );
+    expect(byBoundary.get("provider")?.parentSpanId).toBe(
+      byBoundary.get("workflow")?.spanId,
+    );
+    expect(byBoundary.get("provider")?.attributes).toMatchObject({
+      "clockwork.request.id": "request-correlated-runtime",
+      "clockwork.workflow.id": "workflow-correlated-runtime",
+      "clockwork.task.id": "task-correlated-runtime",
+    });
+  });
+
+  it("does not turn exporter failure into runtime success failure or mask the operation error", async () => {
+    const boundaries = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(failingSink),
+    );
+    await expect(
+      boundaries.api({
+        name: "api.success",
+        correlation: { requestId: "request-runtime-export-failure" },
+        operation: () => Promise.resolve("business-result"),
+      }),
+    ).resolves.toBe("business-result");
+
+    const operationError = new Error("business operation failed");
+    await expect(
+      boundaries.api({
+        name: "api.failure",
+        correlation: { requestId: "request-runtime-operation-failure" },
+        operation: () => Promise.reject(operationError),
+      }),
+    ).rejects.toBe(operationError);
   });
 });

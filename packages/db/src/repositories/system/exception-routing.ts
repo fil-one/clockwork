@@ -219,10 +219,13 @@ export class DatabasePersistedWorkflowExceptionRouting {
           accountId: affected.accountId,
           ownerUserId: owners.ownerUserId,
           backupUserId: owners.backupUserId,
+          escalationUserId: owners.escalationUserId,
           objectType: affected.objectType,
           targetAt: new Date(
             Date.parse(input.occurredAt) + owners.targetMinutes * 60_000,
           ).toISOString(),
+          absenceEscalated: owners.absenceEscalated,
+          rosterEntryIds: owners.rosterEntryIds,
         };
       },
     );

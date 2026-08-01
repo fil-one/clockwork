@@ -1,6 +1,12 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+
+import {
+  RELEASE_SUITE_NAMES,
+  releaseSummaryIssues,
+  sourceIdentityKey,
+} from "./release-artifacts.mjs";
 
 const [
   serialPath,
@@ -18,19 +24,38 @@ const [serial, parallel] = await Promise.all([
   read(serialPath),
   read(parallelPath),
 ]);
+const serialIssues = releaseSummaryIssues(serial, {
+  expectedMode: "serial",
+  expectedDebug: true,
+});
+const parallelIssues = releaseSummaryIssues(parallel, {
+  expectedMode: "parallel",
+  expectedDebug: false,
+});
+const sameSourceIdentity =
+  sourceIdentityKey(serial.sourceIdentity) !== null &&
+  sourceIdentityKey(serial.sourceIdentity) ===
+    sourceIdentityKey(parallel.sourceIdentity);
 const bySuite = (summary) =>
-  new Map(summary.results.map((result) => [result.suite, result]));
+  new Map(
+    (Array.isArray(summary.results) ? summary.results : []).map((result) => [
+      result?.suite,
+      result,
+    ]),
+  );
 const serialSuites = bySuite(serial);
 const parallelSuites = bySuite(parallel);
-const names = [
-  ...new Set([...serialSuites.keys(), ...parallelSuites.keys()]),
-].sort();
-const equivalence = names.map((name) => {
+const equivalence = RELEASE_SUITE_NAMES.map((name) => {
   const left = serialSuites.get(name);
   const right = parallelSuites.get(name);
   return {
     suite: name,
     presentInBoth: Boolean(left && right),
+    bothPassed: left?.status === "passed" && right?.status === "passed",
+    sourceIdentityIdentical:
+      sourceIdentityKey(left?.sourceIdentity) !== null &&
+      sourceIdentityKey(left?.sourceIdentity) ===
+        sourceIdentityKey(right?.sourceIdentity),
     assertionsIdentical:
       left?.assertionFingerprint === right?.assertionFingerprint,
     artifactsIdentical:
@@ -39,35 +64,44 @@ const equivalence = names.map((name) => {
     coverageIdentical:
       left?.coverageInventory?.fingerprint ===
       right?.coverageInventory?.fingerprint,
-    statusIdentical: left?.status === right?.status,
-    retrySemanticsIdentical: left?.retryPolicy === right?.retryPolicy,
+    retrySemanticsIdentical:
+      left?.retryPolicy === "none" && right?.retryPolicy === "none",
+    zeroRetries:
+      left?.steps?.every((step) => step.retries === 0) === true &&
+      right?.steps?.every((step) => step.retries === 0) === true,
   };
 });
 const improvementMs = serial.durationMs - parallel.durationMs;
+const improvementPercent = serial.durationMs
+  ? (improvementMs / serial.durationMs) * 100
+  : 0;
+const materiallyFaster = improvementMs >= 30_000 || improvementPercent >= 15;
+const equivalent = equivalence.every((item) =>
+  Object.entries(item)
+    .filter(([key]) => key !== "suite")
+    .every(([, value]) => value === true),
+);
 const result = {
+  sourceIdentity: serial.sourceIdentity,
+  sameSourceIdentity,
   serialDurationMs: serial.durationMs,
   parallelDurationMs: parallel.durationMs,
   improvementMs,
-  improvementPercent: serial.durationMs
-    ? (improvementMs / serial.durationMs) * 100
-    : 0,
-  materiallyFaster:
-    improvementMs >= 30_000 || improvementMs / serial.durationMs >= 0.15,
-  equivalent: equivalence.every(
-    (item) =>
-      item.presentInBoth &&
-      item.assertionsIdentical &&
-      item.artifactsIdentical &&
-      item.coverageIdentical &&
-      item.statusIdentical &&
-      item.retrySemanticsIdentical,
-  ),
+  improvementPercent,
+  materiallyFaster,
+  serialIssues,
+  parallelIssues,
+  equivalent,
+  accepted:
+    serialIssues.length === 0 &&
+    parallelIssues.length === 0 &&
+    sameSourceIdentity &&
+    equivalent &&
+    materiallyFaster,
   equivalence,
 };
-await writeFile(
-  path.resolve(outputPath),
-  `${JSON.stringify(result, null, 2)}\n`,
-  "utf8",
-);
+const resolvedOutput = path.resolve(outputPath);
+await mkdir(path.dirname(resolvedOutput), { recursive: true });
+await writeFile(resolvedOutput, `${JSON.stringify(result, null, 2)}\n`, "utf8");
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-if (!result.equivalent || !result.materiallyFaster) process.exitCode = 1;
+if (!result.accepted) process.exitCode = 1;

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:39:00Z",
+  "capturedAt": "2026-08-01T13:56:29Z",
   "documentKinds": [
     "direct_quote",
     "partner_transfer_quote",
@@ -133,8 +133,137 @@
     "sha256": "ab914296ea67c1b57e3abed1144de3490a2010385ed7fc3b47d5bfee9988f58d"
   },
   "authenticatedRetrieval": {
-    "kinds": ["agreement_template", "quote", "partner_quote", "order_form"],
-    "source": "packages/api/src/routes/core/index.ts"
+    "coreApi": {
+      "resourceKinds": [
+        "agreement_template",
+        "quote",
+        "partner_quote",
+        "order_form"
+      ],
+      "source": "packages/api/src/routes/core/index.ts",
+      "interpretation": "These are legacy core API resource labels, not the canonical 15-kind document taxonomy."
+    },
+    "experienceApi": {
+      "documentKinds": [
+        "direct_quote",
+        "partner_transfer_quote",
+        "partner_resale_quote",
+        "order_form",
+        "amendment",
+        "poc_summary",
+        "poc_final_report",
+        "invoice_companion",
+        "receipt",
+        "commission_statement",
+        "renewal_confirmation",
+        "decline_confirmation",
+        "deletion_certificate",
+        "reconciliation_report",
+        "report_export"
+      ],
+      "kindCount": 15,
+      "missingKinds": [],
+      "operations": [
+        {
+          "function": "artifactRepresentation",
+          "method": "GET",
+          "path": "/api/experience/artifacts/{kind}/{id}",
+          "fixedQuery": {
+            "representation": "json"
+          }
+        },
+        {
+          "function": "downloadArtifact",
+          "method": "GET",
+          "path": "/api/experience/artifacts/{kind}/{id}",
+          "fixedQuery": null
+        },
+        {
+          "function": "createArtifactRenderRequest",
+          "method": "POST",
+          "path": "/api/experience/artifacts/render-requests",
+          "fixedQuery": null
+        },
+        {
+          "function": "renderArtifactRequest",
+          "method": "POST",
+          "path": "/api/experience/artifacts/render-requests/{requestId}",
+          "fixedQuery": null
+        }
+      ],
+      "sources": [
+        "apps/web/src/features/contracts/experience-client.ts",
+        "apps/web/src/features/experience-server/controller.ts",
+        "apps/web/src/features/experience-server/repository.ts",
+        "apps/web/src/features/experience-server/artifact-sources.ts"
+      ]
+    },
+    "allCanonicalDocumentKindsCovered": true
+  },
+  "authoritativeSourceResolution": {
+    "kinds": [
+      "direct_quote",
+      "partner_transfer_quote",
+      "partner_resale_quote",
+      "order_form",
+      "amendment",
+      "poc_summary",
+      "poc_final_report",
+      "invoice_companion",
+      "receipt",
+      "commission_statement",
+      "renewal_confirmation",
+      "decline_confirmation",
+      "deletion_certificate",
+      "reconciliation_report",
+      "report_export"
+    ],
+    "kindCount": 15,
+    "missingKinds": [],
+    "source": "apps/web/src/features/experience-server/artifact-sources.ts",
+    "resolver": "resolveArtifactSource",
+    "sourceResolvers": [
+      "commercialSource",
+      "commissionSource",
+      "deletionSource",
+      "invoiceSource",
+      "pocSource",
+      "reconciliationSource",
+      "renewalSource",
+      "reportExportSource"
+    ],
+    "staleVersionRejected": true,
+    "testFiles": [
+      "apps/web/src/features/contracts/experience-client.test.ts",
+      "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
+      "apps/web/src/features/experience-server/controller.test.ts",
+      "packages/api/src/experience-openapi.test.ts"
+    ],
+    "allKindTestFiles": [
+      "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
+      "apps/web/src/features/experience-server/controller.test.ts",
+      "packages/api/src/experience-openapi.test.ts"
+    ]
+  },
+  "rendererQualification": {
+    "allKindTestFiles": [
+      "packages/documents/src/delivery.test.ts",
+      "packages/documents/src/documents.test.ts",
+      "packages/documents/src/render.integration.test.ts",
+      "packages/documents/src/semantic-pdf.integration.test.ts"
+    ],
+    "goldenKindCount": 15,
+    "allCanonicalKindsHaveGoldenMetadata": true
+  },
+  "renderStateMachine": {
+    "source": "apps/web/src/features/experience-server/repository.ts",
+    "claimUsesOptimisticVersionCas": true,
+    "failureUsesOptimisticVersionCas": true,
+    "storeUsesOptimisticVersionCas": true,
+    "redriveAndConflictTestFiles": [
+      "apps/web/src/features/experience-server/controller.test.ts",
+      "apps/web/src/features/experience-server/repository.test.ts"
+    ]
   },
   "commercialGeneration": {
     "kinds": [
@@ -156,7 +285,8 @@
       "packages/workflows/src/offboarding/deletion-certificate-handler.ts",
       "packages/workflows/src/runtime/production.ts"
     ],
-    "status": "conditional-runtime-composition"
+    "status": "registered-in-production-runtime"
   },
-  "knownGap": "The fixture records expected metadata for all 15 document kinds; executed qualification must prove renderer output. Authenticated retrieval exposes four stored artifact kinds, commercial generation covers five kinds, and deletion-certificate generation is conditional, so end-to-end delivery is not complete for all 15."
+  "knownGaps": [],
+  "knownGap": null
 }

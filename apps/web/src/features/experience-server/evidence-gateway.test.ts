@@ -1,7 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 
 import type { EvidenceUploadRecord } from "./model";
-import { HttpEvidenceGateway, safeUploadHeaders } from "./evidence-gateway";
+import {
+  configuredEvidenceGateway,
+  HttpEvidenceGateway,
+  safeUploadHeaders,
+} from "./evidence-gateway";
 
 const now = new Date("2026-07-31T12:00:00.000Z");
 
@@ -44,6 +50,11 @@ beforeEach(() => {
   vi.setSystemTime(now);
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
+
 describe("evidence credential containment and expiry", () => {
   it("allows only upload-safe headers and rejects cookie or authorization passthrough", () => {
     expect(
@@ -61,6 +72,55 @@ describe("evidence credential containment and expiry", () => {
     expect(() => safeUploadHeaders({ authorization: "Bearer secret" })).toThrow(
       "unsafe upload header",
     );
+  });
+
+  it.each(DEMO_PRODUCTION_ENVIRONMENT_KEYS)(
+    "rejects the demo evidence adapter when %s marks production",
+    (productionKey) => {
+      for (const key of DEMO_PRODUCTION_ENVIRONMENT_KEYS)
+        vi.stubEnv(key, "test");
+      vi.stubEnv("CLOCKWORK_EVIDENCE_ADAPTER", "demo");
+      vi.stubEnv(productionKey, " Production ");
+
+      expect(() => configuredEvidenceGateway()).toThrow(
+        expect.objectContaining({
+          status: 503,
+          code: "DEMO_ADAPTER_FORBIDDEN",
+        }),
+      );
+    },
+  );
+
+  it("rejects non-HTTP local gateway and client credential URLs", async () => {
+    expect(
+      () =>
+        new HttpEvidenceGateway({
+          baseUrl: "ftp://localhost/",
+          bearerToken: "storage-token-that-is-longer-than-32-bytes",
+          allowedClientOrigins: ["ftp://localhost"],
+        }),
+    ).toThrow("Evidence storage gateway must use HTTPS");
+
+    const fetchImplementation = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        Response.json({
+          uploadId: "provider-upload",
+          storageKey: "quarantine/key",
+          url: "ftp://localhost/upload",
+          headers: { "content-type": "application/pdf" },
+          expiresAt: "2026-07-31T12:05:00.000Z",
+        }),
+      ),
+    );
+    const localGateway = new HttpEvidenceGateway({
+      baseUrl: "http://localhost:8787/",
+      bearerToken: "storage-token-that-is-longer-than-32-bytes",
+      allowedClientOrigins: ["ftp://localhost"],
+      fetchImplementation,
+    });
+    await expect(localGateway.reserveUpload(upload())).rejects.toMatchObject({
+      code: "EVIDENCE_PROVIDER_URL_FORBIDDEN",
+    });
   });
 
   it.each([

@@ -1,9 +1,10 @@
 # Historical agent lane ownership
 
 This file records the initial five-instance implementation pass and is not an
-active work instruction. Current release-candidate ownership, branch/worktree
-paths, and migration ranges are defined only in `docs/implementation-lanes.md`.
-Legacy refs and worktrees remain preserved for audit.
+active work instruction. The later release-candidate lanes recorded in
+`docs/implementation-lanes.md` are also historical. `main` is the only active
+branch; legacy refs and worktrees remain only until the release archive and
+ancestry checks permit their safe retirement.
 
 During that historical pass, all branches started from the exact
 `commerce/foundation` commit. No lane edited `commerce_platform_spec.md`. No

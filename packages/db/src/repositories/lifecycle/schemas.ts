@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MarketplaceEventPayloadSchema } from "@clockwork/contracts";
+
 const uuid = z.uuid();
 const instant = z.iso.datetime({ offset: true });
 const date = z.iso.date();
@@ -202,38 +204,7 @@ export const provisioningEventPayloadSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
-export const marketplaceEventPayloadSchema = strict({
-  type: z.string().trim().min(1),
-  eventId: z.string().trim().min(1),
-  provider: z.enum(["aws", "azure", "google"]),
-  providerAccountReference: z.string().trim().min(1),
-  accountId: uuid.nullable(),
-  orderId: uuid.nullable(),
-  entitlementId: uuid.nullable(),
-  occurredAt: instant,
-  currency: z.enum(["USD", "EUR", "GBP"]).nullable(),
-  grossMinor: z
-    .string()
-    .regex(/^-?(0|[1-9]\d*)$/)
-    .nullable(),
-  feeMinor: z
-    .string()
-    .regex(/^-?(0|[1-9]\d*)$/)
-    .nullable(),
-  taxMinor: z
-    .string()
-    .regex(/^-?(0|[1-9]\d*)$/)
-    .nullable(),
-  netMinor: z
-    .string()
-    .regex(/^-?(0|[1-9]\d*)$/)
-    .nullable(),
-  quantity: z
-    .string()
-    .regex(/^-?(0|[1-9]\d*)(\.\d{1,18})?$/)
-    .nullable(),
-  sequence: z.number().int().positive(),
-});
+export const marketplaceEventPayloadSchema = MarketplaceEventPayloadSchema;
 
 export const createPocPayloadSchema = strict({
   accountId,
@@ -247,7 +218,13 @@ export const createPocPayloadSchema = strict({
     "regulated",
   ]),
   successTests: z
-    .array(strict({ id: z.string().min(1), description: z.string().min(1) }))
+    .array(
+      strict({
+        id: z.string().min(1),
+        description: z.string().min(1),
+        target: z.string().trim().min(1),
+      }),
+    )
     .min(1),
   capacityCap: z.string().regex(/^(0|[1-9]\d*)(\.\d{1,18})?$/),
   egressCap: z.string().regex(/^(0|[1-9]\d*)(\.\d{1,18})?$/),

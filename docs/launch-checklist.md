@@ -3,56 +3,67 @@
 This checklist is the human release record for a staged Clockwork activation. It
 does not authorize a production deployment by itself. Every checked item
 requires an evidence link or immutable artifact reference, and every required
-approval field must contain a real named person before a launch decision.
+approval field must contain a real named person before a launch decision. It is
+not a prerequisite for the repository-complete consolidated-main handoff.
+
+Repository qualification is complete. Unchecked items below require future live
+production/staging inputs, elapsed operation, or named human authority; they are
+not hidden repository work and do not make this consolidation an RC.
 
 ## Release identity
 
-| Field                            | Value |
-| -------------------------------- | ----- |
-| Release-candidate Git SHA        |       |
-| Foundation SHA                   |       |
-| Core-finance merge SHA           |       |
-| Lifecycle-platform merge SHA     |       |
-| Experience-docs merge SHA        |       |
-| Vercel staging deployment ID/URL |       |
-| Supabase staging project/branch  |       |
-| Trigger.dev environment          |       |
-| Generated OpenAPI hash           |       |
-| Canonical migration set/hash     |       |
-| Dependency lockfile hash         |       |
-| Checklist opened at (UTC)        |       |
-| Proposed activation window (UTC) |       |
+| Field                            | Value                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Future launch-candidate Git SHA  | **PENDING future launch/RC designation**                                                          |
+| Historical RC lane base          | `27fb33bab754b001acf26134d988daa10d177390`                                                        |
+| Commercial tip / merge SHA       | `cc23bce784ee60a27ad3e34fd245136f37394a2d` / `1f070aaf0e59a2e289322b02725c2b950e667992`           |
+| Runtime tip / merge SHA          | `0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5` / `07023a40462cb432f595007c1f88365f14e0f5e8`           |
+| Experience tip / merge SHA       | `b13a1ec6816b9a547aaa20bf8806cd3996c840be` / `ab0ae079e674feafd4ae86413d168e001416c0e2`           |
+| Vercel staging deployment ID/URL | **PENDING external activation**                                                                   |
+| Supabase staging project/branch  | **PENDING external activation**                                                                   |
+| Trigger.dev environment          | **PENDING external activation**                                                                   |
+| Generated OpenAPI hash           | `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18`                                |
+| Canonical migration set/hash     | Drizzle `0004_nosy_valkyrie` / `ae5872e0deff09115d847268c3acb7f97cfd828e9773887cfb99d268330de70c` |
+| Dependency lockfile hash         | `4532024a50ba84ec3957947d026003a8c81d7cc66bba93f1e42443b3f75e57ac`                                |
+| Checklist opened at (UTC)        | **PENDING user/release owner entry**                                                              |
+| Proposed activation window (UTC) | **PENDING external launch decision**                                                              |
 
 ## Release gate
 
-- [ ] A clean checkout at the release-candidate SHA completed
+- [x] The repository-qualified clean-checkout harness completed
       `pnpm install --frozen-lockfile` on the pinned Node 24 and pnpm 10
-      toolchain.
-- [ ] Formatting, ESLint with zero warnings, dependency boundaries, all package
+      toolchain. The future launch SHA is checked again after external inputs
+      are bound.
+- [x] Formatting, ESLint with zero warnings, dependency boundaries, all package
       typechecks, generated-artifact check, production build, and Storybook
       build passed.
-- [ ] Supabase reset from zero applied every canonical SQL migration and seed;
+- [x] Supabase reset from zero applied every canonical SQL migration and seed;
       pgTAP, repository, unit, property, provider-contract, integration,
       workflow, Stripe webhook/test-clock,
       WorkOS/e-sign/provisioning/marketplace replay, PDF golden,
       Storybook/axe/visual, and all Playwright persona/critical-path suites
-      passed with recorded counts.
-- [ ] Direct, assisted, referral, resale, distributor/two-tier, AWS/Azure/GCP
+      passed with recorded counts. Reset pgTAP is 16 files / 430 assertions;
+      workspace typecheck is 10/10 packages in 45.593 seconds.
+- [x] Direct, assisted, referral, resale, distributor/two-tier, AWS/Azure/GCP
       marketplace, POC conversion, amendment/co-termination, renewal/decline,
       dunning/dispute/refund, offboarding/Novation, white-label, and every
-      report and reconciliation path passed against the release candidate.
-- [ ] Tenant/partner isolation, co-mingled order visibility, IDOR, privilege
+      report and reconciliation path passed against deterministic repository
+      providers. Live provider activation remains in the external section.
+- [x] Tenant/partner isolation, co-mingled order visibility, IDOR, privilege
       escalation, impersonation, CSRF, raw-body webhook signatures, replay,
       SSRF, injection, upload quarantine, secret/PII logging, and destructive
       separation tests failed closed as designed.
-- [ ] Migration discovery and rehearsal passed against an isolated snapshot;
-      forward-only boundary and production-target denial were demonstrated.
-- [ ] Demo reset is deterministic in demo and refuses every production marker.
-- [ ] Dependency audit at the configured threshold, secret scan, and security
+- [x] Migration discovery and repository rehearsal passed; P0-39 was accepted in
+      93.813 seconds and proved forward-only rollback and production-target
+      denial. The immutable live source snapshot remains `EXT-MIGRATION-01`.
+- [x] Demo reset is deterministic in demo and refuses every production marker.
+- [x] Dependency audit at the configured threshold, secret scan, and security
       review passed; any accepted advisory has a named owner and expiry.
-- [ ] `docs/release-candidate-report.md` records exact commands, test counts,
-      defects fixed, and remaining external gates without labeling internal work
-      as external.
+- [x] `docs/release-candidate-report.md` records test counts, hashes, defects
+      fixed, and remaining external gates. The exact final SHA, archival
+      tag/bundle, and complete command/timing transcript are written post-commit
+      to the non-RC tag and ignored archive manifest because they cannot be
+      self-recorded in this commit.
 
 ## External activation
 
@@ -159,6 +170,21 @@ tested disable path.
       exercise and attached evidence.
 
 ## Named approvals
+
+### Human design approval required for any future RC/launch designation
+
+This approval is distinct from licensed brand activation. It must be entered by
+the reviewing user after the final design-affecting SHA and evidence exist. An
+assistant or lane handoff must not infer or prefill the decision.
+
+| Field                            | User-entered value                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| Approver name                    | **PENDING USER ENTRY**                                                                       |
+| Decision (`APPROVE` or `REJECT`) | **PENDING USER ENTRY**                                                                       |
+| UTC timestamp                    | **PENDING USER ENTRY**                                                                       |
+| Reviewed SHA                     | **PENDING FINAL DESIGN SHA**                                                                 |
+| Evidence/reference               | **PENDING FINAL VISUAL, ACCESSIBILITY AND PRODUCTION-PROOF EVIDENCE**                        |
+| Conditions and resolution        | **PENDING; every condition must be resolved and reviewed again before RC/launch acceptance** |
 
 Blank names are a failed gate. An approver must enter their own decision and UTC
 timestamp; destructive and migration approvals must be distinct people.

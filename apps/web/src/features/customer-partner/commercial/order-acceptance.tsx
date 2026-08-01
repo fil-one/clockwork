@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
+import { uuidV7 } from "@clockwork/contracts";
+
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
 import { customerPartnerCopy } from "../copy";
@@ -36,6 +38,10 @@ export function OrderAcceptance() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const orderIdRef = useRef<string | null>(null);
   const acceptedAtRef = useRef<string | null>(null);
@@ -56,24 +62,32 @@ export function OrderAcceptance() {
 
   const accept = async () => {
     const invalid = !poNumber.trim()
-      ? "po-number"
+      ? { id: "po-number", message: "Enter the purchase order reference." }
       : !serviceStart
-        ? "service-start"
+        ? { id: "service-start", message: "Choose the service start date." }
         : !authorityTitle.trim()
-          ? "order-authority-title"
+          ? {
+              id: "order-authority-title",
+              message: "Enter the title that holds acceptance authority.",
+            }
           : !confirmed
-            ? "order-confirmation"
+            ? {
+                id: "order-confirmation",
+                message: "Confirm the reviewed commitment before accepting.",
+              }
             : undefined;
     if (invalid) {
-      document.getElementById(invalid)?.focus();
+      setValidationError(invalid);
+      document.getElementById(invalid.id)?.focus();
       return;
     }
+    setValidationError(null);
     setPending(true);
     setMessage("");
     setError("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      orderIdRef.current ??= crypto.randomUUID();
+      orderIdRef.current ??= uuidV7();
       acceptedAtRef.current ??= new Date().toISOString();
       await sendCoreCommand(
         {
@@ -111,10 +125,15 @@ export function OrderAcceptance() {
   };
 
   return (
-    <main className={styles.main} id="main-content">
+    <main
+      className={`${styles.main} ${styles.commercialTask}`}
+      id="main-content"
+    >
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Order acceptance</p>
+          <p className={styles.taskContext}>
+            Binding acceptance · creates a commitment
+          </p>
           <h1>{customerPartnerCopy.commercial.orderReview}</h1>
           <p className={styles.description}>
             This legal and financial confirmation creates the resulting service
@@ -126,69 +145,135 @@ export function OrderAcceptance() {
         </Link>
       </header>
 
-      <div className={styles.workflowGrid}>
-        <section className={`${styles.panel} ${styles.workflow}`}>
+      <ol aria-label="Commercial promise chain" className={styles.promiseChain}>
+        <li>
+          <span>Authoritative input</span>
+          <strong>Accepted quote · version 2</strong>
+        </li>
+        <li aria-current="step">
+          <span>Current decision</span>
+          <strong>Order authority and service start</strong>
+        </li>
+        <li>
+          <span>Created on acceptance</span>
+          <strong>Service commitment and provisioning state</strong>
+        </li>
+      </ol>
+
+      <form
+        className={styles.workflowGrid}
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          void accept();
+        }}
+      >
+        <section
+          className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
+        >
           <div>
-            <p className={styles.eyebrow}>Accepted quote</p>
+            <p className={styles.taskContext}>Accepted commercial source</p>
             <h2>Compliance replica renewal · version 2</h2>
             <p className={styles.description}>
               Accepted Jul 25 by Maya Chen · 120 TB · US East · 12 months
             </p>
           </div>
-          <div className={styles.formGrid}>
-            <div className={styles.field}>
-              <label htmlFor="po-number">Purchase order</label>
-              <input
-                id="po-number"
-                onChange={(event) => {
-                  setPoNumber(event.target.value);
-                  idempotencyKeyRef.current = null;
-                  orderIdRef.current = null;
-                  acceptedAtRef.current = null;
-                }}
-                required
-                value={poNumber}
-              />
+          <fieldset className={styles.stageFields}>
+            <legend>Acceptance inputs</legend>
+            <div className={styles.formGrid}>
+              <div className={styles.field}>
+                <label htmlFor="po-number">Purchase order</label>
+                <input
+                  aria-describedby={
+                    validationError?.id === "po-number"
+                      ? "order-validation"
+                      : undefined
+                  }
+                  aria-invalid={
+                    validationError?.id === "po-number" || undefined
+                  }
+                  id="po-number"
+                  onChange={(event) => {
+                    setPoNumber(event.target.value);
+                    setValidationError(null);
+                    idempotencyKeyRef.current = null;
+                    orderIdRef.current = null;
+                    acceptedAtRef.current = null;
+                  }}
+                  required
+                  value={poNumber}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="service-start">Service start</label>
+                <input
+                  aria-describedby={
+                    validationError?.id === "service-start"
+                      ? "order-validation"
+                      : undefined
+                  }
+                  aria-invalid={
+                    validationError?.id === "service-start" || undefined
+                  }
+                  id="service-start"
+                  onChange={(event) => {
+                    setServiceStart(event.target.value);
+                    setValidationError(null);
+                    idempotencyKeyRef.current = null;
+                    orderIdRef.current = null;
+                    acceptedAtRef.current = null;
+                  }}
+                  required
+                  type="date"
+                  value={serviceStart}
+                />
+              </div>
+              <div className={`${styles.field} ${styles.spanTwo}`}>
+                <label htmlFor="order-authority-title">Authority title</label>
+                <input
+                  aria-describedby={
+                    validationError?.id === "order-authority-title"
+                      ? "order-validation"
+                      : undefined
+                  }
+                  aria-invalid={
+                    validationError?.id === "order-authority-title" || undefined
+                  }
+                  id="order-authority-title"
+                  onChange={(event) => {
+                    setAuthorityTitle(event.target.value);
+                    setValidationError(null);
+                    idempotencyKeyRef.current = null;
+                    orderIdRef.current = null;
+                    acceptedAtRef.current = null;
+                  }}
+                  required
+                  value={authorityTitle}
+                />
+              </div>
             </div>
-            <div className={styles.field}>
-              <label htmlFor="service-start">Service start</label>
-              <input
-                id="service-start"
-                onChange={(event) => {
-                  setServiceStart(event.target.value);
-                  idempotencyKeyRef.current = null;
-                  orderIdRef.current = null;
-                  acceptedAtRef.current = null;
-                }}
-                required
-                type="date"
-                value={serviceStart}
-              />
-            </div>
-            <div className={`${styles.field} ${styles.spanTwo}`}>
-              <label htmlFor="order-authority-title">Authority title</label>
-              <input
-                id="order-authority-title"
-                onChange={(event) => {
-                  setAuthorityTitle(event.target.value);
-                  idempotencyKeyRef.current = null;
-                  orderIdRef.current = null;
-                  acceptedAtRef.current = null;
-                }}
-                required
-                value={authorityTitle}
-              />
-            </div>
-          </div>
+          </fieldset>
+          {validationError ? (
+            <p
+              className={styles.errorMessage}
+              id="order-validation"
+              role="alert"
+            >
+              {validationError.message}
+            </p>
+          ) : null}
           <p className={styles.notice}>
             Estimated spend is a quote calculation. Invoices and payments remain
             separate server records after this order is created.
           </p>
         </section>
 
-        <aside className={styles.summary} aria-labelledby="order-summary-title">
+        <aside
+          className={`${styles.summary} ${styles.commitmentSummary}`}
+          aria-labelledby="order-summary-title"
+        >
           <div>
-            <p className={styles.eyebrow}>Resulting commitment</p>
+            <p className={styles.taskContext}>Resulting commitment</p>
             <h2 id="order-summary-title">Review before accepting</h2>
           </div>
           <ul className={styles.reviewList}>
@@ -201,9 +286,20 @@ export function OrderAcceptance() {
           </ul>
           <label className={styles.check} htmlFor="order-confirmation">
             <input
+              aria-describedby={
+                validationError?.id === "order-confirmation"
+                  ? "order-validation"
+                  : undefined
+              }
+              aria-invalid={
+                validationError?.id === "order-confirmation" || undefined
+              }
               checked={confirmed}
               id="order-confirmation"
-              onChange={(event) => setConfirmed(event.target.checked)}
+              onChange={(event) => {
+                setConfirmed(event.target.checked);
+                setValidationError(null);
+              }}
               required
               type="checkbox"
             />
@@ -222,15 +318,12 @@ export function OrderAcceptance() {
           <button
             className={styles.primary}
             disabled={pending || Boolean(message)}
-            onClick={() => {
-              void accept();
-            }}
-            type="button"
+            type="submit"
           >
             {pending ? "Accepting…" : "Accept order and create commitment"}
           </button>
         </aside>
-      </div>
+      </form>
     </main>
   );
 }

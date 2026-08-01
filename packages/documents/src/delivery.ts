@@ -12,7 +12,7 @@ export type DocumentAudience = "customer" | "partner" | "internal";
 
 export interface AuthorizedRenderContext {
   actorUserId: string;
-  accountId: string;
+  accountId: string | null;
   accountIds: readonly string[];
   isInternalStaff: boolean;
   audience: DocumentAudience;
@@ -23,7 +23,7 @@ export interface AuthorizedRenderContext {
 }
 
 export interface AuthorizedRenderedDocument extends RenderedDocument {
-  accountId: string;
+  accountId: string | null;
   audience: DocumentAudience;
   audienceAccountId: string | null;
   actorUserId: string;
@@ -66,17 +66,19 @@ function equalHash(left: string, right: string): boolean {
 function assertAuthorization(context: AuthorizedRenderContext): void {
   if (!context.actorUserId.trim() || !context.requestId.trim())
     throw new Error("Authenticated actor and request IDs are required");
-  if (
-    !context.isInternalStaff &&
-    !context.accountIds.includes(context.accountId)
-  )
-    throw new Error("Document account scope denied");
   if (context.audience === "internal") {
-    if (!context.isInternalStaff || context.audienceAccountId !== null)
+    if (
+      !context.isInternalStaff ||
+      context.accountId !== null ||
+      context.audienceAccountId !== null
+    )
       throw new Error("Internal document audience is invalid");
     return;
   }
   if (
+    !context.accountId ||
+    (!context.isInternalStaff &&
+      !context.accountIds.includes(context.accountId)) ||
     !context.audienceAccountId ||
     (!context.isInternalStaff &&
       !context.accountIds.includes(context.audienceAccountId))

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ClaimedOutboxMessage } from "@clockwork/db";
+import {
+  ClockworkTelemetry,
+  InMemoryTelemetrySink,
+  RuntimeBoundaryInstrumentation,
+} from "@clockwork/integrations";
 
 import {
   DurableOutboxDispatcher,
@@ -137,6 +142,36 @@ describe("durable outbox dispatcher", () => {
       `outbox:${first.id}`,
       `outbox:${first.id}`,
     ]);
+  });
+
+  it("parent-links queue delivery, outbox dispatch, and complete durable correlation", async () => {
+    const claimed = message();
+    const fixture = store(claimed);
+    const sink = new InMemoryTelemetrySink();
+    const dispatcher = new DurableOutboxDispatcher(
+      fixture.store,
+      new Map([[claimed.topic, vi.fn().mockResolvedValue(undefined)]]),
+      new RuntimeBoundaryInstrumentation(new ClockworkTelemetry(sink)),
+    );
+
+    await dispatcher.dispatchOne("worker-correlated");
+
+    const delivery = sink.spans.find(
+      (span) => span.name === "queue.outbox.deliver",
+    );
+    const outbox = sink.spans.find((span) => span.name === "outbox.dispatch");
+    expect(delivery).toBeDefined();
+    expect(outbox).toBeDefined();
+    expect(outbox?.traceId).toBe(delivery?.traceId);
+    expect(outbox?.parentSpanId).toBe(delivery?.spanId);
+    for (const span of [delivery, outbox])
+      expect(span?.attributes).toMatchObject({
+        "clockwork.request.id": `outbox:${claimed.id}`,
+        "clockwork.workflow.id": claimed.topic,
+        "clockwork.task.id": "worker-correlated",
+        "clockwork.audit.id": claimed.eventId,
+        "clockwork.outbox.id": claimed.id,
+      });
   });
 
   it("drains available rows in one bounded worker run", async () => {

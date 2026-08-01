@@ -22,8 +22,10 @@ discoverable tasks with a dormant runtime.
   and `WORKOS_MFA_PROVIDER` each require a `_BASE_URL` and scoped `_TOKEN`.
   Production requires HTTPS.
 - `STRIPE_SECRET_KEY` and `WORKOS_API_KEY` are server-only live credentials.
-- `WORKFLOW_EXCEPTION_ROUTES_JSON` contains named queue owners/backups and SLA
-  targets; `PLATFORM_ISSUER_JSON` contains the approved legal issuer identity.
+- Named queue owners, distinct backups, qualification, and response targets are
+  loaded from the FORCE-RLS `system_exception_roster` through
+  `packages/db/src/repositories/system/exception-routing.ts`;
+  `PLATFORM_ISSUER_JSON` contains the approved legal issuer identity.
 
 Values are validated without logging credentials. Missing or malformed values
 raise `WORKFLOW_BOOTSTRAP_INCOMPLETE` before task discovery.

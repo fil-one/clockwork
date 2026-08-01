@@ -1,10 +1,10 @@
-import { randomUUID } from "node:crypto";
-
 import { and, asc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
 import {
   ids,
   MoneySchema,
+  uuidV7,
   type Actor,
   type EntityName,
 } from "@clockwork/contracts";
@@ -18,6 +18,7 @@ import {
   creditAmount,
   dunningDecision,
   evaluateRegistration,
+  expireQuote,
   issueQuote,
   merchantOfRecord,
   normalizeDomain,
@@ -56,6 +57,7 @@ import {
   quotes,
   rateCards,
   refunds,
+  reportExports,
   webhookEvents,
   workflowRuns,
 } from "../../schema";
@@ -474,6 +476,41 @@ const ArtifactPreparationSchema = z.object({
   issuedAt: z.iso.datetime({ offset: true }),
   retainUntil: z.iso.datetime({ offset: true }),
 });
+const ReportExportCreateCommandSchema = z
+  .object({
+    reportType: z.enum([
+      "revenue_forecast",
+      "capacity_planning",
+      "renewal_churn_exposure",
+      "partner_performance",
+      "funnel_cycle_time",
+      "margin_poc_cost",
+      "weekly_scorecard",
+    ]),
+    asOf: z.iso.datetime({ offset: true }),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    accountId: z.uuid().optional(),
+    partnerAccountId: z.uuid().optional(),
+    requestedColumns: z.array(z.string().min(1).max(255)).max(250).optional(),
+    costIngestionComplete: z.boolean().default(false),
+    retainUntil: z.iso.datetime({ offset: true }),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.from && value.to && value.from > value.to)
+      context.addIssue({
+        code: "custom",
+        path: ["to"],
+        message: "Report range must not end before it starts",
+      });
+    if (Date.parse(value.retainUntil) <= Date.parse(value.asOf))
+      context.addIssue({
+        code: "custom",
+        path: ["retainUntil"],
+        message: "Report retention must follow its as-of time",
+      });
+  });
 const CommissionSourceCommandSchema = z
   .object({
     sourceType: z.enum([
@@ -894,7 +931,7 @@ function authorization(input: {
     accountIds: input.authorization.accountIds,
     roles: input.authorization.roles,
     isInternalStaff: input.authorization.isInternalStaff,
-    requestId: input.requestId ?? crypto.randomUUID(),
+    requestId: input.requestId ?? uuidV7(),
   };
 }
 
@@ -1341,6 +1378,18 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   }
 
   public async mutate(input: CoreMutation): Promise<CoreMutationResult> {
+    return (await this.mutateWithReplay(input)).result;
+  }
+
+  /**
+   * Execute a Core command while preserving whether the exact persisted
+   * idempotency response was replayed. API callers use mutate(); durable
+   * workflow joins use this metadata to recover post-commit receipt gaps.
+   */
+  public async mutateWithReplay(input: CoreMutation): Promise<{
+    result: CoreMutationResult;
+    replayed: boolean;
+  }> {
     const [
       confidentialPriceBook,
       dealRegistrationContext,
@@ -1379,7 +1428,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     quoteCommercialContext?: QuoteCommercialContext,
     orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
-  ): Promise<CoreMutationResult> {
+  ): Promise<{ result: CoreMutationResult; replayed: boolean }> {
     const key = z.string().min(16).max(255).parse(input.idempotencyKey);
     const ownerUserId = input.authorization.userId;
     const scope = `core:${input.resource}`;
@@ -1412,8 +1461,11 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       const parsed = CoreMutationResultSchema.parse(claimed.responseBody);
       const { accountId, ...record } = parsed.record;
       return {
-        ...parsed,
-        record: { ...record, ...(accountId ? { accountId } : {}) },
+        result: {
+          ...parsed,
+          record: { ...record, ...(accountId ? { accountId } : {}) },
+        },
+        replayed: true,
       };
     }
 
@@ -1452,7 +1504,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       .returning({ id: lifecycleIdempotencyRecords.id });
     if (!completed)
       throw new Error("STALE_CORE_IDEMPOTENCY_LEASE_CANNOT_COMPLETE_RESPONSE");
-    return response;
+    return { result: response, replayed: false };
   }
 
   private async assertPersistedCapabilities(
@@ -2107,12 +2159,50 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         );
       case "commissions":
         return this.mutateCommission(transaction, input, commissionContext);
+      case "reports":
+        return this.mutateReportExport(transaction, input);
       default:
         throw new CoreServiceError(
           "INVALID_STATE",
           `${input.resource} commands require their dedicated workflow or provider boundary`,
         );
     }
+  }
+
+  private async mutateReportExport(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<CoreMutationResult> {
+    if (
+      input.action !== "create" ||
+      !input.authorization.isInternalStaff ||
+      input.authorization.impersonation ||
+      input.actor.kind !== "user" ||
+      input.actor.id !== input.authorization.userId ||
+      !input.authorization.roles.some((role) =>
+        ["internal_operator", "finance_approver"].includes(role),
+      )
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Report exports require a non-assisted internal operator",
+      );
+    const command = ReportExportCreateCommandSchema.parse(input.payload);
+    const [row] = await transaction
+      .insert(reportExports)
+      .values({
+        id: input.id,
+        requestedBy: input.authorization.userId,
+        report: command.reportType,
+        parameters: command,
+        status: "pending",
+        createdAt: new Date(input.occurredAt),
+        updatedAt: new Date(input.occurredAt),
+      })
+      .returning();
+    if (!row)
+      throw new CoreServiceError("DUPLICATE", "Report export already exists");
+    return audited(transaction, input, coreRecord("reports", row));
   }
 
   private async mutateAccount(
@@ -2765,17 +2855,24 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       }
     }
     const next =
-      input.action === "approve_exception" ||
-      input.action === "reject_exception"
-        ? approveQuoteException(snapshot, {
-            approved: input.action === "approve_exception",
-            actorId: input.actor.id,
-            reason: string(input.payload.reason, "reason"),
-            decidedAt: input.occurredAt,
-          })
-        : quoteIssuance
-          ? issueQuote(snapshot, quoteIssuance)
-          : undefined;
+      input.action === "expire"
+        ? expireQuote(snapshot, input.occurredAt)
+        : input.action === "approve_exception" ||
+            input.action === "reject_exception"
+          ? approveQuoteException(snapshot, {
+              approved: input.action === "approve_exception",
+              actorId: input.actor.id,
+              reason: string(input.payload.reason, "reason"),
+              decidedAt: input.occurredAt,
+            })
+          : quoteIssuance
+            ? issueQuote(snapshot, quoteIssuance)
+            : undefined;
+    if (input.action === "expire" && next?.status !== "expired")
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Issued quote has not reached its authoritative expiry time",
+      );
     if (!next)
       throw new CoreServiceError(
         "INVALID_STATE",
@@ -3362,7 +3459,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         : await transaction
             .insert(collectionCases)
             .values({
-              id: randomUUID(),
+              id: uuidV7(),
               invoiceId: invoice.id,
               ...caseValues,
             })
@@ -4109,7 +4206,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     if (input.authorization.isInternalStaff)
       return withInternalTransaction(
         this.options.pricingDatabase,
-        crypto.randomUUID(),
+        uuidV7(),
         readReport,
       );
     return withAuthorizedTransaction(

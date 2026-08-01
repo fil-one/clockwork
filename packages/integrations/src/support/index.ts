@@ -1,5 +1,7 @@
 import type { AccountId, ProviderResult } from "@clockwork/contracts";
 
+export * from "./webhooks";
+
 export interface SupportSignal {
   externalId: string;
   accountId: AccountId;

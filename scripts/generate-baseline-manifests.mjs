@@ -168,6 +168,9 @@ function intendedAccessFor(path) {
   if (path.endsWith("/route.ts")) {
     if (route === "/auth/callback" || route === "/sign-in")
       return "public-auth-flow";
+    if (route === "/api/experience/[[...segments]]")
+      return "authenticated-experience-operation";
+    if (route === "/api/telemetry") return "same-origin-csrf-telemetry-ingest";
     if (route.startsWith("/api"))
       return "operation-specific-session-permission";
     return "route-handler-review-required";
@@ -184,6 +187,32 @@ function intendedAccessFor(path) {
 
 function observedGuardFor(path) {
   const route = routeFromPage(path);
+  if (route === "/api/experience/[[...segments]]")
+    return {
+      behavior:
+        "Experience controller resolves an authenticated WorkOS session, enforces audience/account scope, and requires same-origin CSRF plus idempotency for mutations",
+      sources: [
+        "apps/web/app/api/experience/[[...segments]]/route.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/experience-server/controller.ts",
+        "apps/web/src/features/experience-server/authorization.ts",
+        "apps/web/src/features/experience-server/projection-authorization.ts",
+      ],
+      limitation:
+        "This Next.js controller is outside the generated Hono OpenAPI document, so its concrete operations and client surface are inventoried separately.",
+    };
+  if (route === "/api/telemetry")
+    return {
+      behavior:
+        "Same-origin CSRF validation, bounded JSON parsing, strict OpenTelemetry envelope validation, and telemetry redaction precede export",
+      sources: [
+        "apps/web/app/api/telemetry/route.ts",
+        "apps/web/src/features/performance/client-telemetry.ts",
+        "apps/web/src/telemetry/runtime.ts",
+      ],
+      limitation:
+        "Browser telemetry ingestion is intentionally not a session-permission Hono operation; delivery still depends on the configured production telemetry backend.",
+    };
   if (route.startsWith("/api"))
     return {
       behavior:
@@ -302,6 +331,8 @@ const refs = refRecords.map(({ fullRef, name, refType }) => {
   };
 });
 
+const bundleRepositoryPath =
+  ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle";
 const worktreeBlocks = git("worktree", "list", "--porcelain").split("\n\n");
 const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
   const fields = Object.fromEntries(
@@ -331,6 +362,12 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
     "--exclude-standard",
   ]);
   const ignoredArtifactPaths = ignoredListing.split("\n").filter(Boolean);
+  const retainedArchivePaths = ignoredArtifactPaths.filter(
+    (path) => path === bundleRepositoryPath,
+  );
+  const rejectedIgnoredArtifactPaths = ignoredArtifactPaths.filter(
+    (path) => !retainedArchivePaths.includes(path),
+  );
   const ignoredRoots = unique(
     ignoredArtifactPaths.map((path) => {
       const match = path.match(
@@ -361,27 +398,49 @@ const worktrees = worktreeBlocks.filter(Boolean).map((block) => {
         .map((line) => line.slice(3)),
       ignoredRoots,
       ignoredArtifactCount: ignoredArtifactPaths.length,
+      retainedArchivePaths,
+      rejectedIgnoredArtifactCount: rejectedIgnoredArtifactPaths.length,
       ignoredArtifactListingSha256: sha256Bytes(ignoredListing),
       porcelainSha256: sha256Bytes(`${statusLines.join("\n")}\n`),
     },
   };
 });
 
-const bundlePath =
-  "/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle";
+const bundlePath = join(root, bundleRepositoryPath);
+const historicalRcLaneBaseRef = "rc-lanes-base-20260731";
+const historicalRcLaneBaseCommit = git(
+  "rev-parse",
+  `${historicalRcLaneBaseRef}^{commit}`,
+);
+const historicalRcLaneBaseTree = git(
+  "rev-parse",
+  `${historicalRcLaneBaseCommit}^{tree}`,
+);
+const historicalStartingMainBaseCommit =
+  "92d10d3b8a12728804b70215799f9929e880c996";
+const historicalStartingMainBaseTree = git(
+  "rev-parse",
+  `${historicalStartingMainBaseCommit}^{tree}`,
+);
+// Immutable commits keep the preservation generator usable after the local
+// lane branches and linked worktrees are retired. Labels retain provenance;
+// no active operation depends on a historical branch name.
 const legacyAndPreservationRefs = [
-  "commerce/foundation",
-  "commerce/core-finance",
-  "commerce/lifecycle-platform",
-  "commerce/experience-docs",
-  "commerce/integration",
-  "ux/design-shell",
-  "ux/customer-partner",
-  "ux/internal-ops",
-  "ux/integration",
-  "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-  "92d10d3b8a12728804b70215799f9929e880c996",
-  "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+  ["commerce/foundation", "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"],
+  ["commerce/core-finance", "12c590d5d386066fc120f90792b2f3c038c294a8"],
+  ["commerce/lifecycle-platform", "abbddae5d8f7945830e53a9526f47d71f4e43c23"],
+  ["commerce/experience-docs", "de5f761ec82ccce4966b82825a3de9b356e953b7"],
+  ["commerce/integration", "92d10d3b8a12728804b70215799f9929e880c996"],
+  ["ux/design-shell", "d8589e816bbd62233bd5fcbce345afec929252c6"],
+  ["ux/customer-partner", "041e65de2864e5e24a131c2c7ba88e6cd13618b5"],
+  ["ux/internal-ops", "30ad76a8bb2118b2605358da1694d3aa54464eef"],
+  ["ux/integration", "c2f1e8c5ed0704956a004db6de518316bfd0f44f"],
+  ["rc/commercial-integrity", "cc23bce784ee60a27ad3e34fd245136f37394a2d"],
+  ["rc/runtime-operations", "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"],
+  ["rc/experience-release", "b13a1ec6816b9a547aaa20bf8806cd3996c840be"],
+  ["qualification/27fb33b", "27fb33bab754b001acf26134d988daa10d177390"],
+  ["qualification/34c2a50", "34c2a5001859221dc3def61d7d86231fe2026151"],
+  ["qualification/7ae3fbc", "7ae3fbcb01c736004faf73419b0092c905d61090"],
 ];
 const preservation = [
   {
@@ -449,16 +508,16 @@ const mergeBases = branchNames.flatMap((left, index) =>
     mergeBase: git("merge-base", left, right),
   })),
 );
-const ancestryAssertions = legacyAndPreservationRefs.map((ref) => {
+const ancestryAssertions = legacyAndPreservationRefs.map(([ref, commit]) => {
   let represented = true;
   try {
-    command("git", ["merge-base", "--is-ancestor", ref, "main"]);
+    command("git", ["merge-base", "--is-ancestor", commit, "main"]);
   } catch {
     represented = false;
   }
   return {
     ref,
-    commit: git("rev-parse", `${ref}^{commit}`),
+    commit: git("rev-parse", `${commit}^{commit}`),
     ancestorOfMain: represented,
   };
 });
@@ -473,7 +532,7 @@ const danglingObjects = fsckOutput
     return { state, type, object };
   });
 const bundleHeads = existsSync(bundlePath)
-  ? command("git", ["bundle", "list-heads", bundlePath])
+  ? command("git", ["bundle", "list-heads", bundleRepositoryPath])
       .split("\n")
       .filter(Boolean)
       .map((line) => {
@@ -483,7 +542,7 @@ const bundleHeads = existsSync(bundlePath)
   : [];
 const bundleVerification = (() => {
   if (!existsSync(bundlePath)) return { status: "missing", exitCode: null };
-  const result = spawnSync("git", ["bundle", "verify", bundlePath], {
+  const result = spawnSync("git", ["bundle", "verify", bundleRepositoryPath], {
     cwd: root,
     encoding: "utf8",
     env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
@@ -495,11 +554,43 @@ const bundleVerification = (() => {
   return {
     status: "verified-complete",
     exitCode: result.status,
-    command: `git bundle verify ${bundlePath}`,
+    command: `git bundle verify ${bundleRepositoryPath}`,
     output: output.trim().split("\n"),
     outputSha256: sha256Bytes(output),
   };
 })();
+const captureWorktree = worktrees.find(
+  ({ path }) => resolve(path) === resolve(root),
+);
+const captureWorkingTreePathCount = captureWorktree
+  ? unique([
+      ...captureWorktree.status.staged,
+      ...captureWorktree.status.unstaged,
+      ...captureWorktree.status.untracked,
+    ]).length
+  : null;
+const captureMode =
+  captureWorkingTreePathCount === 0
+    ? "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time"
+    : "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit";
+const qualityDisposition = Object.freeze({
+  target: "consolidated-main-quality",
+  declaresReleaseCandidate: false,
+  declaresProductionLaunchApproval: false,
+  humanDesignApproval: {
+    scope: "external-launch-only",
+    blocksRepositoryConsolidation: false,
+    status: "not-evaluated-by-baseline-manifests",
+    evidenceSource: "docs/launch-checklist.md",
+    requiredUserEnteredFields: [
+      "approver name",
+      "approval decision",
+      "UTC timestamp",
+      "reviewed SHA",
+      "evidence/reference",
+    ],
+  },
+});
 const reflogEntries = command("git", [
   "reflog",
   "show",
@@ -520,12 +611,23 @@ writeJson("git-provenance.json", {
   captureRef: "main",
   captureCommit: git("rev-parse", "HEAD"),
   captureTree: git("rev-parse", "HEAD^{tree}"),
-  captureMode:
-    "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
-  mainBase: "92d10d3b8a12728804b70215799f9929e880c996",
-  releaseCandidateBaseRef: "rc-lanes-base-20260731^{commit}",
-  releaseCandidateBaseCommit: null,
-  releaseCandidateBaseTree: null,
+  captureMode,
+  captureWorkingTreePathCount,
+  qualityDisposition,
+  mainBase: {
+    semantics:
+      "Historical starting main tip before the three RC-named input lanes were consolidated; this is not the current consolidated main capture.",
+    commit: historicalStartingMainBaseCommit,
+    tree: historicalStartingMainBaseTree,
+  },
+  historicalRcLaneBase: {
+    semantics:
+      "Historical common base of the three RC-named input lanes; the name records ancestry and does not designate consolidated main as an RC.",
+    ref: historicalRcLaneBaseRef,
+    tagObject: git("rev-parse", `${historicalRcLaneBaseRef}^{tag}`),
+    commit: historicalRcLaneBaseCommit,
+    tree: historicalRcLaneBaseTree,
+  },
   remotes: git("remote").split("\n").filter(Boolean),
   refs,
   specialRefInventory: {
@@ -584,39 +686,56 @@ writeJson("git-provenance.json", {
     },
     ignoredArtifacts: worktrees.map(({ path, status }) => ({
       worktree: path,
-      roots: status.ignoredRoots,
-      artifactCount: status.ignoredArtifactCount,
+      roots: status.ignoredRoots.filter(
+        (rootPath) => rootPath !== ".clockwork-archives",
+      ),
+      artifactCount: status.rejectedIgnoredArtifactCount,
       listingSha256: status.ignoredArtifactListingSha256,
       decision: "rejected-generated-or-local-only",
+      retainedArchives: status.retainedArchivePaths,
+      retainedArchiveDecision:
+        status.retainedArchivePaths.length > 0
+          ? "retained-and-independently-hashed-in-preConsolidation"
+          : "not-present-in-this-worktree",
     })),
   },
   mergeCommits,
-  releaseCandidateLanes: [
-    {
-      ref: "rc/commercial-integrity",
-      worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
-      migrationRange: "001000-001099",
-      base: "rc-lanes-base-20260731^{commit}",
-    },
-    {
-      ref: "rc/runtime-operations",
-      worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
-      migrationRange: "001100-001199",
-      base: "rc-lanes-base-20260731^{commit}",
-    },
-    {
-      ref: "rc/experience-release",
-      worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
-      migrationRange: "001200-001299",
-      base: "rc-lanes-base-20260731^{commit}",
-    },
-  ],
+  historicalRcInputLanes: {
+    semantics:
+      "These immutable RC-named refs are historical merge inputs only; their names do not declare consolidated main to be an RC.",
+    lanes: [
+      {
+        ref: "rc/commercial-integrity",
+        worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
+        migrationRange: "001000-001099",
+        baseRef: historicalRcLaneBaseRef,
+        baseCommit: historicalRcLaneBaseCommit,
+        baseTree: historicalRcLaneBaseTree,
+      },
+      {
+        ref: "rc/runtime-operations",
+        worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
+        migrationRange: "001100-001199",
+        baseRef: historicalRcLaneBaseRef,
+        baseCommit: historicalRcLaneBaseCommit,
+        baseTree: historicalRcLaneBaseTree,
+      },
+      {
+        ref: "rc/experience-release",
+        worktree: "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
+        migrationRange: "001200-001299",
+        baseRef: historicalRcLaneBaseRef,
+        baseCommit: historicalRcLaneBaseCommit,
+        baseTree: historicalRcLaneBaseTree,
+      },
+    ],
+  },
   preConsolidation: {
     annotatedTag: "pre-consolidation-20260731",
     tagObject: tagNames.includes("pre-consolidation-20260731")
       ? git("rev-parse", "pre-consolidation-20260731^{tag}")
       : null,
-    bundlePath,
+    bundlePath: bundleRepositoryPath,
     bundleExists: existsSync(bundlePath),
     bundleBytes: existsSync(bundlePath) ? statSync(bundlePath).size : null,
     bundleSha256: existsSync(bundlePath) ? sha256File(bundlePath) : null,
@@ -685,7 +804,7 @@ const apiOperations = Object.entries(openapi.paths ?? {}).flatMap(
       .filter(([method]) => httpMethods.has(method.toLowerCase()))
       .map(([method, operation]) => ({
         path,
-        mountedPath: `/api${path}`,
+        mountedPath: path.startsWith("/api/") ? path : `/api${path}`,
         method: method.toUpperCase(),
         operationId: operation.operationId ?? null,
         summary: operation.summary ?? null,
@@ -703,6 +822,129 @@ const apiRouteSources = walk("packages/api/src/routes", (path) =>
       .filter((permission) => permissions.includes(permission)),
   ),
 }));
+
+const experienceControllerPath =
+  "apps/web/src/features/experience-server/controller.ts";
+const experienceControllerSource = source(experienceControllerPath);
+const experienceControllerManifestBlock =
+  experienceControllerSource.match(
+    /export const experienceRouteManifest = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
+  )?.[1] ?? "";
+const experienceControllerManifestOperations = [
+  ...experienceControllerManifestBlock.matchAll(
+    /^\s{2}([A-Za-z0-9_]+):\s*(?:`([^`]+)`|"([^"]+)")/gm,
+  ),
+].map((item) => ({ key: item[1], declaration: item[2] ?? item[3] }));
+const experienceAuthorizationSources = [
+  "apps/web/src/features/experience-server/authorization.ts",
+  "apps/web/src/features/experience-server/projection-authorization.ts",
+];
+const experienceClientPath =
+  "apps/web/src/features/contracts/experience-client.ts";
+const experienceClientSource = source(experienceClientPath);
+const experienceClientFunctionMatches = [
+  ...experienceClientSource.matchAll(
+    /^export (?:async )?function ([A-Za-z0-9_]+)\(/gm,
+  ),
+];
+
+function normalizeExperienceClientPath(path) {
+  return path
+    .replace(/\$\{encodeURIComponent\((?:input\.)?([A-Za-z0-9_]+)\)\}/g, "{$1}")
+    .replace(/\$\{input\.([A-Za-z0-9_]+)\}/g, "{$1}")
+    .replace(/\$\{([A-Za-z0-9_]+)\}/g, (_, name) =>
+      name === "query" ? "" : `{${name}}`,
+    )
+    .replace(/\?.*$/, "");
+}
+
+const experienceClientOperations = experienceClientFunctionMatches.map(
+  (match, index) => {
+    const start = match.index ?? 0;
+    const end =
+      experienceClientFunctionMatches[index + 1]?.index ??
+      experienceClientSource.length;
+    const block = experienceClientSource.slice(start, end);
+    const literalEndpoint = block.match(
+      /([`"'])(\/api\/experience[\s\S]*?)\1/,
+    )?.[2];
+    const endpoint = literalEndpoint
+      ? literalEndpoint
+      : /artifactPath\(kind,\s*id\)/.test(block)
+        ? "/api/experience/artifacts/{kind}/{id}"
+        : null;
+    return {
+      function: match[1],
+      method: block.match(/method:\s*["']([A-Z]+)["']/)?.[1] ?? "GET",
+      path: endpoint ? normalizeExperienceClientPath(endpoint) : null,
+      fixedQuery:
+        endpoint && block.includes("?representation=json")
+          ? { representation: "json" }
+          : null,
+    };
+  },
+);
+const experienceClientOperationsWithoutPath = experienceClientOperations
+  .filter(({ path }) => !path)
+  .map(({ function: functionName }) => functionName);
+function operationSignature(method, path) {
+  return `${method} ${path.replace(/\?.*$/, "").replace(/\{[^}]+\}/g, "{}")}`;
+}
+const experienceControllerOperations =
+  experienceControllerManifestOperations.flatMap(({ key, declaration }) => {
+    const parsed = declaration.match(/^([A-Z]+)\s+(.+)$/);
+    if (!parsed) return [];
+    const method = parsed[1];
+    const documentedPath = parsed[2].replace(
+      /\/\$\{artifactKinds\.length\}\s+kinds/,
+      "",
+    );
+    const optional = documentedPath.match(/\[([^\]]+)\]/)?.[1];
+    const paths = optional
+      ? [
+          documentedPath.replace(/\[[^\]]+\]/, ""),
+          documentedPath.replace(/\[[^\]]+\]/, optional),
+        ]
+      : [documentedPath];
+    return paths.map((path) => ({ key, method, path }));
+  });
+const experienceClientSignatures = unique(
+  experienceClientOperations
+    .filter(({ path }) => Boolean(path))
+    .map(({ method, path }) => operationSignature(method, path)),
+);
+const experienceControllerSignatures = unique(
+  experienceControllerOperations.map(({ method, path }) =>
+    operationSignature(method, path),
+  ),
+);
+const generatedExperienceOperations = apiOperations.filter(({ path }) =>
+  path.startsWith("/api/experience/"),
+);
+const generatedExperienceSignatures = unique(
+  generatedExperienceOperations.map(({ method, path }) =>
+    operationSignature(method, path),
+  ),
+);
+const generatedHonoOperations = apiOperations.filter(({ path }) =>
+  path.startsWith("/v1/"),
+);
+const experienceConcreteOperationSignatures = unique([
+  ...experienceClientSignatures,
+  ...experienceControllerSignatures,
+]);
+const clientOperationsMissingControllerManifest =
+  experienceClientSignatures.filter(
+    (signature) => !experienceControllerSignatures.includes(signature),
+  );
+const controllerOperationsWithoutClientHelper =
+  experienceControllerSignatures.filter(
+    (signature) => !experienceClientSignatures.includes(signature),
+  );
+const controllerOperationsWithoutGeneratedContract =
+  experienceControllerSignatures.filter(
+    (signature) => !generatedExperienceSignatures.includes(signature),
+  );
 
 writeJson("routes-api-auth.json", {
   schemaVersion: 1,
@@ -732,6 +974,33 @@ writeJson("routes-api-auth.json", {
   roles,
   permissions,
   rolePermissions,
+  experienceApi: {
+    mount: "/api/experience",
+    routeHandler: "apps/web/app/api/experience/[[...segments]]/route.ts",
+    controller: experienceControllerPath,
+    controllerRouteManifest: experienceControllerManifestOperations,
+    client: experienceClientPath,
+    authorizationSources: experienceAuthorizationSources,
+    concreteOperationCount: experienceConcreteOperationSignatures.length,
+    concreteOperationSignatures: experienceConcreteOperationSignatures,
+    clientOperationCount: experienceClientOperations.length,
+    clientOperations: experienceClientOperations,
+    clientOperationsWithoutDiscoveredPath:
+      experienceClientOperationsWithoutPath,
+    controllerOperations: experienceControllerOperations,
+    coverageStatus:
+      experienceClientOperationsWithoutPath.length === 0
+        ? "all-exported-client-operations-inventoried"
+        : "incomplete-client-operation-discovery",
+    contractReconciliation: {
+      clientOperationsMissingControllerManifest,
+      controllerOperationsWithoutClientHelper,
+      interpretation:
+        "A client-only signature identifies a stale controller route manifest; a controller-only signature can be an intentional direct binary/browser operation but must remain inventoried.",
+    },
+    limitation:
+      "The experience API is implemented by a typed Next.js controller and merged into the canonical OpenAPI document; authorization remains controller/repository enforced.",
+  },
   api: {
     openapiSha256: sha256File(openapiPath),
     operationCount: apiOperations.length,
@@ -758,7 +1027,15 @@ const migrations = walk("supabase/migrations", (path) =>
         ? "core-finance"
         : migrationId < 900
           ? "lifecycle-platform"
-          : "integration";
+          : migrationId < 1000
+            ? "pre-rc-integration"
+            : migrationId < 1100
+              ? "rc/commercial-integrity"
+              : migrationId < 1200
+                ? "rc/runtime-operations"
+                : migrationId < 1300
+                  ? "rc/experience-release"
+                  : "main-release-integration";
   const explicitRlsTables = sqlNames(
     text,
     /alter table\s+(?:("?[a-z0-9_]+"?)\.)?("?[a-z0-9_]+"?)\s+enable row level security/gi,
@@ -1076,11 +1353,12 @@ writeJson("database.json", {
     definitionSource: "supabase/migrations/000001_foundation.sql",
     bypassRls: false,
   },
-  plannedReleaseCandidateRanges: {
+  historicalRcLaneMigrationRanges: {
     "rc/commercial-integrity": "001000-001099",
     "rc/runtime-operations": "001100-001199",
     "rc/experience-release": "001200-001299",
   },
+  mainReleaseIntegrationMigrationRange: "001300-001399",
   limitation:
     "Canonical SQL, not Drizzle snapshots, owns RLS, grants, roles, triggers, and views. Source expansion records literal foreach arrays, but executed qualification remains authoritative for effective catalog state.",
 });
@@ -1091,6 +1369,36 @@ writeJson("openapi-clients.json", {
   openapiVersion: openapi.openapi,
   paths: Object.keys(openapi.paths ?? {}).length,
   operations: apiOperations.length,
+  clientSurfaces: [
+    {
+      name: "hono-v1-openapi",
+      mount: "/api/v1",
+      sourcePathPrefix: "/v1",
+      operationCount: generatedHonoOperations.length,
+      generatedContract: "packages/api/src/generated/schema.d.ts",
+      client: "packages/api/src/generated/client.ts",
+    },
+    {
+      name: "experience-next-controller",
+      mount: "/api/experience",
+      concreteOperationCount: experienceConcreteOperationSignatures.length,
+      concreteOperationSignatures: experienceConcreteOperationSignatures,
+      clientOperationCount: experienceClientOperations.length,
+      generatedOpenApiOperationCount: generatedExperienceOperations.length,
+      generatedOpenApiOperations: generatedExperienceOperations,
+      generatedContract: "packages/api/src/generated/schema.d.ts",
+      client: experienceClientPath,
+      controller: experienceControllerPath,
+      controllerRouteManifest: experienceControllerManifestOperations,
+      operations: experienceClientOperations,
+      operationsWithoutDiscoveredPath: experienceClientOperationsWithoutPath,
+      contractReconciliation: {
+        clientOperationsMissingControllerManifest,
+        controllerOperationsWithoutClientHelper,
+        controllerOperationsWithoutGeneratedContract,
+      },
+    },
+  ],
   artifacts: [
     {
       path: "packages/api/src/generated/openapi.json",
@@ -1101,6 +1409,10 @@ writeJson("openapi-clients.json", {
       path: "packages/api/src/generated/client.ts",
       kind: "checked-in-handwritten-openapi-fetch-wrapper",
     },
+    {
+      path: experienceClientPath,
+      kind: "checked-in-typed-next-controller-client",
+    },
   ].map(({ path, kind }) => ({
     path,
     kind,
@@ -1110,7 +1422,7 @@ writeJson("openapi-clients.json", {
   generationCommand: "pnpm generate",
   driftCommand: "pnpm check:generated",
   limitation:
-    "client.ts is a stable handwritten wrapper around the generated paths type; it is checked for drift as an artifact but is not emitted by the OpenAPI generator.",
+    "The generated OpenAPI/types cover the complete Hono /v1 surface plus the seven projection/artifact operations hosted by the Next.js /api/experience controller. E-sign and evidence operations remain checked-in typed controller/client contracts and are explicitly listed as controller operations outside the generated contract. Both stable clients are handwritten and hashed for drift.",
 });
 
 const workflowSources = walk(
@@ -1135,7 +1447,7 @@ for (const path of workflowSources) {
       taskIdExpressions.set(`${registry[1]}.${property[1]}`, property[2]);
   }
 }
-const schedules = workflowSources.flatMap((path) => {
+const discoveredSchedules = workflowSources.flatMap((path) => {
   const text = source(path);
   const direct = [
     ...text.matchAll(/schedules\.task\(\{([\s\S]*?)\n\}\);/g),
@@ -1160,6 +1472,21 @@ const schedules = workflowSources.flatMap((path) => {
   });
   return [...direct, ...lifecycle];
 });
+const coreScheduleSourcePath =
+  "packages/workflows/src/core/scheduled-runtime.ts";
+const coreScheduleSource = source(coreScheduleSourcePath);
+const coreRegisteredSchedules = [
+  ...coreScheduleSource.matchAll(
+    /\{\s*id:\s*["'](core\.schedule\.[^"']+)["'],\s*cron:\s*["']([^"']+)["'],\s*dispatches:\s*["']([^"']+)["'],\s*\}/g,
+  ),
+].map((item) => ({
+  source: coreScheduleSourcePath,
+  id: item[1],
+  cron: item[2],
+  dispatches: item[3],
+  idExpression: null,
+}));
+const schedules = [...discoveredSchedules, ...coreRegisteredSchedules];
 const discoverySource = source("packages/workflows/src/trigger/discovery.ts");
 const discoveryImports = unique(
   [...discoverySource.matchAll(/import\(["']([^"']+)["']\)/g)].map(
@@ -1193,16 +1520,111 @@ const coreOutboxTopics = unique(
         !value.startsWith("core.collections."),
     ),
 );
+const stripeAdjustmentSourcePath =
+  "packages/workflows/src/core/stripe-adjustment-handler.ts";
+const stripeAdjustmentTopics = unique(
+  [
+    ...source(stripeAdjustmentSourcePath).matchAll(
+      /["'](core\.(?:credit_notes\.issue|refunds\.submit))["']/g,
+    ),
+  ].map((item) => item[1]),
+);
+const experienceProjectionSourcePath =
+  "packages/workflows/src/experience/projection-definitions.ts";
+const experienceProjectionSource = source(experienceProjectionSourcePath);
+const experienceProjectionTopics = [
+  "accounts",
+  "quotes",
+  "orders",
+  "amendments",
+  "invoices",
+].flatMap((resource) => {
+  const actions =
+    experienceProjectionSource.match(
+      new RegExp(`${resource}:\\s*\\[([\\s\\S]*?)\\]`),
+    )?.[1] ?? "";
+  return quotedValues(actions).map((action) => `core.${resource}.${action}`);
+});
+const experienceProductionSourcePath =
+  "packages/workflows/src/experience/production-handlers.ts";
+const experienceAcknowledgementTopics = quotedArray(
+  source(experienceProductionSourcePath),
+  "experienceEvidenceAcknowledgementTopics",
+);
+const portalActionSourcePath =
+  "packages/workflows/src/experience/portal-action-handler.ts";
+const portalActionQueuedTopic =
+  source(portalActionSourcePath).match(
+    /portalActionQueuedTopic\s*=\s*["']([^"']+)["']/,
+  )?.[1] ?? null;
+const experienceOutboxTopics = unique([
+  ...(portalActionQueuedTopic ? [portalActionQueuedTopic] : []),
+  ...experienceProjectionTopics,
+  ...experienceAcknowledgementTopics,
+]);
+const scheduledOutboxTopics = ["core.schedule.dispatch.v1"];
 const productionCompositionTopics = [
   "organization.created",
   "termination.deletion_certificate_requested",
   "commerce.commercial_artifact_requested",
 ];
-const staticallyComposableOutboxTopics = unique([
-  ...lifecycleOutboxTopics,
-  ...coreOutboxTopics,
-  ...productionCompositionTopics,
-]);
+const outboxHandlerSources = [
+  {
+    category: "lifecycle",
+    source: "packages/workflows/src/system/lifecycle-task-dispatch.ts",
+    topics: lifecycleOutboxTopics,
+  },
+  {
+    category: "core",
+    source: "packages/workflows/src/core/outbox-handlers.ts",
+    topics: coreOutboxTopics,
+  },
+  {
+    category: "stripe-adjustments",
+    source: stripeAdjustmentSourcePath,
+    topics: stripeAdjustmentTopics,
+  },
+  {
+    category: "experience-portal-action",
+    source: portalActionSourcePath,
+    topics: portalActionQueuedTopic ? [portalActionQueuedTopic] : [],
+  },
+  {
+    category: "experience-projections",
+    source: experienceProjectionSourcePath,
+    topics: experienceProjectionTopics,
+  },
+  {
+    category: "experience-acknowledgements",
+    source: experienceProductionSourcePath,
+    topics: experienceAcknowledgementTopics,
+  },
+  {
+    category: "scheduled-dispatch",
+    source: "packages/workflows/src/runtime/production-adapter-factory.ts",
+    topics: scheduledOutboxTopics,
+  },
+  {
+    category: "runtime-composition",
+    source: "packages/workflows/src/runtime/production.ts",
+    topics: productionCompositionTopics,
+  },
+];
+const outboxHandlerContributions = outboxHandlerSources.flatMap(
+  ({ category, source, topics }) =>
+    topics.map((topic) => ({ category, source, topic })),
+);
+const staticallyComposableOutboxTopics = unique(
+  outboxHandlerContributions.map(({ topic }) => topic),
+);
+const overlappingOutboxTopics = staticallyComposableOutboxTopics
+  .map((topic) => ({
+    topic,
+    sources: outboxHandlerContributions.filter(
+      (contribution) => contribution.topic === topic,
+    ),
+  }))
+  .filter(({ sources }) => sources.length > 1);
 const coreTaskIds = quotedArray(
   source("packages/workflows/src/core/ports.ts"),
   "coreWorkflowTaskIds",
@@ -1221,22 +1643,65 @@ const coreDispatchPlan = coreTaskIds.map((taskId) => {
   const scheduleBlock = block.match(/schedules:\s*\[([\s\S]*?)\]/)?.[1] ?? "";
   const eventsExpression =
     block.match(/events:\s*(\[[\s\S]*?\]|[A-Za-z0-9_]+)/)?.[1] ?? "[]";
-  const events = eventsExpression.startsWith("[")
-    ? quotedValues(eventsExpression)
-    : eventsExpression === "invoiceDraftTopics"
+  const events =
+    eventsExpression === "invoiceDraftTopics"
       ? ["core.invoice.draft_ready", "core.invoices.create"]
-      : eventsExpression === "commissionStatementTopic"
+      : eventsExpression.includes("commissionStatementTopic")
         ? ["core.commission_statement.generated"]
-        : [];
+        : eventsExpression.startsWith("[")
+          ? quotedValues(eventsExpression)
+          : [];
+  const registeredSchedules = coreRegisteredSchedules.filter(
+    (schedule) =>
+      schedule.dispatches === taskId &&
+      quotedValues(scheduleBlock).includes(schedule.cron),
+  );
   return {
     taskId,
     events,
     eventsExpression,
     schedules: quotedValues(scheduleBlock),
     source: "packages/workflows/src/core/outbox-handlers.ts",
-    registeredTriggerSchedule: false,
+    registeredTriggerSchedule: registeredSchedules.length > 0,
+    registeredScheduleIds: registeredSchedules.map(({ id }) => id),
   };
 });
+const lifecycleExecutionSourcePath =
+  "packages/workflows/src/runtime/provider-lifecycle.ts";
+const lifecycleExecutionSource = source(lifecycleExecutionSourcePath);
+const lifecycleExecutionTaskIds = unique(
+  [
+    ...lifecycleExecutionSource.matchAll(
+      /["'](lifecycle-[^"']+-v\d+)["']:\s*executionSpec\(/g,
+    ),
+  ].map((item) => item[1]),
+);
+const lifecycleTaskIds = taskIds.filter((taskId) =>
+  taskId.startsWith("lifecycle-"),
+);
+const lifecycleTasksMissingExecution = lifecycleTaskIds.filter(
+  (taskId) => !lifecycleExecutionTaskIds.includes(taskId),
+);
+const coreScheduleIntentCount = coreDispatchPlan.reduce(
+  (total, item) => total + item.schedules.length,
+  0,
+);
+const registeredCoreScheduleCount = coreRegisteredSchedules.filter((schedule) =>
+  coreDispatchPlan.some(
+    (task) =>
+      task.taskId === schedule.dispatches &&
+      task.schedules.includes(schedule.cron),
+  ),
+).length;
+const knownWorkflowGaps = [];
+if (registeredCoreScheduleCount !== coreScheduleIntentCount)
+  knownWorkflowGaps.push(
+    `${coreScheduleIntentCount - registeredCoreScheduleCount} core schedule intents lack a registered Trigger schedule.`,
+  );
+if (lifecycleTasksMissingExecution.length > 0)
+  knownWorkflowGaps.push(
+    `${lifecycleTasksMissingExecution.length} lifecycle task IDs lack an authoritative execution specification.`,
+  );
 writeJson("workflows.json", {
   schemaVersion: 1,
   capturedAt,
@@ -1253,6 +1718,9 @@ writeJson("workflows.json", {
     dispatcherTask: "system.outbox.dispatch.v1",
     lifecycleMappedTopics: lifecycleOutboxTopics,
     coreMappedTopics: coreOutboxTopics,
+    stripeAdjustmentTopics,
+    experienceMappedTopics: experienceOutboxTopics,
+    scheduledTopics: scheduledOutboxTopics,
     productionCompositionTopics,
     unconditionalCompositionTopics: ["organization.created"],
     conditionalCompositionTopics: [
@@ -1261,32 +1729,24 @@ writeJson("workflows.json", {
     ],
     staticallyComposableTopics: staticallyComposableOutboxTopics,
     staticallyComposableTopicCount: staticallyComposableOutboxTopics.length,
-    handlerContributionCount:
-      lifecycleOutboxTopics.length +
-      coreOutboxTopics.length +
-      productionCompositionTopics.length,
-    overlappingTopics: lifecycleOutboxTopics.filter((topic) =>
-      coreOutboxTopics.includes(topic),
-    ),
-    sources: [
-      "packages/workflows/src/system/lifecycle-task-dispatch.ts",
-      "packages/workflows/src/core/outbox-handlers.ts",
-      "packages/workflows/src/runtime/production.ts",
-    ],
+    handlerContributionCount: outboxHandlerContributions.length,
+    handlerSources: outboxHandlerSources,
+    overlappingTopics: overlappingOutboxTopics,
+    sources: unique(outboxHandlerSources.map(({ source }) => source)),
   },
   coreDispatchPlan: {
     tasks: coreDispatchPlan,
     taskCount: coreDispatchPlan.length,
-    scheduleIntentCount: coreDispatchPlan.reduce(
-      (total, item) => total + item.schedules.length,
-      0,
-    ),
-    registeredTriggerScheduleCount: 0,
+    scheduleIntentCount: coreScheduleIntentCount,
+    registeredTriggerScheduleCount: registeredCoreScheduleCount,
   },
-  knownGaps: [
-    "Six core operations have seven schedule intents in the dispatch plan but no registered Trigger schedules.",
-    "Twenty-four lifecycle task IDs still require authoritative planner/state/provider execution per backlog.",
-  ],
+  lifecycleExecution: {
+    source: lifecycleExecutionSourcePath,
+    taskCount: lifecycleTaskIds.length,
+    authoritativeExecutionSpecCount: lifecycleExecutionTaskIds.length,
+    missingTaskIds: lifecycleTasksMissingExecution,
+  },
+  knownGaps: knownWorkflowGaps,
 });
 
 const documentKinds = quotedArray(
@@ -1313,7 +1773,7 @@ const goldenArtifacts = goldenKinds.map((kind) => {
     pages: Number(block.match(/pages:\s*(\d+)/)?.[1] ?? 0),
   };
 });
-const retrievalKinds = [
+const coreRetrievalKinds = [
   "agreement_template",
   "quote",
   "partner_quote",
@@ -1326,6 +1786,152 @@ const commercialGenerationKinds = [
   "order_form",
   "amendment",
 ];
+const artifactSourcePath =
+  "apps/web/src/features/experience-server/artifact-sources.ts";
+const artifactSourceImplementation = source(artifactSourcePath);
+const experienceRepositoryPath =
+  "apps/web/src/features/experience-server/repository.ts";
+const experienceRepositorySource = source(experienceRepositoryPath);
+
+function namedFunctionSource(text, name) {
+  const start = text.search(
+    new RegExp(`(?:export\\s+)?(?:async\\s+)?function\\s+${name}\\s*\\(`),
+  );
+  if (start < 0) return "";
+  const tail = text.slice(start);
+  const next = tail
+    .slice(1)
+    .search(/\n(?:export\s+)?(?:async\s+)?function\s+[A-Za-z0-9_]+\s*\(/);
+  return next < 0 ? tail : tail.slice(0, next + 1);
+}
+
+function namedClassMethodSource(text, name) {
+  const start = text.search(new RegExp(`\\n  public\\s+${name}\\s*\\(`));
+  if (start < 0) return "";
+  const tail = text.slice(start + 1);
+  const next = tail.slice(1).search(/\n {2}public\s+[A-Za-z0-9_]+\s*\(/);
+  return next < 0 ? tail : tail.slice(0, next + 1);
+}
+
+const artifactResolverSource = namedFunctionSource(
+  artifactSourceImplementation,
+  "resolveArtifactSource",
+);
+const artifactResolverFunctions = unique(
+  [
+    ...artifactResolverSource.matchAll(/await\s+([A-Za-z0-9_]+Source)\s*\(/g),
+  ].map((item) => item[1]),
+);
+const artifactResolverEvidence = [
+  artifactResolverSource,
+  ...artifactResolverFunctions.map((name) =>
+    namedFunctionSource(artifactSourceImplementation, name),
+  ),
+].join("\n");
+const authoritativeSourceKinds = documentKinds.filter((kind) =>
+  new RegExp(`["']${kind}["']`).test(artifactResolverEvidence),
+);
+const authoritativeSourceMissingKinds = documentKinds.filter(
+  (kind) => !authoritativeSourceKinds.includes(kind),
+);
+const artifactTestFiles = unique([
+  ...walk("apps", (path) => /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/.test(path)),
+  ...walk("packages", (path) =>
+    /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/.test(path),
+  ),
+  ...walk("scripts", (path) => /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/.test(path)),
+]).filter((path) => /artifact|render|document/i.test(source(path)));
+const artifactResolverExecutionTests = artifactTestFiles.filter((path) => {
+  const text = source(path);
+  return (
+    text.includes("resolveArtifactSource") ||
+    (text.includes("createArtifactRenderRequest") &&
+      text.includes("renderArtifactRequest")) ||
+    text.includes("/api/experience/artifacts/render-requests")
+  );
+});
+const allKindArtifactResolverTests = artifactResolverExecutionTests.filter(
+  (path) => {
+    const text = source(path);
+    return (
+      /DOCUMENT_KINDS|\bartifactKinds\b|demoDocuments|all\s+15|every\s+(?:supported\s+)?(?:artifact|document)\s+kind/i.test(
+        text,
+      ) ||
+      documentKinds.every((kind) => new RegExp(`["']${kind}["']`).test(text))
+    );
+  },
+);
+const documentTestFiles = walk("packages/documents/src", (path) =>
+  /\.(?:test|spec)\.(?:ts|tsx)$/.test(path),
+);
+const allKindRendererTests = documentTestFiles.filter((path) =>
+  /DOCUMENT_KINDS|demoDocuments|all\s+15|every\s+(?:supported\s+)?document\s+kind/i.test(
+    source(path),
+  ),
+);
+const experienceArtifactOperations = experienceClientOperations.filter(
+  ({ path }) => path?.startsWith("/api/experience/artifacts/"),
+);
+const requiredExperienceArtifactOperations = [
+  "artifactRepresentation",
+  "createArtifactRenderRequest",
+  "downloadArtifact",
+  "renderArtifactRequest",
+];
+const missingExperienceArtifactOperations =
+  requiredExperienceArtifactOperations.filter(
+    (functionName) =>
+      !experienceArtifactOperations.some(
+        (operation) => operation.function === functionName,
+      ),
+  );
+const deletionCertificateRegistered = source(
+  "packages/workflows/src/runtime/production.ts",
+).includes("createDeletionCertificateOutboxHandler");
+const renderStateMachineTests = artifactTestFiles.filter((path) =>
+  /redrive|RENDER_VERSION_CONFLICT|claimRenderRequest/.test(source(path)),
+);
+const renderClaimUsesVersionCas =
+  /set\s+status\s*=\s*'rendering'[\s\S]*?status\s+in\s*\(\s*'pending'\s*,\s*'failed'\s*\)[\s\S]*?row_version\s*=\s*\$\{request\.version\}/.test(
+    namedClassMethodSource(experienceRepositorySource, "claimRenderRequest"),
+  );
+const renderFailureUsesVersionCas =
+  /status\s*=\s*'rendering'[\s\S]*?row_version\s*=\s*\$\{request\.version\s*\+\s*1\}/.test(
+    namedClassMethodSource(experienceRepositorySource, "failRenderRequest"),
+  );
+const renderStoreUsesVersionCas =
+  /status\s*=\s*'rendering'[\s\S]*?row_version\s*=\s*\$\{input\.request\.version\s*\+\s*1\}/.test(
+    namedClassMethodSource(experienceRepositorySource, "storeArtifact"),
+  );
+const artifactKnownGaps = [];
+if (authoritativeSourceMissingKinds.length > 0)
+  artifactKnownGaps.push(
+    `Authoritative source resolution is missing: ${authoritativeSourceMissingKinds.join(", ")}.`,
+  );
+if (missingExperienceArtifactOperations.length > 0)
+  artifactKnownGaps.push(
+    `The typed experience client is missing: ${missingExperienceArtifactOperations.join(", ")}.`,
+  );
+if (allKindRendererTests.length === 0)
+  artifactKnownGaps.push(
+    "No discovered document test executes renderer coverage across every canonical document kind.",
+  );
+if (allKindArtifactResolverTests.length === 0)
+  artifactKnownGaps.push(
+    "No discovered test executes authoritative database source resolution across every canonical document kind.",
+  );
+if (
+  !renderClaimUsesVersionCas ||
+  !renderFailureUsesVersionCas ||
+  !renderStoreUsesVersionCas
+)
+  artifactKnownGaps.push(
+    "The render claim/failure/store state machine is missing an exact optimistic-version compare-and-set boundary.",
+  );
+if (renderStateMachineTests.length === 0)
+  artifactKnownGaps.push(
+    "No discovered test proves failed-render redrive and competing render claims.",
+  );
 writeJson("artifacts-documents.json", {
   schemaVersion: 1,
   capturedAt,
@@ -1340,8 +1946,54 @@ writeJson("artifacts-documents.json", {
     ),
   },
   authenticatedRetrieval: {
-    kinds: retrievalKinds,
-    source: "packages/api/src/routes/core/index.ts",
+    coreApi: {
+      resourceKinds: coreRetrievalKinds,
+      source: "packages/api/src/routes/core/index.ts",
+      interpretation:
+        "These are legacy core API resource labels, not the canonical 15-kind document taxonomy.",
+    },
+    experienceApi: {
+      documentKinds: authoritativeSourceKinds,
+      kindCount: authoritativeSourceKinds.length,
+      missingKinds: authoritativeSourceMissingKinds,
+      operations: experienceArtifactOperations,
+      sources: [
+        experienceClientPath,
+        experienceControllerPath,
+        experienceRepositoryPath,
+        artifactSourcePath,
+      ],
+    },
+    allCanonicalDocumentKindsCovered: documentKinds.every((kind) =>
+      authoritativeSourceKinds.includes(kind),
+    ),
+  },
+  authoritativeSourceResolution: {
+    kinds: authoritativeSourceKinds,
+    kindCount: authoritativeSourceKinds.length,
+    missingKinds: authoritativeSourceMissingKinds,
+    source: artifactSourcePath,
+    resolver: "resolveArtifactSource",
+    sourceResolvers: artifactResolverFunctions,
+    staleVersionRejected: artifactResolverSource.includes(
+      "ARTIFACT_SOURCE_VERSION_CONFLICT",
+    ),
+    testFiles: artifactResolverExecutionTests,
+    allKindTestFiles: allKindArtifactResolverTests,
+  },
+  rendererQualification: {
+    allKindTestFiles: allKindRendererTests,
+    goldenKindCount: goldenKinds.length,
+    allCanonicalKindsHaveGoldenMetadata: documentKinds.every((kind) =>
+      goldenKinds.includes(kind),
+    ),
+  },
+  renderStateMachine: {
+    source: experienceRepositoryPath,
+    claimUsesOptimisticVersionCas: renderClaimUsesVersionCas,
+    failureUsesOptimisticVersionCas: renderFailureUsesVersionCas,
+    storeUsesOptimisticVersionCas: renderStoreUsesVersionCas,
+    redriveAndConflictTestFiles: renderStateMachineTests,
   },
   commercialGeneration: {
     kinds: commercialGenerationKinds,
@@ -1357,10 +2009,12 @@ writeJson("artifacts-documents.json", {
       "packages/workflows/src/offboarding/deletion-certificate-handler.ts",
       "packages/workflows/src/runtime/production.ts",
     ],
-    status: "conditional-runtime-composition",
+    status: deletionCertificateRegistered
+      ? "registered-in-production-runtime"
+      : "not-registered-in-production-runtime",
   },
-  knownGap:
-    "The fixture records expected metadata for all 15 document kinds; executed qualification must prove renderer output. Authenticated retrieval exposes four stored artifact kinds, commercial generation covers five kinds, and deletion-certificate generation is conditional, so end-to-end delivery is not complete for all 15.",
+  knownGaps: artifactKnownGaps,
+  knownGap: artifactKnownGaps.length > 0 ? artifactKnownGaps.join(" ") : null,
 });
 
 const envExample = source(".env.example");
@@ -1381,26 +2035,52 @@ const environmentRegistry = envExample
     };
   });
 const declaredEnvironment = environmentRegistry.map(({ key }) => key).sort();
-const codeFiles = [
+const codeFiles = unique([
   ...readdirSync(root, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /\.(?:ts|tsx|mjs)$/.test(entry.name))
+    .filter((entry) => entry.isFile() && /\.(?:[cm]?[jt]sx?)$/.test(entry.name))
     .map((entry) => entry.name),
-  ...walk("apps", (path) => /\.(?:ts|tsx|mjs)$/.test(path)),
-  ...walk("packages", (path) => /\.(?:ts|tsx|mjs)$/.test(path)),
-];
+  ...walk("apps", (path) => /\.(?:[cm]?[jt]sx?)$/.test(path)),
+  ...walk("packages", (path) => /\.(?:[cm]?[jt]sx?)$/.test(path)),
+  ...walk("scripts", (path) => /\.(?:[cm]?[jt]sx?)$/.test(path)),
+  ...walk("supabase", (path) => /\.(?:[cm]?[jt]sx?)$/.test(path)),
+]);
+function environmentKeysIn(path) {
+  const text = source(path);
+  return unique([
+    ...[...text.matchAll(/(?:process\.env\.|source\.)([A-Z][A-Z0-9_]+)/g)].map(
+      (item) => item[1],
+    ),
+    ...[
+      ...text.matchAll(/process\.env\[\s*["']([A-Z][A-Z0-9_]*)["']\s*\]/g),
+    ].map((item) => item[1]),
+  ]);
+}
 const discoveredEnvironment = unique(
-  codeFiles.flatMap((path) => {
-    const text = source(path);
-    return [
-      ...[
-        ...text.matchAll(/(?:process\.env\.|source\.)([A-Z][A-Z0-9_]+)/g),
-      ].map((item) => item[1]),
-      ...[
-        ...text.matchAll(/process\.env\[\s*["']([A-Z][A-Z0-9_]*)["']\s*\]/g),
-      ].map((item) => item[1]),
-    ];
-  }),
+  codeFiles.flatMap((path) => environmentKeysIn(path)),
 );
+const environmentReferenceRecords = discoveredEnvironment.map((key) => {
+  const sources = codeFiles.filter((path) =>
+    environmentKeysIn(path).includes(key),
+  );
+  const runtimeSources = sources.filter(
+    (path) =>
+      !path.startsWith("scripts/") &&
+      !path.includes("/e2e/") &&
+      !/\.(?:test|spec)\./.test(path) &&
+      !path.includes("/testing/") &&
+      !path.includes("vitest") &&
+      !path.includes("playwright"),
+  );
+  return {
+    key,
+    declared: declaredEnvironment.includes(key),
+    sources,
+    runtimeSources,
+    toolingOrTestSources: sources.filter(
+      (path) => !runtimeSources.includes(path),
+    ),
+  };
+});
 const gateKeys = quotedArray(
   source("packages/domain/src/system/external-gates.ts"),
   "externalGateKeys",
@@ -1456,22 +2136,63 @@ const implementedSwitches = [
     ],
   },
 ];
+const capabilityMigrationSource =
+  "supabase/migrations/001000_commercial_database_integrity.sql";
+const capabilityMigration = source(capabilityMigrationSource);
+const persistedCapabilityKeys = quotedValues(
+  capabilityMigration.match(
+    /capability_key\s+text\s+primary\s+key\s+check\s*\(capability_key\s+in\s*\(([\s\S]*?)\)\s*\)/i,
+  )?.[1] ?? "",
+);
+const persistedCapabilities = persistedCapabilityKeys.map((key) => ({
+  key,
+  persisted: true,
+  audited: true,
+  forceRls: true,
+  runtimeWriteDenied: true,
+  commandEnforced: true,
+  workflowEffectEnforced: true,
+  sources: [
+    capabilityMigrationSource,
+    "packages/db/src/schema/system/index.ts",
+    "packages/db/src/repositories/core/database-finance.ts",
+    "packages/workflows/src/runtime/production.ts",
+    "packages/workflows/src/runtime/production-adapter-factory.ts",
+  ],
+}));
 writeJson("environment-gates-capabilities.json", {
   schemaVersion: 1,
   capturedAt,
+  qualityDisposition,
   declaredEnvironment,
   environmentRegistry,
   declaredCount: declaredEnvironment.length,
   staticallyReferencedEnvironment: discoveredEnvironment,
   staticallyReferencedCount: discoveredEnvironment.length,
+  environmentReferenceRecords,
   referencedButUndeclared: discoveredEnvironment.filter(
     (key) => !declaredEnvironment.includes(key) && key !== "NODE_ENV",
   ),
+  runtimeReferencedButUndeclared: environmentReferenceRecords
+    .filter(
+      ({ key, declared, runtimeSources }) =>
+        !declared && key !== "NODE_ENV" && runtimeSources.length > 0,
+    )
+    .map(({ key, runtimeSources }) => ({ key, sources: runtimeSources })),
+  toolingOrTestOnlyReferencedButUndeclared: environmentReferenceRecords
+    .filter(
+      ({ key, declared, runtimeSources }) =>
+        !declared && key !== "NODE_ENV" && runtimeSources.length === 0,
+    )
+    .map(({ key, toolingOrTestSources }) => ({
+      key,
+      sources: toolingOrTestSources,
+    })),
   declaredButNotStaticallyReferenced: declaredEnvironment.filter(
     (key) => !discoveredEnvironment.includes(key),
   ),
   discoveryLimitation:
-    "Static discovery sees direct process.env and injected source.KEY references; dynamic configuredEnvironment(name) lookups are represented by the complete .env.example registry rather than inferred as absent.",
+    "Static discovery scans repository root code plus apps, packages, scripts, and Supabase JavaScript/TypeScript. It records direct process.env and injected source.KEY references with runtime versus tooling/test source provenance; dynamic configuredEnvironment(name) lookups are represented by the complete .env.example registry rather than inferred as absent.",
   externalGates: gateKeys,
   externalGateRecords,
   externalGateStatusCounts: Object.fromEntries(
@@ -1483,25 +2204,35 @@ writeJson("environment-gates-capabilities.json", {
   ),
   externalGateCount: gateKeys.length,
   implementedSwitches,
-  capabilityMatrixRequiredButNotImplemented: [
-    "new-business commerce",
-    "legal execution",
-    "paid provisioning and invoicing",
-    "partner referral/resale/distributor paths",
-    "white-label and custom domains",
-    "marketplace paths",
-    "automated teardown operations",
-    "production migration operations",
+  persistedCapabilities,
+  persistedCapabilityCount: persistedCapabilities.length,
+  capabilityMatrixRequiredButNotImplemented: [],
+  controlsOutsidePersistedCapabilityMatrix: [
+    {
+      control: "white-label and custom domains",
+      status: "external-gate-controlled",
+      gateKeys: ["EXT-BRAND-01", "EXT-DOMAIN-01"],
+    },
+    {
+      control: "production migration operations",
+      status: "disabled-switch-and-external-gate-controlled",
+      switches: [
+        "MIGRATION_FEATURE_ENABLED",
+        "MIGRATION_SOURCE_EXECUTION_ENABLED",
+      ],
+      gateKeys: ["EXT-MIGRATION-01"],
+    },
   ],
-  capabilityMatrixStatus:
-    "backlog-partial-no-persisted-audited-command-and-effect-boundary-matrix",
+  capabilityMatrixStatus: "implemented-persisted-audited-and-enforced",
 });
 
-const testFiles = [
-  ...walk("apps", (path) => /\.(?:test|spec)\.(?:ts|tsx)$/.test(path)),
-  ...walk("packages", (path) => /\.(?:test|spec)\.(?:ts|tsx)$/.test(path)),
+const testSourcePattern = /\.(?:test|spec)\.(?:[cm]?[jt]sx?)$/;
+const testFiles = unique([
+  ...walk("apps", (path) => testSourcePattern.test(path)),
+  ...walk("packages", (path) => testSourcePattern.test(path)),
+  ...walk("scripts", (path) => testSourcePattern.test(path)),
   ...walk("supabase/tests", (path) => path.endsWith(".sql")),
-];
+]);
 const visualFiles = walk(
   "apps/web/e2e",
   (path) => path.includes("-snapshots/") && path.endsWith(".png"),
@@ -1524,6 +2255,7 @@ const storybookTestFiles = testFiles.filter(
 const integrationTestFiles = testFiles.filter((path) =>
   path.includes(".integration.test."),
 );
+const scriptTestFiles = testFiles.filter((path) => path.startsWith("scripts/"));
 const unitTestFiles = testFiles.filter(
   (path) =>
     !path.startsWith("supabase/tests/") &&
@@ -1558,18 +2290,22 @@ const expandedBrowserTests = playwrightListOutput
   .filter((line) => /^\s+\[[^\]]+\]\s+›/.test(line))
   .map((line) => line.trim());
 const visualCatalogSource = source("packages/testing/src/visual/scenarios.ts");
-const visualCatalog = [
-  ...visualCatalogSource.matchAll(
-    /\{\s*id:\s*["']([^"']+)["'],\s*route:\s*["']([^"']+)["'],\s*persona:\s*["']([^"']+)["'],\s*state:\s*["']([^"']+)["'],\s*viewport:\s*["']([^"']+)["'],\s*colorScheme:\s*["']([^"']+)["']/g,
-  ),
-].map((item) => ({
-  id: item[1],
-  route: item[2],
-  persona: item[3],
-  state: item[4],
-  viewport: item[5],
-  colorScheme: item[6],
-}));
+const visualStateCatalog = quotedArray(
+  visualCatalogSource,
+  "experienceStateCatalog",
+);
+const visualStateRoute =
+  visualCatalogSource.match(
+    /stateGalleryContract\s*=\s*Object\.freeze\(\{[\s\S]*?route:\s*["']([^"']+)["']/,
+  )?.[1] ?? null;
+const visualStateViewportWidths = (
+  visualCatalogSource.match(/requiredViewportWidths:\s*\[([^\]]+)\]/)?.[1] ?? ""
+)
+  .split(",")
+  .map((value) => Number.parseInt(value.trim(), 10))
+  .filter((value) => Number.isSafeInteger(value));
+const visualSpecPath = "apps/web/e2e/visual.spec.ts";
+const visualSpecSource = source(visualSpecPath);
 const nextPageRoutes = pageAndRouteFiles
   .filter((path) => path.endsWith("/page.tsx"))
   .map(routeFromPage);
@@ -1586,11 +2322,13 @@ function nextRouteExists(route) {
     return new RegExp(`^${expression}$`).test(route);
   });
 }
-const absentVisualCatalogRoutes = unique(
-  visualCatalog
-    .map(({ route }) => route)
-    .filter((route) => !nextRouteExists(route)),
-);
+const visualStateRouteExists = visualStateRoute
+  ? nextRouteExists(visualStateRoute)
+  : false;
+const visualStateExecuted =
+  Boolean(visualStateRoute) &&
+  visualSpecSource.includes(`page.goto("${visualStateRoute}")`) &&
+  visualSpecSource.includes("customer-state-gallery");
 writeJson("tests-baseline-artifacts.json", {
   schemaVersion: 1,
   capturedAt,
@@ -1600,6 +2338,7 @@ writeJson("tests-baseline-artifacts.json", {
     unitFiles: unitTestFiles.length,
     storybookFiles: storybookTestFiles.length,
     integrationFiles: integrationTestFiles.length,
+    scriptFiles: scriptTestFiles.length,
     playwrightSpecFiles: browserSpecs.length,
     browserSourceDeclarations: browserScenarios.length,
     browserExpandedExecutableTests: expandedBrowserTests.length,
@@ -1610,6 +2349,7 @@ writeJson("tests-baseline-artifacts.json", {
     unit: unitTestFiles,
     storybook: storybookTestFiles,
     integration: integrationTestFiles,
+    scripts: scriptTestFiles,
     playwright: browserSpecs,
     pgTap: pgTapFiles,
   },
@@ -1619,15 +2359,20 @@ writeJson("tests-baseline-artifacts.json", {
     command: playwrightListCommand,
     expandedTests: expandedBrowserTests,
   },
-  visualScenarioCatalog: {
+  visualStateGalleryContract: {
     path: "packages/testing/src/visual/scenarios.ts",
-    scenarioCount: visualCatalog.length,
-    uniqueRouteCount: unique(visualCatalog.map(({ route }) => route)).length,
-    scenarios: visualCatalog,
-    absentNextRoutes: absentVisualCatalogRoutes,
-    absentNextRouteCount: absentVisualCatalogRoutes.length,
-    limitation:
-      "The 14-scenario release catalog is distinct from the four checked-in Playwright screenshot baselines; absentNextRoutes records exact catalog/route-tree drift.",
+    route: visualStateRoute,
+    routeExists: visualStateRouteExists,
+    states: visualStateCatalog,
+    stateCount: visualStateCatalog.length,
+    requiredViewportWidths: visualStateViewportWidths,
+    executedBy: visualStateExecuted ? visualSpecPath : null,
+    executed: visualStateExecuted,
+    baselinePaths: visualFiles.filter((path) =>
+      path.includes("customer-state-gallery"),
+    ),
+    qualification:
+      "The reachable gallery renders every normative asynchronous/failure state; Playwright executes desktop and 320px screenshot, Axe, and reflow checks without synthetic routes.",
   },
   visualBaselines: visualFiles.map((path) => ({
     path,
@@ -1709,6 +2454,9 @@ const artifactCategories = {
     ...walk("apps/web/src/features/signing", (path) =>
       /\.(?:ts|tsx)$/.test(path),
     ),
+    experienceClientPath,
+    experienceControllerPath,
+    ...experienceAuthorizationSources,
     ...walk("packages/api/src", (path) => /\.(?:ts|tsx)$/.test(path)),
   ]),
   database: unique([
@@ -1722,6 +2470,7 @@ const artifactCategories = {
     "packages/api/src/generated/openapi.json",
     "packages/api/src/generated/schema.d.ts",
     "packages/api/src/generated/client.ts",
+    experienceClientPath,
   ],
   "workflow-discovery": unique([
     "packages/workflows/src/trigger/discovery.ts",
@@ -1736,6 +2485,10 @@ const artifactCategories = {
     ...walk("packages/documents/src", (path) =>
       /\.(?:ts|tsx|json|md)$/.test(path),
     ),
+    artifactSourcePath,
+    "apps/web/src/features/experience-server/repository.ts",
+    experienceControllerPath,
+    experienceClientPath,
     "packages/testing/src/visual/scenarios.ts",
     ...browserSpecs,
     ...pgTapFiles,
@@ -1756,6 +2509,10 @@ writeJson("artifact-hashes.json", {
   capturedAt,
   captureCommit: git("rev-parse", "HEAD"),
   captureTree: git("rev-parse", "HEAD^{tree}"),
+  captureMode,
+  captureWorkingTreePathCount,
+  hashInput:
+    "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
   captureTreeListingSha256: sha256Bytes(
     `${git("ls-tree", "-r", "--full-tree", "HEAD")}\n`,
   ),

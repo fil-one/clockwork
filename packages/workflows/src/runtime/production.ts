@@ -5,6 +5,7 @@ import {
   DatabaseCoreScheduleOccurrenceStore,
   DatabaseCoreWorkflowRecordPort,
   DatabaseDeletionCertificateStore,
+  DatabaseExternalGateService,
   DatabaseOutboxDispatcherStore,
   DatabaseReportingDataPort,
   DatabaseSystemCapabilityGuard,
@@ -12,8 +13,10 @@ import {
   DatabaseWorkflowExceptionPort,
   DatabaseWorkflowRunStore,
 } from "@clockwork/db";
+import type { ExternalCapability } from "@clockwork/domain/system";
 import type {
   EvidenceStoragePort,
+  RuntimeBoundaryInstrumentation,
   WorkosIdentityPort,
 } from "@clockwork/integrations";
 import {
@@ -22,7 +25,11 @@ import {
   type CommercialArtifactRenderer,
 } from "../core/commercial-artifact-handler";
 import { CoreFinanceWorkflowEngine } from "../core/engine";
-import type { CoreWorkflowDependencies } from "../core/ports";
+import type {
+  CoreCapabilityGuard,
+  CoreCapabilityKey,
+  CoreWorkflowDependencies,
+} from "../core/ports";
 import { configureCoreScheduleOccurrenceStore } from "../core/scheduled-runtime";
 import { configureCoreFinanceWorkflowEngine } from "../core/task-runtime";
 import { lifecycleWorkflowRegistry } from "../lifecycle";
@@ -84,6 +91,56 @@ export interface ProductionWorkflowRuntimeInput {
   clock?: () => Date;
   leaseMs?: number;
   gateActivationExecutor?: ExternalGateActivationExecutor;
+  instrumentation?: RuntimeBoundaryInstrumentation;
+}
+
+const coreExternalCapability: Readonly<
+  Record<CoreCapabilityKey, ExternalCapability>
+> = {
+  new_business: "new_business",
+  legal: "legal_execution",
+  billing: "provisioning_invoicing",
+  partner: "partner",
+  marketplace: "marketplace",
+  teardown: "teardown",
+};
+
+/** Both software capability and external-input truth are required per attempt. */
+class ProductionCoreCapabilityGuard implements CoreCapabilityGuard {
+  private readonly internal: DatabaseSystemCapabilityGuard;
+  private readonly external: DatabaseExternalGateService;
+
+  public constructor(
+    database: RuntimeDatabase,
+    private readonly clock: () => Date = () => new Date(),
+  ) {
+    this.internal = new DatabaseSystemCapabilityGuard(database);
+    this.external = new DatabaseExternalGateService(database);
+  }
+
+  public async require(input: {
+    capabilities: readonly CoreCapabilityKey[];
+    recovery: boolean;
+    requestId: string;
+  }) {
+    const internal = await this.internal.require(input);
+    const denied = new Set<CoreCapabilityKey>(internal.disabled);
+    for (const capability of input.capabilities) {
+      try {
+        await this.external.requireCapability({
+          capability: coreExternalCapability[capability],
+          boundary: "provider_effect",
+          effectIntent: "external_effect",
+          requestId: `${input.requestId}:external:${capability}`,
+          now: this.clock(),
+        });
+      } catch {
+        denied.add(capability);
+      }
+    }
+    const disabled = [...denied].sort();
+    return { allowed: disabled.length === 0, disabled };
+  }
 }
 
 function requireConfigured(value: unknown, name: string): void {
@@ -172,7 +229,7 @@ export function createProductionWorkflowRuntime(
   );
   const reporting = new DatabaseReportingDataPort(input.db);
   const dependencies: CoreWorkflowDependencies = {
-    capabilities: new DatabaseSystemCapabilityGuard(input.db),
+    capabilities: new ProductionCoreCapabilityGuard(input.db, input.clock),
     runs,
     exceptions,
     records,
@@ -201,6 +258,7 @@ export function createProductionWorkflowRuntime(
       ...(input.leaseMs ? { leaseMs: input.leaseMs } : {}),
     }),
     outboxHandlers,
+    input.instrumentation,
   );
   return {
     core,
@@ -208,9 +266,9 @@ export function createProductionWorkflowRuntime(
     outbox,
     schedules,
     activate() {
-      configureCoreFinanceWorkflowEngine(core);
+      configureCoreFinanceWorkflowEngine(core, input.instrumentation);
       configureCoreScheduleOccurrenceStore(schedules);
-      configureLifecycleTaskRuntime(lifecycle);
+      configureLifecycleTaskRuntime(lifecycle, input.instrumentation);
       configureOutboxDispatcher(outbox);
       if (input.gateActivationExecutor)
         configureExternalGateActivationExecutor(input.gateActivationExecutor);

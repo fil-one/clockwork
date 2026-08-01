@@ -225,8 +225,11 @@ export type CoreWorkflowRecord =
       taskId: "core.reporting.export.v1";
       input: ExportReportInput;
       rowCount: number;
+      columns: readonly string[];
+      rows: readonly ReportRow[];
       sourceVersion: string;
       contentHash: string;
+      byteLength: number;
       documentId: string;
       storageKey: string;
       versionId: string;

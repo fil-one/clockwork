@@ -163,12 +163,14 @@ describe.sequential("persisted exception routing", () => {
         occurredAt: now.toISOString(),
         severity: "blocking",
       }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       accountId,
       ownerUserId: users.primary,
       backupUserId: users.backup,
+      escalationUserId: users.escalationOne,
       objectType: "account",
       targetAt: "2026-07-31T17:00:00.000Z",
+      absenceEscalated: false,
     });
   });
 

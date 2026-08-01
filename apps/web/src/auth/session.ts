@@ -4,6 +4,7 @@ import {
   type SessionClaims,
   type SessionResolver,
 } from "@clockwork/api";
+import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 import {
   listAuthorizedMemberships,
   listAuthorizedMembershipsForUser,
@@ -49,11 +50,12 @@ export interface CommerceSession extends SessionClaims {
 }
 
 export function explicitDemoIdentityEnabled(
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
 ): boolean {
   return (
-    environment.NODE_ENV !== "production" &&
-    environment.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production" &&
+    !findDemoProductionMarker(environment) &&
+    environment.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV?.trim().toLowerCase() !==
+      "production" &&
     environment.CLOCKWORK_EXPERIENCE_ADAPTER === "demo"
   );
 }

@@ -217,6 +217,17 @@ insert into order_lines (id, order_id, quote_line_id, sku, quantity, unit_price_
 ('81000000-0000-4000-8000-000000000006','80000000-0000-4000-8000-000000000006','71000000-0000-4000-8000-000000000006','LOCKED-STORAGE-TB',1,13000,18000),
 ('81000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','71000000-0000-4000-8000-000000000007','LOCKED-STORAGE-TB',1,15000,18000);
 
+insert into core_order_line_snapshots (
+  id, order_line_id, snapshot, snapshot_hash
+) values
+('81100000-0000-4000-8000-000000000001','81000000-0000-4000-8000-000000000001','{"id":"81000000-0000-4000-8000-000000000001","quoteLineId":"71000000-0000-4000-8000-000000000001","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"15000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"180000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','002c45d1dd255fba9878cd04a4f4d69d8922bf1b818504c09de72871b962085c'),
+('81100000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000002','{"id":"81000000-0000-4000-8000-000000000002","quoteLineId":"71000000-0000-4000-8000-000000000002","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"10000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"120000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','2a0bfa1d589b946057d48fc2e11cbf79a532f2eb92479b3761f9b1b8ce301615'),
+('81100000-0000-4000-8000-000000000003','81000000-0000-4000-8000-000000000003','{"id":"81000000-0000-4000-8000-000000000003","quoteLineId":"71000000-0000-4000-8000-000000000003","sku":"LOCKED-STORAGE-TB","region":"eu-west-1","quantity":"1","termMonths":12,"unitPrice":{"currency":"EUR","minor":"14000"},"overageRate":{"currency":"EUR","minor":"17000"},"lineTotal":{"currency":"EUR","minor":"168000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','bc3e89170ba795aa34821be6523e55d4762112b3958b3dc9ce5339f8ecb7e9c7'),
+('81100000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000004','{"id":"81000000-0000-4000-8000-000000000004","quoteLineId":"71000000-0000-4000-8000-000000000004","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"11000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"132000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','86c9b82f012779c8f7c8c950d422e33e2dfbbea9bd9090f79dff6c67c1344c33'),
+('81100000-0000-4000-8000-000000000005','81000000-0000-4000-8000-000000000005','{"id":"81000000-0000-4000-8000-000000000005","quoteLineId":"71000000-0000-4000-8000-000000000005","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"12000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"144000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','582df6b8a4592b0466ff4e2bc4d40e31a32bdc3476a4840775041eb9b964be86'),
+('81100000-0000-4000-8000-000000000006','81000000-0000-4000-8000-000000000006','{"id":"81000000-0000-4000-8000-000000000006","quoteLineId":"71000000-0000-4000-8000-000000000006","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"13000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"156000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','daae7791cd7d00e7dec0bc90ab5b3e74ae0a073fa0ef7d913286770a71f03d3d'),
+('81100000-0000-4000-8000-000000000007','81000000-0000-4000-8000-000000000007','{"id":"81000000-0000-4000-8000-000000000007","quoteLineId":"71000000-0000-4000-8000-000000000007","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"15000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"180000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}','c32becf2aecdfe76bf257b9be38c60e04915e3fe75d1fd400dadc210b9181dc1');
+
 insert into amendments (id, order_id, effective_on, kind, proration_method, document_id) values
 ('82000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001','2026-07-01','upgrade','daily','40000000-0000-4000-8000-000000000005');
 insert into amendment_lines (id, amendment_id, order_line_id, sku, quantity_delta, price_delta_minor) values
@@ -252,7 +263,7 @@ insert into core_usage_reconciliations (
 ('84400000-0000-4000-8000-000000000001','83000000-0000-4000-8000-000000000001','2026-01-01T00:00:00Z','2027-01-01T00:00:00Z','provisioning-demo',8,8,0,'matched');
 
 insert into pocs (id, account_id, organization_id, partner_account_id, workload, permitted_data_class, success_tests, commercial_range, capacity_cap, egress_cap, duration_days, named_keys, expires_at, support_owner_id, kickoff_at, midpoint_at, final_report_at, currency, status) values
-('85000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000002','40 TB archive migration','synthetic-only','[{"description":"Restore test","passedAt":null}]','{"minimum":{"currency":"USD","minor":"120000"},"maximum":{"currency":"USD","minor":"360000"}}',40,2,30,array['poc-demo-key'],'2026-08-15T16:00:00Z','20000000-0000-4000-8000-000000000001','2026-07-16T16:00:00Z','2026-07-31T16:00:00Z','2026-08-14T16:00:00Z','USD','active');
+('85000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000002','40 TB archive migration','synthetic-only','[{"id":"restore-test","description":"Restore test","target":"100% checksum match","passedAt":null}]','{"minimum":{"currency":"USD","minor":"120000"},"maximum":{"currency":"USD","minor":"360000"}}',40,2,30,array['poc-demo-key'],'2026-08-15T16:00:00Z','20000000-0000-4000-8000-000000000001','2026-07-16T16:00:00Z','2026-07-31T16:00:00Z','2026-08-14T16:00:00Z','USD','active');
 
 insert into invoices (id, order_id, account_id, stripe_invoice_id, currency, amount_minor, po_number, status, due_at) values
 ('90000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','in_demo_overdue','USD',180000,'PO-DEMO-001','open','2026-06-30T16:00:00Z'),
@@ -262,6 +273,26 @@ insert into invoices (id, order_id, account_id, stripe_invoice_id, currency, amo
 ('90000000-0000-4000-8000-000000000005','80000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000007','in_demo_white_label','USD',144000,'PO-WHITE-005','open','2026-08-31T16:00:00Z'),
 ('90000000-0000-4000-8000-000000000006','80000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','in_demo_marketplace','USD',156000,'PO-MARKET-006','open','2026-08-31T16:00:00Z'),
 ('90000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004',null,'USD',180000,'PO-DIRECT-007','draft','2026-08-31T16:00:00Z');
+
+do $invoice_snapshots$
+begin
+if to_regclass('public.core_invoice_document_snapshots') is not null then
+execute $seed_sql$
+insert into core_invoice_document_snapshots (
+  invoice_id, order_id, quote_id, currency, line_items, subtotal_minor,
+  tax_minor, total_minor, source_hash, source_version
+) values
+('90000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001','70000000-0000-4000-8000-000000000001','USD','[{"id":"81000000-0000-4000-8000-000000000001","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"15000"},"amount":{"currency":"USD","minorUnits":"180000"}}]',180000,0,180000,'491eb3ce605fe8f01771d4d29b6f856ff53d227967819305237a3dad1a6a193a','quote:70000000-0000-4000-8000-000000000001:r1'),
+('90000000-0000-4000-8000-000000000002','80000000-0000-4000-8000-000000000002','70000000-0000-4000-8000-000000000002','USD','[{"id":"81000000-0000-4000-8000-000000000002","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"10000"},"amount":{"currency":"USD","minorUnits":"120000"}}]',120000,0,120000,'35b92e9bd1a25f40375408fcae0c9caf6427490f44f78211dcae1f7f261ebdc9','quote:70000000-0000-4000-8000-000000000002:r1'),
+('90000000-0000-4000-8000-000000000003','80000000-0000-4000-8000-000000000003','70000000-0000-4000-8000-000000000003','EUR','[{"id":"81000000-0000-4000-8000-000000000003","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"EUR","minorUnits":"14000"},"amount":{"currency":"EUR","minorUnits":"168000"}}]',168000,0,168000,'0e45cb6e9b83bf0e967cde46730479777e4a97f7a330fe6d6b9ad010f076fdf4','quote:70000000-0000-4000-8000-000000000003:r1'),
+('90000000-0000-4000-8000-000000000004','80000000-0000-4000-8000-000000000004','70000000-0000-4000-8000-000000000004','USD','[{"id":"81000000-0000-4000-8000-000000000004","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"11000"},"amount":{"currency":"USD","minorUnits":"132000"}}]',132000,0,132000,'c186e16fa75ccd7fd128b5d1685c744d023e8e5c27a43ee2e03392f95dd2f777','quote:70000000-0000-4000-8000-000000000004:r1'),
+('90000000-0000-4000-8000-000000000005','80000000-0000-4000-8000-000000000005','70000000-0000-4000-8000-000000000005','USD','[{"id":"81000000-0000-4000-8000-000000000005","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"12000"},"amount":{"currency":"USD","minorUnits":"144000"}}]',144000,0,144000,'a14d73e1658517c430a25cba8449eb1cb36ffa28bd0f8298601de7042b5e1f0d','quote:70000000-0000-4000-8000-000000000005:r1'),
+('90000000-0000-4000-8000-000000000006','80000000-0000-4000-8000-000000000006','70000000-0000-4000-8000-000000000006','USD','[{"id":"81000000-0000-4000-8000-000000000006","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"13000"},"amount":{"currency":"USD","minorUnits":"156000"}}]',156000,0,156000,'8e346ae57431c15ecd3072ed2b7290fbae6cebc74e96767a7d47bf5fe8489b36','quote:70000000-0000-4000-8000-000000000006:r1'),
+('90000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','70000000-0000-4000-8000-000000000007','USD','[{"id":"81000000-0000-4000-8000-000000000007","description":"LOCKED-STORAGE-TB","quantity":"1","unitPrice":{"currency":"USD","minorUnits":"15000"},"amount":{"currency":"USD","minorUnits":"180000"}}]',180000,0,180000,'0306c29d720df09a7cc6bd7a0c17ec021fc5aa51312f64a66197ad3aa253281a','quote:70000000-0000-4000-8000-000000000007:r1');
+$seed_sql$;
+end if;
+end
+$invoice_snapshots$;
 
 insert into core_invoice_end_client_allocations (
   id, invoice_id, order_id, end_client_account_id, currency,
@@ -325,7 +356,8 @@ insert into lifecycle_offboarding_plans (
       'objectId','40000000-0000-4000-8000-000000000002',
       'scope','document:agreement',
       'retainUntil','2033-07-31T16:00:00.000Z',
-      'legalHold',false
+      'legalHold',false,
+      'reason','object_lock_retention'
     )),
     'deletionScheduledAt','2033-07-31T16:00:00.000Z',
     'approvals',jsonb_build_array(),

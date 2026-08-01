@@ -177,14 +177,14 @@ function normalize(
     "usageQuantity",
     "value",
   );
+  if (typeof quantityValue === "number")
+    throw new TypeError(
+      "Marketplace quantity must be a canonical decimal string; JSON numbers are not exact",
+    );
   const quantity =
     quantityValue === undefined
       ? undefined
-      : QuantitySchema.parse(
-          typeof quantityValue === "number"
-            ? String(quantityValue)
-            : quantityValue,
-        );
+      : QuantitySchema.parse(quantityValue);
   const amountMinor = minorString(
     firstValue(
       records,

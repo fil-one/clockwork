@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:39:00Z",
+  "capturedAt": "2026-08-01T13:56:29Z",
   "taskIds": [
     "core.billing.issue-invoice.v1",
     "core.billing.sync-overage.v1",
@@ -10,6 +10,15 @@
     "core.reconciliation.three-way.v1",
     "core.reconciliation.usage.v1",
     "core.reporting.export.v1",
+    "core.schedule.commission-settlement.v1",
+    "core.schedule.dispatch.v1",
+    "core.schedule.dunning.v1",
+    "core.schedule.partner-credit.v1",
+    "core.schedule.report-export-monthly.v1",
+    "core.schedule.report-export-weekly.v1",
+    "core.schedule.sync-overage.v1",
+    "core.schedule.three-way-reconciliation.v1",
+    "core.schedule.usage-reconciliation.v1",
     "lifecycle-agreements-envelope-dispatch-v1",
     "lifecycle-agreements-evidence-ingestion-v1",
     "lifecycle-agreements-signature-reminder-v1",
@@ -34,9 +43,11 @@
     "lifecycle-renewals-auto-renew-evaluation-v1",
     "lifecycle-renewals-notice-windows-v1",
     "lifecycle-renewals-term-alerts-v1",
+    "system.external-gates.activation-recovery.v1",
+    "system.external-gates.activation.v1",
     "system.outbox.dispatch.v1"
   ],
-  "taskCount": 33,
+  "taskCount": 44,
   "schedules": [
     {
       "source": "packages/workflows/src/agreements/tasks.ts",
@@ -127,14 +138,71 @@
       "id": "system.outbox.dispatch.v1",
       "cron": "* * * * *",
       "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.sync-overage.v1",
+      "cron": "15 * * * *",
+      "dispatches": "core.billing.sync-overage.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.dunning.v1",
+      "cron": "0 7 * * *",
+      "dispatches": "core.collections.dunning.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.partner-credit.v1",
+      "cron": "0 6 * * *",
+      "dispatches": "core.collections.partner-credit.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.commission-settlement.v1",
+      "cron": "0 6 1 */3 *",
+      "dispatches": "core.commissions.settle.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.usage-reconciliation.v1",
+      "cron": "30 2 * * *",
+      "dispatches": "core.reconciliation.usage.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.three-way-reconciliation.v1",
+      "cron": "0 5 1 * *",
+      "dispatches": "core.reconciliation.three-way.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.report-export-weekly.v1",
+      "cron": "0 8 * * 1",
+      "dispatches": "core.reporting.export.v1",
+      "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.report-export-monthly.v1",
+      "cron": "0 8 1 * *",
+      "dispatches": "core.reporting.export.v1",
+      "idExpression": null
     }
   ],
-  "registeredScheduleCount": 15,
+  "registeredScheduleCount": 23,
   "discovery": {
     "entrypoint": "packages/workflows/src/trigger/index.ts",
     "module": "packages/workflows/src/trigger/discovery.ts",
     "imports": [
       "../agreements/tasks",
+      "../core/scheduled-tasks",
       "../core/tasks",
       "../exceptions/tasks",
       "../migrations/tasks",
@@ -143,6 +211,7 @@
       "../pocs/tasks",
       "../provisioning/tasks",
       "../renewals/tasks",
+      "../system/gate-activation-tasks",
       "../system/tasks"
     ]
   },
@@ -170,13 +239,55 @@
       "provider.stripe.charge.dispute.updated",
       "provider.stripe.credit_note.created",
       "provider.stripe.credit_note.updated",
+      "provider.stripe.credit_note.voided",
       "provider.stripe.invoice.paid",
       "provider.stripe.invoice.payment_succeeded",
       "provider.stripe.invoice_payment.paid",
       "provider.stripe.payment_intent.succeeded",
-      "provider.stripe.refund.created",
       "provider.stripe.refund.updated"
     ],
+    "stripeAdjustmentTopics": [
+      "core.credit_notes.issue",
+      "core.refunds.submit"
+    ],
+    "experienceMappedTopics": [
+      "core.accounts.add_contact",
+      "core.accounts.add_role",
+      "core.accounts.create",
+      "core.accounts.set_partner_credit",
+      "core.accounts.set_payment_terms",
+      "core.accounts.update",
+      "core.amendments.accept",
+      "core.amendments.apply",
+      "core.amendments.create",
+      "core.amendments.prepare_artifact",
+      "core.invoices.consolidate",
+      "core.invoices.create",
+      "core.invoices.evaluate_dunning",
+      "core.invoices.issue",
+      "core.invoices.mark_uncollectible",
+      "core.invoices.open",
+      "core.invoices.pay",
+      "core.invoices.void",
+      "core.orders.create",
+      "core.orders.prepare_artifact",
+      "core.quotes.accept",
+      "core.quotes.approve_exception",
+      "core.quotes.create",
+      "core.quotes.expire",
+      "core.quotes.issue",
+      "core.quotes.prepare_artifact",
+      "core.quotes.price",
+      "core.quotes.reject_exception",
+      "core.quotes.revise",
+      "experience.projection.materialized",
+      "experience.projection_action.applied",
+      "experience.projection_action.failed",
+      "experience.projection_action.queued",
+      "experience.projection_action.rejected",
+      "experience.projection_action.retry_released"
+    ],
+    "scheduledTopics": ["core.schedule.dispatch.v1"],
     "productionCompositionTopics": [
       "organization.created",
       "termination.deletion_certificate_requested",
@@ -191,10 +302,47 @@
       "agreement.envelope_completed",
       "agreement.envelope_created",
       "commerce.commercial_artifact_requested",
+      "core.accounts.add_contact",
+      "core.accounts.add_role",
+      "core.accounts.create",
+      "core.accounts.set_partner_credit",
+      "core.accounts.set_payment_terms",
+      "core.accounts.update",
+      "core.amendments.accept",
+      "core.amendments.apply",
+      "core.amendments.create",
+      "core.amendments.prepare_artifact",
       "core.commission_statement.generated",
+      "core.credit_notes.issue",
       "core.invoice.draft_ready",
+      "core.invoices.consolidate",
       "core.invoices.create",
+      "core.invoices.evaluate_dunning",
+      "core.invoices.issue",
+      "core.invoices.mark_uncollectible",
+      "core.invoices.open",
+      "core.invoices.pay",
+      "core.invoices.void",
+      "core.orders.create",
+      "core.orders.prepare_artifact",
+      "core.quotes.accept",
+      "core.quotes.approve_exception",
+      "core.quotes.create",
+      "core.quotes.expire",
+      "core.quotes.issue",
+      "core.quotes.prepare_artifact",
+      "core.quotes.price",
+      "core.quotes.reject_exception",
+      "core.quotes.revise",
+      "core.refunds.submit",
+      "core.schedule.dispatch.v1",
       "exception_case.decided",
+      "experience.projection.materialized",
+      "experience.projection_action.applied",
+      "experience.projection_action.failed",
+      "experience.projection_action.queued",
+      "experience.projection_action.rejected",
+      "experience.projection_action.retry_released",
       "migration.review_required",
       "migration.started",
       "order.provisioning_confirmed",
@@ -206,23 +354,168 @@
       "provider.stripe.charge.dispute.updated",
       "provider.stripe.credit_note.created",
       "provider.stripe.credit_note.updated",
+      "provider.stripe.credit_note.voided",
       "provider.stripe.invoice.paid",
       "provider.stripe.invoice.payment_succeeded",
       "provider.stripe.invoice_payment.paid",
       "provider.stripe.payment_intent.succeeded",
-      "provider.stripe.refund.created",
       "provider.stripe.refund.updated",
       "termination.approved",
       "termination.deletion_certificate_requested",
       "termination.teardown_confirmed"
     ],
-    "staticallyComposableTopicCount": 27,
-    "handlerContributionCount": 28,
-    "overlappingTopics": ["order.provisioning_confirmed"],
+    "staticallyComposableTopicCount": 64,
+    "handlerContributionCount": 66,
+    "handlerSources": [
+      {
+        "category": "lifecycle",
+        "source": "packages/workflows/src/system/lifecycle-task-dispatch.ts",
+        "topics": [
+          "agreement.envelope_completed",
+          "agreement.envelope_created",
+          "exception_case.decided",
+          "migration.review_required",
+          "migration.started",
+          "order.provisioning_confirmed",
+          "order.provisioning_requested",
+          "poc.converted",
+          "termination.approved",
+          "termination.teardown_confirmed"
+        ]
+      },
+      {
+        "category": "core",
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "topics": [
+          "core.commission_statement.generated",
+          "core.invoice.draft_ready",
+          "core.invoices.create",
+          "order.provisioning_confirmed",
+          "provider.stripe.charge.dispute.closed",
+          "provider.stripe.charge.dispute.created",
+          "provider.stripe.charge.dispute.updated",
+          "provider.stripe.credit_note.created",
+          "provider.stripe.credit_note.updated",
+          "provider.stripe.credit_note.voided",
+          "provider.stripe.invoice.paid",
+          "provider.stripe.invoice.payment_succeeded",
+          "provider.stripe.invoice_payment.paid",
+          "provider.stripe.payment_intent.succeeded",
+          "provider.stripe.refund.updated"
+        ]
+      },
+      {
+        "category": "stripe-adjustments",
+        "source": "packages/workflows/src/core/stripe-adjustment-handler.ts",
+        "topics": ["core.credit_notes.issue", "core.refunds.submit"]
+      },
+      {
+        "category": "experience-portal-action",
+        "source": "packages/workflows/src/experience/portal-action-handler.ts",
+        "topics": ["experience.projection_action.queued"]
+      },
+      {
+        "category": "experience-projections",
+        "source": "packages/workflows/src/experience/projection-definitions.ts",
+        "topics": [
+          "core.accounts.create",
+          "core.accounts.update",
+          "core.accounts.add_role",
+          "core.accounts.add_contact",
+          "core.accounts.set_payment_terms",
+          "core.accounts.set_partner_credit",
+          "core.quotes.create",
+          "core.quotes.price",
+          "core.quotes.approve_exception",
+          "core.quotes.reject_exception",
+          "core.quotes.prepare_artifact",
+          "core.quotes.issue",
+          "core.quotes.expire",
+          "core.quotes.accept",
+          "core.quotes.revise",
+          "core.orders.prepare_artifact",
+          "core.orders.create",
+          "core.amendments.prepare_artifact",
+          "core.amendments.create",
+          "core.amendments.accept",
+          "core.amendments.apply",
+          "core.invoices.create",
+          "core.invoices.issue",
+          "core.invoices.open",
+          "core.invoices.pay",
+          "core.invoices.void",
+          "core.invoices.mark_uncollectible",
+          "core.invoices.consolidate",
+          "core.invoices.evaluate_dunning"
+        ]
+      },
+      {
+        "category": "experience-acknowledgements",
+        "source": "packages/workflows/src/experience/production-handlers.ts",
+        "topics": [
+          "experience.projection_action.applied",
+          "experience.projection_action.rejected",
+          "experience.projection_action.failed",
+          "experience.projection_action.retry_released",
+          "experience.projection.materialized"
+        ]
+      },
+      {
+        "category": "scheduled-dispatch",
+        "source": "packages/workflows/src/runtime/production-adapter-factory.ts",
+        "topics": ["core.schedule.dispatch.v1"]
+      },
+      {
+        "category": "runtime-composition",
+        "source": "packages/workflows/src/runtime/production.ts",
+        "topics": [
+          "organization.created",
+          "termination.deletion_certificate_requested",
+          "commerce.commercial_artifact_requested"
+        ]
+      }
+    ],
+    "overlappingTopics": [
+      {
+        "topic": "core.invoices.create",
+        "sources": [
+          {
+            "category": "core",
+            "source": "packages/workflows/src/core/outbox-handlers.ts",
+            "topic": "core.invoices.create"
+          },
+          {
+            "category": "experience-projections",
+            "source": "packages/workflows/src/experience/projection-definitions.ts",
+            "topic": "core.invoices.create"
+          }
+        ]
+      },
+      {
+        "topic": "order.provisioning_confirmed",
+        "sources": [
+          {
+            "category": "lifecycle",
+            "source": "packages/workflows/src/system/lifecycle-task-dispatch.ts",
+            "topic": "order.provisioning_confirmed"
+          },
+          {
+            "category": "core",
+            "source": "packages/workflows/src/core/outbox-handlers.ts",
+            "topic": "order.provisioning_confirmed"
+          }
+        ]
+      }
+    ],
     "sources": [
-      "packages/workflows/src/system/lifecycle-task-dispatch.ts",
       "packages/workflows/src/core/outbox-handlers.ts",
-      "packages/workflows/src/runtime/production.ts"
+      "packages/workflows/src/core/stripe-adjustment-handler.ts",
+      "packages/workflows/src/experience/portal-action-handler.ts",
+      "packages/workflows/src/experience/production-handlers.ts",
+      "packages/workflows/src/experience/projection-definitions.ts",
+      "packages/workflows/src/runtime/production-adapter-factory.ts",
+      "packages/workflows/src/runtime/production.ts",
+      "packages/workflows/src/system/lifecycle-task-dispatch.ts"
     ]
   },
   "coreDispatchPlan": {
@@ -233,7 +526,8 @@
         "eventsExpression": "invoiceDraftTopics",
         "schedules": [],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": false,
+        "registeredScheduleIds": []
       },
       {
         "taskId": "core.billing.sync-overage.v1",
@@ -241,7 +535,8 @@
         "eventsExpression": "[\"core.commitment.period_closed\"]",
         "schedules": ["15 * * * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.sync-overage.v1"]
       },
       {
         "taskId": "core.collections.dunning.v1",
@@ -249,23 +544,26 @@
         "eventsExpression": "[\"provider.stripe.invoice.payment_failed\"]",
         "schedules": ["0 7 * * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.dunning.v1"]
       },
       {
         "taskId": "core.collections.partner-credit.v1",
         "events": ["core.orders.create"],
         "eventsExpression": "[\"core.orders.create\"]",
-        "schedules": [],
+        "schedules": ["0 6 * * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.partner-credit.v1"]
       },
       {
         "taskId": "core.commissions.settle.v1",
-        "events": [],
+        "events": ["core.commission_statement.generated"],
         "eventsExpression": "[commissionStatementTopic]",
         "schedules": ["0 6 1 */3 *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.commission-settlement.v1"]
       },
       {
         "taskId": "core.reconciliation.usage.v1",
@@ -273,7 +571,8 @@
         "eventsExpression": "[\"provider.usage.period_closed\"]",
         "schedules": ["30 2 * * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.usage-reconciliation.v1"]
       },
       {
         "taskId": "core.reconciliation.three-way.v1",
@@ -281,7 +580,8 @@
         "eventsExpression": "[\"provider.accounting.period_closed\"]",
         "schedules": ["0 5 1 * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": ["core.schedule.three-way-reconciliation.v1"]
       },
       {
         "taskId": "core.reporting.export.v1",
@@ -289,15 +589,22 @@
         "eventsExpression": "[\"core.reports.create\"]",
         "schedules": ["0 8 * * 1", "0 8 1 * *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
-        "registeredTriggerSchedule": false
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": [
+          "core.schedule.report-export-weekly.v1",
+          "core.schedule.report-export-monthly.v1"
+        ]
       }
     ],
     "taskCount": 8,
-    "scheduleIntentCount": 7,
-    "registeredTriggerScheduleCount": 0
+    "scheduleIntentCount": 8,
+    "registeredTriggerScheduleCount": 8
   },
-  "knownGaps": [
-    "Six core operations have seven schedule intents in the dispatch plan but no registered Trigger schedules.",
-    "Twenty-four lifecycle task IDs still require authoritative planner/state/provider execution per backlog."
-  ]
+  "lifecycleExecution": {
+    "source": "packages/workflows/src/runtime/provider-lifecycle.ts",
+    "taskCount": 24,
+    "authoritativeExecutionSpecCount": 24,
+    "missingTaskIds": []
+  },
+  "knownGaps": []
 }

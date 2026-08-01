@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@clockwork/ui";
 
-import { sendProjectionAction } from "@/src/features/contracts/experience-client";
+import {
+  readProjectionAction,
+  sendProjectionAction,
+} from "@/src/features/contracts/experience-client";
 
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { canRunProjectionAction } from "./projection-authorization";
@@ -61,9 +64,25 @@ export function ProjectionActionButtons({
               },
               { idempotencyKey },
             )
-              .then(() => {
+              .then(async (queued) => {
                 setMessage(`${action.replaceAll("_", " ")} queued`);
-                router.refresh();
+                for (let attempt = 0; attempt < 15; attempt += 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 1_000));
+                  const receipt = await readProjectionAction({
+                    audience,
+                    channel,
+                    recordKey,
+                    actionRequestId: queued.id,
+                  });
+                  if (receipt.status === "queued") continue;
+                  setMessage(
+                    receipt.status === "applied"
+                      ? `${action.replaceAll("_", " ")} applied at authoritative version ${receipt.authoritativeVersion ?? "unknown"}`
+                      : `${action.replaceAll("_", " ")} ${receipt.status}: ${receipt.resultCode ?? "AUTHORITATIVE_COMMAND_REJECTED"}`,
+                  );
+                  router.refresh();
+                  return;
+                }
               })
               .catch((error: unknown) => {
                 setMessage(

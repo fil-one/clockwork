@@ -63,6 +63,8 @@ function app(input: {
   accountIds?: readonly string[];
   role?: "owner" | "member" | "internal_operator";
   webhook?: LifecycleRouteDependencies["esignWebhook"];
+  marketplaceWebhook?: LifecycleRouteDependencies["marketplaceWebhook"];
+  supportWebhook?: LifecycleRouteDependencies["supportWebhook"];
   registrationBootstrap?: LifecycleRouteDependencies["registrationBootstrap"];
   partnerDomainOwnership?: LifecycleRouteDependencies["partnerDomainOwnership"];
   authorizationScopes?: LifecycleAuthorizationScopeResolver;
@@ -70,7 +72,10 @@ function app(input: {
   const app = new OpenAPIHono<{ Variables: ApiVariables }>();
   app.onError((error, context) => {
     if (error instanceof ProblemError)
-      return context.json(error.problem, error.problem.status as 403 | 503);
+      return context.json(
+        error.problem,
+        error.problem.status as 403 | 422 | 503,
+      );
     return context.json({ title: error.message, status: 500 }, 500);
   });
   app.use("*", requestContextMiddleware);
@@ -92,6 +97,10 @@ function app(input: {
   registerLifecycleRoutes(app, {
     service: input.service,
     ...(input.webhook ? { esignWebhook: input.webhook } : {}),
+    ...(input.marketplaceWebhook
+      ? { marketplaceWebhook: input.marketplaceWebhook }
+      : {}),
+    ...(input.supportWebhook ? { supportWebhook: input.supportWebhook } : {}),
     ...(input.registrationBootstrap
       ? { registrationBootstrap: input.registrationBootstrap }
       : {}),
@@ -113,6 +122,37 @@ const mutationHeaders = {
 };
 
 describe("lifecycle API authorization and evidence", () => {
+  it("rejects a whitespace-only POC success-test target at the API boundary", async () => {
+    const createPoc = vi.fn();
+    const response = await app({ service: service({ createPoc }) }).request(
+      "/v1/lifecycle/pocs",
+      {
+        method: "POST",
+        headers: mutationHeaders,
+        body: JSON.stringify({
+          accountId,
+          partnerAccountId: null,
+          workload: "Restore validation workload",
+          buyerUserId: userId,
+          permittedDataClass: "synthetic",
+          successTests: [
+            {
+              id: "restore",
+              description: "Restore succeeds",
+              target: "   ",
+            },
+          ],
+          capacityCap: "40",
+          egressCap: "2",
+          expiresAt: "2026-08-31T16:00:00.000Z",
+          supportOwnerId: userId,
+        }),
+      },
+    );
+    expect(response.status).toBe(400);
+    expect(createPoc).not.toHaveBeenCalled();
+  });
+
   it("fails closed without server-observed domain proof and injects verified evidence", async () => {
     const verifyPartnerDomain = vi
       .fn()
@@ -580,5 +620,218 @@ describe("e-sign webhook boundary", () => {
       }),
     );
     expect(ingestSignatureEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("marketplace webhook boundary", () => {
+  it("binds the provider path before claiming and sends the canonical payload", async () => {
+    const payload = {
+      type: "entitlement.activated",
+      eventId: "mp-event-1",
+      provider: "aws",
+      providerAccountReference: "seller-1",
+      accountId,
+      orderId: "50000000-0000-4000-8000-000000000001",
+      entitlementId: "60000000-0000-4000-8000-000000000001",
+      occurredAt: "2026-07-31T16:00:00.000Z",
+      currency: null,
+      grossMinor: null,
+      feeMinor: null,
+      taxMinor: null,
+      netMinor: null,
+      quantity: "5",
+      sequence: 1,
+    };
+    const verifier = {
+      verify: vi.fn().mockResolvedValue({
+        eventId: payload.eventId,
+        occurredAt: payload.occurredAt,
+        payload,
+      }),
+    };
+    const deduplicator = {
+      claim: vi.fn().mockResolvedValue({
+        status: "claimed" as const,
+        claimToken: "claim-1",
+      }),
+      markProcessed: vi.fn(),
+      markFailed: vi.fn(),
+    };
+    const ingestMarketplaceEvent = vi
+      .fn()
+      .mockResolvedValue({ id: payload.eventId, status: "processed" });
+    const lifecycleService = service({ ingestMarketplaceEvent });
+    const configured = app({
+      service: lifecycleService,
+      marketplaceWebhook: { verifier, deduplicator },
+    });
+    const request = (provider: string) =>
+      configured.request(`/v1/webhooks/marketplaces/${provider}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "marketplace-signature": "valid-signature",
+        },
+        body: JSON.stringify({ provider }),
+      });
+
+    const mismatch = await request("azure");
+    expect(mismatch.status).toBe(422);
+    await expect(mismatch.json()).resolves.toMatchObject({
+      code: "MARKETPLACE_PROVIDER_MISMATCH",
+    });
+    expect(deduplicator.claim).not.toHaveBeenCalled();
+
+    const response = await request("aws");
+    expect(response.status).toBe(200);
+    expect(deduplicator.claim).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "marketplace:aws" }),
+    );
+    expect(ingestMarketplaceEvent).toHaveBeenCalledWith(
+      payload,
+      expect.objectContaining({
+        actor: { kind: "provider", id: "marketplace:aws" },
+      }),
+    );
+    expect(deduplicator.markProcessed).toHaveBeenCalledWith(
+      "marketplace:aws",
+      payload.eventId,
+      "claim-1",
+    );
+  });
+
+  it.each([
+    ["money overflow", { grossMinor: "9223372036854775808" }],
+    ["negative quantity", { quantity: "-1" }],
+    ["exponent quantity", { quantity: "1e3" }],
+    ["over-precision quantity", { quantity: "0.0000000000000000001" }],
+  ])(
+    "rejects %s before claiming or calling persistence",
+    async (_label, override) => {
+      const payload = {
+        type: "entitlement.activated",
+        eventId: "mp-event-invalid-1",
+        provider: "aws" as const,
+        providerAccountReference: "seller-1",
+        accountId,
+        orderId: "50000000-0000-4000-8000-000000000001",
+        entitlementId: "60000000-0000-4000-8000-000000000001",
+        occurredAt: "2026-07-31T16:00:00.000Z",
+        currency: "USD" as const,
+        grossMinor: "1",
+        feeMinor: "0",
+        taxMinor: "0",
+        netMinor: "1",
+        quantity: "5",
+        sequence: 1,
+        ...override,
+      };
+      const verifier = {
+        verify: vi.fn().mockResolvedValue({
+          eventId: payload.eventId,
+          occurredAt: payload.occurredAt,
+          payload,
+        }),
+      };
+      const deduplicator = {
+        claim: vi.fn(),
+        markProcessed: vi.fn(),
+        markFailed: vi.fn(),
+      };
+      const ingestMarketplaceEvent = vi.fn();
+      const configured = app({
+        service: service({ ingestMarketplaceEvent }),
+        marketplaceWebhook: { verifier, deduplicator },
+      });
+
+      const response = await configured.request(
+        "/v1/webhooks/marketplaces/aws",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "marketplace-signature": "valid-signature",
+          },
+          body: JSON.stringify({ provider: "aws" }),
+        },
+      );
+
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "MARKETPLACE_PAYLOAD_INVALID",
+        status: 422,
+      });
+      expect(deduplicator.claim).not.toHaveBeenCalled();
+      expect(ingestMarketplaceEvent).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("support webhook boundary", () => {
+  it("records only verified metadata and binds the provider path before claim", async () => {
+    const payload = {
+      type: "support.signal.updated",
+      eventId: "support-event-1",
+      provider: "zendesk",
+      accountId,
+      externalSignalId: "ticket-1",
+      sequence: 2,
+      severity: "high",
+      category: "provisioning",
+      status: "open",
+      occurredAt: "2026-08-01T12:00:00.000Z",
+    };
+    const verifier = {
+      verify: vi.fn().mockResolvedValue({
+        eventId: payload.eventId,
+        occurredAt: payload.occurredAt,
+        payload,
+      }),
+    };
+    const deduplicator = {
+      claim: vi.fn().mockResolvedValue({
+        status: "claimed" as const,
+        claimToken: "support-claim-1",
+      }),
+      markProcessed: vi.fn(),
+      markFailed: vi.fn(),
+    };
+    const listSupportSignals =
+      vi.fn<LifecycleRouteService["listSupportSignals"]>();
+    const lifecycleService = service({ listSupportSignals });
+    const configured = app({
+      service: lifecycleService,
+      supportWebhook: { verifier, deduplicator },
+    });
+    const request = (provider: string) =>
+      configured.request(`/v1/webhooks/support/${provider}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "support-signature": "valid-signature",
+        },
+        body: JSON.stringify({ provider, summary: "must-not-persist" }),
+      });
+
+    const mismatched = await request("freshdesk");
+    expect(mismatched.status).toBe(422);
+    await expect(mismatched.json()).resolves.toMatchObject({
+      code: "SUPPORT_PROVIDER_MISMATCH",
+      status: 422,
+    });
+    expect(deduplicator.claim).not.toHaveBeenCalled();
+    expect((await request("zendesk")).status).toBe(200);
+    expect(deduplicator.claim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "support:zendesk",
+        payload,
+      }),
+    );
+    expect(deduplicator.markProcessed).toHaveBeenCalledWith(
+      "support:zendesk",
+      payload.eventId,
+      "support-claim-1",
+    );
+    expect(listSupportSignals).not.toHaveBeenCalled();
   });
 });

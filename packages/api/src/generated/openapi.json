@@ -6,7 +6,14 @@
   },
   "components": {
     "schemas": {},
-    "parameters": {}
+    "parameters": {},
+    "securitySchemes": {
+      "experienceSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "workos-session"
+      }
+    }
   },
   "paths": {
     "/v1/core/status": {
@@ -921,6 +928,13 @@
                             "missing"
                           ]
                         },
+                        "supportWebhook": {
+                          "type": "string",
+                          "enum": [
+                            "configured",
+                            "missing"
+                          ]
+                        },
                         "evidenceStorage": {
                           "type": "string",
                           "enum": [
@@ -936,6 +950,7 @@
                         "esign",
                         "provisioningWebhook",
                         "marketplaceWebhook",
+                        "supportWebhook",
                         "evidenceStorage"
                       ]
                     }
@@ -2378,7 +2393,7 @@
         }
       }
     },
-    "/v1/webhooks/marketplaces-platform": {
+    "/v1/webhooks/marketplaces/{provider}": {
       "post": {
         "tags": [
           "lifecycle",
@@ -2386,6 +2401,19 @@
           "marketplaces"
         ],
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "aws",
+                "azure",
+                "google"
+              ]
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          },
           {
             "schema": {
               "type": "string",
@@ -2431,6 +2459,75 @@
           },
           "503": {
             "description": "Marketplace webhook adapter unavailable or busy"
+          }
+        }
+      }
+    },
+    "/v1/webhooks/support/{provider}": {
+      "post": {
+        "tags": [
+          "lifecycle",
+          "webhooks",
+          "support"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,39}$"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "support-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified support signal metadata recorded or deduplicated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "processed",
+                        "duplicate"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Verified support provider does not match the path"
+          },
+          "503": {
+            "description": "Support webhook adapter unavailable or busy"
           }
         }
       }
@@ -2593,11 +2690,16 @@
                         },
                         "description": {
                           "type": "string"
+                        },
+                        "target": {
+                          "type": "string",
+                          "minLength": 1
                         }
                       },
                       "required": [
                         "id",
-                        "description"
+                        "description",
+                        "target"
                       ]
                     },
                     "minItems": 1
@@ -4427,6 +4529,14 @@
                             "type": "string",
                             "minLength": 1
                           },
+                          "inputProvenance": {
+                            "type": "string",
+                            "enum": [
+                              "unverified",
+                              "repository_fixture",
+                              "live_signed"
+                            ]
+                          },
                           "lastActivationTestStatus": {
                             "type": "string",
                             "enum": [
@@ -4457,6 +4567,26 @@
                           },
                           "statusReason": {
                             "type": "string",
+                            "minLength": 1
+                          },
+                          "emergencyDisabledAt": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "emergencyDisabledBy": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 1
+                          },
+                          "emergencyDisableReason": {
+                            "type": "string",
+                            "nullable": true,
+                            "minLength": 8
+                          },
+                          "emergencyDisableEvidenceReference": {
+                            "type": "string",
+                            "nullable": true,
                             "minLength": 1
                           },
                           "activationAllowed": {
@@ -4490,12 +4620,17 @@
                           "effectiveStatus",
                           "simulatorState",
                           "simulatorDetails",
+                          "inputProvenance",
                           "lastActivationTestStatus",
                           "lastActivationTestAt",
                           "lastActivationTestedBy",
                           "activationEvidenceReference",
                           "reviewOn",
                           "statusReason",
+                          "emergencyDisabledAt",
+                          "emergencyDisabledBy",
+                          "emergencyDisableReason",
+                          "emergencyDisableEvidenceReference",
                           "activationAllowed",
                           "blockedReasons",
                           "rowVersion",
@@ -4697,6 +4832,14 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "inputProvenance": {
+                      "type": "string",
+                      "enum": [
+                        "unverified",
+                        "repository_fixture",
+                        "live_signed"
+                      ]
+                    },
                     "lastActivationTestStatus": {
                       "type": "string",
                       "enum": [
@@ -4727,6 +4870,26 @@
                     },
                     "statusReason": {
                       "type": "string",
+                      "minLength": 1
+                    },
+                    "emergencyDisabledAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "emergencyDisabledBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "emergencyDisableReason": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 8
+                    },
+                    "emergencyDisableEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
                       "minLength": 1
                     },
                     "activationAllowed": {
@@ -4760,12 +4923,17 @@
                     "effectiveStatus",
                     "simulatorState",
                     "simulatorDetails",
+                    "inputProvenance",
                     "lastActivationTestStatus",
                     "lastActivationTestAt",
                     "lastActivationTestedBy",
                     "activationEvidenceReference",
                     "reviewOn",
                     "statusReason",
+                    "emergencyDisabledAt",
+                    "emergencyDisabledBy",
+                    "emergencyDisableReason",
+                    "emergencyDisableEvidenceReference",
                     "activationAllowed",
                     "blockedReasons",
                     "rowVersion",
@@ -4935,6 +5103,14 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "inputProvenance": {
+                      "type": "string",
+                      "enum": [
+                        "unverified",
+                        "repository_fixture",
+                        "live_signed"
+                      ]
+                    },
                     "lastActivationTestStatus": {
                       "type": "string",
                       "enum": [
@@ -4965,6 +5141,26 @@
                     },
                     "statusReason": {
                       "type": "string",
+                      "minLength": 1
+                    },
+                    "emergencyDisabledAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "emergencyDisabledBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "emergencyDisableReason": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 8
+                    },
+                    "emergencyDisableEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
                       "minLength": 1
                     },
                     "activationAllowed": {
@@ -4998,12 +5194,17 @@
                     "effectiveStatus",
                     "simulatorState",
                     "simulatorDetails",
+                    "inputProvenance",
                     "lastActivationTestStatus",
                     "lastActivationTestAt",
                     "lastActivationTestedBy",
                     "activationEvidenceReference",
                     "reviewOn",
                     "statusReason",
+                    "emergencyDisabledAt",
+                    "emergencyDisabledBy",
+                    "emergencyDisableReason",
+                    "emergencyDisableEvidenceReference",
                     "activationAllowed",
                     "blockedReasons",
                     "rowVersion",
@@ -5025,6 +5226,893 @@
           },
           "503": {
             "description": "Activation-test runner or persistence unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/external-gates/{gateKey}/emergency-state": {
+      "put": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EXT-ACC-01",
+                "EXT-LEGAL-01",
+                "EXT-COMMERCIAL-01",
+                "EXT-PROVIDER-01",
+                "EXT-PROVISION-01",
+                "EXT-TAX-01",
+                "EXT-DOMAIN-01",
+                "EXT-BRAND-01",
+                "EXT-APPROVERS-01",
+                "EXT-TEARDOWN-01",
+                "EXT-MARKETPLACE-01",
+                "EXT-MIGRATION-01"
+              ]
+            },
+            "required": true,
+            "name": "gateKey",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRowVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "disabled": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 2000
+                  },
+                  "evidenceReference": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "expectedRowVersion",
+                  "disabled",
+                  "reason",
+                  "evidenceReference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "External gate emergency disable or restore recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "gateKey": {
+                      "type": "string",
+                      "enum": [
+                        "EXT-ACC-01",
+                        "EXT-LEGAL-01",
+                        "EXT-COMMERCIAL-01",
+                        "EXT-PROVIDER-01",
+                        "EXT-PROVISION-01",
+                        "EXT-TAX-01",
+                        "EXT-DOMAIN-01",
+                        "EXT-BRAND-01",
+                        "EXT-APPROVERS-01",
+                        "EXT-TEARDOWN-01",
+                        "EXT-MARKETPLACE-01",
+                        "EXT-MIGRATION-01"
+                      ]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "owner": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "inputRequired": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "affectedFeature": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "severity": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "configuredStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "effectiveStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "review",
+                        "pending",
+                        "active",
+                        "not_required"
+                      ]
+                    },
+                    "simulatorState": {
+                      "type": "string",
+                      "enum": [
+                        "ready",
+                        "degraded",
+                        "unavailable"
+                      ]
+                    },
+                    "simulatorDetails": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "inputProvenance": {
+                      "type": "string",
+                      "enum": [
+                        "unverified",
+                        "repository_fixture",
+                        "live_signed"
+                      ]
+                    },
+                    "lastActivationTestStatus": {
+                      "type": "string",
+                      "enum": [
+                        "never",
+                        "passed",
+                        "failed"
+                      ]
+                    },
+                    "lastActivationTestAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "lastActivationTestedBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "activationEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "reviewOn": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date"
+                    },
+                    "statusReason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "emergencyDisabledAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "emergencyDisabledBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "emergencyDisableReason": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 8
+                    },
+                    "emergencyDisableEvidenceReference": {
+                      "type": "string",
+                      "nullable": true,
+                      "minLength": 1
+                    },
+                    "activationAllowed": {
+                      "type": "boolean"
+                    },
+                    "blockedReasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "gateKey",
+                    "title",
+                    "owner",
+                    "inputRequired",
+                    "affectedFeature",
+                    "severity",
+                    "configuredStatus",
+                    "effectiveStatus",
+                    "simulatorState",
+                    "simulatorDetails",
+                    "inputProvenance",
+                    "lastActivationTestStatus",
+                    "lastActivationTestAt",
+                    "lastActivationTestedBy",
+                    "activationEvidenceReference",
+                    "reviewOn",
+                    "statusReason",
+                    "emergencyDisabledAt",
+                    "emergencyDisabledBy",
+                    "emergencyDisableReason",
+                    "emergencyDisableEvidenceReference",
+                    "activationAllowed",
+                    "blockedReasons",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "404": {
+            "description": "Gate not found"
+          },
+          "409": {
+            "description": "Optimistic row-version conflict"
+          },
+          "422": {
+            "description": "Emergency control policy denied the update"
+          },
+          "503": {
+            "description": "Persistent external-gate service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/external-gates/{gateKey}/activation-tasks": {
+      "post": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EXT-ACC-01",
+                "EXT-LEGAL-01",
+                "EXT-COMMERCIAL-01",
+                "EXT-PROVIDER-01",
+                "EXT-PROVISION-01",
+                "EXT-TAX-01",
+                "EXT-DOMAIN-01",
+                "EXT-BRAND-01",
+                "EXT-APPROVERS-01",
+                "EXT-TEARDOWN-01",
+                "EXT-MARKETPLACE-01",
+                "EXT-MIGRATION-01"
+              ]
+            },
+            "required": true,
+            "name": "gateKey",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRowVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "taskKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 255
+                  },
+                  "provider": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+                  }
+                },
+                "required": [
+                  "expectedRowVersion",
+                  "taskKey",
+                  "provider"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable external-gate activation task accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 255
+                    },
+                    "taskKey": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 255
+                    },
+                    "gateKey": {
+                      "type": "string",
+                      "enum": [
+                        "EXT-ACC-01",
+                        "EXT-LEGAL-01",
+                        "EXT-COMMERCIAL-01",
+                        "EXT-PROVIDER-01",
+                        "EXT-PROVISION-01",
+                        "EXT-TAX-01",
+                        "EXT-DOMAIN-01",
+                        "EXT-BRAND-01",
+                        "EXT-APPROVERS-01",
+                        "EXT-TEARDOWN-01",
+                        "EXT-MARKETPLACE-01",
+                        "EXT-MIGRATION-01"
+                      ]
+                    },
+                    "provider": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+                    },
+                    "expectedGateRowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued",
+                        "duplicate"
+                      ]
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "runId",
+                    "taskKey",
+                    "gateKey",
+                    "provider",
+                    "expectedGateRowVersion",
+                    "status",
+                    "submittedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "404": {
+            "description": "Gate not found"
+          },
+          "409": {
+            "description": "Optimistic gate-version or idempotency conflict"
+          },
+          "503": {
+            "description": "Durable activation scheduler unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/exception-roster/{rosterEntryId}": {
+      "put": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "rosterEntryId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRowVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "queue": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "primary",
+                      "backup",
+                      "escalation"
+                    ]
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "qualificationEvidenceReference": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 512
+                  },
+                  "qualifiedUntil": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "absentFrom": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "absentUntil": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "date-time"
+                  },
+                  "targetMinutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 43200
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [
+                  "expectedRowVersion",
+                  "accountId",
+                  "queue",
+                  "userId",
+                  "role",
+                  "active",
+                  "qualificationEvidenceReference",
+                  "qualifiedUntil",
+                  "absentFrom",
+                  "absentUntil",
+                  "targetMinutes",
+                  "priority"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing exception-roster assignment updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "queue": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "primary",
+                        "backup",
+                        "escalation"
+                      ]
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "qualificationEvidenceReference": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "qualifiedUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "absentFrom": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "absentUntil": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "targetMinutes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 43200
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "queue",
+                    "userId",
+                    "role",
+                    "active",
+                    "qualificationEvidenceReference",
+                    "qualifiedUntil",
+                    "absentFrom",
+                    "absentUntil",
+                    "targetMinutes",
+                    "priority",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Exception-roster assignment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "queue": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "primary",
+                        "backup",
+                        "escalation"
+                      ]
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "qualificationEvidenceReference": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "qualifiedUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "absentFrom": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "absentUntil": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    },
+                    "targetMinutes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 43200
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "queue",
+                    "userId",
+                    "role",
+                    "active",
+                    "qualificationEvidenceReference",
+                    "qualifiedUntil",
+                    "absentFrom",
+                    "absentUntil",
+                    "targetMinutes",
+                    "priority",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "409": {
+            "description": "Optimistic row-version conflict"
+          },
+          "422": {
+            "description": "Roster eligibility or assignment policy failed"
+          },
+          "503": {
+            "description": "Persistent exception-roster service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/system/exception-cases/{caseId}/reassign": {
+      "post": {
+        "tags": [
+          "system",
+          "operations"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "caseId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestedBy": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "requestedBy",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Open exception case reassigned from the persisted roster",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "queue": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ownerUserId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "backupUserId": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "targetAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "accountId",
+                    "queue",
+                    "status",
+                    "ownerUserId",
+                    "backupUserId",
+                    "targetAt",
+                    "rowVersion",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operator permission or recent authentication failed"
+          },
+          "404": {
+            "description": "Exception case not found"
+          },
+          "409": {
+            "description": "Optimistic reassignment conflict"
+          },
+          "422": {
+            "description": "Roster or open-case policy denied reassignment"
+          },
+          "503": {
+            "description": "Persistent exception-roster service unavailable"
           }
         }
       }
@@ -5081,6 +6169,2769 @@
           },
           "503": {
             "description": "Webhook adapter is not configured"
+          }
+        }
+      }
+    },
+    "/api/experience/projections/{audience}/{channel}": {
+      "get": {
+        "operationId": "listExperienceProjections",
+        "summary": "List authoritative portal projections",
+        "tags": [
+          "Experience projections"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "audience",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "partner",
+                "internal"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "dashboard",
+                "agreements",
+                "quotes",
+                "orders",
+                "services",
+                "pocs",
+                "billing",
+                "amendments",
+                "procurement",
+                "users",
+                "marketplace",
+                "support",
+                "portfolio",
+                "registrations",
+                "disputes",
+                "commissions",
+                "renewals",
+                "sandboxes",
+                "brand",
+                "queues",
+                "approvals",
+                "collections",
+                "provisioning",
+                "reports"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "accountId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized projection page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor",
+                    "generatedAt",
+                    "freshnessSeconds"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "recordKey",
+                          "aggregateType",
+                          "aggregateId",
+                          "accountId",
+                          "audience",
+                          "channel",
+                          "version",
+                          "sourceUpdatedAt",
+                          "projectedAt",
+                          "stale",
+                          "data"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "recordKey": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "aggregateType": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "aggregateId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "accountId": {
+                            "oneOf": [
+                              {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "audience": {
+                            "type": "string",
+                            "enum": [
+                              "customer",
+                              "partner",
+                              "internal"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "dashboard",
+                              "agreements",
+                              "quotes",
+                              "orders",
+                              "services",
+                              "pocs",
+                              "billing",
+                              "amendments",
+                              "procurement",
+                              "users",
+                              "marketplace",
+                              "support",
+                              "portfolio",
+                              "registrations",
+                              "disputes",
+                              "commissions",
+                              "renewals",
+                              "sandboxes",
+                              "brand",
+                              "queues",
+                              "approvals",
+                              "collections",
+                              "provisioning",
+                              "reports"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "sourceUpdatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projectedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "stale": {
+                            "type": "boolean"
+                          },
+                          "data": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "freshnessSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/projections/{audience}/{channel}/{recordKey}": {
+      "get": {
+        "operationId": "readExperienceProjection",
+        "summary": "Read one authoritative portal projection",
+        "tags": [
+          "Experience projections"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "audience",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "partner",
+                "internal"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "dashboard",
+                "agreements",
+                "quotes",
+                "orders",
+                "services",
+                "pocs",
+                "billing",
+                "amendments",
+                "procurement",
+                "users",
+                "marketplace",
+                "support",
+                "portfolio",
+                "registrations",
+                "disputes",
+                "commissions",
+                "renewals",
+                "sandboxes",
+                "brand",
+                "queues",
+                "approvals",
+                "collections",
+                "provisioning",
+                "reports"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "recordKey",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "accountId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized projection record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "recordKey",
+                    "aggregateType",
+                    "aggregateId",
+                    "accountId",
+                    "audience",
+                    "channel",
+                    "version",
+                    "sourceUpdatedAt",
+                    "projectedAt",
+                    "stale",
+                    "data"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "recordKey": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregateType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "customer",
+                        "partner",
+                        "internal"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "dashboard",
+                        "agreements",
+                        "quotes",
+                        "orders",
+                        "services",
+                        "pocs",
+                        "billing",
+                        "amendments",
+                        "procurement",
+                        "users",
+                        "marketplace",
+                        "support",
+                        "portfolio",
+                        "registrations",
+                        "disputes",
+                        "commissions",
+                        "renewals",
+                        "sandboxes",
+                        "brand",
+                        "queues",
+                        "approvals",
+                        "collections",
+                        "provisioning",
+                        "reports"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "sourceUpdatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "projectedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "stale": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/projections/{audience}/{channel}/{recordKey}/actions": {
+      "post": {
+        "operationId": "createExperienceProjectionAction",
+        "summary": "Queue a version-bound authoritative portal command",
+        "tags": [
+          "Experience projections"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            }
+          },
+          {
+            "in": "path",
+            "name": "audience",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "partner",
+                "internal"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "dashboard",
+                "agreements",
+                "quotes",
+                "orders",
+                "services",
+                "pocs",
+                "billing",
+                "amendments",
+                "procurement",
+                "users",
+                "marketplace",
+                "support",
+                "portfolio",
+                "registrations",
+                "disputes",
+                "commissions",
+                "renewals",
+                "sandboxes",
+                "brand",
+                "queues",
+                "approvals",
+                "collections",
+                "provisioning",
+                "reports"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "recordKey",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "accountId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "projectionId",
+                  "action",
+                  "expectedVersion",
+                  "payload"
+                ],
+                "properties": {
+                  "projectionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "action": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{1,79}$"
+                  },
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable projection action receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "projectionId",
+                    "aggregateType",
+                    "aggregateId",
+                    "action",
+                    "expectedVersion",
+                    "status",
+                    "resultReference",
+                    "resultCode",
+                    "authoritativeVersion",
+                    "commandReplayed",
+                    "createdAt",
+                    "completedAt",
+                    "auditEventId",
+                    "outboxMessageId"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "projectionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "aggregateType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "action": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,79}$"
+                    },
+                    "expectedVersion": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued",
+                        "applied",
+                        "rejected",
+                        "failed"
+                      ]
+                    },
+                    "resultReference": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "resultCode": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "authoritativeVersion": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "commandReplayed": {
+                      "oneOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Null while queued and for migrated LEGACY_ terminal outcomes whose original command replay truth is unknowable."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "completedAt": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "auditEventId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outboxMessageId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}": {
+      "get": {
+        "operationId": "readExperienceProjectionActionReceipt",
+        "summary": "Read an actor-scoped portal action receipt",
+        "tags": [
+          "Experience projections"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "audience",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "partner",
+                "internal"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "dashboard",
+                "agreements",
+                "quotes",
+                "orders",
+                "services",
+                "pocs",
+                "billing",
+                "amendments",
+                "procurement",
+                "users",
+                "marketplace",
+                "support",
+                "portfolio",
+                "registrations",
+                "disputes",
+                "commissions",
+                "renewals",
+                "sandboxes",
+                "brand",
+                "queues",
+                "approvals",
+                "collections",
+                "provisioning",
+                "reports"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "recordKey",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "path",
+            "name": "actionRequestId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "accountId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued or terminal projection action receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "projectionId",
+                    "aggregateType",
+                    "aggregateId",
+                    "action",
+                    "expectedVersion",
+                    "status",
+                    "resultReference",
+                    "resultCode",
+                    "authoritativeVersion",
+                    "commandReplayed",
+                    "createdAt",
+                    "completedAt",
+                    "auditEventId",
+                    "outboxMessageId"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "projectionId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "aggregateType": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregateId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "action": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,79}$"
+                    },
+                    "expectedVersion": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued",
+                        "applied",
+                        "rejected",
+                        "failed"
+                      ]
+                    },
+                    "resultReference": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "resultCode": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "authoritativeVersion": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "commandReplayed": {
+                      "oneOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Null while queued and for migrated LEGACY_ terminal outcomes whose original command replay truth is unknowable."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "completedAt": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "auditEventId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outboxMessageId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/artifacts/render-requests": {
+      "post": {
+        "operationId": "createArtifactRenderRequest",
+        "summary": "Resolve authoritative persisted truth for an artifact render",
+        "description": "Accepts only artifact identity, optimistic source version, and audience scope. Document facts are resolved server-side from persisted records.",
+        "tags": [
+          "Experience artifacts"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "subjectId",
+                  "expectedVersion",
+                  "audience"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "direct_quote",
+                      "partner_transfer_quote",
+                      "partner_resale_quote",
+                      "order_form",
+                      "amendment",
+                      "poc_summary",
+                      "poc_final_report",
+                      "invoice_companion",
+                      "receipt",
+                      "commission_statement",
+                      "renewal_confirmation",
+                      "decline_confirmation",
+                      "deletion_certificate",
+                      "reconciliation_report",
+                      "report_export"
+                    ]
+                  },
+                  "subjectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expectedVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "audience": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "partner",
+                      "internal"
+                    ]
+                  },
+                  "accountId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Authoritative render request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "accountId",
+                    "audience",
+                    "audienceAccountId",
+                    "subjectType",
+                    "subjectId",
+                    "kind",
+                    "sourceHash",
+                    "sourceVersion",
+                    "retainUntil",
+                    "status",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "customer",
+                        "partner",
+                        "internal"
+                      ]
+                    },
+                    "audienceAccountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "subjectType": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "direct_quote",
+                        "partner_transfer_quote",
+                        "partner_resale_quote",
+                        "order_form",
+                        "amendment",
+                        "poc_summary",
+                        "poc_final_report",
+                        "invoice_companion",
+                        "receipt",
+                        "commission_statement",
+                        "renewal_confirmation",
+                        "decline_confirmation",
+                        "deletion_certificate",
+                        "reconciliation_report",
+                        "report_export"
+                      ]
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "sourceVersion": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "retainUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "rendering",
+                        "stored",
+                        "failed"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/artifacts/render-requests/{requestId}": {
+      "post": {
+        "operationId": "renderArtifactRequest",
+        "summary": "Render, redrive when failed, and immutably store an authoritative artifact request",
+        "tags": [
+          "Experience artifacts"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 255
+            }
+          },
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Immutable PDF representation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "kind",
+                    "subjectType",
+                    "subjectId",
+                    "accountId",
+                    "audience",
+                    "audienceAccountId",
+                    "documentId",
+                    "version",
+                    "sourceHash",
+                    "contentHash",
+                    "mimeType",
+                    "byteLength",
+                    "filename",
+                    "retainUntil",
+                    "createdAt",
+                    "downloadHref"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "direct_quote",
+                        "partner_transfer_quote",
+                        "partner_resale_quote",
+                        "order_form",
+                        "amendment",
+                        "poc_summary",
+                        "poc_final_report",
+                        "invoice_companion",
+                        "receipt",
+                        "commission_statement",
+                        "renewal_confirmation",
+                        "decline_confirmation",
+                        "deletion_certificate",
+                        "reconciliation_report",
+                        "report_export"
+                      ]
+                    },
+                    "subjectType": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "customer",
+                        "partner",
+                        "internal"
+                      ]
+                    },
+                    "audienceAccountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "mimeType": {
+                      "type": "string",
+                      "const": "application/pdf"
+                    },
+                    "byteLength": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "filename": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9._-]{0,159}\\.pdf$"
+                    },
+                    "retainUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "downloadHref": {
+                      "type": "string",
+                      "pattern": "^/api/experience/artifacts/"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experience/artifacts/{kind}/{artifactId}": {
+      "get": {
+        "operationId": "readExperienceArtifact",
+        "summary": "Read metadata or download verified immutable PDF bytes",
+        "tags": [
+          "Experience artifacts"
+        ],
+        "security": [
+          {
+            "experienceSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "direct_quote",
+                "partner_transfer_quote",
+                "partner_resale_quote",
+                "order_form",
+                "amendment",
+                "poc_summary",
+                "poc_final_report",
+                "invoice_companion",
+                "receipt",
+                "commission_statement",
+                "renewal_confirmation",
+                "decline_confirmation",
+                "deletion_certificate",
+                "reconciliation_report",
+                "report_export"
+              ]
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifactId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "representation",
+            "required": false,
+            "description": "Return public metadata as JSON; omit to download verified PDF bytes.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public artifact metadata or verified immutable PDF",
+            "headers": {
+              "Content-Length": {
+                "description": "Present for a binary PDF response.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              },
+              "Content-Disposition": {
+                "description": "Safe attachment filename for a binary PDF response.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Prevents storage of private artifact bytes.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "private, no-store"
+                  ]
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "nosniff"
+                  ]
+                }
+              },
+              "x-content-sha256": {
+                "description": "Present for a binary PDF response.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "kind",
+                    "subjectType",
+                    "subjectId",
+                    "accountId",
+                    "audience",
+                    "audienceAccountId",
+                    "documentId",
+                    "version",
+                    "sourceHash",
+                    "contentHash",
+                    "mimeType",
+                    "byteLength",
+                    "filename",
+                    "retainUntil",
+                    "createdAt",
+                    "downloadHref"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "direct_quote",
+                        "partner_transfer_quote",
+                        "partner_resale_quote",
+                        "order_form",
+                        "amendment",
+                        "poc_summary",
+                        "poc_final_report",
+                        "invoice_companion",
+                        "receipt",
+                        "commission_statement",
+                        "renewal_confirmation",
+                        "decline_confirmation",
+                        "deletion_certificate",
+                        "reconciliation_report",
+                        "report_export"
+                      ]
+                    },
+                    "subjectType": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "accountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "audience": {
+                      "type": "string",
+                      "enum": [
+                        "customer",
+                        "partner",
+                        "internal"
+                      ]
+                    },
+                    "audienceAccountId": {
+                      "oneOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "contentHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "mimeType": {
+                      "type": "string",
+                      "const": "application/pdf"
+                    },
+                    "byteLength": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*$"
+                    },
+                    "filename": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9._-]{0,159}\\.pdf$"
+                    },
+                    "retainUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "downloadHref": {
+                      "type": "string",
+                      "pattern": "^/api/experience/artifacts/"
+                    }
+                  }
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Problem details response",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "status",
+                    "code",
+                    "requestId"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "retryable": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

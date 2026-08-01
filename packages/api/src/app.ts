@@ -1,9 +1,10 @@
-import { ProblemError } from "@clockwork/contracts";
+import { ProblemError, uuidV7 } from "@clockwork/contracts";
 import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { LocalSessionResolver, sessionMiddleware } from "./auth/session";
 import type { SessionResolver } from "./auth/session";
 import type { ApiVariables } from "./context";
+import { withExperienceOpenApiContract } from "./experience-openapi";
 import {
   idempotencyMiddleware,
   MemoryIdempotencyStore,
@@ -32,8 +33,7 @@ export function createApiApp(options: ApiAppOptions = {}) {
   const app = new OpenAPIHono<{ Variables: ApiVariables }>({
     defaultHook: (result, context) => {
       if (result.success) return;
-      const requestId =
-        context.get("requestContext")?.requestId ?? crypto.randomUUID();
+      const requestId = context.get("requestContext")?.requestId ?? uuidV7();
       return context.json(
         {
           type: "https://clockwork.test/problems/validation",
@@ -67,8 +67,7 @@ export function createApiApp(options: ApiAppOptions = {}) {
   );
 
   app.onError((error, context) => {
-    const requestId =
-      context.get("requestContext")?.requestId ?? crypto.randomUUID();
+    const requestId = context.get("requestContext")?.requestId ?? uuidV7();
     const problem =
       error instanceof ProblemError
         ? error.problem
@@ -94,10 +93,12 @@ export function createApiApp(options: ApiAppOptions = {}) {
 
   app.get("/openapi.json", (context) =>
     context.json(
-      app.getOpenAPIDocument({
-        openapi: "3.1.0",
-        info: { title: "Clockwork Commerce API", version: "1.0.0" },
-      }),
+      withExperienceOpenApiContract(
+        app.getOpenAPIDocument({
+          openapi: "3.1.0",
+          info: { title: "Clockwork Commerce API", version: "1.0.0" },
+        }),
+      ),
     ),
   );
   return app;

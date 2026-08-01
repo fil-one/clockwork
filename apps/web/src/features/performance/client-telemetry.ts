@@ -236,6 +236,53 @@ export class BrowserEventTelemetryExporter implements BrowserTelemetryExporter {
   }
 }
 
+function csrfToken(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  for (const part of document.cookie.split(";")) {
+    const [name, ...value] = part.trim().split("=");
+    if (name === "clockwork-csrf") return value.join("=");
+  }
+  return undefined;
+}
+
+/** Same-origin, CSRF-bound delivery into the server OTLP boundary. */
+export class BrowserHttpTelemetryExporter implements BrowserTelemetryExporter {
+  public constructor(
+    private readonly endpoint = "/api/telemetry",
+    private readonly fetcher: typeof fetch | undefined = globalThis.fetch,
+  ) {}
+
+  export(record: OpenTelemetryRecord): void {
+    const token = csrfToken();
+    if (!this.fetcher || !token) return;
+    void this.fetcher(this.endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      keepalive: true,
+      headers: {
+        "content-type": "application/json",
+        traceparent: `00-${record.trace.traceId}-${record.trace.spanId}-${record.trace.traceFlags}`,
+        "x-clockwork-csrf": token,
+      },
+      body: JSON.stringify(record),
+    }).catch(() => undefined);
+  }
+}
+
+export class BrowserCompositeTelemetryExporter implements BrowserTelemetryExporter {
+  public constructor(
+    private readonly exporters: readonly BrowserTelemetryExporter[] = [
+      new BrowserEventTelemetryExporter(),
+      new BrowserHttpTelemetryExporter(),
+    ],
+  ) {}
+
+  export(record: OpenTelemetryRecord): void {
+    for (const exporter of this.exporters)
+      void Promise.resolve(exporter.export(record)).catch(() => undefined);
+  }
+}
+
 export interface BrowserTelemetryOptions {
   exporter?: BrowserTelemetryExporter;
   parentTraceparent?: string;
@@ -254,7 +301,7 @@ export class BrowserOpenTelemetry {
   private readonly randomValues: (target: Uint8Array) => void;
 
   constructor(options: BrowserTelemetryOptions = {}) {
-    this.exporter = options.exporter ?? new BrowserEventTelemetryExporter();
+    this.exporter = options.exporter ?? new BrowserCompositeTelemetryExporter();
     this.parent = parseTraceparent(options.parentTraceparent);
     this.environment = SAFE_ENVIRONMENTS.has(options.environment ?? "unknown")
       ? (options.environment ?? "unknown")

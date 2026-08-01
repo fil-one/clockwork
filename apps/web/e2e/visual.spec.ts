@@ -7,6 +7,19 @@ const desktopSurfaces = [
   { name: "operator-priority-work", path: "/internal/queues" },
 ] as const;
 
+const commercialSurfaces = [
+  {
+    name: "customer-quote-workspace",
+    path: "/quotes/new",
+    heading: "Quote workspace",
+  },
+  {
+    name: "customer-order-acceptance",
+    path: "/orders/accept",
+    heading: "Order acceptance",
+  },
+] as const;
+
 async function expectNoHorizontalOverflow(page: Page) {
   await expect
     .poll(() =>
@@ -47,6 +60,52 @@ for (const surface of desktopSurfaces) {
   });
 }
 
+for (const surface of commercialSurfaces) {
+  test(`visual ${surface.name}`, async ({ page }) => {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(surface.path);
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+    await expect(
+      page.getByRole("heading", { level: 1, name: surface.heading }),
+    ).toBeVisible();
+    await page.addStyleTag({
+      content: "nextjs-portal { display: none !important; }",
+    });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page).toHaveScreenshot(`${surface.name}.png`, {
+      animations: "disabled",
+      fullPage: true,
+      maxDiffPixelRatio: 0.01,
+    });
+  });
+
+  test(`visual ${surface.name} at 320px`, async ({ page }) => {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(surface.path);
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+    await expect(
+      page.getByRole("heading", { level: 1, name: surface.heading }),
+    ).toBeVisible();
+    await page.addStyleTag({
+      content: "nextjs-portal { display: none !important; }",
+    });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page).toHaveScreenshot(`${surface.name}-320.png`, {
+      animations: "disabled",
+      fullPage: true,
+      maxDiffPixelRatio: 0.01,
+    });
+  });
+}
+
 test("visual customer dashboard at 320px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/dashboard");
@@ -66,6 +125,44 @@ test("visual customer dashboard at 320px", async ({ page }) => {
 });
 
 for (const viewport of [
+  { label: "desktop", width: 1440, height: 1000 },
+  { label: "320", width: 320, height: 800 },
+] as const) {
+  test(`visual reachable state gallery at ${viewport.label}`, async ({
+    page,
+  }) => {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+    await page.setViewportSize(viewport);
+    await page.goto("/states");
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Every state has a safe next step",
+      }),
+    ).toBeVisible();
+    await expect(page.locator(".cw-state")).toHaveCount(11);
+    await expectNoHorizontalOverflow(page);
+    await expectAxeClean(page);
+    await page.addStyleTag({
+      content: "nextjs-portal { display: none !important; }",
+    });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page).toHaveScreenshot(
+      `customer-state-gallery${viewport.label === "320" ? "-320" : ""}.png`,
+      {
+        animations: "disabled",
+        fullPage: true,
+        maxDiffPixelRatio: 0.01,
+      },
+    );
+  });
+}
+
+for (const viewport of [
   { label: "1440", width: 1440, height: 1000 },
   { label: "768", width: 768, height: 1024 },
   { label: "320", width: 320, height: 800 },
@@ -77,6 +174,27 @@ for (const viewport of [
     for (const surface of desktopSurfaces) {
       await page.goto(surface.path);
       await expect(page.locator("#main-content h1")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectAxeClean(page);
+    }
+  });
+}
+
+for (const viewport of [
+  { label: "1440", width: 1440, height: 1000 },
+  { label: "768", width: 768, height: 1024 },
+  { label: "320", width: 320, height: 800 },
+] as const) {
+  test(`commercial quote and order pass Axe and reflow at ${viewport.label}px`, async ({
+    page,
+  }) => {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+    await page.setViewportSize(viewport);
+    for (const surface of commercialSurfaces) {
+      await page.goto(surface.path);
+      await expect(
+        page.getByRole("heading", { level: 1, name: surface.heading }),
+      ).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await expectAxeClean(page);
     }

@@ -1,24 +1,24 @@
+import { createDemoSeed, DEMO_NOW, DEMO_SEED_VERSION } from "./seed";
 import {
-  createDemoSeed,
-  DEMO_NOW,
-  DEMO_SEED_VERSION,
-  type DemoSeed,
-} from "./seed";
+  createPristineDemoAdapterState,
+  findDemoProductionMarker,
+  parseDemoAdapterState,
+  type DemoAdapterState,
+  type DemoAdapterStateStore,
+} from "./state";
 
 export const DEMO_RESET_COMMAND =
   "pnpm exec tsx packages/testing/src/demo/reset-command.ts" as const;
 
 export type DemoEnvironment = Readonly<Record<string, string | undefined>>;
 
-export interface DemoFixtureStore {
-  read(): Promise<DemoSeed>;
-  replace(next: DemoSeed): Promise<void>;
-}
+export type DemoFixtureStore = DemoAdapterStateStore;
 
 export interface DemoResetResult {
   readonly target: "demo";
   readonly seedVersion: typeof DEMO_SEED_VERSION;
   readonly resetAt: typeof DEMO_NOW;
+  readonly statePath: string;
   readonly counts: {
     readonly accounts: number;
     readonly agreements: number;
@@ -38,18 +38,6 @@ export class DemoResetBlockedError extends Error {
   }
 }
 
-const productionEnvironmentKeys = [
-  "NODE_ENV",
-  "VERCEL_ENV",
-  "CLOCKWORK_ENV",
-  "DEPLOYMENT_ENVIRONMENT",
-  "ENVIRONMENT",
-] as const;
-
-function isProduction(value: string | undefined): boolean {
-  return value?.trim().toLowerCase() === "production";
-}
-
 /**
  * This guard intentionally has no force or override flag. A production marker
  * from any supported deployment source wins, even when another marker says
@@ -59,9 +47,7 @@ export function assertDemoResetAllowed(
   environment: DemoEnvironment,
   target: string,
 ): asserts target is "demo" {
-  const productionMarker = productionEnvironmentKeys.find((key) =>
-    isProduction(environment[key]),
-  );
+  const productionMarker = findDemoProductionMarker(environment);
 
   if (productionMarker) {
     throw new DemoResetBlockedError(
@@ -77,17 +63,26 @@ export function assertDemoResetAllowed(
 }
 
 export function createMemoryDemoStore(
-  initial: DemoSeed = createDemoSeed(),
+  initial: DemoAdapterState = createPristineDemoAdapterState(),
 ): DemoFixtureStore {
-  let value = structuredClone(initial);
+  let value = parseDemoAdapterState(initial);
 
   return {
+    location: "memory",
     read() {
       return Promise.resolve(structuredClone(value));
     },
     replace(next) {
-      value = structuredClone(next);
-      return Promise.resolve();
+      return Promise.resolve().then(() => {
+        value = parseDemoAdapterState(next);
+      });
+    },
+    update(updater) {
+      return Promise.resolve().then(() => {
+        const next = parseDemoAdapterState(updater(structuredClone(value)));
+        value = next;
+        return structuredClone(next);
+      });
     },
   };
 }
@@ -101,21 +96,25 @@ export async function resetDemoExperience(
 ): Promise<DemoResetResult> {
   assertDemoResetAllowed(options.environment, options.target);
 
-  const next = createDemoSeed();
-  await store.replace(next);
+  const seed = createDemoSeed();
+  // Refuse to launder an invalid/non-demo state file into an apparently clean
+  // reset. Operators must inspect corruption rather than silently erase it.
+  await store.read();
+  await store.replace(createPristineDemoAdapterState());
 
   return {
     target: "demo",
     seedVersion: DEMO_SEED_VERSION,
     resetAt: DEMO_NOW,
+    statePath: store.location,
     counts: {
-      accounts: next.accounts.length,
-      agreements: next.agreements.length,
-      quotes: next.quotes.length,
-      orders: next.orders.length,
-      pocs: next.pocs.length,
-      invoices: next.invoices.length,
-      queueItems: next.queueItems.length,
+      accounts: seed.accounts.length,
+      agreements: seed.agreements.length,
+      quotes: seed.quotes.length,
+      orders: seed.orders.length,
+      pocs: seed.pocs.length,
+      invoices: seed.invoices.length,
+      queueItems: seed.queueItems.length,
     },
   };
 }

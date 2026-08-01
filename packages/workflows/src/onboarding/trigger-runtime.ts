@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { schedules, task } from "@trigger.dev/sdk";
 
+import type { RuntimeBoundaryInstrumentation } from "@clockwork/integrations";
+
 import { LIFECYCLE_RETRY_POLICY } from "./durable";
 
 export interface LifecycleTaskInvocation {
@@ -40,20 +42,24 @@ export interface LifecycleTaskRuntime {
 }
 
 let configuredRuntime: LifecycleTaskRuntime | undefined;
+let configuredInstrumentation: RuntimeBoundaryInstrumentation | undefined;
 
 /** Configure once in the Trigger worker bootstrap with a workflow_runs-backed runtime. */
 export function configureLifecycleTaskRuntime(
   runtime: LifecycleTaskRuntime,
+  instrumentation?: RuntimeBoundaryInstrumentation,
 ): void {
   if (configuredRuntime && configuredRuntime !== runtime)
     throw new Error("LIFECYCLE_TASK_RUNTIME_ALREADY_CONFIGURED");
   configuredRuntime = runtime;
+  configuredInstrumentation = instrumentation;
 }
 
 export function resetLifecycleTaskRuntimeForTests(): void {
   if (process.env.NODE_ENV === "production")
     throw new Error("TASK_RUNTIME_RESET_FORBIDDEN");
   configuredRuntime = undefined;
+  configuredInstrumentation = undefined;
 }
 
 function stablePayload(value: unknown): string {
@@ -120,6 +126,29 @@ export function lifecycleTaskRedrive(
 }
 
 export async function executeLifecycleTask(
+  invocation: LifecycleTaskInvocation,
+): Promise<unknown> {
+  if (!configuredRuntime)
+    throw new Error("LIFECYCLE_TASK_RUNTIME_NOT_CONFIGURED");
+  if (configuredInstrumentation)
+    return configuredInstrumentation.workflow({
+      name: invocation.taskId,
+      correlation: {
+        requestId: `task:${invocation.triggerRunId}`,
+        workflowId: invocation.taskId,
+        taskId: invocation.triggerRunId,
+      },
+      attributes: {
+        "clockwork.operation": "workflow.execute",
+        "workflow.name": invocation.taskId,
+        "workflow.attempt": invocation.attempt,
+      },
+      operation: () => executeConfiguredLifecycleTask(invocation),
+    });
+  return executeConfiguredLifecycleTask(invocation);
+}
+
+async function executeConfiguredLifecycleTask(
   invocation: LifecycleTaskInvocation,
 ): Promise<unknown> {
   if (!configuredRuntime)

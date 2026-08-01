@@ -48,6 +48,60 @@
   max-width: 68ch;
 }
 
+.commercialTask {
+  max-width: 88rem;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.commercialTask > .header {
+  border-bottom: 2px solid var(--color-text, #172033);
+  padding-bottom: 18px;
+}
+
+.taskContext {
+  color: var(--color-text-muted, #5c667a);
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.promiseChain {
+  background: var(--color-surface, #fff);
+  border-block: 1px solid var(--color-border-strong, #aeb5c2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.promiseChain li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.promiseChain li + li {
+  border-left: 1px solid var(--color-border, #d8dce5);
+}
+
+.promiseChain li[aria-current="step"] {
+  border-top: 4px solid var(--color-action, #2449d8);
+  padding-top: 10px;
+}
+
+.promiseChain span {
+  color: var(--color-text-muted, #5c667a);
+  font-size: 0.75rem;
+}
+
+.promiseChain strong {
+  font-size: 0.94rem;
+  line-height: 1.35;
+}
+
 .primary,
 .secondary,
 .textButton,
@@ -443,6 +497,43 @@
   padding: clamp(18px, 3vw, 28px);
 }
 
+.taskPanel,
+.commitmentSummary {
+  border-radius: 2px;
+}
+
+.taskPanel {
+  border-left: 4px solid var(--color-action, #2449d8);
+}
+
+.stageFields {
+  border: 0;
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.stageFields legend {
+  color: var(--color-text, #172033);
+  font-size: 0.88rem;
+  font-weight: 750;
+  padding: 0;
+}
+
+.commercialTask .reviewList li {
+  background: transparent;
+  border-radius: 0;
+  border-top: 1px solid var(--color-border, #d8dce5);
+  padding-inline: 0;
+}
+
+.commercialTask .check {
+  border-left: 3px solid var(--color-action, #2449d8);
+  border-radius: 2px;
+}
+
 .steps {
   display: grid;
   gap: 8px;
@@ -676,6 +767,22 @@
     border-left: 3px solid var(--color-border, #d8dce5);
     border-top: 0;
     padding: 7px 0 7px 10px;
+  }
+
+  .promiseChain {
+    grid-template-columns: 1fr;
+  }
+
+  .promiseChain li + li {
+    border-left: 0;
+    border-top: 1px solid var(--color-border, #d8dce5);
+  }
+
+  .promiseChain li[aria-current="step"] {
+    border-left: 4px solid var(--color-action, #2449d8);
+    border-top: 1px solid var(--color-border, #d8dce5);
+    padding-left: 12px;
+    padding-top: 14px;
   }
 
   .pagination {

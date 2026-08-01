@@ -1,5 +1,9 @@
 # Customer and partner UX handoff
 
+Current disposition: historical provenance. The UX implementation and its
+authoritative data/action joins are repository-qualified on `main`; this is not
+an active lane or RC/launch record.
+
 ## Scope
 
 This lane replaces the customer and partner routes' generic surface renderers

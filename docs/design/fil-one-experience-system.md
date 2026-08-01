@@ -1,7 +1,8 @@
 # Fil One experience system
 
-Status: implemented candidate, pending human design approval and `EXT-BRAND-01`
-licensed assets
+Status: repository-qualified implementation using neutral assets; `EXT-BRAND-01`
+licensed assets and any human design approval are future launch-only inputs and
+are not claimed here
 
 ## Product idea
 

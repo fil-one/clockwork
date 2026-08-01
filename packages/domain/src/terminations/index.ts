@@ -33,6 +33,7 @@ export interface RetainedObject {
   scope: string;
   retainUntil: string;
   legalHold: boolean;
+  reason: "legal_hold" | "object_lock_retention";
 }
 
 export function maximumObjectLockDate(
@@ -90,6 +91,11 @@ export function planOffboarding(input: {
     if (!object.objectId.trim() || !object.scope.trim())
       throw new Error("RETAINED_OBJECT_IDENTITY_REQUIRED");
     assertInstant(object.retainUntil, "OBJECT_LOCK_DATE_INVALID");
+    if (
+      object.reason !==
+      (object.legalHold ? "legal_hold" : "object_lock_retention")
+    )
+      throw new Error("RETAINED_OBJECT_REASON_INVALID");
   }
   const retrievalStartsAt =
     Date.parse(input.effectiveAt) > Date.parse(input.now)
@@ -342,7 +348,7 @@ export function deletionCertificateData(
       .map((object) => ({
         scope: object.scope,
         retainedUntil: object.retainUntil,
-        reason: object.legalHold ? "legal_hold" : "object_lock_retention",
+        reason: object.reason,
       })),
   };
 }

@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import type { ZodType } from "zod";
 
 import type { ProviderJsonTransport } from "../provider-transport";
@@ -10,6 +12,11 @@ import type {
 } from "./telemetry";
 
 export class RuntimeBoundaryInstrumentation {
+  private readonly context = new AsyncLocalStorage<{
+    trace: TraceContext;
+    correlation: TelemetryCorrelation;
+  }>();
+
   public constructor(private readonly telemetry: ClockworkTelemetry) {}
 
   public trace<T>(input: {
@@ -20,19 +27,51 @@ export class RuntimeBoundaryInstrumentation {
     parent?: TraceContext;
     operation(): Promise<T>;
   }): Promise<T> {
-    return this.telemetry.withSpan({
-      ...input,
-      operation: () => input.operation(),
+    const inherited = this.context.getStore();
+    const inheritedParent = input.parent ?? inherited?.trace;
+    const correlation = {
+      ...inherited?.correlation,
+      ...input.correlation,
+    };
+    const span = this.telemetry.startSpan({
+      boundary: input.boundary,
+      name: input.name,
+      correlation,
+      ...(input.attributes ? { attributes: input.attributes } : {}),
+      ...(inheritedParent ? { parent: inheritedParent } : {}),
     });
+    return this.context.run(
+      { trace: span.context(), correlation },
+      async () => {
+        try {
+          const result = await input.operation();
+          await endWithoutInterference(span, "ok");
+          return result;
+        } catch (error) {
+          span.recordError(error);
+          await endWithoutInterference(span, "error");
+          throw error;
+        }
+      },
+    );
   }
 
   public server = this.boundary("server");
   public api = this.boundary("api");
   public db = this.boundary("db");
   public workflow = this.boundary("workflow");
+  public provider = this.boundary("provider");
   public webhook = this.boundary("webhook");
   public queue = this.boundary("queue");
   public outbox = this.boundary("outbox");
+
+  public currentContext(): TraceContext | undefined {
+    return this.context.getStore()?.trace;
+  }
+
+  public currentCorrelation(): TelemetryCorrelation | undefined {
+    return this.context.getStore()?.correlation;
+  }
 
   private boundary(boundary: TelemetryBoundary) {
     return <T>(input: {
@@ -42,6 +81,17 @@ export class RuntimeBoundaryInstrumentation {
       parent?: TraceContext;
       operation(): Promise<T>;
     }) => this.trace({ ...input, boundary });
+  }
+}
+
+async function endWithoutInterference(
+  span: ReturnType<ClockworkTelemetry["startSpan"]>,
+  status: "ok" | "error",
+): Promise<void> {
+  try {
+    await span.end(status);
+  } catch {
+    // Export health is monitored separately and must not alter business results.
   }
 }
 
@@ -55,6 +105,7 @@ export class TelemetryProviderJsonTransport implements ProviderJsonTransport {
       idempotencyKey?: string;
     }) => TelemetryCorrelation,
     private readonly parent?: () => TraceContext | undefined,
+    private readonly providerName?: string,
   ) {}
 
   public request<T>(input: {
@@ -74,7 +125,10 @@ export class TelemetryProviderJsonTransport implements ProviderJsonTransport {
           ? { idempotencyKey: input.idempotencyKey }
           : {}),
       }),
-      attributes: { "provider.operation": input.operation },
+      attributes: {
+        "provider.operation": input.operation,
+        ...(this.providerName ? { "provider.name": this.providerName } : {}),
+      },
       ...(parent ? { parent } : {}),
       operation: () => this.inner.request(input),
     });

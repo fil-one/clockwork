@@ -24,6 +24,29 @@ describe("FetchJsonProviderTransport", () => {
     ).toThrow("PROVIDER_ENDPOINT_INVALID");
   });
 
+  it("allows opted-in local HTTP and rejects every other local insecure scheme", () => {
+    expect(
+      () =>
+        new FetchJsonProviderTransport({
+          baseUrl: "http://localhost:8787/",
+          bearerToken: "secret-token",
+          provider: "example",
+          allowInsecureLocalhost: true,
+        }),
+    ).not.toThrow();
+
+    for (const baseUrl of ["ftp://localhost/", "file://localhost/tmp/"])
+      expect(
+        () =>
+          new FetchJsonProviderTransport({
+            baseUrl,
+            bearerToken: "secret-token",
+            provider: "example",
+            allowInsecureLocalhost: true,
+          }),
+      ).toThrow("PROVIDER_HTTPS_ENDPOINT_REQUIRED");
+  });
+
   it("sends scoped credentials and idempotency without following redirects", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ id: "provider-1" }), {

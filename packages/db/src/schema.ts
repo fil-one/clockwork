@@ -16,7 +16,8 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
-const id = (name = "id") => uuid(name).primaryKey().defaultRandom();
+const uuidV7Default = sql`public.uuid_v7()`;
+const id = (name = "id") => uuid(name).primaryKey().default(uuidV7Default);
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -523,6 +524,18 @@ export const pocs = pgTable(
     check(
       "pocs_status_check",
       sql`${table.status} in ('proposed','approved','active','expired','converted','closed')`,
+    ),
+    check(
+      "pocs_success_test_targets_check",
+      sql`coalesce(jsonb_typeof(${table.successTests}) = 'array', false)
+        and jsonb_array_length(${table.successTests}) > 0
+        and coalesce(
+          jsonb_path_exists(
+            ${table.successTests},
+            '$[*] ? (@.type() != "object" || !exists(@.target) || @.target.type() != "string" || @.target like_regex "^\\s*$")'
+          ),
+          true
+        ) = false`,
     ),
   ],
 );
@@ -1176,6 +1189,20 @@ export const exceptionCases = pgTable(
       .notNull()
       .references(() => commerceUsers.id),
     backupUserId: uuid("backup_user_id").references(() => commerceUsers.id),
+    requesterUserId: uuid("requester_user_id").references(
+      () => commerceUsers.id,
+    ),
+    escalationOwnerUserId: uuid("escalation_owner_user_id").references(
+      () => commerceUsers.id,
+    ),
+    separationRequired: boolean("separation_required").notNull().default(true),
+    ownershipRosterEntryIds: uuid("ownership_roster_entry_ids")
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    ownershipAbsenceEscalated: boolean("ownership_absence_escalated")
+      .notNull()
+      .default(false),
     targetAt: timestamp("target_at", { withTimezone: true }).notNull(),
     status: text("status").notNull(),
     decisionReason: text("decision_reason"),
@@ -1188,6 +1215,10 @@ export const exceptionCases = pgTable(
     uniqueIndex("exception_open_object_unique")
       .on(table.queue, table.objectType, table.objectId)
       .where(sql`${table.status} = 'open'`),
+    check(
+      "exception_case_roster_separation_check",
+      sql`${table.escalationOwnerUserId} is null or (${table.escalationOwnerUserId} <> ${table.ownerUserId} and ${table.escalationOwnerUserId} is distinct from ${table.backupUserId})`,
+    ),
   ],
 );
 

@@ -1,30 +1,327 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:39:00Z",
+  "capturedAt": "2026-08-01T13:56:29Z",
   "openapiVersion": "3.1.0",
-  "paths": 44,
-  "operations": 44,
+  "paths": 56,
+  "operations": 56,
+  "clientSurfaces": [
+    {
+      "name": "hono-v1-openapi",
+      "mount": "/api/v1",
+      "sourcePathPrefix": "/v1",
+      "operationCount": 49,
+      "generatedContract": "packages/api/src/generated/schema.d.ts",
+      "client": "packages/api/src/generated/client.ts"
+    },
+    {
+      "name": "experience-next-controller",
+      "mount": "/api/experience",
+      "concreteOperationCount": 14,
+      "concreteOperationSignatures": [
+        "GET /api/experience/artifacts/{}/{}",
+        "GET /api/experience/esign/returns/{}",
+        "GET /api/experience/esign/returns/{}/signed-document",
+        "GET /api/experience/evidence/uploads/{}",
+        "GET /api/experience/evidence/uploads/{}/download",
+        "GET /api/experience/projections/{}/{}",
+        "GET /api/experience/projections/{}/{}/{}",
+        "GET /api/experience/projections/{}/{}/{}/actions/{}",
+        "POST /api/experience/artifacts/render-requests",
+        "POST /api/experience/artifacts/render-requests/{}",
+        "POST /api/experience/esign/launches",
+        "POST /api/experience/evidence/uploads",
+        "POST /api/experience/evidence/uploads/{}/complete",
+        "POST /api/experience/projections/{}/{}/{}/actions"
+      ],
+      "clientOperationCount": 14,
+      "generatedOpenApiOperationCount": 7,
+      "generatedOpenApiOperations": [
+        {
+          "path": "/api/experience/projections/{audience}/{channel}",
+          "mountedPath": "/api/experience/projections/{audience}/{channel}",
+          "method": "GET",
+          "operationId": "listExperienceProjections",
+          "summary": "List authoritative portal projections",
+          "tags": ["Experience projections"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}",
+          "mountedPath": "/api/experience/projections/{audience}/{channel}/{recordKey}",
+          "method": "GET",
+          "operationId": "readExperienceProjection",
+          "summary": "Read one authoritative portal projection",
+          "tags": ["Experience projections"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions",
+          "mountedPath": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions",
+          "method": "POST",
+          "operationId": "createExperienceProjectionAction",
+          "summary": "Queue a version-bound authoritative portal command",
+          "tags": ["Experience projections"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}",
+          "mountedPath": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}",
+          "method": "GET",
+          "operationId": "readExperienceProjectionActionReceipt",
+          "summary": "Read an actor-scoped portal action receipt",
+          "tags": ["Experience projections"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/artifacts/render-requests",
+          "mountedPath": "/api/experience/artifacts/render-requests",
+          "method": "POST",
+          "operationId": "createArtifactRenderRequest",
+          "summary": "Resolve authoritative persisted truth for an artifact render",
+          "tags": ["Experience artifacts"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/artifacts/render-requests/{requestId}",
+          "mountedPath": "/api/experience/artifacts/render-requests/{requestId}",
+          "method": "POST",
+          "operationId": "renderArtifactRequest",
+          "summary": "Render, redrive when failed, and immutably store an authoritative artifact request",
+          "tags": ["Experience artifacts"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        },
+        {
+          "path": "/api/experience/artifacts/{kind}/{artifactId}",
+          "mountedPath": "/api/experience/artifacts/{kind}/{artifactId}",
+          "method": "GET",
+          "operationId": "readExperienceArtifact",
+          "summary": "Read metadata or download verified immutable PDF bytes",
+          "tags": ["Experience artifacts"],
+          "security": [
+            {
+              "experienceSession": []
+            }
+          ]
+        }
+      ],
+      "generatedContract": "packages/api/src/generated/schema.d.ts",
+      "client": "apps/web/src/features/contracts/experience-client.ts",
+      "controller": "apps/web/src/features/experience-server/controller.ts",
+      "controllerRouteManifest": [
+        {
+          "key": "projectionList",
+          "declaration": "GET /api/experience/projections/{audience}/{channel}"
+        },
+        {
+          "key": "projectionDetail",
+          "declaration": "GET /api/experience/projections/{audience}/{channel}/{recordKey}"
+        },
+        {
+          "key": "projectionAction",
+          "declaration": "POST /api/experience/projections/{audience}/{channel}/{recordKey}/actions"
+        },
+        {
+          "key": "projectionActionReceipt",
+          "declaration": "GET /api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}"
+        },
+        {
+          "key": "esignLaunch",
+          "declaration": "POST /api/experience/esign/launches"
+        },
+        {
+          "key": "esignReturn",
+          "declaration": "GET /api/experience/esign/returns/{opaqueState}"
+        },
+        {
+          "key": "esignSignedDocument",
+          "declaration": "GET /api/experience/esign/returns/{opaqueState}/signed-document"
+        },
+        {
+          "key": "evidenceCreate",
+          "declaration": "POST /api/experience/evidence/uploads"
+        },
+        {
+          "key": "evidenceStatus",
+          "declaration": "GET /api/experience/evidence/uploads/{uploadId}"
+        },
+        {
+          "key": "evidenceComplete",
+          "declaration": "POST /api/experience/evidence/uploads/{uploadId}/complete"
+        },
+        {
+          "key": "evidenceDownload",
+          "declaration": "GET /api/experience/evidence/uploads/{uploadId}/download"
+        },
+        {
+          "key": "artifactRequest",
+          "declaration": "POST /api/experience/artifacts/render-requests"
+        },
+        {
+          "key": "artifactRender",
+          "declaration": "POST /api/experience/artifacts/render-requests/{requestId}"
+        },
+        {
+          "key": "artifactRead",
+          "declaration": "GET /api/experience/artifacts/{kind}/{artifactId}"
+        }
+      ],
+      "operations": [
+        {
+          "function": "readProjection",
+          "method": "GET",
+          "path": "/api/experience/projections/{audience}/{channel}",
+          "fixedQuery": null
+        },
+        {
+          "function": "readProjectionRecord",
+          "method": "GET",
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}",
+          "fixedQuery": null
+        },
+        {
+          "function": "sendProjectionAction",
+          "method": "POST",
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions",
+          "fixedQuery": null
+        },
+        {
+          "function": "readProjectionAction",
+          "method": "GET",
+          "path": "/api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}",
+          "fixedQuery": null
+        },
+        {
+          "function": "startAuthoritativeSigning",
+          "method": "POST",
+          "path": "/api/experience/esign/launches",
+          "fixedQuery": null
+        },
+        {
+          "function": "readAuthoritativeSigningReturn",
+          "method": "GET",
+          "path": "/api/experience/esign/returns/{opaqueState}",
+          "fixedQuery": null
+        },
+        {
+          "function": "createEvidenceUpload",
+          "method": "POST",
+          "path": "/api/experience/evidence/uploads",
+          "fixedQuery": null
+        },
+        {
+          "function": "completeEvidenceUpload",
+          "method": "POST",
+          "path": "/api/experience/evidence/uploads/{uploadId}/complete",
+          "fixedQuery": null
+        },
+        {
+          "function": "readEvidenceUpload",
+          "method": "GET",
+          "path": "/api/experience/evidence/uploads/{uploadId}",
+          "fixedQuery": null
+        },
+        {
+          "function": "evidenceDownload",
+          "method": "GET",
+          "path": "/api/experience/evidence/uploads/{uploadId}/download",
+          "fixedQuery": null
+        },
+        {
+          "function": "artifactRepresentation",
+          "method": "GET",
+          "path": "/api/experience/artifacts/{kind}/{id}",
+          "fixedQuery": {
+            "representation": "json"
+          }
+        },
+        {
+          "function": "downloadArtifact",
+          "method": "GET",
+          "path": "/api/experience/artifacts/{kind}/{id}",
+          "fixedQuery": null
+        },
+        {
+          "function": "createArtifactRenderRequest",
+          "method": "POST",
+          "path": "/api/experience/artifacts/render-requests",
+          "fixedQuery": null
+        },
+        {
+          "function": "renderArtifactRequest",
+          "method": "POST",
+          "path": "/api/experience/artifacts/render-requests/{requestId}",
+          "fixedQuery": null
+        }
+      ],
+      "operationsWithoutDiscoveredPath": [],
+      "contractReconciliation": {
+        "clientOperationsMissingControllerManifest": [],
+        "controllerOperationsWithoutClientHelper": [
+          "GET /api/experience/esign/returns/{}/signed-document"
+        ],
+        "controllerOperationsWithoutGeneratedContract": [
+          "GET /api/experience/esign/returns/{}",
+          "GET /api/experience/esign/returns/{}/signed-document",
+          "GET /api/experience/evidence/uploads/{}",
+          "GET /api/experience/evidence/uploads/{}/download",
+          "POST /api/experience/esign/launches",
+          "POST /api/experience/evidence/uploads",
+          "POST /api/experience/evidence/uploads/{}/complete"
+        ]
+      }
+    }
+  ],
   "artifacts": [
     {
       "path": "packages/api/src/generated/openapi.json",
       "kind": "generated-openapi",
-      "sha256": "f36bb7fd7e4efd5cb4acd5cf88f79f6de80c8175130252d419c440a29316c857",
-      "bytes": 150256
+      "sha256": "d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18",
+      "bytes": 270574
     },
     {
       "path": "packages/api/src/generated/schema.d.ts",
       "kind": "generated-types",
-      "sha256": "64bf8c96791258ff698e3ec78caa844e22e6bafb36d9d4b6e9db0cdd629e9a65",
-      "bytes": 107424
+      "sha256": "a87b32a07841531447c0d34e24b0a137cd5288ff31470f1425edddcad0579784",
+      "bytes": 169090
     },
     {
       "path": "packages/api/src/generated/client.ts",
       "kind": "checked-in-handwritten-openapi-fetch-wrapper",
       "sha256": "6ab2823ca33bc03bba2f06cbf3bebe428f6aad338aec17dcb4c7e3ac78b365d3",
       "bytes": 253
+    },
+    {
+      "path": "apps/web/src/features/contracts/experience-client.ts",
+      "kind": "checked-in-typed-next-controller-client",
+      "sha256": "eca775826df6a3d8d89a7ce0fee8800a6cef5c98a8b6cdea65a0b561c39b5ffe",
+      "bytes": 12357
     }
   ],
   "generationCommand": "pnpm generate",
   "driftCommand": "pnpm check:generated",
-  "limitation": "client.ts is a stable handwritten wrapper around the generated paths type; it is checked for drift as an artifact but is not emitted by the OpenAPI generator."
+  "limitation": "The generated OpenAPI/types cover the complete Hono /v1 surface plus the seven projection/artifact operations hosted by the Next.js /api/experience controller. E-sign and evidence operations remain checked-in typed controller/client contracts and are explicitly listed as controller operations outside the generated contract. Both stable clients are handwritten and hashed for drift."
 }

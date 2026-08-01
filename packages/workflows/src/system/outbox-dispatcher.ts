@@ -1,4 +1,5 @@
 import type { ClaimedOutboxMessage } from "@clockwork/db";
+import type { RuntimeBoundaryInstrumentation } from "@clockwork/integrations";
 
 export interface OutboxDispatcherStore {
   claimNext(input: {
@@ -21,6 +22,7 @@ export class DurableOutboxDispatcher {
   public constructor(
     private readonly store: OutboxDispatcherStore,
     private readonly handlers: ReadonlyMap<string, OutboxTopicHandler>,
+    private readonly instrumentation?: RuntimeBoundaryInstrumentation,
   ) {
     if (handlers.size === 0)
       throw new Error("OUTBOX_TOPIC_HANDLERS_NOT_CONFIGURED");
@@ -32,34 +34,78 @@ export class DurableOutboxDispatcher {
     | { status: "idle" }
     | { status: "delivered"; messageId: string; topic: string }
   > {
-    const message = await this.store.claimNext({
-      workerId,
-      topics: [...this.handlers.keys()].sort(),
-    });
+    const claim = () =>
+      this.store.claimNext({
+        workerId,
+        topics: [...this.handlers.keys()].sort(),
+      });
+    const message = this.instrumentation
+      ? await this.instrumentation.queue({
+          name: "queue.outbox.claim",
+          correlation: { taskId: workerId },
+          attributes: {
+            "clockwork.operation": "queue.claim",
+            "messaging.destination.name": "outbox",
+            "messaging.operation.name": "claim",
+          },
+          operation: claim,
+        })
+      : await claim();
     if (!message) return { status: "idle" };
     const handler = this.handlers.get(message.topic);
     if (!handler) {
       await this.store.fail(message);
       throw new Error(`OUTBOX_TOPIC_NOT_CONFIGURED:${message.topic}`);
     }
-    try {
-      await handler({
-        messageId: message.id,
-        eventId: message.eventId,
-        topic: message.topic,
-        payload: message.payload,
-        idempotencyKey: `outbox:${message.id}`,
-      });
-      await this.store.complete(message);
-      return {
-        status: "delivered",
-        messageId: message.id,
-        topic: message.topic,
-      };
-    } catch (error) {
-      await this.store.fail(message);
-      throw error;
-    }
+    const dispatch = async () => {
+      try {
+        await handler({
+          messageId: message.id,
+          eventId: message.eventId,
+          topic: message.topic,
+          payload: message.payload,
+          idempotencyKey: `outbox:${message.id}`,
+        });
+        await this.store.complete(message);
+        return {
+          status: "delivered" as const,
+          messageId: message.id,
+          topic: message.topic,
+        };
+      } catch (error) {
+        await this.store.fail(message);
+        throw error;
+      }
+    };
+    const instrumentation = this.instrumentation;
+    if (!instrumentation) return dispatch();
+    const correlation = {
+      requestId: `outbox:${message.id}`,
+      workflowId: message.topic,
+      taskId: workerId,
+      auditId: message.eventId,
+      outboxId: message.id,
+    };
+    return instrumentation.queue({
+      name: "queue.outbox.deliver",
+      correlation,
+      attributes: {
+        "clockwork.operation": "queue.deliver",
+        "messaging.destination.name": message.topic,
+        "messaging.operation.name": "process",
+      },
+      operation: () =>
+        instrumentation.outbox({
+          name: "outbox.dispatch",
+          correlation,
+          attributes: {
+            "clockwork.operation": "outbox.dispatch",
+            "messaging.destination.name": message.topic,
+            "messaging.operation.name": "dispatch",
+          },
+          operation: dispatch,
+        }),
+    });
   }
 
   /**

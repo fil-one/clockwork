@@ -2,6 +2,7 @@ import { z } from "zod";
 import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 
 import {
+  type ClockworkTelemetry,
   FetchJsonProviderTransport,
   HttpAccountingExportSink,
   HttpCoreEvidenceStorageAdapter,
@@ -14,7 +15,10 @@ import {
   HttpUsageProviderClient,
   HttpWorkosMfaPolicyEnforcer,
   StripeFinanceGateway,
+  TelemetryProviderJsonTransport,
   WorkosSdkOrganizationClient,
+  type ProviderJsonTransport,
+  type RuntimeBoundaryInstrumentation,
 } from "@clockwork/integrations";
 
 import type { TriggerWorkerEnvironmentSource } from "./trigger-worker-bootstrap";
@@ -77,7 +81,7 @@ function artifactBytes(value: string): Uint8Array {
   return bytes;
 }
 
-function documentRenderers(rendererTransport: FetchJsonProviderTransport): {
+function documentRenderers(rendererTransport: ProviderJsonTransport): {
   commercial: CommercialArtifactRenderer;
   deletion: DeletionCertificateRenderer;
 } {
@@ -181,18 +185,31 @@ function transport(
   provider: string,
   gate: string,
   allowInsecureLocalhost: boolean,
-) {
-  return new FetchJsonProviderTransport({
+  instrumentation?: RuntimeBoundaryInstrumentation,
+  telemetry?: ClockworkTelemetry,
+): ProviderJsonTransport {
+  const inner = new FetchJsonProviderTransport({
     baseUrl: required(source, `${prefix}_BASE_URL`, gate),
     bearerToken: required(source, `${prefix}_TOKEN`, gate),
     provider,
     allowInsecureLocalhost,
   });
+  return instrumentation && telemetry
+    ? new TelemetryProviderJsonTransport(
+        inner,
+        telemetry,
+        () => instrumentation.currentCorrelation() ?? {},
+        () => instrumentation.currentContext(),
+        provider,
+      )
+    : inner;
 }
 
 /** Builds the default Trigger worker composition exclusively from registered env inputs. */
 export function createEnvironmentWorkflowAdapterFactory(
   source: TriggerWorkerEnvironmentSource,
+  instrumentation?: RuntimeBoundaryInstrumentation,
+  telemetry?: ClockworkTelemetry,
 ) {
   const runtimeEnvironment = required(source, "NODE_ENV", "EXT-ACC-01");
   if (
@@ -211,6 +228,8 @@ export function createEnvironmentWorkflowAdapterFactory(
       "workflow-provider-control",
       "EXT-ACC-01",
       allowInsecureLocalhost,
+      instrumentation,
+      telemetry,
     ),
   );
   const activationTest = (provider: string) => () => control.run(provider);
@@ -220,6 +239,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "accounting",
     "EXT-PROVIDER-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const notificationTransport = transport(
     source,
@@ -227,6 +248,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "notifications",
     "EXT-PROVIDER-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const usageTransport = transport(
     source,
@@ -234,6 +257,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "usage",
     "EXT-PROVISION-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const provisioningTransport = transport(
     source,
@@ -241,6 +266,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "provisioning",
     "EXT-PROVISION-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const screeningTransport = transport(
     source,
@@ -248,6 +275,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "screening",
     "EXT-PROVIDER-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const signatureTransport = transport(
     source,
@@ -255,6 +284,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "signature",
     "EXT-LEGAL-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const evidenceTransport = transport(
     source,
@@ -262,6 +293,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "evidence",
     "EXT-ACC-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const documentRendererTransport = transport(
     source,
@@ -269,6 +302,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "document-renderer",
     "EXT-PROVIDER-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const workosMfaTransport = transport(
     source,
@@ -276,6 +311,8 @@ export function createEnvironmentWorkflowAdapterFactory(
     "workos-mfa",
     "EXT-ACC-01",
     allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
   );
   const stripe = new StripeFinanceGateway({
     apiKey: required(source, "STRIPE_SECRET_KEY", "EXT-ACC-01"),

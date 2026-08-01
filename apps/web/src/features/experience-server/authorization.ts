@@ -1,4 +1,5 @@
 import type { SessionClaims } from "@clockwork/api";
+import { uuidV7 } from "@clockwork/contracts";
 
 import { ExperienceProblem, type ExperienceAudience } from "./model";
 
@@ -97,7 +98,7 @@ export function requestId(request: Request): string {
   const supplied = request.headers.get("x-request-id")?.trim();
   return supplied && supplied.length >= 8 && supplied.length <= 128
     ? supplied
-    : crypto.randomUUID();
+    : uuidV7();
 }
 
 export function idempotencyKey(request: Request): string {

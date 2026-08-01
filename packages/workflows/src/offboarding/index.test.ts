@@ -49,14 +49,14 @@ describe("offboarding workflows", () => {
       {
         scope: "bucket/a",
         retainedUntil: "2027-01-01T00:00:00.000Z",
-        reason: "WORM",
         legalHold: false,
+        reason: "object_lock_retention",
       },
       {
         scope: "bucket/b",
         retainedUntil: "2028-01-01T00:00:00.000Z",
-        reason: "legal",
         legalHold: true,
+        reason: "legal_hold",
       },
     ];
     expect(maximumObjectLockDate(objects)).toBe("2028-01-01T00:00:00.000Z");

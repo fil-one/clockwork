@@ -1,3 +1,5 @@
+import { uuidV7 } from "@clockwork/contracts";
+
 export const offerOptions = [
   {
     id: "44444444-4444-4444-8444-444444444444",
@@ -96,13 +98,13 @@ export function resaleQuotePayload(draft: ResaleQuoteDraft) {
     throw new Error("Quote selectors have not been resolved.");
   return {
     priceBookId,
-    seriesId: crypto.randomUUID(),
+    seriesId: uuidV7(),
     route: draft.route,
     endClientAccountId,
     partnerAccountId: "22222222-2222-4222-8222-222222222222",
     lines: [
       {
-        lineId: crypto.randomUUID(),
+        lineId: uuidV7(),
         sku: "FIL-ARCHIVE-CAPACITY",
         region: draft.region,
         quantity: draft.capacity,

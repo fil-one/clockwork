@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
+
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
   checkRecentAuth: vi.fn(),
@@ -210,14 +212,20 @@ describe("WorkOS commerce session mapping", () => {
     });
   });
 
-  it("cannot enable demo identity in either production environment", () => {
-    expect(
-      explicitDemoIdentityEnabled({
-        NODE_ENV: "production",
+  it.each(DEMO_PRODUCTION_ENVIRONMENT_KEYS)(
+    "cannot enable demo identity when %s marks production",
+    (productionKey) => {
+      const environment: Record<string, string | undefined> = {
+        NODE_ENV: "test",
         NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "local",
         CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
-      }),
-    ).toBe(false);
+      };
+      environment[productionKey] = " Production ";
+      expect(explicitDemoIdentityEnabled(environment)).toBe(false);
+    },
+  );
+
+  it("cannot enable demo identity through the public runtime marker", () => {
     expect(
       explicitDemoIdentityEnabled({
         NODE_ENV: "test",
@@ -225,6 +233,9 @@ describe("WorkOS commerce session mapping", () => {
         CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
       }),
     ).toBe(false);
+  });
+
+  it("enables demo identity only when every production marker is clear", () => {
     expect(
       explicitDemoIdentityEnabled({
         NODE_ENV: "test",

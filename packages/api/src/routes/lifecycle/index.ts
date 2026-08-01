@@ -1,5 +1,13 @@
-import type { Actor, Permission } from "@clockwork/contracts";
-import { ids, ProblemError } from "@clockwork/contracts";
+import type {
+  Actor,
+  MarketplaceEventPayload,
+  Permission,
+} from "@clockwork/contracts";
+import {
+  ids,
+  MarketplaceEventPayloadSchema,
+  ProblemError,
+} from "@clockwork/contracts";
 import { authorizationActor } from "@clockwork/domain";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -63,6 +71,7 @@ const statusRoute = createRoute({
               esign: z.enum(["configured", "missing"]),
               provisioningWebhook: z.enum(["configured", "missing"]),
               marketplaceWebhook: z.enum(["configured", "missing"]),
+              supportWebhook: z.enum(["configured", "missing"]),
               evidenceStorage: z.enum(["configured", "missing"]),
             }),
           }),
@@ -448,9 +457,10 @@ const provisioningWebhookRoute = createRoute({
 
 const marketplaceWebhookRoute = createRoute({
   method: "post",
-  path: "/v1/webhooks/marketplaces-platform",
+  path: "/v1/webhooks/marketplaces/{provider}",
   tags: ["lifecycle", "webhooks", "marketplaces"],
   request: {
+    params: z.object({ provider: z.enum(["aws", "azure", "google"]) }),
     headers: z.object({ "marketplace-signature": z.string().min(1) }),
     body: {
       required: true,
@@ -468,6 +478,34 @@ const marketplaceWebhookRoute = createRoute({
       },
     },
     503: { description: "Marketplace webhook adapter unavailable or busy" },
+  },
+});
+
+const supportWebhookRoute = createRoute({
+  method: "post",
+  path: "/v1/webhooks/support/{provider}",
+  tags: ["lifecycle", "webhooks", "support"],
+  request: {
+    params: z.object({
+      provider: z.string().regex(/^[a-z][a-z0-9-]{1,39}$/),
+    }),
+    headers: z.object({ "support-signature": z.string().min(1) }),
+    body: {
+      required: true,
+      content: { "application/json": { schema: z.unknown() } },
+    },
+  },
+  responses: {
+    200: {
+      description: "Verified support signal metadata recorded or deduplicated",
+      content: {
+        "application/json": {
+          schema: z.object({ status: z.enum(["processed", "duplicate"]) }),
+        },
+      },
+    },
+    422: { description: "Verified support provider does not match the path" },
+    503: { description: "Support webhook adapter unavailable or busy" },
   },
 });
 
@@ -514,7 +552,13 @@ const pocCreateRoute = createRoute({
               buyerUserId: z.uuid(),
               permittedDataClass: z.string().min(1),
               successTests: z
-                .array(z.object({ id: z.string(), description: z.string() }))
+                .array(
+                  z.object({
+                    id: z.string(),
+                    description: z.string(),
+                    target: z.string().trim().min(1),
+                  }),
+                )
                 .min(1),
               capacityCap: z.string().regex(/^(0|[1-9]\d*)(\.\d{1,18})?$/),
               egressCap: z.string().regex(/^(0|[1-9]\d*)(\.\d{1,18})?$/),
@@ -1024,6 +1068,9 @@ export function registerLifecycleRoutes(
       marketplaceWebhook: dependencies.marketplaceWebhook
         ? ("configured" as const)
         : ("missing" as const),
+      supportWebhook: dependencies.supportWebhook
+        ? ("configured" as const)
+        : ("missing" as const),
       evidenceStorage: dependencies.activeAgreementTemplates
         ? ("configured" as const)
         : ("missing" as const),
@@ -1385,15 +1432,45 @@ export function registerLifecycleRoutes(
         503,
       );
     const request = context.get("requestContext");
+    const provider = context.req.valid("param").provider;
     const rawBody = request.rawWebhookBody;
     if (!rawBody) throw new Error("Verified webhook raw body was not captured");
+    let marketplacePayload: MarketplaceEventPayload | undefined;
     const result = await verifyAndClaimWebhook({
-      provider: "marketplaces-platform",
-      eventType: (payload) =>
-        z
-          .object({ type: z.string().min(1) })
-          .passthrough()
-          .parse(payload).type,
+      provider: `marketplace:${provider}`,
+      eventType: () => {
+        if (!marketplacePayload)
+          throw new Error("Marketplace payload validation was not completed");
+        return marketplacePayload.type;
+      },
+      validatePayload: (payload) => {
+        const parsed = MarketplaceEventPayloadSchema.safeParse(payload);
+        if (!parsed.success)
+          throw new ProblemError({
+            type: "https://clockwork.test/problems/marketplace-payload",
+            title: "Marketplace webhook payload is invalid",
+            status: 422,
+            detail:
+              "The verified marketplace payload did not match the canonical persistence contract.",
+            code: "MARKETPLACE_PAYLOAD_INVALID",
+            requestId: request.requestId,
+            errors: {
+              payload: parsed.error.issues.map((issue) => issue.message),
+            },
+            retryable: false,
+          });
+        if (parsed.data.provider !== provider)
+          throw new ProblemError({
+            type: "https://clockwork.test/problems/marketplace-provider",
+            title: "Marketplace webhook provider does not match the path",
+            status: 422,
+            code: "MARKETPLACE_PROVIDER_MISMATCH",
+            requestId: request.requestId,
+            retryable: false,
+          });
+        marketplacePayload = parsed.data;
+      },
+      persistedPayload: () => marketplacePayload,
       rawBody,
       signature: context.req.valid("header")["marketplace-signature"],
       verifier: adapter.verifier,
@@ -1406,32 +1483,95 @@ export function registerLifecycleRoutes(
         { title: "Marketplace event already in progress", status: 503 },
         503,
       );
+    if (!marketplacePayload)
+      throw new Error("Marketplace payload validation was not completed");
     try {
-      await dependencies.service.ingestMarketplaceEvent(
-        result.verified.payload,
-        {
-          requestId: request.requestId,
-          actor: { kind: "provider", id: "marketplaces-platform" },
-          idempotencyKey: `marketplaces-platform:${result.verified.eventId}`,
-          ip: request.ip,
-          userAgent: request.userAgent,
-          occurredAt: result.verified.occurredAt,
-          authorization: null,
-        },
-      );
+      await dependencies.service.ingestMarketplaceEvent(marketplacePayload, {
+        requestId: request.requestId,
+        actor: { kind: "provider", id: `marketplace:${provider}` },
+        idempotencyKey: `marketplace:${provider}:${result.verified.eventId}`,
+        ip: request.ip,
+        userAgent: request.userAgent,
+        occurredAt: result.verified.occurredAt,
+        authorization: null,
+      });
       await adapter.deduplicator.markProcessed(
-        "marketplaces-platform",
+        `marketplace:${provider}`,
         result.verified.eventId,
         result.claim.claimToken,
       );
     } catch (error) {
       await adapter.deduplicator.markFailed(
-        "marketplaces-platform",
+        `marketplace:${provider}`,
         result.verified.eventId,
         result.claim.claimToken,
         error instanceof Error
           ? error.message
           : "Unknown marketplace webhook failure",
+      );
+      throw error;
+    }
+    return context.json({ status: "processed" as const }, 200);
+  });
+
+  app.openapi(supportWebhookRoute, async (context) => {
+    const adapter = dependencies.supportWebhook;
+    if (!adapter)
+      return context.json(
+        { title: "Support webhook is not configured", status: 503 },
+        503,
+      );
+    const request = context.get("requestContext");
+    const provider = context.req.valid("param").provider;
+    const rawBody = request.rawWebhookBody;
+    if (!rawBody) throw new Error("Verified webhook raw body was not captured");
+    const result = await verifyAndClaimWebhook({
+      provider: `support:${provider}`,
+      eventType: (payload) =>
+        z
+          .object({ type: z.string().min(1) })
+          .passthrough()
+          .parse(payload).type,
+      validatePayload: (payload) => {
+        const verifiedProvider = z
+          .object({ provider: z.string() })
+          .passthrough()
+          .parse(payload).provider;
+        if (verifiedProvider !== provider)
+          throw new ProblemError({
+            type: "https://clockwork.test/problems/support-provider",
+            title: "Support webhook provider does not match the path",
+            status: 422,
+            code: "SUPPORT_PROVIDER_MISMATCH",
+            requestId: request.requestId,
+            retryable: false,
+          });
+      },
+      persistedPayload: (payload) => payload,
+      rawBody,
+      signature: context.req.valid("header")["support-signature"],
+      verifier: adapter.verifier,
+      deduplicator: adapter.deduplicator,
+    });
+    if (result.claim.status === "duplicate")
+      return context.json({ status: "duplicate" as const }, 200);
+    if (result.claim.status === "in_progress")
+      return context.json(
+        { title: "Support event already in progress", status: 503 },
+        503,
+      );
+    try {
+      await adapter.deduplicator.markProcessed(
+        `support:${provider}`,
+        result.verified.eventId,
+        result.claim.claimToken,
+      );
+    } catch (error) {
+      await adapter.deduplicator.markFailed(
+        `support:${provider}`,
+        result.verified.eventId,
+        result.claim.claimToken,
+        "SUPPORT_WEBHOOK_RECEIPT_FAILED",
       );
       throw error;
     }

@@ -95,6 +95,15 @@ export class DatabaseOutboxDispatcherStore {
         const now = this.now();
         const nowIso = now.toISOString();
         const topics = input.topics ? [...input.topics] : null;
+        const topicFilter =
+          topics === null
+            ? sql`true`
+            : topics.length === 0
+              ? sql`false`
+              : sql`o.topic in (${sql.join(
+                  topics.map((topic) => sql`${topic}`),
+                  sql`, `,
+                )})`;
         const rows = await transaction.execute(sql`
           select o.id, o.event_id, o.topic, o.payload, o.attempt_count
           from outbox_messages o
@@ -104,7 +113,7 @@ export class DatabaseOutboxDispatcherStore {
           where o.processed_at is null
             and o.available_at <= ${nowIso}::timestamptz
             and o.attempt_count < ${this.maxAttempts()}
-            and (${topics}::text[] is null or o.topic = any(${topics}::text[]))
+            and ${topicFilter}
             and (
               w.id is null
               or (w.status = 'running' and (w.input->>'leaseUntil')::timestamptz <= ${nowIso}::timestamptz)

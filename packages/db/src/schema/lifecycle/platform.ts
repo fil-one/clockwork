@@ -24,7 +24,10 @@ import {
   terminations,
 } from "../../schema";
 
-const id = () => uuid("id").primaryKey().defaultRandom();
+const id = () =>
+  uuid("id")
+    .primaryKey()
+    .default(sql`public.uuid_v7()`);
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -405,6 +408,17 @@ export const lifecycleOffboardingPlans = pgTable(
     check(
       "lifecycle_offboarding_reason_check",
       sql`${table.reason} in ('customer_request','non_renewal','partner_request','partner_default','material_breach')`,
+    ),
+    check(
+      "lifecycle_offboarding_exclusion_reasons_check",
+      sql`coalesce(jsonb_typeof(${table.plan}->'lockedExclusions') = 'array', false)
+        and coalesce(
+          jsonb_path_exists(
+            ${table.plan},
+            '$.lockedExclusions[*] ? (@.type() != "object" || !exists(@.legalHold) || @.legalHold.type() != "boolean" || !exists(@.reason) || @.reason.type() != "string" || (@.legalHold == true && @.reason != "legal_hold") || (@.legalHold == false && @.reason != "object_lock_retention"))'
+          ),
+          true
+        ) = false`,
     ),
   ],
 );

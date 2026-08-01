@@ -7,17 +7,22 @@ import {
   type IdempotencyStore,
 } from "@clockwork/api";
 import {
+  configureDatabaseTransactionInstrumentation,
   DatabaseEsignEnvelopeLookup,
+  DatabaseExceptionRosterAdminService,
   DatabaseExternalGateService,
   DatabaseLifecycleCommandRepository,
+  DatabasePersistedWorkflowExceptionRouting,
   DatabaseLifecycleAuthorizationScopeResolver,
   DatabaseMarketplaceWebhookBindingStore,
   DatabaseProviderResourceBindingStore,
   DatabaseProvisioningExpectationLookup,
   DatabaseRoleSynchronizationSink,
+  DatabaseSupportWebhookBindingStore,
   DatabaseWebhookDeduplicator,
   type DatabaseLifecyclePolicies,
 } from "@clockwork/db";
+import { uuidV7 } from "@clockwork/contracts";
 import {
   DnsTxtDomainOwnershipVerifier,
   EsignWebhookVerifier,
@@ -27,13 +32,16 @@ import {
   MarketplaceWebhookVerifier,
   NormalizedStripeFinancialWebhookVerifier,
   ProvisioningWebhookVerifier,
+  parseTraceparent,
   S3ImmutableArtifactReader,
+  SupportWebhookVerifier,
   StripeFinancialWebhookVerifier,
   StripeInvoicePaymentSessionGateway,
   WorkosAuthorizationCodeExchange,
   WorkosRegistrationBootstrapVerifier,
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
+import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
 import { WorkosNextSessionResolver } from "@/src/auth/session";
 import {
@@ -54,69 +62,27 @@ import {
   ProductionStripeWebhookProjection,
   ProductionVerifiedPartnerOriginResolver,
 } from "@/src/providers/composition";
+import {
+  databaseTransactionTelemetry,
+  instrumentProviderTransport,
+  runtimeBoundaryInstrumentation,
+} from "@/src/telemetry/runtime";
+
+configureDatabaseTransactionInstrumentation(databaseTransactionTelemetry);
 
 function configuredEnvironment(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
 }
 
-function queueName(value: unknown) {
-  switch (value) {
-    case "pricing":
-    case "legal":
-    case "credit_collections":
-    case "restricted_parties":
-    case "disputes":
-    case "deal_registration_disputes":
-    case "poc_qualification":
-      return value;
-    default:
-      throw new Error("Lifecycle exception queue name is invalid");
-  }
-}
-
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Lifecycle policy must be an object");
-  return Object.fromEntries(Object.entries(value));
-}
-
-function nonEmptyString(value: unknown, name: string): string {
-  if (typeof value !== "string" || !value.trim())
-    throw new Error(`Lifecycle policy ${name} is required`);
-  return value;
-}
-
 function lifecyclePolicies(): DatabaseLifecyclePolicies | undefined {
   const threshold = process.env.CLICK_THROUGH_THRESHOLD_MINOR;
-  const serialized = process.env.LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON;
-  if (!threshold || !serialized) return undefined;
-  const parsed: unknown = JSON.parse(serialized);
-  if (!Array.isArray(parsed))
-    throw new Error("Lifecycle exception queue policies must be an array");
+  if (!threshold) return undefined;
   return {
     clickThroughThresholdMinor: threshold,
     migrationFeatureEnabled: process.env.MIGRATION_FEATURE_ENABLED === "true",
     automatedTeardownEnabled: process.env.AUTOMATED_TEARDOWN_ENABLED === "true",
-    exceptionQueues: parsed.map((value) => {
-      const item = record(value);
-      if (
-        typeof item.targetBusinessHours !== "number" ||
-        !Number.isInteger(item.targetBusinessHours)
-      )
-        throw new Error("Lifecycle queue targetBusinessHours is invalid");
-      return {
-        queue: queueName(item.queue),
-        ownerId: nonEmptyString(item.ownerId, "ownerId"),
-        backupId: nonEmptyString(item.backupId, "backupId"),
-        targetBusinessHours: item.targetBusinessHours,
-        escalationOwnerId: nonEmptyString(
-          item.escalationOwnerId,
-          "escalationOwnerId",
-        ),
-        separationRequired: item.separationRequired === true,
-      };
-    }),
+    exceptionQueues: [],
   };
 }
 
@@ -146,6 +112,8 @@ const provisioningWebhookSecret = configuredEnvironment(
 const marketplaceWebhookSecret = configuredEnvironment(
   "MARKETPLACE_WEBHOOK_SECRET",
 );
+const supportProvider = configuredEnvironment("SUPPORT_PROVIDER");
+const supportWebhookSecret = configuredEnvironment("SUPPORT_WEBHOOK_SECRET");
 const migrationSourceBaseUrl = configuredEnvironment(
   "MIGRATION_SOURCE_BASE_URL",
 );
@@ -164,6 +132,17 @@ const externalGateActivationTests = createExternalGateActivationSimulator({
   enabled: process.env.CLOCKWORK_ENABLE_SIMULATORS === "true",
   runtimeEnvironment: process.env.NODE_ENV,
 });
+const externalGateAdministration = serviceDatabase
+  ? {
+      exceptionRoster: new DatabaseExceptionRosterAdminService(serviceDatabase),
+      ...(configuredEnvironment("TRIGGER_SECRET_KEY") &&
+      configuredEnvironment("TRIGGER_PROJECT_REF")
+        ? {
+            activationTasks: new TriggerExternalGateActivationTaskSubmitter(),
+          }
+        : {}),
+    }
+  : undefined;
 const externalGateGuard = serviceDatabase
   ? new PersistedExternalGateGuard(serviceDatabase)
   : undefined;
@@ -176,12 +155,15 @@ const migrationSource =
   migrationAccessEvidenceHash
     ? new GateCheckedProductionMigrationSource(
         new HttpMigrationSnapshotSource({
-          transport: new FetchJsonProviderTransport({
-            baseUrl: migrationSourceBaseUrl,
-            bearerToken: migrationSourceToken,
-            provider: "existing-customer-migration",
-            allowInsecureLocalhost: process.env.NODE_ENV !== "production",
-          }),
+          transport: instrumentProviderTransport(
+            "existing-customer-migration",
+            new FetchJsonProviderTransport({
+              baseUrl: migrationSourceBaseUrl,
+              bearerToken: migrationSourceToken,
+              provider: "existing-customer-migration",
+              allowInsecureLocalhost: process.env.NODE_ENV !== "production",
+            }),
+          ),
           windowId: migrationWindowId,
           authorizedActorId: migrationAuthorizedActorId,
           accessEvidenceHash: migrationAccessEvidenceHash,
@@ -331,6 +313,9 @@ const lifecycleService =
           serviceDatabase,
           authorizationSecret,
           policies,
+          exceptionRouting: new DatabasePersistedWorkflowExceptionRouting(
+            serviceDatabase,
+          ),
           migrationSource,
         }),
       )
@@ -410,6 +395,27 @@ const marketplaceWebhook =
         deduplicator: webhookDeduplicator,
       }
     : undefined;
+const supportWebhook =
+  serviceDatabase &&
+  webhookDeduplicator &&
+  supportProvider &&
+  supportWebhookSecret &&
+  externalGateGuard
+    ? {
+        verifier: new GateCheckedWebhookVerifier(
+          new SupportWebhookVerifier(
+            supportProvider,
+            supportWebhookSecret,
+            new DatabaseSupportWebhookBindingStore(
+              new DatabaseProviderResourceBindingStore(serviceDatabase),
+            ),
+          ),
+          externalGateGuard,
+          ["EXT-ACC-01", "EXT-PROVIDER-01"],
+        ),
+        deduplicator: webhookDeduplicator,
+      }
+    : undefined;
 const api = createApiApp({
   sessionResolver: new WorkosNextSessionResolver(),
   ...(trustedOriginResolver ? { trustedOriginResolver } : {}),
@@ -433,7 +439,8 @@ const api = createApiApp({
   signingSessions ||
   esignWebhook ||
   provisioningWebhook ||
-  marketplaceWebhook
+  marketplaceWebhook ||
+  supportWebhook
     ? {
         lifecycle: {
           ...(lifecycleAuthorizationScopes
@@ -447,16 +454,21 @@ const api = createApiApp({
           ...(esignWebhook ? { esignWebhook } : {}),
           ...(provisioningWebhook ? { provisioningWebhook } : {}),
           ...(marketplaceWebhook ? { marketplaceWebhook } : {}),
+          ...(supportWebhook ? { supportWebhook } : {}),
         },
       }
     : {}),
-  ...(externalGates || externalGateActivationTests || workosWebhook
+  ...(externalGates ||
+  externalGateActivationTests ||
+  externalGateAdministration ||
+  workosWebhook
     ? {
         system: {
           ...(externalGates ? { externalGates } : {}),
           ...(externalGateActivationTests
             ? { externalGateActivationTests }
             : {}),
+          ...(externalGateAdministration ? { externalGateAdministration } : {}),
           ...(workosWebhook ? { workosWebhook } : {}),
         },
       }
@@ -466,7 +478,39 @@ const api = createApiApp({
 async function handle(request: Request) {
   const url = new URL(request.url);
   url.pathname = url.pathname.replace(/^\/api/, "") || "/";
-  return api.fetch(new Request(url, request));
+  const requestId = request.headers.get("x-request-id") ?? uuidV7();
+  const parent = parseTraceparent(request.headers.get("traceparent"));
+  const route = url.pathname.startsWith("/v1/webhooks/")
+    ? "/v1/webhooks/{provider}"
+    : url.pathname.startsWith("/v1/")
+      ? "/v1/{lane}/{resource}"
+      : "/{resource}";
+  return runtimeBoundaryInstrumentation.api({
+    name: "api.request",
+    correlation: { requestId },
+    attributes: {
+      "clockwork.operation": "api.request",
+      "http.request.method": request.method,
+      "http.route": route,
+    },
+    ...(parent ? { parent } : {}),
+    operation: () => {
+      const dispatch = () =>
+        Promise.resolve(api.fetch(new Request(url, request)));
+      return url.pathname.startsWith("/v1/webhooks/")
+        ? runtimeBoundaryInstrumentation.webhook({
+            name: "webhook.request",
+            correlation: { requestId },
+            attributes: {
+              "clockwork.operation": "webhook.request",
+              "http.request.method": request.method,
+              "http.route": "/v1/webhooks/{provider}",
+            },
+            operation: dispatch,
+          })
+        : dispatch();
+    },
+  });
 }
 
 export const GET = handle;

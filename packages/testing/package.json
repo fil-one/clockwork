@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./demo-reset": "./src/demo/reset.ts",
+    "./demo-state": "./src/demo/state.ts",
     "./playwright": "./src/playwright/index.ts"
   },
   "scripts": {

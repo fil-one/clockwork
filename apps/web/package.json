@@ -24,14 +24,17 @@
     "@clockwork/db": "workspace:*",
     "@clockwork/documents": "workspace:*",
     "@clockwork/integrations": "workspace:*",
+    "@clockwork/testing": "workspace:*",
     "@clockwork/ui": "workspace:*",
+    "@clockwork/workflows": "workspace:*",
     "@workos-inc/authkit-nextjs": "catalog:",
     "@workos-inc/node": "catalog:",
     "hono": "catalog:",
     "drizzle-orm": "catalog:",
     "next": "16.2.12",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

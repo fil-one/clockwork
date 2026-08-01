@@ -1,4 +1,5 @@
 import type { SessionClaims } from "@clockwork/api";
+import { DOCUMENT_KINDS } from "@clockwork/documents/model";
 
 export const experienceAudiences = ["customer", "partner", "internal"] as const;
 export type ExperienceAudience = (typeof experienceAudiences)[number];
@@ -85,7 +86,12 @@ export interface ProjectionActionReceipt {
   action: string;
   expectedVersion: number;
   status: "queued" | "applied" | "rejected" | "failed";
+  resultReference: string | null;
+  resultCode: string | null;
+  authoritativeVersion: number | null;
+  commandReplayed: boolean | null;
   createdAt: string;
+  completedAt: string | null;
   auditEventId: string;
   outboxMessageId: string;
 }
@@ -158,23 +164,7 @@ export interface EvidenceUploadRecord {
   version: number;
 }
 
-export const artifactKinds = [
-  "direct_quote",
-  "partner_transfer_quote",
-  "partner_resale_quote",
-  "order_form",
-  "amendment",
-  "poc_summary",
-  "poc_final_report",
-  "invoice_companion",
-  "receipt",
-  "commission_statement",
-  "renewal_confirmation",
-  "decline_confirmation",
-  "deletion_certificate",
-  "reconciliation_report",
-  "report_export",
-] as const;
+export const artifactKinds = DOCUMENT_KINDS;
 export type ArtifactKind = (typeof artifactKinds)[number];
 
 export interface ArtifactRepresentation {
@@ -182,7 +172,7 @@ export interface ArtifactRepresentation {
   kind: ArtifactKind;
   subjectType: string;
   subjectId: string;
-  accountId: string;
+  accountId: string | null;
   audience: ExperienceAudience;
   audienceAccountId: string | null;
   documentId: string;
@@ -195,6 +185,21 @@ export interface ArtifactRepresentation {
   retainUntil: string;
   createdAt: string;
   downloadHref: string;
+}
+
+export interface RenderRequestRepresentation {
+  id: string;
+  accountId: string | null;
+  audience: ExperienceAudience;
+  audienceAccountId: string | null;
+  subjectType: string;
+  subjectId: string;
+  kind: ArtifactKind;
+  sourceHash: string;
+  sourceVersion: string;
+  retainUntil: string;
+  status: "pending" | "rendering" | "stored" | "failed";
+  version: number;
 }
 
 export class ExperienceProblem extends Error {

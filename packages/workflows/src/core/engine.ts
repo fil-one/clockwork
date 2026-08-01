@@ -21,6 +21,7 @@ import type {
   CoreWorkflowRecord,
   CoreWorkflowTaskId,
   ExceptionQueue,
+  ReportRow,
   WorkflowExceptionRequest,
 } from "./ports";
 import {
@@ -926,8 +927,11 @@ export class CoreFinanceWorkflowEngine {
   public async exportReport(raw: unknown): Promise<
     WorkflowExecution<{
       rowCount: number;
+      columns: readonly string[];
+      rows: readonly ReportRow[];
       sourceVersion: string;
       contentHash: string;
+      byteLength: number;
       documentId: string;
       storageKey: string;
       versionId: string;
@@ -1021,8 +1025,11 @@ export class CoreFinanceWorkflowEngine {
           );
         const value = {
           rowCount: rows.length,
+          columns: csv.columns,
+          rows,
           sourceVersion: queried.value.sourceVersion,
           contentHash,
+          byteLength: csv.bytes.byteLength,
           documentId: stored.value.documentId,
           storageKey: stored.value.storageKey,
           versionId: stored.value.versionId,

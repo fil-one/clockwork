@@ -5,6 +5,20 @@ import { describe, expect, it } from "vitest";
 import { QuoteBuilder } from "./quote-builder";
 
 describe("three-stage quote builder", () => {
+  it("anchors the draft in the agreement-to-order promise chain", () => {
+    render(<QuoteBuilder />);
+
+    const chain = screen.getByRole("list", {
+      name: "Commercial promise chain",
+    });
+    expect(chain).toHaveTextContent("Agreement and account authority");
+    expect(chain).toHaveTextContent("Quote scope, route, and expiry");
+    expect(chain).toHaveTextContent("Order commitment after acceptance");
+    expect(
+      screen.getByRole("group", { name: "Customer, offer, and region" }),
+    ).toBeVisible();
+  });
+
   it("shows inline selector validation and focuses the first invalid field", async () => {
     const user = userEvent.setup();
     render(<QuoteBuilder />);

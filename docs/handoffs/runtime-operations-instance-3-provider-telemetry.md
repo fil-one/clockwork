@@ -1,5 +1,10 @@
 # Runtime operations instance 3: provider and telemetry handoff
 
+Current disposition: historical provenance. Provider/telemetry joins are
+repository-qualified on `main`; only the hosted backend/credentials/live
+delivery/soak inputs named under `EXT-ACC-01` remain, and no RC/launch is
+declared here.
+
 This handoff is lane-local. It does not modify commercial core, web, generated
 API, canonical specification, backlog, release-report, or shared traceability
 files.

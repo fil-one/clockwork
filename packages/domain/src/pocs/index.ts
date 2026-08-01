@@ -50,7 +50,7 @@ export interface PocQualification {
   workload: string;
   buyerUserId: string;
   permittedDataClass: "synthetic" | "public" | "confidential" | "regulated";
-  successTests: readonly { id: string; description: string }[];
+  successTests: readonly { id: string; description: string; target: string }[];
   commercialRangeMinor: { minimum: string; maximum: string; currency: string };
   expiresAt: string;
   supportOwnerId: string;
@@ -65,6 +65,8 @@ export function qualifyPoc(input: PocQualification): {
   if (!input.buyerUserId) reasons.push("BUYER_NOT_NAMED");
   if (input.successTests.length === 0)
     reasons.push("SUCCESS_TESTS_NOT_DEFINED");
+  if (input.successTests.some((test) => test.target.trim().length === 0))
+    reasons.push("SUCCESS_TEST_TARGET_REQUIRED");
   if (
     new Set(input.successTests.map((test) => test.id)).size !==
     input.successTests.length

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { IdempotencyKeySchema, ProblemError } from "@clockwork/contracts";
 import {
@@ -45,7 +45,7 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     const composite = `${scope}:${key}`;
     const record = this.records.get(composite);
     if (!record) {
-      const claimToken = crypto.randomUUID();
+      const claimToken = randomUUID();
       this.records.set(composite, {
         requestHash,
         state: "running",

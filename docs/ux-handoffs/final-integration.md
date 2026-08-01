@@ -1,5 +1,9 @@
 # UX final integration handoff
 
+Current disposition: historical provenance. The complete UX history and later
+authoritative joins are represented and repository-qualified on `main`; this is
+not an active lane or RC/launch record.
+
 ## Provenance and merge order
 
 Integration was completed on `ux/integration` from the common setup baseline

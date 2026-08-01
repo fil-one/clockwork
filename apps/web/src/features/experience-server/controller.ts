@@ -39,6 +39,7 @@ import {
 import {
   createOpaqueEsignState,
   DatabaseExperienceRepository,
+  publicRenderRequest,
 } from "./repository";
 import { requireProjectionActionAuthority } from "./projection-authorization";
 
@@ -49,6 +50,7 @@ interface ControllerDependencies {
   sessionResolver?: SessionResolver;
   now?: () => Date;
   fetchImplementation?: typeof fetch;
+  renderDocument?: typeof renderAuthorizedCommerceDocument;
 }
 
 function json(
@@ -343,7 +345,11 @@ export async function handleExperienceRequest(
             now,
           }),
         );
-      if (segments[4] === "actions" && request.method === "POST") {
+      if (
+        segments.length === 5 &&
+        segments[4] === "actions" &&
+        request.method === "POST"
+      ) {
         requireMutationSecurity(request);
         const value = await body(request);
         const action = requiredString(value, "action");
@@ -353,6 +359,13 @@ export async function handleExperienceRequest(
           input.channel,
           action,
         );
+        const expectedVersion = requiredInteger(value, "expectedVersion");
+        if (expectedVersion < 1)
+          throw new ExperienceProblem(
+            422,
+            "INVALID_BODY",
+            "expectedVersion must be positive",
+          );
         return json(
           await source.action({
             session,
@@ -360,9 +373,9 @@ export async function handleExperienceRequest(
             channel: input.channel,
             accountId: input.accountId,
             recordKey,
-            projectionId: requiredString(value, "projectionId"),
+            projectionId: uuid(value, "projectionId"),
             action,
-            expectedVersion: requiredInteger(value, "expectedVersion"),
+            expectedVersion,
             idempotencyKey: idempotencyKey(request),
             payload: record(value.payload ?? {}),
             requestId: id,
@@ -370,11 +383,29 @@ export async function handleExperienceRequest(
           202,
         );
       }
+      if (
+        segments.length === 6 &&
+        segments[4] === "actions" &&
+        segments[5] &&
+        request.method === "GET"
+      )
+        return json(
+          await source.receipt({
+            session,
+            audience: input.audience,
+            channel: input.channel,
+            accountId: input.accountId,
+            recordKey,
+            actionRequestId: segments[5],
+            requestId: id,
+          }),
+        );
     }
 
     if (
       segments[0] === "esign" &&
       segments[1] === "launches" &&
+      segments.length === 2 &&
       request.method === "POST"
     ) {
       requireMutationSecurity(request);
@@ -510,7 +541,7 @@ export async function handleExperienceRequest(
 
     if (segments[0] === "evidence" && segments[1] === "uploads") {
       const uploadId = segments[2];
-      if (!uploadId && request.method === "POST") {
+      if (segments.length === 2 && !uploadId && request.method === "POST") {
         requireMutationSecurity(request);
         const value = await body(request);
         const journey = requiredString(value, "journey");
@@ -622,7 +653,12 @@ export async function handleExperienceRequest(
       }
       if (uploadId && segments.length === 3 && request.method === "GET")
         return json(await repository().readEvidence(session, uploadId, id));
-      if (uploadId && segments[3] === "complete" && request.method === "POST") {
+      if (
+        uploadId &&
+        segments.length === 4 &&
+        segments[3] === "complete" &&
+        request.method === "POST"
+      ) {
         requireMutationSecurity(request);
         let upload = await repository().readEvidence(session, uploadId, id);
         if (upload.status === "promoted")
@@ -686,7 +722,12 @@ export async function handleExperienceRequest(
           }),
         });
       }
-      if (uploadId && segments[3] === "download" && request.method === "GET") {
+      if (
+        uploadId &&
+        segments.length === 4 &&
+        segments[3] === "download" &&
+        request.method === "GET"
+      ) {
         const upload = await repository().readEvidence(session, uploadId, id);
         if (
           upload.status !== "promoted" ||
@@ -706,7 +747,80 @@ export async function handleExperienceRequest(
     if (
       segments[0] === "artifacts" &&
       segments[1] === "render-requests" &&
+      segments.length === 2 &&
+      request.method === "POST"
+    ) {
+      requireMutationSecurity(request);
+      const value = await body(request);
+      const allowed = new Set([
+        "kind",
+        "subjectId",
+        "expectedVersion",
+        "audience",
+        "accountId",
+      ]);
+      if (Object.keys(value).some((key) => !allowed.has(key)))
+        throw new ExperienceProblem(
+          422,
+          "ARTIFACT_SOURCE_FIELDS_FORBIDDEN",
+          "Only artifact identity, version, and audience scope are accepted",
+        );
+      const kind = requiredString(value, "kind");
+      if (!isArtifactKind(kind))
+        throw new ExperienceProblem(
+          422,
+          "ARTIFACT_KIND_INVALID",
+          "Artifact kind is invalid",
+        );
+      const audience = requiredString(value, "audience");
+      if (!isAudience(audience))
+        throw new ExperienceProblem(
+          422,
+          "ARTIFACT_AUDIENCE_INVALID",
+          "Artifact audience is invalid",
+        );
+      const expectedVersion = requiredString(value, "expectedVersion");
+      if (expectedVersion.length > 80)
+        throw new ExperienceProblem(
+          422,
+          "ARTIFACT_VERSION_INVALID",
+          "Artifact source version is invalid",
+        );
+      const accountId = optionalString(value, "accountId");
+      if (accountId && !uuidPattern.test(accountId))
+        throw new ExperienceProblem(
+          422,
+          "INVALID_IDENTIFIER",
+          "accountId is invalid",
+        );
+      const scopedAccountId = resolveScopedAccount(
+        session,
+        audience,
+        accountId,
+      );
+      return json(
+        publicRenderRequest(
+          await repository().createRenderRequest({
+            session,
+            source: {
+              kind,
+              subjectId: uuid(value, "subjectId"),
+              expectedVersion,
+              audience,
+              accountId: scopedAccountId,
+            },
+            requestId: id,
+          }),
+        ),
+        201,
+      );
+    }
+
+    if (
+      segments[0] === "artifacts" &&
+      segments[1] === "render-requests" &&
       segments[2] &&
+      segments.length === 3 &&
       request.method === "POST"
     ) {
       requireMutationSecurity(request);
@@ -715,36 +829,51 @@ export async function handleExperienceRequest(
         segments[2],
         id,
       );
+      const renderScope = resolveScopedAccount(
+        session,
+        renderRequest.audience,
+        renderRequest.accountId,
+      );
+      if (renderScope !== renderRequest.accountId)
+        throw new ExperienceProblem(
+          403,
+          "ARTIFACT_SCOPE_FORBIDDEN",
+          "The render request is outside the authorized audience scope",
+        );
       if (renderRequest.status === "stored")
         throw new ExperienceProblem(
           409,
           "ARTIFACT_ALREADY_STORED",
           "Artifact is already stored",
         );
-      if (renderRequest.status !== "pending")
+      // A persisted failure is downstream of authoritative source validation:
+      // explicit POST redrives renderer/storage work through the same CAS claim.
+      if (
+        renderRequest.status !== "pending" &&
+        renderRequest.status !== "failed"
+      )
         throw new ExperienceProblem(
           409,
           "RENDER_STATE_CONFLICT",
-          "Render request is not pending",
+          "Render request cannot be claimed",
         );
       await repository().claimRenderRequest(renderRequest, id);
       try {
-        const rendered = await renderAuthorizedCommerceDocument(
-          renderRequest.input as unknown as CommerceDocumentInput,
-          {
-            actorUserId: session.userId,
-            accountId: renderRequest.accountId,
-            accountIds: session.impersonation
-              ? [session.impersonation.accountId]
-              : session.accountIds,
-            isInternalStaff: session.isInternalStaff,
-            audience: renderRequest.audience,
-            audienceAccountId: renderRequest.audienceAccountId,
-            kind: renderRequest.kind,
-            sourceHash: renderRequest.sourceHash,
-            requestId: id,
-          },
-        );
+        const rendered = await (
+          dependencies.renderDocument ?? renderAuthorizedCommerceDocument
+        )(renderRequest.input as unknown as CommerceDocumentInput, {
+          actorUserId: session.userId,
+          accountId: renderRequest.accountId,
+          accountIds: session.impersonation
+            ? [session.impersonation.accountId]
+            : session.accountIds,
+          isInternalStaff: session.isInternalStaff,
+          audience: renderRequest.audience,
+          audienceAccountId: renderRequest.audienceAccountId,
+          kind: renderRequest.kind,
+          sourceHash: renderRequest.sourceHash,
+          requestId: id,
+        });
         const gateway = dependencies.evidence ?? configuredEvidenceGateway();
         const stored = await gateway.storeImmutable({
           bytes: rendered.bytes,
@@ -752,6 +881,7 @@ export async function handleExperienceRequest(
           mimeType: rendered.mimeType,
           retainUntil: renderRequest.retainUntil,
           accountId: renderRequest.accountId,
+          internalScopeId: renderRequest.subjectId,
           source: `render:${renderRequest.id}`,
         });
         if (
@@ -778,11 +908,16 @@ export async function handleExperienceRequest(
           201,
         );
       } catch (error) {
-        await repository().failRenderRequest(
-          renderRequest,
-          error instanceof ExperienceProblem ? error.code : "RENDER_FAILED",
-          id,
-        );
+        try {
+          await repository().failRenderRequest(
+            renderRequest,
+            error instanceof ExperienceProblem ? error.code : "RENDER_FAILED",
+            id,
+          );
+        } catch (transitionError) {
+          if (error instanceof Error && error.cause === undefined)
+            error.cause = transitionError;
+        }
         throw error;
       }
     }
@@ -791,6 +926,7 @@ export async function handleExperienceRequest(
       segments[0] === "artifacts" &&
       segments[1] &&
       segments[2] &&
+      segments.length === 3 &&
       request.method === "GET"
     ) {
       if (!isArtifactKind(segments[1]))
@@ -799,18 +935,38 @@ export async function handleExperienceRequest(
           "ARTIFACT_KIND_NOT_FOUND",
           "Artifact kind not found",
         );
-      const artifact = await repository().findArtifact(
+      const download = await repository().findArtifact(
         session,
         segments[1],
         segments[2],
         id,
       );
-      if (new URL(request.url).searchParams.get("representation") === "json")
-        return json(artifact);
+      const artifact = download.representation;
+      const artifactScope = resolveScopedAccount(
+        session,
+        artifact.audience,
+        artifact.accountId,
+      );
+      if (artifactScope !== artifact.accountId)
+        throw new ExperienceProblem(
+          403,
+          "ARTIFACT_SCOPE_FORBIDDEN",
+          "The artifact is outside the authorized audience scope",
+        );
+      const representation = new URL(request.url).searchParams.get(
+        "representation",
+      );
+      if (representation === "json") return json(artifact);
+      if (representation !== null)
+        throw new ExperienceProblem(
+          422,
+          "ARTIFACT_REPRESENTATION_INVALID",
+          "Artifact representation is invalid",
+        );
       const gateway = dependencies.evidence ?? configuredEvidenceGateway();
       const actual = await gateway.readImmutable({
-        storageKey: artifact.storageKey,
-        storageVersionId: artifact.storageVersionId,
+        storageKey: download.storageKey,
+        storageVersionId: download.storageVersionId,
         contentHash: artifact.contentHash,
         byteLength: artifact.byteLength,
         mimeType: artifact.mimeType,
@@ -834,10 +990,13 @@ export async function handleExperienceRequest(
 }
 
 export const experienceRouteManifest = Object.freeze({
-  projections:
-    "GET /api/experience/projections/{audience}/{channel}[/{recordKey}]",
-  projectionActions:
+  projectionList: "GET /api/experience/projections/{audience}/{channel}",
+  projectionDetail:
+    "GET /api/experience/projections/{audience}/{channel}/{recordKey}",
+  projectionAction:
     "POST /api/experience/projections/{audience}/{channel}/{recordKey}/actions",
+  projectionActionReceipt:
+    "GET /api/experience/projections/{audience}/{channel}/{recordKey}/actions/{actionRequestId}",
   esignLaunch: "POST /api/experience/esign/launches",
   esignReturn: "GET /api/experience/esign/returns/{opaqueState}",
   esignSignedDocument:
@@ -846,8 +1005,11 @@ export const experienceRouteManifest = Object.freeze({
   evidenceStatus: "GET /api/experience/evidence/uploads/{uploadId}",
   evidenceComplete: "POST /api/experience/evidence/uploads/{uploadId}/complete",
   evidenceDownload: "GET /api/experience/evidence/uploads/{uploadId}/download",
+  artifactRequest: "POST /api/experience/artifacts/render-requests",
   artifactRender: "POST /api/experience/artifacts/render-requests/{requestId}",
-  artifactRead: `GET /api/experience/artifacts/{kind}/${artifactKinds.length} kinds/{deliveryId}`,
+  artifactRead: "GET /api/experience/artifacts/{kind}/{artifactId}",
+  artifactKindCount: artifactKinds.length,
+  artifactKinds,
   evidenceJourneys,
   evidenceKinds,
 });

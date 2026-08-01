@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { Button } from "@clockwork/ui";
+import { uuidV7 } from "@clockwork/contracts";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
@@ -96,7 +97,7 @@ export function ResaleQuoteBuilder() {
     try {
       submissionRef.current ??= {
         idempotencyKey: crypto.randomUUID(),
-        quoteId: crypto.randomUUID(),
+        quoteId: uuidV7(),
         payload: resaleQuotePayload(draft),
       };
       const submission = submissionRef.current;

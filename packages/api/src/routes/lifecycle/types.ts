@@ -238,4 +238,8 @@ export interface LifecycleRouteDependencies {
     verifier: WebhookVerifier<unknown>;
     deduplicator: WebhookDeduplicator;
   };
+  supportWebhook?: {
+    verifier: WebhookVerifier<unknown>;
+    deduplicator: WebhookDeduplicator;
+  };
 }

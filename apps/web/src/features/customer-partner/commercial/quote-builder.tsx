@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 
+import { uuidV7 } from "@clockwork/contracts";
+
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
 import { customerPartnerCopy } from "../copy";
@@ -71,9 +73,12 @@ function expiryLabel(value: string) {
 
 function Summary({ draft }: { draft: QuoteDraft }) {
   return (
-    <aside className={styles.summary} aria-labelledby="quote-summary-title">
+    <aside
+      className={`${styles.summary} ${styles.commitmentSummary}`}
+      aria-labelledby="quote-summary-title"
+    >
       <div>
-        <p className={styles.eyebrow}>Live summary</p>
+        <p className={styles.taskContext}>Draft facts</p>
         <h2 id="quote-summary-title">
           {customerPartnerCopy.commercial.quoteSummary}
         </h2>
@@ -223,7 +228,7 @@ export function QuoteBuilder() {
       quoteInputRef.current ??= quotePayload(draft);
       const input = quoteInputRef.current;
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      quoteIdRef.current ??= crypto.randomUUID();
+      quoteIdRef.current ??= uuidV7();
       if (!input.accountId)
         throw new Error("Choose a customer account before creating the draft.");
       await sendCoreCommand(
@@ -251,10 +256,13 @@ export function QuoteBuilder() {
   };
 
   return (
-    <main className={styles.main} id="main-content">
+    <main
+      className={`${styles.main} ${styles.commercialTask}`}
+      id="main-content"
+    >
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>New quote</p>
+          <p className={styles.taskContext}>Quote draft · no commitment yet</p>
           <h1>Create a quote</h1>
           <p className={styles.description}>
             Build the commercial offer in three stages. Human-readable choices
@@ -266,10 +274,27 @@ export function QuoteBuilder() {
         </Link>
       </header>
 
+      <ol aria-label="Commercial promise chain" className={styles.promiseChain}>
+        <li>
+          <span>Required upstream</span>
+          <strong>Agreement and account authority</strong>
+        </li>
+        <li aria-current="step">
+          <span>Current task</span>
+          <strong>Quote scope, route, and expiry</strong>
+        </li>
+        <li>
+          <span>Not created</span>
+          <strong>Order commitment after acceptance</strong>
+        </li>
+      </ol>
+
       <div className={styles.workflowGrid}>
         <div
-          className={`${styles.panel} ${styles.workflow}`}
+          aria-labelledby="quote-stage-heading"
+          className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
           ref={workflowRef}
+          role="region"
           tabIndex={-1}
         >
           <ol className={styles.steps} aria-label="Quote creation stages">
@@ -294,139 +319,157 @@ export function QuoteBuilder() {
           </ol>
 
           <div>
-            <p className={styles.eyebrow}>Stage {stage} of 3</p>
-            <h2>{quoteStageLabels[stage - 1]}</h2>
+            <p className={styles.taskContext}>Stage {stage} of 3</p>
+            <h2 id="quote-stage-heading">{quoteStageLabels[stage - 1]}</h2>
           </div>
 
           {stage === 1 ? (
-            <div className={styles.formGrid}>
-              <SearchableSelector
-                error={errors.account}
-                id="account"
-                label="Customer account"
-                onChange={(value) => update("account", value)}
-                options={quoteSelectorOptions.accounts}
-                value={draft.account}
-              />
-              <SearchableSelector
-                error={errors.offer}
-                help="Search by offer name; the selected price-book ID remains hidden."
-                id="offer"
-                label="Offer"
-                onChange={(value) => update("offer", value)}
-                options={quoteSelectorOptions.offers}
-                value={draft.offer}
-              />
-              <Field error={errors.region} id="region" label="Data region" span>
-                <select
-                  aria-describedby={errors.region ? "region-error" : undefined}
-                  aria-invalid={Boolean(errors.region) || undefined}
+            <fieldset className={styles.stageFields}>
+              <legend>Customer, offer, and region</legend>
+              <div className={styles.formGrid}>
+                <SearchableSelector
+                  error={errors.account}
+                  id="account"
+                  label="Customer account"
+                  onChange={(value) => update("account", value)}
+                  options={quoteSelectorOptions.accounts}
+                  value={draft.account}
+                />
+                <SearchableSelector
+                  error={errors.offer}
+                  help="Search by offer name; the selected price-book ID remains hidden."
+                  id="offer"
+                  label="Offer"
+                  onChange={(value) => update("offer", value)}
+                  options={quoteSelectorOptions.offers}
+                  value={draft.offer}
+                />
+                <Field
+                  error={errors.region}
                   id="region"
-                  onChange={(event) => update("region", event.target.value)}
-                  value={draft.region}
+                  label="Data region"
+                  span
                 >
-                  <option value="us-east">US East · Virginia</option>
-                  <option value="eu-west">EU West · Madrid</option>
-                  <option value="uk-south">UK South · London</option>
-                </select>
-              </Field>
-            </div>
+                  <select
+                    aria-describedby={
+                      errors.region ? "region-error" : undefined
+                    }
+                    aria-invalid={Boolean(errors.region) || undefined}
+                    id="region"
+                    onChange={(event) => update("region", event.target.value)}
+                    value={draft.region}
+                  >
+                    <option value="us-east">US East · Virginia</option>
+                    <option value="eu-west">EU West · Madrid</option>
+                    <option value="uk-south">UK South · London</option>
+                  </select>
+                </Field>
+              </div>
+            </fieldset>
           ) : null}
 
           {stage === 2 ? (
-            <div className={styles.formGrid}>
-              <Field
-                error={errors.capacity}
-                id="capacity"
-                label="Committed capacity (TB)"
-              >
-                <input
-                  aria-describedby={
-                    errors.capacity ? "capacity-error" : undefined
-                  }
-                  aria-invalid={Boolean(errors.capacity) || undefined}
+            <fieldset className={styles.stageFields}>
+              <legend>Commitment, route, and expiry</legend>
+              <div className={styles.formGrid}>
+                <Field
+                  error={errors.capacity}
                   id="capacity"
-                  inputMode="decimal"
-                  min="10"
-                  onChange={(event) => update("capacity", event.target.value)}
-                  type="number"
-                  value={draft.capacity}
-                />
-              </Field>
-              <Field
-                error={errors.termMonths}
-                id="termMonths"
-                label="Term (months)"
-              >
-                <input
-                  aria-describedby={
-                    errors.termMonths ? "termMonths-error" : undefined
-                  }
-                  aria-invalid={Boolean(errors.termMonths) || undefined}
-                  id="termMonths"
-                  max="60"
-                  min="1"
-                  onChange={(event) => update("termMonths", event.target.value)}
-                  type="number"
-                  value={draft.termMonths}
-                />
-              </Field>
-              <Field error={errors.route} id="route" label="Commercial route">
-                <select
-                  aria-describedby={errors.route ? "route-error" : undefined}
-                  aria-invalid={Boolean(errors.route) || undefined}
-                  id="route"
-                  onChange={(event) => update("route", event.target.value)}
-                  value={draft.route}
+                  label="Committed capacity (TB)"
                 >
-                  <option value="direct">Direct</option>
-                  <option value="referral">Partner referral</option>
-                  <option value="resale">Partner resale</option>
-                  <option value="distributor">Distributor / two-tier</option>
-                  <option value="marketplace">Marketplace</option>
-                </select>
-              </Field>
-              <Field
-                error={errors.expiresAt}
-                id="expiresAt"
-                label="Quote expiry"
-              >
-                <input
-                  aria-describedby={
-                    errors.expiresAt ? "expiresAt-error" : undefined
-                  }
-                  aria-invalid={Boolean(errors.expiresAt) || undefined}
+                  <input
+                    aria-describedby={
+                      errors.capacity ? "capacity-error" : undefined
+                    }
+                    aria-invalid={Boolean(errors.capacity) || undefined}
+                    id="capacity"
+                    inputMode="decimal"
+                    min="10"
+                    onChange={(event) => update("capacity", event.target.value)}
+                    type="number"
+                    value={draft.capacity}
+                  />
+                </Field>
+                <Field
+                  error={errors.termMonths}
+                  id="termMonths"
+                  label="Term (months)"
+                >
+                  <input
+                    aria-describedby={
+                      errors.termMonths ? "termMonths-error" : undefined
+                    }
+                    aria-invalid={Boolean(errors.termMonths) || undefined}
+                    id="termMonths"
+                    max="60"
+                    min="1"
+                    onChange={(event) =>
+                      update("termMonths", event.target.value)
+                    }
+                    type="number"
+                    value={draft.termMonths}
+                  />
+                </Field>
+                <Field error={errors.route} id="route" label="Commercial route">
+                  <select
+                    aria-describedby={errors.route ? "route-error" : undefined}
+                    aria-invalid={Boolean(errors.route) || undefined}
+                    id="route"
+                    onChange={(event) => update("route", event.target.value)}
+                    value={draft.route}
+                  >
+                    <option value="direct">Direct</option>
+                    <option value="referral">Partner referral</option>
+                    <option value="resale">Partner resale</option>
+                    <option value="distributor">Distributor / two-tier</option>
+                    <option value="marketplace">Marketplace</option>
+                  </select>
+                </Field>
+                <Field
+                  error={errors.expiresAt}
                   id="expiresAt"
-                  onChange={(event) => update("expiresAt", event.target.value)}
-                  type="datetime-local"
-                  value={draft.expiresAt}
-                />
-              </Field>
-              {draft.route === "direct" ? null : (
-                <>
-                  <SearchableSelector
-                    error={errors.endClient}
-                    id="endClient"
-                    label="End client"
-                    onChange={(value) => update("endClient", value)}
-                    options={quoteSelectorOptions.endClients}
-                    value={draft.endClient}
+                  label="Quote expiry"
+                >
+                  <input
+                    aria-describedby={
+                      errors.expiresAt ? "expiresAt-error" : undefined
+                    }
+                    aria-invalid={Boolean(errors.expiresAt) || undefined}
+                    id="expiresAt"
+                    onChange={(event) =>
+                      update("expiresAt", event.target.value)
+                    }
+                    type="datetime-local"
+                    value={draft.expiresAt}
                   />
-                  <SearchableSelector
-                    error={errors.partner}
-                    id="partner"
-                    label="Partner"
-                    onChange={(value) => update("partner", value)}
-                    options={quoteSelectorOptions.partners}
-                    value={draft.partner}
-                  />
-                </>
-              )}
-            </div>
+                </Field>
+                {draft.route === "direct" ? null : (
+                  <>
+                    <SearchableSelector
+                      error={errors.endClient}
+                      id="endClient"
+                      label="End client"
+                      onChange={(value) => update("endClient", value)}
+                      options={quoteSelectorOptions.endClients}
+                      value={draft.endClient}
+                    />
+                    <SearchableSelector
+                      error={errors.partner}
+                      id="partner"
+                      label="Partner"
+                      onChange={(value) => update("partner", value)}
+                      options={quoteSelectorOptions.partners}
+                      value={draft.partner}
+                    />
+                  </>
+                )}
+              </div>
+            </fieldset>
           ) : null}
 
           {stage === 3 ? (
-            <div>
+            <section aria-labelledby="quote-review-heading">
+              <h3 id="quote-review-heading">Draft boundary</h3>
               <p className={styles.notice}>
                 Review customer, offer, region, capacity, term, route, parties,
                 and expiry. This step creates a server-priced draft. Issuance is
@@ -453,7 +496,7 @@ export function QuoteBuilder() {
                   </strong>
                 </li>
               </ul>
-            </div>
+            </section>
           ) : null}
 
           {message ? (

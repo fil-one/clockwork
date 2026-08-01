@@ -2,6 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import {
   cp,
+  lstat,
   mkdtemp,
   mkdir,
   readFile,
@@ -13,44 +14,24 @@ import {
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { clearTimeout, setTimeout } from "node:timers";
 
 import {
+  expectedReleaseCommands as commandsForSuite,
   normalizeArtifactText,
   normalizeReportValue,
+  releaseCacheRootIssues,
+  releaseAssertionFingerprint,
+  RELEASE_FIXED_CLOCK as FIXED_CLOCK,
+  RELEASE_SUITE_ASSERTIONS as suiteAssertions,
   semanticArtifactInventoryFingerprint,
 } from "./release-artifacts.mjs";
 
-const FIXED_CLOCK = "2026-07-31T16:00:00.000Z";
 const DEFAULT_BUDGET_MS = 45 * 60 * 1000;
 const CI_BUDGET_MS = 30 * 60 * 1000;
-
-const suites = {
-  static: [
-    ["pnpm", "turbo", "run", "typecheck"],
-    ["pnpm", "format:check"],
-    ["pnpm", "lint"],
-    ["pnpm", "boundaries"],
-    ["pnpm", "scan:secrets"],
-    ["pnpm", "audit:dependencies"],
-    ["node", "scripts/check-generated-dry-run.mjs"],
-    ["pnpm", "check:traceability"],
-  ],
-  unit: [["pnpm", "test:unit"]],
-  integration: [
-    ["pnpm", "--filter", "@clockwork/db", "check"],
-    ["pnpm", "db:test"],
-    ["pnpm", "test:integration"],
-  ],
-  build: [["pnpm", "verify:build"]],
-  ui: [
-    ["pnpm", "test:storybook"],
-    ["pnpm", "test:e2e"],
-  ],
-  proof: [
-    ["pnpm", "--filter", "@clockwork/web", "build"],
-    ["pnpm", "--filter", "@clockwork/web", "test:e2e:proof"],
-  ],
-};
+const CLEANUP_TIMEOUT_MS = 2 * 60 * 1000;
+const EXACT_NODE_VERSION = "v24.18.1";
+const EXACT_PNPM_VERSION = "10.34.5";
 
 const DATABASE_SUITES = new Set(["integration", "proof"]);
 const ORCHESTRATION_ARTIFACTS = new Set([
@@ -58,6 +39,45 @@ const ORCHESTRATION_ARTIFACTS = new Set([
   "result.json",
   "summary.json",
 ]);
+
+const PROOF_INHERITED_PROVIDER_ENVIRONMENT = [
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "AWS_SESSION_TOKEN",
+  "ESIGN_API_BASE_URL",
+  "ESIGN_API_KEY",
+  "ESIGN_SIGNING_ORIGINS",
+  "ESIGN_WEBHOOK_SECRET",
+  "EVIDENCE_ACCOUNT_ID",
+  "EVIDENCE_AWS_ACCOUNT_ID",
+  "EVIDENCE_AWS_REGION",
+  "EVIDENCE_BUCKET",
+  "MARKETPLACE_WEBHOOK_SECRET",
+  "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
+  "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
+  "MIGRATION_SOURCE_BASE_URL",
+  "MIGRATION_SOURCE_EXECUTION_ENABLED",
+  "MIGRATION_SOURCE_TOKEN",
+  "MIGRATION_SOURCE_WINDOW_ID",
+  "OTEL_EXPORTER_OTLP_HEADERS",
+  "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+  "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+  "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL",
+  "OTEL_RESOURCE_ATTRIBUTES",
+  "OTEL_SDK_DISABLED",
+  "PROVISIONING_WEBHOOK_SECRET",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "SUPPORT_PROVIDER",
+  "SUPPORT_WEBHOOK_SECRET",
+  "TRIGGER_PROJECT_REF",
+  "TRIGGER_SECRET_KEY",
+  "WORKOS_API_KEY",
+  "WORKOS_CLIENT_ID",
+  "WORKOS_COOKIE_PASSWORD",
+  "WORKOS_REDIRECT_URI",
+  "WORKOS_WEBHOOK_SECRET",
+];
 
 function option(name, fallback) {
   const prefix = `--${name}=`;
@@ -72,6 +92,26 @@ function hasFlag(name) {
   return process.argv.includes(`--${name}`);
 }
 
+async function assertNoSymlinkComponents(target, protectedRoot) {
+  let cursor = path.resolve(target);
+  const root = path.resolve(protectedRoot);
+  while (true) {
+    try {
+      if ((await lstat(cursor)).isSymbolicLink())
+        throw new Error(
+          `Release cache cleanup path contains a symbolic link: ${cursor}`,
+        );
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    if (cursor === root) return;
+    const parent = path.dirname(cursor);
+    if (parent === cursor)
+      throw new Error("Release cache cleanup path escaped the workspace.");
+    cursor = parent;
+  }
+}
+
 function safeToken(value, label) {
   if (!/^[A-Za-z0-9_-]{1,48}$/.test(value))
     throw new Error(
@@ -80,51 +120,25 @@ function safeToken(value, label) {
   return value;
 }
 
-function sourceManifestFingerprint() {
-  const manifest = execFileSync(
-    "git",
-    [
-      "ls-files",
-      "-s",
-      "--",
-      "apps",
-      "packages",
-      "scripts",
-      "supabase",
-      ".github",
-      "package.json",
-      "pnpm-lock.yaml",
-      "turbo.json",
-    ],
-    { cwd: process.cwd(), encoding: "utf8" },
-  );
-  return createHash("sha256").update(manifest).digest("hex");
-}
-
-function fingerprint(suite, commands, sourceFingerprint) {
-  return createHash("sha256")
-    .update(
-      JSON.stringify({
-        suite,
-        commands,
-        fixedClock: FIXED_CLOCK,
-        assertionSemantics: "release-v1",
-        coverageSemantics: "unchanged",
-        failureSemantics: "first-non-infrastructure-failure",
-        sourceFingerprint,
-      }),
-    )
-    .digest("hex");
-}
-
-function diagnosedInfrastructureFailure(output, category) {
-  const signatures = {
-    "port-allocation": /EADDRINUSE/i,
-    "browser-install": /browser (?:download|executable).*(?:failed|missing)/i,
-    "container-runtime": /docker daemon (?:is )?unavailable/i,
-    "runner-network": /temporary name resolution failure/i,
+function sourceIdentity(cwd = process.cwd()) {
+  const revision = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd,
+    encoding: "utf8",
+  }).trim();
+  const tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], {
+    cwd,
+    encoding: "utf8",
+  }).trim();
+  const manifest = execFileSync("git", ["ls-files", "-s", "-z"], {
+    cwd,
+  });
+  return {
+    revision,
+    tree,
+    trackedSourceFingerprint: createHash("sha256")
+      .update(manifest)
+      .digest("hex"),
   };
-  return signatures[category]?.test(output) ?? false;
 }
 
 async function listFiles(directory, base = directory) {
@@ -160,6 +174,31 @@ async function digestFiles(directory, files) {
       .update(JSON.stringify(entries))
       .digest("hex"),
   };
+}
+
+async function databaseInputInventory(workspace) {
+  const collect = async (directory) => {
+    const files = (await listFiles(path.join(workspace, directory)))
+      .filter((file) => file.endsWith(".sql"))
+      .map((file) => path.join(directory, file));
+    const entries = await digestFiles(workspace, files);
+    return {
+      count: entries.length,
+      files: entries,
+      fingerprint: createHash("sha256")
+        .update(JSON.stringify(entries))
+        .digest("hex"),
+    };
+  };
+  const [migrations, pgTapTests] = await Promise.all([
+    collect(path.join("supabase", "migrations")),
+    collect(path.join("supabase", "tests")),
+  ]);
+  if (migrations.count === 0 || pgTapTests.count === 0)
+    throw new Error(
+      "Release database qualification requires migration and pgTAP inputs.",
+    );
+  return { migrations, pgTapTests };
 }
 
 async function collectCoverageInventory(workspace) {
@@ -203,11 +242,12 @@ async function artifactEntry(resolved, label, roots, normalizeJson = false) {
   return {
     path: label,
     bytes: contents.byteLength,
+    sha256: createHash("sha256").update(contents).digest("hex"),
     semanticSha256: createHash("sha256").update(semanticContents).digest("hex"),
     normalization: normalizeJson
       ? "JSON timing, worker indexes, timestamps, isolated origins, Next build IDs, and absolute roots"
       : textArtifact
-        ? "absolute roots only"
+        ? "absolute roots, isolated origins, and Next build IDs"
         : "none; exact binary content",
   };
 }
@@ -354,6 +394,15 @@ async function prepareDatabaseProject(name, index, context, environment) {
 function commandForDatabaseProject(command, databaseProject) {
   if (
     databaseProject &&
+    command[0] === "pnpm" &&
+    command[1] === "exec" &&
+    command[2] === "supabase" &&
+    command[3] === "db" &&
+    command[4] === "lint"
+  )
+    return [...command, "--workdir", databaseProject.projectRoot];
+  if (
+    databaseProject &&
     command.length === 2 &&
     command[0] === "pnpm" &&
     command[1] === "db:test"
@@ -371,12 +420,38 @@ function commandForDatabaseProject(command, databaseProject) {
   return command;
 }
 
-async function runCommand(command, args, environment, logPath, prefix, cwd) {
+function signalChild(child, signal) {
+  try {
+    if (process.platform !== "win32" && child.pid)
+      process.kill(-child.pid, signal);
+    else child.kill(signal);
+  } catch (error) {
+    if (error?.code !== "ESRCH") throw error;
+  }
+}
+
+async function runCommand(
+  command,
+  args,
+  environment,
+  logPath,
+  prefix,
+  cwd,
+  deadlineAt,
+) {
   let output = "";
   const startedAt = Date.now();
+  const remainingMs = deadlineAt - startedAt;
+  if (remainingMs <= 0) {
+    output =
+      "Release command was not started because the hard deadline expired.\n";
+    await writeFile(logPath, output, "utf8");
+    return { exitCode: 124, durationMs: 0, output, timedOut: true };
+  }
   const child = spawn(command, args, {
     cwd,
     env: environment,
+    detached: process.platform !== "win32",
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -389,12 +464,33 @@ async function runCommand(command, args, environment, logPath, prefix, cwd) {
   };
   child.stdout.on("data", (chunk) => consume(chunk, process.stdout));
   child.stderr.on("data", (chunk) => consume(chunk, process.stderr));
-  const exitCode = await new Promise((resolve, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code) => resolve(code ?? 1));
+  let timedOut = false;
+  let forceTimer;
+  const deadlineTimer = setTimeout(() => {
+    timedOut = true;
+    output += `\nRelease command exceeded its hard deadline after ${remainingMs}ms.\n`;
+    signalChild(child, "SIGTERM");
+    forceTimer = setTimeout(() => signalChild(child, "SIGKILL"), 5_000);
+  }, remainingMs);
+  let startFailed = false;
+  const exitCode = await new Promise((resolve) => {
+    child.once("error", (error) => {
+      startFailed = true;
+      output += `\nFailed to start command: ${error.message}\n`;
+    });
+    child.once("close", (code) =>
+      resolve(timedOut ? 124 : startFailed ? 127 : (code ?? 1)),
+    );
   });
+  clearTimeout(deadlineTimer);
+  clearTimeout(forceTimer);
   await writeFile(logPath, output, "utf8");
-  return { exitCode, durationMs: Date.now() - startedAt, output };
+  return {
+    exitCode,
+    durationMs: Date.now() - startedAt,
+    output,
+    timedOut,
+  };
 }
 
 async function runSuite(name, index, context) {
@@ -405,8 +501,17 @@ async function runSuite(name, index, context) {
   const port = context.portBase + index;
   const providerFakePort = context.providerFakePortBase + index;
   const namespace = `${context.runId}_${name}`.replaceAll("-", "_");
+  const commands = commandsForSuite(name, context.serial);
+  const workspaceIdentity = sourceIdentity(context.workspaces.get(name));
+  if (
+    JSON.stringify(workspaceIdentity) !== JSON.stringify(context.sourceIdentity)
+  )
+    throw new Error(`${name} workspace does not match the release candidate.`);
+  const databaseInputs = DATABASE_SUITES.has(name)
+    ? await databaseInputInventory(context.workspaces.get(name))
+    : null;
   const environment = {
-    ...process.env,
+    ...context.baseEnvironment,
     PORT: String(port),
     CLOCKWORK_TEST_PORT: String(port),
     DATABASE_SCHEMA: `release_${namespace}`,
@@ -443,26 +548,40 @@ async function runSuite(name, index, context) {
           CLOCKWORK_CANONICAL_ORIGIN: `http://localhost:${port}`,
           CLOCKWORK_EXPERIENCE_ADAPTER: "database",
           CLOCKWORK_PROVIDER_FAKE_PORT: String(providerFakePort),
+          OTEL_EXPORTER_OTLP_ENDPOINT: `http://127.0.0.1:${providerFakePort}`,
+          OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf",
+          OTEL_SERVICE_NAME: "clockwork-release-proof",
         }
       : {}),
-    ...(context.debug
+    ...(context.serial
       ? {
-          DEBUG: "clockwork:*",
-          PWDEBUG: "0",
           CLOCKWORK_RELEASE_SERIAL: "1",
         }
       : {}),
+    ...(context.debug ? { DEBUG: "clockwork:*", PWDEBUG: "0" } : {}),
   };
+  if (name === "proof")
+    for (const variable of PROOF_INHERITED_PROVIDER_ENVIRONMENT)
+      delete environment[variable];
   const databaseProject = await prepareDatabaseProject(
     name,
     index,
     context,
     environment,
   );
+  if (name === "integration") {
+    environment.CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID =
+      databaseProject?.projectId ?? "clockwork-commerce";
+    if (databaseProject)
+      environment.CLOCKWORK_POPULATED_UPGRADE_WORKDIR =
+        databaseProject.projectRoot;
+  }
   const contract = {
     suite: name,
     runId: context.runId,
     mode: context.mode,
+    serial: context.serial,
+    debug: context.debug,
     isolation: {
       port,
       providerFakePort: name === "proof" ? providerFakePort : null,
@@ -485,15 +604,11 @@ async function runSuite(name, index, context) {
             projectId: `${context.runId}-${name}`,
           },
     },
-    commands: suites[name],
-    assertionFingerprint: fingerprint(
-      name,
-      suites[name],
-      context.sourceFingerprint,
-    ),
-    sourceManifestFingerprint: context.sourceFingerprint,
-    retryPolicy:
-      "one retry only when CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY names a diagnosed category and output matches its narrow precondition",
+    commands,
+    databaseInputs,
+    assertionFingerprint: releaseAssertionFingerprint(name, workspaceIdentity),
+    sourceIdentity: workspaceIdentity,
+    retryPolicy: "none",
   };
   await writeFile(
     path.join(suiteDirectory, "contract.json"),
@@ -507,36 +622,24 @@ async function runSuite(name, index, context) {
   const steps = [];
   let status = "passed";
   let stepNumber = 0;
-  const execute = async (rawCommand, phase, allowRetry = true) => {
+  const execute = async (
+    rawCommand,
+    phase,
+    cleanup = false,
+    assertion = undefined,
+  ) => {
     stepNumber += 1;
     const [command, ...args] = rawCommand;
     const logPath = path.join(suiteDirectory, `step-${stepNumber}.log`);
-    let result = await runCommand(
+    const result = await runCommand(
       command,
       args,
       environment,
       logPath,
       `${name}:${phase}`,
       context.workspaces.get(name),
+      cleanup ? Date.now() + CLEANUP_TIMEOUT_MS : context.deadlineAt,
     );
-    let retries = 0;
-    const retryCategory = process.env.CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY;
-    if (
-      allowRetry &&
-      result.exitCode !== 0 &&
-      retryCategory &&
-      diagnosedInfrastructureFailure(result.output, retryCategory)
-    ) {
-      retries = 1;
-      result = await runCommand(
-        command,
-        args,
-        environment,
-        path.join(suiteDirectory, `step-${stepNumber}-retry.log`),
-        `${name}:${phase}:infra-retry`,
-        context.workspaces.get(name),
-      );
-    }
     const printableCommand = [command, ...args].map((part) =>
       databaseProject
         ? part.replace(
@@ -547,10 +650,12 @@ async function runSuite(name, index, context) {
     );
     steps.push({
       phase,
+      ...(assertion ?? {}),
       command: printableCommand,
       exitCode: result.exitCode,
       durationMs: result.durationMs,
-      retries,
+      retries: 0,
+      timedOut: result.timedOut,
       log: path.relative(process.cwd(), logPath),
     });
     if (result.exitCode !== 0) status = "failed";
@@ -590,13 +695,13 @@ async function runSuite(name, index, context) {
     }
 
     if (status === "passed") {
-      for (const rawCommand of suites[name]) {
-        const passed = await execute(
+      for (const [assertionIndex, rawCommand] of commands.entries())
+        await execute(
           commandForDatabaseProject(rawCommand, databaseProject),
           "assertion",
+          false,
+          { assertionIndex, declaredCommand: rawCommand },
         );
-        if (!passed) break;
-      }
     }
   } finally {
     if (databaseProject) {
@@ -611,7 +716,7 @@ async function runSuite(name, index, context) {
           "--no-backup",
         ],
         "database-stop",
-        false,
+        true,
       );
       await rm(databaseProject.projectRoot, { recursive: true, force: true });
     }
@@ -624,6 +729,7 @@ async function runSuite(name, index, context) {
     ),
     collectCoverageInventory(context.workspaces.get(name)),
   ]);
+  const finalWorkspaceIdentity = sourceIdentity(context.workspaces.get(name));
   const result = {
     ...contract,
     status,
@@ -631,13 +737,18 @@ async function runSuite(name, index, context) {
     steps,
     artifactInventory,
     coverageInventory,
+    finalSourceIdentity: finalWorkspaceIdentity,
+    candidateIdentityPreserved:
+      JSON.stringify(finalWorkspaceIdentity) ===
+      JSON.stringify(workspaceIdentity),
     trackedWorkspaceClean:
       execFileSync("git", ["status", "--porcelain"], {
         cwd: context.workspaces.get(name),
         encoding: "utf8",
       }).trim() === "",
   };
-  if (!result.trackedWorkspaceClean) result.status = "failed";
+  if (!result.trackedWorkspaceClean || !result.candidateIdentityPreserved)
+    result.status = "failed";
   await writeFile(
     path.join(suiteDirectory, "result.json"),
     `${JSON.stringify(result, null, 2)}\n`,
@@ -657,9 +768,52 @@ async function main() {
     inheritedStartedAt <= Date.now()
       ? inheritedStartedAt
       : Date.now();
+  const budgetMs = Number.parseInt(
+    process.env.CLOCKWORK_RELEASE_BUDGET_MS ??
+      String(process.env.CI === "true" ? CI_BUDGET_MS : DEFAULT_BUDGET_MS),
+    10,
+  );
+  if (!Number.isSafeInteger(budgetMs) || budgetMs <= 0)
+    throw new Error("CLOCKWORK_RELEASE_BUDGET_MS must be a positive integer.");
+  const deadlineAt = overallStartedAt + budgetMs;
+  if (process.version !== EXACT_NODE_VERSION)
+    throw new Error(
+      `Release qualification requires Node ${EXACT_NODE_VERSION}; received ${process.version}.`,
+    );
+  const toolchainPath = [
+    path.dirname(process.execPath),
+    ...(process.env.PATH ?? "").split(path.delimiter),
+  ]
+    .filter(
+      (entry, index, entries) => entry && entries.indexOf(entry) === index,
+    )
+    .join(path.delimiter);
+  const toolchainEnvironment = { ...process.env, PATH: toolchainPath };
+  const pnpmVersion = execFileSync("pnpm", ["--version"], {
+    encoding: "utf8",
+    env: toolchainEnvironment,
+  }).trim();
+  if (pnpmVersion !== EXACT_PNPM_VERSION)
+    throw new Error(
+      `Release qualification requires pnpm ${EXACT_PNPM_VERSION}; received ${pnpmVersion}.`,
+    );
+  const pnpmNodeVersion = execFileSync("pnpm", ["exec", "node", "--version"], {
+    encoding: "utf8",
+    env: toolchainEnvironment,
+  }).trim();
+  if (pnpmNodeVersion !== EXACT_NODE_VERSION)
+    throw new Error(
+      `Release pnpm subprocesses require Node ${EXACT_NODE_VERSION}; received ${pnpmNodeVersion}.`,
+    );
+  if (process.env.CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY)
+    throw new Error(
+      "Release qualification forbids retry categories; diagnose and rerun from a fresh candidate instead.",
+    );
   const mode = option("mode", "parallel");
   if (mode !== "parallel" && mode !== "serial")
     throw new Error("--mode must be parallel or serial.");
+  if (hasFlag("debug") && mode !== "serial")
+    throw new Error("--debug requires --mode=serial.");
   const runId = safeToken(
     option(
       "run-id",
@@ -668,9 +822,10 @@ async function main() {
     "run id",
   );
   const selected = option("shard", "all");
-  const names = selected === "all" ? Object.keys(suites) : [selected];
+  const names = selected === "all" ? Object.keys(suiteAssertions) : [selected];
   for (const name of names) {
-    if (!suites[name]) throw new Error(`Unknown release shard: ${name}`);
+    if (!suiteAssertions[name])
+      throw new Error(`Unknown release shard: ${name}`);
   }
   const portBase = Number.parseInt(
     option("port-base", process.env.CLOCKWORK_RELEASE_PORT_BASE ?? "32000"),
@@ -722,24 +877,95 @@ async function main() {
         `.artifacts/release/${runId}/${mode}`,
     ),
   );
+  try {
+    if ((await readdir(artifactRoot)).length > 0)
+      throw new Error(
+        `Release artifact directory must be empty: ${artifactRoot}`,
+      );
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
   await mkdir(artifactRoot, { recursive: true });
+  const cacheRoot = path.resolve(
+    process.env.CLOCKWORK_RELEASE_CACHE_ROOT ??
+      path.join(artifactRoot, ".isolated-cache"),
+  );
+  const cacheRelativeToArtifacts = path.relative(
+    path.resolve(".artifacts"),
+    cacheRoot,
+  );
+  if (
+    cacheRelativeToArtifacts === "" ||
+    cacheRelativeToArtifacts.startsWith("..") ||
+    path.isAbsolute(cacheRelativeToArtifacts)
+  )
+    throw new Error(
+      "Release cache root must be a dedicated child of the repository .artifacts directory.",
+    );
+  const cacheRootIssues = releaseCacheRootIssues({
+    cacheRoot,
+    artifactRoot,
+    workspaceRoot: process.cwd(),
+  });
+  if (cacheRootIssues.length > 0)
+    throw new Error(
+      `Release cache root is not safe for recursive cleanup: ${cacheRootIssues.join("; ")}`,
+    );
+  await assertNoSymlinkComponents(cacheRoot, process.cwd());
+  const pnpmStore = path.join(cacheRoot, "pnpm-store");
+  const baseEnvironment = { ...toolchainEnvironment };
+  delete baseEnvironment.FORCE_COLOR;
+  delete baseEnvironment.NO_COLOR;
+  delete baseEnvironment.CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY;
+  delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID;
+  delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_WORKDIR;
+  Object.assign(baseEnvironment, {
+    COREPACK_HOME: path.join(cacheRoot, "corepack"),
+    NEXT_TELEMETRY_DISABLED: "1",
+    PLAYWRIGHT_BROWSERS_PATH: path.join(cacheRoot, "playwright-browsers"),
+    STORYBOOK_DISABLE_TELEMETRY: "1",
+    TURBO_CACHE_DIR: path.join(cacheRoot, "turbo"),
+    TURBO_TELEMETRY_DISABLED: "1",
+    XDG_CACHE_HOME: path.join(cacheRoot, "xdg"),
+    npm_config_store_dir: pnpmStore,
+    npm_config_update_notifier: "false",
+  });
+  const identity = sourceIdentity();
+  const sourceStatus = execFileSync(
+    "git",
+    ["status", "--porcelain=v1", "--untracked-files=all"],
+    { cwd: process.cwd(), encoding: "utf8" },
+  ).trim();
+  if (sourceStatus)
+    throw new Error(
+      "Release execution requires a clean committed candidate before any shard starts.",
+    );
+  await mkdir(cacheRoot, { recursive: true });
   const useSharedWorkspace =
     process.env.CLOCKWORK_RELEASE_SHARED_WORKSPACE === "1";
   const workspaces = new Map();
   const cleanupFailures = [];
+  let frozenInstallVerified = false;
+  let installationMode = "plan";
   let executionError;
+  let completedSummary;
+  let completedSummaryPath;
   try {
-    if (hasFlag("plan") || useSharedWorkspace) {
+    if (hasFlag("plan")) {
       for (const name of names) workspaces.set(name, process.cwd());
-    } else {
-      const dirty = execFileSync("git", ["status", "--porcelain"], {
-        cwd: process.cwd(),
-        encoding: "utf8",
-      }).trim();
-      if (dirty)
+    } else if (useSharedWorkspace) {
+      if (process.env.CI !== "true")
         throw new Error(
-          "Local release execution requires a clean committed tree so isolated worktrees test the exact release candidate.",
+          "A shared release workspace is allowed only in the fresh-checkout CI qualification job.",
         );
+      if (process.env.CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED !== "1")
+        throw new Error(
+          "A shared release workspace requires an attested frozen install from the fresh-checkout CI setup step.",
+        );
+      for (const name of names) workspaces.set(name, process.cwd());
+      frozenInstallVerified = true;
+      installationMode = "fresh-ci-checkout";
+    } else {
       for (const name of names) {
         const temporaryRoot = await mkdtemp(
           path.join(os.tmpdir(), `clockwork-${runId}-${name}-`),
@@ -752,61 +978,151 @@ async function main() {
           {
             cwd: process.cwd(),
             stdio: "inherit",
+            timeout: Math.max(1, deadlineAt - Date.now()),
           },
         );
       }
       const setupDirectory = path.join(artifactRoot, "setup");
       await mkdir(setupDirectory, { recursive: true });
+      const fetched = await runCommand(
+        "pnpm",
+        ["fetch", "--store-dir", pnpmStore],
+        baseEnvironment,
+        path.join(setupDirectory, "frozen-fetch.log"),
+        "setup:fetch",
+        process.cwd(),
+        deadlineAt,
+      );
+      if (fetched.exitCode !== 0)
+        throw new Error("Fresh isolated pnpm store population failed.");
       const installations = await Promise.all(
         [...workspaces].map(([name, workspace]) =>
           runCommand(
             "pnpm",
-            ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-            process.env,
+            [
+              "install",
+              "--offline",
+              "--frozen-lockfile",
+              "--ignore-scripts",
+              "--store-dir",
+              pnpmStore,
+            ],
+            baseEnvironment,
             path.join(setupDirectory, `${name}-install.log`),
             `setup:${name}`,
             workspace,
+            deadlineAt,
           ),
         ),
       );
       if (installations.some(({ exitCode }) => exitCode !== 0))
         throw new Error("At least one isolated workspace installation failed.");
+      const rebuilds = await Promise.all(
+        [...workspaces].map(([name, workspace]) =>
+          runCommand(
+            "pnpm",
+            ["rebuild", "--pending", "--store-dir", pnpmStore],
+            baseEnvironment,
+            path.join(setupDirectory, `${name}-rebuild.log`),
+            `setup:${name}:rebuild`,
+            workspace,
+            deadlineAt,
+          ),
+        ),
+      );
+      if (rebuilds.some(({ exitCode }) => exitCode !== 0))
+        throw new Error("At least one isolated dependency rebuild failed.");
+      frozenInstallVerified = true;
+      installationMode = "detached-clean-worktrees";
+      if (names.some((name) => name === "ui" || name === "proof")) {
+        const browserWorkspace = workspaces.values().next().value;
+        const browserInstall = await runCommand(
+          "pnpm",
+          [
+            "--filter",
+            "@clockwork/web",
+            "exec",
+            "playwright",
+            "install",
+            "chromium",
+          ],
+          baseEnvironment,
+          path.join(setupDirectory, "playwright-install.log"),
+          "setup:playwright",
+          browserWorkspace,
+          deadlineAt,
+        );
+        if (browserInstall.exitCode !== 0)
+          throw new Error("Isolated Chromium installation failed.");
+      }
     }
     const context = {
       artifactRoot,
       authorizationContextSecret: randomBytes(32).toString("base64url"),
+      baseEnvironment,
       databasePortBase,
+      deadlineAt,
       debug: hasFlag("debug"),
       manageDatabases: !hasFlag("plan") && !useSharedWorkspace,
       mode,
       planOnly: hasFlag("plan"),
       portBase,
       runId,
+      serial: mode === "serial" || hasFlag("debug"),
       proofSecret: randomBytes(32).toString("base64url"),
       providerFakePortBase,
-      sourceFingerprint: sourceManifestFingerprint(),
+      sourceIdentity: identity,
       workspaces,
     };
     const results = [];
+    const suiteErrors = [];
     if (mode === "serial") {
-      for (const [index, name] of names.entries())
-        results.push(await runSuite(name, index, context));
+      for (const [index, name] of names.entries()) {
+        try {
+          results.push(await runSuite(name, index, context));
+        } catch (error) {
+          suiteErrors.push(error);
+        }
+      }
     } else {
-      results.push(
-        ...(await Promise.all(
-          names.map((name, index) => runSuite(name, index, context)),
-        )),
+      const settled = await Promise.allSettled(
+        names.map((name, index) => runSuite(name, index, context)),
       );
+      for (const outcome of settled) {
+        if (outcome.status === "fulfilled") results.push(outcome.value);
+        else suiteErrors.push(outcome.reason);
+      }
     }
+    if (suiteErrors.length > 0)
+      throw new AggregateError(
+        suiteErrors,
+        "One or more release shards could not produce a result.",
+      );
     const durationMs = Date.now() - overallStartedAt;
-    const budgetMs = Number.parseInt(
-      process.env.CLOCKWORK_RELEASE_BUDGET_MS ??
-        String(process.env.CI === "true" ? CI_BUDGET_MS : DEFAULT_BUDGET_MS),
-      10,
-    );
     const summary = {
       runId,
       mode,
+      debug: context.debug,
+      toolchain: {
+        node: process.version,
+        pnpm: pnpmVersion,
+        pnpmNode: pnpmNodeVersion,
+      },
+      sourceIdentity: identity,
+      cachePolicy: {
+        cacheRoot,
+        pnpmStore,
+        playwrightBrowsers: baseEnvironment.PLAYWRIGHT_BROWSERS_PATH,
+        turbo: "local and remote reads/writes disabled",
+        retainedAfterExecution: false,
+        cleanupVerified: false,
+      },
+      installationPolicy: {
+        frozenInstallVerified,
+        frozenLockfile: true,
+        isolatedStore: pnpmStore,
+        mode: installationMode,
+      },
       status: results.every(
         (result) => result.status === "passed" || result.status === "planned",
       )
@@ -823,10 +1139,8 @@ async function main() {
       `${JSON.stringify(summary, null, 2)}\n`,
       "utf8",
     );
-    process.stdout.write(`Release ${mode} summary: ${summaryPath}\n`);
-    process.stdout.write(
-      `Duration ${(durationMs / 1000).toFixed(1)}s / budget ${(budgetMs / 60000).toFixed(0)}m\n`,
-    );
+    completedSummary = summary;
+    completedSummaryPath = summaryPath;
     if (summary.status !== "passed" || !summary.withinBudget)
       process.exitCode = 1;
   } catch (error) {
@@ -838,17 +1152,35 @@ async function main() {
           execFileSync("git", ["worktree", "remove", "--force", workspace], {
             cwd: process.cwd(),
             stdio: "inherit",
+            timeout: CLEANUP_TIMEOUT_MS,
           });
         } catch (error) {
           cleanupFailures.push(error);
         } finally {
-          await rm(path.dirname(workspace), { recursive: true, force: true });
+          try {
+            await rm(path.dirname(workspace), {
+              recursive: true,
+              force: true,
+            });
+          } catch (error) {
+            cleanupFailures.push(error);
+          }
         }
       }
-      execFileSync("git", ["worktree", "prune"], {
-        cwd: process.cwd(),
-        stdio: "ignore",
-      });
+      try {
+        execFileSync("git", ["worktree", "prune"], {
+          cwd: process.cwd(),
+          stdio: "ignore",
+          timeout: CLEANUP_TIMEOUT_MS,
+        });
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
+    }
+    try {
+      await rm(cacheRoot, { recursive: true, force: true });
+    } catch (error) {
+      cleanupFailures.push(error);
     }
   }
   if (executionError && cleanupFailures.length)
@@ -862,6 +1194,22 @@ async function main() {
       cleanupFailures,
       "One or more disposable worktrees could not be deregistered.",
     );
+  if (completedSummary && completedSummaryPath) {
+    completedSummary.cachePolicy.cleanupVerified = true;
+    completedSummary.durationMs = Date.now() - overallStartedAt;
+    completedSummary.withinBudget = completedSummary.durationMs <= budgetMs;
+    await writeFile(
+      completedSummaryPath,
+      `${JSON.stringify(completedSummary, null, 2)}\n`,
+      "utf8",
+    );
+    process.stdout.write(`Release ${mode} summary: ${completedSummaryPath}\n`);
+    process.stdout.write(
+      `Duration ${(completedSummary.durationMs / 1000).toFixed(1)}s / budget ${(budgetMs / 60000).toFixed(0)}m\n`,
+    );
+    if (completedSummary.status !== "passed" || !completedSummary.withinBudget)
+      process.exitCode = 1;
+  }
 }
 
 await main();

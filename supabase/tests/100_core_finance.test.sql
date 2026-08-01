@@ -147,13 +147,16 @@ select throws_ok($$
   )
 $$, '23514', 'order must pin the governing agreement version', 'an order cannot pin a nonexistent agreement version');
 
-select lives_ok($$
-  insert into core_order_line_snapshots(id, order_line_id, snapshot, snapshot_hash)
-  values ('a2000000-0000-4000-8000-000000000001','81000000-0000-4000-8000-000000000003',
-    '{"sku":"LOCKED-STORAGE-TB","unitPriceMinor":"14000"}',repeat('b',64))
-$$, 'accepted order line pricing is snapshotted');
+select ok(
+  exists (
+    select 1 from core_order_line_snapshots
+    where id = '81100000-0000-4000-8000-000000000003'
+      and order_line_id = '81000000-0000-4000-8000-000000000003'
+  ),
+  'accepted order line pricing is snapshotted'
+);
 select throws_ok($$
-  delete from core_order_line_snapshots where id = 'a2000000-0000-4000-8000-000000000001'
+  delete from core_order_line_snapshots where id = '81100000-0000-4000-8000-000000000003'
 $$, '55000', 'core_order_line_snapshots is append-only/immutable', 'order line snapshots cannot be deleted');
 
 select lives_ok($$

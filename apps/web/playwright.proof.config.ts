@@ -43,10 +43,13 @@ for (const name of [
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "production-proof.spec.ts",
-  fullyParallel: true,
+  // The three projects share one authoritative database fixture. One worker
+  // keeps cross-persona mutation evidence deterministic while other browser
+  // and unit shards remain parallel at the release-suite level.
+  fullyParallel: false,
   forbidOnly: true,
   retries: 0,
-  workers: process.env.CLOCKWORK_RELEASE_SERIAL === "1" ? 1 : 3,
+  workers: 1,
   globalSetup: "./e2e/production-proof.setup.ts",
   globalTeardown: "./e2e/production-proof.teardown.ts",
   outputDir: path.join(artifactRoot, "playwright-output"),

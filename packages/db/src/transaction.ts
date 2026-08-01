@@ -20,6 +20,44 @@ export interface AuthorizationContextSigningOptions {
   lifetimeSeconds?: number;
 }
 
+export interface DatabaseTransactionInstrumentation {
+  trace<T>(input: {
+    kind: "authorized" | "internal";
+    requestId: string;
+    operation(): Promise<T>;
+  }): Promise<T>;
+}
+
+let transactionInstrumentation: DatabaseTransactionInstrumentation | undefined;
+
+export function configureDatabaseTransactionInstrumentation(
+  instrumentation: DatabaseTransactionInstrumentation,
+): void {
+  if (
+    transactionInstrumentation &&
+    transactionInstrumentation !== instrumentation &&
+    process.env.NODE_ENV === "production"
+  )
+    throw new Error("DATABASE_TRANSACTION_INSTRUMENTATION_ALREADY_CONFIGURED");
+  transactionInstrumentation = instrumentation;
+}
+
+export function resetDatabaseTransactionInstrumentationForTests(): void {
+  if (process.env.NODE_ENV === "production")
+    throw new Error("DATABASE_TRANSACTION_INSTRUMENTATION_RESET_FORBIDDEN");
+  transactionInstrumentation = undefined;
+}
+
+function instrumentedTransaction<T>(input: {
+  kind: "authorized" | "internal";
+  requestId: string;
+  operation(): Promise<T>;
+}): Promise<T> {
+  return transactionInstrumentation
+    ? transactionInstrumentation.trace(input)
+    : input.operation();
+}
+
 export async function withAuthorizedTransaction<T>(
   db: RuntimeDatabase,
   context: DatabaseAuthorizationContext,
@@ -43,15 +81,20 @@ export async function withAuthorizedTransaction<T>(
   const signature = createHmac("sha256", signing.secret)
     .update(payload)
     .digest("hex");
-  return db.transaction(async (transaction) => {
-    await transaction.execute(sql`set local role clockwork_runtime`);
-    await transaction.execute(
-      sql`select set_config('app.authorization_context', ${payload}, true)`,
-    );
-    await transaction.execute(
-      sql`select set_config('app.authorization_signature', ${signature}, true)`,
-    );
-    return operation(transaction);
+  return instrumentedTransaction({
+    kind: "authorized",
+    requestId: context.requestId,
+    operation: () =>
+      db.transaction(async (transaction) => {
+        await transaction.execute(sql`set local role clockwork_runtime`);
+        await transaction.execute(
+          sql`select set_config('app.authorization_context', ${payload}, true)`,
+        );
+        await transaction.execute(
+          sql`select set_config('app.authorization_signature', ${signature}, true)`,
+        );
+        return operation(transaction);
+      }),
   });
 }
 
@@ -60,11 +103,16 @@ export async function withInternalTransaction<T>(
   requestId: string,
   operation: (transaction: RuntimeTransaction) => Promise<T>,
 ): Promise<T> {
-  return db.transaction(async (transaction) => {
-    await transaction.execute(sql`set local role clockwork_service`);
-    await transaction.execute(
-      sql`select set_config('app.request_id', ${requestId}, true)`,
-    );
-    return operation(transaction);
+  return instrumentedTransaction({
+    kind: "internal",
+    requestId,
+    operation: () =>
+      db.transaction(async (transaction) => {
+        await transaction.execute(sql`set local role clockwork_service`);
+        await transaction.execute(
+          sql`select set_config('app.request_id', ${requestId}, true)`,
+        );
+        return operation(transaction);
+      }),
   });
 }

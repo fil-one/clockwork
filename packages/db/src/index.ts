@@ -7,5 +7,6 @@ export * from "./repositories/workflows";
 export * from "./repositories/core";
 export * from "./repositories/lifecycle";
 export * from "./repositories/system";
+export * from "./repositories/experience";
 export * from "./schema";
 export * from "./transaction";

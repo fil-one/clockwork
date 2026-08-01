@@ -77,7 +77,11 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
     const local = ["127.0.0.1", "localhost", "::1"].includes(baseUrl.hostname);
     if (
       baseUrl.protocol !== "https:" &&
-      !(options.allowInsecureLocalhost === true && local)
+      !(
+        baseUrl.protocol === "http:" &&
+        options.allowInsecureLocalhost === true &&
+        local
+      )
     )
       throw new Error("PROVIDER_HTTPS_ENDPOINT_REQUIRED");
     if (baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash)

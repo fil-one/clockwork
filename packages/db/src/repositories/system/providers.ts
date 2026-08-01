@@ -538,12 +538,15 @@ export class DatabaseMarketplaceWebhookBindingStore {
   ) {}
 
   public async save(binding: {
-    marketplace: string;
+    marketplace: "aws" | "azure" | "google";
     marketplaceAccountId: string;
     providerResourceType: "order" | "entitlement" | "subscription";
     providerResourceId: string;
     marketplaceOrderId: string;
     organizationId: string;
+    accountId: string;
+    orderId: string;
+    providerEntitlementId?: string;
     entitlementId?: string;
   }): Promise<void> {
     await this.bindings.save({
@@ -569,7 +572,7 @@ export class DatabaseMarketplaceWebhookBindingStore {
     if (!result) return undefined;
     const value = result.binding;
     return {
-      marketplace: requiredString(value.marketplace, "marketplace"),
+      marketplace: marketplaceProvider(value.marketplace),
       marketplaceAccountId: requiredString(
         value.marketplaceAccountId,
         "marketplaceAccountId",
@@ -583,10 +586,65 @@ export class DatabaseMarketplaceWebhookBindingStore {
       organizationId: ids.organization.parse(
         requiredString(value.organizationId, "organizationId"),
       ),
+      accountId: ids.account.parse(
+        requiredString(value.accountId, "accountId"),
+      ),
+      orderId: ids.order.parse(requiredString(value.orderId, "orderId")),
+      ...(typeof value.providerEntitlementId === "string"
+        ? { providerEntitlementId: value.providerEntitlementId }
+        : {}),
       ...(typeof value.entitlementId === "string"
-        ? { entitlementId: value.entitlementId }
+        ? { entitlementId: ids.entitlement.parse(value.entitlementId) }
         : {}),
     };
+  }
+}
+
+/** Durable external support-account binding; ticket content never enters it. */
+export class DatabaseSupportWebhookBindingStore {
+  public constructor(
+    private readonly bindings: DatabaseProviderResourceBindingStore,
+  ) {}
+
+  public async save(binding: {
+    provider: string;
+    externalAccountId: string;
+    accountId: string;
+  }): Promise<void> {
+    await this.bindings.save({
+      provider: `support:${binding.provider}`,
+      providerResourceType: "account",
+      providerResourceId: binding.externalAccountId,
+      aggregateType: "account",
+      aggregateId: ids.account.parse(binding.accountId),
+      binding,
+    });
+  }
+
+  public async find(input: { provider: string; externalAccountId: string }) {
+    const result = await this.bindings.find({
+      provider: `support:${input.provider}`,
+      providerResourceType: "account",
+      providerResourceId: input.externalAccountId,
+    });
+    if (!result) return undefined;
+    const value = result.binding;
+    const provider = requiredString(value.provider, "provider");
+    const externalAccountId = requiredString(
+      value.externalAccountId,
+      "externalAccountId",
+    );
+    const accountId = ids.account.parse(
+      requiredString(value.accountId, "accountId"),
+    );
+    if (
+      provider !== input.provider ||
+      externalAccountId !== input.externalAccountId ||
+      result.aggregateType !== "account" ||
+      result.aggregateId !== accountId
+    )
+      throw new Error("Support webhook binding mismatch");
+    return { provider, externalAccountId, accountId };
   }
 }
 
@@ -1560,6 +1618,11 @@ function requiredString(value: unknown, name: string): string {
   if (typeof value !== "string" || !value.trim())
     throw new Error(`Provider binding ${name} is invalid`);
   return value;
+}
+
+function marketplaceProvider(value: unknown): "aws" | "azure" | "google" {
+  if (value === "aws" || value === "azure" || value === "google") return value;
+  throw new Error("Provider binding marketplace is invalid");
 }
 
 function stableJson(value: unknown): string {

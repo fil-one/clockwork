@@ -7,22 +7,26 @@ import {
   DemoResetBlockedError,
   resetDemoExperience,
 } from "./reset";
+import { createDemoSeed, DEMO_NOW } from "./seed";
 import {
-  createDemoSeed,
-  DEMO_NOW,
-  type DemoSeed,
-  pristineDemoSeed,
-} from "./seed";
+  createPristineDemoAdapterState,
+  DemoStateCorruptError,
+  type DemoAdapterState,
+} from "./state";
 
 describe("demo reset", () => {
   it("restores the same fixed-clock state after arbitrary fixture mutation", async () => {
-    const clean = createDemoSeed();
-    const firstAccount = clean.accounts.at(0);
-    if (!firstAccount) throw new Error("demo seed must include an account");
-    const dirty: DemoSeed = {
+    const clean = createPristineDemoAdapterState();
+    const dirty: DemoAdapterState = {
       ...clean,
-      accounts: [{ ...firstAccount, name: "Locally changed name" }],
-      quotes: [],
+      revision: 3,
+      projectionOverrides: {
+        "50000000-0000-4000-8000-000000000001": {
+          version: 4,
+          updatedAt: "2026-08-01T12:00:00Z",
+          data: { title: "Locally changed title" },
+        },
+      },
     };
     const store = createMemoryDemoStore(dirty);
 
@@ -31,9 +35,10 @@ describe("demo reset", () => {
       target: "demo",
     });
 
-    expect(await store.read()).toEqual(pristineDemoSeed);
+    expect(await store.read()).toEqual(createPristineDemoAdapterState());
     expect(result.resetAt).toBe(DEMO_NOW);
-    expect(result.counts.quotes).toBe(pristineDemoSeed.quotes.length);
+    expect(result.statePath).toBe("memory");
+    expect(result.counts.quotes).toBe(createDemoSeed().quotes.length);
   });
 
   it.each([
@@ -57,7 +62,17 @@ describe("demo reset", () => {
     ).toThrow('target must be exactly "demo"');
   });
 
-  it("publishes one copy-and-run reset command without a manifest change", () => {
+  it("validates in-memory updates through the canonical state parser", async () => {
+    const pristine = createPristineDemoAdapterState();
+    const store = createMemoryDemoStore(pristine);
+
+    await expect(
+      store.update((current) => ({ ...current, revision: -1 })),
+    ).rejects.toThrow(DemoStateCorruptError);
+    expect(await store.read()).toEqual(pristine);
+  });
+
+  it("publishes one copy-and-run reset command", () => {
     expect(DEMO_RESET_COMMAND).toBe(
       "pnpm exec tsx packages/testing/src/demo/reset-command.ts",
     );

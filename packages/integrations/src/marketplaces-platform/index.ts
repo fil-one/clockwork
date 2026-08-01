@@ -1,8 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import type {
+  AccountId,
+  EntitlementId,
   IdempotencyKey,
   OrganizationId,
+  OrderId,
   ProviderResult,
   WebhookVerificationResult,
   WebhookVerifier,
@@ -135,13 +138,16 @@ export type MarketplaceProviderResourceType =
   "order" | "entitlement" | "subscription";
 
 export interface MarketplaceWebhookBinding {
-  marketplace: string;
+  marketplace: "aws" | "azure" | "google";
   marketplaceAccountId: string;
   providerResourceType: MarketplaceProviderResourceType;
   providerResourceId: string;
   marketplaceOrderId: string;
   organizationId: OrganizationId;
-  entitlementId?: string;
+  accountId: AccountId;
+  orderId: OrderId;
+  providerEntitlementId?: string;
+  entitlementId?: EntitlementId;
 }
 
 /**
@@ -190,7 +196,7 @@ export class InMemoryMarketplaceWebhookBindingStore implements MarketplaceWebhoo
   private store(binding: MarketplaceWebhookBinding): void {
     if (
       binding.providerResourceType !== "order" &&
-      !binding.entitlementId?.trim()
+      (!binding.providerEntitlementId?.trim() || !binding.entitlementId)
     )
       throw new Error(
         "Marketplace entitlement binding requires an expected entitlement ID",
@@ -203,12 +209,23 @@ export class InMemoryMarketplaceWebhookBindingStore implements MarketplaceWebhoo
   }
 }
 
-export type VerifiedMarketplaceWebhookEvent = MarketplacePlatformEvent & {
-  providerEventId: string;
-  marketplaceAccountId: string;
-  providerResourceType: MarketplaceProviderResourceType;
-  providerResourceId: string;
-};
+export interface VerifiedMarketplaceWebhookEvent {
+  type: string;
+  eventId: string;
+  provider: "aws" | "azure" | "google";
+  providerAccountReference: string;
+  accountId: AccountId;
+  orderId: OrderId;
+  entitlementId: EntitlementId | null;
+  occurredAt: string;
+  currency: null;
+  grossMinor: null;
+  feeMinor: null;
+  taxMinor: null;
+  netMinor: null;
+  quantity: string | null;
+  sequence: number;
+}
 
 interface MarketplaceProviderWebhookEvent {
   providerEventId: string;
@@ -220,6 +237,7 @@ interface MarketplaceProviderWebhookEvent {
   marketplaceOrderId: string;
   organizationId: string;
   occurredAt: string;
+  sequence: number;
   offerId?: string;
   entitlementId?: string;
   quantity?: string;
@@ -353,7 +371,7 @@ function parseProviderWebhookEvent(
     (value.type !== "marketplace.provisioning.requested" &&
       value.type !== "marketplace.entitlement.updated") ||
     !("marketplace" in value) ||
-    typeof value.marketplace !== "string" ||
+    !["aws", "azure", "google"].includes(String(value.marketplace)) ||
     !("marketplaceAccountId" in value) ||
     typeof value.marketplaceAccountId !== "string" ||
     !("providerResourceType" in value) ||
@@ -368,7 +386,10 @@ function parseProviderWebhookEvent(
     typeof value.organizationId !== "string" ||
     !("occurredAt" in value) ||
     typeof value.occurredAt !== "string" ||
-    !isInstant(value.occurredAt)
+    !isInstant(value.occurredAt) ||
+    !("sequence" in value) ||
+    !Number.isSafeInteger(value.sequence) ||
+    Number(value.sequence) < 1
   )
     throw new Error("Malformed marketplace webhook event");
   return value as MarketplaceProviderWebhookEvent;
@@ -389,6 +410,7 @@ function assertResourceShape(event: MarketplaceProviderWebhookEvent): void {
       typeof event.entitlementId !== "string" ||
       event.entitlementId.length === 0 ||
       typeof event.quantity !== "string" ||
+      !/^(0|[1-9]\d{0,19})(\.\d{1,18})?$/.test(event.quantity) ||
       !["active", "suspended", "ended"].includes(String(event.status)))
   )
     throw new Error("Marketplace entitlement resource identity mismatch");
@@ -403,7 +425,8 @@ function assertExpectedBinding(
     event.marketplaceOrderId !== binding.marketplaceOrderId ||
     event.organizationId !== binding.organizationId ||
     (binding.providerResourceType !== "order" &&
-      (!binding.entitlementId || event.entitlementId !== binding.entitlementId))
+      (!binding.providerEntitlementId ||
+        event.entitlementId !== binding.providerEntitlementId))
   )
     throw new Error("Marketplace webhook binding mismatch");
 }
@@ -412,32 +435,32 @@ function normalizeMarketplaceEvent(
   event: MarketplaceProviderWebhookEvent,
   binding: MarketplaceWebhookBinding,
 ): VerifiedMarketplaceWebhookEvent {
-  const provider = {
-    providerEventId: event.providerEventId,
-    marketplaceAccountId: binding.marketplaceAccountId,
-    providerResourceType: binding.providerResourceType,
-    providerResourceId: binding.providerResourceId,
-  };
-  if (event.type === "marketplace.provisioning.requested")
-    return {
-      ...provider,
-      type: event.type,
-      marketplace: binding.marketplace,
-      marketplaceOrderId: binding.marketplaceOrderId,
-      organizationId: binding.organizationId,
-      offerId: event.offerId as string,
-      occurredAt: event.occurredAt,
-    };
   return {
-    ...provider,
-    type: event.type,
-    marketplace: binding.marketplace,
-    marketplaceOrderId: binding.marketplaceOrderId,
-    organizationId: binding.organizationId,
-    entitlementId: event.entitlementId as string,
-    quantity: event.quantity as string,
-    status: event.status as "active" | "suspended" | "ended",
+    type:
+      event.type === "marketplace.provisioning.requested"
+        ? "order.marketplace_provisioning_requested"
+        : {
+            active: "entitlement.activated",
+            suspended: "entitlement.suspended",
+            ended: "entitlement.terminated",
+          }[event.status as "active" | "suspended" | "ended"],
+    eventId: event.providerEventId,
+    provider: binding.marketplace,
+    providerAccountReference: binding.marketplaceAccountId,
+    accountId: binding.accountId,
+    orderId: binding.orderId,
+    entitlementId: binding.entitlementId ?? null,
     occurredAt: event.occurredAt,
+    currency: null,
+    grossMinor: null,
+    feeMinor: null,
+    taxMinor: null,
+    netMinor: null,
+    quantity:
+      event.type === "marketplace.entitlement.updated"
+        ? (event.quantity as string)
+        : null,
+    sequence: event.sequence,
   };
 }
 

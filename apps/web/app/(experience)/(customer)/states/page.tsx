@@ -1,11 +1,5 @@
-import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+import { StateGallery } from "@/src/features/states/state-gallery";
+
 export default function Page() {
-  return (
-    <ProjectionDetailPage
-      audience="customer"
-      channel="dashboard"
-      title="Experience states"
-      description="Current authorized source state, including empty and stale conditions."
-    />
-  );
+  return <StateGallery />;
 }

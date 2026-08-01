@@ -61,7 +61,7 @@ describe("authorized document delivery", () => {
         input,
         context(input, { accountIds: [] }),
       ),
-    ).rejects.toThrow(/account scope denied/);
+    ).rejects.toThrow(/audience scope denied/);
     await expect(
       renderAuthorizedCommerceDocument(
         input,

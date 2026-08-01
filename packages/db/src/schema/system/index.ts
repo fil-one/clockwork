@@ -17,10 +17,12 @@ import * as providerSchema from "./providers";
 
 export * from "./providers";
 
+const uuidV7Default = sql`public.uuid_v7()`;
+
 export const externalGates = pgTable(
   "system_external_gates",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(uuidV7Default),
     gateKey: text("gate_key").notNull().unique(),
     title: text("title").notNull(),
     owner: text("owner").notNull(),
@@ -120,7 +122,7 @@ export const systemCapabilities = pgTable(
 export const systemExceptionRoster = pgTable(
   "system_exception_roster",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(uuidV7Default),
     accountId: uuid("account_id")
       .notNull()
       .references(() => accounts.id),
@@ -192,7 +194,7 @@ export const systemExceptionRoster = pgTable(
 export const systemExternalGateActivationTasks = pgTable(
   "system_external_gate_activation_tasks",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().default(uuidV7Default),
     taskKey: text("task_key").notNull().unique(),
     gateKey: text("gate_key")
       .notNull()

@@ -101,6 +101,74 @@ describe("marketplace financial normalization", () => {
     ).toEqual(["aws", "azure", "google", "aws", "azure", "google", "aws"]);
   });
 
+  it.each([
+    ["large exact integer", "90071992547409931234"],
+    ["exact 18-place fraction", "12345678901234567890.123456789012345678"],
+  ])("preserves %s quantity strings exactly", (_label, quantity) => {
+    const result = normalizeGoogleMarketplaceEvent({
+      ...base,
+      eventId: `google-${_label}`,
+      eventType: "usage-reported",
+      accountId: "buyer-1",
+      quantity,
+    });
+    expect(result).toMatchObject({ ok: true, value: { quantity } });
+  });
+
+  it.each([
+    ["ordinary numeric", 1.25],
+    ["unsafe numeric", Number.MAX_SAFE_INTEGER + 2],
+    ["numeric exponent", 1e21],
+  ])("rejects %s JSON quantity before normalization", (_label, quantity) => {
+    const result = normalizeAwsMarketplaceEvent({
+      ...base,
+      eventId: `aws-${_label}`,
+      eventType: "usage",
+      quantity,
+    });
+    expect(result).toMatchObject({ ok: false });
+  });
+
+  it.each(["1e3", "1E+3", "0.0000000000000000001", "100000000000000000000"])(
+    "rejects non-canonical quantity string %s",
+    (quantity) => {
+      const result = normalizeAzureMarketplaceEvent({
+        data: {
+          ...base,
+          eventId: `azure-${quantity}`,
+          eventType: "usage",
+          resourceId: "buyer-1",
+          quantity,
+        },
+      });
+      expect(result).toMatchObject({ ok: false });
+    },
+  );
+
+  it("enforces signed PostgreSQL bigint bounds for provider money", () => {
+    const maximum = normalizeAwsMarketplaceEvent({
+      ...base,
+      eventId: "aws-money-max",
+      eventType: "invoice",
+      amountMinor: "9223372036854775807",
+      currency: "USD",
+    });
+    expect(maximum).toMatchObject({
+      ok: true,
+      value: { amount: { minor: "9223372036854775807" } },
+    });
+    for (const amountMinor of ["9223372036854775808", "-9223372036854775809"])
+      expect(
+        normalizeAwsMarketplaceEvent({
+          ...base,
+          eventId: `aws-money-${amountMinor}`,
+          eventType: "invoice",
+          amountMinor,
+          currency: "USD",
+        }),
+      ).toMatchObject({ ok: false });
+  });
+
   it("fails closed at the credential gate before issuing any request", async () => {
     const request = vi.fn<MarketplaceTransport["request"]>();
     const adapter = new AzureMarketplaceFinanceAdapter({

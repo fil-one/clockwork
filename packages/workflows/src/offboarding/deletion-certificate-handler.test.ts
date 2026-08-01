@@ -39,6 +39,7 @@ const body: Omit<DeletionCertificateRequest, "requestHash"> = {
       scope: "document:agreement_template",
       retainUntil: "2033-07-31T16:00:00.000Z",
       legalHold: false,
+      reason: "object_lock_retention",
     },
   ],
   approvals: [

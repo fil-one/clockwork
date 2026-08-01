@@ -1,5 +1,9 @@
 # Lifecycle platform handoff
 
+Current disposition: historical provenance. This lane and its integration
+expectations are represented and repository-qualified on `main`; lane-local
+limitations below do not describe current gaps or an RC/launch.
+
 ## Branch and foundation
 
 - Branch: `commerce/lifecycle-platform`

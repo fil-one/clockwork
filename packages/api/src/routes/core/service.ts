@@ -1,4 +1,4 @@
-import type { Actor } from "@clockwork/contracts";
+import { uuidV7, type Actor } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { redactPartnerQuoteData } from "@clockwork/domain/core";
 
@@ -256,8 +256,8 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
       createdAt: prior?.createdAt ?? input.occurredAt,
       updatedAt: input.occurredAt,
     };
-    const auditEventId = crypto.randomUUID();
-    const outboxMessageId = crypto.randomUUID();
+    const auditEventId = uuidV7();
+    const outboxMessageId = uuidV7();
     this.records.set(key, record);
     this.auditEvents.push({
       id: auditEventId,
@@ -339,7 +339,7 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
     const prior = this.replays.get(key);
     if (prior)
       return Promise.resolve({ replayed: false, workflowRunId: prior });
-    const workflowRunId = crypto.randomUUID();
+    const workflowRunId = uuidV7();
     this.replays.set(key, workflowRunId);
     return Promise.resolve({ replayed: true, workflowRunId });
   }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import { ids } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
@@ -25,7 +26,9 @@ import {
   billingPolicies,
   commissionStatementLines,
   commissionStatements,
+  invoiceDocumentSnapshots,
   invoiceEndClientAllocations,
+  orderLineSnapshots,
 } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
@@ -82,6 +85,41 @@ function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setUTCDate(result.getUTCDate() + days);
   return result;
+}
+
+const InvoiceLineSourceSchema = z
+  .object({
+    id: z.uuid(),
+    sku: z.string().min(1),
+    quantity: z.string().min(1),
+    unitPrice: z.object({
+      currency: z.enum(["USD", "EUR", "GBP"]),
+      minor: z.string().regex(/^(0|[1-9]\d*)$/),
+    }),
+    lineTotal: z.object({
+      currency: z.enum(["USD", "EUR", "GBP"]),
+      minor: z.string().regex(/^(0|[1-9]\d*)$/),
+    }),
+  })
+  .passthrough();
+
+function canonicalJson(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "string" || typeof value === "boolean")
+    return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("NON_FINITE_JSON_NUMBER");
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value))
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  if (!value || typeof value !== "object")
+    throw new Error("NON_JSON_INVOICE_SOURCE");
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(",")}}`;
 }
 
 function collectionMethod(input: {
@@ -185,6 +223,31 @@ export class DatabaseCoreWorkflowDispatchStore {
         if (policy.requirePo && !order.poNumber)
           throw new Error("PROVISIONED_ORDER_REQUIRED_PO_MISSING");
 
+        const persistedLineSnapshots =
+          await transaction.query.orderLineSnapshots.findMany({
+            where: inArray(
+              orderLineSnapshots.orderLineId,
+              lines.map((line) => line.id),
+            ),
+          });
+        if (persistedLineSnapshots.length !== lines.length)
+          throw new Error("PROVISIONED_ORDER_LINE_SNAPSHOTS_INCOMPLETE");
+        const invoiceLines = persistedLineSnapshots
+          .map((snapshot) => InvoiceLineSourceSchema.parse(snapshot.snapshot))
+          .sort((left, right) => left.id.localeCompare(right.id));
+        if (
+          invoiceLines.some(
+            (line) =>
+              line.unitPrice.currency !== quote.currency ||
+              line.lineTotal.currency !== quote.currency,
+          ) ||
+          invoiceLines.reduce(
+            (sum, line) => sum + BigInt(line.lineTotal.minor),
+            0n,
+          ) !== quote.totalMinor
+        )
+          throw new Error("PROVISIONED_ORDER_INVOICE_LINE_TOTAL_MISMATCH");
+
         const invoiceId = deterministicUuid("initial-invoice", order.id);
         const dueAt = addDays(occurredAt, policy.termsDays ?? 0);
         const [invoice] = await transaction
@@ -212,6 +275,46 @@ export class DatabaseCoreWorkflowDispatchStore {
             throw new Error("INVOICE_DRAFT_CONCURRENT_CONFLICT");
           return { invoiceId: concurrent.id, created: false };
         }
+
+        const documentLines = invoiceLines.map((line) => ({
+          id: line.id,
+          description: line.sku,
+          quantity: line.quantity,
+          unitPrice: {
+            currency: line.unitPrice.currency,
+            minorUnits: line.unitPrice.minor,
+          },
+          amount: {
+            currency: line.lineTotal.currency,
+            minorUnits: line.lineTotal.minor,
+          },
+        }));
+        const snapshotSource = {
+          invoiceId: invoice.id,
+          orderId: order.id,
+          quoteId: quote.id,
+          currency: quote.currency,
+          lineItems: documentLines,
+          subtotalMinor: invoice.amountMinor.toString(),
+          taxMinor: "0",
+          totalMinor: invoice.amountMinor.toString(),
+          sourceVersion: `quote:${quote.id}:r${quote.revision}`,
+        };
+        await transaction.insert(invoiceDocumentSnapshots).values({
+          invoiceId: invoice.id,
+          orderId: order.id,
+          quoteId: quote.id,
+          currency: quote.currency,
+          lineItems: documentLines,
+          subtotalMinor: invoice.amountMinor,
+          taxMinor: 0n,
+          totalMinor: invoice.amountMinor,
+          sourceHash: createHash("sha256")
+            .update(canonicalJson(snapshotSource))
+            .digest("hex"),
+          sourceVersion: snapshotSource.sourceVersion,
+          createdAt: occurredAt,
+        });
 
         if (order.sourcing === "resale" || order.sourcing === "distributor") {
           if (invoice.accountId !== order.partnerAccountId)

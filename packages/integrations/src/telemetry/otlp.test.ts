@@ -84,4 +84,27 @@ describe("OTLP HTTP telemetry", () => {
       readOtlpConfiguration({ OTEL_EXPORTER_OTLP_PROTOCOL: "grpc" }, "test"),
     ).toThrow("OTEL_EXPORTER_OTLP_PROTOCOL_UNSUPPORTED");
   });
+
+  it("allows insecure production OTLP only for an explicit loopback release proof", () => {
+    expect(
+      () =>
+        new OtlpHttpTelemetrySink({
+          environment: {
+            OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:34000",
+          },
+          runtimeEnvironment: "production",
+          allowInsecureLocalhost: true,
+        }),
+    ).not.toThrow();
+    expect(
+      () =>
+        new OtlpHttpTelemetrySink({
+          environment: {
+            OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.example.test",
+          },
+          runtimeEnvironment: "production",
+          allowInsecureLocalhost: true,
+        }),
+    ).toThrow("OTEL_EXPORTER_OTLP_HTTPS_REQUIRED");
+  });
 });

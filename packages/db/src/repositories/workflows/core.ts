@@ -12,10 +12,12 @@ import {
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import {
   accounts,
+  documents,
   exceptionCases,
   invoices,
   orders,
   providerOperations,
+  reportExports,
   workflowRuns,
 } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
@@ -414,12 +416,16 @@ export interface WorkflowExceptionRouting {
     aggregateId: string;
     occurredAt: string;
     severity: "warning" | "blocking";
+    requestedBy?: string;
   }): Promise<{
     accountId: string;
     ownerUserId: string;
     backupUserId?: string;
+    escalationUserId?: string;
     objectType: string;
     targetAt: string;
+    absenceEscalated?: boolean;
+    rosterEntryIds?: readonly string[];
   }>;
 }
 
@@ -442,10 +448,21 @@ export class DatabaseWorkflowExceptionPort {
     requestId: string;
     occurredAt: string;
     severity: "warning" | "blocking";
-    replay?: Record<string, unknown>;
+    replay?: {
+      requestedBy: string;
+      reason: string;
+      ticketReference?: string;
+    };
     metadata: Record<string, string>;
   }): Promise<{ caseId: string; duplicate?: boolean }> {
-    const route = await this.routing.resolve(request);
+    const requestedBy = request.replay?.requestedBy;
+    const route = await this.routing.resolve({
+      queue: request.queue,
+      aggregateId: request.aggregateId,
+      occurredAt: request.occurredAt,
+      severity: request.severity,
+      ...(requestedBy ? { requestedBy } : {}),
+    });
     const requestHash = sha256(request);
     return withInternalTransaction(this.db, request.requestId, async (tx) => {
       const inserted = await tx
@@ -509,6 +526,11 @@ export class DatabaseWorkflowExceptionPort {
           objectId: request.aggregateId,
           ownerUserId: route.ownerUserId,
           backupUserId: route.backupUserId,
+          escalationOwnerUserId: route.escalationUserId,
+          requesterUserId: requestedBy,
+          separationRequired: true,
+          ownershipRosterEntryIds: [...(route.rosterEntryIds ?? [])],
+          ownershipAbsenceEscalated: route.absenceEscalated ?? false,
           targetAt: new Date(route.targetAt),
           status: "open",
         })
@@ -538,6 +560,12 @@ export class DatabaseWorkflowExceptionPort {
           code: request.code,
           safeDetail: request.safeDetail,
           severity: request.severity,
+          requestedBy: requestedBy ?? null,
+          ownerUserId: route.ownerUserId,
+          backupUserId: route.backupUserId ?? null,
+          escalationUserId: route.escalationUserId ?? null,
+          ownershipRosterEntryIds: route.rosterEntryIds ?? [],
+          ownershipAbsenceEscalated: route.absenceEscalated ?? false,
           metadata: request.metadata,
         },
       });
@@ -568,6 +596,10 @@ export class DatabaseCoreWorkflowRecordPort {
     const invoiceIssued =
       input.record.kind === "invoice_issued"
         ? InvoiceIssuedWorkflowRecordSchema.parse(input.record)
+        : undefined;
+    const reportExported =
+      input.record.kind === "report_exported"
+        ? ReportExportedWorkflowRecordSchema.parse(input.record)
         : undefined;
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
       const inserted = await tx
@@ -601,6 +633,8 @@ export class DatabaseCoreWorkflowRecordPort {
             throw new Error("WORKFLOW_RECORD_PAYLOAD_CONFLICT");
           if (invoiceIssued)
             await assertInvoiceIssuedProjection(tx, input, invoiceIssued);
+          if (reportExported)
+            await assertReportExportedProjection(tx, input, reportExported);
           return { duplicate: true };
         }
         if (reference !== recordHash)
@@ -627,6 +661,16 @@ export class DatabaseCoreWorkflowRecordPort {
           tx,
           input,
           invoiceIssued,
+          operation.id,
+          recordHash,
+        );
+        return {};
+      }
+      if (reportExported) {
+        await projectReportExported(
+          tx,
+          input,
+          reportExported,
           operation.id,
           recordHash,
         );
@@ -689,6 +733,224 @@ const InvoiceIssuedWorkflowRecordSchema = z
 type InvoiceIssuedWorkflowRecord = z.infer<
   typeof InvoiceIssuedWorkflowRecordSchema
 >;
+
+const ReportScalarSchema = z.union([
+  z.string(),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+const ReportExportedWorkflowRecordSchema = z
+  .object({
+    kind: z.literal("report_exported"),
+    taskId: z.literal("core.reporting.export.v1"),
+    input: z
+      .object({
+        reportExportId: z.uuid(),
+        reportType: z.enum([
+          "revenue_forecast",
+          "capacity_planning",
+          "renewal_churn_exposure",
+          "partner_performance",
+          "funnel_cycle_time",
+          "margin_poc_cost",
+          "weekly_scorecard",
+        ]),
+        asOf: z.iso.datetime({ offset: true }),
+        from: z.iso.date().optional(),
+        to: z.iso.date().optional(),
+        accountId: z.uuid().optional(),
+        partnerAccountId: z.uuid().optional(),
+        requestedColumns: z.array(z.string().min(1)).optional(),
+        costIngestionComplete: z.boolean(),
+        retainUntil: z.iso.datetime({ offset: true }),
+      })
+      .passthrough(),
+    rowCount: z.number().int().nonnegative(),
+    columns: z.array(z.string().min(1)).max(250),
+    rows: z.array(z.record(z.string(), ReportScalarSchema)),
+    sourceVersion: z.string().min(1).max(80),
+    contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+    byteLength: z.number().int().positive(),
+    documentId: z.uuid(),
+    storageKey: z.string().min(1),
+    versionId: z.string().min(1),
+    marginLabel: z.enum(["modeled", "realized"]).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.rowCount !== value.rows.length)
+      context.addIssue({
+        code: "custom",
+        path: ["rowCount"],
+        message: "Report row count does not match the persisted rows",
+      });
+    if (new Set(value.columns).size !== value.columns.length)
+      context.addIssue({
+        code: "custom",
+        path: ["columns"],
+        message: "Report columns must be unique",
+      });
+    if (
+      value.rows.some((row) =>
+        Object.keys(row).some((column) => !value.columns.includes(column)),
+      )
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["rows"],
+        message: "Report rows contain an unbound column",
+      });
+  });
+type ReportExportedWorkflowRecord = z.infer<
+  typeof ReportExportedWorkflowRecordSchema
+>;
+
+function reportRenderSource(record: ReportExportedWorkflowRecord) {
+  return {
+    columns: record.columns,
+    rows: record.rows,
+    rowCount: record.rowCount,
+    sourceVersion: record.sourceVersion,
+    contentHash: record.contentHash,
+    byteLength: record.byteLength,
+    ...(record.marginLabel ? { marginLabel: record.marginLabel } : {}),
+  };
+}
+
+function assertReportInputBinding(
+  parameters: unknown,
+  record: ReportExportedWorkflowRecord,
+): Record<string, unknown> {
+  const parsed = z.record(z.string(), z.unknown()).parse(parameters);
+  const expected = {
+    reportType: record.input.reportType,
+    asOf: record.input.asOf,
+    ...(record.input.from ? { from: record.input.from } : {}),
+    ...(record.input.to ? { to: record.input.to } : {}),
+    ...(record.input.accountId ? { accountId: record.input.accountId } : {}),
+    ...(record.input.partnerAccountId
+      ? { partnerAccountId: record.input.partnerAccountId }
+      : {}),
+    ...(record.input.requestedColumns
+      ? { requestedColumns: record.input.requestedColumns }
+      : {}),
+    costIngestionComplete: record.input.costIngestionComplete,
+    retainUntil: record.input.retainUntil,
+  };
+  const actual = Object.fromEntries(
+    Object.keys(expected).map((key) => [key, parsed[key]]),
+  );
+  if (sha256(actual) !== sha256(expected))
+    throw new Error("REPORT_EXPORT_INPUT_BINDING_MISMATCH");
+  return parsed;
+}
+
+async function assertReportExportedProjection(
+  transaction: RuntimeTransaction,
+  input: { aggregateId: string; aggregateVersion: number },
+  record: ReportExportedWorkflowRecord,
+): Promise<void> {
+  const report = await transaction.query.reportExports.findFirst({
+    where: eq(reportExports.id, record.input.reportExportId),
+  });
+  if (
+    input.aggregateId !== record.input.reportExportId ||
+    !report ||
+    report.status !== "complete" ||
+    report.documentId !== record.documentId ||
+    report.report !== record.input.reportType
+  )
+    throw new Error("REPORT_EXPORT_PROJECTION_MISMATCH");
+  const parameters = assertReportInputBinding(report.parameters, record);
+  if (sha256(parameters.renderSource) !== sha256(reportRenderSource(record)))
+    throw new Error("REPORT_EXPORT_SOURCE_PROJECTION_MISMATCH");
+}
+
+async function projectReportExported(
+  transaction: RuntimeTransaction,
+  input: {
+    aggregateId: string;
+    aggregateVersion: number;
+    requestId: string;
+    occurredAt: string;
+  },
+  record: ReportExportedWorkflowRecord,
+  operationId: string,
+  recordHash: string,
+): Promise<void> {
+  if (input.aggregateId !== record.input.reportExportId)
+    throw new Error("REPORT_EXPORT_WORKFLOW_AGGREGATE_MISMATCH");
+  const report = await transaction.query.reportExports.findFirst({
+    where: eq(reportExports.id, record.input.reportExportId),
+  });
+  if (
+    !report ||
+    report.report !== record.input.reportType ||
+    !["pending", "running"].includes(report.status) ||
+    report.rowVersion !== input.aggregateVersion ||
+    report.documentId !== null
+  )
+    throw new Error("REPORT_EXPORT_NOT_COMPLETABLE");
+  const parameters = assertReportInputBinding(report.parameters, record);
+  await transaction.insert(documents).values({
+    id: record.documentId,
+    accountId: null,
+    kind: "report_export_csv",
+    storageKey: record.storageKey,
+    contentHash: record.contentHash,
+    mimeType: "text/csv",
+    byteLength: BigInt(record.byteLength),
+    objectLockMode: "COMPLIANCE",
+    retainUntil: new Date(record.input.retainUntil),
+    legalHold: false,
+    storageVersionId: record.versionId,
+    createdAt: new Date(input.occurredAt),
+  });
+  const [updated] = await transaction
+    .update(reportExports)
+    .set({
+      status: "complete",
+      documentId: record.documentId,
+      parameters: {
+        ...parameters,
+        renderSource: reportRenderSource(record),
+      },
+      updatedAt: new Date(input.occurredAt),
+    })
+    .where(
+      and(
+        eq(reportExports.id, report.id),
+        eq(reportExports.rowVersion, report.rowVersion),
+      ),
+    )
+    .returning({ rowVersion: reportExports.rowVersion });
+  if (!updated) throw new Error("REPORT_EXPORT_VERSION_CONFLICT");
+  const appended = await appendAuditAndOutbox(transaction, {
+    aggregateType: "report_export",
+    aggregateId: report.id,
+    aggregateVersion: updated.rowVersion,
+    eventType: "workflow.report_exported",
+    actor: workflowActor,
+    requestId: input.requestId,
+    occurredAt: new Date(input.occurredAt),
+    after: {
+      reportExportId: report.id,
+      reportType: record.input.reportType,
+      documentId: record.documentId,
+      sourceVersion: record.sourceVersion,
+      contentHash: record.contentHash,
+      rowCount: record.rowCount,
+    },
+  });
+  await transaction
+    .update(providerOperations)
+    .set({
+      status: "succeeded",
+      providerReference: `${appended.event.id}:${recordHash}`,
+    })
+    .where(eq(providerOperations.id, operationId));
+}
 
 async function invoiceIssuedState(
   transaction: RuntimeTransaction,

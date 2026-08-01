@@ -1,6 +1,24 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:39:00Z",
+  "capturedAt": "2026-08-01T13:56:29Z",
+  "qualityDisposition": {
+    "target": "consolidated-main-quality",
+    "declaresReleaseCandidate": false,
+    "declaresProductionLaunchApproval": false,
+    "humanDesignApproval": {
+      "scope": "external-launch-only",
+      "blocksRepositoryConsolidation": false,
+      "status": "not-evaluated-by-baseline-manifests",
+      "evidenceSource": "docs/launch-checklist.md",
+      "requiredUserEnteredFields": [
+        "approver name",
+        "approval decision",
+        "UTC timestamp",
+        "reviewed SHA",
+        "evidence/reference"
+      ]
+    }
+  },
   "declaredEnvironment": [
     "ACCOUNTING_PROVIDER_BASE_URL",
     "ACCOUNTING_PROVIDER_TOKEN",
@@ -10,7 +28,14 @@
     "AUTOMATED_TEARDOWN_ENABLED",
     "CI",
     "CLICK_THROUGH_THRESHOLD_MINOR",
+    "CLOCKWORK_CANONICAL_ORIGIN",
+    "CLOCKWORK_DEMO_STATE_PATH",
     "CLOCKWORK_ENABLE_SIMULATORS",
+    "CLOCKWORK_ENV",
+    "CLOCKWORK_EVIDENCE_ADAPTER",
+    "CLOCKWORK_EXPERIENCE_ADAPTER",
+    "CLOCKWORK_NEXT_DIST_DIR",
+    "CLOCKWORK_RELEASE_PROOF",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_URL",
@@ -27,10 +52,12 @@
     "EVIDENCE_AWS_ACCOUNT_ID",
     "EVIDENCE_AWS_REGION",
     "EVIDENCE_BUCKET",
+    "EVIDENCE_CLIENT_ORIGINS",
     "EVIDENCE_PROVIDER_BASE_URL",
     "EVIDENCE_PROVIDER_TOKEN",
+    "EVIDENCE_STORAGE_INTERNAL_TOKEN",
+    "EVIDENCE_STORAGE_INTERNAL_URL",
     "INTERNAL_EMAIL_DOMAINS",
-    "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
     "MARKETPLACE_WEBHOOK_SECRET",
     "MIGRATION_FEATURE_ENABLED",
     "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
@@ -42,23 +69,37 @@
     "MIGRATION_SOURCE_TOKEN",
     "MIGRATION_SOURCE_WINDOW_ID",
     "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
     "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
     "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
     "NODE_ENV",
     "NOTIFICATION_PROVIDER_BASE_URL",
     "NOTIFICATION_PROVIDER_TOKEN",
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_HEADERS",
+    "OTEL_EXPORTER_OTLP_PROTOCOL",
+    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+    "OTEL_RESOURCE_ATTRIBUTES",
+    "OTEL_SDK_DISABLED",
+    "OTEL_SERVICE_NAME",
     "PLATFORM_ISSUER_JSON",
     "PROVISIONING_PROVIDER_BASE_URL",
     "PROVISIONING_PROVIDER_TOKEN",
     "PROVISIONING_WEBHOOK_SECRET",
+    "SCREENING_PROVIDER_BASE_URL",
+    "SCREENING_PROVIDER_TOKEN",
+    "SIGNATURE_PROVIDER_BASE_URL",
+    "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
+    "SIGNATURE_PROVIDER_TOKEN",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
+    "SUPPORT_PROVIDER",
+    "SUPPORT_WEBHOOK_SECRET",
     "TRIGGER_PROJECT_REF",
     "TRIGGER_SECRET_KEY",
     "USAGE_PROVIDER_BASE_URL",
     "USAGE_PROVIDER_TOKEN",
     "WEBHOOK_MAX_BODY_BYTES",
-    "WORKFLOW_EXCEPTION_ROUTES_JSON",
     "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
     "WORKFLOW_PROVIDER_CONTROL_TOKEN",
     "WORKOS_API_KEY",
@@ -73,6 +114,13 @@
   "environmentRegistry": [
     {
       "key": "NODE_ENV",
+      "exampleDefault": "development",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_ENV",
       "exampleDefault": "development",
       "exampleState": "local-default",
       "sensitive": false,
@@ -100,8 +148,50 @@
       "source": ".env.example"
     },
     {
+      "key": "CLOCKWORK_CANONICAL_ORIGIN",
+      "exampleDefault": "http://localhost:3000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
       "key": "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
       "exampleDefault": "development",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_NEXT_DIST_DIR",
+      "exampleDefault": ".next",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
+      "exampleDefault": "database",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_DEMO_STATE_PATH",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_EVIDENCE_ADAPTER",
+      "exampleDefault": "http",
       "exampleState": "local-default",
       "sensitive": false,
       "source": ".env.example"
@@ -212,6 +302,13 @@
       "source": ".env.example"
     },
     {
+      "key": "CLOCKWORK_RELEASE_PROOF",
+      "exampleDefault": "0",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
       "key": "STRIPE_SECRET_KEY",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
@@ -276,6 +373,20 @@
     },
     {
       "key": "MARKETPLACE_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "SUPPORT_PROVIDER",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "SUPPORT_WEBHOOK_SECRET",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": true,
@@ -366,6 +477,41 @@
       "source": ".env.example"
     },
     {
+      "key": "SCREENING_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "SCREENING_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "SIGNATURE_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "SIGNATURE_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
+      "exampleDefault": "[]",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
       "key": "EVIDENCE_PROVIDER_BASE_URL",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
@@ -377,6 +523,27 @@
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_STORAGE_INTERNAL_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_STORAGE_INTERNAL_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_CLIENT_ORIGINS",
+      "exampleDefault": "http://localhost:3000",
+      "exampleState": "local-default",
+      "sensitive": false,
       "source": ".env.example"
     },
     {
@@ -405,13 +572,6 @@
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": true,
-      "source": ".env.example"
-    },
-    {
-      "key": "WORKFLOW_EXCEPTION_ROUTES_JSON",
-      "exampleDefault": "",
-      "exampleState": "explicit-empty",
-      "sensitive": false,
       "source": ".env.example"
     },
     {
@@ -444,13 +604,6 @@
     },
     {
       "key": "CLICK_THROUGH_THRESHOLD_MINOR",
-      "exampleDefault": "",
-      "exampleState": "explicit-empty",
-      "sensitive": false,
-      "source": ".env.example"
-    },
-    {
-      "key": "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": false,
@@ -539,28 +692,114 @@
       "exampleState": "local-default",
       "sensitive": false,
       "source": ".env.example"
+    },
+    {
+      "key": "OTEL_SDK_DISABLED",
+      "exampleDefault": "true",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_SERVICE_NAME",
+      "exampleDefault": "clockwork-runtime",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_PROTOCOL",
+      "exampleDefault": "http/protobuf",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_HEADERS",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "OTEL_RESOURCE_ATTRIBUTES",
+      "exampleDefault": "service.namespace=clockwork,deployment.environment.name=development",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
     }
   ],
-  "declaredCount": 67,
+  "declaredCount": 90,
   "staticallyReferencedEnvironment": [
     "APP_ORIGIN",
     "AUTHORIZATION_CONTEXT_SECRET",
     "AUTOMATED_TEARDOWN_ENABLED",
+    "BASELINE_CAPTURED_AT",
     "CI",
     "CLICK_THROUGH_THRESHOLD_MINOR",
+    "CLOCKWORK_ARTIFACT_DIR",
+    "CLOCKWORK_CANONICAL_ORIGIN",
     "CLOCKWORK_ENABLE_SIMULATORS",
+    "CLOCKWORK_ENV",
+    "CLOCKWORK_EVIDENCE_ADAPTER",
+    "CLOCKWORK_EXPERIENCE_ADAPTER",
+    "CLOCKWORK_NEXT_DIST_DIR",
+    "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
+    "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
+    "CLOCKWORK_PROOF_AUTH_SECRET",
+    "CLOCKWORK_PROVIDER_FAKE_PORT",
+    "CLOCKWORK_PROVIDER_FAKE_URL",
+    "CLOCKWORK_RELEASE_ARTIFACT_ROOT",
+    "CLOCKWORK_RELEASE_BUDGET_MS",
+    "CLOCKWORK_RELEASE_CACHE_ROOT",
+    "CLOCKWORK_RELEASE_DATABASE_PORT_BASE",
+    "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED",
+    "CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY",
+    "CLOCKWORK_RELEASE_PORT_BASE",
+    "CLOCKWORK_RELEASE_PROOF",
+    "CLOCKWORK_RELEASE_PROVIDER_FAKE_PORT_BASE",
+    "CLOCKWORK_RELEASE_RUN_ID",
+    "CLOCKWORK_RELEASE_SERIAL",
+    "CLOCKWORK_RELEASE_SHARD",
+    "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
+    "CLOCKWORK_RELEASE_STARTED_AT",
+    "CLOCKWORK_RELEASE_STRESS_RUNS",
     "CLOCKWORK_SERVICE_DATABASE_URL",
+    "CLOCKWORK_TEST_PORT",
     "DATABASE_URL",
     "DIRECT_DATABASE_URL",
     "ESIGN_RETURN_ORIGINS",
+    "EVIDENCE_CLIENT_ORIGINS",
+    "EVIDENCE_STORAGE_INTERNAL_TOKEN",
+    "EVIDENCE_STORAGE_INTERNAL_URL",
     "INTERNAL_EMAIL_DOMAINS",
-    "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
+    "KEY",
     "MIGRATION_FEATURE_ENABLED",
     "MIGRATION_SOURCE_EXECUTION_ENABLED",
     "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
     "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
     "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
     "NODE_ENV",
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+    "PATH",
+    "PLATFORM_ISSUER_JSON",
+    "PORT",
     "STRIPE_SECRET_KEY",
     "TRIGGER_PROJECT_REF",
     "WORKOS_API_KEY",
@@ -569,12 +808,926 @@
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 25,
-  "referencedButUndeclared": [],
+  "staticallyReferencedCount": 62,
+  "environmentReferenceRecords": [
+    {
+      "key": "APP_ORIGIN",
+      "declared": true,
+      "sources": [
+        "packages/api/src/middleware/security.ts",
+        "packages/api/src/routes/lifecycle/index.ts"
+      ],
+      "runtimeSources": [
+        "packages/api/src/middleware/security.ts",
+        "packages/api/src/routes/lifecycle/index.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "AUTHORIZATION_CONTEXT_SECRET",
+      "declared": true,
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/features/experience-server/repository.test.ts",
+        "apps/web/src/features/experience-server/repository.ts",
+        "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
+        "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/testing/src/database/isolation.ts",
+        "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/repository.ts"
+      ],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/features/experience-server/repository.test.ts",
+        "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
+        "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/testing/src/database/isolation.ts",
+        "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
+      ]
+    },
+    {
+      "key": "AUTOMATED_TEARDOWN_ENABLED",
+      "declared": true,
+      "sources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "BASELINE_CAPTURED_AT",
+      "declared": false,
+      "sources": ["scripts/generate-baseline-manifests.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/generate-baseline-manifests.mjs"]
+    },
+    {
+      "key": "CI",
+      "declared": true,
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "scripts/release-suites.mjs"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/playwright.config.ts",
+        "scripts/release-suites.mjs"
+      ]
+    },
+    {
+      "key": "CLICK_THROUGH_THRESHOLD_MINOR",
+      "declared": true,
+      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_ARTIFACT_DIR",
+      "declared": false,
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_CANONICAL_ORIGIN",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/controller.test.ts",
+        "apps/web/src/features/experience-server/controller.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/controller.ts"
+      ],
+      "toolingOrTestSources": [
+        "apps/web/src/features/experience-server/controller.test.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_ENABLE_SIMULATORS",
+      "declared": true,
+      "sources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/api/src/routes/core/index.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/api/src/routes/core/index.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_ENV",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_EVIDENCE_ADAPTER",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/projection-source.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/projection-source.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_NEXT_DIST_DIR",
+      "declared": true,
+      "sources": ["apps/web/next.config.ts"],
+      "runtimeSources": ["apps/web/next.config.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
+      "declared": false,
+      "sources": ["scripts/qualify-populated-upgrade.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/qualify-populated-upgrade.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
+      "declared": false,
+      "sources": ["scripts/qualify-populated-upgrade.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/qualify-populated-upgrade.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_PROOF_AUTH_SECRET",
+      "declared": false,
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_PROVIDER_FAKE_PORT",
+      "declared": false,
+      "sources": [
+        "apps/web/e2e/production-provider-fake.mjs",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-provider-fake.mjs",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_PROVIDER_FAKE_URL",
+      "declared": false,
+      "sources": [
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_ARTIFACT_ROOT",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_BUDGET_MS",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_CACHE_ROOT",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_DATABASE_PORT_BASE",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_PORT_BASE",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_PROOF",
+      "declared": true,
+      "sources": [
+        "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/telemetry/runtime.ts"
+      ],
+      "runtimeSources": ["apps/web/src/telemetry/runtime.ts"],
+      "toolingOrTestSources": ["apps/web/e2e/production-workflow-proof.ts"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_PROVIDER_FAKE_PORT_BASE",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_RUN_ID",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SERIAL",
+      "declared": false,
+      "sources": ["apps/web/playwright.config.ts"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["apps/web/playwright.config.ts"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SHARD",
+      "declared": false,
+      "sources": ["apps/web/playwright.config.ts"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["apps/web/playwright.config.ts"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_STARTED_AT",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_STRESS_RUNS",
+      "declared": false,
+      "sources": ["scripts/benchmark-release.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/benchmark-release.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_SERVICE_DATABASE_URL",
+      "declared": true,
+      "sources": [
+        "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/db/service.ts"
+      ],
+      "runtimeSources": ["apps/web/src/db/service.ts"],
+      "toolingOrTestSources": ["apps/web/e2e/production-workflow-proof.ts"]
+    },
+    {
+      "key": "CLOCKWORK_TEST_PORT",
+      "declared": false,
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "DATABASE_URL",
+      "declared": true,
+      "sources": ["apps/web/src/db/service.ts"],
+      "runtimeSources": ["apps/web/src/db/service.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "DIRECT_DATABASE_URL",
+      "declared": true,
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/src/auth/release-proof-repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "packages/db/drizzle.config.ts",
+        "packages/db/src/durability.integration.test.ts",
+        "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
+        "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/exception-routing.integration.test.ts",
+        "packages/db/src/repositories/system/external-gates.integration.test.ts",
+        "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
+        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+        "packages/testing/src/database/isolation.ts",
+        "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
+        "scripts/check-generated-dry-run.mjs"
+      ],
+      "runtimeSources": ["packages/db/drizzle.config.ts"],
+      "toolingOrTestSources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/src/auth/release-proof-repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "packages/db/src/durability.integration.test.ts",
+        "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
+        "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/exception-routing.integration.test.ts",
+        "packages/db/src/repositories/system/external-gates.integration.test.ts",
+        "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
+        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+        "packages/testing/src/database/isolation.ts",
+        "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
+        "scripts/check-generated-dry-run.mjs"
+      ]
+    },
+    {
+      "key": "ESIGN_RETURN_ORIGINS",
+      "declared": true,
+      "sources": ["packages/api/src/routes/lifecycle/index.ts"],
+      "runtimeSources": ["packages/api/src/routes/lifecycle/index.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "EVIDENCE_CLIENT_ORIGINS",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "EVIDENCE_STORAGE_INTERNAL_TOKEN",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "EVIDENCE_STORAGE_INTERNAL_URL",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/evidence-gateway.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "INTERNAL_EMAIL_DOMAINS",
+      "declared": true,
+      "sources": [
+        "apps/web/playwright.proof.config.ts",
+        "apps/web/src/auth/session.ts"
+      ],
+      "runtimeSources": ["apps/web/src/auth/session.ts"],
+      "toolingOrTestSources": ["apps/web/playwright.proof.config.ts"]
+    },
+    {
+      "key": "KEY",
+      "declared": false,
+      "sources": ["scripts/generate-baseline-manifests.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/generate-baseline-manifests.mjs"]
+    },
+    {
+      "key": "MIGRATION_FEATURE_ENABLED",
+      "declared": true,
+      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "MIGRATION_SOURCE_EXECUTION_ENABLED",
+      "declared": true,
+      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PUBLIC_APP_URL",
+      "declared": true,
+      "sources": [
+        "packages/api/src/middleware/security.ts",
+        "packages/api/src/routes/lifecycle/index.ts"
+      ],
+      "runtimeSources": [
+        "packages/api/src/middleware/security.ts",
+        "packages/api/src/routes/lifecycle/index.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
+      "declared": true,
+      "sources": ["apps/web/src/features/performance/web-vitals.tsx"],
+      "runtimeSources": ["apps/web/src/features/performance/web-vitals.tsx"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
+        "apps/web/src/features/performance/web-vitals.tsx",
+        "apps/web/src/features/shell/app-shell.tsx",
+        "apps/web/src/features/shell/route-session.ts",
+        "apps/web/src/features/surfaces/workflow-panel.tsx"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
+        "apps/web/src/features/performance/web-vitals.tsx",
+        "apps/web/src/features/shell/app-shell.tsx",
+        "apps/web/src/features/shell/route-session.ts",
+        "apps/web/src/features/surfaces/workflow-panel.tsx"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
+      "declared": true,
+      "sources": ["apps/web/src/features/contracts/provider-navigation.ts"],
+      "runtimeSources": [
+        "apps/web/src/features/contracts/provider-navigation.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NODE_ENV",
+      "declared": true,
+      "sources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/app/signing/embedded/page.tsx",
+        "apps/web/app/signing/redirect/page.tsx",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/actions.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/contracts/provider-navigation.ts",
+        "apps/web/src/features/experience-server/controller.ts",
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/evidence-gateway.ts",
+        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
+        "apps/web/src/features/shell/route-session.ts",
+        "apps/web/src/features/surfaces/workflow-panel.tsx",
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/api/src/app.ts",
+        "packages/api/src/auth/session.ts",
+        "packages/api/src/routes/core/index.ts",
+        "packages/api/src/routes/lifecycle/index.ts",
+        "packages/db/src/client.ts",
+        "packages/db/src/transaction.ts",
+        "packages/workflows/src/core/scheduled-runtime.ts",
+        "packages/workflows/src/core/task-runtime.ts",
+        "packages/workflows/src/onboarding/trigger-runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts",
+        "packages/workflows/src/system/gate-activation-tasks.ts",
+        "packages/workflows/src/system/outbox-dispatcher.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/app/signing/embedded/page.tsx",
+        "apps/web/app/signing/redirect/page.tsx",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/actions.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/contracts/provider-navigation.ts",
+        "apps/web/src/features/experience-server/controller.ts",
+        "apps/web/src/features/experience-server/dashboard-loader.ts",
+        "apps/web/src/features/experience-server/evidence-gateway.ts",
+        "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
+        "apps/web/src/features/shell/route-session.ts",
+        "apps/web/src/features/surfaces/workflow-panel.tsx",
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/api/src/app.ts",
+        "packages/api/src/auth/session.ts",
+        "packages/api/src/routes/core/index.ts",
+        "packages/api/src/routes/lifecycle/index.ts",
+        "packages/db/src/client.ts",
+        "packages/db/src/transaction.ts",
+        "packages/workflows/src/core/scheduled-runtime.ts",
+        "packages/workflows/src/core/task-runtime.ts",
+        "packages/workflows/src/onboarding/trigger-runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts",
+        "packages/workflows/src/system/gate-activation-tasks.ts",
+        "packages/workflows/src/system/outbox-dispatcher.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+      "declared": true,
+      "sources": [
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+      "declared": true,
+      "sources": [
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/telemetry/runtime.ts",
+        "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "PATH",
+      "declared": false,
+      "sources": ["scripts/release-suites.mjs"],
+      "runtimeSources": [],
+      "toolingOrTestSources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "PLATFORM_ISSUER_JSON",
+      "declared": true,
+      "sources": [
+        "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
+        "apps/web/src/features/experience-server/artifact-sources.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/src/features/experience-server/artifact-sources.ts"
+      ],
+      "toolingOrTestSources": [
+        "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts"
+      ]
+    },
+    {
+      "key": "PORT",
+      "declared": false,
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "STRIPE_SECRET_KEY",
+      "declared": true,
+      "sources": ["packages/integrations/src/system/webhook-verifiers.ts"],
+      "runtimeSources": [
+        "packages/integrations/src/system/webhook-verifiers.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "TRIGGER_PROJECT_REF",
+      "declared": true,
+      "sources": ["trigger.config.ts"],
+      "runtimeSources": ["trigger.config.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_API_KEY",
+      "declared": true,
+      "sources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts",
+        "packages/integrations/src/system/webhook-verifiers.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts",
+        "packages/integrations/src/system/webhook-verifiers.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_CLIENT_ID",
+      "declared": true,
+      "sources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_COOKIE_PASSWORD",
+      "declared": true,
+      "sources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/app/auth/callback/route.ts",
+        "apps/web/app/sign-in/route.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.ts"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
+      "declared": true,
+      "sources": ["apps/web/src/auth/session.ts"],
+      "runtimeSources": ["apps/web/src/auth/session.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_REDIRECT_URI",
+      "declared": true,
+      "sources": ["apps/web/proxy.ts"],
+      "runtimeSources": ["apps/web/proxy.ts"],
+      "toolingOrTestSources": []
+    }
+  ],
+  "referencedButUndeclared": [
+    "BASELINE_CAPTURED_AT",
+    "CLOCKWORK_ARTIFACT_DIR",
+    "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
+    "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
+    "CLOCKWORK_PROOF_AUTH_SECRET",
+    "CLOCKWORK_PROVIDER_FAKE_PORT",
+    "CLOCKWORK_PROVIDER_FAKE_URL",
+    "CLOCKWORK_RELEASE_ARTIFACT_ROOT",
+    "CLOCKWORK_RELEASE_BUDGET_MS",
+    "CLOCKWORK_RELEASE_CACHE_ROOT",
+    "CLOCKWORK_RELEASE_DATABASE_PORT_BASE",
+    "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED",
+    "CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY",
+    "CLOCKWORK_RELEASE_PORT_BASE",
+    "CLOCKWORK_RELEASE_PROVIDER_FAKE_PORT_BASE",
+    "CLOCKWORK_RELEASE_RUN_ID",
+    "CLOCKWORK_RELEASE_SERIAL",
+    "CLOCKWORK_RELEASE_SHARD",
+    "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
+    "CLOCKWORK_RELEASE_STARTED_AT",
+    "CLOCKWORK_RELEASE_STRESS_RUNS",
+    "CLOCKWORK_TEST_PORT",
+    "KEY",
+    "PATH",
+    "PORT"
+  ],
+  "runtimeReferencedButUndeclared": [],
+  "toolingOrTestOnlyReferencedButUndeclared": [
+    {
+      "key": "BASELINE_CAPTURED_AT",
+      "sources": ["scripts/generate-baseline-manifests.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_ARTIFACT_DIR",
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.teardown.ts",
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
+      "sources": ["scripts/qualify-populated-upgrade.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
+      "sources": ["scripts/qualify-populated-upgrade.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_PROOF_AUTH_SECRET",
+      "sources": [
+        "apps/web/e2e/production-proof.setup.ts",
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_PROVIDER_FAKE_PORT",
+      "sources": [
+        "apps/web/e2e/production-provider-fake.mjs",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_PROVIDER_FAKE_URL",
+      "sources": [
+        "apps/web/e2e/production-proof.spec.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_ARTIFACT_ROOT",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_BUDGET_MS",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_CACHE_ROOT",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_DATABASE_PORT_BASE",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_INFRA_RETRY_CATEGORY",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_PORT_BASE",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_PROVIDER_FAKE_PORT_BASE",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_RUN_ID",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SERIAL",
+      "sources": ["apps/web/playwright.config.ts"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SHARD",
+      "sources": ["apps/web/playwright.config.ts"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_SHARED_WORKSPACE",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_STARTED_AT",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_RELEASE_STRESS_RUNS",
+      "sources": ["scripts/benchmark-release.mjs"]
+    },
+    {
+      "key": "CLOCKWORK_TEST_PORT",
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    },
+    {
+      "key": "KEY",
+      "sources": ["scripts/generate-baseline-manifests.mjs"]
+    },
+    {
+      "key": "PATH",
+      "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "PORT",
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
+    }
+  ],
   "declaredButNotStaticallyReferenced": [
     "ACCOUNTING_PROVIDER_BASE_URL",
     "ACCOUNTING_PROVIDER_TOKEN",
     "AUTHORIZATION_CONTEXT_SECRET_ID",
+    "CLOCKWORK_DEMO_STATE_PATH",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",
@@ -599,23 +1752,33 @@
     "MIGRATION_SOURCE_WINDOW_ID",
     "NOTIFICATION_PROVIDER_BASE_URL",
     "NOTIFICATION_PROVIDER_TOKEN",
-    "PLATFORM_ISSUER_JSON",
+    "OTEL_EXPORTER_OTLP_HEADERS",
+    "OTEL_EXPORTER_OTLP_PROTOCOL",
+    "OTEL_RESOURCE_ATTRIBUTES",
+    "OTEL_SDK_DISABLED",
+    "OTEL_SERVICE_NAME",
     "PROVISIONING_PROVIDER_BASE_URL",
     "PROVISIONING_PROVIDER_TOKEN",
     "PROVISIONING_WEBHOOK_SECRET",
+    "SCREENING_PROVIDER_BASE_URL",
+    "SCREENING_PROVIDER_TOKEN",
+    "SIGNATURE_PROVIDER_BASE_URL",
+    "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
+    "SIGNATURE_PROVIDER_TOKEN",
     "STRIPE_WEBHOOK_SECRET",
+    "SUPPORT_PROVIDER",
+    "SUPPORT_WEBHOOK_SECRET",
     "TRIGGER_SECRET_KEY",
     "USAGE_PROVIDER_BASE_URL",
     "USAGE_PROVIDER_TOKEN",
     "WEBHOOK_MAX_BODY_BYTES",
-    "WORKFLOW_EXCEPTION_ROUTES_JSON",
     "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
     "WORKFLOW_PROVIDER_CONTROL_TOKEN",
     "WORKOS_MFA_PROVIDER_BASE_URL",
     "WORKOS_MFA_PROVIDER_TOKEN",
     "WORKOS_WEBHOOK_SECRET"
   ],
-  "discoveryLimitation": "Static discovery sees direct process.env and injected source.KEY references; dynamic configuredEnvironment(name) lookups are represented by the complete .env.example registry rather than inferred as absent.",
+  "discoveryLimitation": "Static discovery scans repository root code plus apps, packages, scripts, and Supabase JavaScript/TypeScript. It records direct process.env and injected source.KEY references with runtime versus tooling/test source provenance; dynamic configuredEnvironment(name) lookups are represented by the complete .env.example registry rather than inferred as absent.",
   "externalGates": [
     "EXT-ACC-01",
     "EXT-LEGAL-01",
@@ -840,15 +2003,121 @@
       ]
     }
   ],
-  "capabilityMatrixRequiredButNotImplemented": [
-    "new-business commerce",
-    "legal execution",
-    "paid provisioning and invoicing",
-    "partner referral/resale/distributor paths",
-    "white-label and custom domains",
-    "marketplace paths",
-    "automated teardown operations",
-    "production migration operations"
+  "persistedCapabilities": [
+    {
+      "key": "new_business",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    },
+    {
+      "key": "legal",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    },
+    {
+      "key": "billing",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    },
+    {
+      "key": "partner",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    },
+    {
+      "key": "marketplace",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    },
+    {
+      "key": "teardown",
+      "persisted": true,
+      "audited": true,
+      "forceRls": true,
+      "runtimeWriteDenied": true,
+      "commandEnforced": true,
+      "workflowEffectEnforced": true,
+      "sources": [
+        "supabase/migrations/001000_commercial_database_integrity.sql",
+        "packages/db/src/schema/system/index.ts",
+        "packages/db/src/repositories/core/database-finance.ts",
+        "packages/workflows/src/runtime/production.ts",
+        "packages/workflows/src/runtime/production-adapter-factory.ts"
+      ]
+    }
   ],
-  "capabilityMatrixStatus": "backlog-partial-no-persisted-audited-command-and-effect-boundary-matrix"
+  "persistedCapabilityCount": 6,
+  "capabilityMatrixRequiredButNotImplemented": [],
+  "controlsOutsidePersistedCapabilityMatrix": [
+    {
+      "control": "white-label and custom domains",
+      "status": "external-gate-controlled",
+      "gateKeys": ["EXT-BRAND-01", "EXT-DOMAIN-01"]
+    },
+    {
+      "control": "production migration operations",
+      "status": "disabled-switch-and-external-gate-controlled",
+      "switches": [
+        "MIGRATION_FEATURE_ENABLED",
+        "MIGRATION_SOURCE_EXECUTION_ENABLED"
+      ],
+      "gateKeys": ["EXT-MIGRATION-01"]
+    }
+  ],
+  "capabilityMatrixStatus": "implemented-persisted-audited-and-enforced"
 }

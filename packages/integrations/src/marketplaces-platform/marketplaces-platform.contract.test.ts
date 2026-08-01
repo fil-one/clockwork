@@ -13,6 +13,11 @@ import {
 const organizationId = ids.organization.parse(
   "30000000-0000-4000-8000-000000000309",
 );
+const accountId = ids.account.parse("10000000-0000-4000-8000-000000000309");
+const orderId = ids.order.parse("50000000-0000-4000-8000-000000000309");
+const entitlementId = ids.entitlement.parse(
+  "60000000-0000-4000-8000-000000000309",
+);
 
 describe("marketplace platform provider contract", () => {
   it("publishes provisioning and entitlement events idempotently", async () => {
@@ -20,7 +25,7 @@ describe("marketplace platform provider contract", () => {
     const input = {
       event: {
         type: "marketplace.provisioning.requested" as const,
-        marketplace: "fixture-marketplace",
+        marketplace: "aws",
         marketplaceOrderId: "mp-order-309",
         organizationId,
         offerId: "offer-309",
@@ -45,7 +50,7 @@ describe("marketplace platform provider contract", () => {
       JSON.stringify({
         providerEventId: "mp-event-309",
         type: "marketplace.entitlement.updated",
-        marketplace: "fixture-marketplace",
+        marketplace: "aws",
         marketplaceAccountId: "seller-account-309",
         providerResourceType: "subscription",
         providerResourceId: "subscription-309",
@@ -55,6 +60,7 @@ describe("marketplace platform provider contract", () => {
         quantity: "5",
         status: "active",
         occurredAt: "2026-07-31T16:00:00.000Z",
+        sequence: 7,
       }),
     );
     const signature = signFakeMarketplaceWebhook({
@@ -73,18 +79,21 @@ describe("marketplace platform provider contract", () => {
       eventId: "mp-event-309",
       occurredAt: "2026-07-31T16:00:00.000Z",
       payload: {
-        providerEventId: "mp-event-309",
-        type: "marketplace.entitlement.updated",
-        marketplace: "fixture-marketplace",
-        marketplaceAccountId: "seller-account-309",
-        providerResourceType: "subscription",
-        providerResourceId: "subscription-309",
-        marketplaceOrderId: "mp-order-309",
-        organizationId,
-        entitlementId: "entitlement-309",
+        type: "entitlement.activated",
+        eventId: "mp-event-309",
+        provider: "aws",
+        providerAccountReference: "seller-account-309",
+        accountId,
+        orderId,
+        entitlementId,
+        currency: null,
+        grossMinor: null,
+        feeMinor: null,
+        taxMinor: null,
+        netMinor: null,
         quantity: "5",
-        status: "active",
         occurredAt: "2026-07-31T16:00:00.000Z",
+        sequence: 7,
       },
     });
     await expect(verifier.verify({ rawBody, signature })).resolves.toEqual(
@@ -103,7 +112,7 @@ describe("marketplace platform provider contract", () => {
     const base = {
       providerEventId: "mp-event-309",
       type: "marketplace.entitlement.updated",
-      marketplace: "fixture-marketplace",
+      marketplace: "aws",
       marketplaceAccountId: "seller-account-309",
       providerResourceType: "subscription",
       providerResourceId: "subscription-309",
@@ -113,6 +122,7 @@ describe("marketplace platform provider contract", () => {
       quantity: "5",
       status: "active",
       occurredAt: "2026-07-31T16:00:00.000Z",
+      sequence: 7,
     };
 
     await expectSignedFailure(
@@ -178,7 +188,7 @@ describe("marketplace platform provider contract", () => {
     const store = bindingStore();
     await expect(
       store.save({
-        marketplace: "fixture-marketplace",
+        marketplace: "aws",
         marketplaceAccountId: "seller-account-309",
         providerResourceType: "subscription",
         providerResourceId: "subscription-309",
@@ -186,7 +196,10 @@ describe("marketplace platform provider contract", () => {
         organizationId: ids.organization.parse(
           "30000000-0000-4000-8000-000000000999",
         ),
-        entitlementId: "entitlement-309",
+        accountId,
+        orderId,
+        providerEntitlementId: "entitlement-309",
+        entitlementId,
       }),
     ).rejects.toThrow("binding conflict");
   });
@@ -195,13 +208,16 @@ describe("marketplace platform provider contract", () => {
 function bindingStore(): InMemoryMarketplaceWebhookBindingStore {
   return new InMemoryMarketplaceWebhookBindingStore([
     {
-      marketplace: "fixture-marketplace",
+      marketplace: "aws",
       marketplaceAccountId: "seller-account-309",
       providerResourceType: "subscription",
       providerResourceId: "subscription-309",
       marketplaceOrderId: "mp-order-309",
       organizationId,
-      entitlementId: "entitlement-309",
+      accountId,
+      orderId,
+      providerEntitlementId: "entitlement-309",
+      entitlementId,
     },
   ]);
 }
@@ -210,7 +226,7 @@ function entitlementEvent() {
   return {
     providerEventId: "mp-event-309",
     type: "marketplace.entitlement.updated",
-    marketplace: "fixture-marketplace",
+    marketplace: "aws",
     marketplaceAccountId: "seller-account-309",
     providerResourceType: "subscription",
     providerResourceId: "subscription-309",
@@ -220,6 +236,7 @@ function entitlementEvent() {
     quantity: "5",
     status: "active",
     occurredAt: "2026-07-31T16:00:00.000Z",
+    sequence: 7,
   };
 }
 

@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 
 vi.mock("server-only", () => ({}));
 
@@ -44,6 +46,10 @@ const gate = {
 } as const;
 
 describe("external-gate server loader credential containment", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it.each([
     "malformed configured origin",
     "preview deployment origin",
@@ -83,4 +89,20 @@ describe("external-gate server loader credential containment", () => {
     expect(securitySpies.requestHeadersAccess).not.toHaveBeenCalled();
     outboundFetch.mockRestore();
   });
+
+  it.each(DEMO_PRODUCTION_ENVIRONMENT_KEYS)(
+    "never shows static gate fixtures when %s marks production",
+    async (productionKey) => {
+      for (const key of DEMO_PRODUCTION_ENVIRONMENT_KEYS)
+        vi.stubEnv(key, "test");
+      vi.stubEnv(productionKey, " Production ");
+
+      const result = await loadConfiguredGateRecords(undefined, {
+        runtimeEnvironment: "local",
+      });
+
+      expect(result.gates).toHaveLength(1);
+      expect(result.gates[0]?.id).toBe("SYSTEM-GATE-REGISTRY-UNAVAILABLE");
+    },
+  );
 });

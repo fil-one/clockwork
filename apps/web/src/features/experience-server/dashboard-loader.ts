@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Route } from "next";
 import type { RenewalState } from "@clockwork/ui";
+import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 
 import { getCommerceSession } from "@/src/auth/session";
 import type { CustomerDashboardProjection } from "@/src/features/customer-partner/customer/customer-dashboard";
@@ -105,11 +106,14 @@ function object(value: unknown, field: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function explicitDemo(): boolean {
+export function explicitDashboardDemoEnabled(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
   return (
-    process.env.CLOCKWORK_EXPERIENCE_ADAPTER === "demo" &&
-    process.env.NODE_ENV !== "production" &&
-    process.env.CLOCKWORK_ENV !== "production"
+    environment.CLOCKWORK_EXPERIENCE_ADAPTER?.trim() === "demo" &&
+    !findDemoProductionMarker(environment) &&
+    environment.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV?.trim().toLowerCase() !==
+      "production"
   );
 }
 
@@ -238,7 +242,7 @@ const demoPartner: PartnerDashboardProjection = {
 };
 
 export async function loadCustomerDashboardProjection(): Promise<CustomerDashboardProjection> {
-  if (explicitDemo()) return demoCustomer;
+  if (explicitDashboardDemoEnabled()) return demoCustomer;
   const session = await getCommerceSession();
   const page = await configuredProjectionSource().list(
     projectionInput({
@@ -305,7 +309,7 @@ export async function loadCustomerDashboardProjection(): Promise<CustomerDashboa
 }
 
 export async function loadPartnerDashboardProjection(): Promise<PartnerDashboardProjection> {
-  if (explicitDemo()) return demoPartner;
+  if (explicitDashboardDemoEnabled()) return demoPartner;
   const session = await getCommerceSession();
   const page = await configuredProjectionSource().list(
     projectionInput({

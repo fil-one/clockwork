@@ -1,5 +1,9 @@
 # Runtime operations Instance 3: gates and ownership handoff
 
+Current disposition: historical provenance. The integration hooks below are
+satisfied and repository-qualified on `main`; this document identifies no active
+lane and declares no RC/launch.
+
 This lane implements persisted runtime gates, durable activation probes, and
 account-scoped exception ownership without editing commercial or web files.
 

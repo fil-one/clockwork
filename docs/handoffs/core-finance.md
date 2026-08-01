@@ -1,5 +1,9 @@
 # Core-finance lane handoff
 
+Current disposition: historical provenance. This lane and its integration
+expectations are represented and repository-qualified on `main`; lane-local
+limitations below do not describe current gaps or an RC/launch.
+
 Branch: `commerce/core-finance`
 
 Foundation base: `d9fdacce7eb3d66e3ba0aaa698814e3d42660668`

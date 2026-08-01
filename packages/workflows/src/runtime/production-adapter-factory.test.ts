@@ -252,6 +252,17 @@ describe("production workflow adapter factory", () => {
     );
     expect(bundle.outboxHandlers.has("core.invoice.draft_ready")).toBe(true);
     expect(bundle.outboxHandlers.has("core.schedule.dispatch.v1")).toBe(true);
+    expect(
+      bundle.outboxHandlers.has("experience.projection_action.queued"),
+    ).toBe(true);
+    expect(bundle.outboxHandlers.has("core.quotes.expire")).toBe(true);
+    expect(bundle.outboxHandlers.has("core.orders.create")).toBe(true);
+    expect(
+      bundle.outboxHandlers.has("experience.projection_action.applied"),
+    ).toBe(true);
+    expect(
+      bundle.outboxHandlers.has("experience.projection.materialized"),
+    ).toBe(true);
     expect(guard.checks[0]?.gateKeys).toEqual([
       "EXT-ACC-01",
       "EXT-COMMERCIAL-01",
