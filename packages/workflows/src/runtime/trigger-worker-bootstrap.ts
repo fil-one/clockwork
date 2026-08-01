@@ -41,6 +41,18 @@ export const productionWorkflowExternalInputs = [
       "selected transactional notification provider and sender credentials",
   },
   {
+    component: "screening",
+    gate: "EXT-PROVIDER-01",
+    input:
+      "selected denied-party screening endpoint, contract, and scoped credentials",
+  },
+  {
+    component: "signature",
+    gate: "EXT-LEGAL-01",
+    input:
+      "selected signature endpoint, scoped credentials, and signing-origin allow-list",
+  },
+  {
     component: "document_renderer",
     gate: "EXT-PROVIDER-01",
     input:

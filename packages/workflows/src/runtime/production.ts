@@ -40,6 +40,10 @@ import {
 } from "../system/outbox-dispatcher";
 import { createWorkosOrganizationOutboxHandler } from "../system/workos-organization";
 import {
+  configureExternalGateActivationExecutor,
+  type ExternalGateActivationExecutor,
+} from "../system/gate-activation-tasks";
+import {
   DatabaseLifecycleTaskRuntime,
   type LifecycleTaskHandler,
 } from "./database-lifecycle";
@@ -74,6 +78,7 @@ export interface ProductionWorkflowRuntimeInput {
   };
   clock?: () => Date;
   leaseMs?: number;
+  gateActivationExecutor?: ExternalGateActivationExecutor;
 }
 
 function requireConfigured(value: unknown, name: string): void {
@@ -184,6 +189,8 @@ export function createProductionWorkflowRuntime(
       configureCoreFinanceWorkflowEngine(core);
       configureLifecycleTaskRuntime(lifecycle);
       configureOutboxDispatcher(outbox);
+      if (input.gateActivationExecutor)
+        configureExternalGateActivationExecutor(input.gateActivationExecutor);
     },
   };
 }

@@ -18,6 +18,13 @@ const completeEnvironment = {
   USAGE_PROVIDER_TOKEN: "usage-token",
   PROVISIONING_PROVIDER_BASE_URL: "https://provisioning.example/",
   PROVISIONING_PROVIDER_TOKEN: "provisioning-token",
+  SCREENING_PROVIDER_BASE_URL: "https://screening.example/",
+  SCREENING_PROVIDER_TOKEN: "screening-token",
+  SIGNATURE_PROVIDER_BASE_URL: "https://signature.example/",
+  SIGNATURE_PROVIDER_TOKEN: "signature-token",
+  SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON: JSON.stringify([
+    "https://signing.example",
+  ]),
   EVIDENCE_PROVIDER_BASE_URL: "https://evidence.example/",
   EVIDENCE_PROVIDER_TOKEN: "evidence-token",
   DOCUMENT_RENDERER_PROVIDER_BASE_URL: "https://documents.example/",
@@ -51,6 +58,16 @@ describe("environment production workflow adapters", () => {
   it("builds the default live adapter factory from complete registered inputs", () => {
     expect(() =>
       createEnvironmentWorkflowAdapterFactory(completeEnvironment),
+    ).not.toThrow();
+  });
+
+  it("does not accept queue-to-account ownership from environment state", () => {
+    const withoutStaticRoutes = {
+      ...completeEnvironment,
+      WORKFLOW_EXCEPTION_ROUTES_JSON: undefined,
+    };
+    expect(() =>
+      createEnvironmentWorkflowAdapterFactory(withoutStaticRoutes),
     ).not.toThrow();
   });
 

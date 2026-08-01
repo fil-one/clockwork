@@ -13,6 +13,7 @@ const productionTaskImporters: readonly TriggerTaskImporter[] = [
   () => import("../provisioning/tasks"),
   () => import("../renewals/tasks"),
   () => import("../system/tasks"),
+  () => import("../system/gate-activation-tasks"),
 ];
 
 /** Trigger task modules are evaluated only after the durable runtime is active. */
