@@ -1,4 +1,7 @@
+import { BrandLogo } from "@clockwork/ui";
+
 import { RegistrationForm } from "@/src/features/registration/registration-form";
+import { t } from "@/src/i18n/en";
 
 function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -16,7 +19,11 @@ export default async function RegistrationPage({
   return (
     <main className="access-main">
       <section className="access-card registration-card">
-        <div className="signing-wordmark">FIL ONE</div>
+        <BrandLogo
+          className="signing-wordmark"
+          src="/brand/fo-wordmark-dark.png"
+          name={t("app.name")}
+        />
         <p className="eyebrow">Organization registration</p>
         <h1>Start with a verified business identity.</h1>
         <p>

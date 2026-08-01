@@ -10,16 +10,17 @@
   --cw-ink-soft: #344039;
   --cw-muted: #5b675f;
   --cw-faint: #7c867f;
-  --cw-canvas: #f5f3ed;
-  --cw-canvas-deep: #ebe8df;
-  --cw-surface: #fffefa;
+  --cw-canvas: #f4f6f8;
+  --cw-canvas-deep: #e7ebef;
+  --cw-surface: #ffffff;
   --cw-surface-raised: #ffffff;
-  --cw-border: #d8d7cf;
-  --cw-border-strong: #aaada6;
-  --cw-brand: #245a40;
-  --cw-brand-strong: #173d2b;
-  --cw-brand-soft: #e0eee5;
-  --cw-brand-ink: #113122;
+  --cw-border: #e3e7ec;
+  --cw-border-strong: #7c8794;
+  /* The mark's blue fills shapes and draws the mark; it never carries text. */
+  --cw-brand: #0090ff;
+  --cw-brand-strong: #0067cc;
+  --cw-brand-soft: #dff1ff;
+  --cw-brand-ink: #06305c;
   --cw-success: #2d6a49;
   --cw-success-soft: #e2f0e7;
   --cw-info: #2e6383;
@@ -29,15 +30,15 @@
   --cw-danger: #9a3434;
   --cw-danger-strong: #702222;
   --cw-danger-soft: #f8e2df;
-  --cw-focus: #075fc5;
+  --cw-focus: #7a3df5;
   --cw-overlay: rgb(16 23 18 / 0.55);
   --cw-offline: #56605a;
   --cw-offline-soft: #e7e8e3;
   --cw-radius-xs: 0.25rem;
   --cw-radius-sm: 0.375rem;
-  --cw-radius-md: 0.375rem;
-  --cw-radius-lg: 0.5rem;
-  --cw-radius-xl: 0.75rem;
+  --cw-radius-md: 0.5rem;
+  --cw-radius-lg: 0.75rem;
+  --cw-radius-xl: 1rem;
   --cw-shadow-sm: 0 1px 2px rgb(23 32 25 / 0.08);
   --cw-shadow-card: 0 1px 0 rgb(23 32 25 / 0.08);
   --cw-shadow-dialog: 0 28px 80px rgb(23 32 25 / 0.22);
@@ -156,6 +157,15 @@ body {
   text-decoration: none;
 }
 
+/* The asset is clamped to the reserved slot, so wordmark and icon share a box. */
+.cw-brand-logo {
+  display: block;
+  width: auto;
+  max-width: 7.5rem;
+  height: auto;
+  max-height: 2.25rem;
+}
+
 .cw-wordmark {
   display: inline-flex;
   align-items: flex-end;
@@ -178,7 +188,7 @@ body {
 
 .cw-wordmark__counterweight {
   margin-left: 0.32em;
-  color: var(--cw-brand);
+  color: var(--cw-brand-strong);
   font-family: var(--cw-font-display);
   font-size: 1.18em;
   font-style: italic;
@@ -187,7 +197,7 @@ body {
 }
 
 .cw-wordmark--inverse .cw-wordmark__counterweight {
-  color: #a9d1b9;
+  color: var(--cw-brand-soft);
 }
 
 .cw-wordmark__descriptor {
@@ -208,8 +218,8 @@ body {
   justify-content: center;
   gap: var(--cw-space-2);
   border: 1px solid transparent;
-  border-radius: var(--cw-radius-sm);
-  padding: 0.58rem 1rem;
+  border-radius: 999px;
+  padding: 0.58rem 1.15rem;
   font: inherit;
   font-size: 0.9rem;
   font-weight: 720;
@@ -227,16 +237,17 @@ body {
   transform: translateY(1px);
 }
 
+/* A white label needs AA on the fill, so the fill uses the strong ramp step. */
 .cw-button--primary {
-  border-color: var(--cw-brand);
-  background: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
+  background: var(--cw-brand-strong);
   color: #fff;
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.18) inset;
 }
 
 .cw-button--primary:hover:not(:disabled) {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-strong);
+  border-color: var(--cw-brand-ink);
+  background: var(--cw-brand-ink);
 }
 
 .cw-button--secondary {
@@ -273,7 +284,7 @@ body {
 
 .cw-button--small {
   min-height: 2.625rem;
-  padding: 0.38rem 0.7rem;
+  padding: 0.38rem 0.85rem;
   font-size: 0.8125rem;
 }
 
@@ -441,7 +452,7 @@ body {
   width: 1.15rem;
   height: 1.15rem;
   margin: 0.15rem 0 0;
-  accent-color: var(--cw-brand);
+  accent-color: var(--cw-brand-strong);
 }
 
 .cw-radio-group,
@@ -523,7 +534,7 @@ body {
   grid-template-columns: var(--cw-rail-width) minmax(0, 1fr) auto;
   align-items: center;
   border-bottom: 1px solid var(--cw-border);
-  background: rgb(255 254 250 / 0.94);
+  background: rgb(255 255 255 / 0.94);
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset;
   backdrop-filter: blur(16px);
 }
@@ -617,7 +628,7 @@ body {
   min-height: var(--cw-control-height);
   align-items: center;
   gap: var(--cw-space-3);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-md);
   color: var(--cw-ink-soft);
   padding: 0.48rem var(--cw-space-3);
   font-size: 0.875rem;
@@ -637,8 +648,8 @@ body {
 
 .cw-navigation__link[aria-current="page"] {
   background: var(--cw-brand-soft);
-  color: var(--cw-brand-ink);
-  box-shadow: 3px 0 0 var(--cw-brand) inset;
+  color: var(--cw-brand-strong);
+  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
 }
 
 .cw-navigation__link:active:not([aria-disabled="true"]) {
@@ -847,7 +858,7 @@ body {
 }
 
 .cw-state--success .cw-state__mark {
-  color: var(--cw-brand);
+  color: var(--cw-brand-strong);
 }
 
 .cw-state--warning .cw-state__mark {
@@ -990,9 +1001,9 @@ body {
 }
 
 .cw-optimistic:not(.cw-optimistic--pending) .cw-optimistic__mark {
-  border-color: var(--cw-brand);
-  border-top-color: var(--cw-brand);
-  background: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
+  border-top-color: var(--cw-brand-strong);
+  background: var(--cw-brand-strong);
   animation: none;
 }
 
@@ -1051,13 +1062,13 @@ body {
 }
 
 .cw-steps__item--complete .cw-steps__number {
-  border-color: var(--cw-brand);
-  background: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
+  background: var(--cw-brand-strong);
   color: #fff;
 }
 
 .cw-steps__item--current .cw-steps__number {
-  border: 2px solid var(--cw-brand);
+  border: 2px solid var(--cw-brand-strong);
   color: var(--cw-brand-strong);
 }
 
@@ -1346,7 +1357,7 @@ body {
 }
 
 .cw-risk--low .cw-risk__mark {
-  background: #5d9c76;
+  background: var(--cw-brand);
 }
 
 .cw-risk--moderate {
@@ -1510,12 +1521,12 @@ body {
 
 .cw-timeline__item--complete .cw-timeline__marker {
   background: var(--cw-brand);
-  box-shadow: 0 0 0 1px var(--cw-brand);
+  box-shadow: 0 0 0 1px var(--cw-brand-strong);
 }
 
 .cw-timeline__item--current .cw-timeline__marker {
   background: var(--cw-surface);
-  box-shadow: 0 0 0 2px var(--cw-brand);
+  box-shadow: 0 0 0 2px var(--cw-brand-strong);
 }
 
 .cw-timeline__item--failed .cw-timeline__marker {
@@ -1663,7 +1674,7 @@ body {
 
 .cw-queue-row--selected {
   background: var(--cw-brand-soft);
-  box-shadow: 3px 0 0 var(--cw-brand) inset;
+  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
 }
 
 .cw-queue-row h3 {
@@ -1819,14 +1830,30 @@ body {
   stroke-width: 1;
 }
 
+/* The gradient stops are declared on the instance; these are the flat fallbacks. */
 .cw-chart__area {
   fill: var(--cw-brand-soft);
-  opacity: 0.65;
+}
+
+.cw-chart__gradient-start {
+  stop-color: var(--cw-brand);
+}
+
+.cw-chart__gradient-end {
+  stop-color: var(--cw-brand);
+}
+
+.cw-chart__gradient-bar-start {
+  stop-color: var(--cw-brand-strong);
+}
+
+.cw-chart__gradient-bar-end {
+  stop-color: var(--cw-brand);
 }
 
 .cw-chart__line {
   fill: none;
-  stroke: var(--cw-brand);
+  stroke: var(--cw-brand-strong);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 3;
@@ -1835,7 +1862,7 @@ body {
 
 .cw-chart__point {
   fill: var(--cw-surface);
-  stroke: var(--cw-brand);
+  stroke: var(--cw-brand-strong);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -2097,10 +2124,10 @@ body {
   justify-content: center;
   gap: var(--cw-space-2);
   border: 1px solid var(--cw-border-strong);
-  border-radius: var(--cw-radius-sm);
+  border-radius: 999px;
   background: var(--cw-surface);
   color: var(--cw-ink);
-  padding: var(--cw-space-2) var(--cw-space-3);
+  padding: var(--cw-space-2) var(--cw-space-4);
   font-size: 0.875rem;
   font-weight: 680;
   cursor: pointer;
@@ -2112,7 +2139,7 @@ body {
 
 .cw-shell__drawer-trigger:hover,
 .cw-command-trigger:hover {
-  border-color: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
   background: var(--cw-brand-soft);
 }
 
@@ -2590,8 +2617,8 @@ body {
 }
 
 .cw-workflow-stepper__step--complete .cw-workflow-stepper__marker {
-  border-color: var(--cw-brand);
-  background: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
+  background: var(--cw-brand-strong);
   color: #fff;
 }
 
@@ -2600,7 +2627,7 @@ body {
 }
 
 .cw-workflow-stepper__step--current .cw-workflow-stepper__marker {
-  border: 2px solid var(--cw-brand);
+  border: 2px solid var(--cw-brand-strong);
   box-shadow: 0 0 0 3px var(--cw-brand-soft);
 }
 
@@ -2780,9 +2807,9 @@ body {
 }
 
 .cw-responsive-record--selected {
-  border-color: var(--cw-brand);
+  border-color: var(--cw-brand-strong);
   background: var(--cw-brand-soft);
-  box-shadow: 3px 0 0 var(--cw-brand) inset;
+  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
 }
 
 .cw-responsive-record__identity,
@@ -3290,8 +3317,8 @@ body {
 
 @media (prefers-contrast: more) {
   :root {
-    --cw-border: #8e958f;
-    --cw-border-strong: #606a63;
+    --cw-border: #6f7883;
+    --cw-border-strong: #49515b;
   }
 
   .cw-badge,

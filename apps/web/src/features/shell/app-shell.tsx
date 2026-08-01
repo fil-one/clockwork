@@ -9,11 +9,13 @@ import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import {
   AppShell as StructuralAppShell,
   BadgeDollarSign,
+  BrandLogo,
   Building2,
   Button,
   ChevronDown,
   CircleHelp,
   CommandPalette,
+  Dialog,
   FileText,
   FlaskConical,
   Handshake,
@@ -35,6 +37,7 @@ import {
 } from "@clockwork/ui";
 
 import { switchCommerceAccount } from "@/src/auth/actions";
+import { signOutCommerceSession } from "@/src/auth/sign-out";
 import { t } from "@/src/i18n/en";
 
 import { getCommandItems } from "./command-items";
@@ -91,6 +94,10 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/assisted": <Users size={19} strokeWidth={1.8} />,
 };
 
+/**
+ * The mark is decorative; the link carries the accessible name. `BrandLogo`
+ * falls back to the text wordmark if the asset does not resolve.
+ */
 function Wordmark({ audience }: { audience: ExperienceAudience }) {
   return (
     <Link
@@ -98,7 +105,7 @@ function Wordmark({ audience }: { audience: ExperienceAudience }) {
       href={audienceHome[audience]}
       aria-label={`${t("app.name")} ${t("app.product")}`}
     >
-      <span aria-hidden="true">FIL ONE</span>
+      <BrandLogo src="/brand/fo-wordmark-dark.png" name={t("app.name")} />
       <small>{t("app.product")}</small>
     </Link>
   );
@@ -282,6 +289,11 @@ function ShellUtilities({
         <div className="utility-popover">
           <strong>{profile.name}</strong>
           <p>{profile.email}</p>
+          <form action={signOutCommerceSession}>
+            <Button type="submit" variant="secondary" size="small">
+              {t("app.signOut")}
+            </Button>
+          </form>
         </div>
       </details>
     </nav>
@@ -397,15 +409,32 @@ export function AppShell({
             {!session.providerBacked ? (
               <div className="sidebar-meta">
                 <StatusBadge tone="warning">{t("app.demo")}</StatusBadge>
-                <button
-                  type="button"
-                  className="text-action"
-                  onClick={resetDemo}
-                  disabled={runtimeEnvironment === "production"}
+                <Dialog
+                  title={t("app.demo.reset.confirm.title")}
+                  description={t("app.demo.reset.confirm.description")}
+                  closeLabel={t("app.demo.reset.confirm.cancel")}
+                  trigger={
+                    <button
+                      type="button"
+                      className="text-action"
+                      disabled={runtimeEnvironment === "production"}
+                    >
+                      <RotateCcw
+                        aria-hidden="true"
+                        size={15}
+                        strokeWidth={1.8}
+                      />
+                      {t("app.demo.reset")}
+                    </button>
+                  }
+                  footer={
+                    <Button variant="danger" size="small" onClick={resetDemo}>
+                      {t("app.demo.reset.confirm.action")}
+                    </Button>
+                  }
                 >
-                  <RotateCcw aria-hidden="true" size={15} strokeWidth={1.8} />
-                  {t("app.demo.reset")}
-                </button>
+                  <p>{t("app.demo.reset.confirm.detail")}</p>
+                </Dialog>
               </div>
             ) : null}
             <p>{t("app.footer")}</p>

@@ -5,6 +5,14 @@ export const en = {
   "app.demo.short": "Demo",
   "app.demo.reset": "Reset demo",
   "app.demo.reset.success": "Demo restored to July 31, 2026.",
+  "app.demo.reset.confirm.title": "Reset the demo environment?",
+  "app.demo.reset.confirm.description":
+    "This restores the seeded demo tenant and reloads the page.",
+  "app.demo.reset.confirm.detail":
+    "Locally saved demo state is discarded and any unsaved work on this page is lost. Production targets are refused.",
+  "app.demo.reset.confirm.action": "Reset demo",
+  "app.demo.reset.confirm.cancel": "Keep current state",
+  "app.signOut": "Sign out",
   "app.skip": "Skip to main content",
   "app.nav.primary": "Primary navigation",
   "app.nav.secondary": "Account and help",
@@ -47,6 +55,9 @@ export const en = {
   "app.account.choose.title": "Choose an organization",
   "app.account.choose.description":
     "Select one of the active organizations authorized for your signed-in WorkOS identity.",
+  "app.account.choose.empty.title": "No authorized organizations",
+  "app.account.choose.empty.description":
+    "This identity has no active commerce membership. An organization administrator can grant access, or you can sign out and use a different identity.",
   "app.profile": "Open profile menu",
   "app.profile.name": "Maya Chen",
   "app.profile.role": "Commerce owner · MFA verified",
@@ -108,6 +119,7 @@ export const en = {
   "action.review": "Review",
   "action.continue": "Continue",
   "action.retry": "Try again",
+  "action.returnHome": "Return to your dashboard",
   "action.cancel": "Cancel",
   "action.save": "Save changes",
   "action.saved": "Changes saved",
@@ -339,6 +351,9 @@ export const en = {
   "state.recoverable.title": "The provider needs another attempt",
   "state.recoverable.description":
     "No duplicate action was created. Retry uses the original idempotency key.",
+  "state.notFound.title": "That page is not available",
+  "state.notFound.description":
+    "The address may have changed, or the record may no longer be visible to this account.",
   "state.fatal.title": "This action cannot continue",
   "state.fatal.description":
     "The record is unchanged. Contact support with the request ID so the cause can be reviewed.",

@@ -70,8 +70,9 @@ describe("authoritative e-sign experience", () => {
     );
     expect(frame).toHaveAttribute(
       "sandbox",
-      "allow-forms allow-popups allow-same-origin allow-scripts",
+      "allow-forms allow-popups allow-scripts",
     );
+    expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
     const requestInit = fetchMock.mock.calls[0]?.[1];
     const requestBody =
       typeof requestInit?.body === "string" ? requestInit.body : "";

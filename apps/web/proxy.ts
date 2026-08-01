@@ -146,6 +146,12 @@ export default async function proxy(
     throw error;
   }
 }
+// Brand assets stay outside the authenticated surface: the favicon, the app
+// icons, and the Open Graph card are fetched by browsers before sign-in and by
+// link unfurlers that never hold a session, so an auth redirect would silently
+// replace them with a sign-in page. Every exemption names a static asset path.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/).*)",
+  ],
 };

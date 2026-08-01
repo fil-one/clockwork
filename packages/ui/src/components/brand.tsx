@@ -38,6 +38,56 @@ export function TextWordmark({
   );
 }
 
+/** The two supplied marks. Each keeps its own intrinsic ratio inside the brand slot. */
+const MARK_DIMENSIONS = {
+  wordmark: { width: 3863, height: 1000 },
+  icon: { width: 1000, height: 1000 },
+} as const;
+
+export interface BrandLogoProps extends Omit<TextWordmarkProps, "inverse"> {
+  /** The resolved asset path. Without one the remaining props render the text mark. */
+  src?: string;
+  mark?: keyof typeof MARK_DIMENSIONS;
+  /** Records which supplied file this is; the caller pairs it with the surface. */
+  tone?: "colour" | "mono";
+  ink?: "dark" | "light";
+}
+
+/** The mark is decorative here: the accessible name belongs to the link around it. */
+export function BrandLogo({
+  src,
+  mark = "wordmark",
+  tone = "colour",
+  ink = "dark",
+  className = "",
+  ...wordmarkProps
+}: BrandLogoProps) {
+  if (!src) {
+    return (
+      <TextWordmark
+        inverse={ink === "light"}
+        className={className}
+        {...wordmarkProps}
+      />
+    );
+  }
+
+  const { width, height } = MARK_DIMENSIONS[mark];
+
+  return (
+    <img
+      className={`cw-brand-logo ${className}`.trim()}
+      src={src}
+      alt=""
+      width={width}
+      height={height}
+      data-mark={mark}
+      data-tone={tone}
+      data-ink={ink}
+    />
+  );
+}
+
 export interface BrandSlotProps extends TextWordmarkProps {
   /** A customer or partner logo. The container remains stable when the asset changes. */
   asset?: ReactNode;

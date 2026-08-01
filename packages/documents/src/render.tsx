@@ -24,6 +24,8 @@ import type {
 } from "./model";
 
 const SHA_256_PATTERN = /^(?:sha256:)?[a-fA-F0-9]{64}$/;
+const LOGO_DATA_URI_PATTERN =
+  /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
 
 type QuotePayload = Omit<QuoteDocumentInput, "kind">;
 type OrderFormPayload = Omit<OrderFormDocumentInput, "kind">;
@@ -57,6 +59,9 @@ function validateInput(input: CommerceDocumentInput): void {
     !/^#[0-9a-fA-F]{6}$/.test(input.brand.accentColor)
   ) {
     throw new Error("brand.accentColor must be a six-digit hex color");
+  }
+  if (input.brand?.logo && !LOGO_DATA_URI_PATTERN.test(input.brand.logo)) {
+    throw new Error("brand.logo must be a base64 PNG or JPEG data URI");
   }
   if (input.issuer.legalName.trim().length === 0) {
     throw new Error("issuer.legalName cannot be empty");

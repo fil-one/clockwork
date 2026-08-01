@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { createContext, useContext, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { hasPermission, roles as commerceRoles } from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
@@ -9,12 +7,9 @@ import type { Permission, Role } from "@clockwork/contracts";
 import { t } from "@/src/i18n/en";
 
 import { roleCanAccess, type ExperienceAudience } from "./navigation";
+import { PermissionSessionProvider } from "./permission-session";
 
-const RoleContext = createContext<readonly string[]>([
-  "owner",
-  "partner_admin",
-  "internal_operator",
-]);
+export { PermissionSessionProvider };
 
 function isCommerceRole(role: string): role is Role {
   return (commerceRoles as readonly string[]).includes(role);
@@ -31,16 +26,6 @@ function permitted(
       (!requiredPermission ||
         (isCommerceRole(role) && hasPermission(role, requiredPermission))),
   );
-}
-
-export function PermissionSessionProvider({
-  roles,
-  children,
-}: {
-  roles: readonly string[];
-  children: ReactNode;
-}) {
-  return <RoleContext.Provider value={roles}>{children}</RoleContext.Provider>;
 }
 
 function Denied() {
@@ -77,7 +62,12 @@ export function RoutePermissionGate({
   );
 }
 
-export function SurfacePermissionGate({
+/**
+ * Resolves the roles on the server so a denied surface never renders its
+ * children. A client-side check cannot deny anything: the async server child is
+ * still rendered into the payload before the denial paints.
+ */
+export async function SurfacePermissionGate({
   audience,
   requiredPermission,
   children,
@@ -86,6 +76,10 @@ export function SurfacePermissionGate({
   requiredPermission: Permission;
   children: ReactNode;
 }) {
-  const roles = useContext(RoleContext);
-  return permitted(audience, roles, requiredPermission) ? children : <Denied />;
+  // Deferred so the session graph, which reaches the identity provider and the
+  // database, loads only where a surface is actually gated.
+  const { getRouteRoles } = await import("./route-session");
+  const roles = await getRouteRoles(audience);
+  if (!permitted(audience, roles, requiredPermission)) return <Denied />;
+  return children;
 }

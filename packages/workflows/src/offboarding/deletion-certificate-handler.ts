@@ -59,6 +59,8 @@ export interface DeletionCertificateParty {
 export interface DeletionCertificateBrand {
   wordmark: string;
   legalName: string;
+  /** Base64 PNG or JPEG data URI; remote URLs are rejected by the renderer. */
+  logo?: string;
   accentColor?: `#${string}`;
   supportEmail?: string;
   legalFooter?: string;

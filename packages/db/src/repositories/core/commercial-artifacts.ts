@@ -34,6 +34,12 @@ const PartySchema = z.object({
 const BrandSchema = z.object({
   wordmark: z.string().min(1),
   legalName: z.string().min(1),
+  // Inline image only: a remote URL would make document rendering fetch an
+  // address chosen by the tenant that supplied the branding.
+  logo: z
+    .string()
+    .regex(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/)
+    .optional(),
   accentColor: z
     .string()
     .regex(/^#[a-fA-F0-9]{6}$/)

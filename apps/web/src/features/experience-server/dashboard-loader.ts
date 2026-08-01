@@ -5,24 +5,17 @@ import type { RenewalState } from "@clockwork/ui";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 
 import { getCommerceSession } from "@/src/auth/session";
+import type { CollectionKind } from "@/src/features/customer-partner/commercial/model";
 import type { CustomerDashboardProjection } from "@/src/features/customer-partner/customer/customer-dashboard";
 import type { PartnerDashboardProjection } from "@/src/features/customer-partner/partner/partner-dashboard";
 
-import { ExperienceProblem, type ProjectionRecord } from "./model";
 import {
-  configuredProjectionSource,
-  projectionInput,
-} from "./projection-source";
-
-function data(record: ProjectionRecord | undefined): Record<string, unknown> {
-  if (!record)
-    throw new ExperienceProblem(
-      503,
-      "DASHBOARD_PROJECTION_MISSING",
-      "Dashboard projection is unavailable",
-    );
-  return { ...record.data };
-}
+  ExperienceProblem,
+  type ExperienceAudience,
+  type ProjectionChannel,
+  type ProjectionRecord,
+} from "./model";
+import { loadPortalRecords, recordRoute } from "./portal-view-loader";
 
 function string(value: unknown, field: string): string {
   if (typeof value !== "string" || !value)
@@ -34,23 +27,10 @@ function string(value: unknown, field: string): string {
   return value;
 }
 
-function renewalState(value: unknown): RenewalState {
-  const parsed = string(value, "agreement.renewalState");
-  switch (parsed) {
-    case "auto-renews":
-    case "evergreen":
-    case "notice-open":
-    case "non-renewing":
-    case "renewed":
-    case "expired":
-      return parsed;
-    default:
-      throw new ExperienceProblem(
-        502,
-        "DASHBOARD_PROJECTION_INVALID",
-        "Dashboard renewal state is invalid",
-      );
-  }
+/** Absent fields fall back to an empty state; present-but-wrong fields fail. */
+function optionalString(value: unknown, field: string): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  return string(value, field);
 }
 
 function route(value: unknown, field: string): Route {
@@ -69,16 +49,6 @@ function route(value: unknown, field: string): Route {
       `Dashboard field ${field} is not a same-origin route`,
     );
   return `${parsed.pathname}${parsed.search}${parsed.hash}` as Route;
-}
-
-function number(value: unknown, field: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value))
-    throw new ExperienceProblem(
-      502,
-      "DASHBOARD_PROJECTION_INVALID",
-      `Dashboard field ${field} is invalid`,
-    );
-  return value;
 }
 
 function array(value: unknown, field: string): Record<string, unknown>[] {
@@ -241,124 +211,607 @@ const demoPartner: PartnerDashboardProjection = {
   ],
 };
 
-export async function loadCustomerDashboardProjection(): Promise<CustomerDashboardProjection> {
-  if (explicitDashboardDemoEnabled()) return demoCustomer;
-  const session = await getCommerceSession();
-  const page = await configuredProjectionSource().list(
-    projectionInput({
-      session,
-      audience: "customer",
-      channel: "dashboard",
-      requestedAccountId: session.accountIds[0] ?? null,
-      limit: 1,
-    }),
-  );
-  const value = data(page.items[0]);
-  const term = object(value.term, "term");
-  const capacity = object(value.capacity, "capacity");
+const DAY_IN_MS = 86_400_000;
+const NOT_RECORDED = "Not yet recorded";
+
+const dayFormat = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+const momentFormat = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
+
+function parseTime(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatDay(time: number | null): string | null {
+  return time === null ? null : dayFormat.format(new Date(time));
+}
+
+function titleCase(value: string): string {
+  return value
+    .split(/[_\s-]+/u)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+type DashboardTone = CustomerDashboardProjection["obligations"][number]["tone"];
+
+const dashboardTones: readonly DashboardTone[] = [
+  "neutral",
+  "success",
+  "warning",
+  "danger",
+];
+
+function tone(value: unknown): DashboardTone {
+  const parsed = string(value, "record.tone");
+  const match = dashboardTones.find((candidate) => candidate === parsed);
+  if (!match)
+    throw new ExperienceProblem(
+      502,
+      "DASHBOARD_PROJECTION_INVALID",
+      "Dashboard record tone is invalid",
+    );
+  return match;
+}
+
+/**
+ * The per-record fields the dashboard rollups read.
+ *
+ * `authoritative` carries the aggregate payload the materializer projected, so
+ * exact dates come from there rather than from a re-parsed display label.
+ */
+interface DashboardRecord {
+  channel: ProjectionChannel;
+  recordKey: string;
+  version: number;
+  updatedAt: string;
+  title: string;
+  description: string;
+  status: string;
+  statusLabel: string;
+  tone: DashboardTone;
+  nextAction: string | null;
+  value: string | null;
+  term: string | null;
+  dateLabel: string | null;
+  context: readonly { label: string; value: string }[];
+  authoritative: Readonly<Record<string, unknown>>;
+}
+
+function dashboardRecord(record: ProjectionRecord): DashboardRecord {
+  const payload = record.data;
   return {
-    generatedAt: page.generatedAt,
-    stale: page.items[0]?.stale ?? true,
-    obligations: array(value.obligations, "obligations").map((item) => ({
-      id: string(item.id, "obligations.id"),
-      priority: number(item.priority, "obligations.priority"),
-      type: string(item.type, "obligations.type"),
-      title: string(item.title, "obligations.title"),
-      detail: string(item.detail, "obligations.detail"),
-      actionLabel: string(item.actionLabel, "obligations.actionLabel"),
-      href: route(item.href, "obligations.href"),
-      tone: string(
-        item.tone,
-        "obligations.tone",
-      ) as CustomerDashboardProjection["obligations"][number]["tone"],
-      state: string(item.state, "obligations.state"),
-      recordVersion: number(item.recordVersion, "obligations.recordVersion"),
-    })),
-    term: {
-      title: string(term.title, "term.title"),
-      rangeLabel: string(term.rangeLabel, "term.rangeLabel"),
-      progressPercent: number(term.progressPercent, "term.progressPercent"),
-      progressLabel: string(term.progressLabel, "term.progressLabel"),
-      renewalState: string(term.renewalState, "term.renewalState"),
-      noticeLabel: string(term.noticeLabel, "term.noticeLabel"),
-      renewalLabel: string(term.renewalLabel, "term.renewalLabel"),
-      agreementLabel: string(term.agreementLabel, "term.agreementLabel"),
-    },
-    services: array(value.services, "services").map((item) => ({
-      id: string(item.id, "services.id"),
-      name: string(item.name, "services.name"),
-      detail: string(item.detail, "services.detail"),
-    })),
-    capacity: {
-      committed: string(capacity.committed, "capacity.committed"),
-      current: string(capacity.current, "capacity.current"),
-      prior: string(capacity.prior, "capacity.prior"),
-      freshnessLabel: string(
-        capacity.freshnessLabel,
-        "capacity.freshnessLabel",
-      ),
-    },
-    activity: array(value.activity, "activity").map((item) => ({
-      id: string(item.id, "activity.id"),
-      title: string(item.title, "activity.title"),
-      detail: string(item.detail, "activity.detail"),
-      occurredAt: string(item.occurredAt, "activity.occurredAt"),
-      occurredLabel: string(item.occurredLabel, "activity.occurredLabel"),
-    })),
+    channel: record.channel,
+    recordKey: record.recordKey,
+    version: record.version,
+    updatedAt: record.sourceUpdatedAt,
+    title: string(payload.title, "record.title"),
+    description: string(payload.description, "record.description"),
+    status: string(payload.status, "record.status"),
+    statusLabel: string(payload.statusLabel, "record.statusLabel"),
+    tone: tone(payload.tone),
+    nextAction: optionalString(payload.nextAction, "record.nextAction"),
+    value: optionalString(payload.value, "record.value"),
+    term: optionalString(payload.term, "record.term"),
+    dateLabel: optionalString(payload.dateLabel, "record.dateLabel"),
+    context:
+      payload.context === undefined || payload.context === null
+        ? []
+        : array(payload.context, "record.context").map((entry) => ({
+            label: string(entry.label, "record.context.label"),
+            value: string(entry.value, "record.context.value"),
+          })),
+    authoritative:
+      payload.authoritative === undefined || payload.authoritative === null
+        ? {}
+        : object(payload.authoritative, "record.authoritative"),
   };
 }
 
+function authoritativeText(
+  record: DashboardRecord,
+  field: string,
+): string | null {
+  const value = record.authoritative[field];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function authoritativeTime(
+  record: DashboardRecord,
+  field: string,
+): number | null {
+  return parseTime(authoritativeText(record, field));
+}
+
+function authoritativeNumber(
+  record: DashboardRecord,
+  field: string,
+): number | null {
+  const value = record.authoritative[field];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** `describeAggregate` writes an em dash where an aggregate has no amount. */
+function displayed(value: string | null): string | null {
+  return value && value !== "—" ? value : null;
+}
+
+type ChannelRecords = ReadonlyMap<
+  ProjectionChannel,
+  readonly DashboardRecord[]
+>;
+
+interface LoadedChannels {
+  records: ChannelRecords;
+  generatedAt: string;
+  stale: boolean;
+  now: number;
+}
+
+async function loadDashboardChannels(
+  audience: ExperienceAudience,
+  channels: readonly ProjectionChannel[],
+  session: Awaited<ReturnType<typeof getCommerceSession>>,
+): Promise<LoadedChannels> {
+  const pages = await Promise.all(
+    channels.map(async (channel) => ({
+      channel,
+      page: await loadPortalRecords(audience, channel, session),
+    })),
+  );
+  const generatedAt =
+    pages
+      .map((entry) => entry.page.generatedAt)
+      .sort()
+      .at(-1) ?? new Date().toISOString();
+  return {
+    records: new Map(
+      pages.map((entry) => [
+        entry.channel,
+        entry.page.records.map(dashboardRecord),
+      ]),
+    ),
+    generatedAt,
+    stale: pages.some((entry) => entry.page.stale),
+    now: parseTime(generatedAt) ?? Date.now(),
+  };
+}
+
+function channelRecords(
+  records: ChannelRecords,
+  channel: ProjectionChannel,
+): readonly DashboardRecord[] {
+  return records.get(channel) ?? [];
+}
+
+/** The order whose service window runs furthest forward governs the term. */
+function governingOrder(records: ChannelRecords): DashboardRecord | null {
+  return (
+    [...channelRecords(records, "orders")].sort(
+      (left, right) =>
+        (authoritativeTime(right, "serviceEndsOn") ?? 0) -
+        (authoritativeTime(left, "serviceEndsOn") ?? 0),
+    )[0] ?? null
+  );
+}
+
+const customerObligationSources = [
+  {
+    channel: "billing",
+    type: "Invoice",
+    actionLabel: "Review invoice",
+    dueField: "dueAt",
+  },
+  {
+    channel: "quotes",
+    type: "Quote",
+    actionLabel: "Review quote",
+    dueField: "expiresAt",
+  },
+  {
+    channel: "orders",
+    type: "Notice and renewal",
+    actionLabel: "Review order",
+    dueField: "noticeOn",
+  },
+] as const satisfies readonly {
+  channel: CollectionKind;
+  type: string;
+  actionLabel: string;
+  dueField: string;
+}[];
+
+const settledInvoiceStatuses = ["paid", "complete", "canceled", "draft"];
+
+/**
+ * Quotes stay open until accepted or expired, invoices until settled, and an
+ * order only asks for a decision once its notice date is close enough for the
+ * materializer to mark it overdue.
+ */
+function isOutstanding(record: DashboardRecord): boolean {
+  if (record.channel === "quotes") return record.status === "open";
+  if (record.channel === "billing")
+    return !settledInvoiceStatuses.includes(record.status);
+  return record.tone === "danger";
+}
+
+const toneUrgency: Readonly<Record<DashboardTone, number>> = {
+  danger: 0,
+  warning: 1,
+  neutral: 2,
+  success: 3,
+};
+
+function obligationTitle(record: DashboardRecord): string {
+  const value = displayed(record.value);
+  return value ? `${record.title} · ${value}` : record.title;
+}
+
+function customerObligations(
+  records: ChannelRecords,
+): CustomerDashboardProjection["obligations"] {
+  return customerObligationSources
+    .flatMap((source) =>
+      channelRecords(records, source.channel)
+        .filter(isOutstanding)
+        .map((record) => ({
+          record,
+          source,
+          due:
+            authoritativeTime(record, source.dueField) ??
+            parseTime(record.dateLabel),
+        })),
+    )
+    .sort((left, right) => {
+      const urgency =
+        toneUrgency[left.record.tone] - toneUrgency[right.record.tone];
+      if (urgency !== 0) return urgency;
+      if (left.due !== right.due) {
+        if (left.due === null) return 1;
+        if (right.due === null) return -1;
+        return left.due - right.due;
+      }
+      return left.record.recordKey.localeCompare(right.record.recordKey);
+    })
+    .map((item, index) => ({
+      id: item.record.recordKey,
+      priority: index + 1,
+      type: item.source.type,
+      title: obligationTitle(item.record),
+      detail: item.record.description,
+      actionLabel: item.source.actionLabel,
+      href: route(
+        recordRoute(item.source.channel, item.record.recordKey),
+        "obligations.href",
+      ),
+      tone: item.record.tone,
+      state: item.record.statusLabel,
+      recordVersion: item.record.version,
+    }));
+}
+
+function noticeLabel(
+  noticeAt: number | null,
+  noticeDays: number | null,
+  now: number,
+): string {
+  if (noticeAt !== null) {
+    const days = Math.round((noticeAt - now) / DAY_IN_MS);
+    const formatted = formatDay(noticeAt);
+    if (days > 0) return `Opens ${formatted} · ${days} days`;
+    if (days === 0) return `Opens ${formatted} · today`;
+    return `Opened ${formatted}`;
+  }
+  if (noticeDays !== null) return `${noticeDays} days notice required`;
+  return "No notice date recorded";
+}
+
+function customerTerm(
+  records: ChannelRecords,
+  now: number,
+): CustomerDashboardProjection["term"] {
+  const agreement = channelRecords(records, "agreements")[0] ?? null;
+  const order = governingOrder(records);
+  const start = order ? authoritativeTime(order, "serviceStartsOn") : null;
+  const end = order ? authoritativeTime(order, "serviceEndsOn") : null;
+  const elapsed =
+    start !== null && end !== null && end > start
+      ? Math.min(
+          100,
+          Math.max(0, Math.round(((now - start) / (end - start)) * 100)),
+        )
+      : null;
+  const renewalType = agreement
+    ? authoritativeText(agreement, "renewalType")
+    : null;
+  return {
+    title: order?.title ?? agreement?.title ?? "Account term",
+    rangeLabel:
+      order?.term ?? agreement?.term ?? "No service term recorded yet",
+    progressPercent: elapsed ?? 0,
+    progressLabel:
+      elapsed === null
+        ? "Service term progress is not yet available"
+        : `${elapsed} percent of the current commercial term elapsed`,
+    renewalState: renewalType ? titleCase(renewalType) : NOT_RECORDED,
+    noticeLabel: noticeLabel(
+      order ? authoritativeTime(order, "noticeOn") : null,
+      agreement ? authoritativeNumber(agreement, "noticeDays") : null,
+      now,
+    ),
+    renewalLabel: formatDay(end) ?? NOT_RECORDED,
+    agreementLabel: agreement?.title ?? "No agreement recorded",
+  };
+}
+
+const activityNouns: Readonly<Partial<Record<ProjectionChannel, string>>> = {
+  agreements: "Agreement",
+  billing: "Invoice",
+  orders: "Order",
+  portfolio: "Account",
+  quotes: "Quote",
+};
+
+function recentActivity(
+  records: ChannelRecords,
+): CustomerDashboardProjection["activity"] {
+  return [...records.values()]
+    .flat()
+    .sort(
+      (left, right) =>
+        (parseTime(right.updatedAt) ?? 0) - (parseTime(left.updatedAt) ?? 0),
+    )
+    .slice(0, 5)
+    .map((record) => {
+      const occurredAt = parseTime(record.updatedAt);
+      return {
+        id: record.recordKey,
+        title: record.title,
+        detail: `${activityNouns[record.channel] ?? "Record"} · ${record.statusLabel}`,
+        occurredAt: record.updatedAt,
+        occurredLabel:
+          occurredAt === null
+            ? record.updatedAt
+            : momentFormat.format(new Date(occurredAt)),
+      };
+    });
+}
+
+/**
+ * Metered usage has no projection channel yet, so the capacity card states that
+ * rather than deriving a number from commercial records that do not measure it.
+ */
+const capacityUnavailable: CustomerDashboardProjection["capacity"] = {
+  committed: "Not yet available",
+  current: "Not yet available",
+  prior: "Not yet available",
+  freshnessLabel: "Usage reporting is not yet available for this account.",
+};
+
+const customerChannels: readonly ProjectionChannel[] = [
+  "billing",
+  "quotes",
+  "orders",
+  "agreements",
+];
+
+/**
+ * Composed at read time from the per-record channels rather than read from one
+ * precomputed row: the rollup spans quotes, orders, invoices and agreements, so
+ * an account-keyed row would go stale the moment any one of them changed.
+ */
+export async function loadCustomerDashboardProjection(): Promise<CustomerDashboardProjection> {
+  if (explicitDashboardDemoEnabled()) return demoCustomer;
+  const session = await getCommerceSession();
+  const loaded = await loadDashboardChannels(
+    "customer",
+    customerChannels,
+    session,
+  );
+  return {
+    generatedAt: loaded.generatedAt,
+    stale: loaded.stale,
+    obligations: customerObligations(loaded.records),
+    term: customerTerm(loaded.records, loaded.now),
+    services: channelRecords(loaded.records, "orders").map((record) => ({
+      id: record.recordKey,
+      name: record.title,
+      detail: record.description,
+    })),
+    capacity: capacityUnavailable,
+    activity: recentActivity(loaded.records),
+  };
+}
+
+const partnerChannels: readonly ProjectionChannel[] = [
+  "portfolio",
+  "quotes",
+  "orders",
+  "agreements",
+];
+
+interface TermWindow {
+  label: string;
+  start: number;
+  end: number;
+  notice: number | null;
+}
+
+function addMonths(time: number, months: number): number {
+  const date = new Date(time);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.getTime();
+}
+
+/**
+ * The order service window is the only term a partner projection carries today;
+ * the agreement window becomes available once agreement writes publish an
+ * authoritative event.
+ */
+function termWindow(records: ChannelRecords): TermWindow | null {
+  const order = governingOrder(records);
+  const start = order ? authoritativeTime(order, "serviceStartsOn") : null;
+  const end = order ? authoritativeTime(order, "serviceEndsOn") : null;
+  if (order && start !== null && end !== null && end > start)
+    return {
+      label: `${order.title} service term`,
+      start,
+      end,
+      notice: authoritativeTime(order, "noticeOn"),
+    };
+
+  const agreement = channelRecords(records, "agreements")[0];
+  if (!agreement) return null;
+  const effectiveOn = authoritativeTime(agreement, "effectiveOn");
+  const termMonths = authoritativeNumber(agreement, "termMonths");
+  if (effectiveOn === null || termMonths === null || termMonths <= 0)
+    return null;
+  const agreementEnd = addMonths(effectiveOn, termMonths);
+  const noticeDays = authoritativeNumber(agreement, "noticeDays");
+  return {
+    label: agreement.title,
+    start: effectiveOn,
+    end: agreementEnd,
+    notice: noticeDays === null ? null : agreementEnd - noticeDays * DAY_IN_MS,
+  };
+}
+
+function partnerRenewalState(
+  window: TermWindow,
+  renewalType: string | null,
+  now: number,
+): RenewalState {
+  if (now > window.end) return "expired";
+  if (window.notice !== null && now >= window.notice) return "notice-open";
+  if (renewalType === "auto_renew") return "auto-renews";
+  if (renewalType === "expires") return "non-renewing";
+  return "evergreen";
+}
+
+function endClientReference(record: DashboardRecord): string | null {
+  const value = authoritativeText(record, "endClientAccountId");
+  return value ? `EC-${value.slice(0, 8).toUpperCase()}` : null;
+}
+
+function partnerWork(
+  records: ChannelRecords,
+): PartnerDashboardProjection["work"] {
+  return [...channelRecords(records, "quotes")]
+    .filter((record) => record.status === "open" || record.tone === "danger")
+    .map((record) => ({
+      record,
+      due: authoritativeTime(record, "expiresAt"),
+    }))
+    .sort((left, right) => {
+      if (left.due !== right.due) {
+        if (left.due === null) return 1;
+        if (right.due === null) return -1;
+        return left.due - right.due;
+      }
+      return left.record.recordKey.localeCompare(right.record.recordKey);
+    })
+    .map((item) => ({
+      id: item.record.recordKey,
+      account: endClientReference(item.record) ?? item.record.title,
+      task: item.record.nextAction ?? "Review quote",
+      // No projection carries the evidence a partner task requires yet.
+      evidence: NOT_RECORDED,
+      due: item.record.term ?? formatDay(item.due) ?? NOT_RECORDED,
+      href: route(
+        `/partner/quotes/${encodeURIComponent(item.record.recordKey)}`,
+        "work.href",
+      ),
+      // Both partner roles may open quote work; see partnerSurfaces.quotes.
+      adminOnly: false,
+      recordVersion: item.record.version,
+    }));
+}
+
+function partnerAgreement(
+  records: ChannelRecords,
+  work: PartnerDashboardProjection["work"],
+  now: number,
+): PartnerDashboardProjection["agreement"] {
+  const account = channelRecords(records, "portfolio")[0] ?? null;
+  const agreement = channelRecords(records, "agreements")[0] ?? null;
+  const window = termWindow(records);
+  const partnerType = account
+    ? authoritativeText(account, "partnerAgreementType")
+    : null;
+  const nextDecision =
+    work[0] === undefined
+      ? "No partner decision is pending."
+      : `${work[0].account} · ${work[0].task}`;
+  const shared = {
+    nextDecision,
+    commercialRoute: partnerType ? titleCase(partnerType) : NOT_RECORDED,
+    // Merchant of record is not carried by any authoritative payload yet.
+    merchantBoundary: NOT_RECORDED,
+  };
+
+  // TermBar requires a valid window, so an account with no recorded term gets a
+  // closed placeholder window whose labels say the term is absent.
+  if (!window)
+    return {
+      ...shared,
+      label: "No partner agreement term recorded",
+      start: new Date(now - 2 * DAY_IN_MS).toISOString(),
+      noticeStart: new Date(now - DAY_IN_MS).toISOString(),
+      end: new Date(now - DAY_IN_MS).toISOString(),
+      now: new Date(now).toISOString(),
+      renewalState: "expired",
+      authorityState: "No partner agreement term recorded",
+    };
+
+  const renewalState = partnerRenewalState(
+    window,
+    agreement ? authoritativeText(agreement, "renewalType") : null,
+    now,
+  );
+  return {
+    ...shared,
+    label: window.label,
+    start: new Date(window.start).toISOString(),
+    noticeStart: new Date(window.notice ?? window.end).toISOString(),
+    end: new Date(window.end).toISOString(),
+    now: new Date(now).toISOString(),
+    renewalState,
+    authorityState:
+      renewalState === "expired"
+        ? `Term ended ${formatDay(window.end)}`
+        : renewalState === "notice-open"
+          ? "Notice window open"
+          : window.notice === null
+            ? "Active"
+            : `Active · notice opens ${formatDay(window.notice)}`,
+  };
+}
+
+/** Partner account records route to `portfolio`, never to a `dashboard` row. */
 export async function loadPartnerDashboardProjection(): Promise<PartnerDashboardProjection> {
   if (explicitDashboardDemoEnabled()) return demoPartner;
   const session = await getCommerceSession();
-  const page = await configuredProjectionSource().list(
-    projectionInput({
-      session,
-      audience: "partner",
-      channel: "dashboard",
-      requestedAccountId: session.accountIds[0] ?? null,
-      limit: 1,
-    }),
+  const loaded = await loadDashboardChannels(
+    "partner",
+    partnerChannels,
+    session,
   );
-  const value = data(page.items[0]);
-  const agreement = object(value.agreement, "agreement");
+  const work = partnerWork(loaded.records);
+  const account = channelRecords(loaded.records, "portfolio")[0] ?? null;
   return {
-    generatedAt: page.generatedAt,
-    stale: page.items[0]?.stale ?? true,
-    agreement: {
-      label: string(agreement.label, "agreement.label"),
-      start: string(agreement.start, "agreement.start"),
-      noticeStart: string(agreement.noticeStart, "agreement.noticeStart"),
-      end: string(agreement.end, "agreement.end"),
-      now: string(agreement.now, "agreement.now"),
-      renewalState: renewalState(agreement.renewalState),
-      authorityState: string(
-        agreement.authorityState,
-        "agreement.authorityState",
-      ),
-      nextDecision: string(agreement.nextDecision, "agreement.nextDecision"),
-      commercialRoute: string(
-        agreement.commercialRoute,
-        "agreement.commercialRoute",
-      ),
-      merchantBoundary: string(
-        agreement.merchantBoundary,
-        "agreement.merchantBoundary",
-      ),
-    },
-    work: array(value.work, "work").map((item) => ({
-      id: string(item.id, "work.id"),
-      account: string(item.account, "work.account"),
-      task: string(item.task, "work.task"),
-      evidence: string(item.evidence, "work.evidence"),
-      due: string(item.due, "work.due"),
-      href: route(item.href, "work.href"),
-      adminOnly: item.adminOnly === true,
-      recordVersion: number(item.recordVersion, "work.recordVersion"),
-    })),
-    boundary: array(value.boundary, "boundary").map((item) => ({
-      label: string(item.label, "boundary.label"),
-      value: string(item.value, "boundary.value"),
-    })),
+    generatedAt: loaded.generatedAt,
+    stale: loaded.stale,
+    agreement: partnerAgreement(loaded.records, work, loaded.now),
+    work,
+    boundary: account ? account.context : [],
   };
 }

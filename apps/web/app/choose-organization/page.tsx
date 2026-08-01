@@ -1,13 +1,14 @@
-import { EmptyState } from "@clockwork/ui";
+import { Button, EmptyState } from "@clockwork/ui";
 
 import { chooseCommerceAccount } from "@/src/auth/actions";
+import { signOutCommerceSession } from "@/src/auth/sign-out";
 import { getOrganizationChoices } from "@/src/features/shell/route-session";
 import { t } from "@/src/i18n/en";
 
 export default async function ChooseOrganizationPage() {
   const memberships = await getOrganizationChoices();
   return (
-    <main className="app-shell">
+    <main className="permission-view" id="main-content">
       <h1>{t("app.account.choose.title")}</h1>
       <p>{t("app.account.choose.description")}</p>
       {memberships.length ? (
@@ -30,8 +31,15 @@ export default async function ChooseOrganizationPage() {
         </ul>
       ) : (
         <EmptyState
-          title="No authorized organizations"
-          description="Your authenticated identity has no active commerce membership. Ask an organization administrator for access."
+          title={t("app.account.choose.empty.title")}
+          description={t("app.account.choose.empty.description")}
+          action={
+            <form action={signOutCommerceSession}>
+              <Button type="submit" variant="secondary">
+                {t("app.signOut")}
+              </Button>
+            </form>
+          }
         />
       )}
     </main>

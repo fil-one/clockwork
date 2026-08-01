@@ -37,6 +37,54 @@ function artifactChain(record: CommercialRecord) {
   ];
 }
 
+/**
+ * The forward step for a record.
+ *
+ * Every link carries the originating record so the destination opens against
+ * it. Without that reference these land on an unfiltered collection and the
+ * record the reader came from is lost.
+ */
+function nextStep(
+  record: CommercialRecord,
+): { href: Route; label: string } | null {
+  const reference = encodeURIComponent(record.aggregateId ?? record.id);
+  if (record.kind === "quotes") {
+    const actions = validQuoteActions(record.status as QuoteStatus);
+    if (actions.includes("create_order"))
+      return {
+        href: `/orders/accept?quote=${reference}` as Route,
+        label: "Review resulting order",
+      };
+    if (actions.includes("edit"))
+      return {
+        href: `/quotes/new?revises=${reference}` as Route,
+        label: "Create revised draft",
+      };
+    return null;
+  }
+  if (record.kind === "pocs")
+    return {
+      href: `/quotes/new?poc=${reference}` as Route,
+      label: "Convert to a quote",
+    };
+  if (record.kind === "orders")
+    return {
+      href: `/amendments?order=${reference}` as Route,
+      label: "Request an amendment",
+    };
+  if (record.kind === "agreements")
+    return {
+      href: `/agreements/execute?agreement=${reference}` as Route,
+      label: "Execute a new agreement",
+    };
+  if (record.kind === "services")
+    return {
+      href: `/account/offboarding?service=${reference}` as Route,
+      label: "Request offboarding",
+    };
+  return null;
+}
+
 function DetailActions({
   record,
   canMutate,
@@ -44,27 +92,19 @@ function DetailActions({
   record: CommercialRecord;
   canMutate: boolean;
 }) {
-  if (record.kind !== "quotes") return null;
+  const step = nextStep(record);
+  if (!step) return null;
   if (!canMutate)
     return (
       <span className={styles.muted}>
         An owner or administrator can take the next action.
       </span>
     );
-  const actions = validQuoteActions(record.status as QuoteStatus);
-  if (actions.includes("create_order"))
-    return (
-      <Link className={styles.primary} href="/orders/accept">
-        Review resulting order
-      </Link>
-    );
-  if (actions.includes("edit"))
-    return (
-      <Link className={styles.primary} href="/quotes/new">
-        Create revised draft
-      </Link>
-    );
-  return null;
+  return (
+    <Link className={styles.primary} href={step.href}>
+      {step.label}
+    </Link>
+  );
 }
 
 export function CommercialRecordDetail({

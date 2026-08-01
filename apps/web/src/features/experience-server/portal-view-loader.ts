@@ -56,9 +56,40 @@ function oneOf<T extends string>(
   return match;
 }
 
-function recordRoute(channel: CollectionKind, recordKey: string): string {
+export function recordRoute(
+  channel: CollectionKind,
+  recordKey: string,
+): string {
   const encoded = encodeURIComponent(recordKey);
   return channel === "services" ? "/services" : `/${channel}/${encoded}`;
+}
+
+/**
+ * Projection records carry `context` as `{label,value}` entries. Customer
+ * collections render the entries individually; partner surfaces render one
+ * line, so the entries are joined here rather than duplicated in the payload.
+ * Demo fixtures still supply a pre-formatted string.
+ */
+function contextEntries(
+  data: Readonly<Record<string, unknown>>,
+): { label: string; value: string }[] {
+  const raw = data.context;
+  if (!Array.isArray(raw)) throw new Error("Projection record omitted context");
+  return raw.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item))
+      throw new Error("Projection context is invalid");
+    const entry = item as Readonly<Record<string, unknown>>;
+    return { label: text(entry, "label"), value: text(entry, "value") };
+  });
+}
+
+function contextLine(data: Readonly<Record<string, unknown>>): string {
+  if (typeof data.context === "string" && data.context.trim())
+    return data.context;
+  const joined = contextEntries(data)
+    .map((entry) => `${entry.label} ${entry.value}`)
+    .join(" · ");
+  return joined || "—";
 }
 
 function portalAccountId(
@@ -78,8 +109,9 @@ function portalAccountId(
 export async function loadPortalRecords(
   audience: ExperienceAudience,
   channel: ProjectionChannel,
+  presetSession?: Awaited<ReturnType<typeof getCommerceSession>>,
 ): Promise<PortalRecords<ProjectionRecord>> {
-  const session = await getCommerceSession();
+  const session = presetSession ?? (await getCommerceSession());
   const source = configuredProjectionSource();
   const records: ProjectionRecord[] = [];
   let cursor: string | undefined;
@@ -183,7 +215,7 @@ function partnerRecord(
   return {
     id: text(data, "id"),
     name: text(data, "name"),
-    context: text(data, "context"),
+    context: contextLine(data),
     status: oneOf(
       text(data, "status"),
       [
@@ -230,9 +262,6 @@ export async function loadPartnerRecords(surface: PartnerSurfaceKey) {
 
 function customerRecord(record: ProjectionRecord): CustomerCollectionRecord {
   const data = record.data;
-  const rawContext = data.context;
-  if (!Array.isArray(rawContext))
-    throw new Error("Projection record omitted context");
   return {
     id: text(data, "id"),
     title: text(data, "title"),
@@ -249,12 +278,7 @@ function customerRecord(record: ProjectionRecord): CustomerCollectionRecord {
     valueSort: number(data, "valueSort"),
     updatedAt: record.sourceUpdatedAt,
     updatedLabel: text(data, "updatedLabel"),
-    context: rawContext.map((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item))
-        throw new Error("Projection context is invalid");
-      const context = item as Readonly<Record<string, unknown>>;
-      return { label: text(context, "label"), value: text(context, "value") };
-    }),
+    context: contextEntries(data),
     recordVersion: record.version,
     projectionId: record.id,
     aggregateId: record.aggregateId,

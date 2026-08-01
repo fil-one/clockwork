@@ -1,6 +1,7 @@
 import {
   Document,
   Font,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -8,6 +9,7 @@ import {
 } from "@react-pdf/renderer";
 import React, { type ReactNode } from "react";
 
+import { FIL_ONE_WORDMARK_PNG } from "./assets/wordmark";
 import {
   formatAddress,
   formatDateTime,
@@ -21,9 +23,10 @@ import type { BaseDocumentInput, BrandConfig, Party } from "./model";
 Font.registerHyphenationCallback((word) => [word]);
 
 export const DEFAULT_BRAND: BrandConfig = {
-  accentColor: "#1E5A43",
+  accentColor: "#0067CC",
   legalFooter: "Fil One commerce records",
   legalName: "Fil One, Inc.",
+  logo: FIL_ONE_WORDMARK_PNG,
   supportEmail: "support@filone.com",
   wordmark: "FIL ONE",
 };
@@ -139,6 +142,7 @@ export const styles = StyleSheet.create({
   },
   listMarker: { color: palette.muted, width: 14 },
   listText: { flex: 1, lineHeight: 1.4 },
+  logo: { height: 22, width: 85 },
   page: {
     backgroundColor: palette.paper,
     color: palette.ink,
@@ -290,6 +294,9 @@ export function BrandedDocument({
       DEFAULT_BRAND.legalFooter ??
       DEFAULT_BRAND.legalName,
     legalName: input.brand?.legalName ?? DEFAULT_BRAND.legalName,
+    // A branded document never inherits the Fil One mark. A partner that
+    // supplies no logo of its own falls back to its own wordmark text.
+    logo: input.brand ? input.brand.logo : DEFAULT_BRAND.logo,
     supportEmail: input.brand?.supportEmail ?? DEFAULT_BRAND.supportEmail,
     wordmark: input.brand?.wordmark ?? DEFAULT_BRAND.wordmark,
   };
@@ -323,9 +330,13 @@ export function BrandedDocument({
             fixed
             style={[styles.header, { borderBottomColor: brand.accentColor }]}
           >
-            <Text style={[styles.wordmark, { color: brand.accentColor }]}>
-              {brand.wordmark}
-            </Text>
+            {brand.logo ? (
+              <Image src={brand.logo} style={styles.logo} />
+            ) : (
+              <Text style={[styles.wordmark, { color: brand.accentColor }]}>
+                {brand.wordmark}
+              </Text>
+            )}
             <View style={styles.headerMeta}>
               <Text>{input.documentId}</Text>
               <Text>

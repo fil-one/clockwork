@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, Input, StatusBadge } from "@clockwork/ui";
+import { BrandLogo, Button, Input, StatusBadge } from "@clockwork/ui";
 
 import {
   readAuthoritativeSigningReturn,
@@ -127,7 +127,8 @@ export function SigningExperience({
     <main className="signing-main" id="main-content">
       <header className="signing-header">
         <div className="signing-wordmark">
-          FIL ONE <span>{t("app.product")}</span>
+          <BrandLogo src="/brand/fo-wordmark-dark.png" name={t("app.name")} />
+          <span>{t("app.product")}</span>
         </div>
         <StatusBadge tone={tone}>{statusLabel}</StatusBadge>
       </header>
@@ -177,7 +178,11 @@ export function SigningExperience({
                     className="signing-frame"
                     src={providerUrl}
                     title="Secure e-sign provider"
-                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
+                    /* The provider frame keeps an opaque origin. Pairing
+                       allow-same-origin with allow-scripts would let framed
+                       script reach this document whenever the allow-listed
+                       signing origin resolves to our own origin. */
+                    sandbox="allow-forms allow-popups allow-scripts"
                     referrerPolicy="no-referrer"
                   />
                 )}

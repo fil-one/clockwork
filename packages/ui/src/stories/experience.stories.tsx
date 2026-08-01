@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { ReactNode } from "react";
 
 import {
   AccountTermRollup,
   AppShell,
   ApplicationStatePanel,
+  BrandLogo,
+  BrandSlot,
   Breadcrumbs,
   Button,
   CapacityMeter,
@@ -35,6 +38,46 @@ import {
 } from "../index";
 
 const now = new Date("2026-07-31T16:00:00Z");
+
+/** The supplied marks, served from the web app's public directory. */
+const brandAsset = {
+  wordmarkDark: "/brand/fo-wordmark-dark.png",
+  wordmarkLight: "/brand/fo-wordmark-light.png",
+  wordmarkMonoDark: "/brand/fo-wordmark-mono-dark.png",
+  wordmarkMonoLight: "/brand/fo-wordmark-mono-light.png",
+  iconColor: "/brand/fo-icon-color.png",
+  iconMonoDark: "/brand/fo-icon-mono-dark.png",
+  iconMonoLight: "/brand/fo-icon-mono-light.png",
+} as const;
+
+function MarkPanel({
+  label,
+  inverse = false,
+  children,
+}: {
+  label: string;
+  inverse?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <p className="cw-eyebrow">{label}</p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          minHeight: 72,
+          borderRadius: 12,
+          background: inverse ? "var(--cw-ink)" : "var(--cw-surface)",
+          border: "1px solid var(--cw-border)",
+          padding: "0 20px",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function ExperienceGallery() {
   return (
@@ -169,6 +212,98 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Overview: Story = {};
+
+export const BrandMark: Story = {
+  render: () => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: 24,
+        maxWidth: 900,
+      }}
+    >
+      <MarkPanel label="Wordmark, colour">
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo src={brandAsset.wordmarkDark} />}
+        />
+      </MarkPanel>
+      <MarkPanel label="Wordmark, mono dark ink">
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo src={brandAsset.wordmarkMonoDark} tone="mono" />}
+        />
+      </MarkPanel>
+      <MarkPanel label="Wordmark, colour on ink" inverse>
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo src={brandAsset.wordmarkLight} ink="light" />}
+        />
+      </MarkPanel>
+      <MarkPanel label="Wordmark, mono light ink" inverse>
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={
+            <BrandLogo
+              src={brandAsset.wordmarkMonoLight}
+              tone="mono"
+              ink="light"
+            />
+          }
+        />
+      </MarkPanel>
+      <MarkPanel label="Icon, colour">
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo src={brandAsset.iconColor} mark="icon" />}
+        />
+      </MarkPanel>
+      <MarkPanel label="Icon, mono dark ink">
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={
+            <BrandLogo src={brandAsset.iconMonoDark} mark="icon" tone="mono" />
+          }
+        />
+      </MarkPanel>
+      <MarkPanel label="Icon, mono light ink" inverse>
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={
+            <BrandLogo
+              src={brandAsset.iconMonoLight}
+              mark="icon"
+              tone="mono"
+              ink="light"
+            />
+          }
+        />
+      </MarkPanel>
+      <MarkPanel label="No asset resolves">
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo descriptor="Commerce" />}
+        />
+      </MarkPanel>
+      <MarkPanel label="No asset resolves, on ink" inverse>
+        <BrandSlot
+          homeLink="#"
+          homeLabel="Fil One home"
+          asset={<BrandLogo ink="light" descriptor="Commerce" />}
+        />
+      </MarkPanel>
+    </div>
+  ),
+};
 
 export const AuthenticatedShell: Story = {
   parameters: { layout: "fullscreen" },

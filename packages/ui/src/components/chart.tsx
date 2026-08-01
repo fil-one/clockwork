@@ -59,6 +59,7 @@ export function MetricChart({
   className = "",
 }: MetricChartProps) {
   const chartId = `chart-${useId().replaceAll(":", "")}`;
+  const gradientId = `${chartId}-fill`;
   const width = 640;
   const geometry = calculateChartGeometry(data, width, height);
   const barWidth = width / Math.max(1, data.length);
@@ -90,6 +91,29 @@ export function MetricChart({
             role="img"
             aria-label={`${title}. ${data.map((datum) => `${datum.label}: ${formatValue(datum.value)}`).join(", ")}`}
           >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                {type === "line" ? (
+                  <>
+                    <stop
+                      className="cw-chart__gradient-start"
+                      offset="0"
+                      stopOpacity="0.32"
+                    />
+                    <stop
+                      className="cw-chart__gradient-end"
+                      offset="1"
+                      stopOpacity="0.02"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <stop className="cw-chart__gradient-bar-start" offset="0" />
+                    <stop className="cw-chart__gradient-bar-end" offset="1" />
+                  </>
+                )}
+              </linearGradient>
+            </defs>
             <line
               className="cw-chart__axis"
               x1="0"
@@ -101,6 +125,7 @@ export function MetricChart({
               <>
                 <path
                   className="cw-chart__area"
+                  style={{ fill: `url(#${gradientId})` }}
                   d={`${geometry.path} L${width},${height} L0,${height} Z`}
                 />
                 <path className="cw-chart__line" d={geometry.path} />
@@ -118,11 +143,12 @@ export function MetricChart({
               geometry.points.map((point, index) => (
                 <rect
                   className="cw-chart__bar"
+                  style={{ fill: `url(#${gradientId})` }}
                   x={index * barWidth + barWidth * 0.18}
                   y={point.y}
                   width={barWidth * 0.64}
                   height={Math.max(1, height - point.y)}
-                  rx="3"
+                  rx="4"
                   key={data[index]?.label}
                 />
               ))

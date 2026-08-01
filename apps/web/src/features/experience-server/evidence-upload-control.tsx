@@ -17,12 +17,32 @@ import type {
   EvidenceUploadRecord,
 } from "./model";
 
+const storagePrefix = "clockwork:evidence:";
+
+const maxEvidenceBytes = 50 * 1024 * 1024;
+const maxEvidenceLabel = `${maxEvidenceBytes / 1024 / 1024} MB`;
+
 function storageKey(
   journey: EvidenceJourney,
   targetId: string,
   kind: EvidenceKind,
 ) {
-  return `clockwork:evidence:${journey}:${targetId}:${kind}`;
+  return `${storagePrefix}${journey}:${targetId}:${kind}`;
+}
+
+function purge(store: Storage) {
+  for (const key of Object.keys(store))
+    if (key.startsWith(storagePrefix)) store.removeItem(key);
+}
+
+/**
+ * Drops every resume key. Sign-out is a server action and cannot reach web
+ * storage, so this is exported for any client boundary that observes the end of
+ * a session.
+ */
+export function clearEvidenceUploadState() {
+  purge(window.sessionStorage);
+  purge(window.localStorage);
 }
 
 async function hash(file: File): Promise<string> {
@@ -49,9 +69,13 @@ export function EvidenceUploadControl({
   const [upload, setUpload] = useState<EvidenceUploadRecord | null>(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const uploadId = window.localStorage.getItem(
+    // A resume key is session scoped: a durable copy outlives the upload and
+    // stays readable by the next person to use a shared browser.
+    purge(window.localStorage);
+    const uploadId = window.sessionStorage.getItem(
       storageKey(journey, targetId, kind),
     );
     if (!uploadId) return;
@@ -62,7 +86,7 @@ export function EvidenceUploadControl({
       })
       .catch(() => {
         if (active)
-          window.localStorage.removeItem(storageKey(journey, targetId, kind));
+          window.sessionStorage.removeItem(storageKey(journey, targetId, kind));
       });
     return () => {
       active = false;
@@ -70,6 +94,13 @@ export function EvidenceUploadControl({
   }, [journey, kind, targetId]);
 
   async function submit(file: File) {
+    if (file.size > maxEvidenceBytes) {
+      setError(
+        `This file is larger than the ${maxEvidenceLabel} maximum. Choose a smaller file.`,
+      );
+      return;
+    }
+    setError("");
     setPending(true);
     setMessage("Preparing evidence…");
     try {
@@ -81,7 +112,7 @@ export function EvidenceUploadControl({
         mimeType: file.type || "application/octet-stream",
         byteLength: file.size,
       });
-      window.localStorage.setItem(
+      window.sessionStorage.setItem(
         storageKey(journey, targetId, kind),
         created.upload.uploadId,
       );
@@ -119,9 +150,9 @@ export function EvidenceUploadControl({
   return (
     <div role="group" aria-labelledby={`${inputId}-title`}>
       <Heading id={`${inputId}-title`}>{label}</Heading>
-      <p>
-        PDF, PNG, JPEG, or plain text · 50 MB maximum · retention is server
-        managed.
+      <p id={`${inputId}-hint`}>
+        PDF, PNG, JPEG, or plain text · {maxEvidenceLabel} maximum · retention
+        is server managed.
       </p>
       <label htmlFor={inputId}>Evidence file</label>
       <input
@@ -129,11 +160,18 @@ export function EvidenceUploadControl({
         type="file"
         accept="application/pdf,image/png,image/jpeg,text/plain"
         disabled={pending}
+        aria-describedby={`${inputId}-hint${error ? ` ${inputId}-error` : ""}`}
+        aria-invalid={error ? true : undefined}
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void submit(file);
         }}
       />
+      {error ? (
+        <p id={`${inputId}-error`} role="alert">
+          {error}
+        </p>
+      ) : null}
       {pending ? (
         <p role="status" aria-live="polite">
           {message}

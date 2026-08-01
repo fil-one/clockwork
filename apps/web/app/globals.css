@@ -3,15 +3,16 @@
 
 :root {
   --shell-width: 96rem;
-  --web-ink: var(--color-ink, #16231c);
-  --web-muted: var(--color-muted, #5b675f);
-  --web-line: var(--color-border, #d9ded9);
-  --web-paper: var(--color-surface, #fff);
-  --web-canvas: var(--color-canvas, #f4f5f0);
-  --web-accent: var(--color-accent, #245c43);
-  --web-soft: var(--color-accent-soft, #e3eee7);
-  --web-warm: #b36c34;
-  --web-danger: #993b37;
+  --web-ink: var(--color-ink);
+  --web-muted: var(--color-muted);
+  --web-line: var(--color-border);
+  --web-paper: var(--color-surface);
+  --web-canvas: var(--color-canvas);
+  /* The accent carries text and boundaries, so it takes the strong ramp step. */
+  --web-accent: var(--color-accent-strong);
+  --web-soft: var(--color-accent-soft);
+  --web-warm: var(--color-warning);
+  --web-danger: var(--color-danger);
 }
 
 html {
@@ -210,7 +211,7 @@ input {
   right: 0;
   width: min(20rem, calc(100vw - 2rem));
   border: 1px solid var(--web-line);
-  border-radius: 0.65rem;
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
   box-shadow: 0 1.25rem 3rem rgb(16 25 20 / 16%);
   padding: 1rem;
@@ -304,7 +305,7 @@ input {
 }
 .signature-term {
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
   padding: 1rem 1.2rem;
 }
@@ -400,7 +401,7 @@ input {
   align-items: center;
   gap: 0.4rem;
   border: 0;
-  border-radius: 0.4rem;
+  border-radius: 999px;
   background: transparent;
   color: var(--web-accent);
   padding: 0.45rem 0.55rem;
@@ -494,7 +495,7 @@ input {
 }
 .risk--medium {
   border-color: var(--web-warm);
-  color: #7a461f;
+  color: var(--web-warm);
 }
 .risk--high {
   border-color: var(--web-danger);
@@ -638,11 +639,11 @@ input {
 }
 .form-message--error {
   border-color: var(--web-danger);
-  background: #f8e8e5;
-  color: #722d2a;
+  background: var(--cw-danger-soft);
+  color: var(--cw-danger-strong);
 }
 .form-message--success {
-  color: #17432f;
+  color: var(--cw-brand-ink);
 }
 
 .state-grid {
@@ -658,7 +659,7 @@ input {
   min-height: 15rem;
   border: 1px solid var(--web-line);
   border-top: 3px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
   padding: 1.25rem;
 }
@@ -706,7 +707,7 @@ input {
 .signing-main {
   align-content: start;
   gap: 2rem;
-  background: #f2f0e9;
+  background: var(--web-canvas);
   padding-top: 2rem;
 }
 .signing-header {
@@ -728,9 +729,9 @@ input {
 .signing-card,
 .access-card {
   width: min(46rem, 100%);
-  border: 1px solid #d6d2c7;
-  border-radius: 0.25rem;
-  background: white;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
   box-shadow: 0 1.5rem 4rem rgb(36 36 26 / 8%);
   padding: clamp(1.4rem, 5vw, 3.5rem);
 }
@@ -789,12 +790,12 @@ input {
   justify-items: start;
   gap: 0.65rem;
   border-left: 3px solid var(--web-warm);
-  background: #f8f3e9;
+  background: var(--cw-warning-soft);
   padding: 1rem;
 }
 .provider-state--error {
   border-color: var(--web-danger);
-  background: #f9e8e6;
+  background: var(--cw-danger-soft);
 }
 .provider-state--success {
   border-color: var(--web-accent);
@@ -808,7 +809,7 @@ input {
   width: 100%;
   min-height: 32rem;
   border: 1px solid var(--web-line);
-  background: white;
+  background: var(--web-paper);
 }
 .provider-progress {
   display: block;
@@ -992,25 +993,29 @@ input {
   }
 }
 
-/* Audience composition is distinct without depending on gated licensed marks. */
+/* The three audiences separate by hue and stay inside the brand's blue family. */
 .web-shell--customer {
-  --web-accent: #245a40;
-  --web-soft: #e0eee5;
+  --web-accent: var(--color-accent-strong);
+  --web-soft: var(--color-accent-soft);
 }
 
 .web-shell--partner {
-  --web-accent: #6e4a19;
-  --web-soft: #f2e8d8;
+  --web-accent: #0b6e8f;
+  --web-soft: #ddeff6;
 }
 
 .web-shell--internal {
-  --web-accent: #245565;
-  --web-soft: #e3edf0;
-  --web-canvas: #f2f4f2;
+  --web-accent: #3f5a78;
+  --web-soft: #e4eaf1;
+  --web-canvas: #f1f4f7;
 }
 
 .web-shell--partner .cw-shell__rail {
-  border-right-color: #c9b493;
+  border-right-color: color-mix(
+    in srgb,
+    var(--web-accent) 32%,
+    var(--web-line)
+  );
 }
 
 .web-shell--internal .cw-navigation__link,

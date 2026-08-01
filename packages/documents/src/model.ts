@@ -44,8 +44,13 @@ export interface Party {
 }
 
 export interface BrandConfig {
-  /** Text is intentionally used instead of a baked-in logo asset. */
+  /** Printed when the brand supplies no logo. */
   wordmark: string;
+  /**
+   * Base64 PNG or JPEG data URI. Remote URLs are rejected so rendering a
+   * tenant-supplied brand never makes the server fetch an outside address.
+   */
+  logo?: string;
   legalName: string;
   accentColor?: `#${string}`;
   supportEmail?: string;
