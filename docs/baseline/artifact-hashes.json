@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T15:23:52Z",
-  "captureCommit": "4aba43dbb12cd98bb6bebbe5b9efa04d5c77db86",
-  "captureTree": "1401f630a8415a9d83a38e9fb3291aef1fe20e58",
+  "capturedAt": "2026-08-01T15:52:14Z",
+  "captureCommit": "56439ac369480c4f2a224cc4aa56efe2b7a08272",
+  "captureTree": "62e6e5f78b1b6804e4ed06f5611fcf3641663af1",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "5c42d054b2d353fbfa96b1986528bf6b9a742e2e6a986c6383c64a47f02930db",
+  "captureTreeListingSha256": "8c3c04229870adb4e017d853a0b3eed995200326bcd93a19c0b12255ff5bdac4",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
-      "aggregateSha256": "cdbea5bc9ebb90da953d62287bc12693b28dc30bba18edc1d4633e28785ff0c3",
+      "aggregateSha256": "98b241f28eeba2a9981e74b235e1a1be06022a64f8f2f36dedd6443f9b04ba74",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -55,7 +55,7 @@
     },
     "traceability": {
       "artifactCount": 3,
-      "aggregateSha256": "178221ff2cd06f26d5090e56e2ccec72dd2d321b7fe5c3c261652e0f46cc19f8",
+      "aggregateSha256": "f7c67854ee2d8a18f908b9935a7ec24523042ef5ab9023e639a420c729934fc6",
       "paths": [
         "docs/traceability/launch-requirements.json",
         "docs/traceability/launch-requirements.schema.json",
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "89aadc45dfb23154ba380d3a0ebabb24f94b71fc30bc2b98b9d12c974084ac26",
+      "aggregateSha256": "96f764650f69be6d00b126f2add973362618fefb6ef3471ba8a03508904b36bb",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -150,7 +150,7 @@
     },
     "route-auth-api": {
       "artifactCount": 142,
-      "aggregateSha256": "b89abe3c48c2f6f8deb591f4d72ba7726864c7e68ec77941b7302a90a2c59bf4",
+      "aggregateSha256": "30996a63c2b430f1469a861fb18c3c993d409f44211215b2dc2d86d980bc1f6c",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx",
         "apps/web/app/(experience)/(customer)/account/page.tsx",
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 254,
-      "aggregateSha256": "086af572d3f0ae8f591efe87f0d027fc4b1f1553612c67e28e9e1e1772b5cb0c",
+      "aggregateSha256": "b5ecbb43051d368f36a2fda828bdc2a3c251a8ce6a30f8abd6fdad34149ab797",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -1136,8 +1136,8 @@
     },
     {
       "path": "apps/web/app/api/[[...route]]/route.ts",
-      "bytes": 17655,
-      "sha256": "a68017efa3029de18406446b80a744e4276318c9c462ba6e0f9f795ff3360305"
+      "bytes": 17705,
+      "sha256": "626379d88ff069391ee5bde7b5d9d07ee0206212c7304d88ce1f6145b6002f78"
     },
     {
       "path": "apps/web/app/api/experience/[[...segments]]/route.ts",
@@ -1151,8 +1151,8 @@
     },
     {
       "path": "apps/web/app/api/telemetry/route.ts",
-      "bytes": 6251,
-      "sha256": "a4c9da2c93433e9d08dd57ab038e38a3544ecbf2bc3b02c4cb0c4ae667aa9c41"
+      "bytes": 6261,
+      "sha256": "e5650f57d96e720abdd433bf02fbb00b964ea5d7a7f3a0882d76f94430561c02"
     },
     {
       "path": "apps/web/app/auth/callback/route.ts",
@@ -1286,13 +1286,13 @@
     },
     {
       "path": "apps/web/next.config.ts",
-      "bytes": 839,
-      "sha256": "b798b25e7b6f0c50214f6ab272a2fccc622f91de7e95378769f37e0a0c19832d"
+      "bytes": 1056,
+      "sha256": "369c47950147b25d652286f8ae51ad32dfd12a16a409dbe7024e58091b469389"
     },
     {
       "path": "apps/web/package.json",
-      "bytes": 2128,
-      "sha256": "96322d237e0d6642ec404d1b2118b9a473a91a12ac490dba04e32d0daad0ac19"
+      "bytes": 2158,
+      "sha256": "5cbb20a9d4414dd7303ad68afd8a2abf61b318ef418dc42550318be0326e840a"
     },
     {
       "path": "apps/web/playwright.config.ts",
@@ -1691,8 +1691,8 @@
     },
     {
       "path": "apps/web/src/telemetry/runtime.test.ts",
-      "bytes": 1102,
-      "sha256": "5d87dc588a963590e0b488d34d781b2d00138ff9967eed1ddaec06fd376f8661"
+      "bytes": 1112,
+      "sha256": "3a72b036751beefaf0cb735bce86e8cbf6baa72851bf1f3b0f3fe8366fb3ad6a"
     },
     {
       "path": "apps/web/tsconfig.json",
@@ -1776,8 +1776,8 @@
     },
     {
       "path": "docs/backlog.md",
-      "bytes": 14294,
-      "sha256": "ce5d2b25c4e44918af3dbe5ff4e6b81b36e143c2d60e74f08cba1a64ba641f7c"
+      "bytes": 15163,
+      "sha256": "3de7868bbe9daff698694e1a8389064568423a89939e9d2e1d607157ce3fa74f"
     },
     {
       "path": "docs/external-gates.md",
@@ -1826,8 +1826,8 @@
     },
     {
       "path": "docs/launch-checklist.md",
-      "bytes": 14742,
-      "sha256": "f1d8041473e4fb41bff3ee0bbeb14e918f61927e7ea59c9d69dfbb76dbf2d10e"
+      "bytes": 15725,
+      "sha256": "0f1d0e81088f2e653a901232b52591f08767f7bdcc75cc033c87a14b4310eb49"
     },
     {
       "path": "docs/operations/auth-anomalies.md",
@@ -1911,8 +1911,8 @@
     },
     {
       "path": "docs/release-candidate-report.md",
-      "bytes": 13103,
-      "sha256": "55ed76484f8d5366c726a15df13854544c56e53f25a1149edd508459709fb50b"
+      "bytes": 15562,
+      "sha256": "f4a6407fc5436a310639e8fa2925292e0e413aadcda90f0ab8a9bc1c66528ba1"
     },
     {
       "path": "docs/sprint-checklist.md",
@@ -1921,8 +1921,8 @@
     },
     {
       "path": "docs/traceability/launch-requirements.json",
-      "bytes": 277071,
-      "sha256": "a10d93fbca576e1c4ab6f3378caa2f382059d24b087a3e47167f7de03ee671f5"
+      "bytes": 277192,
+      "sha256": "fa4ca1294af9d966a7e709e4767105197d17bb40b8fdc02fd1ff0da4ec2b4638"
     },
     {
       "path": "docs/traceability/launch-requirements.schema.json",
@@ -2771,8 +2771,8 @@
     },
     {
       "path": "packages/integrations/package.json",
-      "bytes": 989,
-      "sha256": "c16bcaec592e1c2c287f30e7d04bc425fca49e3afdfdbdc6860500ddf19567a6"
+      "bytes": 1095,
+      "sha256": "f612b938fe60de6ddb1c6ead311c01f90a045f33b6a948c81537991e4cef3f19"
     },
     {
       "path": "packages/integrations/src/core/accounting/adapter.test.ts",
@@ -3591,8 +3591,8 @@
     },
     {
       "path": "pnpm-lock.yaml",
-      "bytes": 391206,
-      "sha256": "4532024a50ba84ec3957947d026003a8c81d7cc66bba93f1e42443b3f75e57ac"
+      "bytes": 391278,
+      "sha256": "6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc"
     },
     {
       "path": "pnpm-workspace.yaml",
