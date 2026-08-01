@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:28:18Z",
+  "capturedAt": "2026-08-01T14:44:36Z",
   "captureRef": "main",
-  "captureCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
-  "captureTree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
+  "captureCommit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+  "captureTree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -117,16 +117,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "object": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
       "objectType": "commit",
-      "peeledCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
-      "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
-      "tree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
+      "peeledCommit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "tree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
       "treeEntryCount": 896,
-      "treeListingSha256": "61dd595ff7467cb7ea6fb1686bc5b0e0a6c491357a7bc7b889ce91e70e8b0779",
-      "parents": ["ba47e44eaf2957512ef46af1e994c20142cce083"],
-      "subject": "fix: suppress unnecessary resolver lifecycle",
-      "mergeBaseWithMain": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec"
+      "treeListingSha256": "eb68d22708c2bf822b49d89fccc8dad84990c42e054608ffd1f838b9fca72c3d",
+      "parents": ["820a8c66ea7b9b68657a0849e65b72da2a06243a"],
+      "subject": "fix isolated qualification database identity",
+      "mergeBaseWithMain": "833f2e0e3794985b74a0fe5ae2bb91413436b21c"
     },
     {
       "ref": "rc/commercial-integrity",
@@ -311,7 +311,7 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
+      "head": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
       "branch": "main",
       "detached": false,
       "locked": false,
@@ -351,17 +351,29 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 122792,
+        "ignoredArtifactCount": 74249,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"
         ],
-        "rejectedIgnoredArtifactCount": 122791,
-        "ignoredArtifactListingSha256": "d0dc9558caab1f3545309128917a52fcb78a24a36696b91a5b4d4c2e5c6f5dcb",
+        "rejectedIgnoredArtifactCount": 74248,
+        "ignoredArtifactListingSha256": "3b165b2486ef1df4897906528847758146b95b40e26fc818c6e9a0aaaee4a8c5",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "tree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
+      "parents": ["820a8c66ea7b9b68657a0849e65b72da2a06243a"],
+      "subject": "fix isolated qualification database identity"
+    },
+    {
+      "commit": "820a8c66ea7b9b68657a0849e65b72da2a06243a",
+      "tree": "164f22cd19f11c2d10f0502f3f7147ad5cb53d2e",
+      "parents": ["1f85b46c6fc0bd430d37444369d2a1404bfd7bec"],
+      "subject": "docs: capture warning-free qualification inputs"
+    },
     {
       "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
       "tree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
@@ -741,7 +753,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 58,
+  "reachableCommitCount": 60,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1212,6 +1224,26 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "selector": "refs/heads/main@{2026-08-01T10:43:39-04:00}",
+      "subject": "commit: fix isolated qualification database identity"
+    },
+    {
+      "commit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+      "selector": "HEAD@{2026-08-01T10:43:39-04:00}",
+      "subject": "commit: fix isolated qualification database identity"
+    },
+    {
+      "commit": "820a8c66ea7b9b68657a0849e65b72da2a06243a",
+      "selector": "refs/heads/main@{2026-08-01T10:28:26-04:00}",
+      "subject": "commit: docs: capture warning-free qualification inputs"
+    },
+    {
+      "commit": "820a8c66ea7b9b68657a0849e65b72da2a06243a",
+      "selector": "HEAD@{2026-08-01T10:28:26-04:00}",
+      "subject": "commit: docs: capture warning-free qualification inputs"
+    },
     {
       "commit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
       "selector": "refs/heads/main@{2026-08-01T10:26:53-04:00}",
@@ -1770,8 +1802,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 122791,
-        "listingSha256": "d0dc9558caab1f3545309128917a52fcb78a24a36696b91a5b4d4c2e5c6f5dcb",
+        "artifactCount": 74248,
+        "listingSha256": "3b165b2486ef1df4897906528847758146b95b40e26fc818c6e9a0aaaee4a8c5",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle"

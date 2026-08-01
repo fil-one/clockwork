@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T14:28:18Z",
-  "captureCommit": "1f85b46c6fc0bd430d37444369d2a1404bfd7bec",
-  "captureTree": "54e8c81800c8b1f2ece72c12a779556b7d9fbc67",
+  "capturedAt": "2026-08-01T14:44:36Z",
+  "captureCommit": "833f2e0e3794985b74a0fe5ae2bb91413436b21c",
+  "captureTree": "da4fb9c7af5e94a42b739dbd54e3ae96f3d15e96",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "61dd595ff7467cb7ea6fb1686bc5b0e0a6c491357a7bc7b889ce91e70e8b0779",
+  "captureTreeListingSha256": "eb68d22708c2bf822b49d89fccc8dad84990c42e054608ffd1f838b9fca72c3d",
   "artifactCount": 632,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
-      "aggregateSha256": "07376cb7a6739c26ffd478a90c914929e302ed9521a3e7de5b784fc9f6b2d47e",
+      "aggregateSha256": "cdbea5bc9ebb90da953d62287bc12693b28dc30bba18edc1d4633e28785ff0c3",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -55,7 +55,7 @@
     },
     "traceability": {
       "artifactCount": 3,
-      "aggregateSha256": "fa31a958cab966e89f4b03758e6c0a62b0145df674fb480815ca6af84388daed",
+      "aggregateSha256": "178221ff2cd06f26d5090e56e2ccec72dd2d321b7fe5c3c261652e0f46cc19f8",
       "paths": [
         "docs/traceability/launch-requirements.json",
         "docs/traceability/launch-requirements.schema.json",
@@ -64,7 +64,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 80,
-      "aggregateSha256": "e62350656385e3a137774e2e0d26055d54e8a4159f160f54fe55febd3c7af571",
+      "aggregateSha256": "7a52d224f5d0ccd11335e2c3121f2e28d140c27de4a9a6b60143f23fb630d2e7",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -479,7 +479,7 @@
     },
     "documents-tests-visuals": {
       "artifactCount": 254,
-      "aggregateSha256": "fe8fd6f18033a1e07f889683c39c98961cb6be4e7a9b4228f73cc2a60c55b52e",
+      "aggregateSha256": "650c84455d7befc6dcc4d5b5d03d9ec334f5b6cbaeed8c138cdbcbc1aa619e86",
       "paths": [
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
@@ -1876,8 +1876,8 @@
     },
     {
       "path": "docs/operations/release-orchestration.md",
-      "bytes": 3363,
-      "sha256": "38930f1001110316e6579aa2e9fef771ce0dce3150601291c3ca7e4efd352099"
+      "bytes": 3366,
+      "sha256": "e279a1b8b524a7117b16e2258277e43f6581a8e96b62c20cef1a049a508ad1cd"
     },
     {
       "path": "docs/operations/runtime-telemetry.md",
@@ -1912,7 +1912,7 @@
     {
       "path": "docs/release-candidate-report.md",
       "bytes": 13103,
-      "sha256": "bf1b63e9609771b7124581b404523efa2e2d77c2e8fa4bb43ac5747a987f88b5"
+      "sha256": "55ed76484f8d5366c726a15df13854544c56e53f25a1149edd508459709fb50b"
     },
     {
       "path": "docs/sprint-checklist.md",
@@ -1921,8 +1921,8 @@
     },
     {
       "path": "docs/traceability/launch-requirements.json",
-      "bytes": 277320,
-      "sha256": "3cf9acf7daafa3c80470fa4315f93f66d77648a10f74d7c56451980df095849e"
+      "bytes": 277071,
+      "sha256": "a10d93fbca576e1c4ab6f3378caa2f382059d24b087a3e47167f7de03ee671f5"
     },
     {
       "path": "docs/traceability/launch-requirements.schema.json",
@@ -3631,18 +3631,18 @@
     },
     {
       "path": "scripts/release-artifacts.mjs",
-      "bytes": 19339,
-      "sha256": "beebf41b58042bdab5eb9565b67da8f37e2b36adcb2f3001295e92928dee5c66"
+      "bytes": 20326,
+      "sha256": "52fa4a678aa76ec47c10ddaf0a116d08daf88a4413aa42c19d8e40b83bbb39c3"
     },
     {
       "path": "scripts/release-artifacts.test.mjs",
-      "bytes": 15657,
-      "sha256": "a7d0d9f86d97babd8f31b3486cd391b4ac62441f4c8a65b77e01ba5d0cf8d6c6"
+      "bytes": 16754,
+      "sha256": "ed27fb6aa9143bed0eda61bc73a328de111b0c4764329a33e2a2c2f0e1a6a8b9"
     },
     {
       "path": "scripts/release-suites.mjs",
-      "bytes": 39460,
-      "sha256": "00261de98f409b10665cd7b2106615cc2fce0dbaff787d4b4d28cd2858c283fa"
+      "bytes": 39605,
+      "sha256": "8404357260eaacdf313148c2e81fa52715f23e9b21f80c7ba16d2beb1602af41"
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",
@@ -3896,8 +3896,8 @@
     },
     {
       "path": "turbo.json",
-      "bytes": 1041,
-      "sha256": "b1cb9effcdffae09a77005da1c39f28f884adab00994de1b8995f4042b65da39"
+      "bytes": 1172,
+      "sha256": "ace8011c8444340f1e00420b00f8072bed2ca166fa9fdbdfb0f78410a7d81b28"
     }
   ]
 }
