@@ -27,6 +27,7 @@
     "@clockwork/testing": "workspace:*",
     "@clockwork/ui": "workspace:*",
     "@clockwork/workflows": "workspace:*",
+    "@swc/helpers": "0.5.15",
     "@workos-inc/authkit-nextjs": "catalog:",
     "@workos-inc/node": "catalog:",
     "hono": "catalog:",

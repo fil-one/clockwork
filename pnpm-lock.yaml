@@ -182,6 +182,9 @@ importers:
       '@clockwork/workflows':
         specifier: workspace:*
         version: link:../../packages/workflows
+      '@swc/helpers':
+        specifier: 0.5.15
+        version: 0.5.15
       '@workos-inc/authkit-nextjs':
         specifier: 'catalog:'
         version: 4.3.1(@workos-inc/node@10.9.0)(next@16.2.12(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
