@@ -11,6 +11,12 @@ export const exceptionQueues = [
 ] as const;
 export type ExceptionQueue = (typeof exceptionQueues)[number];
 
+export function assertExceptionRoutingQueue(value: string): string {
+  if (!/^[a-z][a-z0-9_]{1,63}$/.test(value))
+    throw new Error("EXCEPTION_ROUTING_QUEUE_INVALID");
+  return value;
+}
+
 export interface QueuePolicy {
   queue: ExceptionQueue;
   ownerId: string;
@@ -18,6 +24,161 @@ export interface QueuePolicy {
   targetBusinessHours: number;
   escalationOwnerId: string;
   separationRequired: boolean;
+}
+
+export const exceptionRosterRoles = [
+  "primary",
+  "backup",
+  "escalation",
+] as const;
+export type ExceptionRosterRole = (typeof exceptionRosterRoles)[number];
+
+export interface ExceptionRosterMember {
+  rosterEntryId: string;
+  accountId: string;
+  queue: string;
+  userId: string;
+  role: ExceptionRosterRole;
+  active: boolean;
+  internalStaff: boolean;
+  mfaEnrolled: boolean;
+  qualificationEvidenceReference: string;
+  qualifiedUntil: string;
+  absentFrom: string | null;
+  absentUntil: string | null;
+  targetMinutes: number;
+  priority: number;
+}
+
+export interface ResolvedExceptionOwners {
+  accountId: string;
+  queue: string;
+  ownerUserId: string;
+  backupUserId: string;
+  escalationUserId: string;
+  targetMinutes: number;
+  absenceEscalated: boolean;
+  rosterEntryIds: readonly string[];
+}
+
+function rosterMemberIsQualified(
+  member: ExceptionRosterMember,
+  now: Date,
+  excludedUserIds: ReadonlySet<string>,
+): boolean {
+  if (
+    !member.active ||
+    !member.internalStaff ||
+    !member.mfaEnrolled ||
+    !member.qualificationEvidenceReference.trim() ||
+    excludedUserIds.has(member.userId)
+  )
+    return false;
+  const qualifiedUntil = Date.parse(member.qualifiedUntil);
+  if (!Number.isFinite(qualifiedUntil) || qualifiedUntil < now.getTime())
+    return false;
+  if (!member.absentFrom && !member.absentUntil) return true;
+  if (!member.absentFrom || !member.absentUntil) return false;
+  const absentFrom = Date.parse(member.absentFrom);
+  const absentUntil = Date.parse(member.absentUntil);
+  return (
+    Number.isFinite(absentFrom) &&
+    Number.isFinite(absentUntil) &&
+    absentFrom < absentUntil
+  );
+}
+
+function rosterMemberIsPresent(
+  member: ExceptionRosterMember,
+  now: Date,
+): boolean {
+  if (!member.absentFrom || !member.absentUntil) return true;
+  return (
+    now.getTime() < Date.parse(member.absentFrom) ||
+    now.getTime() >= Date.parse(member.absentUntil)
+  );
+}
+
+function ranked(
+  members: readonly ExceptionRosterMember[],
+): readonly ExceptionRosterMember[] {
+  return [...members].sort(
+    (left, right) =>
+      left.priority - right.priority || left.userId.localeCompare(right.userId),
+  );
+}
+
+/**
+ * Resolves only account-scoped, persisted, currently qualified people. A
+ * primary absence promotes a qualified backup and retains a distinct
+ * escalation owner. Missing authority always fails closed.
+ */
+export function resolveExceptionOwners(input: {
+  accountId: string;
+  queue: string;
+  roster: readonly ExceptionRosterMember[];
+  now: Date;
+  excludedUserIds?: readonly string[];
+}): ResolvedExceptionOwners {
+  assertExceptionRoutingQueue(input.queue);
+  const scoped = input.roster.filter(
+    (entry) =>
+      entry.accountId === input.accountId && entry.queue === input.queue,
+  );
+  const excluded = new Set(input.excludedUserIds ?? []);
+  const qualified = ranked(
+    scoped.filter((entry) =>
+      rosterMemberIsQualified(entry, input.now, excluded),
+    ),
+  );
+  const eligible = qualified.filter((entry) =>
+    rosterMemberIsPresent(entry, input.now),
+  );
+  const primaries = eligible.filter((entry) => entry.role === "primary");
+  const backups = eligible.filter((entry) => entry.role === "backup");
+  const escalations = eligible.filter((entry) => entry.role === "escalation");
+  const qualifiedPrimaryExists = qualified.some(
+    (entry) => entry.role === "primary",
+  );
+  const primary = primaries[0];
+  const promotedBackup = backups[0];
+  const owner = primary ?? promotedBackup;
+  const backup = primary
+    ? backups.find((entry) => entry.userId !== primary.userId)
+    : escalations.find((entry) => entry.userId !== owner?.userId);
+  const escalation = escalations.find(
+    (entry) =>
+      entry.userId !== owner?.userId && entry.userId !== backup?.userId,
+  );
+  if (!qualifiedPrimaryExists)
+    throw new Error(`EXCEPTION_NO_ELIGIBLE_PRIMARY:${input.queue}`);
+  if (!owner) throw new Error(`EXCEPTION_NO_ELIGIBLE_OWNER:${input.queue}`);
+  if (!backup) throw new Error(`EXCEPTION_NO_ELIGIBLE_BACKUP:${input.queue}`);
+  if (!escalation)
+    throw new Error(`EXCEPTION_NO_ELIGIBLE_ESCALATION:${input.queue}`);
+  const userIds = new Set([owner.userId, backup.userId, escalation.userId]);
+  if (userIds.size !== 3)
+    throw new Error(`EXCEPTION_SEPARATION_OF_DUTIES_FAILED:${input.queue}`);
+  if (
+    !Number.isSafeInteger(owner.targetMinutes) ||
+    owner.targetMinutes < 1 ||
+    owner.targetMinutes > 43_200
+  )
+    throw new Error(`EXCEPTION_TARGET_INVALID:${input.queue}`);
+  return {
+    accountId: input.accountId,
+    queue: input.queue,
+    ownerUserId: owner.userId,
+    backupUserId: backup.userId,
+    escalationUserId: escalation.userId,
+    targetMinutes: owner.targetMinutes,
+    absenceEscalated: !primary,
+    rosterEntryIds: [
+      owner.rosterEntryId,
+      backup.rosterEntryId,
+      escalation.rosterEntryId,
+    ],
+  };
 }
 
 export function validateQueuePolicies(

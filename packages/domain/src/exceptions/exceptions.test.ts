@@ -4,7 +4,9 @@ import {
   decideException,
   exceptionQueues,
   openExceptionCase,
+  resolveExceptionOwners,
   validateQueuePolicies,
+  type ExceptionRosterMember,
 } from ".";
 
 const policies = validateQueuePolicies(
@@ -65,5 +67,87 @@ describe("exception queues", () => {
     });
     expect(decided.status).toBe("approved");
     expect(decided.decisions[0]?.evidenceHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+});
+
+describe("persisted exception roster resolution", () => {
+  const now = new Date("2026-07-31T16:00:00.000Z");
+  const member = (
+    role: ExceptionRosterMember["role"],
+    userId: string,
+    priority: number,
+  ): ExceptionRosterMember => ({
+    rosterEntryId: `roster-${userId}`,
+    accountId: "account-1",
+    queue: "legal",
+    userId,
+    role,
+    active: true,
+    internalStaff: true,
+    mfaEnrolled: true,
+    qualificationEvidenceReference: `evidence://approver/${userId}`,
+    qualifiedUntil: "2027-07-31T16:00:00.000Z",
+    absentFrom: null,
+    absentUntil: null,
+    targetMinutes: 240,
+    priority,
+  });
+
+  it("chooses deterministic qualified primary, backup, and escalation owners", () => {
+    expect(
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        roster: [
+          member("backup", "backup-1", 10),
+          member("escalation", "escalation-1", 10),
+          member("primary", "primary-1", 10),
+        ],
+      }),
+    ).toMatchObject({
+      ownerUserId: "primary-1",
+      backupUserId: "backup-1",
+      escalationUserId: "escalation-1",
+      absenceEscalated: false,
+    });
+  });
+
+  it("escalates absence and fails closed when distinct eligible people are unavailable", () => {
+    const absentPrimary = {
+      ...member("primary", "primary-1", 10),
+      absentFrom: "2026-07-31T15:00:00.000Z",
+      absentUntil: "2026-08-01T15:00:00.000Z",
+    };
+    expect(
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        roster: [
+          absentPrimary,
+          member("backup", "backup-1", 10),
+          member("escalation", "escalation-1", 10),
+          member("escalation", "escalation-2", 20),
+        ],
+      }),
+    ).toMatchObject({
+      ownerUserId: "backup-1",
+      backupUserId: "escalation-1",
+      escalationUserId: "escalation-2",
+      absenceEscalated: true,
+    });
+    expect(() =>
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        excludedUserIds: ["primary-1"],
+        roster: [
+          member("primary", "primary-1", 10),
+          member("backup", "backup-1", 10),
+        ],
+      }),
+    ).toThrow("EXCEPTION_NO_ELIGIBLE_PRIMARY:legal");
   });
 });

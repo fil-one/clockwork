@@ -69,6 +69,10 @@ beforeAll(async () => {
         activationEvidenceReference: null,
         reviewOn: null,
         statusReason: "Controlled integration activation state",
+        emergencyDisabledAt: null,
+        emergencyDisabledBy: null,
+        emergencyDisableReason: null,
+        emergencyDisableEvidenceReference: null,
       })
       .where(eq(externalGates.gateKey, gateKey));
   });
@@ -96,6 +100,11 @@ afterAll(async () => {
             activationEvidenceReference: original?.activationEvidenceReference,
             reviewOn: original?.reviewOn,
             statusReason: original?.statusReason,
+            emergencyDisabledAt: original?.emergencyDisabledAt,
+            emergencyDisabledBy: original?.emergencyDisabledBy,
+            emergencyDisableReason: original?.emergencyDisableReason,
+            emergencyDisableEvidenceReference:
+              original?.emergencyDisableEvidenceReference,
           })
           .where(eq(externalGates.gateKey, gateKey));
       },
@@ -141,6 +150,74 @@ describe.sequential("database external-gate activation evidence", () => {
       lastActivationTestStatus: "never",
       activationEvidenceReference: null,
       rowVersion: before.rowVersion,
+    });
+  });
+
+  it.each([
+    "lifecycle",
+    "provider_effect",
+    "replay",
+    "assisted_action",
+    "redrive",
+    "recovery",
+  ] as const)(
+    "creates no provider effect or outbox at the denied %s boundary",
+    async (boundary) => {
+      let providerEffects = 0;
+      let outboxWrites = 0;
+      await expect(
+        repository.executeCapability({
+          capability: "new_business",
+          boundary,
+          effectIntent: "external_effect",
+          requestId: `${requestPrefix}:denied:${boundary}`,
+          now,
+          performExternalEffect: () => {
+            providerEffects += 1;
+            return Promise.resolve("forbidden");
+          },
+          enqueueOutbox: () => {
+            outboxWrites += 1;
+            return Promise.resolve();
+          },
+        }),
+      ).rejects.toThrow("EXTERNAL_CAPABILITY_DENIED:new_business");
+      expect({ providerEffects, outboxWrites }).toEqual({
+        providerEffects: 0,
+        outboxWrites: 0,
+      });
+    },
+  );
+
+  it("keeps independent local recovery available without an outbox or provider effect", async () => {
+    let providerEffects = 0;
+    let outboxWrites = 0;
+    let localRecovery = 0;
+    await expect(
+      repository.executeCapability({
+        capability: "provisioning_invoicing",
+        boundary: "recovery",
+        effectIntent: "local_recovery",
+        requestId: `${requestPrefix}:local-recovery`,
+        now,
+        performExternalEffect: () => {
+          providerEffects += 1;
+          return Promise.resolve("external");
+        },
+        enqueueOutbox: () => {
+          outboxWrites += 1;
+          return Promise.resolve();
+        },
+        performLocalRecovery: () => {
+          localRecovery += 1;
+          return Promise.resolve("recovered");
+        },
+      }),
+    ).resolves.toBe("recovered");
+    expect({ providerEffects, outboxWrites, localRecovery }).toEqual({
+      providerEffects: 0,
+      outboxWrites: 0,
+      localRecovery: 1,
     });
   });
 
