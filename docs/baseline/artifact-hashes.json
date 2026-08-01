@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T21:19:34Z",
-  "captureCommit": "6a96a14c4cf1832a95c7ae5f95a0ece9ceb7027f",
-  "captureTree": "2dec8036cf1e0704abf4ff71532abcf34759ca35",
+  "capturedAt": "2026-08-01T22:21:56Z",
+  "captureCommit": "7b008785741805778d6a4e667d06b845b74b1532",
+  "captureTree": "41d67571a8c76c0104a5db236ecf444813a25ccb",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "7b47f3fff0ca6da7f188daab9f0247344451c7e33bf373f72df9b0c2b10d2604",
-  "artifactCount": 637,
+  "captureTreeListingSha256": "b4e871ef0ffbfd89aa8804f28b4ba0cfd099ebffa033097db064d8b72d6a2a87",
+  "artifactCount": 638,
   "categories": {
     "contract-release": {
       "artifactCount": 38,
@@ -150,8 +150,8 @@
       ]
     },
     "route-auth-api": {
-      "artifactCount": 142,
-      "aggregateSha256": "30996a63c2b430f1469a861fb18c3c993d409f44211215b2dc2d86d980bc1f6c",
+      "artifactCount": 143,
+      "aggregateSha256": "786c7348dde410ccfa4ff4093ed7b8c8f9cc280beb687198890b5fa828000583",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx",
         "apps/web/app/(experience)/(customer)/account/page.tsx",
@@ -226,6 +226,7 @@
         "apps/web/app/access/mfa/page.tsx",
         "apps/web/app/access/session-expired/page.tsx",
         "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/api/experience/[[...segments]]/route.test.ts",
         "apps/web/app/api/experience/[[...segments]]/route.ts",
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/app/api/telemetry/route.ts",
@@ -479,9 +480,10 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 259,
-      "aggregateSha256": "b32bd755e646c2a2dbf5149c1159008edba6d0e35eda018e5c51eb1c6400de00",
+      "artifactCount": 260,
+      "aggregateSha256": "aad81545750f9d73a97a60fb0a886a37b37dcb42375bd28a3e5052c4df74fc9a",
       "paths": [
+        "apps/web/app/api/experience/[[...segments]]/route.test.ts",
         "apps/web/app/api/telemetry/route.test.ts",
         "apps/web/e2e/experience.spec.ts",
         "apps/web/e2e/production-proof.setup.ts",
@@ -1146,9 +1148,14 @@
       "sha256": "626379d88ff069391ee5bde7b5d9d07ee0206212c7304d88ce1f6145b6002f78"
     },
     {
+      "path": "apps/web/app/api/experience/[[...segments]]/route.test.ts",
+      "bytes": 1323,
+      "sha256": "f4a556cbe3860923d61d9564a72dcd577827606332486d3c873dc8ee11fd16b9"
+    },
+    {
       "path": "apps/web/app/api/experience/[[...segments]]/route.ts",
-      "bytes": 381,
-      "sha256": "146bafd44da0bb95c4d0069295390cdf55bd23b3c65027c6977976e9cd82fd04"
+      "bytes": 1587,
+      "sha256": "d0090c3f8933deecb3084ea77ea7a28b83968d62a57a459ec5da872eac4de7ed"
     },
     {
       "path": "apps/web/app/api/telemetry/route.test.ts",
@@ -1602,8 +1609,8 @@
     },
     {
       "path": "apps/web/src/features/performance/client-telemetry.test.ts",
-      "bytes": 4252,
-      "sha256": "8efcd4763d6905f5d5b1bbd5e744fb1fc20b86c2023115854e19699cd93e7784"
+      "bytes": 5695,
+      "sha256": "da774ebd3b8c6a4ad76f881a3e4de7d81de9317f141b7cdac8952f64b80332c5"
     },
     {
       "path": "apps/web/src/features/performance/web-vitals.test.ts",

@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T21:19:34Z",
+  "capturedAt": "2026-08-01T22:21:56Z",
   "testFiles": [
+    "apps/web/app/api/experience/[[...segments]]/route.test.ts",
     "apps/web/app/api/telemetry/route.test.ts",
     "apps/web/e2e/experience.spec.ts",
     "apps/web/e2e/production-proof.spec.ts",
@@ -230,8 +231,8 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 226,
-    "unitFiles": 170,
+    "totalFiles": 227,
+    "unitFiles": 171,
     "storybookFiles": 3,
     "integrationFiles": 30,
     "scriptFiles": 2,
@@ -244,6 +245,7 @@
   },
   "suites": {
     "unit": [
+      "apps/web/app/api/experience/[[...segments]]/route.test.ts",
       "apps/web/app/api/telemetry/route.test.ts",
       "apps/web/src/auth/actions.test.ts",
       "apps/web/src/auth/identity-repository.test.ts",
