@@ -458,6 +458,7 @@ async function runSuite(name, index, context) {
           NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "production",
           CLOCKWORK_RELEASE_PROOF: "1",
           CLOCKWORK_PROOF_AUTH_SECRET: context.proofSecret,
+          AUTHORIZATION_CONTEXT_SECRET: context.authorizationContextSecret,
           APP_ORIGIN: `http://localhost:${port}`,
           NEXT_PUBLIC_APP_URL: `http://localhost:${port}`,
           CLOCKWORK_CANONICAL_ORIGIN: `http://localhost:${port}`,
@@ -794,6 +795,7 @@ async function main() {
     }
     const context = {
       artifactRoot,
+      authorizationContextSecret: randomBytes(32).toString("base64url"),
       databasePortBase,
       debug: hasFlag("debug"),
       manageDatabases: !hasFlag("plan") && !useSharedWorkspace,
