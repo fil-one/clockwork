@@ -24,7 +24,7 @@ not hidden repository work and do not make this consolidation an RC.
 | Trigger.dev environment          | **PENDING external activation**                                                                   |
 | Generated OpenAPI hash           | `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18`                                |
 | Canonical migration set/hash     | Drizzle `0004_nosy_valkyrie` / `ae5872e0deff09115d847268c3acb7f97cfd828e9773887cfb99d268330de70c` |
-| Dependency lockfile hash         | `4532024a50ba84ec3957947d026003a8c81d7cc66bba93f1e42443b3f75e57ac`                                |
+| Dependency lockfile hash         | `6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc`                                |
 | Checklist opened at (UTC)        | **PENDING user/release owner entry**                                                              |
 | Proposed activation window (UTC) | **PENDING external launch decision**                                                              |
 
@@ -32,8 +32,9 @@ not hidden repository work and do not make this consolidation an RC.
 
 - [x] The repository-qualified clean-checkout harness completed
       `pnpm install --frozen-lockfile` on the pinned Node 24 and pnpm 10
-      toolchain. The future launch SHA is checked again after external inputs
-      are bound.
+      toolchain. Clean isolated browser regression run `smoke-9464bab-ui4`
+      qualified commit `9464bab03beb8a5298d57f4181cf7bf3ff5072df`; the future
+      launch SHA is checked again after external inputs are bound.
 - [x] Formatting, ESLint with zero warnings, dependency boundaries, all package
       typechecks, generated-artifact check, production build, and Storybook
       build passed.
@@ -43,7 +44,9 @@ not hidden repository work and do not make this consolidation an RC.
       WorkOS/e-sign/provisioning/marketplace replay, PDF golden,
       Storybook/axe/visual, and all Playwright persona/critical-path suites
       passed with recorded counts. Reset pgTAP is 16 files / 430 assertions;
-      workspace typecheck is 10/10 packages in 45.593 seconds.
+      workspace typecheck is 10/10 packages in 45.593 seconds. The replacement
+      isolated browser gate passed Storybook 5/5 and Playwright 79/79 with zero
+      skipped, flaky, unexpected, or retried tests.
 - [x] Direct, assisted, referral, resale, distributor/two-tier, AWS/Azure/GCP
       marketplace, POC conversion, amendment/co-termination, renewal/decline,
       dunning/dispute/refund, offboarding/Novation, white-label, and every
@@ -59,11 +62,12 @@ not hidden repository work and do not make this consolidation an RC.
 - [x] Demo reset is deterministic in demo and refuses every production marker.
 - [x] Dependency audit at the configured threshold, secret scan, and security
       review passed; any accepted advisory has a named owner and expiry.
-- [x] `docs/release-candidate-report.md` records test counts, hashes, defects
-      fixed, and remaining external gates. The exact final SHA, archival
-      tag/bundle, and complete command/timing transcript are written post-commit
-      to the non-RC tag and ignored archive manifest because they cannot be
-      self-recorded in this commit.
+- [x] `docs/release-candidate-report.md` records test counts, hashes, retained
+      failed diagnostics, dependency-boundary fixes, and remaining external
+      gates. The exact final SHA, archival tag/bundle, and complete
+      command/timing transcript are written post-commit to the non-RC tag and
+      ignored archive manifest because they cannot be self-recorded in this
+      commit.
 
 ## External activation
 

@@ -96,7 +96,7 @@ No earlier applied migration was edited. Canonical source/generation evidence:
 | Drizzle snapshot `packages/db/drizzle/meta/0004_snapshot.json` | `151ae01460e7def205349285df4b268f5c73ace79d17f275ef5a917d453bba35`                                   |
 | OpenAPI `packages/api/src/generated/openapi.json`              | 56 paths, seven experience paths; `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18` |
 | Generated schema `packages/api/src/generated/schema.d.ts`      | `a87b32a07841531447c0d34e24b0a137cd5288ff31470f1425edddcad0579784`                                   |
-| Lockfile `pnpm-lock.yaml`                                      | `4532024a50ba84ec3957947d026003a8c81d7cc66bba93f1e42443b3f75e57ac`                                   |
+| Lockfile `pnpm-lock.yaml`                                      | `6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc`                                   |
 | Document catalog                                               | all 15 kinds resolved, rendered/retrieved, and generated-contract covered                            |
 
 Generation dry-run, generated-drift check, and `git diff --check` pass after
@@ -104,17 +104,37 @@ schema/API settlement.
 
 ## Qualification evidence
 
-| Qualification                      | Accepted evidence                                                                                                                                                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exact toolchain                    | Node `24.18.1`; pnpm `10.34.5`; frozen install                                                                                                                                                                      |
-| Populated upgrade P0-39            | Accepted in 93.813 seconds: same-millisecond preservation, exact terminal evidence, 1 ms fail-closed rollback, canonical reset                                                                                      |
-| Reset and pgTAP                    | 16 files / 430 assertions                                                                                                                                                                                           |
-| Workspace typecheck                | 10/10 packages in 45.593 seconds                                                                                                                                                                                    |
-| Generated artifacts                | Drizzle/OpenAPI/schema/client generation and drift clean; hashes above                                                                                                                                              |
-| Static/security                    | formatting, zero-warning lint, boundaries, secret scan, dependency audit, exact-origin/CSRF, RLS/grants, webhook, SSRF/injection, telemetry-redaction, UUID/fencing, artifact-scope and demo-production denial pass |
-| Unit/property/contract/integration | domain, API, DB repositories, workflows, providers, marketplace, support, lifecycle, finance, evidence, documents, migration, replay and crash-recovery suites pass                                                 |
-| Production/browser                 | production and Storybook builds, Storybook/Axe/visual/320px/reflow, production-shaped browser proof and deterministic demo-reset safety pass                                                                        |
-| Serial/parallel                    | maximum-parallel design fits the 30-minute CI budget; clean local design fits 45 minutes; serial/debug and repeated stress preserve assertion/failure semantics                                                     |
+| Qualification                      | Accepted evidence                                                                                                                                                                                                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exact toolchain                    | Node `24.18.1`; pnpm `10.34.5`; frozen install                                                                                                                                                                                                                                |
+| Populated upgrade P0-39            | Accepted in 93.813 seconds: same-millisecond preservation, exact terminal evidence, 1 ms fail-closed rollback, canonical reset                                                                                                                                                |
+| Reset and pgTAP                    | 16 files / 430 assertions                                                                                                                                                                                                                                                     |
+| Workspace typecheck                | 10/10 packages in 45.593 seconds                                                                                                                                                                                                                                              |
+| Generated artifacts                | Drizzle/OpenAPI/schema/client generation and drift clean; hashes above                                                                                                                                                                                                        |
+| Static/security                    | formatting, zero-warning lint, boundaries, secret scan, dependency audit, exact-origin/CSRF, RLS/grants, webhook, SSRF/injection, telemetry-redaction, UUID/fencing, artifact-scope and demo-production denial pass                                                           |
+| Unit/property/contract/integration | domain, API, DB repositories, workflows, providers, marketplace, support, lifecycle, finance, evidence, documents, migration, replay and crash-recovery suites pass                                                                                                           |
+| Production/browser                 | production and Storybook builds, Storybook/Axe/visual/320px/reflow, production-shaped browser proof and deterministic demo-reset safety pass; clean isolated regression run `smoke-9464bab-ui4` passed Storybook 5/5 and Playwright 79/79 with zero skips, flakes, or retries |
+| Serial/parallel                    | maximum-parallel design fits the 30-minute CI budget; clean local design fits 45 minutes; serial/debug and repeated stress preserve assertion/failure semantics                                                                                                               |
+
+### Clean browser regression closure
+
+The isolated-store browser gate retained two failed diagnostic runs rather than
+masking them with retries. `smoke-836a894-ui2` exposed Next's lexical pnpm
+resolution of `@swc/helpers`; `smoke-797a077-ui3` then exposed Next's copied
+server external for `@aws-sdk/client-s3`. The fixes declare the exact Next
+helper at the web runtime boundary, use narrow telemetry/provider-transport
+package exports, and bundle the complete locked S3 and React-PDF server closures
+instead of hoisting or enumerating transitive dependencies.
+
+Replacement run `smoke-9464bab-ui4` qualified commit
+`9464bab03beb8a5298d57f4181cf7bf3ff5072df` from a detached clean checkout with
+an isolated frozen store and no cache reuse. Storybook passed 5/5 in 3.468
+seconds; Playwright passed 79/79 in 101.044 seconds (100.346 seconds reported by
+Playwright); the complete run took 140.241 seconds. It recorded zero skipped,
+unexpected, flaky, retry, timeout, module-load, or React-hook failures. Summary
+SHA-256 is `41c692767d4033e7376ec6c3a4b02f6b4abc65df0de661c8ca3d23006e8f6829`;
+Playwright-log SHA-256 is
+`bd24f6286870869eb84ee8ab1970e7be6f386e5bbf0c3f6e13f6e91eb9b0d661`.
 
 The complete command transcript, exact total wall clocks, serial/parallel
 comparison, clean-checkout SHA, final tree/artifact hashes, and archive output

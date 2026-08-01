@@ -34,8 +34,10 @@ repository work.
 - **P0-04 — Clean-main parity and requalification `[COMPLETE]`:** the pinned
   Node/pnpm clean-checkout design, generated-drift checks, reset, static,
   database, provider, document, UI, build, serial/debug, parallel, and stress
-  suites are repository-controlled and accepted; commit-addressed archival
-  evidence is emitted after the documentation commit.
+  suites are repository-controlled and accepted. The clean isolated UI
+  regression at `9464bab` passed Storybook 5/5 and Playwright 79/79 with zero
+  skip, flake, retry, or cache reuse; commit-addressed archival evidence is
+  emitted after the documentation commit.
 - **P0-05 — Recoverable legacy preservation and retirement `[COMPLETE]`:** the
   ancestry, clean-worktree, fsck, annotated-tag, all-refs-bundle, restore-drill,
   and safe-ref-retirement procedure is complete. Final commit/tag/bundle
@@ -72,6 +74,8 @@ repository work.
   frozen-install, static, database, unit, integration, provider-replay,
   document, migration, telemetry-redaction, security, build, browser, visual,
   accessibility, and demo-safety gates are represented by accepted evidence.
+  Failed isolated browser diagnostics remain visible, and their replacement pass
+  at `9464bab` executed all 79 Playwright tests without retry masking.
 - **P0-16 — Canonical generated artifacts `[COMPLETE]`:** Drizzle
   `0004_nosy_valkyrie` covers 116 tables and OpenAPI exposes 56 paths, including
   seven experience paths; schema/client generation and drift checks pass.
@@ -178,6 +182,11 @@ repository work.
   typecheck: 10/10 packages in 45.593 seconds. Focused security,
   telemetry-redaction, migration, provider, controller, artifact, and workflow
   suites pass without skipped or retry-masked failures.
+- Clean isolated UI regression: `smoke-9464bab-ui4` on exact Node `24.18.1` /
+  pnpm `10.34.5`, frozen store, Storybook 5/5, Playwright 79/79, zero skipped,
+  flaky, unexpected, or retried tests, 140.241 seconds total. The retained
+  `smoke-836a894-ui2` and `smoke-797a077-ui3` diagnostics document the fixed
+  Next/pnpm helper and copied-external defects.
 - Final commit SHA, non-RC annotated archival tag, verified all-refs bundle and
   SHA-256, restore output, and complete clean-checkout/serial/parallel
   wall-clock transcript are commit-addressed facts. They are populated after
