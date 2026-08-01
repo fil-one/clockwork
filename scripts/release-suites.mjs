@@ -329,9 +329,9 @@ function isolatedSupabaseConfig(source, { appPort, portBase, projectId }) {
 async function prepareDatabaseProject(name, index, context, environment) {
   if (!context.manageDatabases || !DATABASE_SUITES.has(name)) return undefined;
   const workspace = context.workspaces.get(name);
-  const projectRoot = await mkdtemp(
-    path.join(os.tmpdir(), `clockwork-${context.runId}-${name}-database-`),
-  );
+  const databaseScratchRoot = path.join(context.artifactRoot, ".database");
+  await mkdir(databaseScratchRoot, { recursive: true });
+  const projectRoot = await mkdtemp(path.join(databaseScratchRoot, `${name}-`));
   await cp(
     path.join(workspace, "supabase"),
     path.join(projectRoot, "supabase"),
