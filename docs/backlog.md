@@ -13,8 +13,8 @@ work as blocked.
 
 ## P0 — release-critical internal work
 
-- **Capture every outstanding source change:** before merging, cleaning a
-  worktree, or deleting a branch, preserve and review every tracked/untracked
+- **P0-01 — Capture every outstanding source change:** before merging, cleaning
+  a worktree, or deleting a branch, preserve and review every tracked/untracked
   delta in named commits whose hashes are recorded in the release report. The
   July 31 inventory includes the 513-addition/335-deletion production-spec
   rewrite in `commerce/foundation`, five UX-only commits on `ux/integration`, 42
@@ -25,28 +25,28 @@ work as blocked.
   be discarded as generated, obsolete, or duplicative until its semantic changes
   and tests are either present on the final mainline or explicitly rejected with
   recorded rationale.
-- **Canonical production specification and traceability:** merge the current
-  `commerce_platform_spec.md` rewrite into the consolidation line, resolve it
-  against implementation and launch documents, and make one reviewed version the
-  product contract on `main`. Build a checked-in traceability ledger mapping
-  every normative launch requirement and acceptance-matrix row to its domain,
-  API, database, workflow/provider, portal/document implementation, tests,
-  external gate if genuinely required, and P0 item if unfinished. Resolve stale
-  deferrals and contradictions across the spec, sprint checklist, handoffs,
-  ADRs, external-gate register, launch checklist, release report, and this
-  backlog; zero unmapped or falsely completed requirements may remain.
-- **Single-main history consolidation:** create `main` from the integration
-  lineage and merge every preserved source ref—including `commerce/integration`,
-  the complete `ux/integration` history, the captured foundation specification,
-  and all subsequently captured dirty-work commits—without losing commit
-  provenance or semantic changes. Resolve conflicts from source ownership and
-  the canonical contracts rather than by choosing an entire side. Regenerate
-  derived artifacts only after sources settle, record the source/final hashes,
-  and prove with `git merge-base --is-ancestor` plus tree/diff manifests that
-  every retired branch tip and accepted preservation commit is represented by
-  `main`.
-- **Clean-main parity and requalification:** from a new clean checkout of the
-  final `main` SHA with caches disabled, reproduce the frozen install,
+- **P0-02 — Canonical production specification and traceability:** merge the
+  current `commerce_platform_spec.md` rewrite into the consolidation line,
+  resolve it against implementation and launch documents, and make one reviewed
+  version the product contract on `main`. Build a checked-in traceability ledger
+  mapping every normative launch requirement and acceptance-matrix row to its
+  domain, API, database, workflow/provider, portal/document implementation,
+  tests, external gate if genuinely required, and P0 item if unfinished. Resolve
+  stale deferrals and contradictions across the spec, sprint checklist,
+  handoffs, ADRs, external-gate register, launch checklist, release report, and
+  this backlog; zero unmapped or falsely completed requirements may remain.
+- **P0-03 — Single-main history consolidation:** create `main` from the
+  integration lineage and merge every preserved source ref—including
+  `commerce/integration`, the complete `ux/integration` history, the captured
+  foundation specification, and all subsequently captured dirty-work
+  commits—without losing commit provenance or semantic changes. Resolve
+  conflicts from source ownership and the canonical contracts rather than by
+  choosing an entire side. Regenerate derived artifacts only after sources
+  settle, record the source/final hashes, and prove with
+  `git merge-base --is-ancestor` plus tree/diff manifests that every legacy
+  branch tip and accepted preservation commit is represented by `main`.
+- **P0-04 — Clean-main parity and requalification:** from a new clean checkout
+  of the final `main` SHA with caches disabled, reproduce the frozen install,
   generation, migration reset, builds, maximum-parallel test matrix, and a
   serial/debug confirmation path. Compare route, schema/migration, OpenAPI,
   workflow/task, document, environment-variable, and visual-scenario manifests
@@ -55,130 +55,135 @@ work as blocked.
   counts, timings, SHA/hash provenance, resolved conflicts, and remaining P1
   gates; any failure, drift, skipped suite, or unexplained manifest difference
   keeps consolidation P0 open.
-- **Recoverable worktree and branch retirement:** delete no worktree or branch
-  until it is clean, has no untracked files, its tip is an ancestor of the
-  verified `main`, and repository integrity checks pass. Create and verify a
-  durable pre-deletion tag and Git bundle (and push them plus `main` to the
-  approved remote when one exists), update CI/default-branch settings and remove
-  stale branch/worktree instructions from active documentation, then remove
-  linked worktrees before using safe branch deletion. Finish with exactly one
-  active development branch, `main`, one canonical backlog, no orphaned commits,
-  and a documented restore drill; never force-delete a ref that fails these
-  checks.
-- **Partner order submission:** complete the persisted referral/resale/
+- **P0-05 — Recoverable legacy preservation and eventual retirement:** preserve
+  every legacy worktree and branch unchanged for the release auditor. The active
+  topology after consolidation is `main` plus the three `rc/*` implementation
+  lanes recorded in `docs/implementation-lanes.md`; `main` is the sole authority
+  for shared contracts and this backlog. Delete no legacy worktree or ref during
+  lane setup. A later, explicitly authorized retirement may begin only after the
+  worktree is clean with no untracked source, its tip is an ancestor of verified
+  `main`, repository integrity checks pass, the annotated tag and all-refs
+  bundle verify, an approved remote or other durable copy exists, and a restore
+  drill is documented. Remove a linked worktree before safe branch deletion and
+  never force-delete a ref that fails these checks.
+- **P0-06 — Partner order submission:** complete the persisted referral/resale/
   distributor order command composition so the buyer and partner governing
   agreements are loaded from authoritative database state without granting an
   end client access to confidential partner account fields. Add the real portal
   order form and database integration tests for valid referral/resale orders,
   forged counterparties, stale/concurrent acceptance, and legal-party invoice
   routing.
-- **Lifecycle task execution:** replace the remaining 24 candidate-ID lifecycle
-  handlers with authoritative planner/state-transition/provider-effect execution
-  and persisted recovery tests. Candidate discovery alone is not a completed
-  domain workflow.
-- **Default-runtime activation proof:** add an end-to-end test that starts
-  default Trigger discovery from persisted external-gate state, performs the
-  bounded provider HTTP activation probe, and proves the resulting durable task
-  can recover after a crash.
-- **Exception ownership resolution:** resolve queue ownership from the affected
-  aggregate/account and persisted roster instead of the current static
+- **P0-07 — Lifecycle task execution:** replace the remaining 24 candidate-ID
+  lifecycle handlers with authoritative planner/state-transition/provider-effect
+  execution and persisted recovery tests. Candidate discovery alone is not a
+  completed domain workflow.
+- **P0-08 — Default-runtime activation proof:** add an end-to-end test that
+  starts default Trigger discovery from persisted external-gate state, performs
+  the bounded provider HTTP activation probe, and proves the resulting durable
+  task can recover after a crash.
+- **P0-09 — Exception ownership resolution:** resolve queue ownership from the
+  affected aggregate/account and persisted roster instead of the current static
   queue-to-account environment mapping.
-- **Scheduled core operations:** turn the documentation-only
+- **P0-10 — Scheduled core operations:** turn the documentation-only
   `coreWorkflowDispatchPlan` into registered Trigger schedules and durable
   submitter/outbox paths for overage sync, dunning, partner-credit review, usage
   reconciliation, monthly platform/Stripe/QBO tie-out, and report export.
   Definitions without runnable registration are not release wiring.
-- **Database gate failures:** restore fail-closed resale quote privacy after the
-  buyer-identity correction (two RLS assertions currently expose a resale quote
-  to its end client); update pgTAP fixtures that now collide with the canonical
-  commercial-profile/commitment seed; align distributor and marketplace test
-  identities with the buyer/MoR contract. The final run is 159/169, not green.
-- **Repository integration regressions:** fix and retain coverage for the
-  lifecycle dead-letter audit aggregate-version collision and the external-gate
-  activation expected-version mismatch found by the pre-freeze integration run.
-- **Collections hardening:** grant the narrowly authorized finance role the
-  required `core_collection_cases` write privilege; the final focused suite is
-  1/2 because its dunning insert is denied. Narrow finance audit-event
+- **P0-11 — Database gate failures:** restore fail-closed resale quote privacy
+  after the buyer-identity correction (two RLS assertions currently expose a
+  resale quote to its end client); update pgTAP fixtures that now collide with
+  the canonical commercial-profile/commitment seed; align distributor and
+  marketplace test identities with the buyer/MoR contract. The final run is
+  159/169, not green.
+- **P0-12 — Repository integration regressions:** fix and retain coverage for
+  the lifecycle dead-letter audit aggregate-version collision and the
+  external-gate activation expected-version mismatch found by the pre-freeze
+  integration run.
+- **P0-13 — Collections hardening:** grant the narrowly authorized finance role
+  the required `core_collection_cases` write privilege; the final focused suite
+  is 1/2 because its dunning insert is denied. Narrow finance audit-event
   visibility to the acting finance user/adjustment aggregate and require source
   currency and order identity in addition to the locked amount ceiling.
-- **Moderate transitive advisories:** upgrade the Drizzle authoring chain off
-  `esbuild@0.18.20` (GHSA-67mh-4wv8-2f99) and Trigger's telemetry chain off
-  `@opentelemetry/core@2.7.1` (CVE-2026-54285), then rerun build and provider
-  replay tests. The high/critical audit gate passes, but these remain internal
-  dependency work rather than external blockers.
-- **Release-gate closure:** resolve every internal failure from the final frozen
-  install, static, database, unit/integration, provider replay, document/UI,
-  build, migration, demo-safety, and security scan. Record commands and exact
-  counts in `docs/release-candidate-report.md`.
-- **Canonical generated artifacts:** after schemas stop changing, regenerate one
-  canonical Drizzle migration/snapshot from the source schema, regenerate the
-  OpenAPI document and client types, and prove `git diff --check` plus generated
-  artifact drift checks are clean.
-- **Authoritative order transitions and offboarding:** remove the generic core
-  commands that let ordinary account or partner roles directly mark an accepted
-  order provisioning, active, completed, cancelled, or terminated. Route each
-  transition through persisted lifecycle state: only provider-confirmed
-  provisioning may activate service, cancellation/non-renewal must create the
-  recoverable offboarding and final-billing plan, and teardown must remain gated
-  by two distinct approvals. Test forged direct transitions, every source state,
-  stale/replayed commands, self-approval, crash recovery, and provider/local
-  convergence.
-- **Pre-provisioning collection and partner-credit holds:** lock and evaluate
-  the billing account's `new_service_blocked` state and the partner's aggregate
-  exposure/payment-history policy in the order-acceptance transaction before
-  persisting or enqueueing new or expansion service. A rejected order must
-  create an owned review without a provisioning outbox; running service remains
-  unaffected. Prove concurrent orders cannot exceed credit and that direct,
-  referral, and resale orders fail closed until an authoritative hold release.
-- **Provider-authoritative credits and refunds:** stop accepting caller-supplied
-  Stripe credit-note/refund IDs or writing locally issued truth before Stripe
-  has accepted an idempotent provider operation. Derive invoice, payment,
-  customer, amount, currency, and provider bindings from persisted state; cap
-  individual and aggregate adjustments to the eligible balance; reconcile signed
-  webhooks. Test forged IDs, over/duplicate/concurrent refunds, amount/currency
-  mismatch, provider timeouts, and crash-after-success replay.
-- **Stripe adjustment projection correctness:** derive every refund state from
-  the signed provider status instead of treating `refund.created` as succeeded,
-  compensate any commission effect after failure/cancellation, and watermark
-  each credit-note/refund object rather than sharing one invoice/payment-intent
-  checkpoint. Replay tests must preserve pending-to-failed and
-  pending-to-succeeded sequences plus reordered events for multiple adjustments
-  without lost events or duplicate clawbacks.
-- **Commission settlement integrity:** carry the persisted partner identity
-  through the accounting contract and verified QBO vendor mapping instead of
-  posting to `unspecified`. In one replay-safe projection, bind the provider
-  bill or posting, settle exactly the included statement lines and accruals, and
-  emit audit/outbox records. Reject cross-partner and mixed-state lines and
-  prove crash, replay, and concurrency cannot double-pay or leave an external
-  bill paired with draft local state.
-- **POC partner-relationship authorization:** never persist a caller-selected
-  `partnerAccountId` after checking only the buyer account. Derive it from an
-  authoritative approved relationship or deal registration and reject unrelated
-  tenants before POC/evidence RLS can grant visibility. Add API, repository, and
-  pgTAP coverage for forged partners, valid relationships, and cross-tenant POC
-  and evidence isolation.
-- **Gate-page credential containment:** replace the internal gate page's
+- **P0-14 — Moderate transitive advisories:** upgrade the Drizzle authoring
+  chain off `esbuild@0.18.20` (GHSA-67mh-4wv8-2f99) and Trigger's telemetry
+  chain off `@opentelemetry/core@2.7.1` (CVE-2026-54285), then rerun build and
+  provider replay tests. The high/critical audit gate passes, but these remain
+  internal dependency work rather than external blockers.
+- **P0-15 — Release-gate closure:** resolve every internal failure from the
+  final frozen install, static, database, unit/integration, provider replay,
+  document/UI, build, migration, demo-safety, and security scan. Record commands
+  and exact counts in `docs/release-candidate-report.md`.
+- **P0-16 — Canonical generated artifacts:** after schemas stop changing,
+  regenerate one canonical Drizzle migration/snapshot from the source schema,
+  regenerate the OpenAPI document and client types, and prove `git diff --check`
+  plus generated artifact drift checks are clean.
+- **P0-17 — Authoritative order transitions and offboarding:** remove the
+  generic core commands that let ordinary account or partner roles directly mark
+  an accepted order provisioning, active, completed, cancelled, or terminated.
+  Route each transition through persisted lifecycle state: only
+  provider-confirmed provisioning may activate service, cancellation/non-renewal
+  must create the recoverable offboarding and final-billing plan, and teardown
+  must remain gated by two distinct approvals. Test forged direct transitions,
+  every source state, stale/replayed commands, self-approval, crash recovery,
+  and provider/local convergence.
+- **P0-18 — Pre-provisioning collection and partner-credit holds:** lock and
+  evaluate the billing account's `new_service_blocked` state and the partner's
+  aggregate exposure/payment-history policy in the order-acceptance transaction
+  before persisting or enqueueing new or expansion service. A rejected order
+  must create an owned review without a provisioning outbox; running service
+  remains unaffected. Prove concurrent orders cannot exceed credit and that
+  direct, referral, and resale orders fail closed until an authoritative hold
+  release.
+- **P0-19 — Provider-authoritative credits and refunds:** stop accepting
+  caller-supplied Stripe credit-note/refund IDs or writing locally issued truth
+  before Stripe has accepted an idempotent provider operation. Derive invoice,
+  payment, customer, amount, currency, and provider bindings from persisted
+  state; cap individual and aggregate adjustments to the eligible balance;
+  reconcile signed webhooks. Test forged IDs, over/duplicate/concurrent refunds,
+  amount/currency mismatch, provider timeouts, and crash-after-success replay.
+- **P0-20 — Stripe adjustment projection correctness:** derive every refund
+  state from the signed provider status instead of treating `refund.created` as
+  succeeded, compensate any commission effect after failure/cancellation, and
+  watermark each credit-note/refund object rather than sharing one
+  invoice/payment-intent checkpoint. Replay tests must preserve
+  pending-to-failed and pending-to-succeeded sequences plus reordered events for
+  multiple adjustments without lost events or duplicate clawbacks.
+- **P0-21 — Commission settlement integrity:** carry the persisted partner
+  identity through the accounting contract and verified QBO vendor mapping
+  instead of posting to `unspecified`. In one replay-safe projection, bind the
+  provider bill or posting, settle exactly the included statement lines and
+  accruals, and emit audit/outbox records. Reject cross-partner and mixed-state
+  lines and prove crash, replay, and concurrency cannot double-pay or leave an
+  external bill paired with draft local state.
+- **P0-22 — POC partner-relationship authorization:** never persist a
+  caller-selected `partnerAccountId` after checking only the buyer account.
+  Derive it from an authoritative approved relationship or deal registration and
+  reject unrelated tenants before POC/evidence RLS can grant visibility. Add
+  API, repository, and pgTAP coverage for forged partners, valid relationships,
+  and cross-tenant POC and evidence isolation.
+- **P0-23 — Gate-page credential containment:** replace the internal gate page's
   `NEXT_PUBLIC_APP_URL` fetch with a server-internal call, or require exact
   canonical same-origin equality before forwarding a WorkOS session cookie.
   Malformed, preview, or hostile configured origins must fail closed and receive
   neither a request nor credentials; retain a regression test for that
   invariant.
-- **Persistent assisted-session identity and exit:** when impersonation is
-  active, render the authoritative effective account, immutable staff actor,
+- **P0-24 — Persistent assisted-session identity and exit:** when impersonation
+  is active, render the authoritative effective account, immutable staff actor,
   reason, and expiry in a global banner across every internal route, and provide
   a real server-backed exit that refreshes the session. Render no banner when
   inactive, and test navigation, expiry, exit, destructive actions, and audit
   records so both actors remain visible and no hard-coded identity can create a
   confused-deputy path.
-- **Production identity, audience, and organization routing:** after AuthKit
-  callback, resolve permitted organization/account memberships and route each
-  customer, partner, or internal audience to its actual home instead of always
-  entering the customer dashboard. Organization switching must enumerate only
-  authorized memberships, persist the WorkOS/account-selection transition, and
-  refresh server context; forged accounts must fail. Replace fictional profile,
-  notification, and demo shell data in production and cover first login,
-  multi-role/multi-org switching, and cross-account denial in browser tests.
-- **Authoritative portal projections and record-bound actions:** put all
+- **P0-25 — Production identity, audience, and organization routing:** after
+  AuthKit callback, resolve permitted organization/account memberships and route
+  each customer, partner, or internal audience to its actual home instead of
+  always entering the customer dashboard. Organization switching must enumerate
+  only authorized memberships, persist the WorkOS/account-selection transition,
+  and refresh server context; forged accounts must fail. Replace fictional
+  profile, notification, and demo shell data in production and cover first
+  login, multi-role/multi-org switching, and cross-account denial in browser
+  tests.
+- **P0-26 — Authoritative portal projections and record-bound actions:** put all
   Northstar/Meridian fixtures behind an explicit non-production adapter and load
   launch customer, partner, and operator collections, details, selectors, and
   queues from session-scoped database projections with pagination, freshness,
@@ -186,22 +191,23 @@ work as blocked.
   than constants or free-form UUIDs, and wire review-only internal decisions to
   real commands. Prove reload/readback, stale-version handling, forged IDs,
   tenant/partner confidentiality, and every channel path end to end.
-- **Authoritative e-sign completion:** launch signing only from an authorized
-  persisted agreement/envelope with immutable signer and document data. Use an
-  opaque correlation state and a server status read to reconcile callback and
-  provider webhook order, presenting pending, completed, declined, expired, and
-  failed states; production success must never be inferred from demo query
-  parameters. Cover altered state/envelope/hash, cross-account access,
-  callback-before-return, return-before-callback, duplicate callbacks, refresh,
-  and signed-document readback.
-- **Evidence ingestion and quarantine:** expose authorized create, complete, and
-  download contracts for the existing evidence-storage provider instead of
-  requiring users and lifecycle commands to arrive with pre-existing document
-  UUIDs. Persist pending uploads durably; enforce ownership, size, MIME, hash,
-  quarantine, malware scanning, immutable promotion, retention, and short-lived
-  downloads. Integrate customer paper, POC, procurement, exception, and approval
-  journeys and test poisoned files, replay, expiry, and cross-account access.
-- **Complete immutable-document pipeline and delivery:** provide the
+- **P0-27 — Authoritative e-sign completion:** launch signing only from an
+  authorized persisted agreement/envelope with immutable signer and document
+  data. Use an opaque correlation state and a server status read to reconcile
+  callback and provider webhook order, presenting pending, completed, declined,
+  expired, and failed states; production success must never be inferred from
+  demo query parameters. Cover altered state/envelope/hash, cross-account
+  access, callback-before-return, return-before-callback, duplicate callbacks,
+  refresh, and signed-document readback.
+- **P0-28 — Evidence ingestion and quarantine:** expose authorized create,
+  complete, and download contracts for the existing evidence-storage provider
+  instead of requiring users and lifecycle commands to arrive with pre-existing
+  document UUIDs. Persist pending uploads durably; enforce ownership, size,
+  MIME, hash, quarantine, malware scanning, immutable promotion, retention, and
+  short-lived downloads. Integrate customer paper, POC, procurement, exception,
+  and approval journeys and test poisoned files, replay, expiry, and
+  cross-account access.
+- **P0-29 — Complete immutable-document pipeline and delivery:** provide the
   authenticated renderer runtime required by commercial-artifact and
   deletion-certificate workflows, store immutable version/hash metadata, and
   extend retrieval and generated clients beyond the current four of fifteen
@@ -210,25 +216,25 @@ work as blocked.
   renewals/declines, and deletion certificates with correct filename, MIME,
   `no-store`, and `nosniff`. Test pending, stored, missing, corrupt,
   cross-audience, mobile, and accessible download states.
-- **Server-enforced activation and kill switches:** define one persisted,
-  audited capability-to-external-gate matrix for new business, legal execution,
-  paid provisioning/invoicing, partner paths, white-label, marketplace,
-  teardown, and migration operations. Enforce it at every command and
-  provider-effect boundary so direct API calls, assisted actions, stale clients,
-  replays, and workflows cannot bypass missing, inactive, expired, or
+- **P0-30 — Server-enforced activation and kill switches:** define one
+  persisted, audited capability-to-external-gate matrix for new business, legal
+  execution, paid provisioning/invoicing, partner paths, white-label,
+  marketplace, teardown, and migration operations. Enforce it at every command
+  and provider-effect boundary so direct API calls, assisted actions, stale
+  clients, replays, and workflows cannot bypass missing, inactive, expired, or
   unavailable gates. Supply the production activation-test runner and authorized
   internal controls, keep the simulator disabled in production, and prove
   emergency disable creates no new effect or outbox while independently
   permitted recovery remains available.
-- **Production-shaped browser release proof:** add a required CI phase that runs
-  the production bundle against freshly migrated/seeded database roles and a
-  production-equivalent authenticated session, with no first-party route
+- **P0-31 — Production-shaped browser release proof:** add a required CI phase
+  that runs the production bundle against freshly migrated/seeded database roles
+  and a production-equivalent authenticated session, with no first-party route
   interception or persona-header shortcut and with lane status required ready.
   Drive customer agreement-to-quote-to-order-to-artifact/payment, partner
   resale, and internal exception/recovery through the UI to rows, audit, and
   outbox, then reload and read back. Include cross-scope denial, stale conflict,
   and provider fake replay.
-- **Maximum safe test parallelization:** configure every static, unit,
+- **P0-32 — Maximum safe test parallelization:** configure every static, unit,
   integration, database, provider-replay, document, build, and browser suite to
   use the maximum concurrency available on local and CI runners without losing
   determinism. Run independent workspace tasks concurrently, shard large suites
@@ -241,19 +247,19 @@ work as blocked.
   runs that prove the optimized configuration is faster than the serial baseline
   while producing identical assertions, coverage, generated artifacts, and
   failure semantics.
-- **Production telemetry and live alerting:** export structured client, server,
-  API, workflow, provider, webhook, queue, database, and web-vitals telemetry to
-  the selected production backends with request/workflow/outbox correlation and
-  secret/PII redaction. Provision dashboards, thresholds, synthetic failures,
-  primary/backup paging routes, and linked runbooks for auth anomalies, DB/PITR,
-  queue age/dead letters, outbox backlog, provisioning, billing/reconciliation,
-  and unhandled errors; attach verified staging delivery evidence to the launch
-  gate.
-- **Task-led, brand-distinct frontend redesign (remove AI-template visual
-  grammar):** replace the noun-swapped dashboard silhouette repeated across the
-  customer, partner, and internal snapshots—oversized hero, all-caps eyebrow,
-  four equal metrics, rounded panel grid, generic chart/activity rail, and long
-  mobile card stack—with audience- and decision-specific information
+- **P0-33 — Production telemetry and live alerting:** export structured client,
+  server, API, workflow, provider, webhook, queue, database, and web-vitals
+  telemetry to the selected production backends with request/workflow/outbox
+  correlation and secret/PII redaction. Provision dashboards, thresholds,
+  synthetic failures, primary/backup paging routes, and linked runbooks for auth
+  anomalies, DB/PITR, queue age/dead letters, outbox backlog, provisioning,
+  billing/reconciliation, and unhandled errors; attach verified staging delivery
+  evidence to the launch gate.
+- **P0-34 — Task-led, brand-distinct frontend redesign (remove AI-template
+  visual grammar):** replace the noun-swapped dashboard silhouette repeated
+  across the customer, partner, and internal snapshots—oversized hero, all-caps
+  eyebrow, four equal metrics, rounded panel grid, generic chart/activity rail,
+  and long mobile card stack—with audience- and decision-specific information
   architecture. As of July 2026, use the diagnostic substitution test in
   [V-1's generic-AI UI research](https://v-1.design/blog/why-ai-built-apps-look-the-same),
   the hierarchy and metric guidance in
@@ -273,6 +279,23 @@ work as blocked.
   partner, and operator task reviews with no critical/high findings before
   release. Final licensed marks remain `EXT-BRAND-01`; the internal redesign is
   not blocked on them.
+- **P0-35 — Exact marketplace quantity boundary:** reject JSON numeric usage
+  quantities at provider normalization boundaries and accept only canonical
+  decimal strings. `String(number)` is not an exactness repair because binary
+  floating point may already have changed the value. Add adapter contract tests
+  for large values, 18 fractional digits, exponent notation, and unsafe numeric
+  inputs before restoring the `numeric(38,18)` invariant to implemented status.
+- **P0-36 — UUIDv7 database generation:** replace database defaults that call
+  `gen_random_uuid()` with a reviewed UUIDv7 generator or require application-
+  generated UUIDv7 values at every insert boundary. Migrate without rewriting
+  existing identifiers and add schema, repository, and ordering tests proving
+  that new aggregate and operational IDs satisfy the canonical UUIDv7 contract.
+- **P0-37 — Provider callback contract parity:** reconcile the canonical
+  marketplace and support callback families with generated OpenAPI operations,
+  Next mounts, verifier implementations, and provider contract tests. Replace
+  the current marketplace-platform-only spelling and add the missing support
+  callback surface, or amend the production contract through a reviewed ADR;
+  prefix consistency alone does not close this implementation gap.
 
 ## P1 — external activation and approval gates
 

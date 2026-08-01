@@ -1,0 +1,854 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "declaredEnvironment": [
+    "ACCOUNTING_PROVIDER_BASE_URL",
+    "ACCOUNTING_PROVIDER_TOKEN",
+    "APP_ORIGIN",
+    "AUTHORIZATION_CONTEXT_SECRET",
+    "AUTHORIZATION_CONTEXT_SECRET_ID",
+    "AUTOMATED_TEARDOWN_ENABLED",
+    "CI",
+    "CLICK_THROUGH_THRESHOLD_MINOR",
+    "CLOCKWORK_ENABLE_SIMULATORS",
+    "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
+    "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
+    "CLOCKWORK_SERVICE_DATABASE_URL",
+    "CLOCKWORK_TRUSTED_PROXY_HOPS",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+    "DOCUMENT_RENDERER_PROVIDER_BASE_URL",
+    "DOCUMENT_RENDERER_PROVIDER_TOKEN",
+    "ESIGN_API_BASE_URL",
+    "ESIGN_API_KEY",
+    "ESIGN_RETURN_ORIGINS",
+    "ESIGN_SIGNING_ORIGINS",
+    "ESIGN_WEBHOOK_SECRET",
+    "EVIDENCE_AWS_ACCOUNT_ID",
+    "EVIDENCE_AWS_REGION",
+    "EVIDENCE_BUCKET",
+    "EVIDENCE_PROVIDER_BASE_URL",
+    "EVIDENCE_PROVIDER_TOKEN",
+    "INTERNAL_EMAIL_DOMAINS",
+    "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
+    "MARKETPLACE_WEBHOOK_SECRET",
+    "MIGRATION_FEATURE_ENABLED",
+    "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
+    "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
+    "MIGRATION_SOURCE_BASE_URL",
+    "MIGRATION_SOURCE_EXECUTION_ENABLED",
+    "MIGRATION_SOURCE_MAX_BYTES",
+    "MIGRATION_SOURCE_MAX_RECORDS",
+    "MIGRATION_SOURCE_TOKEN",
+    "MIGRATION_SOURCE_WINDOW_ID",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
+    "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
+    "NODE_ENV",
+    "NOTIFICATION_PROVIDER_BASE_URL",
+    "NOTIFICATION_PROVIDER_TOKEN",
+    "PLATFORM_ISSUER_JSON",
+    "PROVISIONING_PROVIDER_BASE_URL",
+    "PROVISIONING_PROVIDER_TOKEN",
+    "PROVISIONING_WEBHOOK_SECRET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "TRIGGER_PROJECT_REF",
+    "TRIGGER_SECRET_KEY",
+    "USAGE_PROVIDER_BASE_URL",
+    "USAGE_PROVIDER_TOKEN",
+    "WEBHOOK_MAX_BODY_BYTES",
+    "WORKFLOW_EXCEPTION_ROUTES_JSON",
+    "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
+    "WORKFLOW_PROVIDER_CONTROL_TOKEN",
+    "WORKOS_API_KEY",
+    "WORKOS_CLIENT_ID",
+    "WORKOS_COOKIE_PASSWORD",
+    "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
+    "WORKOS_MFA_PROVIDER_BASE_URL",
+    "WORKOS_MFA_PROVIDER_TOKEN",
+    "WORKOS_REDIRECT_URI",
+    "WORKOS_WEBHOOK_SECRET"
+  ],
+  "environmentRegistry": [
+    {
+      "key": "NODE_ENV",
+      "exampleDefault": "development",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CI",
+      "exampleDefault": "false",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "NEXT_PUBLIC_APP_URL",
+      "exampleDefault": "http://localhost:3000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "APP_ORIGIN",
+      "exampleDefault": "http://localhost:3000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
+      "exampleDefault": "development",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "DATABASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_SERVICE_DATABASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "DIRECT_DATABASE_URL",
+      "exampleDefault": "<redacted-example>",
+      "exampleState": "local-default",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "AUTHORIZATION_CONTEXT_SECRET",
+      "exampleDefault": "<redacted-example>",
+      "exampleState": "local-default",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "AUTHORIZATION_CONTEXT_SECRET_ID",
+      "exampleDefault": "local",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_API_KEY",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_CLIENT_ID",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_COOKIE_PASSWORD",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_REDIRECT_URI",
+      "exampleDefault": "http://localhost:3000/auth/callback",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "INTERNAL_EMAIL_DOMAINS",
+      "exampleDefault": "filone.com",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_ENABLE_SIMULATORS",
+      "exampleDefault": "false",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "STRIPE_SECRET_KEY",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "STRIPE_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "ESIGN_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "ESIGN_API_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "ESIGN_API_KEY",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "ESIGN_SIGNING_ORIGINS",
+      "exampleDefault": "https://esign.clockwork.test",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "ESIGN_RETURN_ORIGINS",
+      "exampleDefault": "http://localhost:3000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
+      "exampleDefault": "https://esign.clockwork.test",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "PROVISIONING_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "MARKETPLACE_WEBHOOK_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "TRIGGER_PROJECT_REF",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "TRIGGER_SECRET_KEY",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKFLOW_PROVIDER_CONTROL_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "ACCOUNTING_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "ACCOUNTING_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "NOTIFICATION_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "NOTIFICATION_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "USAGE_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "USAGE_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "PROVISIONING_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "PROVISIONING_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "DOCUMENT_RENDERER_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "DOCUMENT_RENDERER_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_MFA_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKOS_MFA_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKFLOW_EXCEPTION_ROUTES_JSON",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "PLATFORM_ISSUER_JSON",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_BUCKET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_AWS_REGION",
+      "exampleDefault": "us-east-1",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "EVIDENCE_AWS_ACCOUNT_ID",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLICK_THROUGH_THRESHOLD_MINOR",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_FEATURE_ENABLED",
+      "exampleDefault": "false",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_WINDOW_ID",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_EXECUTION_ENABLED",
+      "exampleDefault": "false",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_MAX_BYTES",
+      "exampleDefault": "750000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MIGRATION_SOURCE_MAX_RECORDS",
+      "exampleDefault": "10000",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "AUTOMATED_TEARDOWN_ENABLED",
+      "exampleDefault": "false",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "WEBHOOK_MAX_BODY_BYTES",
+      "exampleDefault": "1048576",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_TRUSTED_PROXY_HOPS",
+      "exampleDefault": "0",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    }
+  ],
+  "declaredCount": 67,
+  "staticallyReferencedEnvironment": [
+    "APP_ORIGIN",
+    "AUTHORIZATION_CONTEXT_SECRET",
+    "AUTOMATED_TEARDOWN_ENABLED",
+    "CI",
+    "CLICK_THROUGH_THRESHOLD_MINOR",
+    "CLOCKWORK_ENABLE_SIMULATORS",
+    "CLOCKWORK_SERVICE_DATABASE_URL",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+    "ESIGN_RETURN_ORIGINS",
+    "INTERNAL_EMAIL_DOMAINS",
+    "LIFECYCLE_EXCEPTION_QUEUE_POLICIES_JSON",
+    "MIGRATION_FEATURE_ENABLED",
+    "MIGRATION_SOURCE_EXECUTION_ENABLED",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
+    "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
+    "NODE_ENV",
+    "STRIPE_SECRET_KEY",
+    "TRIGGER_PROJECT_REF",
+    "WORKOS_API_KEY",
+    "WORKOS_CLIENT_ID",
+    "WORKOS_COOKIE_PASSWORD",
+    "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
+    "WORKOS_REDIRECT_URI"
+  ],
+  "staticallyReferencedCount": 25,
+  "referencedButUndeclared": [],
+  "declaredButNotStaticallyReferenced": [
+    "ACCOUNTING_PROVIDER_BASE_URL",
+    "ACCOUNTING_PROVIDER_TOKEN",
+    "AUTHORIZATION_CONTEXT_SECRET_ID",
+    "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
+    "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
+    "CLOCKWORK_TRUSTED_PROXY_HOPS",
+    "DOCUMENT_RENDERER_PROVIDER_BASE_URL",
+    "DOCUMENT_RENDERER_PROVIDER_TOKEN",
+    "ESIGN_API_BASE_URL",
+    "ESIGN_API_KEY",
+    "ESIGN_SIGNING_ORIGINS",
+    "ESIGN_WEBHOOK_SECRET",
+    "EVIDENCE_AWS_ACCOUNT_ID",
+    "EVIDENCE_AWS_REGION",
+    "EVIDENCE_BUCKET",
+    "EVIDENCE_PROVIDER_BASE_URL",
+    "EVIDENCE_PROVIDER_TOKEN",
+    "MARKETPLACE_WEBHOOK_SECRET",
+    "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
+    "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
+    "MIGRATION_SOURCE_BASE_URL",
+    "MIGRATION_SOURCE_MAX_BYTES",
+    "MIGRATION_SOURCE_MAX_RECORDS",
+    "MIGRATION_SOURCE_TOKEN",
+    "MIGRATION_SOURCE_WINDOW_ID",
+    "NOTIFICATION_PROVIDER_BASE_URL",
+    "NOTIFICATION_PROVIDER_TOKEN",
+    "PLATFORM_ISSUER_JSON",
+    "PROVISIONING_PROVIDER_BASE_URL",
+    "PROVISIONING_PROVIDER_TOKEN",
+    "PROVISIONING_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+    "TRIGGER_SECRET_KEY",
+    "USAGE_PROVIDER_BASE_URL",
+    "USAGE_PROVIDER_TOKEN",
+    "WEBHOOK_MAX_BODY_BYTES",
+    "WORKFLOW_EXCEPTION_ROUTES_JSON",
+    "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
+    "WORKFLOW_PROVIDER_CONTROL_TOKEN",
+    "WORKOS_MFA_PROVIDER_BASE_URL",
+    "WORKOS_MFA_PROVIDER_TOKEN",
+    "WORKOS_WEBHOOK_SECRET"
+  ],
+  "discoveryLimitation": "Static discovery sees direct process.env and injected source.KEY references; dynamic configuredEnvironment(name) lookups are represented by the complete .env.example registry rather than inferred as absent.",
+  "externalGates": [
+    "EXT-ACC-01",
+    "EXT-LEGAL-01",
+    "EXT-COMMERCIAL-01",
+    "EXT-PROVIDER-01",
+    "EXT-PROVISION-01",
+    "EXT-TAX-01",
+    "EXT-DOMAIN-01",
+    "EXT-BRAND-01",
+    "EXT-APPROVERS-01",
+    "EXT-TEARDOWN-01",
+    "EXT-MARKETPLACE-01",
+    "EXT-MIGRATION-01"
+  ],
+  "externalGateRecords": [
+    {
+      "id": "90000000-0000-4000-8000-000000000001",
+      "gateKey": "EXT-ACC-01",
+      "title": "Hosted accounts and credentials",
+      "owner": "Platform owner",
+      "inputRequired": "Scoped hosted accounts, projects, credentials, MFA policy IDs, and webhook subscriptions",
+      "affectedFeature": "Hosted database, auth, workflows, billing, evidence, notifications, and projections",
+      "severity": "path_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Provider and local-stack failure/replay simulators are available",
+      "statusReason": "Production credentials and policy evidence are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000002",
+      "gateKey": "EXT-LEGAL-01",
+      "title": "Counsel-approved legal policy",
+      "owner": "Counsel",
+      "inputRequired": "Approved templates, thresholds, KeyTerms, screening, retention, survival, and country rules",
+      "affectedFeature": "Agreement execution, renewal, termination, screening, and partner continuity",
+      "severity": "launch_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Versioned exact-hash and policy-boundary fixtures are available",
+      "statusReason": "Counsel-approved inputs are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000003",
+      "gateKey": "EXT-COMMERCIAL-01",
+      "title": "Commercial inputs",
+      "owner": "Product and finance",
+      "inputRequired": "Signed SKU, currencies, minimums, overage, floors, partner tiers, credit, and claims inputs",
+      "affectedFeature": "Pricing, quoting, commitment, partner economics, documents, and reports",
+      "severity": "launch_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Fictional USD, EUR, and GBP price books cover every channel",
+      "statusReason": "Signed production commercial data is pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000004",
+      "gateKey": "EXT-PROVIDER-01",
+      "title": "Provider selections",
+      "owner": "Product, accounting, and legal",
+      "inputRequired": "Selected e-sign, notifications, CRM, screening, support, and QBO connector contracts",
+      "affectedFeature": "Concrete provider adapters and operating procedures",
+      "severity": "path_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Provider contract fakes cover failures, replay, and reordering",
+      "statusReason": "Production provider selections are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000005",
+      "gateKey": "EXT-PROVISION-01",
+      "title": "Product provisioning contract",
+      "owner": "Product platform owner",
+      "inputRequired": "Authenticated provisioning, usage, confirmation, entitlement, re-drive, and teardown contract",
+      "affectedFeature": "Order-to-entitlement, POC conversion, usage, billing trigger, and teardown",
+      "severity": "paid_activation_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Replay-safe provisioning and teardown simulator is available",
+      "statusReason": "Authenticated product boundary is pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000006",
+      "gateKey": "EXT-TAX-01",
+      "title": "Tax and accounting policy",
+      "owner": "Accountant and counsel",
+      "inputRequired": "Registrations, tax/exemption rules, invoice entities, QBO mappings, revenue recognition, and credit policy",
+      "affectedFeature": "International tax, accounting exports, collections, and reconciliation",
+      "severity": "country_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "US, ES, UK, QBO, and three-way tie-out fixtures are available",
+      "statusReason": "Country and accounting approval is pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000007",
+      "gateKey": "EXT-DOMAIN-01",
+      "title": "Domains and callback records",
+      "owner": "Platform and IT",
+      "inputRequired": "DNS, TLS, AuthKit redirects, webhook endpoints, CSRF origins, and sender records",
+      "affectedFeature": "Authentication callbacks, custom branding, webhooks, and notifications",
+      "severity": "launch_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Local origins and deterministic callback/domain fixtures are available",
+      "statusReason": "Production DNS and sender records are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000008",
+      "gateKey": "EXT-BRAND-01",
+      "title": "Brand approval",
+      "owner": "Brand owner",
+      "inputRequired": "Approved assets, licenses, palette, claims copy, legal entity, and document footer",
+      "affectedFeature": "Portal, custom branding, generated documents, and public polish",
+      "severity": "high",
+      "configuredStatus": "review",
+      "simulatorState": "ready",
+      "simulatorDetails": "Neutral tokens, text mark, branded PDF, and safe fallback are available",
+      "statusReason": "Final brand review is pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000009",
+      "gateKey": "EXT-APPROVERS-01",
+      "title": "Named operations approvers",
+      "owner": "Operations owner",
+      "inputRequired": "Named queue primaries/backups, approval roles, targets, escalation, and on-call ownership",
+      "affectedFeature": "Queue routing, separation of duties, migration, teardown, and readiness",
+      "severity": "operations_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "Fictional rota, absence routing, and two-person denial are available",
+      "statusReason": "Real named operations roster is pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000010",
+      "gateKey": "EXT-TEARDOWN-01",
+      "title": "Teardown authority",
+      "owner": "Product, security, and legal",
+      "inputRequired": "Written decision, scope, flag owner, retention rules, and two-person policy",
+      "affectedFeature": "Automated termination teardown only",
+      "severity": "conditional",
+      "configuredStatus": "pending",
+      "simulatorState": "ready",
+      "simulatorDetails": "Two-person retention-aware teardown simulator is available",
+      "statusReason": "Automation remains disabled; manual safe offboarding is available",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000011",
+      "gateKey": "EXT-MARKETPLACE-01",
+      "title": "Marketplace enrollment",
+      "owner": "Channel, product, and finance",
+      "inputRequired": "AWS, Azure, and Google enrollment, seller IDs, permissions, payout, settlement, and credentials",
+      "affectedFeature": "Marketplace order, entitlement, metering, settlement, and reconciliation",
+      "severity": "channel_blocker",
+      "configuredStatus": "blocked",
+      "simulatorState": "ready",
+      "simulatorDetails": "AWS, Azure, and Google order/settlement simulators are available",
+      "statusReason": "Marketplace enrollment and payout access are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000012",
+      "gateKey": "EXT-MIGRATION-01",
+      "title": "Production migration window",
+      "owner": "Product, platform, and operations",
+      "inputRequired": "Production source access, immutable snapshot, quiet window, named operators, and communication timing",
+      "affectedFeature": "Post-launch existing-customer migration execution",
+      "severity": "post_launch",
+      "configuredStatus": "pending",
+      "simulatorState": "ready",
+      "simulatorDetails": "Snapshot discovery, rehearsal, resume, and rollback-boundary fixtures are available",
+      "statusReason": "Production source access and quiet window are pending",
+      "source": "supabase/migrations/000901_external_gates.sql"
+    }
+  ],
+  "externalGateStatusCounts": {
+    "blocked": 9,
+    "review": 1,
+    "pending": 2,
+    "active": 0,
+    "not_required": 0
+  },
+  "externalGateCount": 12,
+  "implementedSwitches": [
+    {
+      "key": "CLOCKWORK_ENABLE_SIMULATORS",
+      "default": "false",
+      "status": "implemented-test-only-production-denied",
+      "sources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ]
+    },
+    {
+      "key": "MIGRATION_FEATURE_ENABLED",
+      "default": "false",
+      "status": "implemented-disabled-by-default",
+      "sources": ["apps/web/app/api/[[...route]]/route.ts"]
+    },
+    {
+      "key": "MIGRATION_SOURCE_EXECUTION_ENABLED",
+      "default": "false",
+      "status": "implemented-disabled-by-default",
+      "sources": ["apps/web/app/api/[[...route]]/route.ts"]
+    },
+    {
+      "key": "AUTOMATED_TEARDOWN_ENABLED",
+      "default": "false",
+      "status": "implemented-disabled-by-default",
+      "sources": [
+        "apps/web/app/api/[[...route]]/route.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.ts"
+      ]
+    }
+  ],
+  "capabilityMatrixRequiredButNotImplemented": [
+    "new-business commerce",
+    "legal execution",
+    "paid provisioning and invoicing",
+    "partner referral/resale/distributor paths",
+    "white-label and custom domains",
+    "marketplace paths",
+    "automated teardown operations",
+    "production migration operations"
+  ],
+  "capabilityMatrixStatus": "backlog-partial-no-persisted-audited-command-and-effect-boundary-matrix"
+}

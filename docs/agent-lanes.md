@@ -1,8 +1,13 @@
-# Agent lane ownership
+# Historical agent lane ownership
 
-All branches start from the exact `commerce/foundation` commit. No lane edits
-`commerce_platform_spec.md`. No lane inspects or depends on another Fil One or
-Object Lock repository.
+This file records the initial five-instance implementation pass and is not an
+active work instruction. Current release-candidate ownership, branch/worktree
+paths, and migration ranges are defined only in `docs/implementation-lanes.md`.
+Legacy refs and worktrees remain preserved for audit.
+
+During that historical pass, all branches started from the exact
+`commerce/foundation` commit. No lane edited `commerce_platform_spec.md`. No
+lane inspects or depends on another Fil One or Object Lock repository.
 
 | Lane                               | Branch                        | Exclusive paths                                                                                                                                                                                                                                                                                                           | Migration range   |
 | ---------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |

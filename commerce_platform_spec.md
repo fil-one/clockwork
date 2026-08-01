@@ -1,7 +1,8 @@
 # Clockwork Commerce Platform: Production Build Specification
 
-**Status:** Approved, implementation-aligned direction. Full production build,
-complete and polished. Revised after three-lens adversarial review
+**Status:** Approved production target; current implementation and release
+evidence remain governed by the checked-in traceability ledger, backlog, and
+release report. Revised after three-lens adversarial review
 (commercial/finance, buyer/legal/partner, engineering delivery) and aligned to
 the five-Codex production plan on July 31, 2026. **Author:** James Kurz, drafted
 with Claude. **Date:** July 31, 2026. **Source concept:** "The Frictionless
@@ -32,10 +33,11 @@ The platform is also a sales asset in its own right. Being easy to buy from is
 the durable differentiator the concept document describes, and for a company
 selling infrastructure against AWS, Wasabi, and Backblaze, a buying experience
 that looks and works like a mature cloud vendor's is proof of engineering
-quality. Every enterprise meeting and partner briefing demos the portal. It
-ships complete and polished; §22 defines the fixed five-lane build and release
-gate. Features may be activation-gated for a genuine external dependency, but
-internal implementation is not deferred.
+quality. Every enterprise meeting and partner briefing demos the portal. The
+target is a complete and polished release; §22 records the historical five-lane
+build and the active three-lane release-candidate topology. Features may be
+activation-gated for a genuine external dependency, but internal implementation
+is not deferred.
 
 The platform is international by design. Spain and the UK are the first non-US
 markets, not special cases: currency, tax, agreement variants, and residency are
@@ -368,7 +370,7 @@ projections.
 The production model also includes the records needed to make the domain safe
 and operable rather than hiding those concerns inside provider metadata:
 
-- `idempotency_keys`, `webhook_receipts`, `outbox_events`, and `provider_links`;
+- `idempotency_keys`, `webhook_receipts`, `outbox_messages`, and `provider_links`;
 - `approval_requests`, `approval_steps`, and `notification_deliveries`;
 - `usage_samples`, `cost_entries`, and `reconciliation_runs`;
 - `document_artifacts`, `workflow_runs`, and `feature_flags`; and
@@ -449,8 +451,9 @@ requirements, not aspirations:
   document cards, queue rows, toasts, and error boundaries.
 - **Signature elements done well.** The term bar (elapsed time, notice window,
   end date) is the product's visual identity, rendered per service and rolled up
-  per account. Dashboards use restrained, consistent Recharts visualizations for
-  usage, spend, and capacity.
+  per account. Dashboards use restrained, consistent, accessible visualizations
+  with semantic table equivalents for usage, spend, and capacity. The rendering
+  library is an implementation choice, not part of the product contract.
 - **Every state designed.** Loading, empty, partial, optimistic, success,
   validation, permission, stale-version, offline, and recoverable/unrecoverable
   failure states have intentional copy and behavior on every surface. No raw
@@ -916,8 +919,11 @@ replacement for authorization in the API and domain layers.
 
 ### Public API contract
 
-The versioned JSON API uses `/api/v1` as its prefix. In the list below,
-unprefixed paths are relative to `/api/v1`:
+The generated Hono/OpenAPI contract uses `/v1` as its prefix. The standalone
+Next.js application mounts that contract beneath `/api`, so browser-visible
+production URLs use `/api/v1`. In the list below, paths are shown as their
+browser-visible mounted URLs; after the first explicit prefix, unprefixed paths
+are relative to `/api/v1`:
 
 - `/api/v1/auth`, `/organizations`, `/memberships`, `/accounts`, and
   `/procurement-profiles`;
@@ -932,11 +938,14 @@ unprefixed paths are relative to `/api/v1`:
 - `/reports`, `/exports`, and `/reconciliations`; and
 - `/admin/*` for back-office assisted operations.
 
-Provider callbacks enter through `/api/webhooks/workos`, `/stripe`, `/esign`,
-`/marketplaces/*`, and `/support/*`. Every list endpoint uses a stable cursor
-and explicit account scope. Mutations return the aggregate version and any
-relevant workflow handle. Errors use RFC 9457 `application/problem+json` with a
-request ID, a stable machine code, and a safe user message.
+Provider callbacks use `/v1/webhooks/*` in the Hono/OpenAPI contract and enter
+the deployed application through `/api/v1/webhooks/workos`,
+`/api/v1/webhooks/stripe`, `/api/v1/webhooks/esign`,
+`/api/v1/webhooks/marketplaces/*`, and `/api/v1/webhooks/support/*`. Every list
+endpoint uses a stable cursor and explicit account scope. Mutations return the
+aggregate version and any relevant workflow handle. Errors use RFC 9457
+`application/problem+json` with a request ID, a stable machine code, and a safe
+user message.
 
 ### Provider boundaries
 
@@ -958,11 +967,13 @@ activation gate, never an excuse for incomplete domain code.
 - IDs are UUIDv7. Instants are UTC `timestamptz`; contractual dates use `date`.
   Currency codes are ISO 4217.
 - Money is a signed integer number of minor units, rates are basis points, and
-  usage quantities are `numeric(38,12)`. Binary floating point never enters a
+  usage quantities are `numeric(38,18)`. Binary floating point never enters a
   monetary, quantity, proration, tax, or commission calculation.
-- Every mutable aggregate has an optimistic concurrency version exposed by
-  `ETag` and required through `If-Match`. Issued artifacts use immutable
-  versions and supersession pointers instead of in-place edits.
+- Every mutable aggregate has an optimistic concurrency version returned by the
+  API and required as a typed `expectedVersion` on mutations; resource-style
+  HTTP endpoints may additionally expose it through `ETag`/`If-Match`. Issued
+  artifacts use immutable versions and supersession pointers instead of
+  in-place edits.
 - Every money-changing API call requires `Idempotency-Key`. Downstream effects
   derive stable keys from aggregate, version, and operation. Reuse with a
   different payload fails closed.
@@ -976,11 +987,12 @@ activation gate, never an excuse for incomplete domain code.
 - Issued quote snapshots, accepted order terms and lines, executed agreement
   text/evidence, legal notices, and certificates cannot mutate. Workflow and
   lifecycle state can advance through versioned transitions; corrections create
-  a new version, amendment, or reversal. Executed agreements, acceptance
-  evidence, notices, and certificates are content-addressed in a versioned S3
-  bucket with Object Lock; Object Lock is reserved solely for these
-  legal-evidence classes. Other issued documents retain content hashes and
-  immutable application versions without widening the legal-retention boundary.
+  a new version, amendment, or reversal. Executed agreements and acceptance
+  evidence, issued quotes, order forms, amendments, notices, completion
+  certificates, and deletion certificates are content-addressed in a versioned
+  S3 bucket with Object Lock in Compliance mode unless counsel approves a
+  narrower class. Other issued documents retain content hashes and immutable
+  application versions without widening the legal-retention boundary.
 - Authorization evaluates the current WorkOS membership, commerce role and
   permission, account scope, order sourcing, partner portfolio, internal-staff
   status, and assistance context. Both domain authorization and RLS fail closed.
@@ -1041,7 +1053,8 @@ invoiced in GBP with a bank-transfer path.
   grants commerce access without a current scoped Clockwork membership.
 - Business POCs always use isolated organizations and entitlements. Paid
   conversion upgrades the same tenant in place without weakening isolation.
-- Executed agreements, acceptance evidence, notices, and certificates are
+- Executed agreements and acceptance evidence, issued quotes, order forms,
+  amendments, notices, completion certificates, and deletion certificates are
   retained for the applicable contract period in versioned, object-locked S3
   storage. Other commercial artifacts remain immutable through application
   versions and content hashes but do not expand the Object Lock scope.
@@ -1112,13 +1125,14 @@ construction.
 
 ---
 
-## 22. Build plan
+## 22. Build and release plan
 
-Clockwork is delivered by five Codex instances with one serial foundation,
-three parallel implementation lanes, and one serial integration/release lane.
-Every branch starts from the exact foundation commit. Agents never inspect,
-depend on, or modify another Fil One or Object Lock repository and never receive
-live production credentials.
+Clockwork's initial implementation pass was delivered by five Codex instances with
+one serial foundation, three parallel implementation lanes, and one serial
+integration/release lane. The table below is historical provenance, not active
+branch ownership after consolidation. Its refs and worktrees remain preserved
+for the release auditor, and the exact source and merge hashes are recorded in
+the checked-in Git baseline manifest.
 
 | Agent | Branch | Fixed worktree | Ownership |
 | ----- | ------ | -------------- | --------- |
@@ -1128,28 +1142,41 @@ live production credentials.
 | 4 — experience and documents | `commerce/experience-docs` | `/Users/jameskurz/Downloads/Fil One/Clockwork-experience` | Customer, partner, and admin routes; design system; accessibility; localization; deterministic documents; demo and visual/persona tests |
 | 5 — integration | `commerce/integration` | `/Users/jameskurz/Downloads/Fil One/Clockwork-merge` | No-fast-forward lane merges, generated artifacts, all cross-lane joins, adversarial repair, release evidence, and operations runbooks |
 
-Agent 1 must finish and verify the foundation before creating the four sibling
-worktrees from the same commit. Agents 2–4 then run concurrently without merges
-or cherry-picks. Agent 5 starts only after all three lane worktrees are committed
-and clean, records their SHAs, and merges core finance, lifecycle platform, then
-experience/documents with explicit merge commits.
+That historical run completed with explicit merge commits. Ongoing release-
+candidate work starts from one verified `main` commit and uses these three
+exclusive lanes; `docs/implementation-lanes.md` is the operational ownership
+record:
+
+| Lane | Branch / fixed worktree | Exclusive implementation ownership | Migration range |
+| ---- | ----------------------- | ---------------------------------- | --------------- |
+| Commercial integrity | `rc/commercial-integrity` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial` | Core commercial domain, API, database repositories/schema, finance/provider adapters, and core acceptance tests | `001000`–`001099` |
+| Runtime operations | `rc/runtime-operations` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime` | Lifecycle/system runtime, workflows, schedules, outbox/provider execution, operational repositories, and recovery tests | `001100`–`001199` |
+| Experience release | `rc/experience-release` / `/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience` | Web routes and projections, design system, documents/delivery, browser/visual/accessibility tests, and release-facing experience | `001200`–`001299` |
+
+Root manifests and lockfile, shared contracts/barrels, generated OpenAPI/client
+artifacts, canonical specification, traceability and baseline manifests, and CI
+composition are integration-owned shared files. A lane records a handoff rather
+than editing a shared file. Lanes do not merge or cherry-pick one another and do
+not receive live production credentials.
 
 The architecture is collision-resistant: route groups, domain directories,
 workflow/integration registries, schema extensions, migrations, and tests have
 lane ownership. Shared generated OpenAPI clients, Drizzle metadata, and the
 lockfile are regenerated from sources during integration, never edited by hand.
-Foundation, lane, and integration migration number ranges do not overlap, and
-applied migrations never change.
+Historical and current lane migration number ranges do not overlap, and applied
+migrations never change.
 
 ### Completeness rule
 
-All product capabilities in this specification are built now, including
-embedded signing, SSO, white-label, AWS/Azure/GCP marketplaces, two-tier
-distributor settlement, support visibility, existing-base migration tooling,
-automated teardown, and the complete report suite. Features can remain disabled
-only when a registered external account, credential, legal/commercial decision,
-production data set, or explicit authorization is missing. A simulator and
-activation test must exist for every disabled feature.
+The release scope includes embedded signing, SSO, white-label, AWS/Azure/GCP
+marketplaces, two-tier distributor settlement, support visibility,
+existing-base migration tooling, automated teardown, and the complete report
+suite. Presence of a schema, fake, route shell, candidate task, or renderer does
+not make a capability complete; the traceability ledger and backlog remain the
+status authority. A feature can remain disabled only for a registered external
+account, credential, legal/commercial decision, production data set, or explicit
+authorization, and every disabled feature requires a simulator and activation
+test.
 
 No `TODO`, `FIXME`, fake success, skipped/disabled test, placeholder copy,
 unsafe cast, unhandled promise, direct table access outside `packages/db`, raw
@@ -1159,7 +1186,8 @@ external gate.
 
 ### Release verification
 
-The release candidate is built from a clean integration worktree and must pass:
+The release candidate is qualified from a clean standalone checkout of the exact
+resulting `main` SHA and must pass:
 
 - frozen dependency installation; formatting, lint, strict typecheck, package
   boundaries, dependency audit, secret scan, and production build;
@@ -1216,8 +1244,8 @@ authorization must both fail closed.
   recovery have tested runbooks. No unfinished internal work is mislabeled as
   an external dependency.
 
-Agent 5 produces the release-candidate report, final gate register, launch
-checklist, and operations runbooks. The launch checklist includes staging soak,
+The integration/release owner produces the release-candidate report, final gate
+register, launch checklist, and operations runbooks. The launch checklist includes staging soak,
 rollback, isolated backup-restore drill, alert verification, feature-flag
 activation, and named approvals. Merging and producing a release candidate do
 not authorize a production deployment or contact with external parties.
@@ -1226,11 +1254,11 @@ not authorize a production deployment or contact with external parties.
 
 ## 23. References
 
-- Sprint checklist: `sprint_checklist.md` (this folder), July 2026.
+- Sprint checklist: `docs/sprint-checklist.md`, reviewed July 2026 snapshot.
 - Concept document: "The Frictionless Commerce Platform" screenshots, July 2026.
-- Five-Codex production build plan, July 31, 2026. This plan supersedes the
-  former in-repository architecture and deferral assumptions while preserving
-  the approved product behavior.
+- Five-Codex implementation plan, July 31, 2026. This historical plan superseded
+  the former architecture during the initial pass; active release-candidate
+  ownership is now recorded in `docs/implementation-lanes.md`.
 - Adversarial review findings (three lenses, July 31, 2026): folded throughout;
   see §22 rules, §5 Account/Amendment/CommitmentLedger, §8 partner agreement
   contents, §10 posting model, §19.

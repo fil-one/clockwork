@@ -41,5 +41,13 @@ export default tseslint.config(
   {
     files: ["**/*.{js,mjs,cjs}"],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        URL: "readonly",
+        console: "readonly",
+        process: "readonly",
+      },
+    },
   },
 );

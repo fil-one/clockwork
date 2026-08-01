@@ -1,0 +1,808 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "testFiles": [
+    "apps/web/e2e/experience.spec.ts",
+    "apps/web/e2e/smoke.spec.ts",
+    "apps/web/e2e/ux-customer-partner.spec.ts",
+    "apps/web/e2e/ux-internal-ops.spec.ts",
+    "apps/web/e2e/ux-shell.spec.ts",
+    "apps/web/e2e/visual.spec.ts",
+    "apps/web/src/auth/session.test.ts",
+    "apps/web/src/features/contracts/commerce-client.test.ts",
+    "apps/web/src/features/contracts/external-gates-client.test.ts",
+    "apps/web/src/features/contracts/provider-navigation.test.ts",
+    "apps/web/src/features/contracts/status-client.test.ts",
+    "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
+    "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
+    "apps/web/src/features/customer-partner/commercial/url-state.test.ts",
+    "apps/web/src/features/customer-partner/commercial/workflow-model.test.ts",
+    "apps/web/src/features/customer-partner/customer/collection-state.test.ts",
+    "apps/web/src/features/customer-partner/customer/permissions.test.ts",
+    "apps/web/src/features/customer-partner/partner/partner-query.test.ts",
+    "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+    "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts",
+    "apps/web/src/features/internal-ops/administration-safety/administration-safety.test.tsx",
+    "apps/web/src/features/internal-ops/assisted-session/assisted-session-banner.test.tsx",
+    "apps/web/src/features/internal-ops/finance-lifecycle/lifecycle-logic.test.ts",
+    "apps/web/src/features/internal-ops/finance-lifecycle/review-action.test.tsx",
+    "apps/web/src/features/internal-ops/operations-home/operations-home.test.tsx",
+    "apps/web/src/features/internal-ops/queue-search/queue-search.test.tsx",
+    "apps/web/src/features/performance/web-vitals.test.ts",
+    "apps/web/src/features/registration/registration-form.test.tsx",
+    "apps/web/src/features/shared/demo-data.test.ts",
+    "apps/web/src/features/shared/format.test.ts",
+    "apps/web/src/features/shell/command-items.test.ts",
+    "apps/web/src/features/shell/permission-gate.test.tsx",
+    "apps/web/src/features/signing/signing-experience.test.tsx",
+    "apps/web/src/features/surfaces/external-gate-records.test.ts",
+    "apps/web/src/features/surfaces/workflow-panel.test.tsx",
+    "apps/web/src/providers/composition.test.ts",
+    "apps/web/src/storybook/experience.a11y.test.tsx",
+    "apps/web/src/storybook/foundation.a11y.test.tsx",
+    "apps/web/src/storybook/ux-shell.a11y.test.tsx",
+    "packages/api/src/app.integration.test.ts",
+    "packages/api/src/auth/session.test.ts",
+    "packages/api/src/lane-composition.integration.test.ts",
+    "packages/api/src/middleware.integration.test.ts",
+    "packages/api/src/routes/core/core.integration.test.ts",
+    "packages/api/src/routes/lifecycle/events.test.ts",
+    "packages/api/src/routes/lifecycle/lifecycle.integration.test.ts",
+    "packages/api/src/routes/lifecycle/service.test.ts",
+    "packages/api/src/routes/system/external-gate-simulator.test.ts",
+    "packages/api/src/routes/system/external-gates.integration.test.ts",
+    "packages/contracts/src/primitives.test.ts",
+    "packages/db/src/durability.integration.test.ts",
+    "packages/db/src/repositories/core/collections.integration.test.ts",
+    "packages/db/src/repositories/core/database-finance.integration.test.ts",
+    "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+    "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+    "packages/db/src/repositories/system/external-gates.integration.test.ts",
+    "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+    "packages/db/src/repositories/webhooks.test.ts",
+    "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+    "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+    "packages/documents/src/documents.test.ts",
+    "packages/documents/src/format.test.ts",
+    "packages/documents/src/render.integration.test.ts",
+    "packages/domain/src/agreements/agreements.test.ts",
+    "packages/domain/src/authorization.test.ts",
+    "packages/domain/src/compliance/compliance.test.ts",
+    "packages/domain/src/core/core-finance.test.ts",
+    "packages/domain/src/exceptions/exceptions.test.ts",
+    "packages/domain/src/identity/identity.test.ts",
+    "packages/domain/src/migrations/migrations.test.ts",
+    "packages/domain/src/money.test.ts",
+    "packages/domain/src/pocs/pocs.test.ts",
+    "packages/domain/src/provisioning/provisioning.test.ts",
+    "packages/domain/src/renewals/renewals.test.ts",
+    "packages/domain/src/system/external-gates.test.ts",
+    "packages/domain/src/terminations/terminations.test.ts",
+    "packages/integrations/src/core/accounting/adapter.test.ts",
+    "packages/integrations/src/core/marketplaces/marketplaces.test.ts",
+    "packages/integrations/src/core/stripe/gateway.test.ts",
+    "packages/integrations/src/core/stripe/payment-sessions.test.ts",
+    "packages/integrations/src/core/stripe/test-clock.integration.test.ts",
+    "packages/integrations/src/core/stripe/webhooks.integration.test.ts",
+    "packages/integrations/src/crm/crm.contract.test.ts",
+    "packages/integrations/src/domain-ownership/domain-ownership.test.ts",
+    "packages/integrations/src/esign/esign.contract.test.ts",
+    "packages/integrations/src/esign/http-signing-client.test.ts",
+    "packages/integrations/src/evidence-storage/evidence-storage.contract.test.ts",
+    "packages/integrations/src/evidence-storage/s3-evidence-storage.test.ts",
+    "packages/integrations/src/fakes/scenario.test.ts",
+    "packages/integrations/src/marketplaces-platform/marketplaces-platform.contract.test.ts",
+    "packages/integrations/src/migration/source.test.ts",
+    "packages/integrations/src/notifications/notifications.contract.test.ts",
+    "packages/integrations/src/production-adapters.test.ts",
+    "packages/integrations/src/provider-transport.test.ts",
+    "packages/integrations/src/provisioning/provisioning.contract.test.ts",
+    "packages/integrations/src/screening/screening.contract.test.ts",
+    "packages/integrations/src/support/support.contract.test.ts",
+    "packages/integrations/src/workos/management-client.test.ts",
+    "packages/integrations/src/workos/workos.contract.test.ts",
+    "packages/testing/src/core/persistence.test.ts",
+    "packages/testing/src/demo/handlers.test.ts",
+    "packages/testing/src/demo/journeys.test.ts",
+    "packages/testing/src/demo/reset.test.ts",
+    "packages/testing/src/demo/seed.test.ts",
+    "packages/testing/src/personas/catalog.test.ts",
+    "packages/testing/src/personas/playwright.test.ts",
+    "packages/testing/src/providers/external-gate-activation.test.ts",
+    "packages/testing/src/providers/fakes.contract.test.ts",
+    "packages/testing/src/release/acceptance-matrix.integration.test.ts",
+    "packages/testing/src/release/direct-provider-path.integration.test.ts",
+    "packages/testing/src/stripe/verifier.test.ts",
+    "packages/testing/src/trigger/runner.test.ts",
+    "packages/testing/src/visual/scenarios.test.ts",
+    "packages/ui/src/components/chart.test.tsx",
+    "packages/ui/src/components/design-shell.test.tsx",
+    "packages/ui/src/components/system.test.tsx",
+    "packages/ui/src/components/term-bar.test.tsx",
+    "packages/workflows/src/agreements/index.test.ts",
+    "packages/workflows/src/core/commercial-artifact-handler.test.ts",
+    "packages/workflows/src/core/engine.test.ts",
+    "packages/workflows/src/core/money-path.integration.test.ts",
+    "packages/workflows/src/core/outbox-handlers.test.ts",
+    "packages/workflows/src/exceptions/index.test.ts",
+    "packages/workflows/src/migrations/index.test.ts",
+    "packages/workflows/src/offboarding/deletion-certificate-handler.test.ts",
+    "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
+    "packages/workflows/src/offboarding/index.test.ts",
+    "packages/workflows/src/onboarding/index.test.ts",
+    "packages/workflows/src/onboarding/task-ids.test.ts",
+    "packages/workflows/src/onboarding/trigger-runtime.test.ts",
+    "packages/workflows/src/pocs/index.test.ts",
+    "packages/workflows/src/policy.test.ts",
+    "packages/workflows/src/provisioning/index.test.ts",
+    "packages/workflows/src/renewals/index.test.ts",
+    "packages/workflows/src/runtime/environment-production-adapters.test.ts",
+    "packages/workflows/src/runtime/production-adapter-factory.test.ts",
+    "packages/workflows/src/runtime/provider-lifecycle.test.ts",
+    "packages/workflows/src/runtime/trigger-worker-bootstrap.test.ts",
+    "packages/workflows/src/system/lifecycle-task-dispatch.test.ts",
+    "packages/workflows/src/system/outbox-dispatcher.test.ts",
+    "packages/workflows/src/system/workos-organization.test.ts",
+    "packages/workflows/src/trigger/discovery.test.ts",
+    "supabase/tests/000_schema.test.sql",
+    "supabase/tests/010_constraints.test.sql",
+    "supabase/tests/020_rls.test.sql",
+    "supabase/tests/030_immutability.test.sql",
+    "supabase/tests/040_chain.test.sql",
+    "supabase/tests/100_core_finance.test.sql",
+    "supabase/tests/200_lifecycle_platform.test.sql",
+    "supabase/tests/900_integration_security_reports.test.sql",
+    "supabase/tests/901_external_gates.test.sql",
+    "supabase/tests/903_secure_chain_validation.test.sql"
+  ],
+  "counts": {
+    "totalFiles": 152,
+    "unitFiles": 111,
+    "storybookFiles": 3,
+    "integrationFiles": 22,
+    "playwrightSpecFiles": 6,
+    "browserSourceDeclarations": 44,
+    "browserExpandedExecutableTests": 64,
+    "pgTapFiles": 10,
+    "pgTapPlannedAssertions": 169
+  },
+  "suites": {
+    "unit": [
+      "apps/web/src/auth/session.test.ts",
+      "apps/web/src/features/contracts/commerce-client.test.ts",
+      "apps/web/src/features/contracts/external-gates-client.test.ts",
+      "apps/web/src/features/contracts/provider-navigation.test.ts",
+      "apps/web/src/features/contracts/status-client.test.ts",
+      "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
+      "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
+      "apps/web/src/features/customer-partner/commercial/url-state.test.ts",
+      "apps/web/src/features/customer-partner/commercial/workflow-model.test.ts",
+      "apps/web/src/features/customer-partner/customer/collection-state.test.ts",
+      "apps/web/src/features/customer-partner/customer/permissions.test.ts",
+      "apps/web/src/features/customer-partner/partner/partner-query.test.ts",
+      "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+      "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts",
+      "apps/web/src/features/internal-ops/administration-safety/administration-safety.test.tsx",
+      "apps/web/src/features/internal-ops/assisted-session/assisted-session-banner.test.tsx",
+      "apps/web/src/features/internal-ops/finance-lifecycle/lifecycle-logic.test.ts",
+      "apps/web/src/features/internal-ops/finance-lifecycle/review-action.test.tsx",
+      "apps/web/src/features/internal-ops/operations-home/operations-home.test.tsx",
+      "apps/web/src/features/internal-ops/queue-search/queue-search.test.tsx",
+      "apps/web/src/features/performance/web-vitals.test.ts",
+      "apps/web/src/features/registration/registration-form.test.tsx",
+      "apps/web/src/features/shared/demo-data.test.ts",
+      "apps/web/src/features/shared/format.test.ts",
+      "apps/web/src/features/shell/command-items.test.ts",
+      "apps/web/src/features/shell/permission-gate.test.tsx",
+      "apps/web/src/features/signing/signing-experience.test.tsx",
+      "apps/web/src/features/surfaces/external-gate-records.test.ts",
+      "apps/web/src/features/surfaces/workflow-panel.test.tsx",
+      "apps/web/src/providers/composition.test.ts",
+      "packages/api/src/auth/session.test.ts",
+      "packages/api/src/routes/lifecycle/events.test.ts",
+      "packages/api/src/routes/lifecycle/service.test.ts",
+      "packages/api/src/routes/system/external-gate-simulator.test.ts",
+      "packages/contracts/src/primitives.test.ts",
+      "packages/db/src/repositories/webhooks.test.ts",
+      "packages/documents/src/documents.test.ts",
+      "packages/documents/src/format.test.ts",
+      "packages/domain/src/agreements/agreements.test.ts",
+      "packages/domain/src/authorization.test.ts",
+      "packages/domain/src/compliance/compliance.test.ts",
+      "packages/domain/src/core/core-finance.test.ts",
+      "packages/domain/src/exceptions/exceptions.test.ts",
+      "packages/domain/src/identity/identity.test.ts",
+      "packages/domain/src/migrations/migrations.test.ts",
+      "packages/domain/src/money.test.ts",
+      "packages/domain/src/pocs/pocs.test.ts",
+      "packages/domain/src/provisioning/provisioning.test.ts",
+      "packages/domain/src/renewals/renewals.test.ts",
+      "packages/domain/src/system/external-gates.test.ts",
+      "packages/domain/src/terminations/terminations.test.ts",
+      "packages/integrations/src/core/accounting/adapter.test.ts",
+      "packages/integrations/src/core/marketplaces/marketplaces.test.ts",
+      "packages/integrations/src/core/stripe/gateway.test.ts",
+      "packages/integrations/src/core/stripe/payment-sessions.test.ts",
+      "packages/integrations/src/crm/crm.contract.test.ts",
+      "packages/integrations/src/domain-ownership/domain-ownership.test.ts",
+      "packages/integrations/src/esign/esign.contract.test.ts",
+      "packages/integrations/src/esign/http-signing-client.test.ts",
+      "packages/integrations/src/evidence-storage/evidence-storage.contract.test.ts",
+      "packages/integrations/src/evidence-storage/s3-evidence-storage.test.ts",
+      "packages/integrations/src/fakes/scenario.test.ts",
+      "packages/integrations/src/marketplaces-platform/marketplaces-platform.contract.test.ts",
+      "packages/integrations/src/migration/source.test.ts",
+      "packages/integrations/src/notifications/notifications.contract.test.ts",
+      "packages/integrations/src/production-adapters.test.ts",
+      "packages/integrations/src/provider-transport.test.ts",
+      "packages/integrations/src/provisioning/provisioning.contract.test.ts",
+      "packages/integrations/src/screening/screening.contract.test.ts",
+      "packages/integrations/src/support/support.contract.test.ts",
+      "packages/integrations/src/workos/management-client.test.ts",
+      "packages/integrations/src/workos/workos.contract.test.ts",
+      "packages/testing/src/core/persistence.test.ts",
+      "packages/testing/src/demo/handlers.test.ts",
+      "packages/testing/src/demo/journeys.test.ts",
+      "packages/testing/src/demo/reset.test.ts",
+      "packages/testing/src/demo/seed.test.ts",
+      "packages/testing/src/personas/catalog.test.ts",
+      "packages/testing/src/personas/playwright.test.ts",
+      "packages/testing/src/providers/external-gate-activation.test.ts",
+      "packages/testing/src/providers/fakes.contract.test.ts",
+      "packages/testing/src/stripe/verifier.test.ts",
+      "packages/testing/src/trigger/runner.test.ts",
+      "packages/testing/src/visual/scenarios.test.ts",
+      "packages/ui/src/components/chart.test.tsx",
+      "packages/ui/src/components/design-shell.test.tsx",
+      "packages/ui/src/components/system.test.tsx",
+      "packages/ui/src/components/term-bar.test.tsx",
+      "packages/workflows/src/agreements/index.test.ts",
+      "packages/workflows/src/core/commercial-artifact-handler.test.ts",
+      "packages/workflows/src/core/engine.test.ts",
+      "packages/workflows/src/core/outbox-handlers.test.ts",
+      "packages/workflows/src/exceptions/index.test.ts",
+      "packages/workflows/src/migrations/index.test.ts",
+      "packages/workflows/src/offboarding/deletion-certificate-handler.test.ts",
+      "packages/workflows/src/offboarding/index.test.ts",
+      "packages/workflows/src/onboarding/index.test.ts",
+      "packages/workflows/src/onboarding/task-ids.test.ts",
+      "packages/workflows/src/onboarding/trigger-runtime.test.ts",
+      "packages/workflows/src/pocs/index.test.ts",
+      "packages/workflows/src/policy.test.ts",
+      "packages/workflows/src/provisioning/index.test.ts",
+      "packages/workflows/src/renewals/index.test.ts",
+      "packages/workflows/src/runtime/environment-production-adapters.test.ts",
+      "packages/workflows/src/runtime/production-adapter-factory.test.ts",
+      "packages/workflows/src/runtime/provider-lifecycle.test.ts",
+      "packages/workflows/src/runtime/trigger-worker-bootstrap.test.ts",
+      "packages/workflows/src/system/lifecycle-task-dispatch.test.ts",
+      "packages/workflows/src/system/outbox-dispatcher.test.ts",
+      "packages/workflows/src/system/workos-organization.test.ts",
+      "packages/workflows/src/trigger/discovery.test.ts"
+    ],
+    "storybook": [
+      "apps/web/src/storybook/experience.a11y.test.tsx",
+      "apps/web/src/storybook/foundation.a11y.test.tsx",
+      "apps/web/src/storybook/ux-shell.a11y.test.tsx"
+    ],
+    "integration": [
+      "packages/api/src/app.integration.test.ts",
+      "packages/api/src/lane-composition.integration.test.ts",
+      "packages/api/src/middleware.integration.test.ts",
+      "packages/api/src/routes/core/core.integration.test.ts",
+      "packages/api/src/routes/lifecycle/lifecycle.integration.test.ts",
+      "packages/api/src/routes/system/external-gates.integration.test.ts",
+      "packages/db/src/durability.integration.test.ts",
+      "packages/db/src/repositories/core/collections.integration.test.ts",
+      "packages/db/src/repositories/core/database-finance.integration.test.ts",
+      "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+      "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+      "packages/db/src/repositories/system/external-gates.integration.test.ts",
+      "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+      "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+      "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+      "packages/documents/src/render.integration.test.ts",
+      "packages/integrations/src/core/stripe/test-clock.integration.test.ts",
+      "packages/integrations/src/core/stripe/webhooks.integration.test.ts",
+      "packages/testing/src/release/acceptance-matrix.integration.test.ts",
+      "packages/testing/src/release/direct-provider-path.integration.test.ts",
+      "packages/workflows/src/core/money-path.integration.test.ts",
+      "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
+    ],
+    "playwright": [
+      "apps/web/e2e/experience.spec.ts",
+      "apps/web/e2e/smoke.spec.ts",
+      "apps/web/e2e/ux-customer-partner.spec.ts",
+      "apps/web/e2e/ux-internal-ops.spec.ts",
+      "apps/web/e2e/ux-shell.spec.ts",
+      "apps/web/e2e/visual.spec.ts"
+    ],
+    "pgTap": [
+      "supabase/tests/000_schema.test.sql",
+      "supabase/tests/010_constraints.test.sql",
+      "supabase/tests/020_rls.test.sql",
+      "supabase/tests/030_immutability.test.sql",
+      "supabase/tests/040_chain.test.sql",
+      "supabase/tests/100_core_finance.test.sql",
+      "supabase/tests/200_lifecycle_platform.test.sql",
+      "supabase/tests/900_integration_security_reports.test.sql",
+      "supabase/tests/901_external_gates.test.sql",
+      "supabase/tests/903_secure_chain_validation.test.sql"
+    ]
+  },
+  "pgTapPlans": [
+    {
+      "path": "supabase/tests/000_schema.test.sql",
+      "plannedAssertions": 12,
+      "sha256": "1c53eb51e6464775c7f5a7321e4e4cfd72e5308c7cb82f77c8dc88ea2f699ea3"
+    },
+    {
+      "path": "supabase/tests/010_constraints.test.sql",
+      "plannedAssertions": 5,
+      "sha256": "aba12b1761a24dfa0e34bb844ec3af318db7f25b73c9a276bd83e0bf2179d412"
+    },
+    {
+      "path": "supabase/tests/020_rls.test.sql",
+      "plannedAssertions": 10,
+      "sha256": "40c940ee40a4551e1a7d26c6ed5da88a2be2db796c79344145dcb728c3a0b99d"
+    },
+    {
+      "path": "supabase/tests/030_immutability.test.sql",
+      "plannedAssertions": 10,
+      "sha256": "e88d889da38b6341069ba0077c24f7fc36f2682ed87161b1b454f98897ca23f9"
+    },
+    {
+      "path": "supabase/tests/040_chain.test.sql",
+      "plannedAssertions": 24,
+      "sha256": "4180d2367dc191d6f0118d378134087e76d67bebf4d1d1430220716026f70964"
+    },
+    {
+      "path": "supabase/tests/100_core_finance.test.sql",
+      "plannedAssertions": 33,
+      "sha256": "7276bd632fe1f60bc47aad84d4dec6add024f63fd7a9cc42832aa3471a4cd908"
+    },
+    {
+      "path": "supabase/tests/200_lifecycle_platform.test.sql",
+      "plannedAssertions": 33,
+      "sha256": "8e567048559314f3c54c64158b9a63c44f25a556b3d64ae0adf461fcdb1ec493"
+    },
+    {
+      "path": "supabase/tests/900_integration_security_reports.test.sql",
+      "plannedAssertions": 29,
+      "sha256": "963acde46c76757252687de3467c1e24170e22fb4c0b7b7aa6b95ad217860661"
+    },
+    {
+      "path": "supabase/tests/901_external_gates.test.sql",
+      "plannedAssertions": 8,
+      "sha256": "33212dd708da9cc035b022718adc341deaa41ad0532789e60ec247aac591cc49"
+    },
+    {
+      "path": "supabase/tests/903_secure_chain_validation.test.sql",
+      "plannedAssertions": 5,
+      "sha256": "82c0fd8daa0dde8b2f8bc1737ca2871fa75ef7b1a87bbed77f0f2a3b7de16b7b"
+    }
+  ],
+  "browserScenarios": [
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "${journey.persona} mocked journey is navigable and axe-clean"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "billing user is denied quote mutation access"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "new buyer registers a verified legal entity through the bootstrap contract"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "direct buyer executes terms, creates a quote, and accepts the order through generated operations"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "redirect signing creates an envelope without activating the agreement"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "billing prepares a Stripe handoff while payment truth remains webhook-derived"
+    },
+    {
+      "source": "apps/web/e2e/experience.spec.ts",
+      "name": "internal assisted review preserves actor attribution without a local mutation"
+    },
+    {
+      "source": "apps/web/e2e/smoke.spec.ts",
+      "name": "@smoke renders the customer experience and its API lane mounts"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "owner dashboard leads with decisions and one commercial term"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "member keeps read access without owner-only customer actions"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "owner creates a validated three-stage quote draft with canonical IDs"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "owner reviews title, version, and authority before agreement acceptance"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "owner confirms the complete order commitment before acceptance"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "offboarding review reflects the selected named service"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "billing prepares a safe provider handoff while payment truth stays webhook-derived"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "partner seller can search the named portfolio but cannot open partner billing"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "partner collection state survives reload and browser history"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "partner seller creates a reviewed resale quote from names while IDs stay technical"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "partner admin reviews financial boundaries before requesting renewal"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "customer and partner priority layouts avoid overflow at ${viewport.width}px"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "filters queues, selects split detail, and keeps state in the URL"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "searches grouped operational records with a title as the navigation target"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "shows grouped fail-closed gates and assisted review before submission"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "keeps every internal destination operable in the 320px drawer"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "uses a full-page queue detail on mobile"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "reviews a finance approval with a required reason"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "distinguishes renewal exposure and report truth"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "scans agreement versions and reviews exact-template publication"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "cannot approve finance price-book activation"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "reviews offboarding impact while preserving dual control and retention"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "keeps representative surfaces responsive across release viewports"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "keeps internal primary targets reachable with visible focus at 320px"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "passes axe on representative operations, queue, and report surfaces"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "removes internal loading motion when reduced motion is requested"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "${viewport.name} keeps every destination discoverable without horizontal overflow"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "${viewport.name} drawer is modal, keyboard trapped, and restores focus"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "partner admin can reach every partner destination from the 320px drawer"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "partner seller navigation and commands exclude admin-only work"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "command palette supports grouped search, no matches, and focus restoration"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "command palette remains keyboard operable and contained at 320px"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "${viewport.name} organization switcher is usable in a compact header"
+    },
+    {
+      "source": "apps/web/e2e/ux-shell.spec.ts",
+      "name": "reduced-motion preference removes nonessential shell motion"
+    },
+    {
+      "source": "apps/web/e2e/visual.spec.ts",
+      "name": "visual ${surface.name}"
+    },
+    {
+      "source": "apps/web/e2e/visual.spec.ts",
+      "name": "visual customer dashboard at 320px"
+    }
+  ],
+  "playwrightDiscovery": {
+    "command": "pnpm --filter @clockwork/web exec playwright test --list --reporter=list",
+    "expandedTests": [
+      "[chromium] › experience.spec.ts:63:3 › direct buyer mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › referral partner mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › reseller mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › distributor mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › end client mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › billing user mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › legal approver mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › finance approver mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:63:3 › internal operator mocked journey is navigable and axe-clean",
+      "[chromium] › experience.spec.ts:77:1 › billing user is denied quote mutation access",
+      "[chromium] › experience.spec.ts:87:1 › new buyer registers a verified legal entity through the bootstrap contract",
+      "[chromium] › experience.spec.ts:126:1 › direct buyer executes terms, creates a quote, and accepts the order through generated operations",
+      "[chromium] › experience.spec.ts:242:1 › redirect signing creates an envelope without activating the agreement",
+      "[chromium] › experience.spec.ts:285:1 › billing prepares a Stripe handoff while payment truth remains webhook-derived",
+      "[chromium] › experience.spec.ts:328:1 › internal assisted review preserves actor attribution without a local mutation",
+      "[chromium] › smoke.spec.ts:4:1 › @smoke renders the customer experience and its API lane mounts",
+      "[chromium] › ux-customer-partner.spec.ts:38:1 › owner dashboard leads with decisions and one commercial term",
+      "[chromium] › ux-customer-partner.spec.ts:63:1 › member keeps read access without owner-only customer actions",
+      "[chromium] › ux-customer-partner.spec.ts:89:1 › owner creates a validated three-stage quote draft with canonical IDs",
+      "[chromium] › ux-customer-partner.spec.ts:161:1 › owner reviews title, version, and authority before agreement acceptance",
+      "[chromium] › ux-customer-partner.spec.ts:220:1 › owner confirms the complete order commitment before acceptance",
+      "[chromium] › ux-customer-partner.spec.ts:288:1 › offboarding review reflects the selected named service",
+      "[chromium] › ux-customer-partner.spec.ts:302:1 › billing prepares a safe provider handoff while payment truth stays webhook-derived",
+      "[chromium] › ux-customer-partner.spec.ts:344:1 › partner seller can search the named portfolio but cannot open partner billing",
+      "[chromium] › ux-customer-partner.spec.ts:372:1 › partner collection state survives reload and browser history",
+      "[chromium] › ux-customer-partner.spec.ts:402:1 › partner seller creates a reviewed resale quote from names while IDs stay technical",
+      "[chromium] › ux-customer-partner.spec.ts:475:1 › partner admin reviews financial boundaries before requesting renewal",
+      "[chromium] › ux-customer-partner.spec.ts:542:3 › customer and partner priority layouts avoid overflow at 1440px",
+      "[chromium] › ux-customer-partner.spec.ts:542:3 › customer and partner priority layouts avoid overflow at 1024px",
+      "[chromium] › ux-customer-partner.spec.ts:542:3 › customer and partner priority layouts avoid overflow at 768px",
+      "[chromium] › ux-customer-partner.spec.ts:542:3 › customer and partner priority layouts avoid overflow at 390px",
+      "[chromium] › ux-customer-partner.spec.ts:542:3 › customer and partner priority layouts avoid overflow at 320px",
+      "[chromium] › ux-internal-ops.spec.ts:70:3 › internal operator operations journey › filters queues, selects split detail, and keeps state in the URL",
+      "[chromium] › ux-internal-ops.spec.ts:105:3 › internal operator operations journey › searches grouped operational records with a title as the navigation target",
+      "[chromium] › ux-internal-ops.spec.ts:127:3 › internal operator operations journey › shows grouped fail-closed gates and assisted review before submission",
+      "[chromium] › ux-internal-ops.spec.ts:160:3 › internal operator operations journey › keeps every internal destination operable in the 320px drawer",
+      "[chromium] › ux-internal-ops.spec.ts:187:3 › internal operator operations journey › uses a full-page queue detail on mobile",
+      "[chromium] › ux-internal-ops.spec.ts:205:3 › finance approver journey › reviews a finance approval with a required reason",
+      "[chromium] › ux-internal-ops.spec.ts:225:3 › finance approver journey › distinguishes renewal exposure and report truth",
+      "[chromium] › ux-internal-ops.spec.ts:251:3 › legal approver journey › scans agreement versions and reviews exact-template publication",
+      "[chromium] › ux-internal-ops.spec.ts:279:3 › legal approver journey › cannot approve finance price-book activation",
+      "[chromium] › ux-internal-ops.spec.ts:295:3 › destructive-action approver journey › reviews offboarding impact while preserving dual control and retention",
+      "[chromium] › ux-internal-ops.spec.ts:326:3 › internal responsive and accessibility coverage › keeps representative surfaces responsive across release viewports",
+      "[chromium] › ux-internal-ops.spec.ts:350:3 › internal responsive and accessibility coverage › keeps internal primary targets reachable with visible focus at 320px",
+      "[chromium] › ux-internal-ops.spec.ts:375:3 › internal responsive and accessibility coverage › passes axe on representative operations, queue, and report surfaces",
+      "[chromium] › ux-internal-ops.spec.ts:385:3 › internal responsive and accessibility coverage › removes internal loading motion when reduced motion is requested",
+      "[chromium] › ux-shell.spec.ts:114:3 › desktop keeps every destination discoverable without horizontal overflow",
+      "[chromium] › ux-shell.spec.ts:114:3 › compact-desktop keeps every destination discoverable without horizontal overflow",
+      "[chromium] › ux-shell.spec.ts:114:3 › tablet keeps every destination discoverable without horizontal overflow",
+      "[chromium] › ux-shell.spec.ts:114:3 › mobile-390 keeps every destination discoverable without horizontal overflow",
+      "[chromium] › ux-shell.spec.ts:114:3 › mobile-320 keeps every destination discoverable without horizontal overflow",
+      "[chromium] › ux-shell.spec.ts:155:3 › mobile-390 drawer is modal, keyboard trapped, and restores focus",
+      "[chromium] › ux-shell.spec.ts:155:3 › mobile-320 drawer is modal, keyboard trapped, and restores focus",
+      "[chromium] › ux-shell.spec.ts:200:1 › partner admin can reach every partner destination from the 320px drawer",
+      "[chromium] › ux-shell.spec.ts:218:1 › partner seller navigation and commands exclude admin-only work",
+      "[chromium] › ux-shell.spec.ts:251:1 › command palette supports grouped search, no matches, and focus restoration",
+      "[chromium] › ux-shell.spec.ts:294:1 › command palette remains keyboard operable and contained at 320px",
+      "[chromium] › ux-shell.spec.ts:309:3 › mobile-390 organization switcher is usable in a compact header",
+      "[chromium] › ux-shell.spec.ts:309:3 › mobile-320 organization switcher is usable in a compact header",
+      "[chromium] › ux-shell.spec.ts:331:1 › reduced-motion preference removes nonessential shell motion",
+      "[chromium] › visual.spec.ts:10:3 › visual customer-dashboard",
+      "[chromium] › visual.spec.ts:10:3 › visual partner-agreement-clock",
+      "[chromium] › visual.spec.ts:10:3 › visual internal-queues",
+      "[chromium] › visual.spec.ts:29:1 › visual customer dashboard at 320px"
+    ]
+  },
+  "visualScenarioCatalog": {
+    "path": "packages/testing/src/visual/scenarios.ts",
+    "scenarioCount": 14,
+    "uniqueRouteCount": 12,
+    "scenarios": [
+      {
+        "id": "direct-dashboard-ready",
+        "route": "/client/dashboard",
+        "persona": "directBuyer",
+        "state": "ready",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "direct-renewal-loading-mobile",
+        "route": "/client/renewals/renewal-meridian-2026",
+        "persona": "directBuyer",
+        "state": "loading",
+        "viewport": "mobile320",
+        "colorScheme": "light"
+      },
+      {
+        "id": "billing-recovery-mobile",
+        "route": "/client/billing/invoice-meridian-overdue",
+        "persona": "billingUser",
+        "state": "recoverable_error",
+        "viewport": "mobile390",
+        "colorScheme": "light"
+      },
+      {
+        "id": "end-client-partial-service",
+        "route": "/client/services/service-referral-end-client",
+        "persona": "endClient",
+        "state": "partial",
+        "viewport": "tablet",
+        "colorScheme": "light"
+      },
+      {
+        "id": "partner-agreement-clock",
+        "route": "/partner",
+        "persona": "reseller",
+        "state": "ready",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "referral-deal-stale",
+        "route": "/partner/deals/deal-northstar-lumen",
+        "persona": "referralPartner",
+        "state": "stale_version",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "resale-quote-validation",
+        "route": "/partner/quotes/quote-resale-customer-v4",
+        "persona": "reseller",
+        "state": "validation_error",
+        "viewport": "tablet",
+        "colorScheme": "light"
+      },
+      {
+        "id": "distributor-portfolio-offline",
+        "route": "/partner/portfolio",
+        "persona": "distributor",
+        "state": "offline",
+        "viewport": "mobile390",
+        "colorScheme": "light"
+      },
+      {
+        "id": "legal-stale-approval",
+        "route": "/internal/approvals/legal/queue-legal-meridian",
+        "persona": "legalApprover",
+        "state": "stale_version",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "finance-permission-denied",
+        "route": "/internal/provisioning/queue-provision-cobalt",
+        "persona": "financeApprover",
+        "state": "permission_denied",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "operator-optimistic-retry",
+        "route": "/internal/provisioning/queue-provision-cobalt",
+        "persona": "internalOperator",
+        "state": "optimistic",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "quote-success",
+        "route": "/client/quotes/quote-direct-renewal-v2",
+        "persona": "directBuyer",
+        "state": "success",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "portfolio-empty",
+        "route": "/partner/portfolio",
+        "persona": "referralPartner",
+        "state": "empty",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      },
+      {
+        "id": "internal-report-unrecoverable",
+        "route": "/internal/reports/reconciliation",
+        "persona": "internalOperator",
+        "state": "unrecoverable_error",
+        "viewport": "desktop",
+        "colorScheme": "light"
+      }
+    ],
+    "absentNextRoutes": [
+      "/client/billing/invoice-meridian-overdue",
+      "/client/dashboard",
+      "/client/quotes/quote-direct-renewal-v2",
+      "/client/renewals/renewal-meridian-2026",
+      "/client/services/service-referral-end-client",
+      "/internal/approvals/legal/queue-legal-meridian",
+      "/internal/provisioning/queue-provision-cobalt",
+      "/internal/reports/reconciliation",
+      "/partner/deals/deal-northstar-lumen"
+    ],
+    "absentNextRouteCount": 9,
+    "limitation": "The 14-scenario release catalog is distinct from the four checked-in Playwright screenshot baselines; absentNextRoutes records exact catalog/route-tree drift."
+  },
+  "visualBaselines": [
+    {
+      "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
+      "sha256": "3f256846cd6b913856b46aec4174caf0264b69ebead6f1780f4760772e3b9033",
+      "bytes": 209062,
+      "dimensions": {
+        "width": 320,
+        "height": 3208
+      }
+    },
+    {
+      "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
+      "sha256": "0a3af1f986cb3654f8a9f279ec69c9abb4c1a95812b365613d9215460a1240de",
+      "bytes": 254391,
+      "dimensions": {
+        "width": 1440,
+        "height": 1461
+      }
+    },
+    {
+      "path": "apps/web/e2e/visual.spec.ts-snapshots/internal-queues-chromium-darwin.png",
+      "sha256": "b11544e16cf20fd355fc9ce43950e7b87e57f53f2b22cd54a21feb39afb24113",
+      "bytes": 316599,
+      "dimensions": {
+        "width": 1440,
+        "height": 1623
+      }
+    },
+    {
+      "path": "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
+      "sha256": "4add0f09cc2f040c26363543e42963a6be4ca3e5f6947f5b89132ee1ef0f0ae3",
+      "bytes": 220163,
+      "dimensions": {
+        "width": 1440,
+        "height": 1421
+      }
+    }
+  ],
+  "qualificationPolicy": {
+    "cachesDisabled": true,
+    "playwrightRetries": 0,
+    "snapshotUpdates": "none",
+    "existingIgnoredResultsAuthoritative": false
+  }
+}

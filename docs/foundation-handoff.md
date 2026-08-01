@@ -49,9 +49,10 @@ pagination, IDs, idempotency keys, and provider ports are in
 in `@clockwork/domain`. All writes use an authorized database transaction,
 repository operation, and atomic audit/outbox append.
 
-The API composes core, lifecycle, and system routers before lane work begins.
-Integrations and workflows have equivalent lane-owned registries. See
-`docs/agent-lanes.md` for exact paths and migration ranges.
+The API composed core, lifecycle, and system routers before the historical lane
+work began. Integrations and workflows had equivalent lane-owned registries.
+`docs/agent-lanes.md` preserves those historical paths; current ownership is in
+`docs/implementation-lanes.md`.
 
 ## Generated artifacts
 

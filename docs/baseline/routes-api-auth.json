@@ -1,0 +1,1587 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "mount": {
+    "openapiPrefix": "/v1",
+    "nextPrefix": "/api",
+    "deployedPrefix": "/api/v1"
+  },
+  "applicationRoutes": [
+    {
+      "route": "/account/offboarding",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx"
+    },
+    {
+      "route": "/account",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/account/page.tsx"
+    },
+    {
+      "route": "/account/procurement",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/account/procurement/page.tsx"
+    },
+    {
+      "route": "/account/users",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/account/users/page.tsx"
+    },
+    {
+      "route": "/agreements/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/agreements/[id]/page.tsx"
+    },
+    {
+      "route": "/agreements/execute",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/agreements/execute/page.tsx"
+    },
+    {
+      "route": "/agreements",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/agreements/page.tsx"
+    },
+    {
+      "route": "/amendments",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/amendments/page.tsx"
+    },
+    {
+      "route": "/billing/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/billing/[id]/page.tsx"
+    },
+    {
+      "route": "/billing",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/billing/page.tsx"
+    },
+    {
+      "route": "/dashboard",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/dashboard/page.tsx"
+    },
+    {
+      "route": "/marketplace",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/marketplace/page.tsx"
+    },
+    {
+      "route": "/orders/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/orders/[id]/page.tsx"
+    },
+    {
+      "route": "/orders/accept",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/orders/accept/page.tsx"
+    },
+    {
+      "route": "/orders",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/orders/page.tsx"
+    },
+    {
+      "route": "/pocs/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/pocs/[id]/page.tsx"
+    },
+    {
+      "route": "/pocs",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/pocs/page.tsx"
+    },
+    {
+      "route": "/quotes/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/quotes/[id]/page.tsx"
+    },
+    {
+      "route": "/quotes/new",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/quotes/new/page.tsx"
+    },
+    {
+      "route": "/quotes",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/quotes/page.tsx"
+    },
+    {
+      "route": "/services",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/services/page.tsx"
+    },
+    {
+      "route": "/states",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/states/page.tsx"
+    },
+    {
+      "route": "/support",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/support/page.tsx"
+    },
+    {
+      "route": "/internal/accounts/[id]",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/accounts/[id]/page.tsx"
+    },
+    {
+      "route": "/internal/agreements",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/agreements/page.tsx"
+    },
+    {
+      "route": "/internal/approvals",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/approvals/page.tsx"
+    },
+    {
+      "route": "/internal/assisted",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/assisted/page.tsx"
+    },
+    {
+      "route": "/internal/collections",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/collections/page.tsx"
+    },
+    {
+      "route": "/internal/gates",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/gates/page.tsx"
+    },
+    {
+      "route": "/internal/migrations",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/migrations/page.tsx"
+    },
+    {
+      "route": "/internal",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/page.tsx"
+    },
+    {
+      "route": "/internal/price-books",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/price-books/page.tsx"
+    },
+    {
+      "route": "/internal/provisioning",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/provisioning/page.tsx"
+    },
+    {
+      "route": "/internal/queues/[id]",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
+    },
+    {
+      "route": "/internal/queues",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/queues/page.tsx"
+    },
+    {
+      "route": "/internal/renewals",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/renewals/page.tsx"
+    },
+    {
+      "route": "/internal/reports",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/reports/page.tsx"
+    },
+    {
+      "route": "/internal/search",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/search/page.tsx"
+    },
+    {
+      "route": "/partner/billing",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/billing/page.tsx"
+    },
+    {
+      "route": "/partner/brand",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/brand/page.tsx"
+    },
+    {
+      "route": "/partner/commissions",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/commissions/page.tsx"
+    },
+    {
+      "route": "/partner/disputes",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/disputes/page.tsx"
+    },
+    {
+      "route": "/partner/marketplace",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/marketplace/page.tsx"
+    },
+    {
+      "route": "/partner",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/page.tsx"
+    },
+    {
+      "route": "/partner/portfolio/[id]",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/portfolio/[id]/page.tsx"
+    },
+    {
+      "route": "/partner/portfolio",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/portfolio/page.tsx"
+    },
+    {
+      "route": "/partner/quotes/[id]",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/quotes/[id]/page.tsx"
+    },
+    {
+      "route": "/partner/quotes/new",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/quotes/new/page.tsx"
+    },
+    {
+      "route": "/partner/quotes",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/quotes/page.tsx"
+    },
+    {
+      "route": "/partner/registrations",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/registrations/page.tsx"
+    },
+    {
+      "route": "/partner/renewals",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/renewals/page.tsx"
+    },
+    {
+      "route": "/partner/sandboxes",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/sandboxes/page.tsx"
+    },
+    {
+      "route": "/partner/support",
+      "audience": "partner",
+      "intendedAccess": "authenticated-partner-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(partner)/partner/support/page.tsx"
+    },
+    {
+      "route": "/access/mfa",
+      "audience": "access",
+      "intendedAccess": "public-entry",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/access/mfa/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/access/mfa/page.tsx"
+    },
+    {
+      "route": "/access/session-expired",
+      "audience": "access",
+      "intendedAccess": "public-entry",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/access/session-expired/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/access/session-expired/page.tsx"
+    },
+    {
+      "route": "/api/[[...route]]",
+      "audience": "api-mount",
+      "intendedAccess": "operation-specific-session-permission",
+      "observedGuard": {
+        "behavior": "Hono operation authorization through WorkosNextSessionResolver",
+        "sources": [
+          "apps/web/app/api/[[...route]]/route.ts",
+          "apps/web/src/auth/session.ts",
+          "packages/api/src/app.ts"
+        ],
+        "limitation": "OpenAPI security fields are null; operation-to-permission proof remains source/test based."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/api/[[...route]]/route.ts"
+    },
+    {
+      "route": "/auth/callback",
+      "audience": "shared",
+      "intendedAccess": "public-auth-flow",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/auth/callback/route.ts"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/auth/callback/route.ts"
+    },
+    {
+      "route": "/choose-organization",
+      "audience": "shared",
+      "intendedAccess": "authenticated-session",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/choose-organization/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/choose-organization/page.tsx"
+    },
+    {
+      "route": "/",
+      "audience": "access",
+      "intendedAccess": "public-entry",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/page.tsx"
+    },
+    {
+      "route": "/register",
+      "audience": "shared",
+      "intendedAccess": "public-entry",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/register/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/register/page.tsx"
+    },
+    {
+      "route": "/sign-in",
+      "audience": "shared",
+      "intendedAccess": "public-auth-flow",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/sign-in/route.ts"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/sign-in/route.ts"
+    },
+    {
+      "route": "/signing/embedded",
+      "audience": "signing",
+      "intendedAccess": "public-signing-entry-with-api-enforcement",
+      "observedGuard": {
+        "behavior": "public client page; identifiers/session parameters flow to API operations",
+        "sources": ["apps/web/src/features/signing/signing-experience.tsx"],
+        "limitation": "The page itself does not establish a provider-authenticated signing session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/signing/embedded/page.tsx"
+    },
+    {
+      "route": "/signing/redirect",
+      "audience": "signing",
+      "intendedAccess": "public-signing-entry-with-api-enforcement",
+      "observedGuard": {
+        "behavior": "public client page; identifiers/session parameters flow to API operations",
+        "sources": ["apps/web/src/features/signing/signing-experience.tsx"],
+        "limitation": "The page itself does not establish a provider-authenticated signing session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/signing/redirect/page.tsx"
+    },
+    {
+      "route": "/signing/return",
+      "audience": "signing",
+      "intendedAccess": "public-signing-entry-with-api-enforcement",
+      "observedGuard": {
+        "behavior": "public client page; identifiers/session parameters flow to API operations",
+        "sources": ["apps/web/src/features/signing/signing-experience.tsx"],
+        "limitation": "The page itself does not establish a provider-authenticated signing session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/signing/return/page.tsx"
+    }
+  ],
+  "audiences": [
+    "access",
+    "customer",
+    "partner",
+    "internal",
+    "signing",
+    "api-mount",
+    "shared"
+  ],
+  "roles": [
+    "owner",
+    "admin",
+    "billing",
+    "member",
+    "partner_admin",
+    "partner_seller",
+    "internal_operator",
+    "finance_approver",
+    "legal_approver",
+    "destructive_action_approver"
+  ],
+  "permissions": [
+    "account:read",
+    "account:write",
+    "agreement:read",
+    "agreement:execute",
+    "agreement:approve",
+    "quote:read",
+    "quote:write",
+    "quote:approve",
+    "order:read",
+    "order:write",
+    "billing:read",
+    "billing:write",
+    "billing:approve",
+    "partner:portfolio:read",
+    "partner:quote:write",
+    "poc:manage",
+    "report:read",
+    "system:operate",
+    "impersonation:assume",
+    "destructive:request",
+    "destructive:approve"
+  ],
+  "rolePermissions": {
+    "owner": [
+      "account:read",
+      "account:write",
+      "agreement:read",
+      "agreement:execute",
+      "quote:read",
+      "quote:write",
+      "order:read",
+      "order:write",
+      "billing:read",
+      "billing:write",
+      "poc:manage",
+      "report:read",
+      "destructive:request"
+    ],
+    "admin": [
+      "account:read",
+      "account:write",
+      "agreement:read",
+      "agreement:execute",
+      "quote:read",
+      "quote:write",
+      "order:read",
+      "order:write",
+      "billing:read",
+      "poc:manage",
+      "report:read",
+      "destructive:request"
+    ],
+    "billing": [
+      "account:read",
+      "quote:read",
+      "order:read",
+      "billing:read",
+      "billing:write",
+      "report:read"
+    ],
+    "member": [
+      "account:read",
+      "agreement:read",
+      "quote:read",
+      "order:read",
+      "billing:read"
+    ],
+    "partner_admin": [
+      "account:read",
+      "account:write",
+      "agreement:read",
+      "agreement:execute",
+      "quote:read",
+      "partner:quote:write",
+      "order:read",
+      "order:write",
+      "billing:read",
+      "partner:portfolio:read",
+      "poc:manage"
+    ],
+    "partner_seller": [
+      "account:read",
+      "quote:read",
+      "partner:quote:write",
+      "order:read",
+      "partner:portfolio:read"
+    ],
+    "internal_operator": [
+      "account:read",
+      "account:write",
+      "agreement:read",
+      "quote:read",
+      "quote:write",
+      "order:read",
+      "order:write",
+      "billing:read",
+      "partner:portfolio:read",
+      "poc:manage",
+      "report:read",
+      "system:operate",
+      "impersonation:assume",
+      "destructive:request"
+    ],
+    "finance_approver": [
+      "account:read",
+      "quote:read",
+      "quote:approve",
+      "billing:read",
+      "billing:approve",
+      "report:read"
+    ],
+    "legal_approver": [
+      "account:read",
+      "agreement:read",
+      "agreement:approve",
+      "quote:read",
+      "order:read"
+    ],
+    "destructive_action_approver": [
+      "account:read",
+      "order:read",
+      "system:operate",
+      "destructive:approve"
+    ]
+  },
+  "api": {
+    "openapiSha256": "f36bb7fd7e4efd5cb4acd5cf88f79f6de80c8175130252d419c440a29316c857",
+    "operationCount": 44,
+    "operations": [
+      {
+        "path": "/v1/core/status",
+        "mountedPath": "/api/v1/core/status",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/commands/{resource}",
+        "mountedPath": "/api/v1/core/commands/{resource}",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/records/{resource}",
+        "mountedPath": "/api/v1/core/records/{resource}",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/replays/{provider}/{eventId}",
+        "mountedPath": "/api/v1/core/replays/{provider}/{eventId}",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core", "operations"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/reports/{report}",
+        "mountedPath": "/api/v1/core/reports/{report}",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core", "reports"],
+        "security": null
+      },
+      {
+        "path": "/v1/webhooks/stripe",
+        "mountedPath": "/api/v1/webhooks/stripe",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core", "webhooks"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/payment-sessions",
+        "mountedPath": "/api/v1/core/payment-sessions",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core", "billing"],
+        "security": null
+      },
+      {
+        "path": "/v1/core/artifacts/{kind}/{id}",
+        "mountedPath": "/api/v1/core/artifacts/{kind}/{id}",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["core", "documents"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/status",
+        "mountedPath": "/api/v1/lifecycle/status",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/registrations",
+        "mountedPath": "/api/v1/lifecycle/registrations",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "onboarding"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/organizations/{organizationId}/invites",
+        "mountedPath": "/api/v1/lifecycle/organizations/{organizationId}/invites",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "identity"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/account-selection",
+        "mountedPath": "/api/v1/lifecycle/account-selection",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "identity"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/partners/{accountId}/domains",
+        "mountedPath": "/api/v1/lifecycle/partners/{accountId}/domains",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "identity", "partners"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/accounts/{accountId}/procurement-profile",
+        "mountedPath": "/api/v1/lifecycle/accounts/{accountId}/procurement-profile",
+        "method": "PUT",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "onboarding"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/agreement-templates",
+        "mountedPath": "/api/v1/lifecycle/agreement-templates",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/agreement-templates/active",
+        "mountedPath": "/api/v1/lifecycle/agreement-templates/active",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/agreements/customer-paper",
+        "mountedPath": "/api/v1/lifecycle/agreements/customer-paper",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/agreements/click-through",
+        "mountedPath": "/api/v1/lifecycle/agreements/click-through",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/agreements/envelopes",
+        "mountedPath": "/api/v1/lifecycle/agreements/envelopes",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/webhooks/esign",
+        "mountedPath": "/api/v1/webhooks/esign",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "webhooks"],
+        "security": null
+      },
+      {
+        "path": "/v1/webhooks/provisioning",
+        "mountedPath": "/api/v1/webhooks/provisioning",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "webhooks", "provisioning"],
+        "security": null
+      },
+      {
+        "path": "/v1/webhooks/marketplaces-platform",
+        "mountedPath": "/api/v1/webhooks/marketplaces-platform",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "webhooks", "marketplaces"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/pocs/{pocId}/conversion",
+        "mountedPath": "/api/v1/lifecycle/pocs/{pocId}/conversion",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "pocs"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/pocs",
+        "mountedPath": "/api/v1/lifecycle/pocs",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "pocs"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/pocs/{pocId}/decisions",
+        "mountedPath": "/api/v1/lifecycle/pocs/{pocId}/decisions",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "pocs", "exceptions"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/provisioning/{commandId}/recover",
+        "mountedPath": "/api/v1/lifecycle/provisioning/{commandId}/recover",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "provisioning"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/end-user-terms/acceptances",
+        "mountedPath": "/api/v1/lifecycle/end-user-terms/acceptances",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "agreements"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/notices",
+        "mountedPath": "/api/v1/lifecycle/notices",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "renewals"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/renewals",
+        "mountedPath": "/api/v1/lifecycle/renewals",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "renewals"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/renewals/{orderId}/requests",
+        "mountedPath": "/api/v1/lifecycle/renewals/{orderId}/requests",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "renewals"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/renewals/{orderId}/declines",
+        "mountedPath": "/api/v1/lifecycle/renewals/{orderId}/declines",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "renewals"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/terminations",
+        "mountedPath": "/api/v1/lifecycle/terminations",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "offboarding"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/terminations/{terminationId}/approvals",
+        "mountedPath": "/api/v1/lifecycle/terminations/{terminationId}/approvals",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "offboarding"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/exceptions/{caseId}/decisions",
+        "mountedPath": "/api/v1/lifecycle/exceptions/{caseId}/decisions",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "exceptions"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/novations",
+        "mountedPath": "/api/v1/lifecycle/novations",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "offboarding"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/exceptions",
+        "mountedPath": "/api/v1/lifecycle/exceptions",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "exceptions"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/accounts/{accountId}/support-signals",
+        "mountedPath": "/api/v1/lifecycle/accounts/{accountId}/support-signals",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "support"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/migrations",
+        "mountedPath": "/api/v1/lifecycle/migrations",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "migrations"],
+        "security": null
+      },
+      {
+        "path": "/v1/lifecycle/migrations/{runId}/matches/{legacyAccountId}/decision",
+        "mountedPath": "/api/v1/lifecycle/migrations/{runId}/matches/{legacyAccountId}/decision",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["lifecycle", "migrations", "exceptions"],
+        "security": null
+      },
+      {
+        "path": "/v1/system/status",
+        "mountedPath": "/api/v1/system/status",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["system"],
+        "security": null
+      },
+      {
+        "path": "/v1/system/external-gates",
+        "mountedPath": "/api/v1/system/external-gates",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["system", "operations"],
+        "security": null
+      },
+      {
+        "path": "/v1/system/external-gates/{gateKey}",
+        "mountedPath": "/api/v1/system/external-gates/{gateKey}",
+        "method": "PUT",
+        "operationId": null,
+        "summary": null,
+        "tags": ["system", "operations"],
+        "security": null
+      },
+      {
+        "path": "/v1/system/external-gates/{gateKey}/activation-tests",
+        "mountedPath": "/api/v1/system/external-gates/{gateKey}/activation-tests",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["system", "operations"],
+        "security": null
+      },
+      {
+        "path": "/v1/webhooks/workos",
+        "mountedPath": "/api/v1/webhooks/workos",
+        "method": "POST",
+        "operationId": null,
+        "summary": null,
+        "tags": ["system", "webhooks"],
+        "security": null
+      }
+    ],
+    "sourcePermissionReferences": [
+      {
+        "source": "packages/api/src/routes/core/core.integration.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/core/index.ts",
+        "permissionsReferenced": [
+          "account:read",
+          "account:write",
+          "agreement:read",
+          "billing:approve",
+          "billing:read",
+          "billing:write",
+          "destructive:request",
+          "order:read",
+          "order:write",
+          "partner:portfolio:read",
+          "partner:quote:write",
+          "quote:approve",
+          "quote:read",
+          "quote:write",
+          "report:read",
+          "system:operate"
+        ]
+      },
+      {
+        "source": "packages/api/src/routes/core/service.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/events.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/events.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/index.ts",
+        "permissionsReferenced": [
+          "account:read",
+          "account:write",
+          "agreement:approve",
+          "agreement:execute",
+          "agreement:read",
+          "billing:approve",
+          "destructive:approve",
+          "destructive:request",
+          "order:write",
+          "poc:manage",
+          "quote:approve",
+          "report:read",
+          "system:operate"
+        ]
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/lifecycle.integration.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/service.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/service.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/types.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/system/external-gate-simulator.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/system/external-gate-simulator.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/system/external-gates.integration.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/system/external-gates.ts",
+        "permissionsReferenced": ["system:operate"]
+      },
+      {
+        "source": "packages/api/src/routes/system/index.ts",
+        "permissionsReferenced": []
+      }
+    ],
+    "operationsWithDeclaredSecurity": 0,
+    "operationPermissionMappingStatus": "not-expressible-from-current-openapi",
+    "limitation": "OpenAPI security metadata and page access labels are inventories, not proof of authorization; source permission references and the role-permission matrix remain authoritative implementation evidence."
+  }
+}

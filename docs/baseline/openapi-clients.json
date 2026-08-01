@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "openapiVersion": "3.1.0",
+  "paths": 44,
+  "operations": 44,
+  "artifacts": [
+    {
+      "path": "packages/api/src/generated/openapi.json",
+      "kind": "generated-openapi",
+      "sha256": "f36bb7fd7e4efd5cb4acd5cf88f79f6de80c8175130252d419c440a29316c857",
+      "bytes": 150256
+    },
+    {
+      "path": "packages/api/src/generated/schema.d.ts",
+      "kind": "generated-types",
+      "sha256": "64bf8c96791258ff698e3ec78caa844e22e6bafb36d9d4b6e9db0cdd629e9a65",
+      "bytes": 107424
+    },
+    {
+      "path": "packages/api/src/generated/client.ts",
+      "kind": "checked-in-handwritten-openapi-fetch-wrapper",
+      "sha256": "6ab2823ca33bc03bba2f06cbf3bebe428f6aad338aec17dcb4c7e3ac78b365d3",
+      "bytes": 253
+    }
+  ],
+  "generationCommand": "pnpm generate",
+  "driftCommand": "pnpm check:generated",
+  "limitation": "client.ts is a stable handwritten wrapper around the generated paths type; it is checked for drift as an artifact but is not emitted by the OpenAPI generator."
+}

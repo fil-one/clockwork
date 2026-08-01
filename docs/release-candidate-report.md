@@ -1,13 +1,54 @@
 # Release-candidate integration report
 
-Date: 2026-07-31  
-Branch: `commerce/integration`  
+Date: 2026-07-31
+
+Branch: `main` (historical lane evidence below was produced on
+`commerce/integration`)
+
 Decision: **not accepted for launch**
 
 The required lane merges and broad integration implementation are committed as
 an integration checkpoint. The launch release-candidate designation is withheld
 because internal P0 work and failing database gates remain. Nothing in this
 report authorizes production deployment.
+
+## Consolidation baseline
+
+The post-lane consolidation preserves and represents every accepted source delta
+without retiring any legacy ref or worktree. The canonical contract is
+`commerce_platform_spec.md`; its checked-in traceability ledger maps 312 stable
+requirement IDs, including all 10 acceptance rows, without treating unfinished
+work as complete.
+
+| Evidence                         | Identifier or location                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Foundation spec preservation     | `6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a`                                                                 |
+| Integration backlog preservation | `92d10d3b8a12728804b70215799f9929e880c996`                                                                 |
+| Foundation merge to `main`       | `114d144c23294c16520f2d5389955ff2ab7f661b`                                                                 |
+| UX integration merge to `main`   | `e95ca99f6a085a4bafa46fb81edee73d56eb0914`                                                                 |
+| Pre-consolidation tag object     | `pre-consolidation-20260731` / `94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136`                                  |
+| All-refs bundle                  | `/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle`                           |
+| Bundle SHA-256                   | `78be81aeb4eef96c59545873c062e7415883e8150274128867d6f5a5422e1070`                                         |
+| Machine-readable inventories     | `docs/baseline/*.json`                                                                                     |
+| Traceability ledger              | `docs/traceability/launch-requirements.json`                                                               |
+| Final lane base                  | Annotated tag `rc-lanes-base-20260731`; all three `rc/*` worktrees must resolve to its peeled commit       |
+| Exact qualification evidence     | Git note `refs/notes/clockwork-qualification` on the lane-base commit plus the external directory it names |
+
+Qualification is run only after the lane-base commit exists, from a fresh
+standalone checkout of that exact SHA. The runner requires Node `24.18.1` and
+pnpm `10.34.5`, uses fresh external pnpm/XDG/Playwright caches, disables Turbo
+and Vitest caches, performs parallel and single-worker confirmation passes, and
+fails on any skipped, blocked, drifting, or nonzero gate. The Git note is a
+separate committed evidence ref so attaching exact results does not change the
+tested SHA.
+
+The browser suite starts the Next development server and several cases mock
+`/api/v1`; it does not prove production-build, WorkOS, database, or
+live-provider wiring. The demo reset exercises an in-memory fixture store.
+Ongoing CI remains weaker than the one-off qualification because CI retains
+browser retries and does not run the Drizzle check, migration dry-run, serial
+confirmation, or demo safety gates. These results must not be described as
+production-shaped end-to- end acceptance.
 
 ## Provenance
 

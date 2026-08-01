@@ -1,0 +1,2107 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "captureRef": "main",
+  "captureCommit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+  "captureTree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
+  "captureMode": "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
+  "mainBase": "92d10d3b8a12728804b70215799f9929e880c996",
+  "releaseCandidateBaseRef": "rc-lanes-base-20260731^{commit}",
+  "releaseCandidateBaseCommit": null,
+  "releaseCandidateBaseTree": null,
+  "remotes": [],
+  "refs": [
+    {
+      "ref": "commerce/core-finance",
+      "fullRef": "refs/heads/commerce/core-finance",
+      "refType": "branch",
+      "object": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "objectType": "commit",
+      "peeledCommit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "tree": "fcdfe12dba21f65f97fe29cc382614c2cc36df98",
+      "treeEntryCount": 249,
+      "treeListingSha256": "bbe124c54942d5d54e2dc47c0b2405a76e1dc6516e9958663d183f7f65acfa4c",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat: implement core finance commerce lane",
+      "mergeBaseWithMain": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "ref": "commerce/experience-docs",
+      "fullRef": "refs/heads/commerce/experience-docs",
+      "refType": "branch",
+      "object": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "objectType": "commit",
+      "peeledCommit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "tree": "10f130d0b5913d74e21c4c7bfa2d603edf05cbe5",
+      "treeEntryCount": 328,
+      "treeListingSha256": "ef3717fff4788e85319551a82ac317818ba525a5fcc08751c86a06e73cfd7483",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat(experience): deliver commerce portal and documents",
+      "mergeBaseWithMain": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "ref": "commerce/foundation",
+      "fullRef": "refs/heads/commerce/foundation",
+      "refType": "branch",
+      "object": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "objectType": "commit",
+      "peeledCommit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "tree": "3ffd027aa94b54c988778f7d52a74a17a70a58e8",
+      "treeEntryCount": 206,
+      "treeListingSha256": "f91f63843827d776b3467b0ab15770c6d9902462a7668423756e84fc50b46846",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "docs: preserve production specification rewrite",
+      "mergeBaseWithMain": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+    },
+    {
+      "ref": "commerce/integration",
+      "fullRef": "refs/heads/commerce/integration",
+      "refType": "branch",
+      "object": "92d10d3b8a12728804b70215799f9929e880c996",
+      "objectType": "commit",
+      "peeledCommit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "tree": "c463e9b62315c1a2349830a5dc526d0d158bbd4b",
+      "treeEntryCount": 576,
+      "treeListingSha256": "f69c2d702a14334201f4213a44b8175f80ee458db008c697fe2a73b1e42bada8",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "docs: preserve consolidation backlog",
+      "mergeBaseWithMain": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "ref": "commerce/lifecycle-platform",
+      "fullRef": "refs/heads/commerce/lifecycle-platform",
+      "refType": "branch",
+      "object": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "objectType": "commit",
+      "peeledCommit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "tree": "3331ced96f7775063bda8e231f671a9934e2df32",
+      "treeEntryCount": 278,
+      "treeListingSha256": "6b95c52574e3f7ef3a347928357d4b996454bf86bfee4032bb3d647260f9158d",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat: implement lifecycle platform lane",
+      "mergeBaseWithMain": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "ref": "main",
+      "fullRef": "refs/heads/main",
+      "refType": "branch",
+      "object": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "objectType": "commit",
+      "peeledCommit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
+      "treeEntryCount": 690,
+      "treeListingSha256": "a0497c116e7d04d225be642328d3b2b09cbfed0ad409917a3116eee646896d25",
+      "parents": [
+        "114d144c23294c16520f2d5389955ff2ab7f661b",
+        "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+      ],
+      "subject": "merge: integrate complete reviewed UX history",
+      "mergeBaseWithMain": "e95ca99f6a085a4bafa46fb81edee73d56eb0914"
+    },
+    {
+      "ref": "ux/customer-partner",
+      "fullRef": "refs/heads/ux/customer-partner",
+      "refType": "branch",
+      "object": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "objectType": "commit",
+      "peeledCommit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "tree": "bc411d3f37c39be4e57b362b6ecf6a782687204f",
+      "treeEntryCount": 635,
+      "treeListingSha256": "61e038889364ae7fec966603177a742400206b83cf621b1600df3d6a3b073bd0",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(web): overhaul customer and partner UX",
+      "mergeBaseWithMain": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "ref": "ux/design-shell",
+      "fullRef": "refs/heads/ux/design-shell",
+      "refType": "branch",
+      "object": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "objectType": "commit",
+      "peeledCommit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "tree": "f2c5ecd7d3bcfd3f3ba2957cbd037452c70e06e1",
+      "treeEntryCount": 589,
+      "treeListingSha256": "0574b1213f11acc3c9824574c6786738977c4074dc8593b121d02e581fc8f904",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(ux): unify responsive design shell",
+      "mergeBaseWithMain": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "ref": "ux/integration",
+      "fullRef": "refs/heads/ux/integration",
+      "refType": "branch",
+      "object": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "objectType": "commit",
+      "peeledCommit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "tree": "a212cf5769d2fa4856e36c0817cd8163c73bbd53",
+      "treeEntryCount": 690,
+      "treeListingSha256": "f65aa9e5749ba7ea17395ca59f215d6c229fd4e118f0758a16db59fccbe8e355",
+      "parents": ["f513bd86fedc17ca9d36d15c8a9a873f1fa65b60"],
+      "subject": "fix(ux): complete integrated release-quality pass",
+      "mergeBaseWithMain": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+    },
+    {
+      "ref": "ux/internal-ops",
+      "fullRef": "refs/heads/ux/internal-ops",
+      "refType": "branch",
+      "object": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "objectType": "commit",
+      "peeledCommit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "tree": "db3266eb280d35d60b56966273a253c85ff8e92d",
+      "treeEntryCount": 617,
+      "treeListingSha256": "1a3e7d5b59ac01d3ee32f0dfc78c13001495ebbd363ab5a05a5e5943fd0366e9",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(web): build internal operations UX",
+      "mergeBaseWithMain": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    },
+    {
+      "ref": "pre-consolidation-20260731",
+      "fullRef": "refs/tags/pre-consolidation-20260731",
+      "refType": "tag",
+      "object": "94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136",
+      "objectType": "tag",
+      "peeledCommit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "tree": "c463e9b62315c1a2349830a5dc526d0d158bbd4b",
+      "treeEntryCount": 576,
+      "treeListingSha256": "f69c2d702a14334201f4213a44b8175f80ee458db008c697fe2a73b1e42bada8",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "docs: preserve consolidation backlog",
+      "mergeBaseWithMain": "92d10d3b8a12728804b70215799f9929e880c996"
+    }
+  ],
+  "specialRefInventory": {
+    "stash": [],
+    "notes": [],
+    "replacements": []
+  },
+  "worktrees": [
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
+      "head": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "branch": "commerce/foundation",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 68362,
+        "ignoredArtifactListingSha256": "2acd22847714c6b2c68658816d25d520867a07d986b51e8ace06d1ba5052d270",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-core-finance",
+      "head": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "branch": "commerce/core-finance",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 60015,
+        "ignoredArtifactListingSha256": "227ae638005e67d72c4e690304662ac67f4e1c6d86c2357fab24248a7760e875",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-experience",
+      "head": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "branch": "commerce/experience-docs",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 61235,
+        "ignoredArtifactListingSha256": "0e544da4540e3f2cc2339e482fad74ea956a4a1f9c610583e31afe796056186c",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-lifecycle",
+      "head": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "branch": "commerce/lifecycle-platform",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 59974,
+        "ignoredArtifactListingSha256": "af90acaa7fbc703520a489e4e803f36d21ff619cb445b0446a64f2621075f390",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
+      "head": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "branch": "main",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [
+          ".github/workflows/ci.yml",
+          "commerce_platform_spec.md",
+          "docs/adr/0001-standalone-next-vercel.md",
+          "docs/adr/0003-drizzle-canonical-sql.md",
+          "docs/agent-lanes.md",
+          "docs/backlog.md",
+          "docs/foundation-handoff.md",
+          "docs/release-candidate-report.md",
+          "eslint.config.mjs",
+          "package.json"
+        ],
+        "untracked": [
+          "docs/baseline/README.md",
+          "docs/baseline/artifact-hashes.json",
+          "docs/baseline/artifacts-documents.json",
+          "docs/baseline/database.json",
+          "docs/baseline/environment-gates-capabilities.json",
+          "docs/baseline/git-provenance.json",
+          "docs/baseline/openapi-clients.json",
+          "docs/baseline/routes-api-auth.json",
+          "docs/baseline/schema.json",
+          "docs/baseline/tests-baseline-artifacts.json",
+          "docs/baseline/workflows.json",
+          "docs/implementation-lanes.md",
+          "docs/sprint-checklist.md",
+          "docs/traceability/launch-requirements.json",
+          "docs/traceability/launch-requirements.schema.json",
+          "scripts/generate-baseline-manifests.mjs",
+          "scripts/run-baseline-qualification.mjs",
+          "scripts/validate-traceability.mjs"
+        ],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 61287,
+        "ignoredArtifactListingSha256": "981e34e0ccdc76716f70a516ff62de6292d73c0fa028e32069ba24cceb41aed2",
+        "porcelainSha256": "3d32a71ab709992f33a25a20a0cf80f51a5d5ab6de049a81aecebccf674da910"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-customer-partner",
+      "head": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "branch": "ux/customer-partner",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 60349,
+        "ignoredArtifactListingSha256": "829128243ac6809eb139bf9eef2e6189c1882fd996ad59c188b3ad80621a308f",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-design-shell",
+      "head": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "branch": "ux/design-shell",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 61147,
+        "ignoredArtifactListingSha256": "fc7112fdfcf675236ff466f56ce3f146c8ad8f2966de973e40ef14e8ac0c5278",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-internal-ops",
+      "head": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "branch": "ux/internal-ops",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "ignoredArtifactCount": 61193,
+        "ignoredArtifactListingSha256": "a21a6e23599f07616b838c9b65ab1fdadb167ae2445e632dbb0b6ad5c055851f",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    },
+    {
+      "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-merge",
+      "head": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "branch": "ux/integration",
+      "detached": false,
+      "locked": false,
+      "prunable": false,
+      "status": {
+        "staged": [],
+        "unstaged": [],
+        "untracked": [],
+        "ignoredRoots": [
+          ".DS_Store",
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "ignoredArtifactCount": 62013,
+        "ignoredArtifactListingSha256": "f1a60778e82dcd95c76e9b702b02e36b92cd509587911e7254afd7cd65585207",
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      }
+    }
+  ],
+  "allReachableCommits": [
+    {
+      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
+      "parents": [
+        "114d144c23294c16520f2d5389955ff2ab7f661b",
+        "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+      ],
+      "subject": "merge: integrate complete reviewed UX history"
+    },
+    {
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "tree": "a212cf5769d2fa4856e36c0817cd8163c73bbd53",
+      "parents": ["f513bd86fedc17ca9d36d15c8a9a873f1fa65b60"],
+      "subject": "fix(ux): complete integrated release-quality pass"
+    },
+    {
+      "commit": "f513bd86fedc17ca9d36d15c8a9a873f1fa65b60",
+      "tree": "45c66fdbc16b9d37a14fcd47cf19537f72beb9f2",
+      "parents": [
+        "e10c37105cda508bda3382cd5eb020c36dd2d464",
+        "30ad76a8bb2118b2605358da1694d3aa54464eef"
+      ],
+      "subject": "Merge branch 'ux/internal-ops' into ux/integration"
+    },
+    {
+      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "tree": "db3266eb280d35d60b56966273a253c85ff8e92d",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(web): build internal operations UX"
+    },
+    {
+      "commit": "e10c37105cda508bda3382cd5eb020c36dd2d464",
+      "tree": "b9680be4128514ce2c6b848996a2a96906399638",
+      "parents": [
+        "d8589e816bbd62233bd5fcbce345afec929252c6",
+        "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+      ],
+      "subject": "Merge branch 'ux/customer-partner' into ux/integration"
+    },
+    {
+      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "tree": "bc411d3f37c39be4e57b362b6ecf6a782687204f",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(web): overhaul customer and partner UX"
+    },
+    {
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "tree": "f2c5ecd7d3bcfd3f3ba2957cbd037452c70e06e1",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "feat(ux): unify responsive design shell"
+    },
+    {
+      "commit": "114d144c23294c16520f2d5389955ff2ab7f661b",
+      "tree": "22a2e876e64a448df473472a157a1c0eba162a61",
+      "parents": [
+        "92d10d3b8a12728804b70215799f9929e880c996",
+        "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+      ],
+      "subject": "merge: preserve canonical foundation specification"
+    },
+    {
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "tree": "3ffd027aa94b54c988778f7d52a74a17a70a58e8",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "docs: preserve production specification rewrite"
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "tree": "c463e9b62315c1a2349830a5dc526d0d158bbd4b",
+      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
+      "subject": "docs: preserve consolidation backlog"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "tree": "1f43712b79d2bde502b68fcb75550ec2607439c4",
+      "parents": ["19bef06887556490ff28d79b4f60154e9f0110d1"],
+      "subject": "fix(web): stabilize generated Next type declarations"
+    },
+    {
+      "commit": "19bef06887556490ff28d79b4f60154e9f0110d1",
+      "tree": "9f0b4525c38be90e4aca28b340858f0d460b4dd3",
+      "parents": ["65c740e881c270065fb01e49c6911821177ea78e"],
+      "subject": "release: integrate commerce lanes and record RC gaps"
+    },
+    {
+      "commit": "65c740e881c270065fb01e49c6911821177ea78e",
+      "tree": "c023434b7b6f6c0cbc6bc83a97950d803ce48aa2",
+      "parents": [
+        "549c4167067b99968715ec2988e809df5ab1c5c6",
+        "de5f761ec82ccce4966b82825a3de9b356e953b7"
+      ],
+      "subject": "merge: integrate experience and documents lane"
+    },
+    {
+      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "tree": "10f130d0b5913d74e21c4c7bfa2d603edf05cbe5",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat(experience): deliver commerce portal and documents"
+    },
+    {
+      "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
+      "tree": "aa9fedc9d781a0e8ce0a63421ee0891d54ba2115",
+      "parents": [
+        "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+        "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+      ],
+      "subject": "merge: integrate lifecycle platform lane"
+    },
+    {
+      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "tree": "3331ced96f7775063bda8e231f671a9934e2df32",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat: implement lifecycle platform lane"
+    },
+    {
+      "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+      "tree": "fcdfe12dba21f65f97fe29cc382614c2cc36df98",
+      "parents": [
+        "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+        "12c590d5d386066fc120f90792b2f3c038c294a8"
+      ],
+      "subject": "merge: integrate core finance lane"
+    },
+    {
+      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "tree": "fcdfe12dba21f65f97fe29cc382614c2cc36df98",
+      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
+      "subject": "feat: implement core finance commerce lane"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "tree": "a6c352428b7cbbeb39e8ab436ef0c3df5722a3c6",
+      "parents": [],
+      "subject": "feat: establish Clockwork commerce foundation"
+    }
+  ],
+  "reachableCommitCount": 19,
+  "ancestryAssertions": [
+    {
+      "ref": "commerce/foundation",
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "commerce/core-finance",
+      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "commerce/lifecycle-platform",
+      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "commerce/experience-docs",
+      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "commerce/integration",
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "ux/design-shell",
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "ux/customer-partner",
+      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "ux/internal-ops",
+      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "ux/integration",
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "92d10d3b8a12728804b70215799f9929e880c996",
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "ancestorOfMain": true
+    },
+    {
+      "ref": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "ancestorOfMain": true
+    }
+  ],
+  "mergeBases": [
+    {
+      "left": "commerce/core-finance",
+      "right": "commerce/experience-docs",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "commerce/foundation",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "commerce/integration",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "commerce/lifecycle-platform",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "main",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "ux/customer-partner",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "ux/design-shell",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "ux/integration",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/core-finance",
+      "right": "ux/internal-ops",
+      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "commerce/foundation",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "commerce/integration",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "commerce/lifecycle-platform",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "main",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "ux/customer-partner",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "ux/design-shell",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "ux/integration",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/experience-docs",
+      "right": "ux/internal-ops",
+      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "commerce/integration",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "commerce/lifecycle-platform",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "main",
+      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "ux/customer-partner",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "ux/design-shell",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "ux/integration",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/foundation",
+      "right": "ux/internal-ops",
+      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "commerce/lifecycle-platform",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "main",
+      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "ux/customer-partner",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "ux/design-shell",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "ux/integration",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "commerce/integration",
+      "right": "ux/internal-ops",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "main",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "ux/customer-partner",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "ux/design-shell",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "ux/integration",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "commerce/lifecycle-platform",
+      "right": "ux/internal-ops",
+      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+    },
+    {
+      "left": "main",
+      "right": "ux/customer-partner",
+      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "left": "main",
+      "right": "ux/design-shell",
+      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "left": "main",
+      "right": "ux/integration",
+      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+    },
+    {
+      "left": "main",
+      "right": "ux/internal-ops",
+      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    },
+    {
+      "left": "ux/customer-partner",
+      "right": "ux/design-shell",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "ux/customer-partner",
+      "right": "ux/integration",
+      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+    },
+    {
+      "left": "ux/customer-partner",
+      "right": "ux/internal-ops",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "ux/design-shell",
+      "right": "ux/integration",
+      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
+    },
+    {
+      "left": "ux/design-shell",
+      "right": "ux/internal-ops",
+      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "left": "ux/integration",
+      "right": "ux/internal-ops",
+      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+    }
+  ],
+  "reflogEntries": [
+    {
+      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "selector": "refs/heads/main@{2026-07-31T21:09:26-04:00}",
+      "subject": "merge ux/integration: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "114d144c23294c16520f2d5389955ff2ab7f661b",
+      "selector": "refs/heads/main@{2026-07-31T21:09:26-04:00}",
+      "subject": "merge commerce/foundation: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "selector": "refs/heads/main@{2026-07-31T21:09:26-04:00}",
+      "subject": "branch: Created from HEAD"
+    },
+    {
+      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "subject": "merge ux/integration: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "114d144c23294c16520f2d5389955ff2ab7f661b",
+      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "subject": "merge commerce/foundation: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "selector": "HEAD@{2026-07-31T21:09:26-04:00}",
+      "subject": "checkout: moving from commerce/integration to main"
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T21:08:27-04:00}",
+      "subject": "commit: docs: preserve consolidation backlog"
+    },
+    {
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "selector": "HEAD@{2026-07-31T21:08:27-04:00}",
+      "subject": "commit: docs: preserve consolidation backlog"
+    },
+    {
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "selector": "refs/heads/commerce/foundation@{2026-07-31T21:08:09-04:00}",
+      "subject": "commit: docs: preserve production specification rewrite"
+    },
+    {
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "selector": "main-worktree/HEAD@{2026-07-31T21:08:09-04:00}",
+      "subject": "commit: docs: preserve production specification rewrite"
+    },
+    {
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "selector": "refs/heads/ux/integration@{2026-07-31T20:48:24-04:00}",
+      "subject": "commit: fix(ux): complete integrated release-quality pass"
+    },
+    {
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T20:48:24-04:00}",
+      "subject": "commit: fix(ux): complete integrated release-quality pass"
+    },
+    {
+      "commit": "f513bd86fedc17ca9d36d15c8a9a873f1fa65b60",
+      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:12-04:00}",
+      "subject": "merge ux/internal-ops: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "f513bd86fedc17ca9d36d15c8a9a873f1fa65b60",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T20:13:12-04:00}",
+      "subject": "merge ux/internal-ops: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "e10c37105cda508bda3382cd5eb020c36dd2d464",
+      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:10-04:00}",
+      "subject": "merge ux/customer-partner: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "e10c37105cda508bda3382cd5eb020c36dd2d464",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T20:13:10-04:00}",
+      "subject": "merge ux/customer-partner: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:07-04:00}",
+      "subject": "merge ux/design-shell: Fast-forward"
+    },
+    {
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T20:13:07-04:00}",
+      "subject": "merge ux/design-shell: Fast-forward"
+    },
+    {
+      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "selector": "refs/heads/ux/customer-partner@{2026-07-31T20:11:04-04:00}",
+      "subject": "commit: feat(web): overhaul customer and partner UX"
+    },
+    {
+      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+      "selector": "worktrees/Clockwork-ux-customer-partner/HEAD@{2026-07-31T20:11:04-04:00}",
+      "subject": "commit: feat(web): overhaul customer and partner UX"
+    },
+    {
+      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "selector": "refs/heads/ux/internal-ops@{2026-07-31T19:59:07-04:00}",
+      "subject": "commit: feat(web): build internal operations UX"
+    },
+    {
+      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+      "selector": "worktrees/Clockwork-ux-internal-ops/HEAD@{2026-07-31T19:59:07-04:00}",
+      "subject": "commit: feat(web): build internal operations UX"
+    },
+    {
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "selector": "refs/heads/ux/design-shell@{2026-07-31T19:58:45-04:00}",
+      "subject": "commit: feat(ux): unify responsive design shell"
+    },
+    {
+      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
+      "selector": "worktrees/Clockwork-ux-design-shell/HEAD@{2026-07-31T19:58:45-04:00}",
+      "subject": "commit: feat(ux): unify responsive design shell"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "refs/heads/ux/customer-partner@{2026-07-31T19:31:07-04:00}",
+      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "refs/heads/ux/design-shell@{2026-07-31T19:31:07-04:00}",
+      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "refs/heads/ux/integration@{2026-07-31T19:31:07-04:00}",
+      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "refs/heads/ux/internal-ops@{2026-07-31T19:31:07-04:00}",
+      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-internal-ops/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-internal-ops/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-customer-partner/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-customer-partner/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-merge/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-design-shell/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "worktrees/Clockwork-ux-design-shell/HEAD@{2026-07-31T19:31:07-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T19:29:20-04:00}",
+      "subject": "commit: fix(web): stabilize generated Next type declarations"
+    },
+    {
+      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
+      "selector": "HEAD@{2026-07-31T19:29:20-04:00}",
+      "subject": "commit: fix(web): stabilize generated Next type declarations"
+    },
+    {
+      "commit": "19bef06887556490ff28d79b4f60154e9f0110d1",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T19:19:25-04:00}",
+      "subject": "commit: release: integrate commerce lanes and record RC gaps"
+    },
+    {
+      "commit": "19bef06887556490ff28d79b4f60154e9f0110d1",
+      "selector": "HEAD@{2026-07-31T19:19:25-04:00}",
+      "subject": "commit: release: integrate commerce lanes and record RC gaps"
+    },
+    {
+      "commit": "65c740e881c270065fb01e49c6911821177ea78e",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:26-04:00}",
+      "subject": "merge commerce/experience-docs: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "65c740e881c270065fb01e49c6911821177ea78e",
+      "selector": "HEAD@{2026-07-31T16:48:26-04:00}",
+      "subject": "merge commerce/experience-docs: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:22-04:00}",
+      "subject": "merge commerce/lifecycle-platform: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
+      "selector": "HEAD@{2026-07-31T16:48:22-04:00}",
+      "subject": "merge commerce/lifecycle-platform: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:20-04:00}",
+      "subject": "merge commerce/core-finance: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+      "selector": "HEAD@{2026-07-31T16:48:20-04:00}",
+      "subject": "merge commerce/core-finance: Merge made by the 'ort' strategy."
+    },
+    {
+      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "selector": "refs/heads/commerce/lifecycle-platform@{2026-07-31T16:05:47-04:00}",
+      "subject": "commit: feat: implement lifecycle platform lane"
+    },
+    {
+      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+      "selector": "worktrees/Clockwork-lifecycle/HEAD@{2026-07-31T16:05:47-04:00}",
+      "subject": "commit: feat: implement lifecycle platform lane"
+    },
+    {
+      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "selector": "refs/heads/commerce/experience-docs@{2026-07-31T16:04:05-04:00}",
+      "subject": "commit: feat(experience): deliver commerce portal and documents"
+    },
+    {
+      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+      "selector": "worktrees/Clockwork-experience/HEAD@{2026-07-31T16:04:05-04:00}",
+      "subject": "commit: feat(experience): deliver commerce portal and documents"
+    },
+    {
+      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "selector": "refs/heads/commerce/core-finance@{2026-07-31T15:53:15-04:00}",
+      "subject": "commit: feat: implement core finance commerce lane"
+    },
+    {
+      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "selector": "worktrees/Clockwork-core-finance/HEAD@{2026-07-31T15:53:15-04:00}",
+      "subject": "commit: feat: implement core finance commerce lane"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "refs/heads/commerce/experience-docs@{2026-07-31T15:27:43-04:00}",
+      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "refs/heads/commerce/integration@{2026-07-31T15:27:43-04:00}",
+      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "HEAD@{2026-07-31T15:27:43-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "HEAD@{2026-07-31T15:27:43-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-experience/HEAD@{2026-07-31T15:27:43-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-experience/HEAD@{2026-07-31T15:27:43-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "refs/heads/commerce/core-finance@{2026-07-31T15:27:42-04:00}",
+      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "refs/heads/commerce/lifecycle-platform@{2026-07-31T15:27:42-04:00}",
+      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-lifecycle/HEAD@{2026-07-31T15:27:42-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-lifecycle/HEAD@{2026-07-31T15:27:42-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-core-finance/HEAD@{2026-07-31T15:27:42-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "worktrees/Clockwork-core-finance/HEAD@{2026-07-31T15:27:42-04:00}",
+      "subject": ""
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "refs/heads/commerce/foundation@{2026-07-31T15:26:50-04:00}",
+      "subject": "commit (initial): feat: establish Clockwork commerce foundation"
+    },
+    {
+      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+      "selector": "main-worktree/HEAD@{2026-07-31T15:26:50-04:00}",
+      "subject": "commit (initial): feat: establish Clockwork commerce foundation"
+    }
+  ],
+  "preservation": [
+    {
+      "owner": "commerce/foundation",
+      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+      "source": "commerce_platform_spec.md",
+      "workingBlob": "086051b0e0aa09e246b68cc438d3f99e772d5957",
+      "contentSha256": "03fd8ea1db37dba2a3b1be51c536a518b521d7d597f22f68dcad26ef8244eadd",
+      "patchSha256": "84edabffd2b292e957a68f60ea2829970a056e9489626e8ad559d478a1b21926",
+      "additions": 513,
+      "deletions": 335,
+      "decision": "accepted",
+      "rationale": "Implementation-aligned standalone production contract; canonical conflicts are reconciled on main."
+    },
+    {
+      "owner": "commerce/integration",
+      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
+      "source": "docs/backlog.md",
+      "workingBlob": "e8b3cff62b1ef93680bc3d1f1e258b3d4a11a024",
+      "contentSha256": "8196e3b5c4c338e4742be2492b56fe37581e0f982cc077a97cbd21551079a244",
+      "patchSha256": "6c5ca2ef8ea06212f37c4cdcbdcd572625741c33ddde111a05e8118183b7e254",
+      "additions": 217,
+      "deletions": 0,
+      "decision": "accepted",
+      "rationale": "Canonical consolidation and unfinished-work record; it makes no false release-complete claim."
+    },
+    {
+      "owner": "ux/integration",
+      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "source": "43 previously dirty UX paths plus final handoff",
+      "decision": "accepted",
+      "rationale": "All UX lane tips and the former 43-file semantic delta are represented; no later source delta exists."
+    }
+  ],
+  "preservationInventory": {
+    "conclusion": "All accepted source deltas discovered in the preservation pass are committed on their owning branches and represented by main; no post-inventory UX source delta was found. Stash and reflog are not the sole copy of any accepted delta.",
+    "initialStaged": [],
+    "initialUntracked": [],
+    "acceptedDirtySource": [
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork",
+        "owner": "commerce/foundation",
+        "path": "commerce_platform_spec.md",
+        "preservationCommit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
+        "owner": "commerce/integration",
+        "path": "docs/backlog.md",
+        "preservationCommit": "92d10d3b8a12728804b70215799f9929e880c996"
+      }
+    ],
+    "uxInventory": {
+      "formerDirtyFileCount": 43,
+      "integrationChangedPathCount": 44,
+      "paths": [
+        "apps/web/app/(experience)/(customer)/layout.tsx",
+        "apps/web/app/(experience)/(internal)/internal/assisted/page.tsx",
+        "apps/web/app/(experience)/(internal)/layout.tsx",
+        "apps/web/app/(experience)/(partner)/layout.tsx",
+        "apps/web/app/(experience)/(partner)/partner/page.tsx",
+        "apps/web/app/globals.css",
+        "apps/web/app/layout.tsx",
+        "apps/web/e2e/experience.spec.ts",
+        "apps/web/e2e/ux-customer-partner.spec.ts",
+        "apps/web/e2e/ux-internal-ops.spec.ts",
+        "apps/web/e2e/ux-shell.spec.ts",
+        "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
+        "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
+        "apps/web/e2e/visual.spec.ts-snapshots/internal-queues-chromium-darwin.png",
+        "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
+        "apps/web/src/features/customer-partner/commercial/commercial.module.css",
+        "apps/web/src/features/customer-partner/commercial/offboarding.tsx",
+        "apps/web/src/features/customer-partner/commercial/order-acceptance.tsx",
+        "apps/web/src/features/customer-partner/commercial/quote-builder.tsx",
+        "apps/web/src/features/customer-partner/partner/partner-collection.tsx",
+        "apps/web/src/features/customer-partner/partner/partner-dashboard.tsx",
+        "apps/web/src/features/customer-partner/partner/partner.module.css",
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.tsx",
+        "apps/web/src/features/internal-ops/administration-safety/administration-safety.module.css",
+        "apps/web/src/features/internal-ops/administration-safety/agreements.tsx",
+        "apps/web/src/features/internal-ops/administration-safety/approvals.tsx",
+        "apps/web/src/features/internal-ops/administration-safety/assisted.tsx",
+        "apps/web/src/features/internal-ops/administration-safety/price-books.tsx",
+        "apps/web/src/features/internal-ops/assisted-session/assisted-session-banner.module.css",
+        "apps/web/src/features/internal-ops/finance-lifecycle/finance-lifecycle.module.css",
+        "apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx",
+        "apps/web/src/features/internal-ops/operations-home/operations-home.module.css",
+        "apps/web/src/features/internal-ops/queue-search/model.ts",
+        "apps/web/src/features/internal-ops/queue-search/queue-detail.tsx",
+        "apps/web/src/features/internal-ops/queue-search/queue-search.module.css",
+        "apps/web/src/features/internal-ops/queue-search/queue-search.test.tsx",
+        "apps/web/src/features/internal-ops/queue-search/search-model.ts",
+        "apps/web/src/features/shell/app-shell.tsx",
+        "apps/web/src/features/shell/command-items.test.ts",
+        "apps/web/src/features/shell/command-items.ts",
+        "apps/web/src/features/shell/navigation.ts",
+        "apps/web/src/i18n/en.ts",
+        "docs/ux-handoffs/final-integration.md",
+        "packages/ui/src/styles.css"
+      ],
+      "includesAddedHandoff": true,
+      "representedByCommit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+      "laterSourceDelta": false
+    },
+    "ignoredArtifacts": [
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork",
+        "roots": [
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 68362,
+        "listingSha256": "2acd22847714c6b2c68658816d25d520867a07d986b51e8ace06d1ba5052d270",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-core-finance",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 60015,
+        "listingSha256": "227ae638005e67d72c4e690304662ac67f4e1c6d86c2357fab24248a7760e875",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-experience",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 61235,
+        "listingSha256": "0e544da4540e3f2cc2339e482fad74ea956a4a1f9c610583e31afe796056186c",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-lifecycle",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 59974,
+        "listingSha256": "af90acaa7fbc703520a489e4e803f36d21ff619cb445b0446a64f2621075f390",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 61287,
+        "listingSha256": "981e34e0ccdc76716f70a516ff62de6292d73c0fa028e32069ba24cceb41aed2",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-customer-partner",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 60349,
+        "listingSha256": "829128243ac6809eb139bf9eef2e6189c1882fd996ad59c188b3ad80621a308f",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-design-shell",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 61147,
+        "listingSha256": "fc7112fdfcf675236ff466f56ce3f146c8ad8f2966de973e40ef14e8ac0c5278",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-internal-ops",
+        "roots": [
+          "apps",
+          "apps/web/.next",
+          "apps/web/node_modules",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/node_modules",
+          "packages/contracts/node_modules",
+          "packages/db/node_modules",
+          "packages/documents/node_modules",
+          "packages/domain/node_modules",
+          "packages/integrations/node_modules",
+          "packages/testing/node_modules",
+          "packages/ui/node_modules",
+          "packages/workflows/node_modules"
+        ],
+        "artifactCount": 61193,
+        "listingSha256": "a21a6e23599f07616b838c9b65ab1fdadb167ae2445e632dbb0b6ad5c055851f",
+        "decision": "rejected-generated-or-local-only"
+      },
+      {
+        "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-ux-merge",
+        "roots": [
+          ".DS_Store",
+          ".turbo",
+          "apps",
+          "apps/web/.next",
+          "apps/web/.turbo",
+          "apps/web/node_modules",
+          "apps/web/storybook-static",
+          "apps/web/test-results",
+          "node_modules",
+          "packages/api/.turbo",
+          "packages/api/node_modules",
+          "packages/contracts/.turbo",
+          "packages/contracts/node_modules",
+          "packages/db/.turbo",
+          "packages/db/node_modules",
+          "packages/documents/.turbo",
+          "packages/documents/node_modules",
+          "packages/domain/.turbo",
+          "packages/domain/node_modules",
+          "packages/integrations/.turbo",
+          "packages/integrations/node_modules",
+          "packages/testing/.turbo",
+          "packages/testing/node_modules",
+          "packages/ui/.turbo",
+          "packages/ui/node_modules",
+          "packages/workflows/.turbo",
+          "packages/workflows/node_modules",
+          "supabase"
+        ],
+        "artifactCount": 62013,
+        "listingSha256": "f1a60778e82dcd95c76e9b702b02e36b92cd509587911e7254afd7cd65585207",
+        "decision": "rejected-generated-or-local-only"
+      }
+    ]
+  },
+  "mergeCommits": [
+    {
+      "commit": "e95ca99f6a085a4bafa46fb81edee73d56eb0914",
+      "tree": "7b667ea29b355a35dc52ffa7b07a553ae802b8df",
+      "parents": [
+        "114d144c23294c16520f2d5389955ff2ab7f661b",
+        "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
+      ],
+      "subject": "merge: integrate complete reviewed UX history"
+    },
+    {
+      "commit": "f513bd86fedc17ca9d36d15c8a9a873f1fa65b60",
+      "tree": "45c66fdbc16b9d37a14fcd47cf19537f72beb9f2",
+      "parents": [
+        "e10c37105cda508bda3382cd5eb020c36dd2d464",
+        "30ad76a8bb2118b2605358da1694d3aa54464eef"
+      ],
+      "subject": "Merge branch 'ux/internal-ops' into ux/integration"
+    },
+    {
+      "commit": "e10c37105cda508bda3382cd5eb020c36dd2d464",
+      "tree": "b9680be4128514ce2c6b848996a2a96906399638",
+      "parents": [
+        "d8589e816bbd62233bd5fcbce345afec929252c6",
+        "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
+      ],
+      "subject": "Merge branch 'ux/customer-partner' into ux/integration"
+    },
+    {
+      "commit": "114d144c23294c16520f2d5389955ff2ab7f661b",
+      "tree": "22a2e876e64a448df473472a157a1c0eba162a61",
+      "parents": [
+        "92d10d3b8a12728804b70215799f9929e880c996",
+        "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
+      ],
+      "subject": "merge: preserve canonical foundation specification"
+    },
+    {
+      "commit": "65c740e881c270065fb01e49c6911821177ea78e",
+      "tree": "c023434b7b6f6c0cbc6bc83a97950d803ce48aa2",
+      "parents": [
+        "549c4167067b99968715ec2988e809df5ab1c5c6",
+        "de5f761ec82ccce4966b82825a3de9b356e953b7"
+      ],
+      "subject": "merge: integrate experience and documents lane"
+    },
+    {
+      "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
+      "tree": "aa9fedc9d781a0e8ce0a63421ee0891d54ba2115",
+      "parents": [
+        "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+        "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+      ],
+      "subject": "merge: integrate lifecycle platform lane"
+    },
+    {
+      "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
+      "tree": "fcdfe12dba21f65f97fe29cc382614c2cc36df98",
+      "parents": [
+        "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
+        "12c590d5d386066fc120f90792b2f3c038c294a8"
+      ],
+      "subject": "merge: integrate core finance lane"
+    }
+  ],
+  "releaseCandidateLanes": [
+    {
+      "ref": "rc/commercial-integrity",
+      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-commercial",
+      "migrationRange": "001000-001099",
+      "base": "rc-lanes-base-20260731^{commit}"
+    },
+    {
+      "ref": "rc/runtime-operations",
+      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-runtime",
+      "migrationRange": "001100-001199",
+      "base": "rc-lanes-base-20260731^{commit}"
+    },
+    {
+      "ref": "rc/experience-release",
+      "worktree": "/Users/jameskurz/Downloads/Fil One/Clockwork-rc-experience",
+      "migrationRange": "001200-001299",
+      "base": "rc-lanes-base-20260731^{commit}"
+    }
+  ],
+  "preConsolidation": {
+    "annotatedTag": "pre-consolidation-20260731",
+    "tagObject": "94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136",
+    "bundlePath": "/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle",
+    "bundleExists": true,
+    "bundleBytes": 3340426,
+    "bundleSha256": "78be81aeb4eef96c59545873c062e7415883e8150274128867d6f5a5422e1070",
+    "bundleVerification": {
+      "status": "verified-complete",
+      "exitCode": 0,
+      "command": "git bundle verify /Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle",
+      "output": [
+        "The bundle contains these 19 refs:",
+        "12c590d5d386066fc120f90792b2f3c038c294a8 refs/heads/commerce/core-finance",
+        "de5f761ec82ccce4966b82825a3de9b356e953b7 refs/heads/commerce/experience-docs",
+        "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a refs/heads/commerce/foundation",
+        "92d10d3b8a12728804b70215799f9929e880c996 refs/heads/commerce/integration",
+        "abbddae5d8f7945830e53a9526f47d71f4e43c23 refs/heads/commerce/lifecycle-platform",
+        "041e65de2864e5e24a131c2c7ba88e6cd13618b5 refs/heads/ux/customer-partner",
+        "d8589e816bbd62233bd5fcbce345afec929252c6 refs/heads/ux/design-shell",
+        "c2f1e8c5ed0704956a004db6de518316bfd0f44f refs/heads/ux/integration",
+        "30ad76a8bb2118b2605358da1694d3aa54464eef refs/heads/ux/internal-ops",
+        "94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136 refs/tags/pre-consolidation-20260731",
+        "92d10d3b8a12728804b70215799f9929e880c996 HEAD",
+        "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a main-worktree/HEAD",
+        "30ad76a8bb2118b2605358da1694d3aa54464eef worktrees/Clockwork-ux-internal-ops/HEAD",
+        "041e65de2864e5e24a131c2c7ba88e6cd13618b5 worktrees/Clockwork-ux-customer-partner/HEAD",
+        "abbddae5d8f7945830e53a9526f47d71f4e43c23 worktrees/Clockwork-lifecycle/HEAD",
+        "c2f1e8c5ed0704956a004db6de518316bfd0f44f worktrees/Clockwork-ux-merge/HEAD",
+        "d8589e816bbd62233bd5fcbce345afec929252c6 worktrees/Clockwork-ux-design-shell/HEAD",
+        "12c590d5d386066fc120f90792b2f3c038c294a8 worktrees/Clockwork-core-finance/HEAD",
+        "de5f761ec82ccce4966b82825a3de9b356e953b7 worktrees/Clockwork-experience/HEAD",
+        "The bundle records a complete history.",
+        "The bundle uses this hash algorithm: sha1",
+        "/Users/jameskurz/Downloads/Fil One/Clockwork-pre-consolidation-20260731.bundle is okay"
+      ],
+      "outputSha256": "108795fee1e40404770bde3ffc936e07888bd26fed6f1f8113528458bcc3a8de"
+    },
+    "bundleHeads": [
+      {
+        "object": "12c590d5d386066fc120f90792b2f3c038c294a8",
+        "ref": "refs/heads/commerce/core-finance"
+      },
+      {
+        "object": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+        "ref": "refs/heads/commerce/experience-docs"
+      },
+      {
+        "object": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+        "ref": "refs/heads/commerce/foundation"
+      },
+      {
+        "object": "92d10d3b8a12728804b70215799f9929e880c996",
+        "ref": "refs/heads/commerce/integration"
+      },
+      {
+        "object": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+        "ref": "refs/heads/commerce/lifecycle-platform"
+      },
+      {
+        "object": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+        "ref": "refs/heads/ux/customer-partner"
+      },
+      {
+        "object": "d8589e816bbd62233bd5fcbce345afec929252c6",
+        "ref": "refs/heads/ux/design-shell"
+      },
+      {
+        "object": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+        "ref": "refs/heads/ux/integration"
+      },
+      {
+        "object": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+        "ref": "refs/heads/ux/internal-ops"
+      },
+      {
+        "object": "94e24071eae6ef6ecb641c1b7ae4e29c2ce7a136",
+        "ref": "refs/tags/pre-consolidation-20260731"
+      },
+      {
+        "object": "92d10d3b8a12728804b70215799f9929e880c996",
+        "ref": "HEAD"
+      },
+      {
+        "object": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
+        "ref": "main-worktree/HEAD"
+      },
+      {
+        "object": "30ad76a8bb2118b2605358da1694d3aa54464eef",
+        "ref": "worktrees/Clockwork-ux-internal-ops/HEAD"
+      },
+      {
+        "object": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
+        "ref": "worktrees/Clockwork-ux-customer-partner/HEAD"
+      },
+      {
+        "object": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
+        "ref": "worktrees/Clockwork-lifecycle/HEAD"
+      },
+      {
+        "object": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
+        "ref": "worktrees/Clockwork-ux-merge/HEAD"
+      },
+      {
+        "object": "d8589e816bbd62233bd5fcbce345afec929252c6",
+        "ref": "worktrees/Clockwork-ux-design-shell/HEAD"
+      },
+      {
+        "object": "12c590d5d386066fc120f90792b2f3c038c294a8",
+        "ref": "worktrees/Clockwork-core-finance/HEAD"
+      },
+      {
+        "object": "de5f761ec82ccce4966b82825a3de9b356e953b7",
+        "ref": "worktrees/Clockwork-experience/HEAD"
+      }
+    ],
+    "bundleRefCount": 19
+  },
+  "rejectedOnlyCopies": [
+    {
+      "kind": "ignored dependency/build/test output",
+      "examples": [
+        "node_modules",
+        ".next",
+        ".turbo",
+        "storybook-static",
+        "test-results"
+      ],
+      "rationale": "Generated or stale, mixed, non-SHA-bound output; not authoritative source."
+    },
+    {
+      "kind": "dangling pre-commit objects",
+      "objects": [
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "3bf0a762903d1bb0deb475aa523b3fc04604e9ba"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "dad08bbf160cee98239b14c79cd35f67ff44dee6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5c31fe1c972b4a76afeccc1cf5cb10779fa8339f"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7bb1c1e724370ecb8ab724e23f7297fd6afb7db2"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e531bf7d00385114f39d24088c8882537bf1d68b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "a542b3016edbfc4368e2211c7e77415d3c94c784"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "edb249b08f4f999ce94f0af57ee5cb0e3ebb5179"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "f602c2610dbcad2af28614b1ac81b8131fe2dea1"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "2783dd7a39742f4c28531c86a257c25623fde46c"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "fda3e1f811580f5ecaff24edd26512ef592d6eaa"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e0f4e4ca0aa2544275c4529a289376b8fefb4038"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "0ab62ba581ed23dcee9913a8bef73e1b31cfd126"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "16260d3150fa745eb284f7f4b74f7effeb3a5ad9"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "eed602bed27a58edb2487c7df6d27402877bfb4b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "bca76d63262adf0011c376abfafbd3f5fedaeea5"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "c0e72b5dd1b7ed8ffa94ccb7062239bde567def9"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "601812ac456b54e12be2c14e51f2685b5106095e"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7a884f4bdc6734658aa28b51db23a6177933b9f7"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "93a8f2efc1c05e91d0ff7513c91c51b0c5c22906"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b5883c05b23a9d77cee4298f231c16a4feffdf2b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "092936b710202c11a8dde9a0a88ed9704b1fc65c"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "73a9094e29a9ce99696b2c617d4127526f19f8f0"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "86a9cf151fdb361a77a92814a5c45d241b63d4f7"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "cc295523242f3fdb5fd792da4cc2dfb83b6edb3b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "d029ea474eac91e67b4a5f0a404eb1dfee6416ab"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "8bea6708fe518bc7bfa9e3832e6f26a1147a6dac"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "3bdbf011a57e72711b6d7e50a35c88a227bec392"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "68fbe689aa53cc4046b485ea3a647a4d7ced13a3"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "f00ee859be931811b1fbc5d62e00ded1bcfe4954"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "26cfb8932171ad922d665936fb7365d61c11c6d8"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7abf082439d223454a9513711add9135e59de321"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7c9f5f41edbe2425d7e5b2bfa3bfb82288ebd190"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b93f0077d0e982bc76f015ac9adf01825c708eed"
+        }
+      ],
+      "rationale": "Superseded intermediate source/config snapshots and generated tsbuildinfo; no post-inventory semantic delta."
+    }
+  ]
+}

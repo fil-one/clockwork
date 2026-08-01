@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-01T02:19:00Z",
+  "taskIds": [
+    "core.billing.issue-invoice.v1",
+    "core.billing.sync-overage.v1",
+    "core.collections.dunning.v1",
+    "core.collections.partner-credit.v1",
+    "core.commissions.settle.v1",
+    "core.reconciliation.three-way.v1",
+    "core.reconciliation.usage.v1",
+    "core.reporting.export.v1",
+    "lifecycle-agreements-envelope-dispatch-v1",
+    "lifecycle-agreements-evidence-ingestion-v1",
+    "lifecycle-agreements-signature-reminder-v1",
+    "lifecycle-exceptions-escalation-v1",
+    "lifecycle-exceptions-human-decision-v1",
+    "lifecycle-migrations-discovery-v1",
+    "lifecycle-migrations-review-wait-v1",
+    "lifecycle-migrations-scheduled-batch-v1",
+    "lifecycle-offboarding-confirmation-v1",
+    "lifecycle-offboarding-retention-release-v1",
+    "lifecycle-offboarding-retrieval-window-v1",
+    "lifecycle-offboarding-teardown-v1",
+    "lifecycle-onboarding-procurement-reminders-v1",
+    "lifecycle-onboarding-screening-refresh-v1",
+    "lifecycle-pocs-conversion-v1",
+    "lifecycle-pocs-expiry-v1",
+    "lifecycle-pocs-milestones-v1",
+    "lifecycle-pocs-proposal-v1",
+    "lifecycle-provisioning-command-dispatch-v1",
+    "lifecycle-provisioning-confirmation-ingestion-v1",
+    "lifecycle-provisioning-stuck-recovery-v1",
+    "lifecycle-renewals-auto-renew-evaluation-v1",
+    "lifecycle-renewals-notice-windows-v1",
+    "lifecycle-renewals-term-alerts-v1",
+    "system.outbox.dispatch.v1"
+  ],
+  "taskCount": 33,
+  "schedules": [
+    {
+      "source": "packages/workflows/src/agreements/tasks.ts",
+      "id": "lifecycle-agreements-signature-reminder-v1",
+      "cron": "30 * * * *",
+      "idExpression": "agreementTaskIds.signatureReminder"
+    },
+    {
+      "source": "packages/workflows/src/exceptions/tasks.ts",
+      "id": "lifecycle-exceptions-escalation-v1",
+      "cron": "*/15 * * * *",
+      "idExpression": "exceptionTaskIds.escalation"
+    },
+    {
+      "source": "packages/workflows/src/migrations/tasks.ts",
+      "id": "lifecycle-migrations-scheduled-batch-v1",
+      "cron": "0 2 * * *",
+      "idExpression": "migrationTaskIds.scheduledBatch"
+    },
+    {
+      "source": "packages/workflows/src/offboarding/tasks.ts",
+      "id": "lifecycle-offboarding-retrieval-window-v1",
+      "cron": "0 * * * *",
+      "idExpression": "offboardingTaskIds.retrievalWindow"
+    },
+    {
+      "source": "packages/workflows/src/offboarding/tasks.ts",
+      "id": "lifecycle-offboarding-retention-release-v1",
+      "cron": "10 * * * *",
+      "idExpression": "offboardingTaskIds.retentionRelease"
+    },
+    {
+      "source": "packages/workflows/src/onboarding/tasks.ts",
+      "id": "lifecycle-onboarding-screening-refresh-v1",
+      "cron": "0 * * * *",
+      "idExpression": "onboardingTaskIds.screeningRefresh"
+    },
+    {
+      "source": "packages/workflows/src/onboarding/tasks.ts",
+      "id": "lifecycle-onboarding-procurement-reminders-v1",
+      "cron": "15 * * * *",
+      "idExpression": "onboardingTaskIds.procurementReminders"
+    },
+    {
+      "source": "packages/workflows/src/pocs/tasks.ts",
+      "id": "lifecycle-pocs-milestones-v1",
+      "cron": "5 * * * *",
+      "idExpression": "pocTaskIds.milestones"
+    },
+    {
+      "source": "packages/workflows/src/pocs/tasks.ts",
+      "id": "lifecycle-pocs-expiry-v1",
+      "cron": "10 * * * *",
+      "idExpression": "pocTaskIds.expiry"
+    },
+    {
+      "source": "packages/workflows/src/pocs/tasks.ts",
+      "id": "lifecycle-pocs-proposal-v1",
+      "cron": "20 * * * *",
+      "idExpression": "pocTaskIds.proposal"
+    },
+    {
+      "source": "packages/workflows/src/provisioning/tasks.ts",
+      "id": "lifecycle-provisioning-stuck-recovery-v1",
+      "cron": "*/15 * * * *",
+      "idExpression": "provisioningTaskIds.stuckRecovery"
+    },
+    {
+      "source": "packages/workflows/src/renewals/tasks.ts",
+      "id": "lifecycle-renewals-term-alerts-v1",
+      "cron": "0 8 * * *",
+      "idExpression": "renewalTaskIds.termAlerts"
+    },
+    {
+      "source": "packages/workflows/src/renewals/tasks.ts",
+      "id": "lifecycle-renewals-notice-windows-v1",
+      "cron": "15 8 * * *",
+      "idExpression": "renewalTaskIds.noticeWindows"
+    },
+    {
+      "source": "packages/workflows/src/renewals/tasks.ts",
+      "id": "lifecycle-renewals-auto-renew-evaluation-v1",
+      "cron": "30 8 * * *",
+      "idExpression": "renewalTaskIds.autoRenewEvaluation"
+    },
+    {
+      "source": "packages/workflows/src/system/tasks.ts",
+      "id": "system.outbox.dispatch.v1",
+      "cron": "* * * * *",
+      "idExpression": null
+    }
+  ],
+  "registeredScheduleCount": 15,
+  "discovery": {
+    "entrypoint": "packages/workflows/src/trigger/index.ts",
+    "module": "packages/workflows/src/trigger/discovery.ts",
+    "imports": [
+      "../agreements/tasks",
+      "../core/tasks",
+      "../exceptions/tasks",
+      "../migrations/tasks",
+      "../offboarding/tasks",
+      "../onboarding/tasks",
+      "../pocs/tasks",
+      "../provisioning/tasks",
+      "../renewals/tasks",
+      "../system/tasks"
+    ]
+  },
+  "outbox": {
+    "dispatcherTask": "system.outbox.dispatch.v1",
+    "lifecycleMappedTopics": [
+      "agreement.envelope_completed",
+      "agreement.envelope_created",
+      "exception_case.decided",
+      "migration.review_required",
+      "migration.started",
+      "order.provisioning_confirmed",
+      "order.provisioning_requested",
+      "poc.converted",
+      "termination.approved",
+      "termination.teardown_confirmed"
+    ],
+    "coreMappedTopics": [
+      "core.commission_statement.generated",
+      "core.invoice.draft_ready",
+      "core.invoices.create",
+      "order.provisioning_confirmed",
+      "provider.stripe.charge.dispute.closed",
+      "provider.stripe.charge.dispute.created",
+      "provider.stripe.charge.dispute.updated",
+      "provider.stripe.credit_note.created",
+      "provider.stripe.credit_note.updated",
+      "provider.stripe.invoice.paid",
+      "provider.stripe.invoice.payment_succeeded",
+      "provider.stripe.invoice_payment.paid",
+      "provider.stripe.payment_intent.succeeded",
+      "provider.stripe.refund.created",
+      "provider.stripe.refund.updated"
+    ],
+    "productionCompositionTopics": [
+      "organization.created",
+      "termination.deletion_certificate_requested",
+      "commerce.commercial_artifact_requested"
+    ],
+    "unconditionalCompositionTopics": ["organization.created"],
+    "conditionalCompositionTopics": [
+      "termination.deletion_certificate_requested",
+      "commerce.commercial_artifact_requested"
+    ],
+    "staticallyComposableTopics": [
+      "agreement.envelope_completed",
+      "agreement.envelope_created",
+      "commerce.commercial_artifact_requested",
+      "core.commission_statement.generated",
+      "core.invoice.draft_ready",
+      "core.invoices.create",
+      "exception_case.decided",
+      "migration.review_required",
+      "migration.started",
+      "order.provisioning_confirmed",
+      "order.provisioning_requested",
+      "organization.created",
+      "poc.converted",
+      "provider.stripe.charge.dispute.closed",
+      "provider.stripe.charge.dispute.created",
+      "provider.stripe.charge.dispute.updated",
+      "provider.stripe.credit_note.created",
+      "provider.stripe.credit_note.updated",
+      "provider.stripe.invoice.paid",
+      "provider.stripe.invoice.payment_succeeded",
+      "provider.stripe.invoice_payment.paid",
+      "provider.stripe.payment_intent.succeeded",
+      "provider.stripe.refund.created",
+      "provider.stripe.refund.updated",
+      "termination.approved",
+      "termination.deletion_certificate_requested",
+      "termination.teardown_confirmed"
+    ],
+    "staticallyComposableTopicCount": 27,
+    "handlerContributionCount": 28,
+    "overlappingTopics": ["order.provisioning_confirmed"],
+    "sources": [
+      "packages/workflows/src/system/lifecycle-task-dispatch.ts",
+      "packages/workflows/src/core/outbox-handlers.ts",
+      "packages/workflows/src/runtime/production.ts"
+    ]
+  },
+  "coreDispatchPlan": {
+    "tasks": [
+      {
+        "taskId": "core.billing.issue-invoice.v1",
+        "events": ["core.invoice.draft_ready", "core.invoices.create"],
+        "eventsExpression": "invoiceDraftTopics",
+        "schedules": [],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.billing.sync-overage.v1",
+        "events": ["core.commitment.period_closed"],
+        "eventsExpression": "[\"core.commitment.period_closed\"]",
+        "schedules": ["15 * * * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.collections.dunning.v1",
+        "events": ["provider.stripe.invoice.payment_failed"],
+        "eventsExpression": "[\"provider.stripe.invoice.payment_failed\"]",
+        "schedules": ["0 7 * * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.collections.partner-credit.v1",
+        "events": ["core.orders.create"],
+        "eventsExpression": "[\"core.orders.create\"]",
+        "schedules": [],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.commissions.settle.v1",
+        "events": [],
+        "eventsExpression": "[commissionStatementTopic]",
+        "schedules": ["0 6 1 */3 *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.reconciliation.usage.v1",
+        "events": ["provider.usage.period_closed"],
+        "eventsExpression": "[\"provider.usage.period_closed\"]",
+        "schedules": ["30 2 * * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.reconciliation.three-way.v1",
+        "events": ["provider.accounting.period_closed"],
+        "eventsExpression": "[\"provider.accounting.period_closed\"]",
+        "schedules": ["0 5 1 * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      },
+      {
+        "taskId": "core.reporting.export.v1",
+        "events": ["core.reports.create"],
+        "eventsExpression": "[\"core.reports.create\"]",
+        "schedules": ["0 8 * * 1", "0 8 1 * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": false
+      }
+    ],
+    "taskCount": 8,
+    "scheduleIntentCount": 7,
+    "registeredTriggerScheduleCount": 0
+  },
+  "knownGaps": [
+    "Six core operations have seven schedule intents in the dispatch plan but no registered Trigger schedules.",
+    "Twenty-four lifecycle task IDs still require authoritative planner/state/provider execution per backlog."
+  ]
+}
