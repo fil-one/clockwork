@@ -18,6 +18,8 @@ import {
   releaseStressSummaryIssues,
   releaseSummaryIssues,
   RELEASE_FILE_CREDENTIAL_ENVIRONMENT,
+  RELEASE_SUITE_ASSERTIONS,
+  RELEASE_SUITE_NAMES,
   semanticArtifactInventoryFingerprint,
   sourceIdentityKey,
 } from "./release-artifacts.mjs";
@@ -431,6 +433,32 @@ test("accepts a complete passing release summary with one source identity", () =
   );
 });
 
+test("executes every declared assertion as its own release command", () => {
+  for (const suite of RELEASE_SUITE_NAMES) {
+    const assertions = RELEASE_SUITE_ASSERTIONS[suite];
+    assert.equal(
+      expectedReleaseCommands(suite, false).length,
+      assertions.length,
+      `${suite} does not execute one command per declared assertion`,
+    );
+    assert.equal(
+      new Set(assertions).size,
+      assertions.length,
+      `${suite} declares a duplicate assertion name`,
+    );
+  }
+  assert.deepEqual(
+    expectedReleaseCommands("unit", false).filter(
+      (command) => command[0] === "node" && command[1] === "--test",
+    ),
+    [
+      ["node", "--test", "scripts/release-artifacts.test.mjs"],
+      ["node", "--test", "scripts/benchmark-release.test.mjs"],
+    ],
+  );
+  assert.ok(RELEASE_SUITE_ASSERTIONS.unit.includes("release-benchmark-unit"));
+});
+
 test("rejects an omitted, reordered, or relabeled canonical command", () => {
   const omitted = result("static");
   omitted.commands.pop();
@@ -703,6 +731,7 @@ test("accepts only a complete internally consistent stress summary", () => {
   const stressRuns = 3;
   const stressSummary = {
     token: releaseRunId,
+    suitesScript: "scripts/release-suites.mjs",
     sourceIdentity,
     stressRuns,
     serialAccepted: true,
@@ -712,6 +741,23 @@ test("accepts only a complete internally consistent stress summary", () => {
     durationMs: 100_000,
     budgetMs: 2_700_000,
     withinBudget: true,
+    interrupted: false,
+    terminationSignal: null,
+    forceKilled: false,
+    phases: [
+      "serial/debug candidate",
+      "parallel candidate",
+      "serial/parallel comparison",
+      ...Array.from(
+        { length: stressRuns },
+        (_, index) => `parallel stress ${index + 1}`,
+      ),
+    ].map((label) => ({
+      label,
+      status: "passed",
+      reason: null,
+      durationMs: 10_000,
+    })),
     failures: [],
     stressEvidence: Array.from({ length: stressRuns }, (_, index) => ({
       summaryPath: `stress-${index + 1}/summary.json`,
@@ -743,6 +789,51 @@ test("accepts only a complete internally consistent stress summary", () => {
   assert.ok(issues.some((issue) => issue.includes("exceeded")));
   assert.ok(issues.some((issue) => issue.includes("contains failures")));
   assert.ok(issues.some((issue) => issue.includes("inventory is incomplete")));
+  const interruptedIssues = releaseStressSummaryIssues({
+    ...stressSummary,
+    interrupted: true,
+    terminationSignal: "SIGINT",
+    phases: [
+      { ...stressSummary.phases[0], status: "interrupted" },
+      ...stressSummary.phases.slice(1).map((phase) => ({
+        ...phase,
+        status: "skipped",
+        reason: "the benchmark was interrupted by SIGINT",
+        durationMs: 0,
+      })),
+    ],
+  });
+  assert.ok(
+    interruptedIssues.some((issue) =>
+      issue.includes("stress qualification was interrupted"),
+    ),
+  );
+  assert.ok(
+    interruptedIssues.some((issue) =>
+      issue.includes("stress phase did not pass: serial/debug candidate"),
+    ),
+  );
+  assert.ok(
+    interruptedIssues.some((issue) =>
+      issue.includes("stress phase did not pass: parallel candidate (skipped)"),
+    ),
+  );
+  assert.ok(
+    releaseStressSummaryIssues({ ...stressSummary, forceKilled: true }).some(
+      (issue) => issue.includes("force-killed a release child"),
+    ),
+  );
+  assert.ok(
+    releaseStressSummaryIssues({
+      ...stressSummary,
+      suitesScript: "/tmp/stub/release-suites-stub.mjs",
+    }).some((issue) =>
+      issue.includes("substituted release suite script: /tmp/stub"),
+    ),
+  );
+  const withoutProvenance = { ...stressSummary };
+  delete withoutProvenance.suitesScript;
+  assert.deepEqual(releaseStressSummaryIssues(withoutProvenance), []);
 });
 
 test("requires exactly one complete result in a CI shard summary", () => {

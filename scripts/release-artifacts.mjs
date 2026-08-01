@@ -77,6 +77,7 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   unit: Object.freeze([
     "workspace-unit",
     "release-artifact-unit",
+    "release-benchmark-unit",
     "demo-reset",
     "demo-reset-production-refusal",
   ]),
@@ -155,6 +156,7 @@ export function expectedReleaseCommands(name, serial) {
         ...serialVitestArguments(serial),
       ]),
       ["node", "--test", "scripts/release-artifacts.test.mjs"],
+      ["node", "--test", "scripts/benchmark-release.test.mjs"],
       ["pnpm", "exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
       ["node", "scripts/verify-demo-reset-safety.mjs"],
     ],
@@ -972,6 +974,28 @@ export function releaseStressSummaryIssues(summary) {
   if (summary.stressAccepted !== true)
     issues.push("stress qualification was not accepted");
   if (summary.accepted !== true) issues.push("stress summary was not accepted");
+  if (summary.interrupted === true)
+    issues.push("stress qualification was interrupted");
+  if (summary.forceKilled === true)
+    issues.push("stress qualification force-killed a release child");
+  if (
+    summary.suitesScript !== undefined &&
+    summary.suitesScript !== "scripts/release-suites.mjs"
+  )
+    issues.push(
+      `stress qualification ran a substituted release suite script: ${String(summary.suitesScript)}`,
+    );
+  if (summary.phases !== undefined) {
+    if (!Array.isArray(summary.phases)) {
+      issues.push("stress summary phase inventory is invalid");
+    } else {
+      for (const phase of summary.phases)
+        if (phase?.status !== "passed")
+          issues.push(
+            `stress phase did not pass: ${String(phase?.label)} (${String(phase?.status)})`,
+          );
+    }
+  }
   if (summary.withinBudget !== true)
     issues.push("stress summary exceeded its budget");
   if (!Number.isFinite(summary.durationMs) || summary.durationMs < 0)

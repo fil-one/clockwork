@@ -23,7 +23,7 @@
     "scan:secrets": "secretlint \"**/*\" --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore",
     "audit:dependencies": "pnpm audit --audit-level=high",
     "test": "turbo run test:unit test:integration",
-    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs",
+    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs scripts/benchmark-release.test.mjs",
     "test:integration": "turbo run test:integration",
     "test:db": "pnpm db:test",
     "test:db:populated-upgrade": "node scripts/qualify-populated-upgrade.mjs",
