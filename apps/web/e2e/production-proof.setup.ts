@@ -5,8 +5,13 @@ import path from "node:path";
 import { chromium, type FullConfig } from "@playwright/test";
 
 import { createDirectMigrationClient } from "@clockwork/db/migration-client";
+import type { CommerceDocumentInput } from "@clockwork/documents";
 
 import { releaseProofPlaywrightCookie } from "../src/auth/release-proof";
+import {
+  artifactSourceHash,
+  verifyResolvedArtifactSource,
+} from "../src/features/experience-server/artifact-sources";
 
 export const proofIdentities = [
   {
@@ -35,6 +40,94 @@ const accounts = {
 } as const;
 
 const sourceTime = "2026-07-31T16:00:00.000Z";
+
+const proofArtifact = {
+  requestId: "92000000-0000-4000-8000-000000000001",
+  deliveryId: "92000000-0000-4000-8000-000000000002",
+  documentId: "40000000-0000-4000-8000-000000000003",
+  kind: "direct_quote",
+  subjectType: "quote",
+  subjectId: "91000000-0000-4000-8000-000000000102",
+  sourceVersion: "proof-v1",
+} as const;
+
+const proofArtifactDocumentDraft = {
+  kind: proofArtifact.kind,
+  documentId: "direct-quote-proof-v1",
+  version: proofArtifact.sourceVersion,
+  issuedAt: sourceTime,
+  locale: "en-US",
+  issuer: {
+    legalName: "Fil One, Inc.",
+    address: {
+      line1: "451 Fictional Harbor Way",
+      locality: "Wilmington",
+      region: "DE",
+      postalCode: "19801",
+      countryCode: "US",
+    },
+  },
+  recipient: {
+    legalName: "Release Proof Customer, Inc.",
+    address: {
+      line1: "100 Deterministic Test Avenue",
+      locality: "Boston",
+      region: "MA",
+      postalCode: "02110",
+      countryCode: "US",
+    },
+  },
+  verification: {
+    objectVersion: proofArtifact.sourceVersion,
+    recordHash: "0".repeat(64),
+  },
+  quoteNumber: "Q-PROOF-0001",
+  validUntil: "2026-08-21",
+  currency: "USD",
+  lineItems: [
+    {
+      id: "proof-line-1",
+      description: "Production-shaped release proof capacity",
+      quantity: "1",
+      unitLabel: "term",
+      unitPrice: { currency: "USD", minorUnits: "1540000" },
+      amount: { currency: "USD", minorUnits: "1540000" },
+    },
+  ],
+  totals: {
+    subtotal: { currency: "USD", minorUnits: "1540000" },
+    tax: { currency: "USD", minorUnits: "0" },
+    taxLabel: "Sales tax",
+    total: { currency: "USD", minorUnits: "1540000" },
+  },
+  servicePeriod: { startDate: "2026-08-01", endDate: "2027-07-31" },
+  paymentTerms: "Net 30 days",
+} satisfies CommerceDocumentInput;
+
+const proofArtifactSourceHash = artifactSourceHash({
+  kind: proofArtifact.kind,
+  subjectType: proofArtifact.subjectType,
+  subjectId: proofArtifact.subjectId,
+  sourceVersion: proofArtifact.sourceVersion,
+  document: proofArtifactDocumentDraft,
+});
+
+const proofArtifactDocument = {
+  ...proofArtifactDocumentDraft,
+  verification: {
+    ...proofArtifactDocumentDraft.verification,
+    recordHash: proofArtifactSourceHash,
+  },
+} satisfies CommerceDocumentInput;
+
+verifyResolvedArtifactSource({
+  kind: proofArtifact.kind,
+  subjectType: proofArtifact.subjectType,
+  subjectId: proofArtifact.subjectId,
+  sourceVersion: proofArtifact.sourceVersion,
+  input: proofArtifactDocument,
+  sourceHash: proofArtifactSourceHash,
+});
 
 export const authoritativeQuoteProof = {
   quoteId: "97000000-0000-4000-8000-000000000001",
@@ -274,17 +367,19 @@ async function seedProofProjections(
         row_version = excluded.row_version
     `;
   }
+  const proofArtifactInput = sql.json(proofArtifactDocument);
   await sql`
     insert into public.experience_document_render_requests (
       id, account_id, audience, audience_account_id, subject_type, subject_id,
-      document_kind, input, source_hash, requested_by, retain_until, status,
-      failure_code, row_version
+      document_kind, input, source_hash, source_version, requested_by,
+      retain_until, status, failure_code, row_version
     ) values (
-      '92000000-0000-4000-8000-000000000001'::uuid,
+      ${proofArtifact.requestId}::uuid,
       ${accounts.customer}::uuid, 'customer', ${accounts.customer}::uuid,
-      'quote', '91000000-0000-4000-8000-000000000102'::uuid,
-      'direct_quote', '{"representation":"release-proof"}'::jsonb,
-      ${"c".repeat(64)}, '20000000-0000-4000-8000-000000000002'::uuid,
+      ${proofArtifact.subjectType}, ${proofArtifact.subjectId}::uuid,
+      ${proofArtifact.kind}, ${proofArtifactInput},
+      ${proofArtifactSourceHash}, ${proofArtifact.sourceVersion},
+      '20000000-0000-4000-8000-000000000002'::uuid,
       '2033-07-31T16:00:00.000Z'::timestamptz, 'stored', null, 1
     ) on conflict (id) do nothing
   `;
@@ -295,12 +390,13 @@ async function seedProofProjections(
       immutable_version, source_hash, content_hash, storage_version_id,
       mime_type, byte_length, filename, retain_until
     ) values (
-      '92000000-0000-4000-8000-000000000002'::uuid,
-      '92000000-0000-4000-8000-000000000001'::uuid,
+      ${proofArtifact.deliveryId}::uuid,
+      ${proofArtifact.requestId}::uuid,
       ${accounts.customer}::uuid, 'customer', ${accounts.customer}::uuid,
-      'quote', '91000000-0000-4000-8000-000000000102'::uuid,
-      'direct_quote', '40000000-0000-4000-8000-000000000003'::uuid,
-      'proof-v1', ${"c".repeat(64)}, ${"c".repeat(64)}, 'demo-v1',
+      ${proofArtifact.subjectType}, ${proofArtifact.subjectId}::uuid,
+      ${proofArtifact.kind}, ${proofArtifact.documentId}::uuid,
+      ${proofArtifact.sourceVersion}, ${proofArtifactSourceHash},
+      ${"c".repeat(64)}, 'demo-v1',
       'application/pdf', 2048, 'direct-quote-proof-v1.pdf',
       '2033-07-31T16:00:00.000Z'::timestamptz
     ) on conflict (id) do nothing

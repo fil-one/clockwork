@@ -1,5 +1,5 @@
 begin;
-select plan(76);
+select plan(77);
 
 select volatility_is(
   'public',
@@ -283,6 +283,13 @@ select has_column(
   'experience_document_render_requests',
   'source_version',
   'render requests persist their authoritative source version'
+);
+
+select col_not_null(
+  'public',
+  'experience_document_render_requests',
+  'source_version',
+  'render requests require their authoritative source version'
 );
 
 select ok(

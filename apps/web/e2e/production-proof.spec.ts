@@ -767,6 +767,20 @@ test("@customer proves authoritative quote completion and the remaining queue co
     },
   });
 
+  const storedRenderRequest = await browserRequest<{ code: string }>(
+    page,
+    "/api/experience/artifacts/render-requests/92000000-0000-4000-8000-000000000001",
+    {
+      method: "POST",
+      idempotencyKey: "proof-stored-render-request-0001",
+      body: {},
+    },
+  );
+  expect(storedRenderRequest).toMatchObject({
+    status: 409,
+    body: { code: "ARTIFACT_ALREADY_STORED" },
+  });
+
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expectDurableActions(
