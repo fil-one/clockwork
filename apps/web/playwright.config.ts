@@ -13,6 +13,8 @@ const artifactRoot = path.resolve(
   process.env.CLOCKWORK_ARTIFACT_DIR ?? "test-results",
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
+const releaseShard = Boolean(process.env.CLOCKWORK_RELEASE_SHARD);
+const workerCount = serial ? 1 : releaseShard || process.env.CI ? 2 : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,7 +24,7 @@ export default defineConfig({
   fullyParallel: !serial,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  ...(serial ? { workers: 1 } : process.env.CI ? { workers: 2 } : {}),
+  ...(workerCount ? { workers: workerCount } : {}),
   outputDir: path.join(artifactRoot, "playwright-output"),
   reporter: process.env.CI
     ? [
