@@ -11,15 +11,16 @@ const VOLATILE_REPORT_KEYS = new Set([
 const RUNTIME_TIMESTAMP_PATTERN =
   /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g;
 const ISOLATED_ORIGIN_PATTERN = /https?:\/\/(?:127\.0\.0\.1|localhost):\d+/g;
+const NEXT_BUILD_ID_PATH_PATTERN =
+  /static\/[A-Za-z0-9_-]{16,32}\/(_(?:buildManifest|ssgManifest|clientMiddlewareManifest)\.js)/g;
 
 export function normalizeArtifactText(value, roots) {
   let normalized = value;
   for (const [root, token] of roots)
     normalized = normalized.replaceAll(root, token);
-  return normalized.replace(
-    ISOLATED_ORIGIN_PATTERN,
-    "<isolated-runtime-origin>",
-  );
+  return normalized
+    .replace(ISOLATED_ORIGIN_PATTERN, "<isolated-runtime-origin>")
+    .replace(NEXT_BUILD_ID_PATH_PATTERN, "static/<next-build-id>/$1");
 }
 
 export function normalizeReportValue(value, roots, key = "") {

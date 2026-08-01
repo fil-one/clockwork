@@ -22,6 +22,20 @@ test("normalizes disposable roots and isolated localhost origins", () => {
   );
 });
 
+test("normalizes only Next low-priority build-ID paths", () => {
+  assert.equal(
+    normalizeArtifactText(
+      "static/kwzwUHgphOyBXRdo9eTwU/_buildManifest.js",
+      roots,
+    ),
+    "static/<next-build-id>/_buildManifest.js",
+  );
+  assert.equal(
+    normalizeArtifactText("static/chunks/1nbe9y12kfre8.js", roots),
+    "static/chunks/1nbe9y12kfre8.js",
+  );
+});
+
 test("normalizes report timing without hiding assertion content", () => {
   assert.deepEqual(
     normalizeReportValue(

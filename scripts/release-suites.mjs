@@ -205,7 +205,7 @@ async function artifactEntry(resolved, label, roots, normalizeJson = false) {
     bytes: contents.byteLength,
     semanticSha256: createHash("sha256").update(semanticContents).digest("hex"),
     normalization: normalizeJson
-      ? "report timing, worker indexes, timestamps, and absolute roots"
+      ? "JSON timing, worker indexes, timestamps, isolated origins, Next build IDs, and absolute roots"
       : textArtifact
         ? "absolute roots only"
         : "none; exact binary content",
@@ -280,6 +280,7 @@ async function collectArtifactInventory(
       "absolute disposable workspace and artifact roots",
       "runtime ISO timestamps in JSON reports",
       "isolated localhost origins",
+      "Next production build IDs in low-priority manifest filenames",
     ],
     fingerprint: semanticArtifactInventoryFingerprint(entries),
   };
