@@ -12,21 +12,24 @@ not hidden repository work and do not make this consolidation an RC.
 
 ## Release identity
 
-| Field                            | Value                                                                                             |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Future launch-candidate Git SHA  | **PENDING future launch/RC designation**                                                          |
-| Historical RC lane base          | `27fb33bab754b001acf26134d988daa10d177390`                                                        |
-| Commercial tip / merge SHA       | `cc23bce784ee60a27ad3e34fd245136f37394a2d` / `1f070aaf0e59a2e289322b02725c2b950e667992`           |
-| Runtime tip / merge SHA          | `0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5` / `07023a40462cb432f595007c1f88365f14e0f5e8`           |
-| Experience tip / merge SHA       | `b13a1ec6816b9a547aaa20bf8806cd3996c840be` / `ab0ae079e674feafd4ae86413d168e001416c0e2`           |
-| Vercel staging deployment ID/URL | **PENDING external activation**                                                                   |
-| Supabase staging project/branch  | **PENDING external activation**                                                                   |
-| Trigger.dev environment          | **PENDING external activation**                                                                   |
-| Generated OpenAPI hash           | `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18`                                |
-| Canonical migration set/hash     | Drizzle `0004_nosy_valkyrie` / `ae5872e0deff09115d847268c3acb7f97cfd828e9773887cfb99d268330de70c` |
-| Dependency lockfile hash         | `6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc`                                |
-| Checklist opened at (UTC)        | **PENDING user/release owner entry**                                                              |
-| Proposed activation window (UTC) | **PENDING external launch decision**                                                              |
+| Field                            | Value                                                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Future launch-candidate Git SHA  | **PENDING future launch/RC designation**                                                                        |
+| Focused repository UI proof SHA  | `9464bab03beb8a5298d57f4181cf7bf3ff5072df`                                                                      |
+| Focused UI tree / fingerprint    | `651eb7ce4c83ad4ef712c3dc09adf1aaf578fcd8` / `dc0d85679b6a35e2d2127d0a25971f9fcf52cad49320da1d5cfa199e433921e3` |
+| Focused UI summary SHA-256       | `41c692767d4033e7376ec6c3a4b02f6b4abc65df0de661c8ca3d23006e8f6829`                                              |
+| Historical RC lane base          | `27fb33bab754b001acf26134d988daa10d177390`                                                                      |
+| Commercial tip / merge SHA       | `cc23bce784ee60a27ad3e34fd245136f37394a2d` / `1f070aaf0e59a2e289322b02725c2b950e667992`                         |
+| Runtime tip / merge SHA          | `0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5` / `07023a40462cb432f595007c1f88365f14e0f5e8`                         |
+| Experience tip / merge SHA       | `b13a1ec6816b9a547aaa20bf8806cd3996c840be` / `ab0ae079e674feafd4ae86413d168e001416c0e2`                         |
+| Vercel staging deployment ID/URL | **PENDING external activation**                                                                                 |
+| Supabase staging project/branch  | **PENDING external activation**                                                                                 |
+| Trigger.dev environment          | **PENDING external activation**                                                                                 |
+| Generated OpenAPI hash           | `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18`                                              |
+| Canonical migration set/hash     | Drizzle `0004_nosy_valkyrie` / `ae5872e0deff09115d847268c3acb7f97cfd828e9773887cfb99d268330de70c`               |
+| Dependency lockfile hash         | `6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc`                                              |
+| Checklist opened at (UTC)        | **PENDING user/release owner entry**                                                                            |
+| Proposed activation window (UTC) | **PENDING external launch decision**                                                                            |
 
 ## Release gate
 

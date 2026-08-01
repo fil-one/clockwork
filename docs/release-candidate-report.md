@@ -120,21 +120,31 @@ schema/API settlement.
 
 The isolated-store browser gate retained two failed diagnostic runs rather than
 masking them with retries. `smoke-836a894-ui2` exposed Next's lexical pnpm
-resolution of `@swc/helpers`; `smoke-797a077-ui3` then exposed Next's copied
-server external for `@aws-sdk/client-s3`. The fixes declare the exact Next
-helper at the web runtime boundary, use narrow telemetry/provider-transport
-package exports, and bundle the complete locked S3 and React-PDF server closures
-instead of hoisting or enumerating transitive dependencies.
+resolution of `@swc/helpers`; its summary/log SHA-256 values are
+`fe9314ae89a2b010c43733cdf3da0a1d275e70baf3c1ce9307618de258bc5633` /
+`a04de7b8eaeb79a25ebbd54cc01c0b3854e30f5f0575d3513a58289cefa48b20`.
+`smoke-797a077-ui3` then exposed Next's copied server external for
+`@aws-sdk/client-s3`; its summary/log SHA-256 values are
+`b305680ee0b94e3221e877407c49d025d5179b30914a3e12b04b08f4d2c94701` /
+`9d92e2dbf8268a8a7ca8872d70adb176b912695781699429748145fae7e6e542`. The fixes
+declare the exact Next helper at the web runtime boundary, use narrow
+telemetry/provider-transport package exports, and bundle the complete locked S3
+and React-PDF server closures instead of hoisting or enumerating transitive
+dependencies.
 
 Replacement run `smoke-9464bab-ui4` qualified commit
 `9464bab03beb8a5298d57f4181cf7bf3ff5072df` from a detached clean checkout with
-an isolated frozen store and no cache reuse. Storybook passed 5/5 in 3.468
-seconds; Playwright passed 79/79 in 101.044 seconds (100.346 seconds reported by
+tree `651eb7ce4c83ad4ef712c3dc09adf1aaf578fcd8` and tracked-source fingerprint
+`dc0d85679b6a35e2d2127d0a25971f9fcf52cad49320da1d5cfa199e433921e3`. It used an
+isolated frozen store and no cache reuse. Storybook passed 5/5 in 3.468 seconds;
+Playwright passed 79/79 in 101.044 seconds (100.346 seconds reported by
 Playwright); the complete run took 140.241 seconds. It recorded zero skipped,
 unexpected, flaky, retry, timeout, module-load, or React-hook failures. Summary
 SHA-256 is `41c692767d4033e7376ec6c3a4b02f6b4abc65df0de661c8ca3d23006e8f6829`;
 Playwright-log SHA-256 is
-`bd24f6286870869eb84ee8ab1970e7be6f386e5bbf0c3f6e13f6e91eb9b0d661`.
+`bd24f6286870869eb84ee8ab1970e7be6f386e5bbf0c3f6e13f6e91eb9b0d661`. The
+dependency-closure repair added no external input, activated no capability, and
+changed none of the twelve external-gate dispositions.
 
 The complete command transcript, exact total wall clocks, serial/parallel
 comparison, clean-checkout SHA, final tree/artifact hashes, and archive output

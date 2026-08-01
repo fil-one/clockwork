@@ -100,7 +100,7 @@
     },
     "notes": [
       "The §22 five-lane plan and three historically named RC lanes are retained as provenance; main is the only active integration branch, repository qualification is complete, and this state does not declare an RC or launch.",
-      "Historical baseline JSON manifests remain immutable pre-three-lane comparison inputs; final commit-addressed SHA, non-RC archival tag, all-refs bundle, restore output, and full timing transcript are emitted post-commit in the tag annotation and ignored archive manifest.",
+      "Instance 1 baseline JSON blobs remain immutable in Git history and the verified pre-consolidation bundle; the checked-in manifests are the reproducible final consolidated-main inventory used for comparison. Final commit-addressed SHA, non-RC archival tag, all-refs bundle, restore output, and full timing transcript are emitted post-commit in the tag annotation and ignored archive manifest.",
       "The canonical contract distinguishes the generated /v1 Hono contract from its browser-visible /api/v1 Next.js mount.",
       "The canonical contract uses numeric(38,18), aligns Object Lock classes with ADR 0007, and includes all fifteen immutable artifact kinds.",
       "Human design approval is a future user-entered RC/launch decision, is not claimed, and does not block repository qualification."

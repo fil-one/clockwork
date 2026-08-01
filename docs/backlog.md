@@ -177,6 +177,10 @@ repository work.
   `d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18`; generated
   schema SHA-256:
   `a87b32a07841531447c0d34e24b0a137cd5288ff31470f1425edddcad0579784`.
+- Dependency lock SHA-256:
+  `6bc939e90cdba4cb8d055c4903bc49d0371d077780b8bfaffed97d952ea3e5fc`; the
+  clean-install helper edge reuses the already locked Next version and adds no
+  package resolution or integrity record.
 - Populated upgrade: accepted on Node `24.18.1` / pnpm `10.34.5` in 93.813
   seconds. Zero reset plus pgTAP: 16 files / 430 assertions. Full workspace
   typecheck: 10/10 packages in 45.593 seconds. Focused security,
