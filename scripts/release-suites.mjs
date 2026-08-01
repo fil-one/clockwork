@@ -920,6 +920,10 @@ async function main() {
   delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID;
   delete baseEnvironment.CLOCKWORK_POPULATED_UPGRADE_WORKDIR;
   Object.assign(baseEnvironment, {
+    // Every qualification subprocess is non-interactive, including local
+    // benchmarks. This makes pnpm's module-store replacement behavior explicit
+    // instead of depending on whether the caller happens to own a TTY.
+    CI: "true",
     COREPACK_HOME: path.join(cacheRoot, "corepack"),
     NEXT_TELEMETRY_DISABLED: "1",
     PLAYWRIGHT_BROWSERS_PATH: path.join(cacheRoot, "playwright-browsers"),
