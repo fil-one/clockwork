@@ -83,7 +83,7 @@ jobs:
       - name: Run pgTAP after reset
         run: pnpm db:test
       - name: Run database and provider integration suites
-        run: pnpm test:integration
+        run: APP_ORIGIN=http://localhost:3000 pnpm test:integration
       - name: Stop Supabase
         if: always()
         run: pnpm exec supabase stop --no-backup || true

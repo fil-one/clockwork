@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:22:00Z",
-  "captureCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
-  "captureTree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
-  "captureTreeListingSha256": "bc417740c602e55d20d3de1b6a3efe054da579eb11de7e0fb4488e2555d24d65",
+  "capturedAt": "2026-08-01T02:30:00Z",
+  "captureCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+  "captureTree": "5e1229b8c1ddba956262e476c18f7682280c458c",
+  "captureTreeListingSha256": "48f5c3e02a9e73d085efc4afbe39e54a0fa5531607c8bd873615c10501236f24",
   "artifactCount": 489,
   "categories": {
     "contract-release": {
       "artifactCount": 27,
-      "aggregateSha256": "1b5c92d54c802cbd4241a0d1415d2ab5f441752bd510116ff8943cd2b8ee6ff7",
+      "aggregateSha256": "d759081736f0dc17ccd9d98965f9a7241e320c75ab79d1b47cb4c15b336f2a1b",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -50,7 +50,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 68,
-      "aggregateSha256": "d3e05da8aeb5fda41bf770ed8258ce97403cc34710f365f65e8f79b77f9bbec1",
+      "aggregateSha256": "1c70ffa3ce446d37691ec7cc53a3d8f9b794bb360ca0f10aa9132aec210b3605",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -579,8 +579,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 4046,
-      "sha256": "1feba4ac802b7786ccfe9bcea7d0755c39419dbf9ef97d98171d6421b799d688"
+      "bytes": 4079,
+      "sha256": "b18dcdd07ea82e2fac7ff5a44a3ce1c20ccae525ab0cefc7550b2315d0e7905b"
     },
     {
       "path": ".node-version",
@@ -1444,8 +1444,8 @@
     },
     {
       "path": "docs/release-candidate-report.md",
-      "bytes": 11619,
-      "sha256": "f07111e0aad273513e6ba540a8077e676b0299fdd90307f37791905dc63c083e"
+      "bytes": 11633,
+      "sha256": "efcad004b5d162eed537e5f312ed911bb93cd851e9dba9560420029b39560d0d"
     },
     {
       "path": "docs/sprint-checklist.md",
@@ -1474,8 +1474,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 3326,
-      "sha256": "56cae33e109d0fa45690abee6da84bcab75f2ca19f73d1fa1afb0a9449e88c92"
+      "bytes": 3376,
+      "sha256": "1e329716527e3d543d9f885af1cef36c661169a143e4238f5c34243ab7806101"
     },
     {
       "path": "packages/api/package.json",
@@ -2839,8 +2839,8 @@
     },
     {
       "path": "scripts/run-baseline-qualification.mjs",
-      "bytes": 22919,
-      "sha256": "b7bc134e55df2a095534779763dd60a9f0511c6400788d6c71c18dfe4170a75d"
+      "bytes": 23085,
+      "sha256": "ea675b8dab48542af6801a49506c919fe20b292a7bc80c4136792e51572df365"
     },
     {
       "path": "scripts/validate-traceability.mjs",

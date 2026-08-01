@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:22:00Z",
+  "capturedAt": "2026-08-01T02:30:00Z",
   "captureRef": "main",
-  "captureCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
-  "captureTree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
+  "captureCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+  "captureTree": "5e1229b8c1ddba956262e476c18f7682280c458c",
   "captureMode": "Pre-commit preservation/setup capture: captureCommit identifies the last committed tree; worktree status separately enumerates every setup input that the manifest commit will add.",
   "mainBase": "92d10d3b8a12728804b70215799f9929e880c996",
   "releaseCandidateBaseRef": "rc-lanes-base-20260731^{commit}",
@@ -90,16 +90,16 @@
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "object": "7ae3fbcb01c736004faf73419b0092c905d61090",
       "objectType": "commit",
-      "peeledCommit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
-      "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
-      "tree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
+      "peeledCommit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "tree": "5e1229b8c1ddba956262e476c18f7682280c458c",
       "treeEntryCount": 708,
-      "treeListingSha256": "bc417740c602e55d20d3de1b6a3efe054da579eb11de7e0fb4488e2555d24d65",
-      "parents": ["e95ca99f6a085a4bafa46fb81edee73d56eb0914"],
-      "subject": "chore: establish consolidated main baseline",
-      "mergeBaseWithMain": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"
+      "treeListingSha256": "48f5c3e02a9e73d085efc4afbe39e54a0fa5531607c8bd873615c10501236f24",
+      "parents": ["f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"],
+      "subject": "docs: refresh committed baseline evidence",
+      "mergeBaseWithMain": "7ae3fbcb01c736004faf73419b0092c905d61090"
     },
     {
       "ref": "ux/customer-partner",
@@ -361,14 +361,19 @@
     },
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork-merge",
-      "head": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
+      "head": "7ae3fbcb01c736004faf73419b0092c905d61090",
       "branch": "main",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
         "staged": [],
-        "unstaged": ["docs/sprint-checklist.md"],
+        "unstaged": [
+          ".github/workflows/ci.yml",
+          "docs/release-candidate-report.md",
+          "package.json",
+          "scripts/run-baseline-qualification.mjs"
+        ],
         "untracked": [],
         "ignoredRoots": [
           "apps",
@@ -397,9 +402,9 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 61287,
-        "ignoredArtifactListingSha256": "981e34e0ccdc76716f70a516ff62de6292d73c0fa028e32069ba24cceb41aed2",
-        "porcelainSha256": "ac6f0b6eb47311f5d087adc812e1ef00d8c1987fb49c1b18d90ae92c0ea7c74e"
+        "ignoredArtifactCount": 61283,
+        "ignoredArtifactListingSha256": "5e4e05e18cf7d0939a2e2e7135236737539cb3fcf339513d724cb3fc9b4f73b9",
+        "porcelainSha256": "c4429070c80ecc6b67571ae04db9a277856c045a4ea56223f22a6199ffdb034d"
       }
     },
     {
@@ -548,6 +553,12 @@
   ],
   "allReachableCommits": [
     {
+      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "tree": "5e1229b8c1ddba956262e476c18f7682280c458c",
+      "parents": ["f5cac805968d32dd9d2cd75e8b1c403b8d3758ff"],
+      "subject": "docs: refresh committed baseline evidence"
+    },
+    {
       "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
       "tree": "f7c87a374678fc5259e4165cb5ea7fa2069a6bde",
       "parents": ["e95ca99f6a085a4bafa46fb81edee73d56eb0914"],
@@ -689,7 +700,7 @@
       "subject": "feat: establish Clockwork commerce foundation"
     }
   ],
-  "reachableCommitCount": 20,
+  "reachableCommitCount": 21,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -980,6 +991,16 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "selector": "refs/heads/main@{2026-07-31T22:19:16-04:00}",
+      "subject": "commit: docs: refresh committed baseline evidence"
+    },
+    {
+      "commit": "7ae3fbcb01c736004faf73419b0092c905d61090",
+      "selector": "HEAD@{2026-07-31T22:19:16-04:00}",
+      "subject": "commit: docs: refresh committed baseline evidence"
+    },
     {
       "commit": "f5cac805968d32dd9d2cd75e8b1c403b8d3758ff",
       "selector": "refs/heads/main@{2026-07-31T22:18:17-04:00}",
@@ -1591,8 +1612,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 61287,
-        "listingSha256": "981e34e0ccdc76716f70a516ff62de6292d73c0fa028e32069ba24cceb41aed2",
+        "artifactCount": 61283,
+        "listingSha256": "5e4e05e18cf7d0939a2e2e7135236737539cb3fcf339513d724cb3fc9b4f73b9",
         "decision": "rejected-generated-or-local-only"
       },
       {

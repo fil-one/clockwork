@@ -349,7 +349,10 @@ const steps = [
       "--",
       "--no-cache",
     ],
-    environment: databaseEnvironment,
+    environment: {
+      ...databaseEnvironment,
+      APP_ORIGIN: "http://localhost:3000",
+    },
     dependsOn: databaseReady,
   },
   {
@@ -372,15 +375,19 @@ const steps = [
       "--maxWorkers=1",
       "--no-file-parallelism",
     ],
-    environment: databaseEnvironment,
+    environment: {
+      ...databaseEnvironment,
+      APP_ORIGIN: "http://localhost:3000",
+    },
     dependsOn: ["db-reset-before-serial"],
   },
   {
-    id: "migration-dry-run",
+    id: "migration-state-check",
     program: "pnpm",
-    arguments: ["exec", "supabase", "migration", "up", "--local", "--dry-run"],
+    arguments: ["exec", "supabase", "migration", "up", "--local"],
     environment: databaseEnvironment,
     dependsOn: databaseReady,
+    expectedOutput: "Local database is up to date.",
   },
   {
     id: "application-build",

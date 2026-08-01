@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T02:22:00Z",
+  "capturedAt": "2026-08-01T02:30:00Z",
   "testFiles": [
     "apps/web/e2e/experience.spec.ts",
     "apps/web/e2e/smoke.spec.ts",

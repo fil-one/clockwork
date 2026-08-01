@@ -46,9 +46,9 @@ The browser suite starts the Next development server and several cases mock
 `/api/v1`; it does not prove production-build, WorkOS, database, or
 live-provider wiring. The demo reset exercises an in-memory fixture store.
 Ongoing CI remains weaker than the one-off qualification because CI retains
-browser retries and does not run the Drizzle check, migration dry-run, serial
-confirmation, or demo safety gates. These results must not be described as
-production-shaped end-to- end acceptance.
+browser retries and does not run the Drizzle check, no-pending migration state
+check, serial confirmation, or demo safety gates. These results must not be
+described as production-shaped end-to-end acceptance.
 
 ## Provenance
 

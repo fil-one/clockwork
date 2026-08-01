@@ -13,7 +13,7 @@
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "pnpm --filter @clockwork/web exec next typegen && eslint . --max-warnings=0",
     "typecheck": "turbo run typecheck",
     "boundaries": "depcruise --config dependency-cruiser.config.mjs packages apps/web/src apps/web/app",
     "generate": "pnpm --filter @clockwork/api generate",
