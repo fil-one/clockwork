@@ -1,36 +1,41 @@
-# Fil One Commerce Platform: Build Specification
+# Clockwork Commerce Platform: Production Build Specification
 
-**Status:** Approved direction. Full build, complete and polished. Revised after
-three-lens adversarial review (commercial/finance, buyer/legal/partner,
-engineering delivery), July 31. **Author:** James Kurz, drafted with Claude
-**Date:** July 31, 2026 **Source concept:** "The Frictionless Commerce Platform"
-document (screenshots, July 2026)
+**Status:** Approved, implementation-aligned direction. Full production build,
+complete and polished. Revised after three-lens adversarial review
+(commercial/finance, buyer/legal/partner, engineering delivery) and aligned to
+the five-Codex production plan on July 31, 2026. **Author:** James Kurz, drafted
+with Claude. **Date:** July 31, 2026. **Source concept:** "The Frictionless
+Commerce Platform" document (screenshots, July 2026).
 
 ---
 
 ## 1. What this is
 
-A self-service commerce platform inside the existing Fil One product:
-registration, legal agreements, quotes, POCs, orders, provisioning, invoicing,
-payment, renewals, and offboarding for direct clients and channel partners, with
-a back-office view over all of it. It replaces the email-PDF-redline chain for
-business deals and gives partners a transacting path that does not require a
-partner-ops team.
+A standalone self-service commerce application for Fil One: registration,
+legal agreements, quotes, POCs, orders, provisioning, invoicing, payment,
+renewals, and offboarding for direct clients and channel partners, with a
+back-office view over all of it. Clockwork is a greenfield repository rooted at
+`/Users/jameskurz/Downloads/Fil One/Clockwork`; it does not share code, runtime,
+sessions, or deployment machinery with the existing Fil One or Object Lock
+repositories. It replaces the email-PDF-redline chain for business deals and
+gives partners a transacting path that does not require a partner-ops team.
 
-Fil One already has the self-serve half: a prospect can sign up, accept the
-terms of service, store data, and pay by card through Stripe today. This
-platform builds everything above pay-as-you-go: annual business plans,
-enterprise committed capacity, MSP and embedded offers, partner quoting and
-reselling, counter-signed agreements, purchase orders, term tracking, and
-renewals.
+Fil One already has a self-serve product path: a prospect can sign up, accept
+terms, store data, and pay by card through Stripe. That installed base is
+context and an integration boundary, not a source-code dependency. Clockwork
+builds the complete business-commerce layer: pay-as-you-go migration support,
+annual business plans, enterprise committed capacity, MSP and embedded offers,
+partner quoting and reselling, counter-signed agreements, purchase orders,
+term tracking, marketplaces, renewals, and offboarding.
 
 The platform is also a sales asset in its own right. Being easy to buy from is
 the durable differentiator the concept document describes, and for a company
 selling infrastructure against AWS, Wasabi, and Backblaze, a buying experience
 that looks and works like a mature cloud vendor's is proof of engineering
 quality. Every enterprise meeting and partner briefing demos the portal. It
-ships complete and polished; §22 defines the build sequence and what gets
-deferred if something has to give.
+ships complete and polished; §22 defines the fixed five-lane build and release
+gate. Features may be activation-gated for a genuine external dependency, but
+internal implementation is not deferred.
 
 The platform is international by design. Spain and the UK are the first non-US
 markets, not special cases: currency, tax, agreement variants, and residency are
@@ -39,12 +44,12 @@ tables, not a new project.
 
 The concept document this adapts was written for a generic managed-services
 company with four purchased back-end systems (CRM, CLM, provisioning, ERP). Fil
-One is a product company with an engineering-grade monorepo and Stripe already
-integrated. The right translation is one commerce service in our own stack, with
-Stripe as the billing and payments engine and a thin e-signature integration for
-counter-signed documents. We keep the concept's core ideas: one artifact chain,
-self-service by default, humans as exception queues, and reporting that reads
-the operating data directly.
+One is a product company, but Clockwork deliberately has its own architecture
+and commerce system of record. Stripe remains the billing and payments engine;
+identity, e-signature, provisioning, CRM, accounting, screening, support, and
+marketplaces cross typed provider boundaries. We keep the concept's core ideas:
+one artifact chain, self-service by default, humans as exception queues, and
+reporting that reads the operating data directly.
 
 ### Sprint deliverables this system serves
 
@@ -88,10 +93,11 @@ the operating data directly.
    register's approved wording (sprint §1). The platform never generates a
    product claim of its own.
 7. **Complete does not mean bespoke.** Volume through Q1 is tens of accounts.
-   Stripe, Common Paper, and the e-sign provider do the heavy lifting; the build
-   is the object chain, the portal, the partner logic, and the reporting.
-   Nothing requires scale engineering, but the object model is the one we would
-   still want at 100x.
+   Supabase, WorkOS, Trigger.dev, Stripe, Common Paper, the selected e-sign
+   provider, and S3 do the heavy lifting; the build is the object chain, the
+   portal, the partner logic, and the reporting. Nothing requires speculative
+   scale engineering, but the object model is the one we would still want at
+   100x.
 8. **Country is configuration.** Currency, tax treatment, agreement variants,
    collection rails, and residency are data and deployment settings, never code
    forks. Entity, registration, and filing questions per country belong to the
@@ -138,7 +144,7 @@ offer flows, not what it costs.
 | POC                           | Client or partner end client | POC terms + permitted-data rules                            | Zero-price entitlement with caps and expiry; converts to a paid order                               |
 | Reseller / MSP                | Partner                      | Counter-signed partner agreement (resale)                   | Partner buys at transfer price; consolidated partner invoice; partner sets its own resale price     |
 | Referral / agent              | Partner                      | Counter-signed referral agreement                           | End client contracts with us directly; partner earns commission on attributed net collected revenue |
-| Embedded / white-label        | Partner                      | Counter-signed, custom                                      | Deferred; build when a producing partner creates the need                                           |
+| Embedded / white-label        | Partner                      | Counter-signed, custom                                      | Built now: partner branding, custom-domain verification, end-client invitations, communication ownership, and partner-priced commerce; production activation may await brand, domain, and legal inputs |
 
 ---
 
@@ -161,8 +167,8 @@ behalf (principle 9) with identical records.
    an exception.
 3. **Execute agreements.** (SELF) Click-through ToS/CSA/DPA execute instantly
    with a full acceptance record including an authority attestation.
-   Counter-signed documents route through the e-signature system (redirect flow
-   at launch, embedded signing later); standard templates need no legal review,
+   Counter-signed documents route through the e-signature system (embedded
+   signing with a redirect fallback); standard templates need no legal review,
    edits route to counsel as an exception. Deals on the customer's paper are
    recorded as first-class agreements (§8).
 4. **Generate a quote.** (SELF) Configure offer, term, committed volume, and
@@ -230,16 +236,22 @@ status, Stripe customer ID, CRM record ID. **ProcurementProfile** sub-object: PO
 requirements, exemption certificates (jurisdiction, ID, expiry, document),
 buyer-side supplier-portal status, our supplier documents furnished (W-9/W-8,
 COI) with dates. Partner accounts add: agreement type, discount tier or
-commission rate, aggregate credit limit, `parent_partner_id` (nullable; holds
-distributor-to-reseller structure even though two-tier logic ships later).
+commission rate, aggregate credit limit, and `parent_partner_id` (nullable;
+holds the distributor-to-reseller structure used by the shipped two-tier
+quoting, billing, commission, and settlement flow).
 
-**Organization / User / Role.** The product-side identity objects. The product
-today has single-admin organizations with an unused two-value role enum;
-membership, invites, and role checks are built first, as a foundation
-deliverable (§22). Roles at minimum: `owner`, `admin`, `billing`, `member`;
-partner-side adds `partner_admin`, `partner_seller`. Every commerce action is
-attributed to a user; shared logins are prohibited platform-wide. SSO is a
-committed fast-follow, labeled per the sprint availability sheet.
+**Organization / User / Membership / Role.** WorkOS AuthKit owns authentication,
+sessions, identity lifecycle, organizations, invitations, MFA, and SSO.
+Clockwork mirrors the identifiers it needs, while commerce membership and
+authorization remain independently authoritative in Postgres and the domain
+layer. Roles are `owner`, `admin`, `billing`, `member`, `partner_admin`,
+`partner_seller`, `internal_operator`, `finance_approver`, `legal_approver`, and
+`destructive_action_approver`. Every commerce action is attributed to a user;
+shared logins are prohibited. Internal staff require an internal membership and
+allow-listed identity, cannot be granted through a customer organization, and
+assisted actions preserve both actual and effective actors. MFA is enforced for
+privileged roles, and SSO ships from launch behind each organization's WorkOS
+policy configuration.
 
 **AgreementTemplate.** A versioned legal document: type (ToS, CSA, DPA, MSA,
 order form terms, POC terms, end-user pass-through terms, partner agreement,
@@ -343,9 +355,30 @@ credit notes, refunds, and chargebacks, holdback per the partner agreement,
 period, statement ID, status (`accrued`, `stated`, `paid`). Payment execution is
 manual at launch; the statement nets clawbacks.
 
-**Event.** Append-only log of every state change: object, actor, timestamp,
-before/after, request ID. This is the audit trail, the CRM sync feed, and the
-SOC 2 evidence stream in one.
+**AuditEvent (`audit_events`).** Append-only log of every state change:
+aggregate, event schema version, actual actor, effective actor and
+assistance/impersonation context, timestamp, safe before/after projections, and
+request ID. Sensitive document, tax, and payment contents are never copied into
+metadata. The AuditEvent is the account-timeline and SOC 2 evidence stream; a
+transactional outbox is the delivery feed for CRM, notifications, and other
+projections.
+
+### Operational records
+
+The production model also includes the records needed to make the domain safe
+and operable rather than hiding those concerns inside provider metadata:
+
+- `idempotency_keys`, `webhook_receipts`, `outbox_events`, and `provider_links`;
+- `approval_requests`, `approval_steps`, and `notification_deliveries`;
+- `usage_samples`, `cost_entries`, and `reconciliation_runs`;
+- `document_artifacts`, `workflow_runs`, and `feature_flags`; and
+- `migration_candidates` and `migration_reviews`.
+
+Webhook receipts deduplicate on provider plus provider-event ID and retain
+enough verified-envelope metadata for safe replay and out-of-order processing.
+Approval steps record separation-of-duty decisions. Workflow records expose
+durable task identity, attempt, state, and operator recovery without making the
+workflow vendor the commerce system of record.
 
 ### The chain
 
@@ -363,9 +396,10 @@ without its upstream reference.
 
 ## 6. Portal surfaces
 
-Seven surfaces, each rendering the same objects the back office sees. Built as
-routes in the existing `@filone/website` SPA (React 19, TanStack Router,
-Tailwind v4), gated by role.
+Seven customer surfaces, each rendering the same objects the back office sees.
+They are Next.js App Router route groups in the standalone `apps/web`
+application, use React Server Components where appropriate, and are gated both
+at the route boundary and in every server-side query.
 
 | Surface               | Contents                                                                                                                                                                                                             |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -381,8 +415,24 @@ Partner accounts additionally get the **portfolio view**: every end client with
 term status and upcoming renewals sorted by expiry, plus the partner's own
 agreement clock shown first.
 
-**Read-only support visibility** ships when the support-system feed is
-available. Visibility only; intake stays in the existing support channel.
+Partner routes also include deal registration and disputes, referral/resale/
+distributor quote paths, consolidated billing, commissions and statements,
+renewals, sandboxes, white-label and custom-domain controls, and AWS/Azure/GCP
+marketplace status. End-client and transfer-price visibility remains scoped by
+merchant-of-record and order sourcing.
+
+The **internal back office** includes global search, a complete account
+timeline, assisted execution for every customer or partner action, every
+exception and approval queue, price-book and agreement administration,
+customer-paper handling, provisioning recovery, collections and disputes, the
+renewal command center, reports, reconciliation, migration review, and external
+gate status. Assisted operation produces the same objects as self-service and
+always identifies the internal actor.
+
+**Read-only support visibility** is implemented behind the support provider
+port. A deterministic feed operates before provider selection; production data
+activates after credentials and contract tests pass. Visibility only; intake
+stays in the selected support channel.
 
 ---
 
@@ -391,33 +441,45 @@ available. Visibility only; intake stays in the existing support channel.
 The portal must read as a finished product from a mature vendor. Concrete
 requirements, not aspirations:
 
-- **One design system with the marketing site and sales kit.** Extend the
-  existing website design language (Inter, Tailwind v4, CVA variants, Phosphor
-  icons) into a documented component library in the repo's Storybook: buttons,
-  forms, tables, term bars, status badges, stat tiles, timelines, document
-  cards, queue rows. Design direction is reviewed with Chris Rocco alongside the
-  sales kit so the portal, deck, and website share one visual language.
+- **A distinctive Clockwork design system.** Build a restrained, mature visual
+  language from design tokens and a text wordmark in `packages/ui`, documented
+  in Storybook. Official logo, type, color, and footer assets remain swappable
+  without redesign. The component set includes buttons, forms, dialogs, tables,
+  skeletons, empty states, status badges, term bars, stat tiles, timelines,
+  document cards, queue rows, toasts, and error boundaries.
 - **Signature elements done well.** The term bar (elapsed time, notice window,
   end date) is the product's visual identity, rendered per service and rolled up
-  per account. Dashboards use restrained, consistent charts (existing recharts
-  dependency) for usage and spend.
-- **Every state designed.** Loading skeletons, designed empty states with a next
-  action, inline validation, and human-readable error states on every surface.
-  No raw spinners, no dead ends, no placeholder copy anywhere in the shipped
-  product.
-- **Fast.** Route-level code splitting, optimistic UI on portal actions,
-  sub-second interactions on cached data. Performance is part of the wow.
-- **Accessible and responsive.** Keyboard-navigable flows, visible focus states,
-  WCAG AA contrast, and layouts that hold from a 13-inch laptop in a conference
-  room to a phone. Storybook a11y checks stay green.
-- **Documents match the portal.** Quote PDFs, order forms, partner-priced
-  quotes, commission statements, and deletion certificates share one branded
-  document template. A buyer who forwards the PDF to procurement is forwarding
-  the brand.
+  per account. Dashboards use restrained, consistent Recharts visualizations for
+  usage, spend, and capacity.
+- **Every state designed.** Loading, empty, partial, optimistic, success,
+  validation, permission, stale-version, offline, and recoverable/unrecoverable
+  failure states have intentional copy and behavior on every surface. No raw
+  spinners, dead ends, or placeholder copy ship.
+- **Fast.** Route-level code splitting, deliberate React Server Component and
+  client boundaries, streaming and skeletons, optimistic mutations with
+  rollback, correct cache invalidation, and explicit performance budgets.
+  Performance is part of the wow.
+- **Accessible and responsive.** Keyboard-first forms, focus restoration, skip
+  links, semantic landmarks, visible focus, screen-reader announcements,
+  reduced motion, WCAG AA contrast, and layouts that hold from 320px to a
+  conference-room display. Storybook and route-level axe checks have zero
+  serious findings.
+- **Documents match the portal.** React PDF renders direct, partner-transfer,
+  resale/white-label quotes, order forms, amendments, POC summaries and final
+  reports, invoice companions and receipts, commission statements, renewal and
+  decline confirmations, deletion certificates, reconciliation reports, and
+  exports. Documents use deterministic pagination, repeating headers/footers,
+  IDs, version/hash, accessible metadata, and golden tests. Money paths never
+  depend on browser printing.
+- **Localization is structural.** English is the launch catalog, and feature
+  components contain no hard-coded user-facing copy. Locale-aware USD/EUR/GBP,
+  dates, addresses, VAT/tax labels, and pluralization make a later Spanish
+  catalog additive rather than a rewrite.
 - **Demo environment.** A seeded, resettable demo tenant with clearly fictional
   accounts, quotes, POCs, invoices, and renewals at interesting states, used in
-  every sales and partner meeting. Reset is one command; demo data never mixes
-  with production.
+  every sales and partner meeting. Demo mode has a visible badge. Reset is one
+  command, deterministic, and hard-coded to refuse production targets; demo
+  data never mixes with production.
 
 ---
 
@@ -468,9 +530,11 @@ identity and role, account, template version and SHA-256 hash of the exact text
 presented, timestamp, IP address, and UI context. Courts enforce clickwrap when
 the record proves who accepted which version when, and the authority attestation
 closes the "an engineer clicked it" gap. Counter-signed documents execute in the
-e-signature system via redirect flow with a completion webhook (embedded signing
-is a post-launch enhancement); the platform stores the signed PDF, envelope ID,
-and certificate of completion.
+e-signature system through embedded signing with a redirect fallback and a
+verified completion webhook. The platform stores the signed PDF, envelope ID,
+and certificate of completion. Provider selection and credentials may gate live
+activation; neither embedded behavior nor its sandbox and replay tests are
+deferred.
 
 ### Versioning
 
@@ -695,9 +759,11 @@ Ending well is a trust feature for a storage vendor:
 - **Attribution is structural.** Revenue is partner-attributed because the order
   chain says so. This is what makes attribution and commission reconciliation
   trivial.
-- **Two-tier ready.** `parent_partner_id` holds distributor-to-reseller
-  structure (Ingram Micro route) from day one; two-tier quoting and settlement
-  logic ships when the Ingram route is confirmed.
+- **Two-tier distributor commerce.** `parent_partner_id` holds the
+  distributor-to-reseller structure. The production build includes the full
+  distributor/reseller quote, sourcing, invoice allocation, commission,
+  settlement export, visibility, and reconciliation path. A named distributor
+  account or enrollment gates activation, not implementation.
 - **End-client visibility (default):** the partner sees its end clients'
   entitlements, usage summaries, term status, provisioning and offboarding
   state. The partner does not see our margin. The end client sees nothing
@@ -705,27 +771,38 @@ Ending well is a trust feature for a storage vendor:
   terms at first login (§8).
 - **Partner-priced quote artifact.** Resale partners download a presentable
   quote in their own name at their resale price, transfer price suppressed. This
-  is deliberately narrower than white-label (which stays deferred) and exists
-  because without it every reseller re-keys the quote off-platform and the
-  attribution chain starts outside the system.
+  remains useful inside the broader shipped white-label capability because it
+  preserves a portable procurement artifact without forcing a branded portal.
+  Without it every reseller re-keys the quote off-platform and the attribution
+  chain starts outside the system.
 - **Commissions (referral path):** accrue on net collected revenue, net of
   clawbacks, with holdback per the agreement; quarterly statements generate as
   documents in the partner portal. Payment executes from QBO.
 - **Sandboxes:** partner sandbox organizations are zero-price SKU entitlements
   with caps and expiry, flowing through the same provisioning path.
+- **White-label:** eligible partners can verify a custom domain, select approved
+  branding tokens, send branded end-client invitations, own commercial
+  communications, and fall back safely to the neutral Clockwork presentation.
+  Branding never changes legal entity, merchant-of-record, or audit identity.
+- **Cloud marketplaces:** AWS, Azure, and Google marketplace adapters normalize
+  orders, entitlements, metering, fees, invoices, settlements, and refunds into
+  provider-neutral records. Marketplace enrollment and credentials are
+  activation gates; complete adapters, fixtures, replay behavior, and financial
+  reconciliation ship in the release candidate.
 
 ---
 
 ## 15. CRM and the customer master
 
-The commerce DB is the customer master. The CRM (selected in sprint §1, live
-Aug 5) is a projection for pipeline work: registration creates the CRM account,
-quote issuance creates or updates the opportunity with amount and stage, order
-acceptance closes it, invoice and payment update financial state. Sync is
-one-way outbound via the event log, with CRM-side edits limited to sales-process
-fields. Nothing commercial is keyed into the CRM by hand. If the CRM cannot
-ingest cleanly, a nightly export is acceptable at launch; the event feed is the
-contract.
+The commerce DB is the customer master. The CRM is a projection for pipeline
+work: registration creates the CRM account, quote issuance creates or updates
+the opportunity with amount and stage, order acceptance closes it, and invoice
+and payment events update financial state. Sync is one-way outbound through the
+transactional outbox, with CRM-side edits limited to sales-process fields.
+Nothing commercial is keyed into the CRM by hand. A provider-neutral port,
+production-grade fake, replay controls, and export fallback ship regardless of
+provider selection; the chosen production adapter activates only after its
+contract suite passes.
 
 ---
 
@@ -740,13 +817,17 @@ contract.
 | Disputes                   | Invoice dispute, refund request, chargeback (evidence deadline tracked) | Founder           | Named deputy          | 2 business days     |
 | Deal registration disputes | Competing claims, house-account challenge                               | Founder           | —                     | 3 business days     |
 | POC qualification          | POC request needing approval                                            | Founder           | Named deputy          | Same business day   |
+| Provisioning recovery      | Permanent provider failure, dead letter, or stuck confirmation          | Internal operator | Named deputy          | Same business day   |
+| Migration review           | Ambiguous account, product, Stripe, or acceptance match                 | Internal operator | Named deputy          | Before migration run |
+| Offboarding/destructive    | Teardown request, retained-object branch, or deletion approval          | Named approver    | Named deputy          | Before effective date |
 
-Every queue names a backup approver before launch, because the founder travels;
-published targets must be honest against that reality. Each queue is a filtered
-view over the same objects with an approve/reject action recorded on the object.
-Screening at launch: embargoed-country block list at registration, plus a
-denied-party check before any counter-signature or partner activation. Counsel
-confirms the screening standard.
+Every queue has an owner, distinct backup, response target, escalation rule,
+and preserved approve/reject evidence. Separation-sensitive actions prohibit
+self-approval, and teardown requires two distinct destructive approvers. Each
+queue is a filtered view over the same objects rather than an off-platform
+spreadsheet. Screening includes an embargoed-country gate at registration and a
+denied-party check before any counter-signature or partner activation; counsel
+confirms the production standard before external use.
 
 ---
 
@@ -767,93 +848,168 @@ ARR is consistent everywhere.
 | **Partner performance**        | Bookings, registration-to-close rate, end-client counts, renewal rate, and margin by partner and agreement type.                                                                                                                                                   |
 | **Funnel and cycle time**      | Where deals stall: registration to agreement, quote to order, order to provisioned, invoice to cash, POC to conversion.                                                                                                                                            |
 | **Margin and POC cost**        | **Realized** margin per order: contracted revenue against ingested orchestrator cost at entitlement grain (§10), price-floor exceptions listed, POC cost and engineering time per deal. Until cost ingestion is live, the report is labeled modeled, not realized. |
+| **ARR and MRR**                | Contracted recurring value under merchant-of-record rules: gross for direct/referral, transfer-price revenue for resale/marketplace as applicable, currency separated and methodology versioned.                                          |
+| **Billing and collections**    | Invoice issuance, aging, payment, credit, refund, dispute, dunning owner, partner credit exposure, and cash timing by account and order.                                                                                             |
+| **Commission and settlement**  | Collected-revenue accruals, holdbacks, clawbacks, statements, distributor allocations, marketplace fees, and settlement status tied to source invoices and payments.                                                                 |
+| **Reconciliation**             | Monthly Clockwork/Stripe/QBO tie-out plus marketplace and source-usage reconciliation, with every variance assigned, explained, and replayable from source records.                                                                   |
 
-The weekly scorecard (sprint §8) reads these directly. Export to CSV everywhere;
-no BI tool required at launch.
+The weekly scorecard reads these directly and exposes bookings, cycle time,
+renewal exposure, capacity, margin, partner performance, and POC economics.
+Every report has a cursor-paginated API, role- and account-scoped view, CSV
+export, source-record traceability, and deterministic SQL integration tests. No
+BI tool is required at launch.
 
 ---
 
 ## 18. Architecture
 
-### Placement
+### Standalone repository and runtime
 
-New workspace packages in the existing monorepo, deployed by the existing SST v3
-pipeline:
+Clockwork is a new application in its own pnpm 10/Turborepo monorepo, using
+Node.js 24 and strict TypeScript. It neither imports nor modifies the Fil One or
+Object Lock repositories. The repository shape is fixed:
 
+```text
+Clockwork/
+├── apps/web/                  # Next.js portal, admin, API and webhook entrypoints
+├── packages/api/              # Hono route groups and authorization boundary
+├── packages/contracts/        # Zod schemas, OpenAPI, events and provider contracts
+├── packages/domain/           # Pure state machines and commerce rules
+├── packages/db/               # Drizzle schema, repositories, transactions and outbox
+├── packages/integrations/     # Stripe, WorkOS, e-sign, CRM, QBO and other adapters
+├── packages/workflows/        # Trigger.dev workflows and schedules
+├── packages/documents/        # Quotes, order forms, statements and certificates
+├── packages/ui/               # Design system and Storybook
+├── packages/testing/          # Fakes, fixtures, builders and demo reset
+├── supabase/                  # Config, canonical migrations, seed and pgTAP tests
+├── docs/                      # ADRs, runbooks, gate register and lane handoffs
+└── commerce_platform_spec.md
 ```
-packages/
-├── commerce/            # domain logic: objects, state machines, pricing, commitment ledger, Stripe mapping (pure TS)
-├── commerce-api/        # Lambda handlers (Middy), authz, webhooks (Stripe, e-sign)
-├── commerce-docs/       # branded document generation: quote PDF, order form, partner-priced quote, statements, certificates
-├── backend/             # existing; gains org membership/roles (Lane 0) and the provisioning bridge consumer
-└── website/             # existing SPA; gains portal routes and the internal back office under /admin
-```
 
-Shared zod schemas for every object live in `@filone/shared`, used by API,
-website, and tests, matching the current repo pattern.
+`apps/web` uses the Next.js App Router, React Server Components, Server
+Functions, Suspense, Tailwind CSS v4, and Vercel Fluid Compute. Hono is mounted
+inside Next.js for `/api/v1`; Zod definitions generate OpenAPI 3.1 and a typed
+frontend client.
+WorkOS AuthKit supplies identity services. Trigger.dev Cloud supplies durable
+jobs, schedules, waits, bounded retries, idempotency, preview environments, and
+operator visibility. React PDF produces deterministic documents.
 
-### Datastore: Postgres for the commerce domain
+### Commerce system of record and deployment environments
 
-The commerce domain goes in Postgres, while the existing product tables stay in
-DynamoDB. Rationale: this system's product is correctness and reporting; joins,
-sums that tie, foreign keys, and the §17 report set are native SQL. DynamoDB
-single-table was considered and rejected because reconciliation and cross-object
-queries are the point of the system.
+Supabase managed Postgres is the only Clockwork commerce system of record.
+Staging and production are separate projects; each pull request gets a Supabase
+preview branch paired with its Vercel and Trigger.dev previews. Production has
+PITR enabled, and backup restoration is rehearsed into an isolated project.
 
-Adoption is an explicit foundation spike with three decisions made before any
-schema lands: **connection strategy** (Aurora Serverless v2 in a VPC versus the
-RDS Data API; the existing Lambda fleet is not in a VPC today, and VPC adoption
-drags in subnets, endpoints, and cold-start changes), **per-PR preview
-strategy** (the repo deploys an ephemeral SST stage per pull request; the cheap
-answer is one shared instance with schema-per-stage and a migration run in CI),
-and **migrations tooling plus backup/PITR posture**. The Event log is a Postgres
-append-only table with an outbox to SQS for CRM sync and notifications.
+Drizzle supplies the typed schema and repository mapping. Reviewed SQL under
+`supabase/migrations` is the canonical, append-only migration history; no schema
+change is authored in the Supabase Dashboard. CI recreates the database from
+zero, applies every migration, seeds it, and runs pgTAP. Vercel functions use
+Supavisor transaction mode with SSL required and prepared statements disabled.
+Only CI and controlled deployment tooling may use the direct migration
+connection.
 
-### The provisioning bridge (new, not assumed)
+Database access is server-side only. Browser bundles receive no Supabase
+service or database credentials. Runtime access uses restricted application
+roles with `NOBYPASSRLS`; row-level security is defense in depth, not a
+replacement for authorization in the API and domain layers.
 
-The product today provisions synchronously on the request path
-(`ensureTenantReady`), has no queue, no entitlement concept, and no consumer for
-commerce events; teardown is deliberately impossible from billing paths. The
-bridge is therefore a named foundation deliverable, not wiring: an SQS queue and
-consumer, an entitlement-to-tenant mapping, idempotent re-drive on a state
-machine written for one-shot use, teardown design behind the gated invariant
-decision (§13), and confirmation events back to commerce. The org
-membership/roles work precedes it, because provisioning "an organization with
-roles" requires organizations with roles to exist.
+### Public API contract
 
-### Invariants
+The versioned JSON API uses `/api/v1` as its prefix. In the list below,
+unprefixed paths are relative to `/api/v1`:
 
-- **Idempotency everywhere money moves.** Every Stripe call carries an
-  idempotency key derived from the commerce object; every webhook handler is
-  replay-safe. E-sign webhooks get the same signature-verification and replay
-  treatment.
-- **Issued quotes, accepted orders, executed agreements, notices, and
-  certificates are immutable.** Changes are new versions or amendments with
-  pointers. Signed PDFs, click-through text hashes, and certificates are
-  content-addressed in S3 with object lock.
-- **All writes go through the domain layer.** No handler touches tables
-  directly; state machines validate every transition. This is what makes the
-  codebase safe for agent-written contributions.
-- **Authorization is role plus account scope on every query.** Partner users are
-  scoped to their portfolio; end-client data never leaks across partners;
-  co-mingled accounts resolve visibility at order level. No shared logins; MFA
-  for admin and partner roles.
-- **Destructive actions are two-person.** Teardown, forced deletion, and
-  migration runs require a second approver, recorded in the Event log.
-- **Audit trail is a first-class feature:** the Event table drives the account
-  history view and doubles as SOC 2 change evidence.
+- `/api/v1/auth`, `/organizations`, `/memberships`, `/accounts`, and
+  `/procurement-profiles`;
+- `/agreements`, `/agreement-templates`, `/acceptances`, and `/notices`;
+- `/price-books`, `/quotes`, `/orders`, `/amendments`, and `/entitlements`;
+- `/usage`, `/commitments`, `/invoices`, `/payments`, `/credits`, `/refunds`,
+  and `/disputes`;
+- `/partners`, `/registrations`, `/commissions`, `/distributors`, and
+  `/marketplaces`;
+- `/pocs`, `/renewals`, `/terminations`, and `/certificates`;
+- `/exceptions`, `/approvals`, and `/notifications`;
+- `/reports`, `/exports`, and `/reconciliations`; and
+- `/admin/*` for back-office assisted operations.
 
-### Integrations
+Provider callbacks enter through `/api/webhooks/workos`, `/stripe`, `/esign`,
+`/marketplaces/*`, and `/support/*`. Every list endpoint uses a stable cursor
+and explicit account scope. Mutations return the aggregate version and any
+relevant workflow handle. Errors use RFC 9457 `application/problem+json` with a
+request ID, a stable machine code, and a safe user message.
 
-| System                        | Direction | Mechanism                                                                                                                      |
-| ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Stripe                        | Both      | API for customers/subscriptions/invoices/credit notes/refunds; per-SKU tax codes; webhooks for payment truth                   |
-| E-signature provider          | Both      | API envelopes, redirect signing with completion webhook (embedded signing post-launch)                                         |
-| Aurora orchestrator / backend | Both      | Provisioning bridge: entitlement events on new SQS queue + consumer; confirmations back; teardown gated                        |
-| CRM                           | Outbound  | Event-driven sync or nightly export                                                                                            |
-| QuickBooks Online             | Outbound  | Connector for sales/fees/payouts with AR-at-issuance for terms; platform exports for rev-rec, commission bills, cost summaries |
-| Screening                     | Outbound  | Denied-party check API at registration and pre-signature                                                                       |
-| Support system                | Inbound   | Read-only ticket feed (when available)                                                                                         |
+### Provider boundaries
+
+Typed ports and behaviorally realistic deterministic fakes exist for
+e-signature, product provisioning, document/evidence storage, CRM, QBO and
+accounting, denied-party screening, support, email and notifications, business
+domain and tax-ID verification, AWS/Azure/GCP marketplace ingestion and
+settlement, existing-product account/subscription import, rate limiting, and
+feature flags. Each fake models success, transient and permanent failure,
+duplicate callbacks, delay, and out-of-order delivery.
+
+Real adapters are mandatory where the provider is fixed: Supabase, WorkOS,
+Trigger.dev, Stripe, S3, and Vercel. Provider-neutral behavior, contract tests,
+and fakes ship for unselected systems; provider choice and credentials are an
+activation gate, never an excuse for incomplete domain code.
+
+### Cross-cutting invariants
+
+- IDs are UUIDv7. Instants are UTC `timestamptz`; contractual dates use `date`.
+  Currency codes are ISO 4217.
+- Money is a signed integer number of minor units, rates are basis points, and
+  usage quantities are `numeric(38,12)`. Binary floating point never enters a
+  monetary, quantity, proration, tax, or commission calculation.
+- Every mutable aggregate has an optimistic concurrency version exposed by
+  `ETag` and required through `If-Match`. Issued artifacts use immutable
+  versions and supersession pointers instead of in-place edits.
+- Every money-changing API call requires `Idempotency-Key`. Downstream effects
+  derive stable keys from aggregate, version, and operation. Reuse with a
+  different payload fails closed.
+- Every write passes through an authorized domain command and one database
+  transaction that changes current state and appends an immutable audit event
+  plus transactional outbox record. No route or workflow accesses tables
+  directly.
+- Webhook signatures are verified against the raw request body before
+  acknowledgment. Receipt tables deduplicate by provider/event ID and allow
+  controlled replay and out-of-order delivery.
+- Issued quote snapshots, accepted order terms and lines, executed agreement
+  text/evidence, legal notices, and certificates cannot mutate. Workflow and
+  lifecycle state can advance through versioned transitions; corrections create
+  a new version, amendment, or reversal. Executed agreements, acceptance
+  evidence, notices, and certificates are content-addressed in a versioned S3
+  bucket with Object Lock; Object Lock is reserved solely for these
+  legal-evidence classes. Other issued documents retain content hashes and
+  immutable application versions without widening the legal-retention boundary.
+- Authorization evaluates the current WorkOS membership, commerce role and
+  permission, account scope, order sourcing, partner portfolio, internal-staff
+  status, and assistance context. Both domain authorization and RLS fail closed.
+- CSRF/origin protection applies to mutations. Request IDs cross HTTP,
+  database, workflows, providers, and telemetry. Impersonation is time-limited,
+  reasoned, visible, and audited with both actors.
+- Teardown, forced deletion, and production migration execution require two
+  distinct authorized approvers; retention-locked data cannot be deleted.
+
+### Workflows, telemetry, and validation
+
+Trigger.dev owns long-running and provider-facing work, including onboarding,
+agreements, provisioning, billing, collections, commissions, reconciliation,
+reporting, POCs, renewals, offboarding, exceptions, and migrations. A stable
+idempotency key protects every external effect. Transient failures retry with
+bounded backoff; permanent failures enter an owned exception queue; operator
+replay is safe and recorded in `workflow_runs`.
+
+Telemetry is OpenTelemetry-compatible structured data plus Sentry. Logs and
+error events never contain agreement bodies, tax identifiers, payment details,
+uploaded document contents, or other secret material.
+
+The required validation stack is Vitest, Testing Library, MSW, Storybook,
+Playwright, axe, pgTAP, fast-check, Stripe fixtures and test clocks, WorkOS
+session fixtures, Trigger.dev task tests, provider contract suites, and
+deterministic personas/clocks. GitHub Actions CI includes formatting, lint,
+strict typecheck, package-boundary checks, secret scanning, dependency audit,
+database reset from zero, tests, generated-artifact verification, and production
+builds.
 
 ---
 
@@ -868,7 +1024,7 @@ and where each lives:
 | Collection rails                  | Stripe payment-method configuration per currency                                                                                               | Card, ACH; wire, SEPA, BACS enabled before the first non-US order |
 | VAT / sales tax                   | Validated tax IDs on Account; per-SKU tax codes; Stripe Tax with reverse charge on valid VAT IDs; exemption certificates on ProcurementProfile | US states taxing cloud storage; ES, UK                            |
 | Agreement variants                | AgreementTemplate jurisdiction variants (governing law, SCCs/IDTA transfer terms)                                                              | US, EU, UK                                                        |
-| Residency                         | Deployment configuration per region, disclosed in the subprocessor schedule; commerce DB placement is a counsel-informed deployment decision   | us-east-2 today; EU if Spain requires                             |
+| Residency                         | Supabase/Vercel deployment configuration per region, disclosed in the subprocessor schedule; commerce DB placement is a counsel-informed deployment decision | Clockwork US region selected at provisioning; EU project if Spain requires |
 | Entity, registration, e-invoicing | Accountant and counsel workstream per country; schema holds their answers (entity on invoice header, per-country registration IDs)             | Spain packet (Aug 21); Living Rock's countries when confirmed     |
 
 Currency and rails are decided on the **partner timeline (Aug 14)**, not the
@@ -880,38 +1036,57 @@ invoiced in GBP with a bank-transfer path.
 
 ## 20. Security, compliance, and open decisions
 
-- MFA enforced; shared enterprise logins prohibited; roles least-privilege.
-  Business POCs use isolated accounts per the sprint release gates until
-  organizations fully ship.
-- Executed documents, acceptance evidence, notices, and deletion certificates
-  retained for the contract retention period in object-locked storage.
+- MFA is enforced for privileged roles, shared enterprise logins are
+  prohibited, and permissions are least-privilege. WorkOS identity status never
+  grants commerce access without a current scoped Clockwork membership.
+- Business POCs always use isolated organizations and entitlements. Paid
+  conversion upgrades the same tenant in place without weakening isolation.
+- Executed agreements, acceptance evidence, notices, and certificates are
+  retained for the applicable contract period in versioned, object-locked S3
+  storage. Other commercial artifacts remain immutable through application
+  versions and content hashes but do not expand the Object Lock scope.
 - EU/UK personal data handled per the DPA and jurisdictional transfer terms; the
   resale path's data-protection chain runs through the partner subprocessor DPA
   plus end-user pass-through terms (§8).
-- The platform emits the evidence SOC 2 will want: change log, access reviews,
-  payment reconciliation, two-person approvals on destructive actions.
+- The platform emits the evidence SOC 2 will want: append-only change history,
+  access reviews, payment reconciliation, provider receipts, and two-person
+  approvals on destructive actions.
 - Legal, tax, and regulatory positions embedded in templates, tax handling,
   screening standards, and the merchant-of-record split require counsel and
-  accountant sign-off before first external use (planning boundary, sprint
-  checklist).
+  accountant sign-off before first external use.
+- Uploads are content-type and size constrained, malware-scanned through a
+  provider port, stored outside the web root, and served only by short-lived,
+  authorized URLs. Webhooks use signature verification and replay protection;
+  outbound fetches use allow-lists to prevent SSRF.
+- Structured telemetry excludes agreement bodies, tax identifiers, payment
+  data, document contents, credentials, and provider secrets.
 
 ### Decisions taken and decisions open
 
-| Decision                                                            | Position                                                                                                                                                              | Needs                                                             |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Click-through vs counter-signed                                     | ToS, standard CSA, DPA, POC terms click-through below a cumulative-account-value threshold; MSA, partner agreements, customer paper, anything redlined counter-signed | Counsel sets threshold; ships configurable                        |
-| Merchant of record                                                  | Split by agreement type: we are MoR direct and referral; partner is MoR on resale, priced at transfer price, resale price uncontrolled                                | Partner program guide (Aug 14), counsel                           |
-| Commit semantics                                                    | `period_allowance` or `term_drawdown` declared per SKU with a distinct contracted overage rate                                                                        | SKU book (Aug 7/14)                                               |
-| Pricing guardrails                                                  | Discount matrix plus per-SKU floor on our prices only; below floor routes to founder queue                                                                            | Margin model (Aug 14); ships configurable                         |
-| Credit                                                              | Auto-charge default; written credit policy for net terms; partner aggregate limits with prepay-until-history; retention-aware nonpayment ladder                       | SKU book payment-failure answer; credit policy drafted at kickoff |
-| Retention liability                                                 | CSA carries a retention-liability KeyTerms rule (customer liable through retention expiry, or retention capped at paid term)                                          | Counsel + margin model (Aug 14)                                   |
-| Customer master                                                     | Commerce DB; CRM is a projection                                                                                                                                      | CRM selection (Aug 5)                                             |
-| Currency and rails                                                  | Multi-currency price books (USD/EUR/GBP) and bank-transfer rails on the partner timeline                                                                              | Aug 14, with accountant                                           |
-| E-signature provider                                                | Selected first, before build starts (it is a code dependency, unlike the legal text); redirect signing at launch, embedded later                                      | Selection at kickoff                                              |
-| Teardown invariant                                                  | Commerce-initiated tenant teardown designed now, activated only by explicit decision with two-person approval                                                         | Product decision, recorded                                        |
-| Stripe-to-QBO connector                                             | Selected at kickoff with the accountant; AR-at-issuance for terms is a hard requirement of the choice                                                                 | Kickoff                                                           |
-| Migration of existing base                                          | After launch, behind a feature flag, on a quiet day (§21)                                                                                                             | —                                                                 |
-| White-label, marketplaces, distributor logic, embedded signing, SSO | Deferred until demand; schema-ready where cheap (`parent_partner_id`)                                                                                                 | Demand                                                            |
+| Decision                                                            | Position                                                                                                                                                              | External input still needed                                      |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Click-through vs counter-signed                                     | ToS, standard CSA, DPA, and POC terms click-through below a cumulative-account-value threshold; MSA, partner agreements, customer paper, and redlines are counter-signed | Counsel-approved text, threshold, variants, and KeyTerms defaults |
+| Merchant of record                                                  | Fil One is MoR for direct/referral; partner is MoR for resale, priced at transfer price, with resale price uncontrolled                                                | Partner program guide and counsel approval                       |
+| Commit semantics                                                    | `period_allowance` or `term_drawdown` per SKU with a distinct contracted overage rate                                                                                 | Signed-off SKU and rate-card data                                |
+| Pricing guardrails                                                  | Discount matrix plus per-SKU floor on prices Fil One sets; below floor routes to an approval queue                                                                     | Margin model, floors, claims wording                             |
+| Credit                                                              | Auto-charge default; written policy for net terms; partner aggregate limits; retention-aware nonpayment ladder                                                        | Finance-approved credit and collections policy                   |
+| Retention liability                                                 | CSA carries a retention-liability KeyTerms rule                                                                                                                       | Counsel and margin-model decision                                |
+| Customer master                                                     | Supabase Postgres commerce DB; CRM is a projection                                                                                                                     | CRM selection and scoped credentials                             |
+| Currency and rails                                                  | USD/EUR/GBP price books and configured card, ACH, wire, SEPA, and BACS rails                                                                                           | Accountant sign-off, registrations, live payment rails           |
+| E-signature                                                         | Provider-neutral embedded signing plus redirect fallback ships with a complete fake and contract tests                                                                | Provider selection, account, and credentials                     |
+| Teardown invariant                                                  | Automation is complete behind a feature flag and two-person approval; production activation requires explicit authorization                                           | Written product/security/legal decision                          |
+| Stripe-to-QBO                                                       | AR at issuance for terms is mandatory; auto-charge may post by payout summary                                                                                          | Connector selection, accounts, and accountant approval           |
+| Existing-base migration                                             | Complete dry-run, review, execution, and recovery tooling ships behind a feature flag                                                                                   | Production source access, authorization, and migration window    |
+| White-label, marketplaces, distributor, embedded signing, SSO, support | Fully implemented and tested; production features activate independently after their accounts, domains, policies, branding, or enrollments pass activation tests     | Feature-specific external inputs only                            |
+
+Only genuine external dependencies may remain gated: managed provider accounts
+and scoped credentials; counsel-approved text, thresholds, retention and
+screening rules; final price/margin/claims and credit data; provider selection;
+the product provisioning API; tax/accounting decisions; production domains and
+email records; brand assets; named approvers; production migration access and
+window; and explicit teardown authorization. Every gate has an ID, owner/input,
+affected feature, simulator coverage, activation test, and launch severity in
+`docs/external-gates.md`.
 
 ---
 
@@ -921,140 +1096,131 @@ Existing self-serve customers exist as Stripe customers and product accounts.
 Migration creates commerce Accounts keyed to Stripe customer IDs, backfills ToS
 acceptance where recoverable, and attaches existing subscriptions as PAYG
 Orders. Because no versioned acceptance record exists today, most existing
-customers would face a re-acceptance interstitial; forcing that on the live
-paying base during launch week is needless risk to the self-serve funnel the
-sprint depends on. **Migration therefore runs after launch, behind a feature
-flag, rehearsed against a snapshot first, on a quiet day.** Until then, commerce
-Accounts exist only for new business, and the two populations are cleanly
-separable by construction. Rule: one legal entity, one Account; ambiguous
-matches land in a review queue rather than creating duplicates.
+customers require re-acceptance.
+
+The production build includes dry-run discovery, account/subscription/product
+matching, explicit re-acceptance decisions, an ambiguous-candidate review queue,
+fixtures and rehearsal, resumable batches, deterministic idempotency, progress
+and audit records, rollback boundaries, and feature-flagged execution. The
+tooling never guesses through an ambiguous one-entity/one-Account match.
+
+Only the real production run is deferred. It requires source-system access,
+customer communication and legal approval, a named migration window and
+approvers, a snapshot rehearsal, and an approved rollback point. Until then,
+new Clockwork business and the existing population remain separable by
+construction.
 
 ---
 
 ## 22. Build plan
 
-Built in-house in the existing monorepo with agentic tooling (Claude Code with
-Fable as the primary lane, Codex/GPT-5.6 as a second implementation and review
-lane). Working method: this spec decomposes into module briefs with acceptance
-tests written first; agents implement in parallel worktrees; CI gates are the
-existing `pnpm lint`, typecheck, unit tests, plus the money-path suite below.
-Agents never hold live Stripe or AWS production credentials. Getting it done
-right matters more than any date; the plan below is a dependency order, not a
-calendar.
+Clockwork is delivered by five Codex instances with one serial foundation,
+three parallel implementation lanes, and one serial integration/release lane.
+Every branch starts from the exact foundation commit. Agents never inspect,
+depend on, or modify another Fil One or Object Lock repository and never receive
+live production credentials.
 
-Three rules from the delivery review:
+| Agent | Branch | Fixed worktree | Ownership |
+| ----- | ------ | -------------- | --------- |
+| 1 — foundation | `commerce/foundation` | `/Users/jameskurz/Downloads/Fil One/Clockwork` | Monorepo, shared contracts, complete schema, migrations, auth plumbing, fakes, test harness, foundational UI, CI, ADRs, and worktrees |
+| 2 — core finance | `commerce/core-finance` | `/Users/jameskurz/Downloads/Fil One/Clockwork-core-finance` | Accounts, pricing, quotes, orders, amendments, commitments, billing, partners, commissions, marketplace finance, accounting, reconciliation, and reports |
+| 3 — lifecycle platform | `commerce/lifecycle-platform` | `/Users/jameskurz/Downloads/Fil One/Clockwork-lifecycle` | Identity, agreements, evidence, POCs, provisioning, renewals, offboarding, exceptions, compliance, notifications, support, and migration tooling |
+| 4 — experience and documents | `commerce/experience-docs` | `/Users/jameskurz/Downloads/Fil One/Clockwork-experience` | Customer, partner, and admin routes; design system; accessibility; localization; deterministic documents; demo and visual/persona tests |
+| 5 — integration | `commerce/integration` | `/Users/jameskurz/Downloads/Fil One/Clockwork-merge` | No-fast-forward lane merges, generated artifacts, all cross-lane joins, adversarial repair, release evidence, and operations runbooks |
 
-- **Staggered lanes, not six at once.** No more than three lanes run
-  concurrently, sequenced so joins land early. The commerce platform is almost
-  entirely joins (quote to order to entitlement to tenant; order to Stripe
-  schedule; webhook to invoice state; partner scope to end-client query), and
-  joins are where agent-built systems fail review.
-- **Integration tests are the merge gate.** Every money-path PR must include an
-  integration-level acceptance test (composed handler or Playwright), never only
-  unit tests. The money-path harness (Stripe test clocks, resettable commerce
-  DB, webhook replay fixtures, e-sign sandbox) is a foundation deliverable with
-  its own owner, and the harness defines the demo-critical path.
-- **Merging is not deploying.** Money-path deploys go behind a manual approval
-  environment with a staging soak; `main` auto-deploy continues for everything
-  else.
+Agent 1 must finish and verify the foundation before creating the four sibling
+worktrees from the same commit. Agents 2–4 then run concurrently without merges
+or cherry-picks. Agent 5 starts only after all three lane worktrees are committed
+and clean, records their SHAs, and merges core finance, lifecycle platform, then
+experience/documents with explicit merge commits.
 
-### Deferral order, decided now
+The architecture is collision-resistant: route groups, domain directories,
+workflow/integration registries, schema extensions, migrations, and tests have
+lane ownership. Shared generated OpenAPI clients, Drizzle metadata, and the
+lockfile are regenerated from sources during integration, never edited by hand.
+Foundation, lane, and integration migration number ranges do not overlap, and
+applied migrations never change.
 
-Everything in this spec ships. If something must give temporarily, it gives in
-this order, decided in writing early rather than discovered late, and picked
-back up immediately after launch:
+### Completeness rule
 
-1. Commission statements, the report suite beyond forecast/funnel/margin,
-   renewal command center polish
-2. Partner portal surfaces (partner transacting continues through the back
-   office with identical records)
-3. Customer-facing quote builder (quotes issued from back office, received and
-   accepted in portal)
+All product capabilities in this specification are built now, including
+embedded signing, SSO, white-label, AWS/Azure/GCP marketplaces, two-tier
+distributor settlement, support visibility, existing-base migration tooling,
+automated teardown, and the complete report suite. Features can remain disabled
+only when a registered external account, credential, legal/commercial decision,
+production data set, or explicit authorization is missing. A simulator and
+activation test must exist for every disabled feature.
 
-**Never deferred:** the demo-critical path (register, click-through CSA with
-hashed acceptance record, quote with PDF, in-portal order acceptance,
-provisioned org, Stripe invoice, payment), the acceptance-evidence records, the
-commitment ledger's correctness, and the seeded demo tenant.
+No `TODO`, `FIXME`, fake success, skipped/disabled test, placeholder copy,
+unsafe cast, unhandled promise, direct table access outside `packages/db`, raw
+SQL outside approved repositories/migrations, or unregistered environment
+variable may survive the release gate unless it references a genuine registered
+external gate.
 
-### Build sequence
+### Release verification
 
-**Foundations (everything depends on these).** Org membership, invites, and role
-checks in the product; the provisioning bridge (SQS queue, consumer,
-entitlement-to-tenant mapping, idempotent re-drive); the Postgres decisions
-(connection strategy, preview-stage strategy, migrations tooling); e-sign
-provider selection; QBO connector and written credit policy with the accountant;
-the money-path test harness; design-system components in Storybook. The product
-has single-admin orgs and no bridge today, so this is real work, named and
-tested, not wiring.
+The release candidate is built from a clean integration worktree and must pass:
 
-**Phase 1: the spine.** Commerce schema and domain package for every object in
-§5; back-office surfaces (accounts, agreements, multi-currency price book
-editor, quote issue, order accept); Stripe mapping including the commitment
-ledger. Exit: a deal runs account through invoice in the back office on staging,
-with an integration test proving it.
+- frozen dependency installation; formatting, lint, strict typecheck, package
+  boundaries, dependency audit, secret scan, and production build;
+- Supabase reset from zero; migration dry run; pgTAP; unit, property,
+  repository, provider-contract, integration, and reconciliation suites;
+- Stripe webhook replay and test-clock scenarios for monthly/annual billing,
+  failures, renewals, amendments, credits, refunds, and disputes;
+- WorkOS, e-sign, provisioning, notification, support, migration, and all three
+  marketplace duplicate/delay/reorder/replay suites;
+- Storybook, axe, visual snapshots, React PDF golden tests, and all Playwright
+  personas and critical paths; and
+- deterministic demo reset plus a proof that the reset is physically incapable
+  of targeting production.
 
-**Phase 2: the direct track.** Registration with domain verification and tax-ID
-validation, click-through execution with evidence and authority attestation,
-procurement profile, customer-facing dashboard/agreements/billing surfaces,
-in-portal order acceptance with PO fields, Stripe payment including
-bank-transfer rails, provisioning through the bridge, quote PDF rendering. Exit:
-the sprint §2 order-to-entitlement tests pass for self-serve (existing flow),
-direct (portal), and the partner shape (driven through the back office until
-Phase 3).
+Adversarial review covers tenant and partner isolation, co-mingled visibility,
+IDOR, privilege escalation, assisted-mode identity, CSRF, webhook forgery and
+replay, SSRF, injection, unsafe uploads, secret/PII leakage, destructive-action
+separation, duplicate submission, stale and concurrent writes, provider and
+database partial failure, workflow replay, crash recovery, rounding, currency
+separation, tax changes, DST and calendar boundaries, proration, usage
+corrections, both commitment models, and commission clawbacks. RLS and domain
+authorization must both fail closed.
 
-**Phase 3: the partner track and POCs.** Partner agreements with the §8 required
-contents, deal registration with dispute path, partner quoting with the
-partner-priced quote artifact, consolidated partner invoicing with aggregate
-credit limits, portfolio view, sandbox SKUs, the POC module with data-preserving
-conversion, the customer- and partner-facing quote builder, amendments and
-co-termination, term clocks and renewal alerts including decline and
-InboundNotice. Exit: a partner registers a deal, quotes, orders; the end client
-is provisioned and accepts pass-through terms; only the partner is invoiced.
+### Acceptance matrix
 
-**Phase 4: close the loop and polish.** Renewal command center; forecast,
-funnel, and margin reports plus scorecard export; commission statements with
-clawback netting; termination flow and retention-aware deletion certificates
-(teardown design complete; activation per the gated decision); credit notes,
-refunds, dispute cases; screening integration; seeded demo environment; a polish
-pass across every surface (empty states, skeletons, motion, responsive, a11y,
-copy review against the claims register); money-path suite green on the full
-demo-critical path; security review of authz scoping and both webhook surfaces.
-**Operations readiness before launch: named backup approvers on every queue, a
-one-page runbook for stuck provisioning and webhook replay, and alerting on
-bridge failures.**
+- A standard direct purchase completes registration → WorkOS organization →
+  exact-text agreement evidence → quote/PDF → order/PO → provisioning →
+  entitlement → Stripe invoice → payment → portal/reporting without Fil One
+  intervention.
+- Assisted purchase creates the identical artifact chain and identifies the
+  internal actor. Referral and resale invoice the legally correct party and
+  never leak partner economics.
+- Distributor/two-tier, white-label, and AWS/Azure/GCP marketplace paths trace
+  orders through entitlement, invoice, fee, settlement, and reconciliation.
+- Issued commercial and legal artifacts cannot mutate. Webhooks and durable
+  tasks remain correct under duplication, delay, replay, reordering, rollback,
+  and crash recovery.
+- Both commitment models pass property and contract tests across amendments,
+  late/corrected usage, period and term boundaries, partial periods, and
+  contracted overage rates.
+- A POC converts without tenant or data migration. Retention-locked objects
+  cannot be deleted, and every destructive action requires two distinct
+  approvers.
+- Amendment/co-termination, renewal/decline/InboundNotice, re-execution,
+  dunning, credit exposure, disputes, reversals, termination, deletion
+  certificates, and Novation preserve the artifact chain.
+- Every report traces to source records. The monthly Clockwork/Stripe/QBO and
+  marketplace reconciliations expose and assign every variance.
+- Cross-account, cross-partner, order-sourcing, and co-mingled visibility tests
+  fail closed. Every surface is responsive at 320px+, keyboard usable, WCAG AA,
+  and free of serious axe findings.
+- Restore rehearsal, migration rehearsal, webhook replay, workflow recovery,
+  billing reconciliation, stuck provisioning, offboarding, and disaster
+  recovery have tested runbooks. No unfinished internal work is mislabeled as
+  an external dependency.
 
-**Launch and after.** Launch for new business with the demo tenant ready for
-sales and partner meetings. Then: migration of the existing base (§21),
-hardening, embedded signing, SSO, support-ticket feed, remaining reports, and
-whatever a live deal pulls in.
-
-### External dependencies the plan absorbs
-
-The SKU book, margin model, CRM selection, partner program guide, and
-counsel-final legal text all land mid-build; each is data or a swappable
-adapter, so late inputs change rows, not code. Two exceptions are code
-dependencies and belong in Foundations: the e-sign provider and the QBO
-connector posting model. The one hard sequencing rule: no external account
-transacts on agreement text counsel has not approved; the demo tenant and
-staging carry the Common Paper defaults until then.
-
-### Success criteria (at launch)
-
-- A new business client goes from registration to provisioned and invoiced with
-  zero Fil One touches on standard terms, in minutes, with a PO number on the
-  invoice.
-- A partner completes registration, quoting (both documents), ordering, and
-  consolidated invoicing in the portal; its end client accepts pass-through
-  terms at first login.
-- A POC provisions isolated, tracks against caps and milestones, and converts to
-  a paid quote keeping its data.
-- The commitment ledger prices a term-drawdown and a period-allowance contract
-  correctly under contract tests, including contracted overage rates.
-- Every surface passes the polish bar; the demo tenant opens a sales meeting
-  credibly.
-- Money-path suite green; forecast, funnel, and margin reports tie to Stripe and
-  QBO under the three-way tie-out.
-- Operations readiness complete: backups named, runbook written, alerts live.
+Agent 5 produces the release-candidate report, final gate register, launch
+checklist, and operations runbooks. The launch checklist includes staging soak,
+rollback, isolated backup-restore drill, alert verification, feature-flag
+activation, and named approvals. Merging and producing a release candidate do
+not authorize a production deployment or contact with external parties.
 
 ---
 
@@ -1062,12 +1228,24 @@ staging carry the Common Paper defaults until then.
 
 - Sprint checklist: `sprint_checklist.md` (this folder), July 2026.
 - Concept document: "The Frictionless Commerce Platform" screenshots, July 2026.
-- Repo: `Object Lock/fil-one` worktree (SST v3, pnpm monorepo, Stripe
-  integration, Aurora clients); `object-lock-review.md` for the
-  joins-versus-units review finding this plan's merge gates respond to.
+- Five-Codex production build plan, July 31, 2026. This plan supersedes the
+  former in-repository architecture and deferral assumptions while preserving
+  the approved product behavior.
 - Adversarial review findings (three lenses, July 31, 2026): folded throughout;
   see §22 rules, §5 Account/Amendment/CommitmentLedger, §8 partner agreement
   contents, §10 posting model, §19.
+- Next.js App Router: https://nextjs.org/docs/app
+- Supabase Postgres connections and transaction pooling:
+  https://supabase.com/docs/guides/database/connecting-to-postgres
+- Supabase branching: https://supabase.com/docs/guides/deployment/branching
+- Supabase backups and PITR: https://supabase.com/features/database-backups
+- WorkOS organizations:
+  https://workos.com/docs/authkit/users-organizations
+- WorkOS roles and permissions:
+  https://workos.com/docs/authkit/roles-and-permissions
+- Trigger.dev idempotency: https://trigger.dev/docs/idempotency
+- Trigger.dev preview branches:
+  https://trigger.dev/docs/deployment/preview-branches
 - Stripe usage-based billing and meters:
   https://docs.stripe.com/billing/usage-based
 - Clickwrap enforceability components and record-keeping:
