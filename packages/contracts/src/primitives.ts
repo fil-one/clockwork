@@ -23,6 +23,7 @@ export const entityNames = [
   "commitment_entry",
   "entitlement",
   "invoice",
+  "collection_case",
   "payment",
   "credit_note",
   "refund",
