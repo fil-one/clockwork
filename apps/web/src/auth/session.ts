@@ -5,6 +5,7 @@ import {
   type SessionResolver,
 } from "@clockwork/api";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
+import type { DemoPersona } from "@clockwork/testing/personas";
 import {
   DEMO_PERSONA_HEADER,
   demoPersonaCookieName,
@@ -206,6 +207,24 @@ async function getReleaseProofCommerceSession(input: {
   };
 }
 
+function demoPersonaSession(persona: DemoPersona): CommerceSession {
+  return {
+    userId: persona.userId,
+    organizationId: persona.organizationId,
+    accountIds: persona.isInternalStaff ? [] : [persona.selectedAccountId],
+    roles: [persona.role],
+    isInternalStaff: persona.isInternalStaff,
+    mfaVerified: persona.mfaVerified,
+    recentAuthenticationVerified: true,
+    profile: { name: persona.displayName, email: persona.email },
+    memberships: [demoPersonaMembership(persona)],
+    selectedAccountId: persona.selectedAccountId,
+    effectiveAccountId: persona.selectedAccountId,
+    providerBacked: false,
+    authenticationSource: "local",
+  };
+}
+
 export async function requireRecentAuthentication(maxAge = 300) {
   assertAuthenticationConfiguration();
   if (releaseProofConfiguration()) {
@@ -253,24 +272,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
         header: requestHeaders.get(DEMO_PERSONA_HEADER),
         cookie: (await cookies()).get(demoPersonaCookieName)?.value,
       });
-      if (persona)
-        return {
-          userId: persona.userId,
-          organizationId: persona.organizationId,
-          accountIds: persona.isInternalStaff
-            ? []
-            : [persona.selectedAccountId],
-          roles: [persona.role],
-          isInternalStaff: persona.isInternalStaff,
-          mfaVerified: persona.mfaVerified,
-          recentAuthenticationVerified: true,
-          profile: { name: persona.displayName, email: persona.email },
-          memberships: [demoPersonaMembership(persona)],
-          selectedAccountId: persona.selectedAccountId,
-          effectiveAccountId: persona.selectedAccountId,
-          providerBacked: false,
-          authenticationSource: "local",
-        };
+      if (persona) return demoPersonaSession(persona);
     }
     const requestedRole = requestHeaders.get("x-clockwork-persona");
     const role = (
@@ -498,6 +500,19 @@ export class WorkosNextSessionResolver implements SessionResolver {
         throw new Error(
           "Authentication is unavailable without an explicit non-production demo adapter",
         );
+      // The chosen persona is the identity for API calls too. Without it the
+      // signed-in name on the page and the actor the commerce API records would
+      // disagree, and a signing return would never match its correlation.
+      if (demoPersonaSurfacesEnabled(process.env)) {
+        const persona = resolveDemoPersona({
+          header: request.headers.get(DEMO_PERSONA_HEADER),
+          cookie: cookieValue(
+            request.headers.get("cookie"),
+            demoPersonaCookieName,
+          ),
+        });
+        if (persona) return demoPersonaSession(persona);
+      }
       return new LocalSessionResolver().resolve(request);
     }
     return getCommerceSession();

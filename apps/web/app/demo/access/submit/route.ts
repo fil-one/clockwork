@@ -11,9 +11,19 @@ import {
 } from "@/src/auth/demo-access";
 import { secureDemoRequest } from "@/src/auth/demo-deploy";
 
-function field(form: FormData, name: string): string {
-  const value = form.get(name);
-  return typeof value === "string" ? value : "";
+/**
+ * The body is read as text and parsed here rather than through `formData()`.
+ * The deploy platform's Next runtime does not deliver a parsed form to a route
+ * handler behind middleware: a urlencoded body arrives with no fields and a
+ * multipart body throws. Reading the raw text works on both runtimes and keeps
+ * the handler independent of the adapter.
+ */
+async function submittedFields(request: Request): Promise<URLSearchParams> {
+  return new URLSearchParams(await request.text());
+}
+
+function field(form: URLSearchParams, name: string): string {
+  return form.get(name) ?? "";
 }
 
 /**
@@ -39,7 +49,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     new URL(origin).host !== host
   )
     return new NextResponse(null, { status: 403 });
-  const form = await request.formData();
+  const form = await submittedFields(request);
   const next = safeDemoReturnPath(field(form, "next"));
   if (!(await equalDemoSecret(field(form, "password"), password)))
     return seeOther(
