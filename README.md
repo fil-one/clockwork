@@ -199,7 +199,10 @@ production marker is present in the environment, flag or no flag. A demo deploy
 can additionally be password-gated with `CLOCKWORK_DEMO_ACCESS_PASSWORD`.
 
 The hosted demo at https://clockwork-commerce-demo.netlify.app deploys directly
-from a local checkout, not from GitHub; the route and command are in
+from a local checkout, not from GitHub. Commit, push, and merge to `main` first,
+then deploy from `main` with the Netlify CLI: merging alone changes nothing on
+the live site, and deploying from anything other than `main` puts code in front
+of prospects that exists in no commit. The route and command are in
 [docs/operations/demo-deploy.md](docs/operations/demo-deploy.md).
 
 ## Commands

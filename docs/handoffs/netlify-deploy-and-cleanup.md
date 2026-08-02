@@ -11,6 +11,11 @@ Netlify deploy, which needs account access this session did not have.
 > design. The route, command, and token are in
 > [docs/operations/demo-deploy.md](../operations/demo-deploy.md). The branch
 > cleanup in section 3 is done; only `main` remains on the remote.
+>
+> **Resolved.** The demo deployed successfully from `main` on 2 Aug 2026 and
+> serves the current build. Section 1 is history: keep it for the diagnosis
+> trail, and treat the runbook as the standing instruction. Nothing about the
+> deploy is blocked.
 
 ## 1. Netlify is not deploying (the blocking item)
 

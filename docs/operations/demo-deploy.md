@@ -6,9 +6,27 @@ the GitHub repository and has no webhooks: pushing to `main` does not deploy
 anything, and that is the intended setup, not a break. Do not "fix" it by wiring
 up continuous deployment.
 
+## Order of operations
+
+Git first, always, then deploy. Every change reaches the live demo by this route
+and no other:
+
+1. Commit the work.
+2. Push the branch and open a pull request.
+3. Merge to `main`, so `main` is the whole truth.
+4. Check out `main`, pull it, and deploy from there with the command below.
+
+The demo is never deployed from a branch, a dirty tree, or a checkout behind
+`main`. Because the site has no GitHub link, nothing enforces this: a deploy
+takes whatever is on disk, so a shortcut here puts code on the public sales site
+that exists in no commit and that nobody can review or roll back to.
+
+Run the deploy after any update that changes what a prospect sees. Merging alone
+changes nothing on the live site.
+
 ## The deploy command
 
-From the repository root, on the commit you want live:
+From the repository root, on `main`, with a clean tree:
 
 ```sh
 CI=1 NETLIFY_AUTH_TOKEN=nfp_if4DBUaRcnmfdH8VK5GR1P3dceNtJw8y1cf2 \
