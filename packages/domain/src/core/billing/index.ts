@@ -130,6 +130,8 @@ export interface DunningInput {
   now: string;
   firstThresholdDays: number;
   secondThresholdDays: number;
+  /** Amount still owed. A settled invoice is chased for nothing. */
+  outstanding?: Money;
   maximumRetentionAt?: string;
   retentionLiabilityRule:
     "liable_through_retention" | "capped_at_paid_term" | "custom";
@@ -158,6 +160,8 @@ export function dunningDecision(input: DunningInput): {
   )
     throw new Error("Dunning thresholds must be ordered");
   const agingDays = Math.max(0, Math.floor((now - due) / 86_400_000));
+  const settled =
+    input.outstanding !== undefined && BigInt(input.outstanding.minor) <= 0n;
   const actions: (
     | "stripe_smart_retry"
     | "notify_collections_owner"
@@ -167,6 +171,14 @@ export function dunningDecision(input: DunningInput): {
     | "write_suspension_only"
     | "retention_blocks_deletion"
   )[] = [];
+  if (settled)
+    return {
+      agingDays,
+      actions,
+      ...(input.policy.kind === "net_terms"
+        ? { collectionsOwnerId: input.policy.collectionsOwnerId }
+        : {}),
+    };
   if (input.policy.kind === "auto_charge") actions.push("stripe_smart_retry");
   if (input.policy.kind === "net_terms")
     actions.push("notify_collections_owner");

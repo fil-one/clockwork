@@ -8,6 +8,7 @@ export * from "./derivation";
 export * from "./orders";
 export * from "./partners";
 export * from "./pricing";
+export * from "./procurement";
 export * from "./quotes";
 export * from "./reports";
 
@@ -23,4 +24,5 @@ export const coreDomainRegistry = [
   "commissions",
   "reports",
   "derivation",
+  "procurement",
 ] as const;

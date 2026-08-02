@@ -44,6 +44,10 @@ export interface NormalizedStripeFinancialEvent {
   readonly refundId?: string;
   readonly disputeId?: string;
   readonly amount?: Money;
+  /** Invoice totals; present only on invoice-category events that carry them. */
+  readonly amountDue?: Money;
+  readonly amountPaid?: Money;
+  readonly amountRemaining?: Money;
   readonly status?: string;
   readonly rawObject: Record<string, unknown>;
 }
@@ -177,6 +181,14 @@ export function normalizedStripeEventFromPayload(
   if (!isRecord(event.rawObject))
     throw new TypeError("Normalized Stripe raw object is invalid");
   const amount = MoneySchema.safeParse(event.amount);
+  const totals =
+    category === "invoice"
+      ? {
+          ...optionalEventMoney(event, "amountDue"),
+          ...optionalEventMoney(event, "amountPaid"),
+          ...optionalEventMoney(event, "amountRemaining"),
+        }
+      : {};
   return {
     provider: "stripe",
     eventId: requiredString(event, "eventId"),
@@ -197,9 +209,18 @@ export function normalizedStripeEventFromPayload(
     ...optionalEventString(event, "refundId"),
     ...optionalEventString(event, "disputeId"),
     ...(amount.success ? { amount: amount.data } : {}),
+    ...totals,
     ...optionalEventString(event, "status"),
     rawObject: event.rawObject,
   };
+}
+
+function optionalEventMoney(
+  event: Record<string, unknown>,
+  key: "amountDue" | "amountPaid" | "amountRemaining",
+): Partial<Record<typeof key, Money>> {
+  const parsed = MoneySchema.safeParse(event[key]);
+  return parsed.success ? { [key]: parsed.data } : {};
 }
 
 function optionalEventString(
@@ -278,6 +299,36 @@ function supportedMoney(object: Record<string, unknown>): Money | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
+/**
+ * Invoice totals travel beside the coalesced `amount`, which keeps its existing
+ * meaning. A short payment, an installment, and an overpayment differ only in
+ * these three figures, so the projection reads them rather than one scalar.
+ */
+function invoiceTotals(object: Record<string, unknown>): {
+  amountDue?: Money;
+  amountPaid?: Money;
+  amountRemaining?: Money;
+} {
+  const currency = optionalString(object.currency)?.toUpperCase();
+  const total = (value: unknown): Money | undefined => {
+    if (typeof value !== "number" || !Number.isSafeInteger(value))
+      return undefined;
+    const parsed = MoneySchema.safeParse({
+      currency,
+      minor: parseProviderMinorUnits(value),
+    });
+    return parsed.success ? parsed.data : undefined;
+  };
+  const amountDue = total(object.amount_due);
+  const amountPaid = total(object.amount_paid);
+  const amountRemaining = total(object.amount_remaining);
+  return {
+    ...(amountDue === undefined ? {} : { amountDue }),
+    ...(amountPaid === undefined ? {} : { amountPaid }),
+    ...(amountRemaining === undefined ? {} : { amountRemaining }),
+  };
+}
+
 function stripeRequest(event: Stripe.Event): {
   requestId?: string;
   requestIdempotencyKey?: string;
@@ -330,6 +381,7 @@ export function normalizeStripeFinancialEvent(
         customerId ??
         objectId);
   const amount = supportedMoney(object);
+  const totals = category === "invoice" ? invoiceTotals(object) : {};
   const eventStatus = optionalString(object.status);
   return {
     provider: "stripe",
@@ -350,6 +402,7 @@ export function normalizeStripeFinancialEvent(
     ...(refundId === undefined ? {} : { refundId }),
     ...(disputeId === undefined ? {} : { disputeId }),
     ...(amount === undefined ? {} : { amount }),
+    ...totals,
     ...(eventStatus === undefined ? {} : { status: eventStatus }),
     rawObject: object,
   };

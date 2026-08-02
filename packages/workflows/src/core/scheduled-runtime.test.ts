@@ -26,6 +26,9 @@ describe("durable core schedule submission", () => {
       }),
       expect.objectContaining({ dispatches: "core.reporting.export.v1" }),
       expect.objectContaining({ dispatches: "core.reporting.export.v1" }),
+      expect.objectContaining({
+        dispatches: "core.procurement.certificate-expiry.v1",
+      }),
     ]);
     expect(new Set(coreScheduleDefinitions.map(({ id }) => id)).size).toBe(
       coreScheduleDefinitions.length,

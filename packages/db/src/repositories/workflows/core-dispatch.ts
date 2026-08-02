@@ -54,6 +54,7 @@ export interface CoreWorkflowTaskDispatch {
     | "core.collections.dunning.v1"
     | "core.collections.partner-credit.v1"
     | "core.commissions.settle.v1"
+    | "core.procurement.certificate-expiry.v1"
     | "core.reconciliation.usage.v1"
     | "core.reconciliation.three-way.v1"
     | "core.reporting.export.v1";

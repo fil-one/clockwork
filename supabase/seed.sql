@@ -273,6 +273,9 @@ insert into invoices (id, order_id, account_id, stripe_invoice_id, currency, amo
 ('90000000-0000-4000-8000-000000000005','80000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000007','in_demo_white_label','USD',144000,'PO-WHITE-005','open','2026-08-31T16:00:00Z'),
 ('90000000-0000-4000-8000-000000000006','80000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','in_demo_marketplace','USD',156000,'PO-MARKET-006','open','2026-08-31T16:00:00Z'),
 ('90000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004',null,'USD',180000,'PO-DIRECT-007','draft','2026-08-31T16:00:00Z');
+-- A paid invoice is settled in full. The overdue invoice keeps its full
+-- remainder: its only payment is the one under dispute.
+update invoices set amount_paid_minor = amount_minor where status = 'paid';
 
 do $invoice_snapshots$
 begin

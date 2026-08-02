@@ -13,8 +13,14 @@ import {
 } from "drizzle-orm";
 
 import {
+  assessExemptionCertificate,
+  certificateRowStatus,
+  EXEMPTION_CERTIFICATE_KIND,
+  EXEMPTION_EXPIRY_NOTICE_DAYS,
   multiplyMinorByQuantity,
   parseDecimal,
+  raisedCertificates,
+  readProcurementExemptions,
   type CommitmentLedgerDecision,
 } from "@clockwork/domain/core";
 
@@ -24,6 +30,7 @@ import {
   accounts,
   auditEvents,
   commerceUsers,
+  procurementProfiles,
   commitmentEntries,
   commitmentLedgers,
   entitlements,
@@ -44,6 +51,7 @@ import {
   collectionCases,
   commissionStatements,
   commitmentPeriods,
+  procurementCertificates,
 } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import {
@@ -60,6 +68,7 @@ export const coreScheduleIds = [
   "core.schedule.three-way-reconciliation.v1",
   "core.schedule.report-export-weekly.v1",
   "core.schedule.report-export-monthly.v1",
+  "core.schedule.procurement-certificate-expiry.v1",
 ] as const;
 
 export type CoreScheduleId = (typeof coreScheduleIds)[number];
@@ -81,11 +90,33 @@ export function scheduledDunningStage(
   return { ordinal: 0, decisionDaysPastDue: 0 };
 }
 
+/**
+ * The stage and the due date decide the payload, so the version is keyed to
+ * them. A payment that touches the invoice row no longer re-fires a stage the
+ * customer has already been told about.
+ */
 export function scheduledDunningVersion(
-  invoiceRowVersion: number,
+  dueAtEpochDay: number,
   stageOrdinal: 0 | 1 | 2,
 ): number {
-  return invoiceRowVersion * 3 + stageOrdinal;
+  return dueAtEpochDay * 3 + stageOrdinal;
+}
+
+/**
+ * A certificate keeps one decision while it stays in the same state. Keying the
+ * version to the earliest raised expiry and the stage means a daily sweep does
+ * not reopen an exception every morning for a certificate the operator has
+ * already been told about, while a lapse after a notice still gets its own.
+ */
+export function scheduledCertificateVersion(
+  earliestRaisedEpochDay: number,
+  stageOrdinal: 1 | 2,
+): number {
+  return earliestRaisedEpochDay * 3 + stageOrdinal;
+}
+
+export function epochDay(instant: Date): number {
+  return Math.floor(instant.valueOf() / 86_400_000);
 }
 
 export interface CoreScheduleOccurrence {
@@ -312,6 +343,8 @@ export class DatabaseCoreScheduledDispatchStore {
       case "core.schedule.report-export-weekly.v1":
       case "core.schedule.report-export-monthly.v1":
         return this.buildReportExports(input, limit);
+      case "core.schedule.procurement-certificate-expiry.v1":
+        return this.buildCertificateExpiry(input, scheduledAt, limit);
     }
   }
 
@@ -496,7 +529,8 @@ export class DatabaseCoreScheduledDispatchStore {
           throw new Error("SCHEDULED_DUNNING_INVOICE_BINDING_INVALID");
         if (
           !invoice.dueAt ||
-          !["open", "uncollectible"].includes(invoice.status)
+          !["open", "uncollectible"].includes(invoice.status) ||
+          invoice.amountRemainingMinor <= 0n
         )
           continue;
         if (!owner || !account)
@@ -527,7 +561,7 @@ export class DatabaseCoreScheduledDispatchStore {
         );
         const dunningStage = scheduledDunningStage(daysPastDue);
         const dunningVersion = scheduledDunningVersion(
-          invoice.rowVersion,
+          epochDay(invoice.dueAt),
           dunningStage.ordinal,
         );
         dispatches.push({
@@ -552,6 +586,10 @@ export class DatabaseCoreScheduledDispatchStore {
             commercialShape: order.sourcing,
             invoiceStatus:
               invoice.status === "uncollectible" ? "uncollectible" : "past_due",
+            outstanding: {
+              currency: invoice.currency,
+              minor: invoice.amountRemainingMinor.toString(),
+            },
             daysPastDue: dunningStage.decisionDaysPastDue,
             firstThresholdDays: 7,
             secondThresholdDays: 30,
@@ -894,6 +932,150 @@ export class DatabaseCoreScheduledDispatchStore {
           },
         };
       });
+    });
+  }
+
+  /**
+   * Re-evaluates every persisted tax exemption certificate.
+   *
+   * The live record is `procurement_profiles.exemptions`, so that is what the
+   * scan reads; `core_procurement_certificates` had no writer at all and is
+   * populated here as the durable record. Onboarding checks expiry once when
+   * the profile is written, which is why a certificate that lapsed afterwards
+   * is still treated as valid until this runs.
+   */
+  private buildCertificateExpiry(
+    input: CoreScheduleDispatchRequest,
+    scheduledAt: Date,
+    limit: number,
+  ): Promise<readonly CoreWorkflowTaskDispatch[]> {
+    const asOfDate = scheduledAt.toISOString().slice(0, 10);
+    return withInternalTransaction(this.db, input.requestId, async (tx) => {
+      const profiles = await tx.query.procurementProfiles.findMany({
+        orderBy: [
+          asc(procurementProfiles.createdAt),
+          asc(procurementProfiles.id),
+        ],
+        limit,
+      });
+      const dispatches: CoreWorkflowTaskDispatch[] = [];
+      for (const profile of profiles) {
+        const exemptions = readProcurementExemptions(profile.exemptions);
+        if (exemptions.length === 0) continue;
+        const assessments = exemptions.map((exemption) => ({
+          exemption,
+          assessment: assessExemptionCertificate(
+            exemption,
+            asOfDate,
+            EXEMPTION_EXPIRY_NOTICE_DAYS,
+          ),
+        }));
+
+        // The durable record is written for every certificate, not only the
+        // raised ones, so the table reflects the whole profile after a sweep.
+        const certificateIds = new Map<string, string>();
+        for (const { exemption, assessment } of assessments) {
+          const [row] = await tx
+            .insert(procurementCertificates)
+            .values({
+              accountId: profile.accountId,
+              kind: EXEMPTION_CERTIFICATE_KIND,
+              jurisdiction: exemption.jurisdiction,
+              documentId: exemption.certificateDocumentId,
+              expiresOn: exemption.expiresOn,
+              status: certificateRowStatus(assessment.status),
+            })
+            .onConflictDoUpdate({
+              target: [
+                procurementCertificates.accountId,
+                procurementCertificates.kind,
+                procurementCertificates.jurisdiction,
+                procurementCertificates.documentId,
+              ],
+              set: {
+                expiresOn: exemption.expiresOn,
+                status: certificateRowStatus(assessment.status),
+                updatedAt: scheduledAt,
+                rowVersion: sql`${procurementCertificates.rowVersion} + 1`,
+              },
+            })
+            .returning({ id: procurementCertificates.id });
+          if (!row) throw new Error("SCHEDULED_CERTIFICATE_RECORD_NOT_WRITTEN");
+          certificateIds.set(
+            `${exemption.jurisdiction}:${exemption.certificateDocumentId}`,
+            row.id,
+          );
+        }
+
+        const raised = raisedCertificates(
+          assessments.map((item) => item.assessment),
+        );
+        if (raised.length === 0) continue;
+        const lapsed = raised.some((item) => item.status === "expired");
+        const earliest = raised
+          .map((item) => item.expiresOn)
+          .filter((value): value is string => value !== null)
+          .sort()[0];
+        if (!earliest) throw new Error("SCHEDULED_CERTIFICATE_EXPIRY_MISSING");
+
+        const [account, commercialProfile] = await Promise.all([
+          tx.query.accounts.findFirst({
+            where: eq(accounts.id, profile.accountId),
+          }),
+          tx.query.accountCommercialProfiles.findFirst({
+            where: eq(accountCommercialProfiles.accountId, profile.accountId),
+          }),
+        ]);
+        if (!account)
+          throw new Error("SCHEDULED_CERTIFICATE_ACCOUNT_NOT_FOUND");
+        if (!commercialProfile?.collectionsOwnerId)
+          throw new Error("SCHEDULED_CERTIFICATE_OWNER_MISSING");
+        const owner = await tx.query.commerceUsers.findFirst({
+          where: eq(commerceUsers.id, commercialProfile.collectionsOwnerId),
+        });
+        if (!owner) throw new Error("SCHEDULED_CERTIFICATE_OWNER_MISSING");
+
+        const version = scheduledCertificateVersion(
+          epochDay(new Date(`${earliest}T00:00:00.000Z`)),
+          lapsed ? 2 : 1,
+        );
+        dispatches.push({
+          taskId: "core.procurement.certificate-expiry.v1",
+          idempotencyKey: dispatchKey(
+            "core.procurement.certificate-expiry.v1",
+            profile.accountId,
+            version,
+          ),
+          payload: {
+            context: context(
+              "core.procurement.certificate-expiry.v1",
+              profile.accountId,
+              version,
+              scheduledAt,
+            ),
+            accountId: profile.accountId,
+            procurementProfileId: profile.id,
+            asOfDate,
+            noticeWindowDays: EXEMPTION_EXPIRY_NOTICE_DAYS,
+            certificates: assessments.map(({ exemption }) => {
+              const certificateId = certificateIds.get(
+                `${exemption.jurisdiction}:${exemption.certificateDocumentId}`,
+              );
+              if (!certificateId)
+                throw new Error("SCHEDULED_CERTIFICATE_RECORD_NOT_WRITTEN");
+              return {
+                certificateId,
+                jurisdiction: exemption.jurisdiction,
+                documentId: exemption.certificateDocumentId,
+                expiresOn: exemption.expiresOn,
+              };
+            }),
+            procurementOwner: owner.email,
+            billingRecipients: [account.invoiceDeliveryEmail],
+          },
+        });
+      }
+      return dispatches;
     });
   }
 }

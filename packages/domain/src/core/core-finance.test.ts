@@ -12,6 +12,7 @@ import {
   creditAmount,
   createQuoteDraft,
   decideCommitmentOverage,
+  dunningDecision,
   findAccountDedupeSignals,
   formatDecimal,
   issueQuote,
@@ -726,6 +727,35 @@ describe("money and proration properties", () => {
         alreadyRefundedOrCredited: money(0n, "USD"),
       }),
     ).toThrow(/currencies/);
+  });
+
+  it("chases the remainder and stops once nothing is owed", () => {
+    const aged = {
+      policy: {
+        kind: "net_terms" as const,
+        days: 30,
+        collectionsOwnerId: "u1",
+      },
+      dueAt: "2026-06-01T00:00:00.000Z",
+      now: "2026-07-15T00:00:00.000Z",
+      firstThresholdDays: 7,
+      secondThresholdDays: 30,
+      retentionLiabilityRule: "custom" as const,
+    };
+    expect(dunningDecision(aged).actions).toEqual([
+      "notify_collections_owner",
+      "pause_new_orders",
+      "pause_poc_conversions",
+      "human_suspension_review",
+      "write_suspension_only",
+    ]);
+    expect(
+      dunningDecision({ ...aged, outstanding: money(4_000n) }).actions,
+    ).toEqual(dunningDecision(aged).actions);
+    const settled = dunningDecision({ ...aged, outstanding: money(0n) });
+    expect(settled.actions).toEqual([]);
+    expect(settled.agingDays).toBe(44);
+    expect(settled.collectionsOwnerId).toBe("u1");
   });
 });
 

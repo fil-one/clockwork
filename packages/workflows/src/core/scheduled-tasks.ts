@@ -48,3 +48,6 @@ export const weeklyReportExportSchedule = defineCoreSchedule(
 export const monthlyReportExportSchedule = defineCoreSchedule(
   coreScheduleDefinitions[7],
 );
+export const procurementCertificateExpirySchedule = defineCoreSchedule(
+  coreScheduleDefinitions[8],
+);

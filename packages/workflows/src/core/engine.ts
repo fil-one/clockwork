@@ -3,6 +3,10 @@ import {
   MoneySchema,
   type ProviderFailureKind,
 } from "@clockwork/contracts";
+import {
+  assessExemptionCertificate,
+  EXPIRED_EXEMPTION_BLOCKS_INVOICING,
+} from "@clockwork/domain/core";
 import { commissionLineBindingHash } from "@clockwork/integrations/core";
 
 import { workflowIdempotencyKey } from "../policy";
@@ -25,6 +29,7 @@ import type {
   WorkflowExceptionRequest,
 } from "./ports";
 import {
+  CertificateExpiryInputSchema,
   DunningInputSchema,
   ExportReportInputSchema,
   IssueInvoiceInputSchema,
@@ -33,6 +38,7 @@ import {
   SettleCommissionsInputSchema,
   SyncOverageInputSchema,
   ThreeWayReconciliationInputSchema,
+  type CertificateExpiryInput,
   type CoreWorkflowContext,
   type DunningInput,
   type PartnerCreditInput,
@@ -103,6 +109,10 @@ const coreCapabilityRequirements: Readonly<
     capabilities: ["billing", "partner"],
     recovery: true,
   },
+  "core.procurement.certificate-expiry.v1": {
+    capabilities: ["billing"],
+    recovery: true,
+  },
   "core.reconciliation.usage.v1": {
     capabilities: ["billing"],
     recovery: true,
@@ -145,6 +155,7 @@ const TASKS = {
   dunning: "core.collections.dunning.v1",
   partnerCredit: "core.collections.partner-credit.v1",
   settleCommissions: "core.commissions.settle.v1",
+  certificateExpiry: "core.procurement.certificate-expiry.v1",
   reconcileUsage: "core.reconciliation.usage.v1",
   threeWay: "core.reconciliation.three-way.v1",
   exportReport: "core.reporting.export.v1",
@@ -207,7 +218,11 @@ export interface DunningDecision {
 }
 
 export function decideDunning(input: DunningInput): DunningDecision {
-  const paid = input.invoiceStatus === "paid";
+  const paid =
+    input.invoiceStatus === "paid" ||
+    (input.outstanding !== undefined &&
+      input.outstanding !== null &&
+      BigInt(input.outstanding.minor) <= 0n);
   const secondStage =
     !paid &&
     (input.invoiceStatus === "uncollectible" ||
@@ -241,6 +256,68 @@ export function decideDunning(input: DunningInput): DunningDecision {
     writeSuspensionRequiresReview: false,
     deletionPermitted: false,
     retentionBlockedUntil: activeRetention ? input.maxRetentionUntil : null,
+  };
+}
+
+export interface CertificateFollowUpTask {
+  kind: "collect_exemption_certificate";
+  jurisdiction: string;
+  documentId: string;
+  dueAt: string;
+}
+
+export interface CertificateExpiryDecision {
+  stage: "clear" | "notice" | "lapsed";
+  expiringCount: number;
+  expiredCount: number;
+  blocksInvoicing: boolean;
+  tasks: readonly CertificateFollowUpTask[];
+}
+
+/**
+ * Re-reads each certificate against the sweep's as-of date. A lapsed
+ * certificate raises a follow-up due immediately; one inside the notice window
+ * is due on its expiry date. Both are flags: invoicing is not withheld, which
+ * is EXT-TAX-01's decision to change, not this step's.
+ */
+export function decideCertificateExpiry(
+  input: CertificateExpiryInput,
+): CertificateExpiryDecision {
+  const assessments = input.certificates.map((certificate) => ({
+    certificate,
+    assessment: assessExemptionCertificate(
+      {
+        jurisdiction: certificate.jurisdiction,
+        certificateDocumentId: certificate.documentId,
+        expiresOn: certificate.expiresOn,
+      },
+      input.asOfDate,
+      input.noticeWindowDays,
+    ),
+  }));
+  const expired = assessments.filter(
+    (item) => item.assessment.status === "expired",
+  );
+  const expiring = assessments.filter(
+    (item) => item.assessment.status === "expiring",
+  );
+  return {
+    stage:
+      expired.length > 0 ? "lapsed" : expiring.length > 0 ? "notice" : "clear",
+    expiringCount: expiring.length,
+    expiredCount: expired.length,
+    blocksInvoicing: expired.length > 0 && EXPIRED_EXEMPTION_BLOCKS_INVOICING,
+    tasks: [...expired, ...expiring].map(
+      ({ certificate, assessment }): CertificateFollowUpTask => ({
+        kind: "collect_exemption_certificate",
+        jurisdiction: certificate.jurisdiction,
+        documentId: certificate.documentId,
+        dueAt:
+          assessment.status === "expired"
+            ? input.asOfDate
+            : (certificate.expiresOn ?? input.asOfDate),
+      }),
+    ),
   };
 }
 
@@ -462,6 +539,7 @@ export class CoreFinanceWorkflowEngine {
             billingAccountId: input.billingAccountId,
             daysPastDue: input.daysPastDue,
             commercialShape: input.commercialShape,
+            ...(input.outstanding ? { outstanding: input.outstanding } : {}),
             pauseNewCommerce: policyDecision.pauseNewCommerce,
             writeSuspensionRequiresReview:
               policyDecision.writeSuspensionRequiresReview,
@@ -506,6 +584,70 @@ export class CoreFinanceWorkflowEngine {
       });
       return { kind: "success", value };
     });
+  }
+
+  /**
+   * Re-evaluates the exemption certificates on one account. Onboarding checks
+   * expiry once when the profile is written; this is the recurring check, so a
+   * certificate that lapsed months later is raised rather than assumed valid.
+   */
+  public async assessCertificateExpiry(raw: unknown): Promise<
+    WorkflowExecution<{
+      decision: CertificateExpiryDecision & { exceptionCaseId?: string };
+    }>
+  > {
+    const input = parsePayload(CertificateExpiryInputSchema, raw);
+    assertAggregate(input.context.aggregateId, input.accountId, "account");
+    return this.runControlled(
+      TASKS.certificateExpiry,
+      "account",
+      input,
+      async (key) => {
+        const policyDecision = decideCertificateExpiry(input);
+        let exceptionCaseId: string | undefined;
+        if (policyDecision.stage !== "clear") {
+          const exception = await this.openException({
+            taskId: TASKS.certificateExpiry,
+            context: input.context,
+            invocationKey: key,
+            queue: "billing_operations",
+            code:
+              policyDecision.stage === "lapsed"
+                ? "EXEMPTION_CERTIFICATE_EXPIRED"
+                : "EXEMPTION_CERTIFICATE_EXPIRING",
+            safeDetail:
+              policyDecision.stage === "lapsed"
+                ? "A tax exemption certificate on this account has passed its expiry date. Invoicing continues; collect a replacement certificate and confirm the exemption still applies."
+                : "A tax exemption certificate on this account expires inside the notice window. Collect a replacement before it lapses.",
+            severity: "warning",
+            metadata: {
+              accountId: input.accountId,
+              procurementProfileId: input.procurementProfileId,
+              asOfDate: input.asOfDate,
+              expiredCount: policyDecision.expiredCount.toString(),
+              expiringCount: policyDecision.expiringCount.toString(),
+              procurementOwner: input.procurementOwner,
+              followUpTaskKind: "collect_exemption_certificate",
+              jurisdictions: policyDecision.tasks
+                .map((task) => task.jurisdiction)
+                .join(","),
+            },
+          });
+          exceptionCaseId = exception.caseId;
+        }
+        const decision = {
+          ...policyDecision,
+          ...(exceptionCaseId === undefined ? {} : { exceptionCaseId }),
+        };
+        await this.record(key, input.context, {
+          kind: "certificate_expiry_assessed",
+          taskId: TASKS.certificateExpiry,
+          input,
+          decision,
+        });
+        return { kind: "success", value: { decision } };
+      },
+    );
   }
 
   public async evaluatePartnerCredit(raw: unknown): Promise<

@@ -1,0 +1,4 @@
+ALTER TABLE "price_books" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "price_books" ADD COLUMN "row_version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "core_procurement_cert_identity_unique" ON "core_procurement_certificates" USING btree ("account_id","kind","jurisdiction","document_id");--> statement-breakpoint
+ALTER TABLE "core_procurement_certificates" ADD CONSTRAINT "core_procurement_certificates_status_check" CHECK ("core_procurement_certificates"."status" in ('pending','valid','expired','revoked'));

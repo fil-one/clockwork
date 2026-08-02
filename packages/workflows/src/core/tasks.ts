@@ -45,6 +45,15 @@ export const dunningTask = task({
     ),
 });
 
+export const certificateExpiryTask = task({
+  id: "core.procurement.certificate-expiry.v1",
+  retry: durableRetryPolicy,
+  run: (payload: unknown, { ctx }) =>
+    execute("core.procurement.certificate-expiry.v1", payload, ctx, (engine) =>
+      engine.assessCertificateExpiry(payload),
+    ),
+});
+
 export const partnerCreditTask = task({
   id: "core.collections.partner-credit.v1",
   retry: durableRetryPolicy,

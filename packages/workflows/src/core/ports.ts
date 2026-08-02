@@ -13,6 +13,7 @@ import type {
 } from "@clockwork/integrations/core";
 
 import type {
+  CertificateExpiryInput,
   CoreWorkflowContext,
   DunningInput,
   ExportReportInput,
@@ -30,6 +31,7 @@ export const coreWorkflowTaskIds = [
   "core.collections.dunning.v1",
   "core.collections.partner-credit.v1",
   "core.commissions.settle.v1",
+  "core.procurement.certificate-expiry.v1",
   "core.reconciliation.usage.v1",
   "core.reconciliation.three-way.v1",
   "core.reporting.export.v1",
@@ -194,6 +196,24 @@ export type CoreWorkflowRecord =
       accrualIds: readonly string[];
       lineBindingHash: string;
       billId?: string;
+    }
+  | {
+      kind: "certificate_expiry_assessed";
+      taskId: "core.procurement.certificate-expiry.v1";
+      input: CertificateExpiryInput;
+      decision: {
+        stage: string;
+        expiringCount: number;
+        expiredCount: number;
+        blocksInvoicing: boolean;
+        tasks: readonly {
+          kind: "collect_exemption_certificate";
+          jurisdiction: string;
+          documentId: string;
+          dueAt: string;
+        }[];
+        exceptionCaseId?: string;
+      };
     }
   | {
       kind: "usage_reconciled";

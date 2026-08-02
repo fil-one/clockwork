@@ -1,10 +1,17 @@
+import { randomUUID } from "node:crypto";
+
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import { createRuntimeDatabase } from "../../client";
-import { auditEvents, outboxMessages } from "../../schema";
+import { auditEvents, invoices, outboxMessages } from "../../schema";
+import { collectionCases } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
-import { DatabaseCoreScheduleOccurrenceStore } from "./core-schedules";
+import {
+  DatabaseCoreScheduleOccurrenceStore,
+  DatabaseCoreScheduledDispatchStore,
+} from "./core-schedules";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -83,5 +90,104 @@ describe.sequential("database-backed core schedules", () => {
         triggerRunId: "integration-schedule-recovery-run",
       }),
     ).resolves.toEqual({ occurrenceId, eventId, queued: false });
+  });
+});
+
+/**
+ * A dispatch payload crosses the schedule boundary as `unknown` and the task
+ * schema that owns it lives downstream in `@clockwork/workflows`. Parsing the
+ * fields under test here fails loudly if the sweep stops emitting them.
+ */
+const DunningPayloadShape = z.object({
+  invoiceId: z.uuid(),
+  invoiceStatus: z.string(),
+  outstanding: z.object({ currency: z.string(), minor: z.string() }),
+  context: z.object({
+    aggregateId: z.uuid(),
+    aggregateVersion: z.int().positive(),
+  }),
+});
+
+describe.sequential("dunning sweep against outstanding amounts", () => {
+  const dispatches = new DatabaseCoreScheduledDispatchStore(
+    db,
+    process.env.AUTHORIZATION_CONTEXT_SECRET ??
+      "clockwork-local-auth-context-secret-change-me",
+  );
+  const invoiceId = randomUUID();
+  const suffix = invoiceId.replaceAll("-", "").slice(0, 12);
+  const scheduledAt = "2090-06-01T00:00:00.000Z";
+
+  const sweep = async (label: string) => {
+    const built = await dispatches.buildDueDispatches({
+      scheduleId: "core.schedule.dunning.v1",
+      occurrenceId: randomUUID(),
+      scheduledAt,
+      requestId: `integration-dunning-sweep-${label}-${suffix}`,
+      idempotencyPrefix: `integration-dunning-sweep-${suffix}`,
+      limit: 100,
+    });
+    return built.map((dispatch) => DunningPayloadShape.parse(dispatch.payload));
+  };
+
+  it("carries the outstanding amount and stops once the invoice is settled", async () => {
+    await withInternalTransaction(
+      db,
+      `integration-dunning-fixture-${suffix}`,
+      async (tx) => {
+        await tx.insert(invoices).values({
+          id: invoiceId,
+          orderId: "80000000-0000-4000-8000-000000000001",
+          accountId: "10000000-0000-4000-8000-000000000001",
+          stripeInvoiceId: `in_dunning_sweep_${suffix}`,
+          currency: "USD",
+          amountMinor: 180_000n,
+          amountPaidMinor: 40_000n,
+          poNumber: "PO-DEMO-001",
+          status: "open",
+          dueAt: new Date("2090-01-01T00:00:00.000Z"),
+        });
+        await tx.insert(collectionCases).values({
+          invoiceId,
+          accountId: "10000000-0000-4000-8000-000000000001",
+          ownerUserId: "20000000-0000-4000-8000-000000000001",
+          agingBucket: "second_threshold",
+          nextActionAt: new Date("2090-02-01T00:00:00.000Z"),
+          status: "escalated",
+        });
+      },
+    );
+
+    const outstanding = await sweep("outstanding");
+    const chased = outstanding.find(
+      (payload) => payload.invoiceId === invoiceId,
+    );
+    expect(chased).toMatchObject({
+      outstanding: { currency: "USD", minor: "140000" },
+      invoiceStatus: "past_due",
+    });
+    const dueEpochDay = Math.floor(
+      Date.parse("2090-01-01T00:00:00.000Z") / 86_400_000,
+    );
+    expect(chased?.context).toMatchObject({
+      aggregateId: invoiceId,
+      aggregateVersion: dueEpochDay * 3 + 2,
+    });
+
+    await withInternalTransaction(
+      db,
+      `integration-dunning-settle-${suffix}`,
+      async (tx) => {
+        await tx
+          .update(invoices)
+          .set({ amountPaidMinor: 180_000n })
+          .where(eq(invoices.id, invoiceId));
+      },
+    );
+
+    const settled = await sweep("settled");
+    expect(
+      settled.find((payload) => payload.invoiceId === invoiceId),
+    ).toBeUndefined();
   });
 });

@@ -51,6 +51,13 @@ export const coreScheduleDefinitions = [
     cron: "0 8 1 * *",
     dispatches: "core.reporting.export.v1",
   },
+  // Appended rather than grouped with the other daily sweeps: the exported
+  // schedule tasks below bind to these positions.
+  {
+    id: "core.schedule.procurement-certificate-expiry.v1",
+    cron: "0 4 * * *",
+    dispatches: "core.procurement.certificate-expiry.v1",
+  },
 ] as const satisfies readonly {
   id: CoreScheduleId;
   cron: string;

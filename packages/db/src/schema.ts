@@ -340,7 +340,11 @@ export const priceBooks = pgTable(
     status: text("status").notNull(),
     discountMatrix: jsonb("discount_matrix").notNull().default({}),
     createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    // The published price-book number, which readers quote. `rowVersion` is the
+    // separate optimistic-concurrency counter the audit chain advances on.
     version: integer("version").notNull().default(1),
+    rowVersion: rowVersion(),
   },
   (table) => [
     uniqueIndex("price_books_currency_version_unique").on(
@@ -821,6 +825,10 @@ export const invoices = pgTable(
     accountingPostingId: text("accounting_posting_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
+    amountPaidMinor: minor("amount_paid_minor").default(sql`0`),
+    amountRemainingMinor: minor("amount_remaining_minor").generatedAlwaysAs(
+      sql`greatest(amount_minor - amount_paid_minor, 0::bigint)`,
+    ),
     poNumber: text("po_number"),
     status: text("status").notNull(),
     dueAt: timestamp("due_at", { withTimezone: true }),
@@ -852,6 +860,7 @@ export const invoices = pgTable(
       "invoices_stripe_watermark_check",
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
+    check("invoices_amount_paid_check", sql`${table.amountPaidMinor} >= 0`),
   ],
 );
 

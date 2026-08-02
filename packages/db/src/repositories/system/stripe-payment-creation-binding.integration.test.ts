@@ -345,7 +345,7 @@ describe.concurrent("Stripe payment creation and binding", () => {
       },
     });
     await expect(projection.apply(wrongAmount)).rejects.toThrow(
-      "amount or currency mismatch",
+      "Stripe payment invoice, order, amount, or currency mismatch",
     );
 
     const wrongCurrency = await verifiedEvent({
@@ -355,7 +355,7 @@ describe.concurrent("Stripe payment creation and binding", () => {
       amount: { currency: "EUR", minor: first.amountMinor },
     });
     await expect(projection.apply(wrongCurrency)).rejects.toThrow(
-      "amount or currency mismatch",
+      "Stripe invoice currency mismatch",
     );
 
     const wrongInvoice = await verifiedEvent({

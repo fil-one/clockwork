@@ -18,6 +18,7 @@ import {
   refunds,
   webhookEvents,
 } from "../../schema";
+import { collectionActions, collectionCases } from "../../schema/core/finance";
 import {
   lifecycleAgreementTemplateTexts,
   lifecycleProvisioningAttempts,
@@ -671,6 +672,9 @@ export interface StripeFinancialProjectionEvent {
   refundId?: string;
   disputeId?: string;
   amount?: { currency: string; minor: string };
+  amountDue?: { currency: string; minor: string };
+  amountPaid?: { currency: string; minor: string };
+  amountRemaining?: { currency: string; minor: string };
   status?: string;
 }
 
@@ -742,6 +746,9 @@ async function assertVerifiedStripeInboxEvent(
     "refundId",
     "disputeId",
     "amount",
+    "amountDue",
+    "amountPaid",
+    "amountRemaining",
     "status",
   ] as const;
   if (
@@ -801,15 +808,22 @@ async function projectInvoice(
   if (!before) throw new Error("Stripe invoice is not linked to an order");
   await assertStripeInvoiceIdentity(transaction, event, before);
   if (!isNewerFinancialEvent(event, before)) return;
-  if (event.amount) assertInvoiceAmount(event.amount, before);
+  if (event.amount) assertInvoiceCurrency(event.amount, before);
+  assertInvoiceTotals(event, before);
   const proposed = invoiceStatus(event.eventType, event.status, before.status);
   const status = monotonicInvoiceStatus(before.status, proposed);
   if (event.paymentIntentId || status === "paid")
     await projectBoundPayment(transaction, event, before);
+  const settled = await settledInvoiceMinor(transaction, event, before);
+  const amountPaidMinor = maximumMinor(
+    before.amountPaidMinor,
+    status === "paid" ? maximumMinor(settled, before.amountMinor) : settled,
+  );
   const [after] = await transaction
     .update(invoices)
     .set({
       status,
+      amountPaidMinor,
       ...(status === "paid" && !before.paidAt
         ? { paidAt: new Date(event.occurredAt) }
         : {}),
@@ -825,13 +839,23 @@ async function projectInvoice(
     )
     .returning();
   if (!after) throw new Error("Stripe invoice projection was concurrent");
+  await syncCollectionCase(transaction, event, after);
   await appendFinancialProjection(transaction, event, {
     aggregateType: "invoice",
     id: after.id,
     accountId: after.accountId,
     version: after.rowVersion,
-    before: { status: before.status, paidAt: before.paidAt?.toISOString() },
-    after: { status: after.status, paidAt: after.paidAt?.toISOString() },
+    before: {
+      status: before.status,
+      paidAt: before.paidAt?.toISOString(),
+      amountPaidMinor: before.amountPaidMinor.toString(),
+    },
+    after: {
+      status: after.status,
+      paidAt: after.paidAt?.toISOString(),
+      amountPaidMinor: after.amountPaidMinor.toString(),
+      amountRemainingMinor: after.amountRemainingMinor.toString(),
+    },
   });
 }
 
@@ -851,12 +875,26 @@ async function projectPayment(
   const payment = await projectBoundPayment(transaction, event, invoice);
   if (payment.status !== "succeeded") return;
   if (!isNewerFinancialEvent(event, invoice)) return;
-  const status = monotonicInvoiceStatus(invoice.status, "paid");
+  const amountPaidMinor = maximumMinor(
+    invoice.amountPaidMinor,
+    await settledInvoiceMinor(transaction, event, invoice),
+  );
+  // A successful intent settles what it carries. Only reaching the persisted
+  // total marks the invoice paid; anything short leaves it open and collectable.
+  const settledInFull = amountPaidMinor >= invoice.amountMinor;
+  const status = monotonicInvoiceStatus(
+    invoice.status,
+    settledInFull ? "paid" : invoice.status,
+  );
   const [afterInvoice] = await transaction
     .update(invoices)
     .set({
       status,
-      paidAt: invoice.paidAt ?? new Date(event.occurredAt),
+      amountPaidMinor,
+      paidAt:
+        status === "paid"
+          ? (invoice.paidAt ?? new Date(event.occurredAt))
+          : invoice.paidAt,
       stripeLastOccurredAt: new Date(event.occurredAt),
       stripeLastEventId: event.eventId,
       updatedAt: new Date(event.occurredAt),
@@ -870,15 +908,22 @@ async function projectPayment(
     .returning();
   if (!afterInvoice)
     throw new Error("Stripe payment invoice projection was concurrent");
+  await syncCollectionCase(transaction, event, afterInvoice);
   await appendFinancialProjection(transaction, event, {
     aggregateType: "invoice",
     id: afterInvoice.id,
     accountId: afterInvoice.accountId,
     version: afterInvoice.rowVersion,
-    before: { status: invoice.status, paidAt: invoice.paidAt?.toISOString() },
+    before: {
+      status: invoice.status,
+      paidAt: invoice.paidAt?.toISOString(),
+      amountPaidMinor: invoice.amountPaidMinor.toString(),
+    },
     after: {
       status: afterInvoice.status,
       paidAt: afterInvoice.paidAt?.toISOString(),
+      amountPaidMinor: afterInvoice.amountPaidMinor.toString(),
+      amountRemainingMinor: afterInvoice.amountRemainingMinor.toString(),
       paymentId: payment.id,
     },
   });
@@ -910,15 +955,109 @@ async function assertStripeInvoiceIdentity(
     throw new Error("Stripe invoice customer binding mismatch");
 }
 
-function assertInvoiceAmount(
+function assertInvoiceCurrency(
   amount: { currency: string; minor: string },
   invoice: StripeBoundInvoice,
 ): void {
+  if (amount.currency !== invoice.currency)
+    throw new Error("Stripe invoice currency mismatch");
+}
+
+/**
+ * The invoice total is immutable and its parts must add up. Absent totals are a
+ * legacy payload rather than a claim, so only what the provider states is
+ * checked; anything stated that disagrees fails closed.
+ */
+function assertInvoiceTotals(
+  event: StripeFinancialProjectionEvent,
+  invoice: StripeBoundInvoice,
+): void {
+  const { amountDue, amountPaid, amountRemaining } = event;
+  for (const total of [amountDue, amountPaid, amountRemaining])
+    if (total) assertInvoiceCurrency(total, invoice);
+  if (amountDue && BigInt(amountDue.minor) !== invoice.amountMinor)
+    throw new Error("Stripe invoice total does not match the persisted total");
+  if (!amountDue || !amountPaid || !amountRemaining) return;
   if (
-    amount.currency !== invoice.currency ||
-    BigInt(amount.minor) !== invoice.amountMinor
+    BigInt(amountPaid.minor) + BigInt(amountRemaining.minor) !==
+    BigInt(amountDue.minor)
   )
-    throw new Error("Stripe invoice amount or currency mismatch");
+    throw new Error("Stripe invoice paid and remaining do not reconcile");
+}
+
+function maximumMinor(left: bigint, right: bigint): bigint {
+  return left > right ? left : right;
+}
+
+/**
+ * Provider truth wins because `amount_paid` also carries money settled outside
+ * the platform. Events without invoice totals fall back to the payments already
+ * projected from signed events.
+ */
+async function settledInvoiceMinor(
+  transaction: RuntimeTransaction,
+  event: StripeFinancialProjectionEvent,
+  invoice: StripeBoundInvoice,
+): Promise<bigint> {
+  if (event.amountPaid) return BigInt(event.amountPaid.minor);
+  const settled = await transaction.query.payments.findMany({
+    where: and(
+      eq(payments.invoiceId, invoice.id),
+      eq(payments.status, "succeeded"),
+    ),
+    columns: { amountMinor: true },
+  });
+  return settled.reduce((sum, row) => sum + row.amountMinor, 0n);
+}
+
+/**
+ * Settlement closes the collection case in the same transaction as the money it
+ * follows, so a replayed event finds the case already resolved and appends
+ * nothing. A partial payment leaves the case and its aging where they are.
+ */
+async function syncCollectionCase(
+  transaction: RuntimeTransaction,
+  event: StripeFinancialProjectionEvent,
+  invoice: StripeBoundInvoice,
+): Promise<void> {
+  if (invoice.amountRemainingMinor > 0n) return;
+  const collectionCase = await transaction.query.collectionCases.findFirst({
+    where: eq(collectionCases.invoiceId, invoice.id),
+  });
+  if (
+    !collectionCase ||
+    !["open", "promised", "escalated"].includes(collectionCase.status)
+  )
+    return;
+  const [resolved] = await transaction
+    .update(collectionCases)
+    .set({
+      status: "resolved",
+      newServiceBlocked: false,
+      runningServiceDecision: "continue",
+    })
+    .where(
+      and(
+        eq(collectionCases.id, collectionCase.id),
+        eq(collectionCases.rowVersion, collectionCase.rowVersion),
+      ),
+    )
+    .returning();
+  if (!resolved) throw new Error("Collection case resolution was concurrent");
+  await transaction.insert(collectionActions).values({
+    collectionCaseId: resolved.id,
+    action: "invoice_settled",
+    actorUserId: resolved.ownerUserId,
+    outcome: "resolved",
+    metadata: {
+      providerEventId: event.eventId,
+      currency: invoice.currency,
+      amountPaidMinor: invoice.amountPaidMinor.toString(),
+      priorStatus: collectionCase.status,
+      deletionPermitted: false,
+    },
+    occurredAt: new Date(event.occurredAt),
+  });
 }
 
 function isNewerFinancialEvent(
@@ -947,7 +1086,7 @@ async function projectBoundPayment(
     throw new Error("Paid Stripe event has no payment-intent ID");
   if (!event.amount)
     throw new Error("Stripe payment event has no normalized amount");
-  assertInvoiceAmount(event.amount, invoice);
+  assertInvoiceCurrency(event.amount, invoice);
   const before = await transaction.query.payments.findFirst({
     where: eq(payments.stripePaymentIntentId, event.paymentIntentId),
   });

@@ -223,9 +223,21 @@ export const procurementCertificates = pgTable(
       table.status,
       table.expiresOn,
     ),
+    uniqueIndex("core_procurement_cert_identity_unique").on(
+      table.accountId,
+      table.kind,
+      table.jurisdiction,
+      table.documentId,
+    ),
     check(
       "core_procurement_cert_dates_check",
       sql`${table.expiresOn} is null or ${table.validFrom} is null or ${table.expiresOn} >= ${table.validFrom}`,
+    ),
+    // Declared in 000100_core_finance.sql since the foundation migration; the
+    // Drizzle model omitted it, which is the drift this records.
+    check(
+      "core_procurement_certificates_status_check",
+      sql`${table.status} in ('pending','valid','expired','revoked')`,
     ),
   ],
 );

@@ -69,6 +69,13 @@ export const coreWorkflowDispatchPlan = {
     events: [commissionStatementTopic],
     schedules: ["0 6 1 */3 *"],
   },
+  // Certificate expiry is time-driven only. No commerce event marks the day a
+  // certificate lapses, which is why onboarding's one-time check never fires
+  // again and the sweep has to run on the clock.
+  "core.procurement.certificate-expiry.v1": {
+    events: [],
+    schedules: ["0 4 * * *"],
+  },
   "core.reconciliation.usage.v1": {
     events: ["provider.usage.period_closed"],
     schedules: ["30 2 * * *"],

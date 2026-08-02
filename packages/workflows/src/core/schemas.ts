@@ -222,6 +222,9 @@ export const DunningInputSchema = z
     daysPastDue: z.int().min(0).max(10_000),
     firstThresholdDays: z.int().min(0).max(10_000),
     secondThresholdDays: z.int().min(1).max(10_000),
+    // Optional while tasks queued before the outstanding amount existed are
+    // still in flight; the sweep has populated it since.
+    outstanding: MoneySchema.nullish(),
     maxRetentionUntil: IsoDateTimeSchema.nullable(),
     retentionLiabilityRule: z.enum([
       "customer_pays_through_retention",
@@ -438,6 +441,52 @@ export const ExportReportInputSchema = z
     }
   });
 
+/**
+ * Tax exemption certificates due for re-evaluation on one account.
+ *
+ * The sweep supplies the persisted expiry dates, the as-of date, and the notice
+ * window; the engine derives each status the same way the durable certificate
+ * row does, so the workflow decision and the written record cannot disagree.
+ */
+export const CertificateExpiryInputSchema = z
+  .object({
+    context: CoreWorkflowContextSchema,
+    accountId: ids.account,
+    procurementProfileId: ids.procurementProfile,
+    asOfDate: LocalDateSchema,
+    noticeWindowDays: z.int().min(0).max(3_650),
+    certificates: z
+      .array(
+        z
+          .object({
+            certificateId: z.uuid(),
+            jurisdiction: z.string().trim().min(1).max(120),
+            documentId: z.uuid(),
+            expiresOn: LocalDateSchema.nullable(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(200),
+    procurementOwner: EmailSchema,
+    billingRecipients: z.array(EmailSchema).min(1).max(100),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const seen = new Set<string>();
+    for (const [index, certificate] of input.certificates.entries()) {
+      const identity = `${certificate.jurisdiction}:${certificate.documentId}`;
+      if (seen.has(identity)) {
+        context.addIssue({
+          code: "custom",
+          path: ["certificates", index, "documentId"],
+          message: "A certificate appears once per jurisdiction and document",
+        });
+      }
+      seen.add(identity);
+    }
+  });
+
 export const MeteredOverageProviderInputSchema = z
   .object({
     invoiceId: ids.invoice,
@@ -463,4 +512,7 @@ export type ThreeWayReconciliationInput = z.infer<
   typeof ThreeWayReconciliationInputSchema
 >;
 export type ExportReportInput = z.infer<typeof ExportReportInputSchema>;
+export type CertificateExpiryInput = z.infer<
+  typeof CertificateExpiryInputSchema
+>;
 export type ReportType = z.infer<typeof ReportTypeSchema>;

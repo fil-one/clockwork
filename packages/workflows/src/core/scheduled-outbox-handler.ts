@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 import type { CoreWorkflowTaskSubmitter } from "./outbox-handlers";
 import {
+  CertificateExpiryInputSchema,
   DunningInputSchema,
   ExportReportInputSchema,
   PartnerCreditInputSchema,
@@ -47,6 +48,7 @@ const taskSchemas = {
   "core.collections.dunning.v1": DunningInputSchema,
   "core.collections.partner-credit.v1": PartnerCreditInputSchema,
   "core.commissions.settle.v1": SettleCommissionsInputSchema,
+  "core.procurement.certificate-expiry.v1": CertificateExpiryInputSchema,
   "core.reconciliation.usage.v1": ReconcileUsageInputSchema,
   "core.reconciliation.three-way.v1": ThreeWayReconciliationInputSchema,
   "core.reporting.export.v1": ExportReportInputSchema,
