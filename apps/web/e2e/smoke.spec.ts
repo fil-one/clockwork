@@ -9,7 +9,7 @@ test("@smoke renders the customer experience and its API lane mounts", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Welcome back",
   );
-  await expect(page.getByText("Demo environment").first()).toBeVisible();
+  await expect(page.getByText("Demo", { exact: true }).first()).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
   for (const lane of ["core", "lifecycle", "system"] as const) {

@@ -136,7 +136,9 @@ test("owner builds a quote from the session account and issues one protected com
   await create.click();
   await expect(page.getByText(/Priced draft created/)).toBeVisible();
   // The created draft is not an open quote: the surface refuses to infer one.
-  await expect(page.getByText(/current server status is draft/)).toBeVisible();
+  await expect(
+    page.getByText(/issue it once its document is prepared/),
+  ).toBeVisible();
   await expect(create).toBeDisabled();
 
   expect(commands).toHaveLength(1);

@@ -1,5 +1,6 @@
 export * from "./capabilities";
 export * from "./dead-letter";
+export * from "./dead-letter-dispatch";
 export * from "./external-gates";
 export * from "./exception-routing";
 export * from "./gate-activation-tasks";

@@ -22,6 +22,8 @@ import {
 
 type Decision = "request_activation" | "activate" | "retire";
 
+const activationCopy = adminSafetyCopy.priceBookActivation;
+
 const stateLabel = {
   draft: "Draft",
   active: "Active",
@@ -36,8 +38,8 @@ function decisionsFor(
     return [
       {
         action: "retire",
-        label: "Retire this version",
-        hint: "Retiring leaves quotes, orders, and invoices already priced from it untouched.",
+        label: activationCopy.retireLabel,
+        hint: activationCopy.retireHint,
       },
     ];
   if (book.status !== "draft") return [];
@@ -45,16 +47,16 @@ function decisionsFor(
     return [
       {
         action: "request_activation",
-        label: "Propose activation",
-        hint: "A second finance approver decides it. Floors and route coverage are revalidated then.",
+        label: activationCopy.proposeLabel,
+        hint: activationCopy.proposeHint,
       },
     ];
   if (book.activationRequestedBy === userId) return [];
   return [
     {
       action: "activate",
-      label: "Approve and activate",
-      hint: "Activating retires the current version for this currency in the same transaction.",
+      label: activationCopy.approveLabel,
+      hint: activationCopy.approveHint,
     },
   ];
 }
@@ -125,10 +127,10 @@ export function PriceBookAdministration({
         tone: "done",
         message:
           action === "request_activation"
-            ? "Proposed. A second finance approver decides it."
+            ? activationCopy.proposed
             : action === "activate"
-              ? "Activated. This version now sets price for new quotes."
-              : "Retired. Nothing already priced from it changed.",
+              ? activationCopy.activated
+              : activationCopy.retired,
       });
       setReason("");
       setSummary(null);
@@ -137,10 +139,10 @@ export function PriceBookAdministration({
         tone: "problem",
         message:
           error instanceof CommerceApiError && error.code === "conflict"
-            ? "This version changed while the page was open. Reload and review it again."
+            ? activationCopy.stale
             : error instanceof CommerceApiError
               ? error.message
-              : "The decision could not be recorded. Nothing changed.",
+              : activationCopy.failed,
       });
     } finally {
       setPending(false);
@@ -151,8 +153,7 @@ export function PriceBookAdministration({
     <AdministrationPage {...adminSafetyCopy.priceBooks}>
       <section className={styles.notice} role="note">
         <strong>Only activated versions set price.</strong>
-        Activation takes two finance approvers: one proposes it, a second
-        decides it.
+        {activationCopy.authorities}
       </section>
 
       <section
@@ -261,8 +262,8 @@ export function PriceBookAdministration({
         ) : (
           <p className={styles.empty}>
             {books.length
-              ? "No price-book versions match these filters."
-              : "No price books are readable for this request."}
+              ? activationCopy.noMatches
+              : activationCopy.unreadable}
           </p>
         )}
       </section>
@@ -358,18 +359,16 @@ export function PriceBookAdministration({
             />
             {!permitted ? (
               <div className={styles.roleNotice} role="note">
-                <strong>Finance approval authority is required.</strong>
-                Other internal roles may scan versions, but only finance may
-                decide activation.
+                <strong>{activationCopy.financeOnlyTitle}</strong>
+                {activationCopy.financeOnlyBody}
               </div>
             ) : null}
             {permitted &&
             selected.status === "draft" &&
             selected.activationRequestedBy === userId ? (
               <div className={styles.roleNotice} role="note">
-                <strong>Awaiting a second approver.</strong>
-                You proposed this activation, so another finance approver
-                decides it.
+                <strong>{activationCopy.awaitingSecondTitle}</strong>
+                {activationCopy.awaitingSecondBody}
               </div>
             ) : null}
             <div className={styles.actions}>
@@ -409,9 +408,7 @@ export function PriceBookAdministration({
                   </div>
                 ))
               ) : (
-                <p className={styles.resultMeta}>
-                  This version has no decision open to you.
-                </p>
+                <p className={styles.resultMeta}>{activationCopy.noDecision}</p>
               )}
               {outcome ? (
                 <p

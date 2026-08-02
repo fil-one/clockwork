@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(14);
 set local role clockwork_service;
 set local search_path = public, extensions;
 
@@ -75,6 +75,17 @@ insert into price_books (
   'c6000000-0000-4000-8000-000000000002',
   'Sterling draft fixture', 'GBP', '2026-01-01', 'draft', 9002
 );
+insert into rate_cards (
+  id, price_book_id, sku, approved_claim, region, unit, unit_price_minor,
+  floor_price_minor, overage_rate_minor, minimum_quantity, egress_treatment,
+  commit_type, stripe_tax_code, qbo_income_account
+) values (
+  'c6100000-0000-4000-8000-000000000002',
+  'c6000000-0000-4000-8000-000000000002',
+  'LOCKED-STORAGE-TB', 'Fictional immutable storage capacity',
+  'uk-south', 'TB-month', 15000, 10000, 18000, 1, 'metered',
+  'term_drawdown', 'txcd_demo', '4000-Storage'
+);
 
 reset role;
 select set_config('app.authorization_context', jsonb_build_object(
@@ -101,6 +112,42 @@ select is(
   (select status from price_books
     where id = 'c6000000-0000-4000-8000-000000000002'),
   'draft', 'finance reads price books and never writes them directly'
+);
+select is(
+  (select count(*)::integer from rate_cards
+    where price_book_id = 'c6000000-0000-4000-8000-000000000002'),
+  1, 'finance reads the rate cards it is being asked to approve'
+);
+
+-- Every other role, internal included, sees no unpublished pricing at all.
+reset role;
+select set_config('app.authorization_context', jsonb_build_object(
+  'userId','20000000-0000-4000-8000-000000000001',
+  'accountIds',jsonb_build_array(),
+  'roles',jsonb_build_array('internal_operator'),
+  'isInternalStaff',true,'requestId','price-book-operator-read',
+  'expiresAt',(clock_timestamp() + interval '5 minutes')::text)::text, true);
+select set_config('app.authorization_signature', encode(extensions.hmac(
+  current_setting('app.authorization_context'),
+  (select secret from private.authorization_secrets where active order by created_at desc limit 1),'sha256'),'hex'), true);
+
+set local role clockwork_runtime;
+set local search_path = public, extensions;
+select is(
+  (select count(*)::integer from price_books
+    where id = 'c6000000-0000-4000-8000-000000000002'),
+  0, 'an internal operator without finance authority sees no draft price book'
+);
+-- The restrictive economics guard ANDs with every permissive policy, so the
+-- new finance read cannot widen who sees a rate card.
+select is(
+  (select count(*)::integer from rate_cards),
+  0, 'rate-card economics stay closed to every role but finance'
+);
+select is(
+  (select count(*)::integer from core_price_book_activation_events
+    where price_book_id = 'c6000000-0000-4000-8000-000000000002'),
+  0, 'activation history of an unpublished book stays closed'
 );
 
 select * from finish();

@@ -5,8 +5,6 @@ import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { Tooltip } from "./tooltip";
-
 export type CommandPaletteCategory = "navigation" | "actions" | "records";
 
 export interface CommandPaletteItem {
@@ -198,21 +196,20 @@ export function CommandPalette({
                 {description}
               </DialogPrimitive.Description>
             </div>
-            <Tooltip
-              side="bottom"
-              revealOnTouch={false}
-              trigger={
-                <DialogPrimitive.Close
-                  className="cw-icon-button"
-                  type="button"
-                  aria-label={closeLabel}
-                >
-                  <X aria-hidden="true" />
-                </DialogPrimitive.Close>
-              }
+            {/*
+              No tooltip on this control, for the same reason as the drawer
+              close. Radix arms Escape on the highest dismissable layer only, so
+              a tooltip layer above the dialog leaves the palette unable to
+              close on Escape. The tooltip would also only repeat the accessible
+              name.
+            */}
+            <DialogPrimitive.Close
+              className="cw-icon-button"
+              type="button"
+              aria-label={closeLabel}
             >
-              {closeLabel}
-            </Tooltip>
+              <X aria-hidden="true" />
+            </DialogPrimitive.Close>
           </header>
           <div className="cw-command-search">
             <Search aria-hidden="true" />

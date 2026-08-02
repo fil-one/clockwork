@@ -168,16 +168,23 @@ External inputs never excuse missing repository work.
   version, strips legacy mutation authority, terminalizes queued actions without
   inventing replay truth, fails closed on mismatch, restores canonical state,
   and was accepted in 93.813 seconds.
-- **P0-40 — Authoritative events for six portal aggregates `[OPEN]`:** the
+- **P0-40 — Authoritative events for six portal aggregates `[RESOLVED]`:** the
   `agreement`, `poc`, `exception_case`, `approval`, `provider_operation`, and
-  `termination` write paths append audit rows without publishing an
-  authoritative outbox event. The `agreements`, `pocs`, `exceptions`,
-  `approvals`, `operations`, and `terminations` channels therefore stay empty on
-  every audience whatever the materializer does.
-  `aggregatesWithoutAuthoritativeEvents` in
-  `packages/workflows/src/experience/projection-definitions.ts` records the
-  exact set. Registering topics those paths do not publish would hide the gap
-  rather than close it.
+  `termination` write paths appended audit rows without publishing an
+  authoritative outbox event, so those channels stayed empty on every audience
+  whatever the materializer did. `lifecycleEventTopics` in
+  `packages/workflows/src/experience/projection-definitions.ts` now registers
+  the topics whose audit rows already bind to an aggregate the state loader can
+  resolve, and a test pins the excluded set: topics bound to a satellite row
+  (agreement drafts, signature envelopes, provisioning attempts, roster entries)
+  would dead-letter rather than populate a channel, so they stay out
+  deliberately. Where a rebinding would have rewritten an existing audit row's
+  identity, an event was added alongside it instead: `exception_case.opened`
+  beside the provider-operation event, `agreement.executed` beside the envelope
+  events guarded by the insert result, and `approval.decided` off the returned
+  row. `poc.activated` took its version from the provisioning attempt rather
+  than the POC and is corrected in place; the expiry branch published nothing at
+  all, so `poc.expired` is new.
 - **P0-41 — Commitment ledger write path `[OPEN]`:** `createCommitmentPeriod`
   and `appendLedgerCorrection` in `packages/db/src/repositories/core/finance.ts`
   have no production caller, and `decideCommitmentOverage` and
@@ -254,37 +261,50 @@ External inputs never excuse missing repository work.
 These are quality and operability gaps rather than absent capability. No launch
 requirement in the ledger depends on them, so they carry no P0 entry.
 
-- The `runtime-auth-anomaly` alert in `docs/operations/runtime-alerts.json`
-  filters on `AUTHORIZATION_DENIED`, `CROSS_ACCOUNT_DENIED`, and
-  `WEBHOOK_SIGNATURE_INVALID`. No code sets `error.code` to any of those values,
-  and the experience boundary ends every span `ok`, so the alert cannot fire as
-  configured even after a collector is selected under `EXT-ACC-01`.
-- `apps/web/app/api/telemetry/route.ts` converts a browser record into a span
-  and opens no boundary span of its own, so a failure inside the receiver is
-  invisible to the telemetry it serves.
-- `packages/integrations/src/provider-transport.ts` and
-  `packages/integrations/src/telemetry/otlp.ts` hold `fetch` as an instance
-  property without binding it to `globalThis`. That is the pattern that silently
-  stopped browser telemetry until
-  `apps/web/src/features/performance/client-telemetry.ts` bound it; both files
-  run in Node, where the receiver rule is looser.
-- `startAgreementEnvelope` in
-  `apps/web/src/features/contracts/commerce-client.ts` has no caller anywhere,
-  including tests. `apps/web/src/features/experience-server/controller.ts`
-  already posts to `/v1/lifecycle/agreements/envelopes` directly, so the helper
-  is a second unused path to the same endpoint.
-- `scripts/benchmark-release.mjs` sets a 45-minute local budget. The suite has
-  grown since that number was measured and the budget has not been re-measured
-  against it.
-- `procurementCertificates` in `packages/db/src/schema/core/finance.ts` is
-  migrated, constrained, and carries `core_procurement_cert_expiry_idx` on
-  `(account_id, status, expires_on)`, but no repository, domain, workflow, or
-  test reads the table. The index exists for an expiry sweep that was never
-  written, so `status` stays at whatever it was last set to and an exemption
-  certificate that passed its `expires_on` is still treated as valid at invoice
-  time. The policy inputs behind this sit under `EXT-TAX-01`, but the sweep, the
-  status transition, and the re-collection prompt are repository work and do not
-  belong behind a gate row.
+- **Auth-anomaly alert `[RESOLVED]`:** `runtime-auth-anomaly` filtered on codes
+  nothing emitted, and the boundary ended every span `ok` because the framework
+  converts a thrown denial into a returned response before the span closes.
+  `packages/contracts` now owns the canonical denial union and a resolver that
+  maps the boundary-specific codes onto it, so those keep their wire meaning.
+  `RuntimeBoundaryInstrumentation.trace` takes an `onResult` hook, and
+  `denialSpanAttributes` reads the problem document on a 401 or 403 and sets
+  `error.code`, `clockwork.outcome`, and `http.response.status_code`. The alert
+  file already named the canonical three and is unchanged;
+  `operations-data.test.ts` now asserts its filter against the exported union so
+  the two cannot drift apart again.
+- **Telemetry receiver span `[RESOLVED]`:** `/api/telemetry` opens its own
+  boundary span, parented on the incoming `traceparent`, leaving the browser
+  span's own parentage untouched. The sink swallows delivery failures, so a
+  typed error carries the failed outcome onto the span and the route maps it
+  back to the same 503 body.
+- **Unbound `fetch` `[RESOLVED]`:** four sites held `fetch` as a property and
+  called it as a method, so an injected global receiver threw before the request
+  was sent: `provider-transport.ts`, `telemetry/otlp.ts`, and
+  `apps/web/src/features/experience-server/evidence-gateway.ts`, alongside the
+  already-bound `client-telemetry.ts`. Each test now drives a fake that refuses
+  any receiver other than `globalThis`, so the case fails against unfixed code.
+  `esign/http-signing-client.ts` calls a bare local, where the receiver is
+  undefined and `fetch` accepts it, and is deliberately unchanged.
+- **`startAgreementEnvelope` `[RESOLVED]`:** removed. The live path through
+  `experience-server/controller.ts` is unchanged.
+- **Release benchmark budget `[RESOLVED]`:** re-measured on the reference
+  machine at the end of this pass and written back to
+  `scripts/benchmark-release.mjs` and `scripts/release-suites.mjs`.
+- **Exemption certificate expiry `[RESOLVED]`:** expiry was evaluated once, at
+  onboarding write time, and never again, so a lapsed certificate stayed valid
+  at invoice time forever. A daily sweep re-reads the live
+  `procurement_profiles.exemptions` and records each certificate, opening a
+  billing-operations exception and requesting re-collection on lapse. Expiry
+  flags rather than blocks; the notice window and the block/flag policy are
+  named constants carrying their `EXT-TAX-01` reference, neither of them
+  approved policy. The status vocabulary was never missing: `000100` has
+  enforced it since the foundation migration and only the Drizzle model lacked
+  it, so `001350` records the existing constraint rather than adding a second
+  one. Two checks on a column AND together, so a second vocabulary would have
+  forbidden the union of what each excluded. `expiring` is deliberately not
+  among the persisted values: it is true only relative to the day you ask, so
+  the row records whether a certificate has lapsed and nearness is recomputed on
+  read.
 - **Partial payment normalization `[RESOLVED]`:** invoice-category events now
   carry `amountDue`, `amountPaid`, and `amountRemaining` beside the coalesced
   `amount`, which keeps its previous meaning, and inbox rows written before the

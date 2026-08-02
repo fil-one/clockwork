@@ -5,6 +5,7 @@ import type { IdempotencyKey } from "@clockwork/contracts";
 import {
   createRuntimeDatabase,
   DatabaseWorkflowRunStore,
+  loadDeadLetterDispatch,
   withInternalTransaction,
 } from "@clockwork/db";
 import { payloadHash } from "@clockwork/workflows/core";
@@ -13,7 +14,7 @@ import {
   type LifecycleTaskInvocation,
 } from "@clockwork/workflows/system";
 
-import { loadRedriveDispatch, redriveRetriedWork } from "./redrive";
+import { redriveRetriedWork } from "./redrive";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -211,7 +212,7 @@ describe.sequential("dead letter redrive payload reconstruction", () => {
   });
 
   it("rebuilds the dispatched payload and its invocation key from the outbox message", async () => {
-    const dispatch = await loadRedriveDispatch(db, {
+    const dispatch = await loadDeadLetterDispatch(db, {
       source: "workflow_run",
       id: fixture.runId,
       requestId: `redrive-load-${suffix}`,
@@ -236,7 +237,7 @@ describe.sequential("dead letter redrive payload reconstruction", () => {
   });
 
   it("re-enters the same run rather than opening a second one", async () => {
-    const dispatch = await loadRedriveDispatch(db, {
+    const dispatch = await loadDeadLetterDispatch(db, {
       source: "workflow_run",
       id: fixture.runId,
       requestId: `redrive-claim-load-${suffix}`,
@@ -270,7 +271,7 @@ describe.sequential("dead letter redrive payload reconstruction", () => {
 
   it("finds the provisioning command dispatch behind a stopped attempt", async () => {
     await expect(
-      loadRedriveDispatch(db, {
+      loadDeadLetterDispatch(db, {
         source: "provisioning_attempt",
         id: fixture.attemptId,
         requestId: `redrive-attempt-${suffix}`,

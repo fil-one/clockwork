@@ -257,7 +257,7 @@ test("command palette supports grouped search, no matches, and focus restoration
   page,
 }) => {
   await openDashboard(page, viewports[0]);
-  const trigger = page.getByRole("button", { name: "Search and commands" });
+  const trigger = page.getByRole("button", { name: "Open command menu" });
   await expectMinimumTarget(trigger);
 
   let { palette, search } = await openCommandPalette(page);
@@ -304,7 +304,7 @@ test("command palette remains keyboard operable and contained at 320px", async (
   page,
 }) => {
   await openDashboard(page, viewports[3]);
-  const trigger = page.getByRole("button", { name: "Search and commands" });
+  const trigger = page.getByRole("button", { name: "Open command menu" });
   await trigger.click();
   const palette = page.getByRole("dialog", { name: "Search and commands" });
   await expect(palette).toBeVisible();
@@ -347,7 +347,7 @@ test("reduced-motion preference removes nonessential shell motion", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openDashboard(page, viewports[0]);
-  await page.getByRole("button", { name: "Search and commands" }).click();
+  await page.getByRole("button", { name: "Open command menu" }).click();
   await expect(
     page.getByRole("dialog", { name: "Search and commands" }),
   ).toBeVisible();

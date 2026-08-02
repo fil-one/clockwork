@@ -71,7 +71,7 @@ for (const journey of journeys) {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       journey.heading,
     );
-    await expect(page.getByText("Demo environment").first()).toBeVisible();
+    await expect(page.getByText("Demo", { exact: true }).first()).toBeVisible();
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);
   });
