@@ -4,7 +4,10 @@ This is the canonical Clockwork commerce backlog. `main` is the only active
 branch. Historical lane names and tips are provenance only. The current state is
 `post-merge-pre-qualification`: the work recorded in P0-01 through P0-39 is
 accepted, and P0-40 through P0-46 are repository findings that no external input
-can close. This is not an RC or launch declaration.
+can close. P0-47 through P0-50 were admitted to P0 on 2026-08-02 to reduce the
+recurring engineering cost of operating the platform; they close no ledger
+launch requirement and are marked as a distinct class within the section. This
+is not an RC or launch declaration.
 
 Status markers mean:
 
@@ -218,6 +221,60 @@ External inputs never excuse missing repository work.
   fires it. The renewal term-alert, renewal notice-window, and POC milestone
   schedules are registered and route through the notification provider. Spec §4,
   §11, §12 and §18.
+
+### Cost-of-operation work admitted to P0 on 2026-08-02
+
+P0-47 through P0-50 differ in kind from P0-01 through P0-46. They close no
+ledger launch requirement and no row in `docs/external-gates.md`; the platform
+is functionally complete without them. They are recorded here by explicit
+direction because each one converts recurring engineering time into an operator
+action, and steady-state engineering cost is the dominant term in running this
+platform. Reclassifying them as P2 would not change their content. Each entry
+below names the verified present state rather than a desired capability.
+
+- **P0-47 — Price-book activation has no wired path `[OPEN]`:**
+  `recordPriceBookActivation` in `packages/db/src/repositories/core/finance.ts:128`
+  writes `priceBookActivationEvents` and has no caller anywhere outside its own
+  definition. No route in `packages/api/src/routes` accepts a price-book write,
+  and `PriceBookAdministration` in
+  `apps/web/src/features/internal-ops/administration-safety/price-books.tsx`
+  ends at "Activation not submitted … activate through the authorized pricing
+  workflow", which does not exist in this repository. A price change is the most
+  frequent commerce configuration change there is, and today every one of them
+  requires an engineer. Wire finance-approved activation end to end, keeping the
+  existing review, floor revalidation, and two-authority checks. Spec §9.
+- **P0-48 — No operator surface for outbox and dead-letter recovery `[OPEN]`:**
+  dead-letter state is persisted and queryable in
+  `packages/db/src/repositories/system/outbox.ts`,
+  `packages/db/src/repositories/workflows/lifecycle.ts`, and
+  `packages/db/src/repositories/workflows/core.ts`, and re-drive exists in the
+  lifecycle events API, but no `/internal` route renders any of it — the
+  fifteen internal pages cover accounts through search with no queue-health or
+  dead-letter surface among them. The recovery procedures in
+  `docs/operations/queue-outbox-health.md`, `workflow-recovery.md`,
+  `webhook-replay.md`, and `stuck-provisioning.md` are therefore executed by an
+  engineer with database access on every occurrence. Add an internal surface
+  that lists dead-lettered work with its failure reason, and that permits
+  inspect, retry, and abandon under the existing role and audit rules.
+- **P0-49 — No derivation view for a computed figure `[OPEN]`:** nothing in
+  `packages/domain` or `packages/api` exposes how a billed number was reached.
+  Answering "why is this invoice this amount" means reading code and querying
+  the database by hand, which routes ordinary customer and finance questions to
+  an engineer. The inputs are already persisted — `orderLineSnapshots`,
+  `quoteSnapshots`, `commitmentPeriods`, `commitmentAllowanceAdjustments`,
+  `usageReconciliations`, and `amendmentLineSupersessions`. Expose the chain
+  from order through entitlement, usage, commitment, and rate to invoice line as
+  a read-only explain view on the internal account timeline, scoped by the same
+  visibility rules as the objects it reads. Spec §17.
+- **P0-50 — Recurring runbooks are prose rather than actions `[OPEN]`:**
+  `docs/operations` holds thirteen procedures, of which
+  `queue-outbox-health.md`, `stuck-provisioning.md`, `webhook-replay.md`,
+  `workflow-recovery.md`, `unhandled-errors.md`, and `billing-reconciliation.md`
+  describe steps taken during live incidents. Each is a document an engineer
+  reads and then performs by hand. Convert the recurring six into operator
+  actions behind `internal_operator`, each recording an audit entry and leaving
+  the prose as reference. P0-48 is the first and largest of these; this entry
+  covers the remainder and should follow it rather than run in parallel.
 
 ## Accepted verification evidence
 
