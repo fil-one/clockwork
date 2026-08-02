@@ -202,6 +202,11 @@ export default async function proxy(
 // replace them with a sign-in page. Every exemption names a static asset path.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/).*)",
+    // The two demo form posts are excluded because forwarding a request through
+    // `NextResponse.next({ request: { headers } })` drops the body on the deploy
+    // platform's edge middleware, which left the password unreadable and the
+    // gate unpassable. Each handler performs its own exact-origin check, so
+    // neither is relying on this middleware.
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete).*)",
   ],
 };

@@ -295,8 +295,8 @@ requirement in the ledger depends on them, so they carry no P0 entry.
   code, and no test in the repository exercises a partial payment.
 - Following from the entry above, `collectionCases` in
   `packages/db/src/schema/core/finance.ts:809` admits only `open`, `promised`,
-  `escalated`, `resolved`, and `written_off`, and the only registered collections
-  handlers are the scheduled `core.collections.dunning.v1` and
+  `escalated`, `resolved`, and `written_off`, and the only registered
+  collections handlers are the scheduled `core.collections.dunning.v1` and
   `core.collections.partner-credit.v1` in
   `packages/workflows/src/core/outbox-handlers.ts`. No payment event updates a
   case, so whether a part-paid invoice keeps dunning at its full amount depends
@@ -324,8 +324,7 @@ a desired capability.
   requires an engineer. Wire finance-approved activation end to end, keeping the
   existing review, floor revalidation, and two-authority checks. Spec §9.
 - **No operator surface for outbox and dead-letter recovery.** Dead-letter state
-  is persisted and queryable in
-  `packages/db/src/repositories/system/outbox.ts`,
+  is persisted and queryable in `packages/db/src/repositories/system/outbox.ts`,
   `packages/db/src/repositories/workflows/lifecycle.ts`, and
   `packages/db/src/repositories/workflows/core.ts`, and re-drive exists in the
   lifecycle events API, but no `/internal` route renders any of it — the fifteen

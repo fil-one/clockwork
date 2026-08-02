@@ -28,10 +28,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     new URL(origin).host !== host
   )
     return new NextResponse(null, { status: 403 });
-  const form = await request.formData();
-  const state = form.get("state");
-  if (typeof state !== "string" || !state.trim())
-    return seeOther("/signing/demo-provider");
-  await demoExperienceRepository().completeDemoCeremony(state.trim());
-  return seeOther(`/signing/return?state=${encodeURIComponent(state.trim())}`);
+  // The body is read as text rather than through `formData()`, which the deploy
+  // platform's Next runtime does not populate for a route handler behind
+  // middleware. Raw text parses the same way on both runtimes.
+  const state = new URLSearchParams(await request.text()).get("state")?.trim();
+  if (!state) return seeOther("/signing/demo-provider");
+  await demoExperienceRepository().completeDemoCeremony(state);
+  return seeOther(`/signing/return?state=${encodeURIComponent(state)}`);
 }
