@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import { brandFontVariables } from "./fonts";
 import {
   demoJourneyForPersona,
   demoPersonaCatalog,
@@ -76,7 +77,11 @@ export default async function RootLayout({
       })
     : undefined;
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={brandFontVariables}
+    >
       <body>
         {children}
         {persona ? (
