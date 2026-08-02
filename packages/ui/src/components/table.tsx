@@ -3,6 +3,11 @@ import type { ReactNode } from "react";
 export interface TableProps {
   caption: ReactNode;
   captionDescription?: ReactNode;
+  /**
+   * Keeps the caption for assistive technology but removes it from the visual
+   * flow, for tables that already sit under a heading which names them.
+   */
+  captionHidden?: boolean;
   headers: readonly ReactNode[];
   rows: readonly (readonly ReactNode[])[];
   rowKeys?: readonly string[];
@@ -16,6 +21,7 @@ export interface TableProps {
 export function Table({
   caption,
   captionDescription,
+  captionHidden = false,
   headers,
   rows,
   rowKeys,
@@ -30,9 +36,13 @@ export function Table({
   return (
     <div
       className={`cw-table-wrap cw-table-wrap--${density} ${stickyHeader ? "cw-table-wrap--sticky" : ""} ${className}`.trim()}
+      // The wrapper scrolls horizontally when the table outgrows it, so it has
+      // to be reachable by keyboard alone. Without this a keyboard user cannot
+      // read the columns that overflow.
+      tabIndex={0}
     >
       <table className="cw-table">
-        <caption>
+        <caption className={captionHidden ? "cw-sr-only" : undefined}>
           <strong>{caption}</strong>
           {captionDescription ? <span>{captionDescription}</span> : null}
         </caption>

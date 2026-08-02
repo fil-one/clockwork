@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 
 import { hasPermission, roles as commerceRoles } from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
+import { buttonClassName } from "@clockwork/ui";
 
 import { t } from "@/src/i18n/en";
 
@@ -35,7 +36,10 @@ function Denied() {
         <p className="eyebrow">403</p>
         <h1>{t("session.permission.title")}</h1>
         <p>{t("session.permission.description")}</p>
-        <Link className="cw-button cw-button--secondary" href="/dashboard">
+        <Link
+          className={buttonClassName({ variant: "secondary" })}
+          href="/dashboard"
+        >
           {t("session.permission.action")}
         </Link>
       </section>

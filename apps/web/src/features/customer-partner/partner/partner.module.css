@@ -18,10 +18,10 @@
 .taskHeader h1 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
 }
 
 .taskHeader p {
@@ -32,7 +32,8 @@
 
 .taskHeader .projectionFreshness {
   font-family: var(--cw-font-mono);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .authority {
@@ -54,21 +55,23 @@
 .ledgerHeading h2,
 .boundary h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
 }
 
 .classifier {
   margin: 0 0 0.25rem;
   color: var(--web-accent);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .authorityState,
 .count {
   margin: 0;
   font-family: var(--cw-font-mono);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .authorityFacts {
@@ -86,15 +89,16 @@
 .authorityFacts dt,
 .boundary dt {
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
 .authorityFacts dd,
 .boundary dd {
   margin: 0.2rem 0 0;
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .workLedger {
@@ -105,7 +109,7 @@
 .ledgerHeading p {
   margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .ledgerScroll {
@@ -130,13 +134,17 @@
 .ledger td {
   padding: 0.75rem 0.65rem;
   border-bottom: 1px solid var(--web-line);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   vertical-align: top;
+}
+
+.ledger td {
+  font-variant-numeric: tabular-nums;
 }
 
 .ledger thead th {
   color: var(--web-muted);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
   letter-spacing: 0.03em;
 }
 
@@ -166,7 +174,7 @@
   max-width: 50ch;
   margin: 0.4rem 0 0;
   color: var(--web-muted);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
 }
 
 .boundary dl {
@@ -231,10 +239,10 @@
   margin: 0;
   max-width: 32ch;
   font-family: var(--cw-font-display);
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
 }
 .pageHeader p:last-child {
   max-width: 47rem;
@@ -244,7 +252,7 @@
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 .section,
@@ -257,7 +265,7 @@
 .urgentCard {
   min-width: 0;
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   background: var(--web-paper);
 }
 .sectionHeader,
@@ -272,7 +280,7 @@
 .detailCard h2,
 .workflow h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--cw-text-xl);
 }
 .muted {
   color: var(--web-muted);
@@ -280,7 +288,7 @@
 .count {
   margin: 0;
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 .filters {
   display: grid;
@@ -293,7 +301,7 @@
   gap: 0.35rem;
   min-width: 0;
   color: var(--web-muted);
-  font-size: 0.67rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 .field input,
@@ -302,12 +310,12 @@
   min-width: 0;
   height: 2.55rem;
   border: 1px solid var(--web-line);
-  border-radius: 0.45rem;
+  border-radius: var(--cw-radius-sm);
   background: var(--web-paper);
   color: var(--web-ink);
   padding: 0 0.65rem;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 .searchControl {
   display: grid;
@@ -325,7 +333,7 @@
 .table th {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.67rem;
+  font-size: var(--cw-text-xs);
   letter-spacing: 0.04em;
   text-align: left;
   text-transform: uppercase;
@@ -336,18 +344,31 @@
   padding: 0.85rem 1.1rem;
   vertical-align: top;
 }
+.table td {
+  font-variant-numeric: tabular-nums;
+}
 .table tbody tr:last-child td {
   border-bottom: 0;
+}
+.table tbody tr {
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .table tbody tr:hover {
   background: color-mix(in srgb, var(--web-canvas) 65%, transparent);
 }
 .recordLink {
   color: var(--web-ink);
-  font-size: 0.88rem;
+  font-size: var(--cw-text-md);
   font-weight: 800;
   text-decoration-color: color-mix(in srgb, var(--web-accent) 45%, transparent);
   text-underline-offset: 0.2rem;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .recordLink:hover {
   color: var(--web-accent);
@@ -357,8 +378,12 @@
   display: block;
   margin-top: 0.25rem;
   color: var(--web-muted);
-  font-size: 0.69rem;
+  font-size: var(--cw-text-xs);
 }
+.id {
+  font-variant-numeric: tabular-nums;
+}
+/* Pill text sits at the 12px floor, so the padding carries the width instead. */
 .pill {
   display: inline-flex;
   flex-shrink: 0;
@@ -366,8 +391,8 @@
   width: fit-content;
   border: 1px solid var(--web-line);
   border-radius: 999px;
-  padding: 0.24rem 0.48rem;
-  font-size: 0.66rem;
+  padding: 0.2rem 0.42rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   text-transform: capitalize;
   white-space: nowrap;
@@ -400,7 +425,7 @@
   display: grid;
   gap: 0.65rem;
   border: 1px solid var(--web-line);
-  border-radius: 0.65rem;
+  border-radius: var(--cw-radius-sm);
   padding: 0.9rem;
 }
 .cardTop {
@@ -417,10 +442,11 @@
 .cardValues span {
   display: block;
   color: var(--web-muted);
-  font-size: 0.64rem;
+  font-size: var(--cw-text-xs);
 }
 .cardValues strong {
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 .cardsOnly .tableWrap {
   display: none;
@@ -436,7 +462,8 @@
 .pagination p {
   margin: 0;
   color: var(--web-muted);
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 .actions {
   align-items: center;
@@ -446,11 +473,11 @@
   align-items: center;
   justify-content: center;
   min-height: 2.55rem;
-  border-radius: 0.45rem;
+  border-radius: var(--cw-radius-sm);
   background: var(--web-accent);
   color: white;
   padding: 0.65rem 0.9rem;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 800;
   text-decoration: none;
 }
@@ -480,12 +507,13 @@
 .boundary p {
   margin: 0.35rem 0 0;
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
 }
 .boundary strong {
   display: block;
   margin-top: 0.45rem;
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
+  font-variant-numeric: tabular-nums;
 }
 .term {
   padding: 1rem 1.2rem;
@@ -506,10 +534,11 @@
 .clockMeta span {
   display: block;
   color: var(--web-muted);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
 }
 .clockMeta strong {
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .gate {
   margin: 0;
@@ -517,13 +546,13 @@
   background: color-mix(in srgb, var(--web-warm) 8%, var(--web-paper));
   padding: 0.75rem 1rem;
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   overflow: hidden;
   background: var(--web-paper);
 }
@@ -538,12 +567,13 @@
 .stat span {
   display: block;
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
 }
 .stat strong {
   display: block;
   margin-top: 1.25rem;
-  font-size: 1.6rem;
+  font-size: var(--cw-text-3xl);
+  font-variant-numeric: tabular-nums;
 }
 .urgentGrid {
   display: grid;
@@ -556,6 +586,10 @@
   padding: 1rem;
   text-decoration: none;
   color: inherit;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .urgentCard:hover {
   border-color: var(--web-accent);
@@ -566,15 +600,16 @@
 }
 .urgentCard p {
   color: var(--web-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 .urgentMeta {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
   margin-top: auto;
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .dashboardGrid {
   display: grid;
@@ -601,7 +636,7 @@
 }
 .chart p {
   color: var(--web-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
 }
 .summary,
 .detailCard,
@@ -618,17 +653,8 @@
 .summaryList li {
   border-left: 2px solid var(--web-line);
   padding-left: 0.7rem;
-  font-size: 0.8rem;
-}
-.breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  color: var(--web-muted);
-  font-size: 0.72rem;
-}
-.breadcrumb a {
-  color: inherit;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .detailsGrid {
   display: grid;
@@ -649,16 +675,17 @@
 }
 .detailCard dt {
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
 }
 .detailCard dd {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .technical {
   margin-top: 1rem;
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
 }
 .technical summary {
   cursor: pointer;
@@ -686,7 +713,7 @@
   border-top: 3px solid var(--web-line);
   padding-top: 0.5rem;
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
 }
 .stage[data-active="true"] {
   border-color: var(--web-accent);
@@ -703,7 +730,7 @@
 }
 .error {
   color: var(--web-danger);
-  font-size: 0.67rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 .sticky {
@@ -714,21 +741,21 @@
   display: flex;
   align-items: flex-start;
   gap: 0.55rem;
-  font-size: 0.77rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 .success {
   border-left: 3px solid var(--web-accent);
   background: var(--web-soft);
   padding: 0.75rem;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 .failure {
   border-left: 3px solid var(--web-danger);
   background: color-mix(in srgb, var(--web-danger) 8%, var(--web-paper));
   padding: 0.75rem;
   color: var(--web-ink);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 600;
 }
 

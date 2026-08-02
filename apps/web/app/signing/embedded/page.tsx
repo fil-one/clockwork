@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { BrandLogo } from "@clockwork/ui";
+import { BrandLogo, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
 import { SigningExperience } from "@/src/features/signing/signing-experience";
@@ -24,7 +24,10 @@ export default async function Page({
           <p className="eyebrow">{t("signing.eyebrow")}</p>
           <h1>{t("signing.choose.title")}</h1>
           <p>{t("signing.choose.description")}</p>
-          <Link className="cw-button cw-button--primary" href="/agreements">
+          <Link
+            className={buttonClassName({ variant: "primary" })}
+            href="/agreements"
+          >
             {t("signing.agreements")}
           </Link>
         </section>

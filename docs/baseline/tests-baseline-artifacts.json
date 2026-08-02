@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T12:58:30Z",
+  "capturedAt": "2026-08-02T20:06:37Z",
   "testFiles": [
     "apps/web/app/api/[[...route]]/demo-app.test.ts",
     "apps/web/app/api/[[...route]]/route.test.ts",
@@ -24,6 +24,7 @@
     "apps/web/src/auth/release-proof-repository.integration.test.ts",
     "apps/web/src/auth/release-proof.test.ts",
     "apps/web/src/auth/session.test.ts",
+    "apps/web/src/auth/sign-out.test.ts",
     "apps/web/src/features/contracts/commerce-client.test.ts",
     "apps/web/src/features/contracts/experience-client.test.ts",
     "apps/web/src/features/contracts/external-gates-client.test.ts",
@@ -272,8 +273,8 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 268,
-    "unitFiles": 196,
+    "totalFiles": 269,
+    "unitFiles": 197,
     "storybookFiles": 4,
     "integrationFiles": 38,
     "scriptFiles": 2,
@@ -299,6 +300,7 @@
       "apps/web/src/auth/identity-repository.test.ts",
       "apps/web/src/auth/release-proof.test.ts",
       "apps/web/src/auth/session.test.ts",
+      "apps/web/src/auth/sign-out.test.ts",
       "apps/web/src/features/contracts/commerce-client.test.ts",
       "apps/web/src/features/contracts/experience-client.test.ts",
       "apps/web/src/features/contracts/external-gates-client.test.ts",
@@ -1074,8 +1076,8 @@
   "visualBaselines": [
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-access-320-demo-chromium-darwin.png",
-      "sha256": "b281851b614fa804c624f2dbaae3322bbe909104bb155373cfa6125d496d97b4",
-      "bytes": 29216,
+      "sha256": "0d5730219b6c07d66693b2a5074a3c1c9fc3ef9621496934608fc29b603bf8c6",
+      "bytes": 28889,
       "dimensions": {
         "width": 320,
         "height": 800
@@ -1092,110 +1094,110 @@
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-320-demo-chromium-darwin.png",
-      "sha256": "3bf164424128415d539ac691ed00d76351878b6fb7b09f9e5f538a997a32e8aa",
-      "bytes": 236434,
+      "sha256": "a3c3fb7975736975e5bd14f7e35184dd0be76213fd0ba7fdcfa2d10ac8eba5fa",
+      "bytes": 151630,
       "dimensions": {
         "width": 320,
-        "height": 3661
+        "height": 2045
       }
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-demo-chromium-darwin.png",
-      "sha256": "2d5fd1af3b7fd60e93724a936c49b1f9cf970799b7d32d5be0edfb516f5244a9",
-      "bytes": 206289,
+      "sha256": "bd308bb5320db1234a7ca1dd155cbd581dd2557af9e91eb5177b79da74242106",
+      "bytes": 163522,
       "dimensions": {
         "width": 1440,
-        "height": 1514
+        "height": 1000
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
-      "sha256": "452231be0ecd3e17f6ad6f9f8325b08774c5d54a7290c3d64375d183c9d12687",
-      "bytes": 109791,
+      "sha256": "0c82d7588b8c6a031830bd3905dad21ebc00352175c146c8cc4ef14409f7139c",
+      "bytes": 111022,
       "dimensions": {
         "width": 320,
-        "height": 1700
+        "height": 1712
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
-      "sha256": "16195a6551b470ccdc0057a828d5f5543513ab0f9257a053f13ac888b8c5651a",
-      "bytes": 161239,
+      "sha256": "e1aea43ce455a87294960fbf1c2e79ed984fd43faef073df96d37d099b7fa8d6",
+      "bytes": 166980,
       "dimensions": {
         "width": 1440,
-        "height": 1053
+        "height": 1055
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-320-chromium-darwin.png",
-      "sha256": "928fc7c1dbe5d6c2c230889b9cd6a40e01fa8098faf6b9603281d0293628ff3f",
-      "bytes": 141383,
+      "sha256": "d6bb3b1e69e3b3e734dbe424b98f965f4516821ce3c8462935893abc348c6bf1",
+      "bytes": 141512,
       "dimensions": {
         "width": 320,
-        "height": 2278
+        "height": 2292
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-chromium-darwin.png",
-      "sha256": "501bee0bbd4c3df2b9bbb8d802d5a8e4c936edddd1ef2b7647568bf52dc8ef32",
-      "bytes": 192763,
+      "sha256": "e9ea8b92ff0fa01360b9b15011bb44301096121af58d7bbd1d8e6c0ebcb5a2b1",
+      "bytes": 197889,
       "dimensions": {
         "width": 1440,
-        "height": 1296
+        "height": 1301
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-320-chromium-darwin.png",
-      "sha256": "e350c8cfd34102db095b7aafde053ec212836f562db2e2872a9ade2b7ad179a6",
-      "bytes": 117540,
+      "sha256": "3a938c0d8d8a726ca43aa2f64a5eb551af5b68509dc9ff7ca292ad112ab0b4b2",
+      "bytes": 117114,
       "dimensions": {
         "width": 320,
-        "height": 2082
+        "height": 2112
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-chromium-darwin.png",
-      "sha256": "3c27dd47fe1651c7f918c208bf58d2e58a07fd9a750a4ba3c8bd1080a6778014",
-      "bytes": 164354,
+      "sha256": "81683fc1e868746c92da46e573288734d77affa4662844aff037027386d94a89",
+      "bytes": 168775,
       "dimensions": {
         "width": 1440,
-        "height": 1135
+        "height": 1136
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-320-chromium-darwin.png",
-      "sha256": "c7f6105f0d02ce8edc15fcca353c8cadd326add8f96ee30deb6ceee0243d00f3",
-      "bytes": 216486,
+      "sha256": "e762df2a5d0b16bc493226c44420bb04c49b9f3213291181d4b144c16c5c4121",
+      "bytes": 212937,
       "dimensions": {
         "width": 320,
-        "height": 3717
+        "height": 3743
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-chromium-darwin.png",
-      "sha256": "e7ab1376213f8af20b8a85df2920430e9f2ad4bae586e54f79280fb3678dfa66",
-      "bytes": 263597,
+      "sha256": "f95d86d541af6ce0ab5e3ef51c849e0c44105db4ca37637e7fc06bbee8ad8c87",
+      "bytes": 268040,
       "dimensions": {
         "width": 1440,
-        "height": 2014
+        "height": 2016
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/operator-priority-work-chromium-darwin.png",
-      "sha256": "3e1f0cbbc87166884de310a8b3aca0a9bd7eb9ce13f493321124a5708dd282c0",
-      "bytes": 223245,
+      "sha256": "0bcaf1ee9ef1758410734386da321a933f4311145ce2bda020230b11a865fe73",
+      "bytes": 228091,
       "dimensions": {
         "width": 1440,
-        "height": 1374
+        "height": 1393
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
-      "sha256": "c4b90e39be84283abab8e1e14f3d14f68de974caab91029ba5b5788212eb3548",
-      "bytes": 178520,
+      "sha256": "02b66d0889abbb87d0e0e8707c0ccd569eeea6cbe4b39ee53e80de38ab674dae",
+      "bytes": 180976,
       "dimensions": {
         "width": 1440,
-        "height": 1059
+        "height": 1065
       }
     }
   ],

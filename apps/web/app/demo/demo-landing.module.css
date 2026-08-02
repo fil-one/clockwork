@@ -1,140 +1,223 @@
+/*
+ * The demo front door is a roster, not a card grid: hairline rules separate the
+ * two audiences and every persona reads across one set of column edges.
+ */
 .main {
   display: grid;
-  gap: 2.25rem;
+  gap: var(--cw-space-4);
   align-content: start;
   min-height: 100vh;
-  padding: clamp(1.5rem, 5vw, 4rem);
+  padding: clamp(var(--cw-space-4), 4vw, var(--cw-space-10));
   background: var(--web-canvas);
   color: var(--web-ink);
 }
 
 .header {
   display: grid;
-  gap: 0.6rem;
+  gap: var(--cw-space-2);
   max-width: 62ch;
 }
 
 .wordmark {
-  margin-bottom: 0.9rem;
-  font-size: 0.8rem;
+  margin-bottom: var(--cw-space-3);
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   letter-spacing: 0.16em;
 }
 
-.header h1 {
-  margin: 0;
-  font-family: var(--cw-font-display);
-  font-size: clamp(1.9rem, 4vw, 3rem);
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-}
-
-.header p {
+.eyebrow {
   margin: 0;
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
+  font-size: var(--cw-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: var(--cw-leading-tight);
+}
+
+.description {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-md);
+  line-height: var(--cw-leading-body);
 }
 
 .group {
   display: grid;
-  gap: 1rem;
-}
-
-.group h2 {
-  margin: 0;
-  color: var(--web-muted);
-  font-family: var(--cw-font-accent);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
-  gap: 1rem;
-}
-
-.persona {
-  display: grid;
-  gap: 0.85rem;
   align-content: start;
-  justify-items: start;
-  border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-lg);
-  background: var(--web-paper);
-  padding: 1.15rem;
 }
 
-.personaHead {
+.groupHeading {
+  margin: 0 0 var(--cw-space-1);
+  padding-bottom: var(--cw-space-2);
+  border-bottom: 2px solid var(--web-ink);
+  font-family: var(--cw-font-display);
+  font-size: var(--cw-text-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: var(--cw-leading-snug);
+}
+
+/*
+ * One grid for the whole roster, so every row lands on the same column edges
+ * instead of each row sizing its own tracks to its own name length.
+ */
+.roster {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns:
+    2.25rem minmax(9rem, 0.9fr) minmax(8rem, 0.8fr)
+    minmax(13rem, 1.5fr) 11.5rem;
+  column-gap: var(--cw-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  width: 100%;
+  border-bottom: 1px solid var(--web-line);
+  padding-block: var(--cw-space-2);
 }
 
 .mark {
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   place-items: center;
   border-radius: 50%;
   background: var(--cw-brand-soft);
   color: var(--cw-brand-ink);
-  font-size: 0.8rem;
+  font-family: var(--cw-font-accent);
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
 .identity {
   display: grid;
-  gap: 0.1rem;
+  min-width: 0;
 }
 
-.identity h3 {
-  margin: 0;
+.name {
   font-family: var(--cw-font-display);
-  font-size: 1.15rem;
+  font-size: var(--cw-text-lg);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  line-height: var(--cw-leading-snug);
 }
 
-.jobTitle {
+.role {
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
+  line-height: var(--cw-leading-aux);
 }
 
-.summary {
-  display: grid;
-  gap: 0.55rem;
-  width: 100%;
-  border-top: 1px solid var(--web-line);
-  padding-top: 0.85rem;
+.account {
+  min-width: 0;
+  color: var(--cw-ink-soft);
+  font-size: var(--cw-text-sm);
+  line-height: var(--cw-leading-aux);
 }
 
-.summary dt {
-  color: var(--web-muted);
-  font-family: var(--cw-font-accent);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.summary dd {
+.intent {
   margin: 0;
-  font-size: 0.85rem;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+  line-height: var(--cw-leading-aux);
+}
+
+.start {
+  display: inline-flex;
+  min-height: var(--cw-control-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--cw-space-2);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-xs);
+  padding-inline: var(--cw-space-4);
+  color: var(--web-accent);
+  font-family: var(--cw-font-accent);
+  font-size: var(--cw-text-sm);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
+}
+
+.start:hover {
+  border-color: var(--cw-brand-strong);
+  background: var(--cw-brand-soft);
+  color: var(--cw-brand-ink);
 }
 
 .footer {
   border-top: 1px solid var(--web-line);
-  padding-top: 1.25rem;
+  padding-top: var(--cw-space-3);
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .footer p {
   margin: 0;
+}
+
+/*
+ * Below the ledger width the facts stack under one text edge and the action
+ * keeps the right-hand column, which is the last thing to move.
+ */
+@media (max-width: 62rem) {
+  .roster {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .row {
+    grid-template-columns: 2.25rem minmax(0, 1fr) 11.5rem;
+    align-items: start;
+    gap: var(--cw-space-1) var(--cw-space-3);
+    padding-block: var(--cw-space-3);
+  }
+
+  .identity {
+    grid-area: 1 / 2;
+  }
+
+  .account {
+    grid-area: 2 / 2;
+  }
+
+  .intent {
+    grid-area: 3 / 2;
+  }
+
+  .start {
+    grid-area: 1 / 3 / span 3;
+    align-self: center;
+  }
+}
+
+@media (max-width: 34rem) {
+  .row {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+
+  .start {
+    grid-area: 4 / 2;
+    justify-self: start;
+    margin-top: var(--cw-space-1);
+  }
 }

@@ -1,5 +1,6 @@
 export * from "./components/brand";
 export * from "./components/button";
+export * from "./components/button-class-name";
 export * from "./components/chart";
 export * from "./components/collection";
 export * from "./components/command-palette";
@@ -9,6 +10,7 @@ export * from "./components/error-boundary";
 export * from "./components/input";
 export * from "./components/icons";
 export * from "./components/record";
+export * from "./components/breadcrumbs";
 export * from "./components/shell";
 export * from "./components/states";
 export * from "./components/table";

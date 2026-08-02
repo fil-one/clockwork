@@ -2,12 +2,14 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
+import { buttonClassName } from "./button-class-name";
+import type { ButtonClassNameOptions } from "./button-class-name";
 import { Tooltip } from "./tooltip";
 import type { TooltipSide } from "./tooltip";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "quiet" | "danger";
-  size?: "small" | "medium" | "large";
+  variant?: ButtonClassNameOptions["variant"];
+  size?: ButtonClassNameOptions["size"];
   loading?: boolean;
   loadingLabel?: ReactNode;
 }
@@ -26,7 +28,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`cw-button cw-button--${variant} cw-button--${size} ${className}`.trim()}
+      className={buttonClassName({ variant, size, className })}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...props}

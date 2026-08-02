@@ -146,6 +146,11 @@ export const navigation: Readonly<
       allowedRoles: ["internal_operator"],
     },
     {
+      href: "/internal/webhook-replay",
+      label: "nav.internal.webhookReplay",
+      allowedRoles: ["internal_operator"],
+    },
+    {
       href: "/internal/migrations",
       label: "nav.internal.migrations",
       allowedRoles: ["internal_operator"],

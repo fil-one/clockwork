@@ -13,7 +13,6 @@ const artifactRoot = path.resolve(
   process.env.CLOCKWORK_ARTIFACT_DIR ?? "test-results",
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
-const releaseShard = Boolean(process.env.CLOCKWORK_RELEASE_SHARD);
 if (
   (process.env.CLOCKWORK_RELEASE_SHARD === "ui" ||
     process.env.CLOCKWORK_RELEASE_SHARD === "demo") &&
@@ -22,7 +21,20 @@ if (
   throw new Error(
     "Release visual comparisons require the pinned Darwin runner used by the reviewed baselines.",
   );
-const workerCount = serial ? 1 : releaseShard || process.env.CI ? 2 : undefined;
+/**
+ * One worker, always. `ux-internal-ops.spec.ts` resets the durable demo store
+ * through `resetDurableDemoState`, and there is exactly one store and one dev
+ * server, so a parallel run pulls records out from under whichever sibling spec
+ * happens to be mid-journey. Measured at the default worker count: one run in
+ * three failed, a different pair of tests each time, every one of them passing
+ * in isolation. Two workers has the same race, only less often, which is worse
+ * because it reads as a real regression.
+ *
+ * This costs no wall clock. Three serial runs took 1.3 minutes each against
+ * 1.1 to 1.4 parallel, because the shared dev server compiling routes is the
+ * bottleneck rather than test execution. The extra workers were buying nothing.
+ */
+const workerCount = 1;
 
 /**
  * The demo password gate redirects every non-exempt path, so the demo suite

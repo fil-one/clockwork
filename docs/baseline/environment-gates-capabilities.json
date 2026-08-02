@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T12:58:30Z",
+  "capturedAt": "2026-08-02T20:06:37Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -765,6 +765,7 @@
     "AUTHORIZATION_CONTEXT_SECRET",
     "AUTOMATED_TEARDOWN_ENABLED",
     "BASELINE_CAPTURED_AT",
+    "CACHE_404_PAGE",
     "CI",
     "CLICK_THROUGH_THRESHOLD_MINOR",
     "CLOCKWORK_ARTIFACT_DIR",
@@ -798,34 +799,72 @@
     "CLOCKWORK_SERVICE_DATABASE_URL",
     "CLOCKWORK_TEST_PORT",
     "DATABASE_URL",
+    "DEPLOY_ID",
+    "DEPLOY_PRIME_URL",
+    "DEPLOY_URL",
     "DIRECT_DATABASE_URL",
     "ESIGN_RETURN_ORIGINS",
     "EVIDENCE_CLIENT_ORIGINS",
     "EVIDENCE_STORAGE_INTERNAL_TOKEN",
     "EVIDENCE_STORAGE_INTERNAL_URL",
+    "HOSTNAME",
     "INTERNAL_EMAIL_DOMAINS",
+    "KEEP_ALIVE_TIMEOUT",
     "KEY",
     "MIGRATION_FEATURE_ENABLED",
     "MIGRATION_SOURCE_EXECUTION_ENABLED",
+    "NETLIFY_DEV",
+    "NETLIFY_ENABLE_SYSTEM_LOGGING",
+    "NETLIFY_LOCAL",
+    "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
+    "NETLIFY_NEXT_PLUGIN_SKIP",
+    "NETLIFY_NEXT_SKEW_PROTECTION",
+    "NETLIFY_NEXT_VERIFY_FORMS",
+    "NETLIFY_PURGE_API_TOKEN",
+    "NETLIFY_SKEW_PROTECTION_TOKEN",
+    "NEXT_DEBUG_BUILD",
+    "NEXT_DEBUG_IMMEDIATES",
+    "NEXT_DEPLOYMENT_ID",
+    "NEXT_MINIMAL",
+    "NEXT_OTEL_FETCH_DISABLED",
+    "NEXT_OTEL_PERFORMANCE_PREFIX",
+    "NEXT_OTEL_VERBOSE",
+    "NEXT_PHASE",
+    "NEXT_PRIVATE_DEBUG_CACHE",
+    "NEXT_PRIVATE_DEBUG_VALIDATION",
+    "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
+    "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
+    "NEXT_PRIVATE_STANDALONE",
+    "NEXT_PRIVATE_TEST_PROXY",
     "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
     "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
     "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
+    "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+    "NEXT_RUNTIME",
+    "NEXT_SSG_FETCH_METRICS",
+    "NEXT_TEST_LOG_VALIDATION",
+    "NEXT_UNHANDLED_REJECTION_FILTER",
+    "NODE_DEBUG",
     "NODE_ENV",
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
     "PATH",
     "PLATFORM_ISSUER_JSON",
     "PORT",
+    "SITE_ID",
     "STRIPE_SECRET_KEY",
     "TRIGGER_PROJECT_REF",
+    "TURBOPACK",
+    "URL",
+    "USE_REGIONAL_BLOBS",
     "WORKOS_API_KEY",
     "WORKOS_CLIENT_ID",
     "WORKOS_COOKIE_PASSWORD",
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 63,
+  "staticallyReferencedCount": 102,
   "environmentReferenceRecords": [
     {
       "key": "APP_ORIGIN",
@@ -911,6 +950,17 @@
       "sources": ["scripts/generate-baseline-manifests.mjs"],
       "runtimeSources": [],
       "toolingOrTestSources": ["scripts/generate-baseline-manifests.mjs"]
+    },
+    {
+      "key": "CACHE_404_PAGE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
+      ],
+      "toolingOrTestSources": []
     },
     {
       "key": "CI",
@@ -1003,6 +1053,7 @@
       "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/e2e/ux-internal-ops.spec.ts",
         "apps/web/e2e/visual.spec.ts",
         "apps/web/proxy.ts",
@@ -1010,6 +1061,7 @@
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/proxy.ts",
         "apps/web/src/features/experience-server/demo-experience-repository.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
@@ -1134,10 +1186,14 @@
       "key": "CLOCKWORK_RELEASE_PROOF",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/e2e/production-workflow-proof.ts",
         "apps/web/src/telemetry/runtime.ts"
       ],
-      "runtimeSources": ["apps/web/src/telemetry/runtime.ts"],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/src/telemetry/runtime.ts"
+      ],
       "toolingOrTestSources": ["apps/web/e2e/production-workflow-proof.ts"]
     },
     {
@@ -1224,6 +1280,39 @@
       "declared": true,
       "sources": ["apps/web/src/db/service.ts"],
       "runtimeSources": ["apps/web/src/db/service.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "DEPLOY_ID",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "DEPLOY_PRIME_URL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "DEPLOY_URL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
       "toolingOrTestSources": []
     },
     {
@@ -1335,6 +1424,17 @@
       "toolingOrTestSources": []
     },
     {
+      "key": "HOSTNAME",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
       "key": "INTERNAL_EMAIL_DOMAINS",
       "declared": true,
       "sources": [
@@ -1343,6 +1443,17 @@
       ],
       "runtimeSources": ["apps/web/src/auth/session.ts"],
       "toolingOrTestSources": ["apps/web/playwright.proof.config.ts"]
+    },
+    {
+      "key": "KEEP_ALIVE_TIMEOUT",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ],
+      "toolingOrTestSources": []
     },
     {
       "key": "KEY",
@@ -1363,6 +1474,261 @@
       "declared": true,
       "sources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
       "runtimeSources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_DEV",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_ENABLE_SYSTEM_LOGGING",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_LOCAL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_NEXT_PLUGIN_SKIP",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_NEXT_SKEW_PROTECTION",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_NEXT_VERIFY_FORMS",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_PURGE_API_TOKEN",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NETLIFY_SKEW_PROTECTION_TOKEN",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_DEBUG_BUILD",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_DEBUG_IMMEDIATES",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_DEPLOYMENT_ID",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_MINIMAL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_OTEL_FETCH_DISABLED",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_OTEL_PERFORMANCE_PREFIX",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_OTEL_VERBOSE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PHASE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_DEBUG_CACHE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_DEBUG_VALIDATION",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_STANDALONE",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_PRIVATE_TEST_PROXY",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
       "toolingOrTestSources": []
     },
     {
@@ -1416,9 +1782,80 @@
       "toolingOrTestSources": []
     },
     {
+      "key": "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_RUNTIME",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_SSG_FETCH_METRICS",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_TEST_LOG_VALIDATION",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NEXT_UNHANDLED_REJECTION_FILTER",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "NODE_DEBUG",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
       "key": "NODE_ENV",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/app/(experience)/(customer)/states/page.tsx",
         "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
@@ -1446,6 +1883,9 @@
         "packages/workflows/src/system/outbox-dispatcher.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/app/(experience)/(customer)/states/page.tsx",
         "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
@@ -1478,10 +1918,12 @@
       "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
@@ -1491,10 +1933,12 @@
       "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
@@ -1525,14 +1969,28 @@
       "key": "PORT",
       "declared": false,
       "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/playwright.config.ts",
         "apps/web/playwright.proof.config.ts"
       ],
-      "runtimeSources": [],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ],
       "toolingOrTestSources": [
         "apps/web/playwright.config.ts",
         "apps/web/playwright.proof.config.ts"
       ]
+    },
+    {
+      "key": "SITE_ID",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ],
+      "toolingOrTestSources": []
     },
     {
       "key": "STRIPE_SECRET_KEY",
@@ -1551,9 +2009,49 @@
       "toolingOrTestSources": []
     },
     {
+      "key": "TURBOPACK",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "URL",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "USE_REGIONAL_BLOBS",
+      "declared": false,
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
+      ],
+      "toolingOrTestSources": []
+    },
+    {
       "key": "WORKOS_API_KEY",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1562,6 +2060,7 @@
         "packages/integrations/src/system/webhook-verifiers.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1575,6 +2074,7 @@
       "key": "WORKOS_CLIENT_ID",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1582,6 +2082,7 @@
         "apps/web/src/features/shell/route-session.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1594,6 +2095,7 @@
       "key": "WORKOS_COOKIE_PASSWORD",
       "declared": true,
       "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1601,6 +2103,7 @@
         "apps/web/src/features/shell/route-session.ts"
       ],
       "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -1619,13 +2122,22 @@
     {
       "key": "WORKOS_REDIRECT_URI",
       "declared": true,
-      "sources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
-      "runtimeSources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/layout.tsx",
+        "apps/web/proxy.ts"
+      ],
+      "runtimeSources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/layout.tsx",
+        "apps/web/proxy.ts"
+      ],
       "toolingOrTestSources": []
     }
   ],
   "referencedButUndeclared": [
     "BASELINE_CAPTURED_AT",
+    "CACHE_404_PAGE",
     "CLOCKWORK_ARTIFACT_DIR",
     "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
     "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
@@ -1648,11 +2160,295 @@
     "CLOCKWORK_RELEASE_STRESS_RUNS",
     "CLOCKWORK_RELEASE_SUITES_SCRIPT",
     "CLOCKWORK_TEST_PORT",
+    "DEPLOY_ID",
+    "DEPLOY_PRIME_URL",
+    "DEPLOY_URL",
+    "HOSTNAME",
+    "KEEP_ALIVE_TIMEOUT",
     "KEY",
+    "NETLIFY_DEV",
+    "NETLIFY_ENABLE_SYSTEM_LOGGING",
+    "NETLIFY_LOCAL",
+    "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
+    "NETLIFY_NEXT_PLUGIN_SKIP",
+    "NETLIFY_NEXT_SKEW_PROTECTION",
+    "NETLIFY_NEXT_VERIFY_FORMS",
+    "NETLIFY_PURGE_API_TOKEN",
+    "NETLIFY_SKEW_PROTECTION_TOKEN",
+    "NEXT_DEBUG_BUILD",
+    "NEXT_DEBUG_IMMEDIATES",
+    "NEXT_DEPLOYMENT_ID",
+    "NEXT_MINIMAL",
+    "NEXT_OTEL_FETCH_DISABLED",
+    "NEXT_OTEL_PERFORMANCE_PREFIX",
+    "NEXT_OTEL_VERBOSE",
+    "NEXT_PHASE",
+    "NEXT_PRIVATE_DEBUG_CACHE",
+    "NEXT_PRIVATE_DEBUG_VALIDATION",
+    "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
+    "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
+    "NEXT_PRIVATE_STANDALONE",
+    "NEXT_PRIVATE_TEST_PROXY",
+    "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+    "NEXT_RUNTIME",
+    "NEXT_SSG_FETCH_METRICS",
+    "NEXT_TEST_LOG_VALIDATION",
+    "NEXT_UNHANDLED_REJECTION_FILTER",
+    "NODE_DEBUG",
     "PATH",
-    "PORT"
+    "PORT",
+    "SITE_ID",
+    "TURBOPACK",
+    "URL",
+    "USE_REGIONAL_BLOBS"
   ],
-  "runtimeReferencedButUndeclared": [],
+  "runtimeReferencedButUndeclared": [
+    {
+      "key": "CACHE_404_PAGE",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
+      ]
+    },
+    {
+      "key": "DEPLOY_ID",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ]
+    },
+    {
+      "key": "DEPLOY_PRIME_URL",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ]
+    },
+    {
+      "key": "DEPLOY_URL",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ]
+    },
+    {
+      "key": "HOSTNAME",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ]
+    },
+    {
+      "key": "KEEP_ALIVE_TIMEOUT",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ]
+    },
+    {
+      "key": "NETLIFY_DEV",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ]
+    },
+    {
+      "key": "NETLIFY_ENABLE_SYSTEM_LOGGING",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
+      ]
+    },
+    {
+      "key": "NETLIFY_LOCAL",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ]
+    },
+    {
+      "key": "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
+      ]
+    },
+    {
+      "key": "NETLIFY_NEXT_PLUGIN_SKIP",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ]
+    },
+    {
+      "key": "NETLIFY_NEXT_SKEW_PROTECTION",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ]
+    },
+    {
+      "key": "NETLIFY_NEXT_VERIFY_FORMS",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
+      ]
+    },
+    {
+      "key": "NETLIFY_PURGE_API_TOKEN",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ]
+    },
+    {
+      "key": "NETLIFY_SKEW_PROTECTION_TOKEN",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ]
+    },
+    {
+      "key": "NEXT_DEBUG_BUILD",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_DEBUG_IMMEDIATES",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_DEPLOYMENT_ID",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
+      ]
+    },
+    {
+      "key": "NEXT_MINIMAL",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_OTEL_FETCH_DISABLED",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
+      ]
+    },
+    {
+      "key": "NEXT_OTEL_PERFORMANCE_PREFIX",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_OTEL_VERBOSE",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PHASE",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_DEBUG_CACHE",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_DEBUG_VALIDATION",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_STANDALONE",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ]
+    },
+    {
+      "key": "NEXT_PRIVATE_TEST_PROXY",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_RUNTIME",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_SSG_FETCH_METRICS",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_TEST_LOG_VALIDATION",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NEXT_UNHANDLED_REJECTION_FILTER",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "NODE_DEBUG",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
+      ]
+    },
+    {
+      "key": "PORT",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
+      ]
+    },
+    {
+      "key": "SITE_ID",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
+      ]
+    },
+    {
+      "key": "TURBOPACK",
+      "sources": [
+        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
+      ]
+    },
+    {
+      "key": "URL",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
+      ]
+    },
+    {
+      "key": "USE_REGIONAL_BLOBS",
+      "sources": [
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
+      ]
+    }
+  ],
   "toolingOrTestOnlyReferencedButUndeclared": [
     {
       "key": "BASELINE_CAPTURED_AT",
@@ -1771,13 +2567,6 @@
     {
       "key": "PATH",
       "sources": ["scripts/release-suites.mjs"]
-    },
-    {
-      "key": "PORT",
-      "sources": [
-        "apps/web/playwright.config.ts",
-        "apps/web/playwright.proof.config.ts"
-      ]
     }
   ],
   "declaredButNotStaticallyReferenced": [

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import { Button, Dialog, Select } from "@clockwork/ui";
+import { Button, buttonClassName, Dialog, Select } from "@clockwork/ui";
 
 import { t } from "@/src/i18n/en";
 
@@ -181,7 +181,7 @@ export function DemoPersonaSwitcher({
               <p>{t("app.demo.reset.confirm.detail")}</p>
             </Dialog>
             <a
-              className="cw-button cw-button--quiet cw-button--small"
+              className={buttonClassName({ variant: "quiet", size: "small" })}
               href="/demo"
             >
               {t("demo.panel.browse")}

@@ -15,7 +15,7 @@
 .heading h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-size: clamp(var(--cw-text-2xl), 2vw, var(--cw-text-3xl));
   font-weight: 600;
   letter-spacing: -0.025em;
 }
@@ -44,7 +44,7 @@
   gap: 0.85rem;
   padding: 1rem;
   border: 1px solid var(--web-rule, currentColor);
-  border-radius: 0.35rem;
+  border-radius: var(--cw-radius-sm);
 }
 
 .invoiceHeader {
@@ -57,7 +57,7 @@
 
 .invoiceHeader h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--cw-text-xl);
   font-weight: 600;
 }
 
@@ -67,7 +67,8 @@
   gap: 0.35rem 1.25rem;
   margin: 0;
   font-family: var(--cw-font-mono);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .totals div {
@@ -94,7 +95,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.85rem;
+  font-size: var(--cw-text-md);
 }
 
 .notes li {
@@ -105,7 +106,7 @@
 
 .noteCode {
   font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--web-muted);
@@ -136,12 +137,13 @@
 
 .lineHeader h4 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 
 .lineAmount {
   font-family: var(--cw-font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
@@ -170,7 +172,7 @@
 
 .stepSource {
   font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   color: var(--web-muted);
 }
 
@@ -184,7 +186,7 @@
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0.2rem 1rem;
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
 }
 
 .facts div {
@@ -202,4 +204,5 @@
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--cw-font-mono);
+  font-variant-numeric: tabular-nums;
 }

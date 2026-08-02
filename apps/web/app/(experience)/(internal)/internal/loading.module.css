@@ -1,0 +1,97 @@
+/*
+ * Mirrors operations-home.module.css so the skeleton holds the same bands the
+ * operations home resolves into: header, recommendations, then signal rows.
+ */
+.main {
+  display: grid;
+  width: min(100%, var(--cw-content-max));
+  gap: calc(var(--cw-space-6) + var(--cw-space-1));
+  min-width: 0;
+  margin: 0 auto;
+  padding: clamp(
+    var(--cw-space-4),
+    3vw,
+    calc(var(--cw-space-8) + var(--cw-space-1))
+  );
+}
+
+.main > * {
+  min-width: 0;
+}
+
+.header,
+.bandHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--cw-space-6);
+}
+
+.header {
+  padding-block-end: calc(var(--cw-space-4) + var(--cw-space-1));
+  border-bottom: 2px solid var(--cw-ink);
+}
+
+.bandHeading {
+  margin-bottom: var(--cw-space-3);
+}
+
+.bandCopy {
+  display: grid;
+  gap: var(--cw-space-2);
+  width: min(32rem, 70%);
+}
+
+.recommendations,
+.rows {
+  display: grid;
+  gap: 0;
+}
+
+.recommendations {
+  border-block: 1px solid var(--cw-border);
+}
+
+.rows {
+  border-block: 1px solid var(--cw-border-strong);
+  border-left: 4px solid var(--cw-border-strong);
+}
+
+.recommendation {
+  display: grid;
+  grid-template-columns: var(--cw-space-8) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cw-space-3);
+  min-height: 4.75rem;
+  padding-block: var(--cw-space-3);
+}
+
+.recommendation + .recommendation {
+  border-top: 1px solid var(--cw-border);
+}
+
+.recommendationCopy {
+  display: grid;
+  gap: var(--cw-space-1);
+}
+
+.row {
+  padding: var(--cw-space-3) var(--cw-space-2);
+  border-bottom: 1px solid var(--cw-border);
+}
+
+.rows .row:last-child {
+  border-bottom: 0;
+}
+
+@media (max-width: 48rem) {
+  .header,
+  .bandHeading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bandCopy {
+    width: 100%;
+  }
+}

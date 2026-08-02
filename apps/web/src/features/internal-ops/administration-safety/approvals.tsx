@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { Select } from "@clockwork/ui";
+
 import { adminSafetyCopy } from "./copy";
 import { approvalCases } from "./data";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
@@ -155,22 +157,21 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
               </div>
             </dl>
 
-            <label className={styles.field}>
-              Decision
-              <select
-                name="decision"
-                value={decision}
-                onChange={(event) => {
-                  setDecision(
-                    event.currentTarget.value as "approved" | "rejected",
-                  );
-                  resetReview();
-                }}
-              >
-                <option value="approved">Approve</option>
-                <option value="rejected">Reject</option>
-              </select>
-            </label>
+            <Select
+              label="Decision"
+              name="decision"
+              value={decision}
+              onChange={(event) => {
+                setDecision(
+                  event.currentTarget.value as "approved" | "rejected",
+                );
+                resetReview();
+              }}
+              options={[
+                { value: "approved", label: "Approve" },
+                { value: "rejected", label: "Reject" },
+              ]}
+            />
             <label className={styles.field}>
               Decision reason
               <textarea

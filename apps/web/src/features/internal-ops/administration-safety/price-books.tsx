@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
+import { Table } from "@clockwork/ui";
 
 import {
   CommerceApiError,
@@ -212,60 +213,43 @@ export function PriceBookAdministration({
           {filtered.length} of {books.length} versions · Currency, then newest
           version
         </p>
-        {filtered.length ? (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.srOnly}>
-                Price book versions and activation readiness
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Price book</th>
-                  <th scope="col">Version</th>
-                  <th scope="col">Currency</th>
-                  <th scope="col">Regions</th>
-                  <th scope="col">Effective</th>
-                  <th scope="col">Rate cards</th>
-                  <th scope="col">State</th>
-                  <th scope="col">Activation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((book) => (
-                  <tr key={book.id}>
-                    <td>
-                      <strong>{book.name}</strong>
-                    </td>
-                    <td>{book.version}</td>
-                    <td>{book.currency}</td>
-                    <td>{book.regions.join(", ") || "None"}</td>
-                    <td>
-                      {book.effectiveFrom}
-                      {book.effectiveTo ? ` to ${book.effectiveTo}` : ""}
-                    </td>
-                    <td>{book.rateCardCount}</td>
-                    <td>
-                      <StatusPill state={stateLabel[book.status]} />
-                    </td>
-                    <td>
-                      {book.activationRequestedByEmail
-                        ? `Proposed by ${book.activationRequestedByEmail}`
-                        : book.status === "draft"
-                          ? "Not proposed"
-                          : "Decided"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className={styles.empty}>
-            {books.length
-              ? activationCopy.noMatches
-              : activationCopy.unreadable}
-          </p>
-        )}
+        <Table
+          className={styles.scanTable ?? ""}
+          caption="Price book versions and activation readiness"
+          captionHidden
+          density="compact"
+          headers={[
+            "Price book",
+            "Version",
+            "Currency",
+            "Regions",
+            "Effective",
+            "Rate cards",
+            "State",
+            "Activation",
+          ]}
+          numericColumns={[5]}
+          rowKeys={filtered.map((book) => book.id)}
+          rows={filtered.map((book) => [
+            <span className={styles.stackCell}>
+              <strong>{book.name}</strong>
+            </span>,
+            book.version,
+            book.currency,
+            book.regions.join(", ") || "None",
+            `${book.effectiveFrom}${book.effectiveTo ? ` to ${book.effectiveTo}` : ""}`,
+            book.rateCardCount,
+            <StatusPill state={stateLabel[book.status]} />,
+            book.activationRequestedByEmail
+              ? `Proposed by ${book.activationRequestedByEmail}`
+              : book.status === "draft"
+                ? "Not proposed"
+                : "Decided",
+          ])}
+          emptyState={
+            books.length ? activationCopy.noMatches : activationCopy.unreadable
+          }
+        />
       </section>
 
       {selected ? (

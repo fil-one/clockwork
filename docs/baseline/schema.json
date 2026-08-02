@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T12:58:30Z",
+  "capturedAt": "2026-08-02T20:06:37Z",
   "authority": "Canonical migration SQL is authoritative. The latest Drizzle snapshot supplies detailed machine-readable columns, types, nullability, defaults, keys, constraints, and indexes for represented objects; canonicalSqlObjects supplies the complete SQL-derived identity and access-control inventory, including objects absent from the snapshot.",
   "snapshot": {
     "path": "packages/db/drizzle/meta/0008_snapshot.json",

@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-import { BrandLogo, Button, Input, StatusBadge } from "@clockwork/ui";
+import {
+  BrandLogo,
+  Button,
+  buttonClassName,
+  Input,
+  StatusBadge,
+} from "@clockwork/ui";
 
 import {
   readAuthoritativeSigningReturn,
@@ -161,7 +167,7 @@ export function SigningExperience({
                 <p>{t("signing.accepted")}</p>
                 {mode === "redirect" ? (
                   <a
-                    className="cw-button cw-button--primary"
+                    className={buttonClassName({ variant: "primary" })}
                     href={providerUrl}
                     rel="noopener noreferrer"
                     referrerPolicy="no-referrer"
@@ -229,13 +235,16 @@ export function SigningExperience({
             <p>{t("signing.returned")}</p>
             {returnStatus?.signedDocumentId && returnState ? (
               <a
-                className="cw-button cw-button--secondary"
+                className={buttonClassName({ variant: "secondary" })}
                 href={`/api/experience/esign/returns/${encodeURIComponent(returnState)}/signed-document`}
               >
                 {t("signing.download")}
               </a>
             ) : null}
-            <Link className="cw-button cw-button--primary" href="/agreements">
+            <Link
+              className={buttonClassName({ variant: "primary" })}
+              href="/agreements"
+            >
               {t("signing.agreements")}
             </Link>
           </div>
@@ -263,7 +272,10 @@ export function SigningExperience({
               )}
             </h2>
             <p>{t("signing.unchanged")}</p>
-            <Link className="cw-button cw-button--primary" href="/agreements">
+            <Link
+              className={buttonClassName({ variant: "primary" })}
+              href="/agreements"
+            >
               {t("signing.agreements")}
             </Link>
           </div>
@@ -277,7 +289,10 @@ export function SigningExperience({
           >
             <h2>{t("signing.failed")}</h2>
             <p>{error || t("signing.unverified")}</p>
-            <Link className="cw-button cw-button--primary" href="/agreements">
+            <Link
+              className={buttonClassName({ variant: "primary" })}
+              href="/agreements"
+            >
               {t("signing.agreements")}
             </Link>
           </div>

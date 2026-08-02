@@ -5,7 +5,7 @@
   z-index: 60;
   max-width: min(21rem, calc(100vw - 1.5rem));
   color: var(--web-ink);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   print-color-adjust: exact;
 }
 
@@ -26,6 +26,10 @@
   box-shadow: 0 0.75rem 2rem rgb(var(--cw-shadow-color) / 18%);
   padding: 0.5rem 0.9rem;
   font-weight: 600;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .launcher::before {
@@ -41,7 +45,7 @@
   display: grid;
   gap: 0.75rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-lg);
+  border-radius: var(--cw-radius-sm);
   background: var(--web-paper);
   box-shadow: 0 0.75rem 2.5rem rgb(var(--cw-shadow-color) / 20%);
   padding: 0.9rem;
@@ -54,12 +58,14 @@
   align-items: baseline;
 }
 
+/* The label register sits at the type floor, so the tracking carries the
+   compact reading rather than the size. */
 .title {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.66rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -69,7 +75,11 @@
   color: var(--web-muted);
   padding: 0;
   text-decoration: underline;
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .journey {
@@ -81,9 +91,9 @@
 .journey span {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.66rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -119,7 +129,7 @@
   border-radius: 999px;
   color: var(--web-muted);
   content: counter(demo-step);
-  font-size: 0.6rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -136,8 +146,12 @@
 
 .step a {
   color: inherit;
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
   line-height: 1.35;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .step[data-state="upcoming"] a {

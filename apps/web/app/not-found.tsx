@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { EmptyState } from "@clockwork/ui";
+import { buttonClassName, EmptyState } from "@clockwork/ui";
 
 import { t } from "@/src/i18n/en";
 
@@ -16,7 +16,10 @@ export default function NotFound() {
         description={t("state.notFound.description")}
         action={
           <Link
-            className="cw-button cw-button--primary cw-button--medium"
+            className={buttonClassName({
+              variant: "primary",
+              size: "medium",
+            })}
             href="/"
           >
             {t("action.returnHome")}

@@ -1,4 +1,4 @@
-import { Button, StatusBadge } from "@clockwork/ui";
+import { Button, StatusBadge, Table } from "@clockwork/ui";
 
 import { lifecycleCopy } from "./copy";
 import { provisioning, type FailureClass } from "./lifecycle-data";
@@ -77,137 +77,120 @@ export function ProvisioningView() {
             {provisioning.length} operations · live provider state
           </span>
         </header>
-        <div className={styles.tableScroll} tabIndex={0}>
-          <table className={styles.table}>
-            <caption className="sr-only">
-              Provisioning operations with retry-safety decisions
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Account / capability</th>
-                <th scope="col">Provider</th>
-                <th scope="col">Failure class</th>
-                <th scope="col">Attempts</th>
-                <th scope="col">Idempotency</th>
-                <th scope="col">Owner / escalation</th>
-                <th scope="col">Permitted action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {provisioning.map((record) => {
-                const assessment = assessRetry(record);
-                const canEscalate = record.failureClass === "Permanent";
-                return (
-                  <tr key={record.id}>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <strong>{record.account}</strong>
-                        <span>{record.capability}</span>
-                        <span className={styles.secondary}>{record.id}</span>
-                      </div>
-                    </td>
-                    <td>{record.provider}</td>
-                    <td>
-                      <StatusBadge tone={failureTone(record.failureClass)}>
-                        {record.failureClass}
-                      </StatusBadge>
-                      <div className={styles.secondary}>
-                        {record.lastAttempt}
-                      </div>
-                    </td>
-                    <td>
-                      <strong>
-                        {record.attempts} / {record.maxAttempts}
-                      </strong>
-                    </td>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <strong>{record.idempotencyState}</strong>
-                        <details className={styles.disclosure}>
-                          <summary>Retry evidence</summary>
-                          <p>{record.evidence}</p>
-                          {record.idempotencyKey ? (
-                            <p className={styles.id}>{record.idempotencyKey}</p>
-                          ) : (
-                            <p>No idempotency key is available.</p>
-                          )}
-                        </details>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <strong>{record.owner}</strong>
-                        <span>{record.escalation}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.actionStack}>
-                        {assessment.allowed ? (
-                          <ReviewAction
-                            triggerLabel="Review safe retry"
-                            confirmLabel="Complete retry review"
-                            summary={{
-                              action: "Stage safe provisioning retry",
-                              entity: `${record.account} · ${record.capability}`,
-                              impact: `A new provider attempt would be issued (${record.attempts + 1} of ${record.maxAttempts}).`,
-                              evidence: assessment.reason,
-                              policyBasis:
-                                "Provisioning recovery §2.1 · transient + verified idempotency + remaining attempt",
-                              downstreamEffect:
-                                "Activation tests run before the capability is presented as active.",
-                              technicalId: `${record.id} · ${record.idempotencyKey ?? "no key"}`,
-                              actorAuthority:
-                                "Internal operator permission is required; server actor and idempotency checks remain authoritative.",
-                            }}
-                          />
-                        ) : canEscalate ? (
-                          <ReviewAction
-                            triggerLabel="Review escalation"
-                            confirmLabel="Complete escalation review"
-                            summary={{
-                              action: "Escalate permanent provider failure",
-                              entity: `${record.account} · ${record.capability}`,
-                              impact:
-                                "Provider and policy owners receive the blocked capability; no retry is sent.",
-                              evidence: record.evidence,
-                              policyBasis:
-                                "Provisioning recovery §2.4 · permanent failures prohibit retry",
-                              downstreamEffect:
-                                "Capability remains unavailable until an activation test succeeds.",
-                              technicalId: record.id,
-                              actorAuthority:
-                                "Internal operator may route evidence; provider and legal gates remain separate.",
-                            }}
-                          />
-                        ) : (
-                          <Button
-                            variant="secondary"
-                            size="small"
-                            disabled
-                            title={assessment.reason}
-                          >
-                            {assessment.label}
-                          </Button>
-                        )}
-                        <span
-                          className={
-                            assessment.allowed
-                              ? styles.safe
-                              : record.failureClass === "Waiting"
-                                ? styles.waiting
-                                : styles.blocked
-                          }
-                        >
-                          {assessment.reason}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          className={styles.dsTable ?? ""}
+          caption="Provisioning operations with retry-safety decisions"
+          captionHidden
+          density="compact"
+          headers={[
+            "Account / capability",
+            "Provider",
+            "Failure class",
+            "Attempts",
+            "Idempotency",
+            "Owner / escalation",
+            "Permitted action",
+          ]}
+          numericColumns={[3]}
+          rowKeys={provisioning.map((record) => record.id)}
+          rows={provisioning.map((record) => {
+            const assessment = assessRetry(record);
+            const canEscalate = record.failureClass === "Permanent";
+            return [
+              <div className={styles.primaryCell}>
+                <strong>{record.account}</strong>
+                <span>{record.capability}</span>
+                <span className={styles.secondary}>{record.id}</span>
+              </div>,
+              record.provider,
+              <>
+                <StatusBadge tone={failureTone(record.failureClass)}>
+                  {record.failureClass}
+                </StatusBadge>
+                <div className={styles.secondary}>{record.lastAttempt}</div>
+              </>,
+              <strong>
+                {record.attempts} / {record.maxAttempts}
+              </strong>,
+              <div className={styles.primaryCell}>
+                <strong>{record.idempotencyState}</strong>
+                <details className={styles.disclosure}>
+                  <summary>Retry evidence</summary>
+                  <p>{record.evidence}</p>
+                  {record.idempotencyKey ? (
+                    <p className={styles.id}>{record.idempotencyKey}</p>
+                  ) : (
+                    <p>No idempotency key is available.</p>
+                  )}
+                </details>
+              </div>,
+              <div className={styles.primaryCell}>
+                <strong>{record.owner}</strong>
+                <span>{record.escalation}</span>
+              </div>,
+              <div className={styles.actionStack}>
+                {assessment.allowed ? (
+                  <ReviewAction
+                    triggerLabel="Review safe retry"
+                    confirmLabel="Complete retry review"
+                    summary={{
+                      action: "Stage safe provisioning retry",
+                      entity: `${record.account} · ${record.capability}`,
+                      impact: `A new provider attempt would be issued (${record.attempts + 1} of ${record.maxAttempts}).`,
+                      evidence: assessment.reason,
+                      policyBasis:
+                        "Provisioning recovery §2.1 · transient + verified idempotency + remaining attempt",
+                      downstreamEffect:
+                        "Activation tests run before the capability is presented as active.",
+                      technicalId: `${record.id} · ${record.idempotencyKey ?? "no key"}`,
+                      actorAuthority:
+                        "Internal operator permission is required; server actor and idempotency checks remain authoritative.",
+                    }}
+                  />
+                ) : canEscalate ? (
+                  <ReviewAction
+                    triggerLabel="Review escalation"
+                    confirmLabel="Complete escalation review"
+                    summary={{
+                      action: "Escalate permanent provider failure",
+                      entity: `${record.account} · ${record.capability}`,
+                      impact:
+                        "Provider and policy owners receive the blocked capability; no retry is sent.",
+                      evidence: record.evidence,
+                      policyBasis:
+                        "Provisioning recovery §2.4 · permanent failures prohibit retry",
+                      downstreamEffect:
+                        "Capability remains unavailable until an activation test succeeds.",
+                      technicalId: record.id,
+                      actorAuthority:
+                        "Internal operator may route evidence; provider and legal gates remain separate.",
+                    }}
+                  />
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    disabled
+                    title={assessment.reason}
+                  >
+                    {assessment.label}
+                  </Button>
+                )}
+                <span
+                  className={
+                    assessment.allowed
+                      ? styles.safe
+                      : record.failureClass === "Waiting"
+                        ? styles.waiting
+                        : styles.blocked
+                  }
+                >
+                  {assessment.reason}
+                </span>
+              </div>,
+            ];
+          })}
+        />
       </section>
     </FinancePageFrame>
   );

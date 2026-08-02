@@ -1,9 +1,12 @@
 import type { Route } from "next";
 import Link from "next/link";
 
+import { buttonClassName, Table } from "@clockwork/ui";
+
 import { customerPartnerCopy } from "../copy";
 import {
   collectionDefinitions,
+  type CollectionDefinition,
   type CollectionKind,
   type CommercialRecord,
 } from "./model";
@@ -25,50 +28,61 @@ function titleCase(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function RecordTable({ records }: { records: readonly CommercialRecord[] }) {
+/**
+ * The commercial context column holds a magnitude in these collections and free
+ * text in the others (a term end for agreements, an evaluation outcome for
+ * proofs of concept), so only these align it numerically.
+ */
+const numericValueKinds: readonly CollectionKind[] = [
+  "quotes",
+  "orders",
+  "services",
+  "billing",
+];
+
+function RecordTable({
+  definition,
+  records,
+}: {
+  definition: CollectionDefinition;
+  records: readonly CommercialRecord[];
+}) {
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th scope="col">Record</th>
-            <th scope="col">Status</th>
-            <th scope="col">Risk</th>
-            <th scope="col">Owner</th>
-            <th scope="col">Commercial context</th>
-            <th scope="col">Timing</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={record.id}>
-              <td>
-                <Link className={styles.recordLink} href={record.href as Route}>
-                  {record.title}
-                </Link>
-                <div className={styles.recordMeta}>
-                  {record.description} · {record.id}
-                </div>
-              </td>
-              <td>
-                <span className={`${styles.badge} ${styles[record.tone]}`}>
-                  {record.statusLabel}
-                </span>
-              </td>
-              <td>
-                <span className={styles.risk}>{record.risk}</span>
-              </td>
-              <td>{record.owner}</td>
-              <td>
-                <strong>{record.value}</strong>
-                <div className={styles.recordMeta}>{record.valueLabel}</div>
-              </td>
-              <td>{record.dateLabel}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      caption={`${definition.title} results`}
+      captionHidden
+      className={styles.tableWrap ?? ""}
+      headers={[
+        "Record",
+        customerPartnerCopy.common.status,
+        customerPartnerCopy.common.risk,
+        customerPartnerCopy.common.owner,
+        "Commercial context",
+        "Timing",
+      ]}
+      numericColumns={numericValueKinds.includes(definition.kind) ? [4] : []}
+      rowKeys={records.map((record) => record.id)}
+      rows={records.map((record) => [
+        <>
+          <Link className={styles.recordLink} href={record.href as Route}>
+            {record.title}
+          </Link>
+          <div className={styles.recordMeta}>
+            {record.description} · {record.id}
+          </div>
+        </>,
+        <span className={`${styles.badge} ${styles[record.tone]}`}>
+          {record.statusLabel}
+        </span>,
+        <span className={styles.risk}>{record.risk}</span>,
+        record.owner,
+        <>
+          <strong>{record.value}</strong>
+          <div className={styles.recordMeta}>{record.valueLabel}</div>
+        </>,
+        record.dateLabel,
+      ])}
+    />
   );
 }
 
@@ -142,7 +156,11 @@ export function CommercialErrorState({ retry }: { retry?: () => void }) {
         <h1>{customerPartnerCopy.common.errorTitle}</h1>
         <p>{customerPartnerCopy.common.errorBody}</p>
         {retry ? (
-          <button className={styles.secondary} onClick={retry} type="button">
+          <button
+            className={buttonClassName({ variant: "secondary" })}
+            onClick={retry}
+            type="button"
+          >
             Try again
           </button>
         ) : null}
@@ -185,7 +203,10 @@ export function CommercialCollectionPage({
           <p className={styles.description}>{definition.description}</p>
         </div>
         {definition.primaryAction && canUsePrimaryAction ? (
-          <Link className={styles.primary} href={definition.primaryAction.href}>
+          <Link
+            className={buttonClassName()}
+            href={definition.primaryAction.href}
+          >
             {definition.primaryAction.label}
           </Link>
         ) : definition.primaryAction ? (
@@ -274,18 +295,10 @@ export function CommercialCollectionPage({
             <option value="20">20</option>
           </select>
         </div>
-        <div className={styles.field}>
-          <label htmlFor={`${kind}-view`}>
-            {customerPartnerCopy.common.view}
-          </label>
-          <select defaultValue={state.view} id={`${kind}-view`} name="view">
-            <option value="table">Comparison table</option>
-            <option value="compact">Compact cards</option>
-          </select>
-        </div>
+        <input name="view" type="hidden" value={state.view} />
         <input name="page" type="hidden" value="1" />
         <button
-          className={`${styles.primary} ${styles.filterSubmit}`}
+          className={buttonClassName({ className: styles.filterSubmit ?? "" })}
           type="submit"
         >
           Apply
@@ -302,15 +315,47 @@ export function CommercialCollectionPage({
               Page {page} of {totalPages} · filters stay in the URL
             </p>
           </div>
-          {hasFilters ? (
-            <Link className={styles.secondary} href={pathname}>
-              Clear filters
-            </Link>
-          ) : null}
+          <div className={styles.resultActions}>
+            <div className={styles.viewControls}>
+              <span className={styles.viewLabel}>
+                {customerPartnerCopy.common.view}
+              </span>
+              <Link
+                className={styles.viewLink}
+                href={collectionUrl(pathname, state, {
+                  view: "table",
+                  page: 1,
+                })}
+                aria-current={state.view === "table" ? "true" : undefined}
+              >
+                Table
+              </Link>
+              <Link
+                className={styles.viewLink}
+                href={collectionUrl(pathname, state, {
+                  view: "compact",
+                  page: 1,
+                })}
+                aria-current={state.view === "compact" ? "true" : undefined}
+              >
+                Cards
+              </Link>
+            </div>
+            {hasFilters ? (
+              <Link
+                className={buttonClassName({ variant: "secondary" })}
+                href={pathname}
+              >
+                Clear filters
+              </Link>
+            ) : null}
+          </div>
         </div>
         {records.length ? (
           <>
-            {state.view === "table" ? <RecordTable records={records} /> : null}
+            {state.view === "table" ? (
+              <RecordTable definition={definition} records={records} />
+            ) : null}
             <RecordCards forced={state.view === "compact"} records={records} />
             <nav className={styles.pagination} aria-label="Result pages">
               {page <= 1 ? (
@@ -355,7 +400,10 @@ export function CommercialCollectionPage({
                 : customerPartnerCopy.common.emptyBody}
             </p>
             {hasFilters ? (
-              <Link className={styles.secondary} href={pathname}>
+              <Link
+                className={buttonClassName({ variant: "secondary" })}
+                href={pathname}
+              >
                 Clear filters
               </Link>
             ) : null}

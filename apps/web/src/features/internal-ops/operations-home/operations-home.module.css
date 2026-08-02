@@ -48,14 +48,15 @@
 .taskHeader > div > p {
   max-width: 72ch;
   margin: 0.5rem 0 0;
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
 }
 
 .freshness {
   flex: 0 0 auto;
   margin: 0;
   font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .sectionHeading {
@@ -64,13 +65,13 @@
 
 .sectionHeading h2 {
   margin: 0;
-  font-size: 1.12rem;
+  font-size: var(--cw-text-xl);
 }
 
 .sectionHeading p {
   max-width: 70ch;
   margin: 0.25rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .primaryLink,
@@ -80,7 +81,7 @@
   min-height: 2.75rem;
   align-items: center;
   color: var(--cw-brand-strong);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
 }
 
@@ -88,7 +89,7 @@
   flex: 0 0 auto;
   justify-content: center;
   padding-inline: 0.9rem;
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   background: var(--cw-brand-strong);
   color: white;
   text-decoration: none;
@@ -116,20 +117,21 @@
 
 .recommendations strong {
   display: block;
-  font-size: 0.88rem;
+  font-size: var(--cw-text-md);
 }
 
 .recommendations p {
   margin: 0.15rem 0 0;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .rank {
   align-self: start;
   color: var(--cw-brand-ink);
   font-family: var(--cw-font-mono);
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .tableRegion {
@@ -147,6 +149,7 @@
   width: 100%;
   min-width: 68rem;
   border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
   text-align: left;
 }
 
@@ -154,13 +157,13 @@
 .signalTable td {
   padding: 0.75rem 0.65rem;
   border-bottom: 1px solid var(--cw-border);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   vertical-align: top;
 }
 
 .signalTable thead th {
   color: var(--cw-muted);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
   letter-spacing: 0.03em;
 }
 
@@ -190,7 +193,7 @@
 .signalValue {
   margin-top: 0.25rem;
   font-family: var(--cw-font-mono);
-  font-size: 0.88rem;
+  font-size: var(--cw-text-md);
 }
 
 .signalTable a {

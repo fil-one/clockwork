@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { ApplicationStatePanel, Button } from "@clockwork/ui";
+import { ApplicationStatePanel, Button, Table } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
@@ -69,44 +69,33 @@ function RecordsTable({
   records: readonly PartnerRecord[];
 }) {
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
-        <caption className="sr-only">{config.title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{config.columns[0]}</th>
-            <th scope="col">{copy.status}</th>
-            <th scope="col">Risk and owner</th>
-            <th scope="col">{config.columns[1]}</th>
-            <th scope="col">{config.columns[2]}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={record.id}>
-              <td>
-                <RecordTitle record={record} />
-              </td>
-              <td>
-                <span className={styles.pill} data-tone={record.status}>
-                  {record.status}
-                </span>
-              </td>
-              <td>
-                <span className={styles.pill} data-risk={record.risk}>
-                  {record.risk} risk
-                </span>
-                <span className={styles.meta}>{record.owner}</span>
-              </td>
-              <td>
-                <strong>{record.value}</strong>
-              </td>
-              <td>{record.secondary}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      caption={config.title}
+      captionHidden
+      className={styles.tableWrap ?? ""}
+      headers={[
+        config.columns[0],
+        copy.status,
+        "Risk and owner",
+        config.columns[1],
+        config.columns[2],
+      ]}
+      rowKeys={records.map((record) => record.id)}
+      rows={records.map((record) => [
+        <RecordTitle record={record} />,
+        <span className={styles.pill} data-tone={record.status}>
+          {record.status}
+        </span>,
+        <>
+          <span className={styles.pill} data-risk={record.risk}>
+            {record.risk} risk
+          </span>
+          <span className={styles.meta}>{record.owner}</span>
+        </>,
+        <strong>{record.value}</strong>,
+        record.secondary,
+      ])}
+    />
   );
 }
 
@@ -452,16 +441,6 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {copy.view}
-          <select
-            value={state.view}
-            onChange={(event) => setQuery("view", event.target.value)}
-          >
-            <option value="table">Responsive</option>
-            <option value="cards">Cards</option>
-          </select>
-        </label>
-        <label className={styles.field}>
           {copy.pageSize}
           <select
             value={state.pageSize}
@@ -470,6 +449,16 @@ export function PartnerCollection({
             <option value="5">5</option>
             <option value="10">10</option>
             <option value="20">20</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          {copy.view}
+          <select
+            value={state.view}
+            onChange={(event) => setQuery("view", event.target.value)}
+          >
+            <option value="table">Table</option>
+            <option value="cards">Cards</option>
           </select>
         </label>
       </form>

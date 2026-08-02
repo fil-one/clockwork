@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 
+import { Select, Table } from "@clockwork/ui";
+
 import {
   ExternalGateClientError,
   runGeneratedExternalGateActivationTest,
@@ -191,19 +193,18 @@ function GateControls({
             onChange={(event) => setInputRequired(event.target.value)}
           />
         </label>
-        <label className={styles.field}>
-          Configured state
-          <select
-            value={configuredStatus}
-            onChange={(event) => setConfiguredStatus(event.target.value)}
-          >
-            <option value="blocked">Blocked</option>
-            <option value="review">Review</option>
-            <option value="pending">Pending</option>
-            <option value="active">Active (still policy checked)</option>
-            <option value="not_required">Not required</option>
-          </select>
-        </label>
+        <Select
+          label="Configured state"
+          value={configuredStatus}
+          onChange={(event) => setConfiguredStatus(event.target.value)}
+          options={[
+            { value: "blocked", label: "Blocked" },
+            { value: "review", label: "Review" },
+            { value: "pending", label: "Pending" },
+            { value: "active", label: "Active (still policy checked)" },
+            { value: "not_required", label: "Not required" },
+          ]}
+        />
         <label className={styles.field}>
           Review date
           <input
@@ -317,89 +318,72 @@ export function GateRegister({
                   state={blockers ? `${blockers} blockers` : "No blockers"}
                 />
               </div>
-              {groupGates.length ? (
-                <div className={styles.tableWrap}>
-                  <table className={styles.table}>
-                    <caption className={styles.srOnly}>
-                      {group} external activation gates
-                    </caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Gate</th>
-                        <th scope="col">Owner</th>
-                        <th scope="col">Affected capability</th>
-                        <th scope="col">Activation test</th>
-                        <th scope="col">Severity</th>
-                        <th scope="col">Configured / effective</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {groupGates.map((gate) => (
-                        <tr key={gate.id}>
-                          <td>
-                            <strong>{gate.title}</strong>
-                            <small>{gate.reason}</small>
-                            <small>{gate.freshness}</small>
-                            <TechnicalEvidence
-                              identifiers={[
-                                { label: "Gate key", value: gate.id },
-                                ...(gate.technicalEvidence
-                                  ? [
-                                      {
-                                        label: "Activation evidence",
-                                        value: gate.technicalEvidence,
-                                      },
-                                    ]
-                                  : []),
-                              ]}
-                            />
-                            {mayOperate &&
-                            source === "System gate registry" &&
-                            gate.rowVersion ? (
-                              <GateControls
-                                key={`${gate.id}:${gate.rowVersion}`}
-                                gate={gate}
-                                onUpdated={updateGate}
-                              />
-                            ) : null}
-                          </td>
-                          <td>{gate.owner}</td>
-                          <td>{gate.capability}</td>
-                          <td>{gate.activationTest}</td>
-                          <td>
-                            <StatusPill state={gate.severity} />
-                          </td>
-                          <td>
-                            <div>
-                              <small>
-                                Configured: {gate.configuredState ?? "unknown"}
-                              </small>
-                              <StatusPill state={gate.state} />
-                              <small>
-                                Effective: {gate.effectiveState ?? gate.state}
-                              </small>
-                              <strong>
-                                {gate.activationAllowed
-                                  ? "Activation allowed"
-                                  : "Activation denied"}
-                              </strong>
-                              {gate.blockedReasons?.length ? (
-                                <small>
-                                  Blockers: {gate.blockedReasons.join(", ")}
-                                </small>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className={styles.empty}>
-                  No {group.toLowerCase()} gates are registered.
-                </p>
-              )}
+              <Table
+                className={styles.scanTable ?? ""}
+                caption={`${group} external activation gates`}
+                captionHidden
+                density="compact"
+                headers={[
+                  "Gate",
+                  "Owner",
+                  "Affected capability",
+                  "Activation test",
+                  "Severity",
+                  "Configured / effective",
+                ]}
+                rowKeys={groupGates.map((gate) => gate.id)}
+                rows={groupGates.map((gate) => [
+                  <div className={styles.stackCell}>
+                    <strong>{gate.title}</strong>
+                    <small>{gate.reason}</small>
+                    <small>{gate.freshness}</small>
+                    <TechnicalEvidence
+                      identifiers={[
+                        { label: "Gate key", value: gate.id },
+                        ...(gate.technicalEvidence
+                          ? [
+                              {
+                                label: "Activation evidence",
+                                value: gate.technicalEvidence,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                    {mayOperate &&
+                    source === "System gate registry" &&
+                    gate.rowVersion ? (
+                      <GateControls
+                        key={`${gate.id}:${gate.rowVersion}`}
+                        gate={gate}
+                        onUpdated={updateGate}
+                      />
+                    ) : null}
+                  </div>,
+                  gate.owner,
+                  gate.capability,
+                  gate.activationTest,
+                  <StatusPill state={gate.severity} />,
+                  <div className={styles.stackCell}>
+                    <small>
+                      Configured: {gate.configuredState ?? "unknown"}
+                    </small>
+                    <StatusPill state={gate.state} />
+                    <small>
+                      Effective: {gate.effectiveState ?? gate.state}
+                    </small>
+                    <strong>
+                      {gate.activationAllowed
+                        ? "Activation allowed"
+                        : "Activation denied"}
+                    </strong>
+                    {gate.blockedReasons?.length ? (
+                      <small>Blockers: {gate.blockedReasons.join(", ")}</small>
+                    ) : null}
+                  </div>,
+                ])}
+                emptyState={`No ${group.toLowerCase()} gates are registered.`}
+              />
             </section>
           );
         })}

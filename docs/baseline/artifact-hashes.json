@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T12:58:30Z",
-  "captureCommit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-  "captureTree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
-  "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
-  "captureWorkingTreePathCount": 0,
+  "capturedAt": "2026-08-02T20:06:37Z",
+  "captureCommit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+  "captureTree": "1c8430871f63e81821390690363972122b2220ef",
+  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
+  "captureWorkingTreePathCount": 77,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "2c39ab3a8d0230ac5cc54471bba5dd2d8f05e854104e92b7aaf0b64517c8bd5f",
-  "artifactCount": 727,
+  "captureTreeListingSha256": "a59b6d6607907ad7c96cd7af3fd3576800f2639d72063de21be5173bc4eb0317",
+  "artifactCount": 735,
   "categories": {
     "contract-release": {
-      "artifactCount": 39,
-      "aggregateSha256": "3c1ffdfc7ad9774580535b777bce6d77ec179886c1148088d6dcca547a3c15f3",
+      "artifactCount": 41,
+      "aggregateSha256": "a77a34b821c9629dd3e6c4ffe76107dd32dc79f2d501ef4d4a101b842274364e",
       "paths": [
         "commerce_platform_spec.md",
         "docs/adr/0001-standalone-next-vercel.md",
@@ -28,6 +28,7 @@
         "docs/handoffs/core-finance.md",
         "docs/handoffs/experience-docs.md",
         "docs/handoffs/lifecycle-platform.md",
+        "docs/handoffs/netlify-deploy-and-cleanup.md",
         "docs/handoffs/runtime-operations-instance-3-20260731.md",
         "docs/handoffs/runtime-operations-instance-3-gates-ownership.md",
         "docs/handoffs/runtime-operations-instance-3-provider-telemetry.md",
@@ -37,6 +38,7 @@
         "docs/operations/billing-reconciliation.md",
         "docs/operations/client-observability.md",
         "docs/operations/dead-letter-recovery.md",
+        "docs/operations/demo-deploy.md",
         "docs/operations/dependency-chain-upgrades.md",
         "docs/operations/disaster-recovery.md",
         "docs/operations/external-gate-activation.md",
@@ -64,8 +66,8 @@
       ]
     },
     "toolchain-ci": {
-      "artifactCount": 81,
-      "aggregateSha256": "8b00fd8d4bcb956723f15ff5912e08387a165a7bbf6ad6ea34c82a8cb057aecd",
+      "artifactCount": 84,
+      "aggregateSha256": "8ccb48e2ec3df7ac7f9813abb84378e49f0462c840f063821cccc87510255f32",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -74,6 +76,9 @@
         ".nvmrc",
         ".secretlintignore",
         ".secretlintrc.json",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/package.json",
+        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/package.json",
+        "apps/web/.netlify/plugins/package.json",
         "apps/web/next.config.ts",
         "apps/web/package.json",
         "apps/web/playwright.config.ts",
@@ -151,8 +156,8 @@
       ]
     },
     "route-auth-api": {
-      "artifactCount": 174,
-      "aggregateSha256": "e7f8919c36ef3c349424b6ce38d0704095680f63d6deffced6372c58bd06bb49",
+      "artifactCount": 177,
+      "aggregateSha256": "ed7c9e308faee93ceb8a9e3179e2451885ebf810d40ad63ddf6933719549bfd1",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx",
         "apps/web/app/(experience)/(customer)/account/page.tsx",
@@ -196,6 +201,7 @@
         "apps/web/app/(experience)/(internal)/internal/assisted/page.tsx",
         "apps/web/app/(experience)/(internal)/internal/collections/page.tsx",
         "apps/web/app/(experience)/(internal)/internal/gates/page.tsx",
+        "apps/web/app/(experience)/(internal)/internal/loading.tsx",
         "apps/web/app/(experience)/(internal)/internal/migrations/page.tsx",
         "apps/web/app/(experience)/(internal)/internal/page.tsx",
         "apps/web/app/(experience)/(internal)/internal/price-books/page.tsx",
@@ -213,6 +219,7 @@
         "apps/web/app/(experience)/(partner)/partner/brand/page.tsx",
         "apps/web/app/(experience)/(partner)/partner/commissions/page.tsx",
         "apps/web/app/(experience)/(partner)/partner/disputes/page.tsx",
+        "apps/web/app/(experience)/(partner)/partner/loading.tsx",
         "apps/web/app/(experience)/(partner)/partner/marketplace/page.tsx",
         "apps/web/app/(experience)/(partner)/partner/page.tsx",
         "apps/web/app/(experience)/(partner)/partner/portfolio/[id]/page.tsx",
@@ -274,6 +281,7 @@
         "apps/web/src/auth/release-proof.ts",
         "apps/web/src/auth/session.test.ts",
         "apps/web/src/auth/session.ts",
+        "apps/web/src/auth/sign-out.test.ts",
         "apps/web/src/auth/sign-out.ts",
         "apps/web/src/features/contracts/experience-client.ts",
         "apps/web/src/features/experience-server/authorization.ts",
@@ -538,8 +546,8 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 307,
-      "aggregateSha256": "27aa99aa3058d789b06608818b48ed2af05164a968de385b68da296e812234cf",
+      "artifactCount": 308,
+      "aggregateSha256": "9ecd6fe3f5f4eb10b5099c545723fbf64a06e4b9647e540f27f555f06282fa92",
       "paths": [
         "apps/web/app/api/[[...route]]/demo-app.test.ts",
         "apps/web/app/api/[[...route]]/route.test.ts",
@@ -581,6 +589,7 @@
         "apps/web/src/auth/release-proof-repository.integration.test.ts",
         "apps/web/src/auth/release-proof.test.ts",
         "apps/web/src/auth/session.test.ts",
+        "apps/web/src/auth/sign-out.test.ts",
         "apps/web/src/features/contracts/commerce-client.test.ts",
         "apps/web/src/features/contracts/experience-client.test.ts",
         "apps/web/src/features/contracts/experience-client.ts",
@@ -888,6 +897,21 @@
       "sha256": "80198081b4fc35e4d7a4619c1694d83ee5845bf85b0b790990373f4a5b50b9f0"
     },
     {
+      "path": "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/package.json",
+      "bytes": 17,
+      "sha256": "6dc1b06d6b093e9cccb20bee06a93836eee0420ae26803ca2ce4065d82f070d1"
+    },
+    {
+      "path": "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/package.json",
+      "bytes": 2327,
+      "sha256": "4a2339c554f847603744f80952a6a87e72bbc0fe6b33bb3da2eeed5ce903f4b0"
+    },
+    {
+      "path": "apps/web/.netlify/plugins/package.json",
+      "bytes": 296,
+      "sha256": "a247a187871cdeee506c8876a7d849835ef6fbf794563d15d3aabffe61597fb2"
+    },
+    {
       "path": "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx",
       "bytes": 2228,
       "sha256": "c48b956888ea0dedfa2232444d94d794fd325a3cd3ac61ff73ea190a1d35a0f5"
@@ -1098,6 +1122,11 @@
       "sha256": "eea437c2f57f925ae6741773647b9674592a82c52020a16f0575d8043603a843"
     },
     {
+      "path": "apps/web/app/(experience)/(internal)/internal/loading.tsx",
+      "bytes": 2612,
+      "sha256": "3c37eb6d44e856f75797347e4d0dfadfea7d4b59b5388a73af36447d674ff83b"
+    },
+    {
       "path": "apps/web/app/(experience)/(internal)/internal/migrations/page.tsx",
       "bytes": 381,
       "sha256": "5a44db5687b638df638f14040ca1efb6db4f21e378e9168d6509f7e1cffcfa39"
@@ -1183,6 +1212,11 @@
       "sha256": "062973bf9edbfde73d42b0a38a942ac1ee06d311df96223672640d3af918aa01"
     },
     {
+      "path": "apps/web/app/(experience)/(partner)/partner/loading.tsx",
+      "bytes": 2288,
+      "sha256": "aa27441d9ec5f541812cab550cfbf78666c5f77016f2d0f74e3938d67550ede2"
+    },
+    {
       "path": "apps/web/app/(experience)/(partner)/partner/marketplace/page.tsx",
       "bytes": 190,
       "sha256": "ccc482f28cc05caa0026fb59edcf8e0d50f845fd843325e2707e8c23bd17f949"
@@ -1249,13 +1283,13 @@
     },
     {
       "path": "apps/web/app/access/mfa/page.tsx",
-      "bytes": 709,
-      "sha256": "4057fb2fad29e88adfa14226fe667ff481bad01c16b9f64c5023671732d061f0"
+      "bytes": 766,
+      "sha256": "740cd650ef361bd6b3a4defbd4222159924337bae7fdf6ea8543ff566a5f683f"
     },
     {
       "path": "apps/web/app/access/session-expired/page.tsx",
-      "bytes": 721,
-      "sha256": "ac4dde39442511f7e1aed0fc5d63c2b1f81e6bdf21d07045a94e8200e9d061e2"
+      "bytes": 778,
+      "sha256": "87c4ebe4fa79645e935a4b076c63b177eb8205892abe352d2ca9bd51aeae6a25"
     },
     {
       "path": "apps/web/app/api/[[...route]]/demo-app.test.ts",
@@ -1334,8 +1368,8 @@
     },
     {
       "path": "apps/web/app/demo/page.tsx",
-      "bytes": 3501,
-      "sha256": "fea2416c4b7c733d1c6cca5a1be8999a9a0f77a27ba0300ce881b000399b05cb"
+      "bytes": 3095,
+      "sha256": "babab57e0b271e6cbbf385fddddc6294206b5ad17ee3cc8f5bf22d0619f0bb61"
     },
     {
       "path": "apps/web/app/demo/persona/route.ts",
@@ -1359,8 +1393,8 @@
     },
     {
       "path": "apps/web/app/not-found.tsx",
-      "bytes": 712,
-      "sha256": "181f07734920f80a5c41c3169c90e916edd60d6830bd1ff9a46567b53aae33bb"
+      "bytes": 779,
+      "sha256": "155f5d27d42de183bc5ae133b13fd9ed50b072bcdec3cbc28c115b372425ff32"
     },
     {
       "path": "apps/web/app/page.tsx",
@@ -1389,13 +1423,13 @@
     },
     {
       "path": "apps/web/app/signing/demo-provider/page.tsx",
-      "bytes": 2833,
-      "sha256": "73b108a501c9fda8e14a5bcf3035d8d57e08dd76e2a246157ada353640df1952"
+      "bytes": 2896,
+      "sha256": "7336ea81ddcb4499a0e8e2374b5b4142d9c02c27c3b3e63d7af2417f623bf28b"
     },
     {
       "path": "apps/web/app/signing/embedded/page.tsx",
-      "bytes": 1191,
-      "sha256": "f700745a17d04d720de090a304f23f1124e2107d3453f8f388deb2ec32a712de"
+      "bytes": 1254,
+      "sha256": "7327f313c25dadf13e6e7c576fe659f93f849142cd9aa711e1444369d0e53bbb"
     },
     {
       "path": "apps/web/app/signing/guard.test.tsx",
@@ -1404,8 +1438,8 @@
     },
     {
       "path": "apps/web/app/signing/redirect/page.tsx",
-      "bytes": 1191,
-      "sha256": "1472761e2bb62965e6d7c7a8f32bac0140e43e3744bdc32f6258b11ef8ac323e"
+      "bytes": 1254,
+      "sha256": "f82126c71e0b6f75df3b4202e734f9ffd7107af35eec3da3d31bdfd34b96f795"
     },
     {
       "path": "apps/web/app/signing/return/page.tsx",
@@ -1419,8 +1453,8 @@
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-access-320-demo-chromium-darwin.png",
-      "bytes": 29216,
-      "sha256": "b281851b614fa804c624f2dbaae3322bbe909104bb155373cfa6125d496d97b4"
+      "bytes": 28889,
+      "sha256": "0d5730219b6c07d66693b2a5074a3c1c9fc3ef9621496934608fc29b603bf8c6"
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-access-demo-chromium-darwin.png",
@@ -1429,13 +1463,13 @@
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-320-demo-chromium-darwin.png",
-      "bytes": 236434,
-      "sha256": "3bf164424128415d539ac691ed00d76351878b6fb7b09f9e5f538a997a32e8aa"
+      "bytes": 151630,
+      "sha256": "a3c3fb7975736975e5bd14f7e35184dd0be76213fd0ba7fdcfa2d10ac8eba5fa"
     },
     {
       "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-demo-chromium-darwin.png",
-      "bytes": 206289,
-      "sha256": "2d5fd1af3b7fd60e93724a936c49b1f9cf970799b7d32d5be0edfb516f5244a9"
+      "bytes": 163522,
+      "sha256": "bd308bb5320db1234a7ca1dd155cbd581dd2557af9e91eb5177b79da74242106"
     },
     {
       "path": "apps/web/e2e/experience.spec.ts",
@@ -1494,53 +1528,53 @@
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
-      "bytes": 109791,
-      "sha256": "452231be0ecd3e17f6ad6f9f8325b08774c5d54a7290c3d64375d183c9d12687"
+      "bytes": 111022,
+      "sha256": "0c82d7588b8c6a031830bd3905dad21ebc00352175c146c8cc4ef14409f7139c"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
-      "bytes": 161239,
-      "sha256": "16195a6551b470ccdc0057a828d5f5543513ab0f9257a053f13ac888b8c5651a"
+      "bytes": 166980,
+      "sha256": "e1aea43ce455a87294960fbf1c2e79ed984fd43faef073df96d37d099b7fa8d6"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-320-chromium-darwin.png",
-      "bytes": 141383,
-      "sha256": "928fc7c1dbe5d6c2c230889b9cd6a40e01fa8098faf6b9603281d0293628ff3f"
+      "bytes": 141512,
+      "sha256": "d6bb3b1e69e3b3e734dbe424b98f965f4516821ce3c8462935893abc348c6bf1"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-chromium-darwin.png",
-      "bytes": 192763,
-      "sha256": "501bee0bbd4c3df2b9bbb8d802d5a8e4c936edddd1ef2b7647568bf52dc8ef32"
+      "bytes": 197889,
+      "sha256": "e9ea8b92ff0fa01360b9b15011bb44301096121af58d7bbd1d8e6c0ebcb5a2b1"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-320-chromium-darwin.png",
-      "bytes": 117540,
-      "sha256": "e350c8cfd34102db095b7aafde053ec212836f562db2e2872a9ade2b7ad179a6"
+      "bytes": 117114,
+      "sha256": "3a938c0d8d8a726ca43aa2f64a5eb551af5b68509dc9ff7ca292ad112ab0b4b2"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-chromium-darwin.png",
-      "bytes": 164354,
-      "sha256": "3c27dd47fe1651c7f918c208bf58d2e58a07fd9a750a4ba3c8bd1080a6778014"
+      "bytes": 168775,
+      "sha256": "81683fc1e868746c92da46e573288734d77affa4662844aff037027386d94a89"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-320-chromium-darwin.png",
-      "bytes": 216486,
-      "sha256": "c7f6105f0d02ce8edc15fcca353c8cadd326add8f96ee30deb6ceee0243d00f3"
+      "bytes": 212937,
+      "sha256": "e762df2a5d0b16bc493226c44420bb04c49b9f3213291181d4b144c16c5c4121"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-chromium-darwin.png",
-      "bytes": 263597,
-      "sha256": "e7ab1376213f8af20b8a85df2920430e9f2ad4bae586e54f79280fb3678dfa66"
+      "bytes": 268040,
+      "sha256": "f95d86d541af6ce0ab5e3ef51c849e0c44105db4ca37637e7fc06bbee8ad8c87"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/operator-priority-work-chromium-darwin.png",
-      "bytes": 223245,
-      "sha256": "3e1f0cbbc87166884de310a8b3aca0a9bd7eb9ce13f493321124a5708dd282c0"
+      "bytes": 228091,
+      "sha256": "0bcaf1ee9ef1758410734386da321a933f4311145ce2bda020230b11a865fe73"
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
-      "bytes": 178520,
-      "sha256": "c4b90e39be84283abab8e1e14f3d14f68de974caab91029ba5b5788212eb3548"
+      "bytes": 180976,
+      "sha256": "02b66d0889abbb87d0e0e8707c0ccd569eeea6cbe4b39ee53e80de38ab674dae"
     },
     {
       "path": "apps/web/next.config.ts",
@@ -1643,9 +1677,14 @@
       "sha256": "f5313533ecbda3cdd095e5e39b42818846310dd2d420ed98a09854316655353d"
     },
     {
+      "path": "apps/web/src/auth/sign-out.test.ts",
+      "bytes": 2728,
+      "sha256": "e42544656dc1ad90624faa78c160eada1d9762e183ef8bf7d3f6dc9d3502301e"
+    },
+    {
       "path": "apps/web/src/auth/sign-out.ts",
-      "bytes": 1276,
-      "sha256": "7c8168c97dc4fce2bf53989346eb583cc861949b0fb28c3db7a2ccc8e83b2d99"
+      "bytes": 1633,
+      "sha256": "4bc1f149f3b20723c7efc31528f0268b33e40225d5553a7efb084a11eef6d2fa"
     },
     {
       "path": "apps/web/src/features/contracts/commerce-client.test.ts",
@@ -1699,8 +1738,8 @@
     },
     {
       "path": "apps/web/src/features/customer-partner/commercial/workflow-model.test.ts",
-      "bytes": 4097,
-      "sha256": "58955216b9f1980c263da58590e14ee1a7570fd0a3a4a03cf4940f3dd5dd69ac"
+      "bytes": 4315,
+      "sha256": "27eabeb04f662534e2c468029fd1500754613d902779eecab0e0fc11ae4fac6c"
     },
     {
       "path": "apps/web/src/features/customer-partner/customer/collection-state.test.ts",
@@ -1774,8 +1813,8 @@
     },
     {
       "path": "apps/web/src/features/experience-server/dashboard-loader.test.ts",
-      "bytes": 13758,
-      "sha256": "c8284480bd9da493acdcfc7bc3b2025e37c68377a5a66265fc98a80ee385e5d8"
+      "bytes": 13736,
+      "sha256": "e5da49d3feaa686c659b04693d3266e369baa3d927d6b523f91bcd69721987f3"
     },
     {
       "path": "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
@@ -1949,8 +1988,8 @@
     },
     {
       "path": "apps/web/src/features/shell/app-shell.tsx",
-      "bytes": 14749,
-      "sha256": "e96847a327405356af2c1373121baec5b723384c2b6f26e00f36f6f29436a8df"
+      "bytes": 19569,
+      "sha256": "98f227607590620309cbd33ae79d68dbb020564643b9b08a8d6bd57046470a06"
     },
     {
       "path": "apps/web/src/features/shell/brand-assets.ts",
@@ -1969,13 +2008,13 @@
     },
     {
       "path": "apps/web/src/features/shell/demo-persona-switcher.tsx",
-      "bytes": 5723,
-      "sha256": "318dc70197f9f71fbf5a44d189d7077ea8cb3f9d9fa0b1dd921202868768e2c8"
+      "bytes": 5749,
+      "sha256": "a6eaef817bf81a03295d95c4e72dbabd471e7e9a485287e51a1bcaaee249324d"
     },
     {
       "path": "apps/web/src/features/shell/navigation.ts",
-      "bytes": 6346,
-      "sha256": "5799c14ef3d704a1000dcc1e7aafe608fbd4f83b505b95aea4a111027406a695"
+      "bytes": 6485,
+      "sha256": "7463258c70db2ceafaed9f0687a66b36f16270f335037fa84e81462e1c8d966d"
     },
     {
       "path": "apps/web/src/features/shell/permission-gate.test.tsx",
@@ -1984,8 +2023,8 @@
     },
     {
       "path": "apps/web/src/features/shell/permission-gate.tsx",
-      "bytes": 3154,
-      "sha256": "fc37c974b305f3ea3c129525071627cef6e4880f40e85f8bb372b0b11ba5f0ba"
+      "bytes": 3243,
+      "sha256": "b71e364c267abc98d93107e7e88e34bae0262d4f2f3e57932f080a15462a08bd"
     },
     {
       "path": "apps/web/src/features/shell/permission-session.tsx",
@@ -2009,8 +2048,8 @@
     },
     {
       "path": "apps/web/src/features/signing/signing-experience.tsx",
-      "bytes": 9807,
-      "sha256": "93d0a89d0f0f41f554bf97ab8b1f64749412a673a27d61ca74ce84bc368c087c"
+      "bytes": 10013,
+      "sha256": "a3472b272b2996570b45000e32505abaeff1eb2c77d10ea6ad00bcadf92482e1"
     },
     {
       "path": "apps/web/src/features/states/state-gallery.test.tsx",
@@ -2178,6 +2217,11 @@
       "sha256": "53beb5f7a97e33d7b7f9db26a788d9f45804d532ad07c469b28721794f3cd863"
     },
     {
+      "path": "docs/handoffs/netlify-deploy-and-cleanup.md",
+      "bytes": 7573,
+      "sha256": "51d8573db2f5bb6a84ac0c86bed459ce483b03ec353fef67dfe0d443daacc22e"
+    },
+    {
       "path": "docs/handoffs/runtime-operations-instance-3-20260731.md",
       "bytes": 6526,
       "sha256": "b560980b7d5b73470eae0b1f5c7fa7f7c3f2fe4b4e5ec88c66c6f0b1acc56b21"
@@ -2221,6 +2265,11 @@
       "path": "docs/operations/dead-letter-recovery.md",
       "bytes": 5309,
       "sha256": "7832b1173baca2ca738b6143c2c2d7b3f8308c602e8dfa5068d06dbad600bcb8"
+    },
+    {
+      "path": "docs/operations/demo-deploy.md",
+      "bytes": 2662,
+      "sha256": "2b0cab0fdc9c7eaf481317868339f6517532b294cee0f52fb00d600cb98f5fe1"
     },
     {
       "path": "docs/operations/dependency-chain-upgrades.md",
@@ -3559,8 +3608,8 @@
     },
     {
       "path": "packages/ui/package.json",
-      "bytes": 1144,
-      "sha256": "f7086588a14a7284b1af9015c19003997bf33084cc957165428d92606259b47c"
+      "bytes": 1012,
+      "sha256": "011b794d9da919bfd38d0ca97bf4ffef5942f2dfe09822e2ce2d8b392b7c0892"
     },
     {
       "path": "packages/ui/src/components/chart.test.tsx",
@@ -4114,8 +4163,8 @@
     },
     {
       "path": "pnpm-lock.yaml",
-      "bytes": 405961,
-      "sha256": "1b95d2a4ae33b649e57f9d7f59f54d5ca42eb29a5fc2f69a9e5b1bea49f6b2c9"
+      "bytes": 401038,
+      "sha256": "be9a9ddf5d712266206d15c9b0e6dc4f4874ea67b50b1817bf04f19d154f7c3e"
     },
     {
       "path": "pnpm-workspace.yaml",

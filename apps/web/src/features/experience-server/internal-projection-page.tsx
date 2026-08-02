@@ -1,4 +1,4 @@
-import { EmptyState } from "@clockwork/ui";
+import { EmptyState, Table } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "./projection-action-buttons";
 import { loadPortalRecords } from "./portal-view-loader";
@@ -71,90 +71,60 @@ export async function InternalProjectionPage({
           description="Work authorized for your operator scope appears here."
         />
       ) : (
-        <div
-          className={styles.tableRegion}
-          tabIndex={0}
-          role="region"
-          aria-label={`${title} records`}
-        >
-          <table className={styles.table}>
-            <caption>{title} · session-scoped records</caption>
-            <thead>
-              <tr>
-                <th scope="col">Record</th>
-                <th scope="col">Status</th>
-                <th scope="col">Owner</th>
-                <th scope="col">Next task</th>
-                <th scope="col">Version-bound actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projection.records.map((record) => (
-                <tr key={record.id}>
-                  <th scope="row">
-                    {value(
-                      record,
-                      ["title", "name", "label", "account"],
-                      record.recordKey,
-                    )}
-                    <small className={styles.recordKey}>
-                      {record.recordKey}
-                    </small>
-                  </th>
-                  <td>
-                    {value(
-                      record,
-                      ["statusLabel", "status", "state"],
-                      "Not recorded",
-                    )}
-                  </td>
-                  <td>
-                    {value(
-                      record,
-                      ["owner", "assignee", "requestedBy"],
-                      "Not recorded",
-                    )}
-                  </td>
-                  <td>
-                    {value(
-                      record,
-                      ["nextAction", "task", "decision"],
-                      "Not recorded",
-                    )}
-                  </td>
-                  <td>
-                    <ProjectionActionButtons
-                      audience="internal"
-                      channel={channel}
-                      recordKey={record.recordKey}
-                      projectionId={record.id}
-                      version={record.version}
-                      actions={actions(record)}
-                      roles={roles}
-                    />
-                    {channel === "queues" ? (
-                      <EvidenceUploadControl
-                        journey="exception"
-                        targetId={record.aggregateId}
-                        kind="screening"
-                        label="Attach exception evidence"
-                        headingLevel={2}
-                      />
-                    ) : channel === "approvals" ? (
-                      <EvidenceUploadControl
-                        journey="approval"
-                        targetId={record.aggregateId}
-                        kind="approval"
-                        label="Attach approval evidence"
-                        headingLevel={2}
-                      />
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          className={styles.records ?? ""}
+          caption={`${title} · session-scoped records`}
+          captionHidden
+          headers={[
+            "Record",
+            "Status",
+            "Owner",
+            "Next task",
+            "Version-bound actions",
+          ]}
+          rowKeys={projection.records.map((record) => record.id)}
+          rows={projection.records.map((record) => [
+            <>
+              {value(
+                record,
+                ["title", "name", "label", "account"],
+                record.recordKey,
+              )}
+              <small className={styles.recordKey}>{record.recordKey}</small>
+            </>,
+            value(record, ["statusLabel", "status", "state"], "Not recorded"),
+            value(record, ["owner", "assignee", "requestedBy"], "Not recorded"),
+            value(record, ["nextAction", "task", "decision"], "Not recorded"),
+            <>
+              <ProjectionActionButtons
+                audience="internal"
+                channel={channel}
+                recordKey={record.recordKey}
+                projectionId={record.id}
+                version={record.version}
+                actions={actions(record)}
+                roles={roles}
+              />
+              {channel === "queues" ? (
+                <EvidenceUploadControl
+                  journey="exception"
+                  targetId={record.aggregateId}
+                  kind="screening"
+                  label="Attach exception evidence"
+                  headingLevel={2}
+                />
+              ) : channel === "approvals" ? (
+                <EvidenceUploadControl
+                  journey="approval"
+                  targetId={record.aggregateId}
+                  kind="approval"
+                  label="Attach approval evidence"
+                  headingLevel={2}
+                />
+              ) : null}
+            </>,
+          ])}
+        />
       )}
     </main>
   );
