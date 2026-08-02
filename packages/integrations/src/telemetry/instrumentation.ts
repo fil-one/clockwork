@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import { canonicalDenialCode } from "@clockwork/contracts";
 import type { ZodType } from "zod";
 
 import type { ProviderJsonTransport } from "../provider-transport";
@@ -25,6 +26,17 @@ export class RuntimeBoundaryInstrumentation {
     correlation: TelemetryCorrelation;
     attributes?: TelemetryAttributes;
     parent?: TraceContext;
+    /**
+     * Inspects a successfully returned result and contributes span attributes.
+     * A framework that turns a thrown denial into a returned response is the
+     * reason a span needs this: without it the span closes with no denial code.
+     */
+    onResult?(
+      result: T,
+    ):
+      | TelemetryAttributes
+      | undefined
+      | Promise<TelemetryAttributes | undefined>;
     operation(): Promise<T>;
   }): Promise<T> {
     const inherited = this.context.getStore();
@@ -45,6 +57,14 @@ export class RuntimeBoundaryInstrumentation {
       async () => {
         try {
           const result = await input.operation();
+          if (input.onResult) {
+            try {
+              const attributes = await input.onResult(result);
+              if (attributes) span.setAttributes(attributes);
+            } catch {
+              // Attribute enrichment must not alter business results.
+            }
+          }
           await endWithoutInterference(span, "ok");
           return result;
         } catch (error) {
@@ -79,8 +99,43 @@ export class RuntimeBoundaryInstrumentation {
       correlation: TelemetryCorrelation;
       attributes?: TelemetryAttributes;
       parent?: TraceContext;
+      onResult?(
+        result: T,
+      ):
+        | TelemetryAttributes
+        | undefined
+        | Promise<TelemetryAttributes | undefined>;
       operation(): Promise<T>;
     }) => this.trace({ ...input, boundary });
+  }
+}
+
+/**
+ * Reads the canonical denial code out of a returned problem document so the
+ * boundary span carries what runtime alerting filters on.
+ */
+export async function denialSpanAttributes(
+  response: Response,
+): Promise<TelemetryAttributes | undefined> {
+  if (response.status !== 401 && response.status !== 403) return undefined;
+  const code = canonicalDenialCode(await problemCode(response));
+  if (!code) return undefined;
+  return {
+    "error.code": code,
+    "clockwork.outcome": "denied",
+    "http.response.status_code": response.status,
+  };
+}
+
+async function problemCode(response: Response): Promise<unknown> {
+  if (!response.headers.get("content-type")?.includes("json")) return undefined;
+  try {
+    const body: unknown = await response.clone().json();
+    return body && typeof body === "object" && "code" in body
+      ? body.code
+      : undefined;
+  } catch {
+    return undefined;
   }
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { ProviderJsonTransport } from "../provider-transport";
 import {
+  denialSpanAttributes,
   RuntimeBoundaryInstrumentation,
   TelemetryProviderJsonTransport,
 } from "./instrumentation";
@@ -174,6 +175,79 @@ describe("TelemetryProviderJsonTransport", () => {
       "clockwork.workflow.id": "workflow-correlated-runtime",
       "clockwork.task.id": "task-correlated-runtime",
     });
+  });
+
+  it("records a denial returned as a response rather than thrown", async () => {
+    const sink = new InMemoryTelemetrySink();
+    const boundaries = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(sink),
+    );
+    const denied = Response.json(
+      { code: "ACCOUNT_SCOPE_FORBIDDEN", status: 403 },
+      { status: 403 },
+    );
+    await expect(
+      boundaries.api({
+        name: "api.denied",
+        correlation: { requestId: "request-denied-response" },
+        onResult: denialSpanAttributes,
+        operation: () => Promise.resolve(denied),
+      }),
+    ).resolves.toBe(denied);
+
+    expect(sink.spans[0]?.attributes).toMatchObject({
+      "error.code": "CROSS_ACCOUNT_DENIED",
+      "clockwork.outcome": "denied",
+      "http.response.status_code": 403,
+    });
+    await expect(denied.json()).resolves.toMatchObject({
+      code: "ACCOUNT_SCOPE_FORBIDDEN",
+    });
+  });
+
+  it("leaves non-denial responses and unrecognised codes unannotated", async () => {
+    const sink = new InMemoryTelemetrySink();
+    const boundaries = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(sink),
+    );
+    await boundaries.api({
+      name: "api.ok",
+      correlation: { requestId: "request-undenied-response" },
+      onResult: denialSpanAttributes,
+      operation: () => Promise.resolve(Response.json({ ok: true })),
+    });
+    await boundaries.api({
+      name: "api.rate_limited",
+      correlation: { requestId: "request-unmapped-code" },
+      onResult: denialSpanAttributes,
+      operation: () =>
+        Promise.resolve(
+          Response.json({ code: "RATE_LIMITED" }, { status: 403 }),
+        ),
+    });
+
+    for (const span of sink.spans) {
+      expect(span.attributes["error.code"]).toBeUndefined();
+      expect(span.status).toBe("ok");
+    }
+  });
+
+  it("does not let a failing result hook change the operation outcome", async () => {
+    const sink = new InMemoryTelemetrySink();
+    const boundaries = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(sink),
+    );
+    await expect(
+      boundaries.api({
+        name: "api.hook_failure",
+        correlation: { requestId: "request-result-hook-failure" },
+        onResult: () => {
+          throw new Error("attribute derivation failed");
+        },
+        operation: () => Promise.resolve("business-result"),
+      }),
+    ).resolves.toBe("business-result");
+    expect(sink.spans[0]?.status).toBe("ok");
   });
 
   it("does not turn exporter failure into runtime success failure or mask the operation error", async () => {

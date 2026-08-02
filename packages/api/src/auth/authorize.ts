@@ -27,11 +27,21 @@ export function requirePermission(
   } catch (error) {
     const mfa =
       error instanceof AuthorizationError && error.code === "MFA_REQUIRED";
+    const crossAccount =
+      error instanceof AuthorizationError && error.code === "ACCOUNT_SCOPE";
     throw new ProblemError({
       type: `https://clockwork.test/problems/${mfa ? "mfa" : "authorization"}`,
-      title: mfa ? "MFA required" : "Forbidden",
+      title: mfa
+        ? "MFA required"
+        : crossAccount
+          ? "Cross-account access denied"
+          : "Forbidden",
       status: 403,
-      code: mfa ? "MFA_REQUIRED" : "FORBIDDEN",
+      code: mfa
+        ? "MFA_REQUIRED"
+        : crossAccount
+          ? "CROSS_ACCOUNT_DENIED"
+          : "AUTHORIZATION_DENIED",
       requestId: request.requestId,
       retryable: false,
     });

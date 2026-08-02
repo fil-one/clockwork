@@ -19,6 +19,7 @@ import { registerLifecycleRoutes } from "./routes/lifecycle";
 import type { LifecycleRouteDependencies } from "./routes/lifecycle";
 import { registerSystemRoutes } from "./routes/system";
 import type { SystemRouteDependencies } from "./routes/system";
+import { WebhookSignatureError } from "./webhooks";
 
 export interface ApiAppOptions {
   sessionResolver?: SessionResolver;
@@ -71,16 +72,29 @@ export function createApiApp(options: ApiAppOptions = {}) {
     const problem =
       error instanceof ProblemError
         ? error.problem
-        : {
-            type: "https://clockwork.test/problems/internal",
-            title: "Internal server error",
-            status: 500,
-            detail:
-              process.env.NODE_ENV === "production" ? undefined : error.message,
-            code: "INTERNAL_ERROR",
-            requestId,
-            retryable: false,
-          };
+        : error instanceof WebhookSignatureError
+          ? {
+              type: "https://clockwork.test/problems/webhook-signature",
+              title: "Webhook signature is invalid",
+              status: 401,
+              detail:
+                "The webhook signature did not verify against the raw request body.",
+              code: error.code,
+              requestId,
+              retryable: false,
+            }
+          : {
+              type: "https://clockwork.test/problems/internal",
+              title: "Internal server error",
+              status: 500,
+              detail:
+                process.env.NODE_ENV === "production"
+                  ? undefined
+                  : error.message,
+              code: "INTERNAL_ERROR",
+              requestId,
+              retryable: false,
+            };
     return context.json(problem, problem.status as 500, {
       "content-type": "application/problem+json",
       "x-request-id": requestId,

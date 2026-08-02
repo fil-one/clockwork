@@ -120,7 +120,7 @@ describe("core-finance API", () => {
     });
     expect(crossAccount.status).toBe(403);
     await expect(crossAccount.json()).resolves.toMatchObject({
-      code: "FORBIDDEN",
+      code: "CROSS_ACCOUNT_DENIED",
     });
 
     const crossPartner = await app.request(
@@ -142,7 +142,7 @@ describe("core-finance API", () => {
     );
     expect(crossPartner.status).toBe(403);
     await expect(crossPartner.json()).resolves.toMatchObject({
-      code: "FORBIDDEN",
+      code: "CROSS_ACCOUNT_DENIED",
     });
   });
 
@@ -292,7 +292,9 @@ describe("core-finance API", () => {
       }),
     });
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ code: "FORBIDDEN" });
+    await expect(response.json()).resolves.toMatchObject({
+      code: "AUTHORIZATION_DENIED",
+    });
   });
 
   it("requires explicit tenant scope for non-internal cursor reads", async () => {
@@ -432,7 +434,10 @@ describe("core-finance API", () => {
       },
       body: '{"notType":"must-not-be-parsed-before-verification"}',
     });
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "WEBHOOK_SIGNATURE_INVALID",
+    });
     expect(claim).not.toHaveBeenCalled();
   });
 

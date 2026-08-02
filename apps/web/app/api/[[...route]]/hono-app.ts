@@ -40,7 +40,10 @@ import {
   WorkosRegistrationBootstrapVerifier,
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
-import { parseTraceparent } from "@clockwork/integrations/telemetry";
+import {
+  denialSpanAttributes,
+  parseTraceparent,
+} from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
 import { WorkosNextSessionResolver } from "@/src/auth/session";
@@ -494,6 +497,7 @@ export async function handle(request: Request): Promise<Response> {
       "http.route": route,
     },
     ...(parent ? { parent } : {}),
+    onResult: denialSpanAttributes,
     operation: () => {
       const dispatch = () =>
         Promise.resolve(api.fetch(new Request(url, request)));
@@ -506,6 +510,7 @@ export async function handle(request: Request): Promise<Response> {
               "http.request.method": request.method,
               "http.route": "/v1/webhooks/{provider}",
             },
+            onResult: denialSpanAttributes,
             operation: dispatch,
           })
         : dispatch();

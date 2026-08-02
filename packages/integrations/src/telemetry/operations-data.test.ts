@@ -1,11 +1,17 @@
 import { readFileSync } from "node:fs";
 
+import { denialCodes, isDenialCode } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
 interface RuntimeAlertData {
   externalGate: string;
   externalLiveInputs: readonly string[];
-  alerts: readonly { id: string; synthetic: string; runbook: string }[];
+  alerts: readonly {
+    id: string;
+    filter: string;
+    synthetic: string;
+    runbook: string;
+  }[];
 }
 
 interface RuntimeDashboardData {
@@ -48,6 +54,17 @@ describe("backend-neutral operations data", () => {
           "utf8",
         ).length,
       ).toBeGreaterThan(100);
+  });
+
+  it("filters the auth anomaly alert on canonical denial codes only", () => {
+    const data = read<RuntimeAlertData>("runtime-alerts.json");
+    const alert = data.alerts.find(({ id }) => id === "runtime-auth-anomaly");
+    const filtered = /error\.code in \[([^\]]+)\]/
+      .exec(alert?.filter ?? "")?.[1]
+      ?.split(",")
+      .map((code) => code.trim());
+    expect(filtered).toEqual([...denialCodes]);
+    expect(filtered?.every(isDenialCode)).toBe(true);
   });
 
   it("defines the full correlation join and eight operational panels", () => {

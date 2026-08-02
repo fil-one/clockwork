@@ -290,7 +290,9 @@ describe("lifecycle API authorization and evidence", () => {
     });
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({ code: "FORBIDDEN" });
+    await expect(response.json()).resolves.toMatchObject({
+      code: "CROSS_ACCOUNT_DENIED",
+    });
     expect(executeClickThrough).not.toHaveBeenCalled();
   });
 
