@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "documentKinds": [
     "direct_quote",
     "partner_transfer_quote",
@@ -39,98 +39,98 @@
   "expectedGoldenMetadata": [
     {
       "kind": "amendment",
-      "bytes": 8785,
-      "contentHash": "6363e3e13962a4fd4d0429f2a3e2725342b81d82e129e77911181c282df7e40e",
+      "bytes": 17679,
+      "contentHash": "10e85309c8b39adf65385f9afee2f1571be98b8856d4619f0b2fb3b4082fa9b4",
       "pages": 2
     },
     {
       "kind": "commission_statement",
-      "bytes": 10366,
-      "contentHash": "c2d5a3185c8f4085da43f20d1efa22eda4ec463c5959bbf58ea8b8792177e2d5",
+      "bytes": 19260,
+      "contentHash": "90d70b5ebf95964cf05249812e298c91cdd64f98607b77d03044d2ccea766da1",
       "pages": 2
     },
     {
       "kind": "decline_confirmation",
-      "bytes": 6876,
-      "contentHash": "319368fbc4bdccb822e423b742ef4ac6461011fdd6e455c72d83ad22540354a7",
+      "bytes": 15789,
+      "contentHash": "06f66f65e972f18f335a3eb743f60fc3641a38c7df2ca9ecf5a20b733bf5933e",
       "pages": 1
     },
     {
       "kind": "deletion_certificate",
-      "bytes": 9106,
-      "contentHash": "de141393fc002e6db1f049e09f2ca0b436b4233646c10730bc471dcf20b33a93",
+      "bytes": 17992,
+      "contentHash": "04ad6574f5627eca9ff212d80a90521a54cbf5e40ba54ac5c3ba69b130d691fb",
       "pages": 2
     },
     {
       "kind": "direct_quote",
-      "bytes": 13429,
-      "contentHash": "0a913b1879b9202e60ac4d5a0afbe5c5bb98625bc044550494441ba7240db3c5",
+      "bytes": 22254,
+      "contentHash": "e5c6acbd055c29cad970e52d8bdfd8160c02836e13d0ed907296670911d66cc7",
       "pages": 3
     },
     {
       "kind": "invoice_companion",
-      "bytes": 9226,
-      "contentHash": "a041233a18321f5776ce5c89eece9ea64bef0518dd4cf7ebaf422ebc8ad9915e",
+      "bytes": 18113,
+      "contentHash": "bb68052bf50a82c0335ea19fae08eed899995b296e17b065a416b699a6b4180c",
       "pages": 2
     },
     {
       "kind": "order_form",
-      "bytes": 9820,
-      "contentHash": "9f88ca8a43d4ccf71fc1e396ec8d4ec1720e030b10fc8806327c3d7bcdbbf02f",
+      "bytes": 18695,
+      "contentHash": "25ade831ebb717ac4df1bbf4a941d0261cb43763ecde07a1efc8cf760002e42d",
       "pages": 2
     },
     {
       "kind": "partner_resale_quote",
-      "bytes": 9117,
-      "contentHash": "17fdaace1498fbbaf001dcac1f4306e88488349cf1946de86b11ed78d9bf171d",
+      "bytes": 9039,
+      "contentHash": "87d2cb968c1929e2a643e4ad6e37b3f5df906fe62a8e1c1c15c5bc0e9a707036",
       "pages": 2
     },
     {
       "kind": "partner_transfer_quote",
-      "bytes": 9501,
-      "contentHash": "88fedbc5f3765c518281e28d090307931e9e9f07eabc5ff3ced646bd8c978d09",
+      "bytes": 18390,
+      "contentHash": "0eb5876fc0f08643089eaf574fea9757ea27a385cd3d6a08bb2ab8c50674e4da",
       "pages": 2
     },
     {
       "kind": "poc_final_report",
-      "bytes": 9727,
-      "contentHash": "19d193ab4cdcad5343cf129a821a44f83037740265b9403ff1aa6818147ac6fb",
+      "bytes": 18649,
+      "contentHash": "95ee7a2193b650fbcf25dcbed12c778eebefe53fd8c0daa4f6df34edfde726e9",
       "pages": 2
     },
     {
       "kind": "poc_summary",
-      "bytes": 9697,
-      "contentHash": "1101034b0af645d7ac61fe675e90630340651ed2a873e8efc87283434bb3f347",
+      "bytes": 18597,
+      "contentHash": "20446fcfeb3e28ec6959d5c300d401b4ee6f4563e2ce35f4ca55a19fda37e340",
       "pages": 2
     },
     {
       "kind": "receipt",
-      "bytes": 9294,
-      "contentHash": "b5260b1628de84791a8080512b57e2f81951def6c606cc8d640e4ad456f3a395",
+      "bytes": 18155,
+      "contentHash": "243b0f9f7c54a4592a88d08d7642832fd0adc4546bcc1f5025545a969f8f216e",
       "pages": 2
     },
     {
       "kind": "reconciliation_report",
-      "bytes": 34282,
-      "contentHash": "62ce3ea4a48e69e51a0a960122ea2e167f2b6916b208485b82b4cc8360f72bce",
+      "bytes": 43116,
+      "contentHash": "c8c099a0361ce505713a8c8698a79153758f7dc82d8e9d3f83f90cb71fc5a503",
       "pages": 12
     },
     {
       "kind": "renewal_confirmation",
-      "bytes": 6818,
-      "contentHash": "7abb52ffa116daf678d92389a43a3757e54e9732b371861feb2d635a0012fdd6",
+      "bytes": 15729,
+      "contentHash": "18a24d506521af8457b4ad0d8a04fff86ed43da77da5891fc2718050caf81319",
       "pages": 1
     },
     {
       "kind": "report_export",
-      "bytes": 33781,
-      "contentHash": "f08e17e0d92c022b32b957e3fcb8a999c300095435f063748e91b8036302a9ac",
+      "bytes": 42653,
+      "contentHash": "7db124d29a0b2c3e8cdca3de562aeeea02ffecb81f35d71b65fb9dd3cf7bf5a3",
       "pages": 12
     }
   ],
   "expectedGoldenFixture": {
     "path": "packages/documents/src/__fixtures__/golden-pdfs.ts",
-    "sha256": "ab914296ea67c1b57e3abed1144de3490a2010385ed7fc3b47d5bfee9988f58d"
+    "sha256": "5f1736610aed1f04d0171cdbe4ae86a31f780b17c255b4ab3c26ddd6005c1fab"
   },
   "authenticatedRetrieval": {
     "coreApi": {
@@ -263,6 +263,7 @@
     "storeUsesOptimisticVersionCas": true,
     "redriveAndConflictTestFiles": [
       "apps/web/src/features/experience-server/controller.test.ts",
+      "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
       "apps/web/src/features/experience-server/repository.test.ts"
     ]
   },

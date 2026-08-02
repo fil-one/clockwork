@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -29,6 +29,8 @@
     "CI",
     "CLICK_THROUGH_THRESHOLD_MINOR",
     "CLOCKWORK_CANONICAL_ORIGIN",
+    "CLOCKWORK_DEMO_ACCESS_PASSWORD",
+    "CLOCKWORK_DEMO_DEPLOY",
     "CLOCKWORK_DEMO_STATE_PATH",
     "CLOCKWORK_ENABLE_SIMULATORS",
     "CLOCKWORK_ENV",
@@ -187,6 +189,20 @@
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_DEMO_DEPLOY",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_DEMO_ACCESS_PASSWORD",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
       "source": ".env.example"
     },
     {
@@ -743,7 +759,7 @@
       "source": ".env.example"
     }
   ],
-  "declaredCount": 90,
+  "declaredCount": 92,
   "staticallyReferencedEnvironment": [
     "APP_ORIGIN",
     "AUTHORIZATION_CONTEXT_SECRET",
@@ -753,6 +769,7 @@
     "CLICK_THROUGH_THRESHOLD_MINOR",
     "CLOCKWORK_ARTIFACT_DIR",
     "CLOCKWORK_CANONICAL_ORIGIN",
+    "CLOCKWORK_DEMO_ACCESS_PASSWORD",
     "CLOCKWORK_ENABLE_SIMULATORS",
     "CLOCKWORK_EVIDENCE_ADAPTER",
     "CLOCKWORK_EXPERIENCE_ADAPTER",
@@ -808,7 +825,7 @@
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 62,
+  "staticallyReferencedCount": 63,
   "environmentReferenceRecords": [
     {
       "key": "APP_ORIGIN",
@@ -832,32 +849,44 @@
         "apps/web/e2e/production-workflow-proof.ts",
         "apps/web/src/features/experience-server/repository.test.ts",
         "apps/web/src/features/experience-server/repository.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/commitments.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
       ],
       "runtimeSources": [
-        "apps/web/src/features/experience-server/repository.ts"
+        "apps/web/src/features/experience-server/repository.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.ts"
       ],
       "toolingOrTestSources": [
         "apps/web/e2e/production-proof.setup.ts",
         "apps/web/e2e/production-proof.spec.ts",
         "apps/web/e2e/production-workflow-proof.ts",
         "apps/web/src/features/experience-server/repository.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/commitments.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
@@ -867,11 +896,11 @@
       "key": "AUTOMATED_TEARDOWN_ENABLED",
       "declared": true,
       "sources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "packages/workflows/src/runtime/environment-production-adapters.ts"
       ],
       "runtimeSources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "packages/workflows/src/runtime/environment-production-adapters.ts"
       ],
       "toolingOrTestSources": []
@@ -899,8 +928,8 @@
     {
       "key": "CLICK_THROUGH_THRESHOLD_MINOR",
       "declared": true,
-      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
-      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "sources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
       "toolingOrTestSources": []
     },
     {
@@ -935,15 +964,25 @@
       ]
     },
     {
+      "key": "CLOCKWORK_DEMO_ACCESS_PASSWORD",
+      "declared": true,
+      "sources": ["apps/web/e2e/demo.spec.ts", "apps/web/playwright.config.ts"],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/e2e/demo.spec.ts",
+        "apps/web/playwright.config.ts"
+      ]
+    },
+    {
       "key": "CLOCKWORK_ENABLE_SIMULATORS",
       "declared": true,
       "sources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "packages/api/src/routes/core/index.ts",
         "packages/workflows/src/runtime/environment-production-adapters.ts"
       ],
       "runtimeSources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "packages/api/src/routes/core/index.ts",
         "packages/workflows/src/runtime/environment-production-adapters.ts"
       ],
@@ -964,13 +1003,21 @@
       "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
       "declared": true,
       "sources": [
+        "apps/web/e2e/ux-internal-ops.spec.ts",
         "apps/web/e2e/visual.spec.ts",
+        "apps/web/proxy.ts",
+        "apps/web/src/features/experience-server/demo-experience-repository.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "runtimeSources": [
+        "apps/web/proxy.ts",
+        "apps/web/src/features/experience-server/demo-experience-repository.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
-      "toolingOrTestSources": ["apps/web/e2e/visual.spec.ts"]
+      "toolingOrTestSources": [
+        "apps/web/e2e/ux-internal-ops.spec.ts",
+        "apps/web/e2e/visual.spec.ts"
+      ]
     },
     {
       "key": "CLOCKWORK_NEXT_DIST_DIR",
@@ -1188,20 +1235,27 @@
         "apps/web/e2e/production-proof.teardown.ts",
         "apps/web/src/auth/release-proof-repository.integration.test.ts",
         "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
         "packages/db/drizzle.config.ts",
         "packages/db/src/durability.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/commitments.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/dead-letter.integration.test.ts",
         "packages/db/src/repositories/system/exception-routing.integration.test.ts",
         "packages/db/src/repositories/system/external-gates.integration.test.ts",
         "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
         "packages/db/src/repositories/workflows/runtime.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
@@ -1214,19 +1268,26 @@
         "apps/web/e2e/production-proof.teardown.ts",
         "apps/web/src/auth/release-proof-repository.integration.test.ts",
         "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
         "packages/db/src/durability.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
+        "packages/db/src/repositories/core/commitments.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/system/dead-letter.integration.test.ts",
         "packages/db/src/repositories/system/exception-routing.integration.test.ts",
         "packages/db/src/repositories/system/external-gates.integration.test.ts",
         "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+        "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
         "packages/db/src/repositories/workflows/runtime.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
@@ -1293,15 +1354,15 @@
     {
       "key": "MIGRATION_FEATURE_ENABLED",
       "declared": true,
-      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
-      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "sources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
       "toolingOrTestSources": []
     },
     {
       "key": "MIGRATION_SOURCE_EXECUTION_ENABLED",
       "declared": true,
-      "sources": ["apps/web/app/api/[[...route]]/route.ts"],
-      "runtimeSources": ["apps/web/app/api/[[...route]]/route.ts"],
+      "sources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
+      "runtimeSources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
       "toolingOrTestSources": []
     },
     {
@@ -1328,16 +1389,18 @@
       "key": "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
       "declared": true,
       "sources": [
+        "apps/web/app/(experience)/(customer)/states/page.tsx",
+        "apps/web/proxy.ts",
         "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/performance/web-vitals.tsx",
-        "apps/web/src/features/shell/app-shell.tsx",
         "apps/web/src/features/shell/route-session.ts",
         "apps/web/src/features/surfaces/workflow-panel.tsx"
       ],
       "runtimeSources": [
+        "apps/web/app/(experience)/(customer)/states/page.tsx",
+        "apps/web/proxy.ts",
         "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/performance/web-vitals.tsx",
-        "apps/web/src/features/shell/app-shell.tsx",
         "apps/web/src/features/shell/route-session.ts",
         "apps/web/src/features/surfaces/workflow-panel.tsx"
       ],
@@ -1356,7 +1419,8 @@
       "key": "NODE_ENV",
       "declared": true,
       "sources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/(experience)/(customer)/states/page.tsx",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/app/signing/embedded/page.tsx",
         "apps/web/app/signing/redirect/page.tsx",
@@ -1382,7 +1446,8 @@
         "packages/workflows/src/system/outbox-dispatcher.ts"
       ],
       "runtimeSources": [
-        "apps/web/app/api/[[...route]]/route.ts",
+        "apps/web/app/(experience)/(customer)/states/page.tsx",
+        "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/app/signing/embedded/page.tsx",
         "apps/web/app/signing/redirect/page.tsx",
@@ -1554,8 +1619,8 @@
     {
       "key": "WORKOS_REDIRECT_URI",
       "declared": true,
-      "sources": ["apps/web/proxy.ts"],
-      "runtimeSources": ["apps/web/proxy.ts"],
+      "sources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
+      "runtimeSources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
       "toolingOrTestSources": []
     }
   ],
@@ -1719,6 +1784,7 @@
     "ACCOUNTING_PROVIDER_BASE_URL",
     "ACCOUNTING_PROVIDER_TOKEN",
     "AUTHORIZATION_CONTEXT_SECRET_ID",
+    "CLOCKWORK_DEMO_DEPLOY",
     "CLOCKWORK_DEMO_STATE_PATH",
     "CLOCKWORK_ENV",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",

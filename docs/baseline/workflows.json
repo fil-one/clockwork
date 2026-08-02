@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "taskIds": [
     "core.billing.issue-invoice.v1",
     "core.billing.sync-overage.v1",
     "core.collections.dunning.v1",
     "core.collections.partner-credit.v1",
     "core.commissions.settle.v1",
+    "core.procurement.certificate-expiry.v1",
     "core.reconciliation.three-way.v1",
     "core.reconciliation.usage.v1",
     "core.reporting.export.v1",
@@ -14,6 +15,7 @@
     "core.schedule.dispatch.v1",
     "core.schedule.dunning.v1",
     "core.schedule.partner-credit.v1",
+    "core.schedule.procurement-certificate-expiry.v1",
     "core.schedule.report-export-monthly.v1",
     "core.schedule.report-export-weekly.v1",
     "core.schedule.sync-overage.v1",
@@ -40,6 +42,7 @@
     "lifecycle-provisioning-command-dispatch-v1",
     "lifecycle-provisioning-confirmation-ingestion-v1",
     "lifecycle-provisioning-stuck-recovery-v1",
+    "lifecycle-quotes-expiry-alerts-v1",
     "lifecycle-renewals-auto-renew-evaluation-v1",
     "lifecycle-renewals-notice-windows-v1",
     "lifecycle-renewals-term-alerts-v1",
@@ -47,7 +50,7 @@
     "system.external-gates.activation.v1",
     "system.outbox.dispatch.v1"
   ],
-  "taskCount": 44,
+  "taskCount": 47,
   "schedules": [
     {
       "source": "packages/workflows/src/agreements/tasks.ts",
@@ -114,6 +117,12 @@
       "id": "lifecycle-provisioning-stuck-recovery-v1",
       "cron": "*/15 * * * *",
       "idExpression": "provisioningTaskIds.stuckRecovery"
+    },
+    {
+      "source": "packages/workflows/src/quotes/tasks.ts",
+      "id": "lifecycle-quotes-expiry-alerts-v1",
+      "cron": "45 * * * *",
+      "idExpression": "quoteTaskIds.expiryAlerts"
     },
     {
       "source": "packages/workflows/src/renewals/tasks.ts",
@@ -194,9 +203,16 @@
       "cron": "0 8 1 * *",
       "dispatches": "core.reporting.export.v1",
       "idExpression": null
+    },
+    {
+      "source": "packages/workflows/src/core/scheduled-runtime.ts",
+      "id": "core.schedule.procurement-certificate-expiry.v1",
+      "cron": "0 4 * * *",
+      "dispatches": "core.procurement.certificate-expiry.v1",
+      "idExpression": null
     }
   ],
-  "registeredScheduleCount": 23,
+  "registeredScheduleCount": 25,
   "discovery": {
     "entrypoint": "packages/workflows/src/trigger/index.ts",
     "module": "packages/workflows/src/trigger/discovery.ts",
@@ -210,6 +226,7 @@
       "../onboarding/tasks",
       "../pocs/tasks",
       "../provisioning/tasks",
+      "../quotes/tasks",
       "../renewals/tasks",
       "../system/gate-activation-tasks",
       "../system/tasks"
@@ -566,6 +583,17 @@
         "registeredScheduleIds": ["core.schedule.commission-settlement.v1"]
       },
       {
+        "taskId": "core.procurement.certificate-expiry.v1",
+        "events": [],
+        "eventsExpression": "[]",
+        "schedules": ["0 4 * * *"],
+        "source": "packages/workflows/src/core/outbox-handlers.ts",
+        "registeredTriggerSchedule": true,
+        "registeredScheduleIds": [
+          "core.schedule.procurement-certificate-expiry.v1"
+        ]
+      },
+      {
         "taskId": "core.reconciliation.usage.v1",
         "events": ["provider.usage.period_closed"],
         "eventsExpression": "[\"provider.usage.period_closed\"]",
@@ -596,14 +624,14 @@
         ]
       }
     ],
-    "taskCount": 8,
-    "scheduleIntentCount": 8,
-    "registeredTriggerScheduleCount": 8
+    "taskCount": 9,
+    "scheduleIntentCount": 9,
+    "registeredTriggerScheduleCount": 9
   },
   "lifecycleExecution": {
     "source": "packages/workflows/src/runtime/provider-lifecycle.ts",
-    "taskCount": 24,
-    "authoritativeExecutionSpecCount": 24,
+    "taskCount": 25,
+    "authoritativeExecutionSpecCount": 25,
     "missingTaskIds": []
   },
   "knownGaps": []

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
-  "canonicalMigrationCount": 23,
+  "capturedAt": "2026-08-02T12:58:30Z",
+  "canonicalMigrationCount": 29,
   "effectiveSourceInventory": {
     "tables": [
       "private.authorization_secrets",
@@ -31,6 +31,7 @@
       "public.core_commission_settlement_exports",
       "public.core_commission_statement_lines",
       "public.core_commission_statements",
+      "public.core_commitment_allowance_adjustments",
       "public.core_commitment_ledger_corrections",
       "public.core_commitment_periods",
       "public.core_deal_registration_attributions",
@@ -96,6 +97,7 @@
       "public.lifecycle_renewal_actions",
       "public.lifecycle_signature_envelopes",
       "public.memberships",
+      "public.notification_deliveries",
       "public.novations",
       "public.order_lines",
       "public.orders",
@@ -150,6 +152,7 @@
       "public.core_commission_settlement_exports",
       "public.core_commission_statement_lines",
       "public.core_commission_statements",
+      "public.core_commitment_allowance_adjustments",
       "public.core_commitment_ledger_corrections",
       "public.core_commitment_periods",
       "public.core_deal_registration_attributions",
@@ -215,6 +218,7 @@
       "public.lifecycle_renewal_actions",
       "public.lifecycle_signature_envelopes",
       "public.memberships",
+      "public.notification_deliveries",
       "public.novations",
       "public.order_lines",
       "public.orders",
@@ -269,6 +273,7 @@
       "public.core_commission_settlement_exports",
       "public.core_commission_statement_lines",
       "public.core_commission_statements",
+      "public.core_commitment_allowance_adjustments",
       "public.core_commitment_ledger_corrections",
       "public.core_commitment_periods",
       "public.core_deal_registration_attributions",
@@ -334,6 +339,7 @@
       "public.lifecycle_renewal_actions",
       "public.lifecycle_signature_envelopes",
       "public.memberships",
+      "public.notification_deliveries",
       "public.novations",
       "public.order_lines",
       "public.orders",
@@ -885,6 +891,24 @@
         "statement": "create policy core_commission_statement_write on core_commission_statements for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
+        "migration": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+        "name": "core_commitment_allowance_adjustment_read",
+        "table": "public.core_commitment_allowance_adjustments",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using (exists ( select 1 from commitment_ledgers l where l.id = ledger_id and core_can_access_order(l.order_id) ))",
+        "statement": "create policy core_commitment_allowance_adjustment_read on core_commitment_allowance_adjustments for select using (exists ( select 1 from commitment_ledgers l where l.id = ledger_id and core_can_access_order(l.order_id) ));"
+      },
+      {
+        "migration": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+        "name": "core_commitment_allowance_adjustment_write",
+        "table": "public.core_commitment_allowance_adjustments",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_commitment_allowance_adjustment_write on core_commitment_allowance_adjustments for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
         "migration": "supabase/migrations/000100_core_finance.sql",
         "name": "core_commitment_correction_read",
         "table": "public.core_commitment_ledger_corrections",
@@ -1135,6 +1159,15 @@
         "roles": ["public"],
         "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
         "statement": "create policy core_transfer_tiers_write on core_partner_transfer_tiers for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001360_price_book_activation_write.sql",
+        "name": "core_price_activation_finance_read",
+        "table": "public.core_price_book_activation_events",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy core_price_activation_finance_read on public.core_price_book_activation_events for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
       },
       {
         "migration": "supabase/migrations/000100_core_finance.sql",
@@ -1956,6 +1989,24 @@
         "statement": "create policy memberships_service on memberships for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
+        "migration": "supabase/migrations/001330_notification_deliveries.sql",
+        "name": "notification_delivery_read",
+        "table": "public.notification_deliveries",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using (app_has_account(account_id))",
+        "statement": "create policy notification_delivery_read on notification_deliveries for select using (app_has_account(account_id));"
+      },
+      {
+        "migration": "supabase/migrations/001330_notification_deliveries.sql",
+        "name": "notification_delivery_service",
+        "table": "public.notification_deliveries",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy notification_delivery_service on notification_deliveries for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
         "migration": "supabase/migrations/000001_foundation.sql",
         "name": "novations_scope",
         "table": "public.novations",
@@ -2145,6 +2196,15 @@
         "statement": "create policy pocs_update on public.pocs for update using ( app_is_internal() or app_has_account(account_id) or ( partner_account_id is not null and app_has_account(partner_account_id) and public.core_partner_has_current_relationship(partner_account_id, account_id) ) ) with check ( app_is_internal() or ( exists ( select 1 from public.organizations organization_record where organization_record.id = pocs.organization_id and organization_record.account_id = pocs.account_id ) and ( (partner_account_id is null and app_has_account(pocs.account_id)) or ( partner_account_id is not null and public.core_partner_has_current_relationship(partner_account_id, account_id) and ( app_has_account(pocs.account_id) or app_has_account(partner_account_id) ) ) ) ) );"
       },
       {
+        "migration": "supabase/migrations/001360_price_book_activation_write.sql",
+        "name": "price_books_finance_read",
+        "table": "public.price_books",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy price_books_finance_read on public.price_books for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+      },
+      {
         "migration": "supabase/migrations/000001_foundation.sql",
         "name": "price_books_read",
         "table": "public.price_books",
@@ -2287,6 +2347,15 @@
         "roles": ["public"],
         "clauses": "as restrictive for select using (app_has_any_role(array['finance_approver']))",
         "statement": "create policy rate_cards_economics_select_guard on rate_cards as restrictive for select using (app_has_any_role(array['finance_approver']));"
+      },
+      {
+        "migration": "supabase/migrations/001360_price_book_activation_write.sql",
+        "name": "rate_cards_finance_read",
+        "table": "public.rate_cards",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy rate_cards_finance_read on public.rate_cards for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
       },
       {
         "migration": "supabase/migrations/000001_foundation.sql",
@@ -2496,7 +2565,7 @@
         "statement": "create policy workflow_runs_internal on workflow_runs for all using (app_is_internal()) with check (app_is_internal());"
       }
     ],
-    "policyCreateStatementCount": 266,
+    "policyCreateStatementCount": 273,
     "policyDropStatementCount": 29,
     "functions": [
       "private.canonical_jsonb_text",
@@ -2531,6 +2600,7 @@
       "public.core_renewal_action_is_partner_confidential",
       "public.core_require_stripe_adjustment_operation",
       "public.core_reserve_order_acceptance",
+      "public.core_validate_allowance_adjustment",
       "public.core_validate_commercial_identity",
       "public.core_validate_commission_settlement_state",
       "public.core_validate_finance_chain",
@@ -2558,6 +2628,7 @@
       "public.protect_invoice_document_snapshot",
       "public.protect_issued_quote",
       "public.protect_order_line",
+      "public.protect_published_discount_matrix",
       "public.protect_published_pricing",
       "public.protect_quote_line",
       "public.system_capability_is_enabled",
@@ -2870,6 +2941,18 @@
         "table": "public.core_commission_statements",
         "constraint": false,
         "template": "create trigger %I before update on %I for each row execute function touch_versioned_row()"
+      },
+      {
+        "migration": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+        "name": "core_commitment_allowance_adjustments_chain",
+        "table": "public.core_commitment_allowance_adjustments",
+        "constraint": true
+      },
+      {
+        "migration": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+        "name": "core_commitment_allowance_adjustments_immutable",
+        "table": "public.core_commitment_allowance_adjustments",
+        "constraint": false
       },
       {
         "migration": "supabase/migrations/000100_core_finance.sql",
@@ -3509,6 +3592,12 @@
         "template": "create trigger %I before update on %I for each row execute function touch_versioned_row()"
       },
       {
+        "migration": "supabase/migrations/001330_notification_deliveries.sql",
+        "name": "notification_deliveries_immutable",
+        "table": "public.notification_deliveries",
+        "constraint": false
+      },
+      {
         "migration": "supabase/migrations/000001_foundation.sql",
         "name": "novations_chain",
         "table": "public.novations",
@@ -3602,8 +3691,20 @@
         "template": "create trigger %I before update on %I for each row execute function touch_versioned_row()"
       },
       {
+        "migration": "supabase/migrations/001310_pricing_discount_matrix.sql",
+        "name": "price_books_discount_matrix_immutable",
+        "table": "public.price_books",
+        "constraint": false
+      },
+      {
         "migration": "supabase/migrations/000001_foundation.sql",
         "name": "price_books_immutable",
+        "table": "public.price_books",
+        "constraint": false
+      },
+      {
+        "migration": "supabase/migrations/001360_price_book_activation_write.sql",
+        "name": "price_books_version",
         "table": "public.price_books",
         "constraint": false
       },
@@ -3762,7 +3863,7 @@
         "template": "create trigger %I before update on %I for each row execute function touch_versioned_row()"
       }
     ],
-    "triggerCreateStatementCount": 184,
+    "triggerCreateStatementCount": 189,
     "triggerDropStatementCount": 8,
     "accessControlStatements": [
       {
@@ -4424,6 +4525,24 @@
         "templated": false,
         "kind": "grant",
         "statement": "grant select, insert on public.experience_projection_materialization_receipts to clockwork_service;"
+      },
+      {
+        "migration": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+        "templated": false,
+        "kind": "grant",
+        "statement": "grant select on core_commitment_allowance_adjustments to clockwork_runtime;"
+      },
+      {
+        "migration": "supabase/migrations/001330_notification_deliveries.sql",
+        "templated": false,
+        "kind": "grant",
+        "statement": "grant select on notification_deliveries to clockwork_runtime;"
+      },
+      {
+        "migration": "supabase/migrations/001330_notification_deliveries.sql",
+        "templated": false,
+        "kind": "grant",
+        "statement": "grant select, insert on notification_deliveries to clockwork_service;"
       }
     ]
   },
@@ -9234,6 +9353,233 @@
           "statement": "grant select, insert on public.experience_projection_materialization_receipts to clockwork_service;"
         }
       ]
+    },
+    {
+      "path": "supabase/migrations/001310_pricing_discount_matrix.sql",
+      "migrationId": "001310",
+      "owner": "main-release-integration",
+      "sha256": "293685a44472fb136a32e482805bb3d8003a4ab3479f01b0e7d67629af52c7bb",
+      "bytes": 1178,
+      "tables": [],
+      "policyCreates": [],
+      "policyDrops": [],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": ["public.protect_published_discount_matrix"],
+      "views": [],
+      "triggerCreates": [
+        {
+          "name": "price_books_discount_matrix_immutable",
+          "table": "public.price_books",
+          "constraint": false
+        }
+      ],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": []
+    },
+    {
+      "path": "supabase/migrations/001320_commitment_ledger_write_path.sql",
+      "migrationId": "001320",
+      "owner": "main-release-integration",
+      "sha256": "af18968be5cf0712f5bad1d63bbe92c497e5d0dd097eee509207ae0bd0a342db",
+      "bytes": 3503,
+      "tables": ["public.core_commitment_allowance_adjustments"],
+      "policyCreates": [
+        {
+          "name": "core_commitment_allowance_adjustment_read",
+          "table": "public.core_commitment_allowance_adjustments",
+          "command": "select",
+          "roles": ["public"],
+          "clauses": "for select using (exists ( select 1 from commitment_ledgers l where l.id = ledger_id and core_can_access_order(l.order_id) ))",
+          "statement": "create policy core_commitment_allowance_adjustment_read on core_commitment_allowance_adjustments for select using (exists ( select 1 from commitment_ledgers l where l.id = ledger_id and core_can_access_order(l.order_id) ));"
+        },
+        {
+          "name": "core_commitment_allowance_adjustment_write",
+          "table": "public.core_commitment_allowance_adjustments",
+          "command": "all",
+          "roles": ["public"],
+          "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+          "statement": "create policy core_commitment_allowance_adjustment_write on core_commitment_allowance_adjustments for all using (app_is_internal()) with check (app_is_internal());"
+        }
+      ],
+      "policyDrops": [],
+      "rlsTables": ["public.core_commitment_allowance_adjustments"],
+      "forceRlsTables": ["public.core_commitment_allowance_adjustments"],
+      "grants": [
+        "select on core_commitment_allowance_adjustments to clockwork_runtime"
+      ],
+      "templatedGrants": [],
+      "functions": ["public.core_validate_allowance_adjustment"],
+      "views": [],
+      "triggerCreates": [
+        {
+          "name": "core_commitment_allowance_adjustments_chain",
+          "table": "public.core_commitment_allowance_adjustments",
+          "constraint": true
+        },
+        {
+          "name": "core_commitment_allowance_adjustments_immutable",
+          "table": "public.core_commitment_allowance_adjustments",
+          "constraint": false
+        }
+      ],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": [
+        {
+          "kind": "grant",
+          "statement": "grant select on core_commitment_allowance_adjustments to clockwork_runtime;"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/001330_notification_deliveries.sql",
+      "migrationId": "001330",
+      "owner": "main-release-integration",
+      "sha256": "08cb107ad9e6689fa216ee355dccf7b5b28a4186fbcf964e7eca6edbfa323675",
+      "bytes": 2947,
+      "tables": ["public.notification_deliveries"],
+      "policyCreates": [
+        {
+          "name": "notification_delivery_read",
+          "table": "public.notification_deliveries",
+          "command": "select",
+          "roles": ["public"],
+          "clauses": "for select using (app_has_account(account_id))",
+          "statement": "create policy notification_delivery_read on notification_deliveries for select using (app_has_account(account_id));"
+        },
+        {
+          "name": "notification_delivery_service",
+          "table": "public.notification_deliveries",
+          "command": "all",
+          "roles": ["public"],
+          "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+          "statement": "create policy notification_delivery_service on notification_deliveries for all using (app_is_internal()) with check (app_is_internal());"
+        }
+      ],
+      "policyDrops": [],
+      "rlsTables": ["public.notification_deliveries"],
+      "forceRlsTables": ["public.notification_deliveries"],
+      "grants": [
+        "select on notification_deliveries to clockwork_runtime",
+        "select, insert on notification_deliveries to clockwork_service"
+      ],
+      "templatedGrants": [],
+      "functions": [],
+      "views": [],
+      "triggerCreates": [
+        {
+          "name": "notification_deliveries_immutable",
+          "table": "public.notification_deliveries",
+          "constraint": false
+        }
+      ],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": [
+        {
+          "kind": "grant",
+          "statement": "grant select on notification_deliveries to clockwork_runtime;"
+        },
+        {
+          "kind": "grant",
+          "statement": "grant select, insert on notification_deliveries to clockwork_service;"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/001340_invoice_partial_payments.sql",
+      "migrationId": "001340",
+      "owner": "main-release-integration",
+      "sha256": "492c233339e0c94e15035e7b550c9a64027ae230ca1f917fa23d0fd1fad88e5e",
+      "bytes": 3695,
+      "tables": [],
+      "policyCreates": [],
+      "policyDrops": [],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": ["public.validate_invoice_payment_projection_truth"],
+      "views": [],
+      "triggerCreates": [],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": []
+    },
+    {
+      "path": "supabase/migrations/001350_procurement_certificate_status.sql",
+      "migrationId": "001350",
+      "owner": "main-release-integration",
+      "sha256": "3816755e0aaa8aa2315b7628b4c56e9198da7c4a5b5cc757fc258bf6fd2de681",
+      "bytes": 1555,
+      "tables": [],
+      "policyCreates": [],
+      "policyDrops": [],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": [],
+      "views": [],
+      "triggerCreates": [],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": []
+    },
+    {
+      "path": "supabase/migrations/001360_price_book_activation_write.sql",
+      "migrationId": "001360",
+      "owner": "main-release-integration",
+      "sha256": "5b81817e83bf35fbe38dc4e2bf5c0f7f9d8b7ab775e99504335d7c4041d255a1",
+      "bytes": 2064,
+      "tables": [],
+      "policyCreates": [
+        {
+          "name": "price_books_finance_read",
+          "table": "public.price_books",
+          "command": "select",
+          "roles": ["clockwork_runtime"],
+          "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+          "statement": "create policy price_books_finance_read on public.price_books for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+        },
+        {
+          "name": "rate_cards_finance_read",
+          "table": "public.rate_cards",
+          "command": "select",
+          "roles": ["clockwork_runtime"],
+          "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+          "statement": "create policy rate_cards_finance_read on public.rate_cards for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+        },
+        {
+          "name": "core_price_activation_finance_read",
+          "table": "public.core_price_book_activation_events",
+          "command": "select",
+          "roles": ["clockwork_runtime"],
+          "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+          "statement": "create policy core_price_activation_finance_read on public.core_price_book_activation_events for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+        }
+      ],
+      "policyDrops": [],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": [],
+      "views": [],
+      "triggerCreates": [
+        {
+          "name": "price_books_version",
+          "table": "public.price_books",
+          "constraint": false
+        }
+      ],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": []
     }
   ],
   "drizzleSnapshots": [
@@ -9271,13 +9617,41 @@
       "tableCount": 116,
       "policyCount": 0,
       "viewCount": 0
+    },
+    {
+      "path": "packages/db/drizzle/meta/0005_snapshot.json",
+      "sha256": "4cc3b03335b7a90e26414d3ffac894a7db678a713e2134ec7f03318399adaa57",
+      "tableCount": 116,
+      "policyCount": 0,
+      "viewCount": 0
+    },
+    {
+      "path": "packages/db/drizzle/meta/0006_snapshot.json",
+      "sha256": "dd63ab48ec6e5f324c355e33942c4aa0c2a0f4f462f3b1f0de0d8ad2e80b2c5d",
+      "tableCount": 118,
+      "policyCount": 0,
+      "viewCount": 0
+    },
+    {
+      "path": "packages/db/drizzle/meta/0007_snapshot.json",
+      "sha256": "ce174e968867fe03800e5ad78b2862767b0b3c6282e12dedb3fcec4afe24a5be",
+      "tableCount": 118,
+      "policyCount": 0,
+      "viewCount": 0
+    },
+    {
+      "path": "packages/db/drizzle/meta/0008_snapshot.json",
+      "sha256": "34854c9defe60ec3f88dd9f3098a02afd2f1c4f9051046c1ec3cb119ac2bebc1",
+      "tableCount": 118,
+      "policyCount": 0,
+      "viewCount": 0
     }
   ],
   "machineReadableSchema": "docs/baseline/schema.json",
   "seeds": [
     {
       "path": "supabase/seed.sql",
-      "sha256": "98caf2c22671cc280083990a15e39840890665221c8468825e59683acd24362b",
+      "sha256": "0b87e44e1520195168b76799a249d3a02d9da8359f4e225ef54aaf07efebef6e",
       "targetTables": [
         "private.authorization_secrets",
         "public.accounts",
