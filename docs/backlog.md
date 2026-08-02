@@ -276,6 +276,32 @@ requirement in the ledger depends on them, so they carry no P0 entry.
 - `scripts/benchmark-release.mjs` sets a 45-minute local budget. The suite has
   grown since that number was measured and the budget has not been re-measured
   against it.
+- `procurementCertificates` in `packages/db/src/schema/core/finance.ts` is
+  migrated, constrained, and carries `core_procurement_cert_expiry_idx` on
+  `(account_id, status, expires_on)`, but no repository, domain, workflow, or
+  test reads the table. The index exists for an expiry sweep that was never
+  written, so `status` stays at whatever it was last set to and an exemption
+  certificate that passed its `expires_on` is still treated as valid at invoice
+  time. The policy inputs behind this sit under `EXT-TAX-01`, but the sweep, the
+  status transition, and the re-collection prompt are repository work and do not
+  belong behind a gate row.
+- `supportedMoney` in `packages/integrations/src/core/stripe/webhooks.ts:261`
+  coalesces `amount`, `amount_paid`, `amount_due`, `total`, and `amount_total`
+  into one scalar `Money`. Any invoice event where `amount_paid` differs from
+  `amount_due` — underpayment, overpayment, or an installment against net terms
+  — normalizes to a single figure that carries no remainder, so nothing
+  downstream can distinguish a short payment from a settled invoice. No
+  `amountRemaining` or partially-paid state exists anywhere outside generated
+  code, and no test in the repository exercises a partial payment.
+- Following from the entry above, `collectionCases` in
+  `packages/db/src/schema/core/finance.ts:809` admits only `open`, `promised`,
+  `escalated`, `resolved`, and `written_off`, and the only registered collections
+  handlers are the scheduled `core.collections.dunning.v1` and
+  `core.collections.partner-credit.v1` in
+  `packages/workflows/src/core/outbox-handlers.ts`. No payment event updates a
+  case, so whether a part-paid invoice keeps dunning at its full amount depends
+  on what the scheduled sweep re-reads. The intended behaviour for a partly
+  settled case is undecided rather than implemented.
 
 ## P1 — external activation and approval gates
 
