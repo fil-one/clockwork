@@ -5,8 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./demo-handlers": "./src/demo/handlers.ts",
+    "./demo-journeys": "./src/demo/journeys.ts",
     "./demo-reset": "./src/demo/reset.ts",
+    "./demo-seed": "./src/demo/seed.ts",
     "./demo-state": "./src/demo/state.ts",
+    "./personas": "./src/personas/catalog.ts",
     "./playwright": "./src/playwright/index.ts"
   },
   "scripts": {

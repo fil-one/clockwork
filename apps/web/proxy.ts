@@ -7,7 +7,18 @@ import {
   formatTraceparent,
   parseTraceparent,
 } from "@clockwork/integrations/telemetry";
+import {
+  demoDeployOptIn,
+  findDemoProductionMarker,
+} from "@clockwork/testing/demo-state";
 
+import {
+  demoAccessConfiguration,
+  demoAccessCookieName,
+  demoAccessRoute,
+  isDemoAccessExemptPath,
+  verifyDemoAccessCookie,
+} from "@/src/auth/demo-access";
 import { releaseProofConfiguration } from "@/src/auth/release-proof";
 import { runtimeTelemetry } from "@/src/telemetry/runtime";
 
@@ -16,6 +27,20 @@ const workosConfigured = Boolean(
   process.env.WORKOS_CLIENT_ID &&
   process.env.WORKOS_COOKIE_PASSWORD,
 );
+// A deliberate fixture-only demo deploy serves its own identity, so missing
+// provider credentials are expected rather than a misconfiguration. The opt-in
+// covers the NODE_ENV that `next build` sets; every other production marker
+// still forces the 503.
+const demoDeployIdentity =
+  demoDeployOptIn(process.env) &&
+  process.env.CLOCKWORK_EXPERIENCE_ADAPTER === "demo" &&
+  !findDemoProductionMarker(process.env) &&
+  process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV?.trim().toLowerCase() !==
+    "production";
+// A demo deploy is shared by link, so a password stands in front of it. The
+// gate is part of the demo identity path alone: without the opt-in, or without
+// a configured password, no request is ever inspected or redirected.
+const demoAccessSecret = demoAccessConfiguration(process.env);
 const workosProxy = workosConfigured
   ? authkitMiddleware({
       middlewareAuth: {
@@ -80,6 +105,7 @@ export default async function proxy(
     if (
       !workosConfigured &&
       !releaseProof &&
+      !demoDeployIdentity &&
       process.env.NODE_ENV === "production"
     ) {
       const unavailable = NextResponse.json(
@@ -88,6 +114,30 @@ export default async function proxy(
       );
       finish(503, "error");
       return unavailable;
+    }
+    if (
+      demoAccessSecret &&
+      !isDemoAccessExemptPath(request.nextUrl.pathname) &&
+      !(await verifyDemoAccessCookie(
+        request.cookies.get(demoAccessCookieName)?.value,
+        demoAccessSecret,
+      ))
+    ) {
+      const gate = new URL(demoAccessRoute, request.nextUrl.origin);
+      gate.searchParams.set(
+        "next",
+        `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      );
+      const locked = NextResponse.redirect(gate, {
+        status: 302,
+        headers: {
+          traceparent,
+          "x-request-id": requestId,
+          "cache-control": "private, no-store",
+        },
+      });
+      finish(302, "denied");
+      return locked;
     }
     // Provider callbacks authenticate with their raw-body signature. Keeping the
     // namespace outside AuthKit lets lanes add Stripe/e-sign routes without a

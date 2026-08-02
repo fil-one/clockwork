@@ -8,6 +8,7 @@ import { DEMO_NOW, DEMO_SEED_VERSION } from "./seed";
 export const DEMO_STATE_SCHEMA_VERSION = 1 as const;
 export const DEMO_STATE_PATH_ENVIRONMENT_KEY =
   "CLOCKWORK_DEMO_STATE_PATH" as const;
+export const DEMO_DEPLOY_ENVIRONMENT_KEY = "CLOCKWORK_DEMO_DEPLOY" as const;
 export const DEMO_PRODUCTION_ENVIRONMENT_KEYS = [
   "NODE_ENV",
   "VERCEL_ENV",
@@ -83,11 +84,28 @@ export function createPristineDemoAdapterState(): DemoAdapterState {
   };
 }
 
+/**
+ * A fixture-only demo site is built and served by `next build`/`next start`,
+ * which always set NODE_ENV=production. Setting this key to exactly "1" is the
+ * one way to say that production NODE_ENV describes the build, not the
+ * environment. Nothing else counts: "true", "yes", " 1 " and every other value
+ * leave the guard as it was, so no ambient truthy setting can reach demo mode.
+ */
+export function demoDeployOptIn(environment: DemoStateEnvironment): boolean {
+  return environment[DEMO_DEPLOY_ENVIRONMENT_KEY] === "1";
+}
+
 export function findDemoProductionMarker(
   environment: DemoStateEnvironment,
 ): (typeof DEMO_PRODUCTION_ENVIRONMENT_KEYS)[number] | undefined {
+  // The opt-in suppresses the NODE_ENV signal alone. A deployment platform that
+  // reports production through any of its own markers still refuses, flag or no
+  // flag, so a real production environment can never be flipped into demo mode.
+  const deployOptIn = demoDeployOptIn(environment);
   return DEMO_PRODUCTION_ENVIRONMENT_KEYS.find(
-    (key) => environment[key]?.trim().toLowerCase() === "production",
+    (key) =>
+      !(deployOptIn && key === "NODE_ENV") &&
+      environment[key]?.trim().toLowerCase() === "production",
   );
 }
 

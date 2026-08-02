@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import {
+  demoJourneyForPersona,
+  demoPersonaCatalog,
+  demoPersonaCookieName,
+  demoPersonaSurfacesEnabled,
+  resolveDemoPersona,
+} from "@/src/auth/demo-persona";
 import { WebVitals } from "@/src/features/performance/web-vitals";
 import { parseTraceparent } from "@/src/features/performance/client-telemetry";
+import { DemoPersonaSwitcher } from "@/src/features/shell/demo-persona-switcher";
 
 const description =
   "Agreements, services, billing, and partner commerce in one dependable chain.";
@@ -46,10 +54,30 @@ export default async function RootLayout({
   const traceparent = incomingTrace
     ? `00-${incomingTrace.traceId}-${incomingTrace.spanId}-${incomingTrace.traceFlags}`
     : undefined;
+  // The presenter panel appears only once a demo deploy has a chosen persona.
+  // Off a demo deploy the cookie is never read and nothing is rendered.
+  const persona = demoPersonaSurfacesEnabled(process.env)
+    ? resolveDemoPersona({
+        cookie: (await cookies()).get(demoPersonaCookieName)?.value,
+      })
+    : undefined;
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body>
         {children}
+        {persona ? (
+          <DemoPersonaSwitcher
+            personas={demoPersonaCatalog.map(
+              ({ key, displayName, jobTitle }) => ({
+                value: key,
+                label: `${displayName} · ${jobTitle}`,
+              }),
+            )}
+            current={persona.key}
+            personaName={persona.displayName}
+            journey={demoJourneyForPersona(persona.key)?.title ?? ""}
+          />
+        ) : null}
         <WebVitals {...(traceparent ? { traceparent } : {})} />
       </body>
     </html>

@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 .next/
+.netlify/
+deno.lock
 .next-release-*/
 next-env.d.ts
 .turbo/

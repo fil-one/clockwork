@@ -1,6 +1,6 @@
 import "server-only";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
@@ -11,6 +11,13 @@ import {
   listAuthorizedMemberships,
   type AuthorizedMembership,
 } from "@/src/auth/identity-repository";
+import {
+  DEMO_PERSONA_HEADER,
+  demoPersonaCookieName,
+  demoPersonaMembership,
+  demoPersonaSurfacesEnabled,
+  resolveDemoPersona,
+} from "@/src/auth/demo-persona";
 import { releaseProofConfiguration } from "@/src/auth/release-proof";
 import {
   explicitDemoIdentityEnabled,
@@ -109,8 +116,9 @@ function isCommerceRole(value: string | null): value is Role {
 
 function demoPersonaOverrideAllowed(): boolean {
   return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production"
+    explicitDemoIdentityEnabled() ||
+    (process.env.NODE_ENV !== "production" &&
+      process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production")
   );
 }
 
@@ -125,6 +133,26 @@ export async function getRouteSession(
       throw new Error(
         "Portal identity is unavailable without an explicit non-production demo adapter",
       );
+    // A demo deploy signs in as a catalog persona, whose own account and
+    // audience replace the audience-shaped placeholder identity.
+    const persona = demoPersonaSurfacesEnabled(process.env)
+      ? resolveDemoPersona({
+          header: (await headers()).get(DEMO_PERSONA_HEADER),
+          cookie: (await cookies()).get(demoPersonaCookieName)?.value,
+        })
+      : undefined;
+    if (persona) {
+      const membership = demoPersonaMembership(persona);
+      return {
+        roles: [persona.role],
+        profile: { name: membership.userName, email: membership.userEmail },
+        memberships: [membership],
+        selectedAccountId: membership.accountId,
+        effectiveAccountId: membership.accountId,
+        providerBacked: false,
+        authenticationSource: "local",
+      };
+    }
     const demoRole = demoPersonaOverrideAllowed()
       ? (await headers()).get("x-clockwork-persona")
       : null;

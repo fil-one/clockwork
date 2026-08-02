@@ -6,6 +6,13 @@ import {
 } from "@clockwork/api";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 import {
+  DEMO_PERSONA_HEADER,
+  demoPersonaCookieName,
+  demoPersonaMembership,
+  demoPersonaSurfacesEnabled,
+  resolveDemoPersona,
+} from "@/src/auth/demo-persona";
+import {
   listAuthorizedMemberships,
   listAuthorizedMembershipsForUser,
   selectedMembership,
@@ -64,7 +71,8 @@ function assertAuthenticationConfiguration() {
   if (
     !configured() &&
     !releaseProofConfiguration() &&
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV === "production" &&
+    !explicitDemoIdentityEnabled()
   )
     throw new Error("WorkOS credentials are required in production");
 }
@@ -237,6 +245,33 @@ export async function getCommerceSession(): Promise<CommerceSession> {
         "Authentication is unavailable without an explicit non-production demo adapter",
       );
     const requestHeaders = await headers();
+    // A demo deploy signs in as a catalog persona. The header still decides
+    // first, so a role-driven suite keeps the identity it has always had and a
+    // persona cookie can never reach it.
+    if (demoPersonaSurfacesEnabled(process.env)) {
+      const persona = resolveDemoPersona({
+        header: requestHeaders.get(DEMO_PERSONA_HEADER),
+        cookie: (await cookies()).get(demoPersonaCookieName)?.value,
+      });
+      if (persona)
+        return {
+          userId: persona.userId,
+          organizationId: persona.organizationId,
+          accountIds: persona.isInternalStaff
+            ? []
+            : [persona.selectedAccountId],
+          roles: [persona.role],
+          isInternalStaff: persona.isInternalStaff,
+          mfaVerified: persona.mfaVerified,
+          recentAuthenticationVerified: true,
+          profile: { name: persona.displayName, email: persona.email },
+          memberships: [demoPersonaMembership(persona)],
+          selectedAccountId: persona.selectedAccountId,
+          effectiveAccountId: persona.selectedAccountId,
+          providerBacked: false,
+          authenticationSource: "local",
+        };
+    }
     const requestedRole = requestHeaders.get("x-clockwork-persona");
     const role = (
       requestedRole &&

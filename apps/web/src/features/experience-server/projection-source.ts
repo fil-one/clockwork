@@ -14,6 +14,7 @@ import { customerCollections } from "@/src/features/customer-partner/customer/cu
 import { partnerSurfaces } from "@/src/features/customer-partner/partner/partner-data";
 
 import { resolveScopedAccount } from "./authorization";
+import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
   ExperienceProblem,
@@ -477,4 +478,6 @@ export function projectionInput(input: {
   };
 }
 
-const demoProjectionSource = new ExplicitDemoProjectionSource();
+const demoProjectionSource = new ExplicitDemoProjectionSource(
+  configuredDemoStateStore(),
+);

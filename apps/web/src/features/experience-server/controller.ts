@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { uuidV7 } from "@clockwork/contracts";
 import {
   artifactDownloadHeaders,
   renderAuthorizedCommerceDocument,
@@ -16,6 +17,10 @@ import {
   requireAuthenticatedSession,
   resolveScopedAccount,
 } from "./authorization";
+import {
+  configuredExperienceRepository,
+  demoExperienceEnabled,
+} from "./demo-experience-repository";
 import {
   configuredEvidenceGateway,
   type EvidenceGateway,
@@ -36,15 +41,12 @@ import {
   projectionInput,
   type ProjectionSource,
 } from "./projection-source";
-import {
-  createOpaqueEsignState,
-  DatabaseExperienceRepository,
-  publicRenderRequest,
-} from "./repository";
+import { createOpaqueEsignState, publicRenderRequest } from "./repository";
+import type { ExperienceRepository } from "./repository-port";
 import { requireProjectionActionAuthority } from "./projection-authorization";
 
 interface ControllerDependencies {
-  repository?: DatabaseExperienceRepository;
+  repository?: ExperienceRepository;
   projections?: ProjectionSource;
   evidence?: EvidenceGateway;
   sessionResolver?: SessionResolver;
@@ -295,7 +297,7 @@ export async function handleExperienceRequest(
     const now = dependencies.now?.() ?? new Date();
     let resolvedRepository = dependencies.repository;
     const repository = () =>
-      (resolvedRepository ??= new DatabaseExperienceRepository());
+      (resolvedRepository ??= configuredExperienceRepository());
 
     if (segments[0] === "projections") {
       const audienceValue = segments[1] ?? "";
@@ -438,45 +440,57 @@ export async function handleExperienceRequest(
       const opaqueState = createOpaqueEsignState();
       const returnUrl = new URL("/signing/return", origin);
       returnUrl.searchParams.set("state", opaqueState);
-      const csrf = request.headers.get("x-csrf-token") ?? "";
-      const cookie = request.headers.get("cookie") ?? "";
-      const lifecycleUrl = new URL(
-        "/api/v1/lifecycle/agreements/envelopes",
-        origin,
-      );
-      const response = await (dependencies.fetchImplementation ?? fetch)(
-        lifecycleUrl,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-csrf-token": csrf,
-            cookie,
-            origin: origin.origin,
-            "idempotency-key": idempotencyKey(request),
-            "x-request-id": id,
-          },
-          body: JSON.stringify({
-            accountId: target.accountId,
-            agreementId: target.agreementId,
-            documentId: target.documentId,
-            signerEmail: target.signerEmail,
-            mode,
-            returnUrl: returnUrl.toString(),
-          }),
-          cache: "no-store",
-          redirect: "error",
-        },
-      );
-      if (!response.ok)
-        throw new ExperienceProblem(
-          response.status === 403 ? 403 : 503,
-          "ESIGN_LAUNCH_FAILED",
-          "The persisted agreement could not start an e-sign session",
+      let envelopeId: string;
+      let signingUrl: string;
+      if (demoExperienceEnabled()) {
+        // The demo has no e-sign provider to call. It issues the envelope
+        // itself and points the signer at a ceremony on this origin, which
+        // returns through the same /signing/return reconciliation.
+        envelopeId = uuidV7();
+        const ceremony = new URL("/signing/demo-provider", origin);
+        ceremony.searchParams.set("state", opaqueState);
+        signingUrl = ceremony.toString();
+      } else {
+        const csrf = request.headers.get("x-csrf-token") ?? "";
+        const cookie = request.headers.get("cookie") ?? "";
+        const lifecycleUrl = new URL(
+          "/api/v1/lifecycle/agreements/envelopes",
+          origin,
         );
-      const launched = record(await response.json());
-      const envelopeId = requiredString(launched, "id");
-      const signingUrl = requiredString(launched, "signingUrl");
+        const response = await (dependencies.fetchImplementation ?? fetch)(
+          lifecycleUrl,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-csrf-token": csrf,
+              cookie,
+              origin: origin.origin,
+              "idempotency-key": idempotencyKey(request),
+              "x-request-id": id,
+            },
+            body: JSON.stringify({
+              accountId: target.accountId,
+              agreementId: target.agreementId,
+              documentId: target.documentId,
+              signerEmail: target.signerEmail,
+              mode,
+              returnUrl: returnUrl.toString(),
+            }),
+            cache: "no-store",
+            redirect: "error",
+          },
+        );
+        if (!response.ok)
+          throw new ExperienceProblem(
+            response.status === 403 ? 403 : 503,
+            "ESIGN_LAUNCH_FAILED",
+            "The persisted agreement could not start an e-sign session",
+          );
+        const launched = record(await response.json());
+        envelopeId = requiredString(launched, "id");
+        signingUrl = requiredString(launched, "signingUrl");
+      }
       await repository().createEsignCorrelation({
         session,
         target,

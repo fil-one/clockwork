@@ -8,11 +8,18 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createPristineDemoAdapterState,
+  DEMO_DEPLOY_ENVIRONMENT_KEY,
   DEMO_PRODUCTION_ENVIRONMENT_KEYS,
+  demoDeployOptIn,
+  findDemoProductionMarker,
   FileDemoAdapterStateStore,
   resolveDemoStatePath,
   type DemoAdapterState,
 } from "./state";
+
+const nonNodeProductionKeys = DEMO_PRODUCTION_ENVIRONMENT_KEYS.filter(
+  (key) => key !== "NODE_ENV",
+);
 
 const workspaceRoot = resolve(
   fileURLToPath(new URL("../../../../", import.meta.url)),
@@ -59,6 +66,7 @@ function dirtyState(): DemoAdapterState {
 function resetEnvironment(location: string): NodeJS.ProcessEnv {
   const environment = { ...process.env };
   for (const key of DEMO_PRODUCTION_ENVIRONMENT_KEYS) delete environment[key];
+  delete environment[DEMO_DEPLOY_ENVIRONMENT_KEY];
   return {
     ...environment,
     NODE_ENV: "test",
@@ -148,6 +156,48 @@ describe("durable demo adapter state", () => {
     expect(await readFile(location, "utf8")).toBe(corrupt);
     expect(await readdir(directory)).toEqual(["state.json"]);
   }, 60_000);
+
+  it.each(DEMO_PRODUCTION_ENVIRONMENT_KEYS)(
+    "refuses %s without the demo deploy opt-in",
+    (key) => {
+      expect(findDemoProductionMarker({ [key]: " Production " })).toBe(key);
+    },
+  );
+
+  it("permits a production NODE_ENV only under the exact deploy opt-in", () => {
+    expect(
+      findDemoProductionMarker({
+        NODE_ENV: "production",
+        [DEMO_DEPLOY_ENVIRONMENT_KEY]: "1",
+      }),
+    ).toBeUndefined();
+    expect(demoDeployOptIn({ [DEMO_DEPLOY_ENVIRONMENT_KEY]: "1" })).toBe(true);
+  });
+
+  it.each(["true", "yes", " 1 ", "1 ", "01", "0", "", undefined])(
+    "treats the deploy opt-in value %j as absent",
+    (value) => {
+      const environment = {
+        NODE_ENV: "production",
+        [DEMO_DEPLOY_ENVIRONMENT_KEY]: value,
+      };
+      expect(demoDeployOptIn(environment)).toBe(false);
+      expect(findDemoProductionMarker(environment)).toBe("NODE_ENV");
+    },
+  );
+
+  it.each(nonNodeProductionKeys)(
+    "keeps refusing %s even under the demo deploy opt-in",
+    (key) => {
+      expect(
+        findDemoProductionMarker({
+          NODE_ENV: "production",
+          [DEMO_DEPLOY_ENVIRONMENT_KEY]: "1",
+          [key]: " Production ",
+        }),
+      ).toBe(key);
+    },
+  );
 
   it("uses an explicit path verbatim and otherwise resolves one ignored workspace artifact", () => {
     expect(

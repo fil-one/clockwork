@@ -7,6 +7,9 @@ export default tseslint.config(
     ignores: [
       "**/.next/**",
       "**/.next-*/**",
+      // Deploy adapter output. Generated into the app directory during a build
+      // and not part of the compiled project.
+      "**/.netlify/**",
       "**/coverage/**",
       "**/dist/**",
       "**/node_modules/**",

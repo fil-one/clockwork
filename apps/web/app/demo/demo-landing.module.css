@@ -1,0 +1,74 @@
+.main {
+  display: grid;
+  gap: 2.25rem;
+  align-content: start;
+  min-height: 100vh;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  background: var(--web-canvas);
+  color: var(--web-ink);
+}
+
+.header {
+  display: grid;
+  gap: 0.6rem;
+  max-width: 62ch;
+}
+
+.wordmark {
+  margin-bottom: 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.header h1 {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.header p {
+  margin: 0;
+  color: var(--web-muted);
+}
+
+.group {
+  display: grid;
+  gap: 1rem;
+}
+
+.group h2 {
+  margin: 0;
+  color: var(--web-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+  gap: 1rem;
+}
+
+.summary {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.summary dt {
+  color: var(--web-muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary dd {
+  margin: 0;
+  font-size: 0.85rem;
+}
