@@ -24,7 +24,7 @@ describe("lane package composition", () => {
 
   it("publishes complete, collision-free workflow task registries", () => {
     expect(coreWorkflowRegistry).toHaveLength(8);
-    expect(lifecycleWorkflowRegistry).toHaveLength(24);
+    expect(lifecycleWorkflowRegistry).toHaveLength(25);
     expect(new Set(lifecycleWorkflowRegistry).size).toBe(
       lifecycleWorkflowRegistry.length,
     );
