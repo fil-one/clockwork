@@ -9,6 +9,7 @@ export const RELEASE_SUITE_NAMES = Object.freeze([
   "integration",
   "build",
   "ui",
+  "demo",
   "proof",
 ]);
 
@@ -58,9 +59,9 @@ export const RELEASE_FILE_CREDENTIAL_ENVIRONMENT = Object.freeze([
   "NPM_CONFIG_USERCONFIG",
 ]);
 
-export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT = 90;
+export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT = 92;
 export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256 =
-  "f9f7339c674cfc97d5056c06a70324b77ba23c2bc8a48afc869134d9fbc0d7e2";
+  "54e5ec7d50f69ee6efabfd092f66a2fb49dc0ca014cb4a48a2c7d317c13ab836";
 
 export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   static: Object.freeze([
@@ -89,6 +90,7 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   ]),
   build: Object.freeze(["production-build", "storybook-build"]),
   ui: Object.freeze(["storybook-axe", "playwright-browser"]),
+  demo: Object.freeze(["demo-browser"]),
   proof: Object.freeze(["production-proof-build", "production-browser-proof"]),
 });
 
@@ -220,6 +222,23 @@ export function expectedReleaseCommands(name, serial) {
         "exec",
         "playwright",
         "test",
+        "--project=functional-chromium",
+        "--project=chromium",
+        "--retries=0",
+        "--update-snapshots=none",
+      ],
+    ],
+    // The demo password gate redirects every non-exempt path, so these pages
+    // cannot share a server with the suites that sign in directly.
+    demo: [
+      [
+        "pnpm",
+        "--filter",
+        "@clockwork/web",
+        "exec",
+        "playwright",
+        "test",
+        "--project=demo-chromium",
         "--retries=0",
         "--update-snapshots=none",
       ],

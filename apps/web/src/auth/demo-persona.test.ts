@@ -89,4 +89,23 @@ describe("demo persona identity", () => {
       "Direct buyer reviews and accepts a renewal",
     );
   });
+
+  it("keeps every journey inside the portal the persona starts in", () => {
+    // A step may go deeper than the start route, but a customer journey must
+    // never open an internal page, and neither may a partner journey.
+    const portalOf = (route: string) =>
+      route.startsWith("/internal")
+        ? "internal"
+        : route.startsWith("/partner")
+          ? "partner"
+          : "customer";
+
+    for (const persona of demoPersonaCatalog) {
+      const journey = demoJourneyForPersona(persona.key);
+      const start = portalOf(demoPersonaStartRoute(persona.key));
+      expect(journey?.steps.map((step) => portalOf(step.route))).toEqual(
+        journey?.steps.map(() => start),
+      );
+    }
+  });
 });

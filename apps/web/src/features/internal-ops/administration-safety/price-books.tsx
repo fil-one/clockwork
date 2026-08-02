@@ -2,8 +2,14 @@
 
 import { useMemo, useState } from "react";
 
+import type { PriceBookAdministrationRecord } from "@clockwork/db";
+
+import {
+  CommerceApiError,
+  sendCoreCommand,
+} from "@/src/features/contracts/commerce-client";
+
 import { adminSafetyCopy } from "./copy";
-import { priceBookVersions } from "./data";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
 import {
   AdministrationPage,
@@ -14,53 +20,139 @@ import {
   styles,
 } from "./ui";
 
+type Decision = "request_activation" | "activate" | "retire";
+
+const stateLabel = {
+  draft: "Draft",
+  active: "Active",
+  retired: "Retired",
+} as const;
+
+function decisionsFor(
+  book: PriceBookAdministrationRecord,
+  userId: string,
+): readonly { action: Decision; label: string; hint: string }[] {
+  if (book.status === "active")
+    return [
+      {
+        action: "retire",
+        label: "Retire this version",
+        hint: "Retiring leaves quotes, orders, and invoices already priced from it untouched.",
+      },
+    ];
+  if (book.status !== "draft") return [];
+  if (!book.activationRequestedBy)
+    return [
+      {
+        action: "request_activation",
+        label: "Propose activation",
+        hint: "A second finance approver decides it. Floors and route coverage are revalidated then.",
+      },
+    ];
+  if (book.activationRequestedBy === userId) return [];
+  return [
+    {
+      action: "activate",
+      label: "Approve and activate",
+      hint: "Activating retires the current version for this currency in the same transaction.",
+    },
+  ];
+}
+
 export function PriceBookAdministration({
   roles,
+  userId,
+  books,
+  source,
+  readAt,
 }: {
   roles: readonly string[];
+  userId: string;
+  books: readonly PriceBookAdministrationRecord[];
+  source: string;
+  readAt: string;
 }) {
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("All");
-  const [route, setRoute] = useState("All");
+  const [state, setState] = useState("All");
   const [selectedId, setSelectedId] = useState(
-    priceBookVersions.find((version) => version.state === "Draft")?.id ??
-      priceBookVersions[0]?.id ??
-      "",
+    books.find((book) => book.status === "draft")?.id ?? books[0]?.id ?? "",
   );
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [outcome, setOutcome] = useState<{
+    tone: "done" | "problem";
+    message: string;
+  } | null>(null);
+  const [pending, setPending] = useState(false);
   const permitted = canDecide(roles, "finance");
 
+  const currencies = useMemo(
+    () => [...new Set(books.map((book) => book.currency))].sort(),
+    [books],
+  );
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return priceBookVersions.filter(
+    return books.filter(
       (book) =>
         (currency === "All" || book.currency === currency) &&
-        (route === "All" ||
-          book.route.toLowerCase().includes(route.toLowerCase())) &&
+        (state === "All" || stateLabel[book.status] === state) &&
         (!needle ||
           [
-            book.label,
-            book.version,
+            book.name,
+            String(book.version),
             book.currency,
-            book.route,
-            book.scan,
-            book.variance,
+            ...book.regions,
           ].some((value) => value.toLowerCase().includes(needle))),
     );
-  }, [currency, query, route]);
-  const selected =
-    priceBookVersions.find((version) => version.id === selectedId) ??
-    priceBookVersions[0];
+  }, [books, currency, query, state]);
+  const selected = books.find((book) => book.id === selectedId) ?? books[0];
+  const decisions = selected ? decisionsFor(selected, userId) : [];
 
-  if (!selected) return null;
+  async function submit(action: Decision) {
+    if (!selected) return;
+    setPending(true);
+    setOutcome(null);
+    try {
+      await sendCoreCommand({
+        resource: "price_books",
+        id: selected.id,
+        action,
+        expectedVersion: selected.rowVersion,
+        payload: { reason },
+      });
+      setOutcome({
+        tone: "done",
+        message:
+          action === "request_activation"
+            ? "Proposed. A second finance approver decides it."
+            : action === "activate"
+              ? "Activated. This version now sets price for new quotes."
+              : "Retired. Nothing already priced from it changed.",
+      });
+      setReason("");
+      setSummary(null);
+    } catch (error) {
+      setOutcome({
+        tone: "problem",
+        message:
+          error instanceof CommerceApiError && error.code === "conflict"
+            ? "This version changed while the page was open. Reload and review it again."
+            : error instanceof CommerceApiError
+              ? error.message
+              : "The decision could not be recorded. Nothing changed.",
+      });
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <AdministrationPage {...adminSafetyCopy.priceBooks}>
       <section className={styles.notice} role="note">
-        <strong>Value state is explicit.</strong>
-        Estimated variance is planning data, pending reconciliation is not
-        final, and only activated server records are pricing truth.
+        <strong>Only activated versions set price.</strong>
+        Activation takes two finance approvers: one proposes it, a second
+        decides it.
       </section>
 
       <section
@@ -70,9 +162,11 @@ export function PriceBookAdministration({
         <div className={styles.panelHeading}>
           <div>
             <h2 id="price-book-versions-title">Version scan</h2>
-            <p>Pricing service · Fresh as of Jul 31, 2026 at 11:46 AM EDT</p>
+            <p>
+              {source} · Read at {readAt}
+            </p>
           </div>
-          <StatusPill state="Fresh" />
+          <StatusPill state={books.length ? "Fresh" : "Unavailable"} />
         </div>
         <div
           className={styles.toolbar}
@@ -84,7 +178,7 @@ export function PriceBookAdministration({
             <input
               type="search"
               value={query}
-              placeholder="Name, version, route, or variance"
+              placeholder="Name, version, currency, or region"
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
           </label>
@@ -95,62 +189,70 @@ export function PriceBookAdministration({
               onChange={(event) => setCurrency(event.currentTarget.value)}
             >
               <option>All</option>
-              <option>USD</option>
-              <option>EUR</option>
-              <option>GBP</option>
+              {currencies.map((code) => (
+                <option key={code}>{code}</option>
+              ))}
             </select>
           </label>
           <label className={styles.field}>
-            Route
+            State
             <select
-              value={route}
-              onChange={(event) => setRoute(event.currentTarget.value)}
+              value={state}
+              onChange={(event) => setState(event.currentTarget.value)}
             >
               <option>All</option>
-              <option>Direct</option>
-              <option>Referral</option>
-              <option>Resale</option>
+              <option>Draft</option>
+              <option>Active</option>
+              <option>Retired</option>
             </select>
           </label>
         </div>
         <p className={styles.resultMeta} aria-live="polite">
-          {filtered.length} of {priceBookVersions.length} versions · Active
-          first, then effective date
+          {filtered.length} of {books.length} versions · Currency, then newest
+          version
         </p>
         {filtered.length ? (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <caption className={styles.srOnly}>
-                Price book version and variance scan
+                Price book versions and activation readiness
               </caption>
               <thead>
                 <tr>
                   <th scope="col">Price book</th>
                   <th scope="col">Version</th>
                   <th scope="col">Currency</th>
-                  <th scope="col">Route</th>
+                  <th scope="col">Regions</th>
                   <th scope="col">Effective</th>
-                  <th scope="col">SKUs</th>
+                  <th scope="col">Rate cards</th>
                   <th scope="col">State</th>
-                  <th scope="col">Variance state</th>
+                  <th scope="col">Activation</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((book) => (
                   <tr key={book.id}>
                     <td>
-                      <strong>{book.label}</strong>
-                      <small>{book.scan}</small>
+                      <strong>{book.name}</strong>
                     </td>
                     <td>{book.version}</td>
                     <td>{book.currency}</td>
-                    <td>{book.route}</td>
-                    <td>{book.effectiveOn}</td>
-                    <td>{book.skuCount}</td>
+                    <td>{book.regions.join(", ") || "None"}</td>
                     <td>
-                      <StatusPill state={book.state} />
+                      {book.effectiveFrom}
+                      {book.effectiveTo ? ` to ${book.effectiveTo}` : ""}
                     </td>
-                    <td>{book.variance}</td>
+                    <td>{book.rateCardCount}</td>
+                    <td>
+                      <StatusPill state={stateLabel[book.status]} />
+                    </td>
+                    <td>
+                      {book.activationRequestedByEmail
+                        ? `Proposed by ${book.activationRequestedByEmail}`
+                        : book.status === "draft"
+                          ? "Not proposed"
+                          : "Decided"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -158,129 +260,169 @@ export function PriceBookAdministration({
           </div>
         ) : (
           <p className={styles.empty}>
-            No price-book versions match these filters.
+            {books.length
+              ? "No price-book versions match these filters."
+              : "No price books are readable for this request."}
           </p>
         )}
       </section>
 
-      <section
-        className={styles.panel}
-        aria-labelledby="price-book-review-title"
-      >
-        <div className={styles.panelHeading}>
-          <div>
-            <h2 id="price-book-review-title">Finance activation review</h2>
-            <p>
-              Review creates no quote, order, invoice, or collected-value
-              assertion.
-            </p>
-          </div>
-          <StatusPill state={permitted ? "Finance authority" : "Read only"} />
-        </div>
-        <form
-          className={styles.panelBody}
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSummary(
-              buildReviewSummary({
-                entity: `${selected.label} v${selected.version} · ${selected.currency}`,
-                impact: `Approves ${selected.skuCount} SKU definitions for ${selected.route.toLowerCase()} pricing from ${selected.effectiveOn}.`,
-                evidence: [
-                  selected.scan,
-                  selected.variance,
-                  "Floor and route coverage scan completed",
-                ],
-                policyBasis:
-                  "Commercial policy CP-2 requires versioned rate cards, explicit routes, regional floors, and finance authority.",
-                downstreamEffect:
-                  "Activation makes the version eligible for new pricing resolutions. Existing quotes, orders, invoices, and collections remain unchanged.",
-                reason,
-              }),
-            );
-          }}
+      {selected ? (
+        <section
+          className={styles.panel}
+          aria-labelledby="price-book-review-title"
         >
-          <HumanSelector
-            label="Price book version"
-            name="priceBookId"
-            options={priceBookVersions.map((book) => ({
-              ...book,
-              label: `${book.label} v${book.version}`,
-              description: `${book.currency} · ${book.route} · ${book.state}`,
-            }))}
-            value={selectedId}
-            onChange={(id) => {
-              if (id) setSelectedId(id);
-              setReason("");
-              setSummary(null);
+          <div className={styles.panelHeading}>
+            <div>
+              <h2 id="price-book-review-title">Finance activation review</h2>
+              <p>
+                Review creates no quote, order, invoice, or collected-value
+                assertion.
+              </p>
+            </div>
+            <StatusPill state={permitted ? "Finance authority" : "Read only"} />
+          </div>
+          <form
+            className={styles.panelBody}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSummary(
+                buildReviewSummary({
+                  entity: `${selected.name} v${selected.version} · ${selected.currency}`,
+                  impact: `Approves ${selected.rateCardCount} rate cards across ${selected.regions.join(", ") || "no region"} from ${selected.effectiveFrom}.`,
+                  evidence: [
+                    `${selected.rateCardCount} rate cards persisted`,
+                    selected.activationRequestedByEmail
+                      ? `Proposed by ${selected.activationRequestedByEmail}`
+                      : "Not yet proposed",
+                    selected.lastDecisionReason ?? "No prior decision recorded",
+                  ],
+                  policyBasis:
+                    "Commercial policy CP-2 requires versioned rate cards, explicit routes, regional floors, and two finance authorities.",
+                  downstreamEffect:
+                    "Activation makes the version eligible for new pricing resolutions. Existing quotes, orders, invoices, and collections remain unchanged.",
+                  reason,
+                }),
+              );
             }}
-          />
-          <dl className={styles.metaGrid}>
-            <div>
-              <dt>Route</dt>
-              <dd>{selected.route}</dd>
-            </div>
-            <div>
-              <dt>Effective</dt>
-              <dd>{selected.effectiveOn}</dd>
-            </div>
-            <div>
-              <dt>Scan</dt>
-              <dd>{selected.scan}</dd>
-            </div>
-            <div>
-              <dt>Value state</dt>
-              <dd>{selected.variance}</dd>
-            </div>
-          </dl>
-          <label className={styles.field}>
-            Finance decision reason
-            <textarea
-              value={reason}
-              required
-              minLength={8}
-              placeholder="Explain the commercial evidence and activation rationale."
-              onChange={(event) => {
-                setReason(event.currentTarget.value);
+          >
+            <HumanSelector
+              label="Price book version"
+              name="priceBookId"
+              options={books.map((book) => ({
+                ...book,
+                label: `${book.name} v${book.version}`,
+                description: `${book.currency} · ${stateLabel[book.status]} · ${book.rateCardCount} rate cards`,
+              }))}
+              value={selectedId}
+              onChange={(id) => {
+                if (id) setSelectedId(id);
+                setReason("");
                 setSummary(null);
+                setOutcome(null);
               }}
             />
-          </label>
-          <TechnicalEvidence
-            identifiers={[{ label: "Price book ID", value: selected.id }]}
-          />
-          {!permitted ? (
-            <div className={styles.roleNotice} role="note">
-              <strong>Finance approval authority is required.</strong>
-              Other internal roles may scan versions, but only finance may
-              approve activation.
+            <dl className={styles.metaGrid}>
+              <div>
+                <dt>Regions</dt>
+                <dd>{selected.regions.join(", ") || "None"}</dd>
+              </div>
+              <div>
+                <dt>Effective</dt>
+                <dd>{selected.effectiveFrom}</dd>
+              </div>
+              <div>
+                <dt>Rate cards</dt>
+                <dd>{selected.rateCardCount}</dd>
+              </div>
+              <div>
+                <dt>Proposed by</dt>
+                <dd>{selected.activationRequestedByEmail ?? "Not proposed"}</dd>
+              </div>
+            </dl>
+            <label className={styles.field}>
+              Finance decision reason
+              <textarea
+                value={reason}
+                required
+                minLength={8}
+                placeholder="Explain the commercial evidence and activation rationale."
+                onChange={(event) => {
+                  setReason(event.currentTarget.value);
+                  setSummary(null);
+                }}
+              />
+            </label>
+            <TechnicalEvidence
+              identifiers={[{ label: "Price book ID", value: selected.id }]}
+            />
+            {!permitted ? (
+              <div className={styles.roleNotice} role="note">
+                <strong>Finance approval authority is required.</strong>
+                Other internal roles may scan versions, but only finance may
+                decide activation.
+              </div>
+            ) : null}
+            {permitted &&
+            selected.status === "draft" &&
+            selected.activationRequestedBy === userId ? (
+              <div className={styles.roleNotice} role="note">
+                <strong>Awaiting a second approver.</strong>
+                You proposed this activation, so another finance approver
+                decides it.
+              </div>
+            ) : null}
+            <div className={styles.actions}>
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!permitted}
+              >
+                Review price-book approval
+              </button>
             </div>
-          ) : null}
-          <div className={styles.actions}>
-            <button
-              className={styles.button}
-              type="submit"
-              disabled={!permitted}
-            >
-              Review price-book approval
-            </button>
-          </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      ) : null}
 
-      {summary ? (
+      {summary && selected ? (
         <>
           <ReviewSummaryCard
             summary={summary}
             title="Price-book activation review"
             identifiers={[{ label: "Price book ID", value: selected.id }]}
           />
-          <section className={styles.handoff} role="note">
-            <strong>Activation not submitted</strong>
-            <p>
-              This surface completes finance review only. Activate through the
-              authorized pricing workflow, where finance authority, version
-              state, route coverage, and floors are revalidated.
-            </p>
+          <section className={styles.panel} aria-label="Record the decision">
+            <div className={styles.panelBody}>
+              {decisions.length ? (
+                decisions.map((decision) => (
+                  <div key={decision.action} className={styles.actions}>
+                    <button
+                      className={styles.button}
+                      type="button"
+                      disabled={!permitted || pending || reason.length < 8}
+                      onClick={() => void submit(decision.action)}
+                    >
+                      {pending ? "Recording…" : decision.label}
+                    </button>
+                    <p className={styles.resultMeta}>{decision.hint}</p>
+                  </div>
+                ))
+              ) : (
+                <p className={styles.resultMeta}>
+                  This version has no decision open to you.
+                </p>
+              )}
+              {outcome ? (
+                <p
+                  className={styles.resultMeta}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {outcome.message}
+                </p>
+              ) : null}
+            </div>
           </section>
         </>
       ) : null}

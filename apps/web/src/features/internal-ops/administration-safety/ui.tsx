@@ -64,7 +64,7 @@ export function HumanSelector({
   const selected = options.find((option) => option.id === value);
   const display = (option: SelectOption) =>
     option.description
-      ? `${option.label} — ${option.description}`
+      ? `${option.label} · ${option.description}`
       : option.label;
   const [query, setQuery] = useState(selected ? display(selected) : "");
 

@@ -10,7 +10,7 @@ const journeys = [
     persona: "direct buyer",
     role: "owner",
     path: "/dashboard",
-    heading: "Good afternoon",
+    heading: "Welcome back",
   },
   {
     persona: "referral partner",
@@ -158,9 +158,7 @@ test("direct buyer creates a quote draft through a protected, record-bound comma
   await page.getByLabel("Quote expiry").fill("2026-09-30T17:00");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Create priced draft" }).click();
-  await expect(
-    page.getByText(/The server created the priced draft/),
-  ).toBeVisible();
+  await expect(page.getByText(/Priced draft created/)).toBeVisible();
   expect(requestBody).toMatchObject({
     id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     accountId: CUSTOMER_ACCOUNT_ID,
@@ -272,7 +270,7 @@ test("internal assisted review names the immutable actor before starting a serve
     page.getByRole("complementary", { name: "Assisted mode active" }),
   ).toHaveCount(0);
   await expect(
-    page.getByText(/Demo internal operator · operator@clockwork.test/),
+    page.getByText(/Demo internal operator · operator@filone.test/),
   ).toBeVisible();
   await page
     .getByRole("textbox", { name: /Assisted-mode reason/ })

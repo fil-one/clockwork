@@ -107,7 +107,13 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "add_certificate",
     "record_supplier_document",
   ]),
-  price_books: new Set(["create", "add_rate", "activate", "retire"]),
+  price_books: new Set([
+    "create",
+    "add_rate",
+    "request_activation",
+    "activate",
+    "retire",
+  ]),
   quotes: new Set([
     "create",
     "price",

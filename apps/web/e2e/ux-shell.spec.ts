@@ -51,7 +51,7 @@ async function openDashboard(
     "true",
   );
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Good afternoon",
+    "Welcome back",
   );
 }
 

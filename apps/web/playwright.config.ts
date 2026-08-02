@@ -15,13 +15,29 @@ const artifactRoot = path.resolve(
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 const releaseShard = Boolean(process.env.CLOCKWORK_RELEASE_SHARD);
 if (
-  process.env.CLOCKWORK_RELEASE_SHARD === "ui" &&
+  (process.env.CLOCKWORK_RELEASE_SHARD === "ui" ||
+    process.env.CLOCKWORK_RELEASE_SHARD === "demo") &&
   process.platform !== "darwin"
 )
   throw new Error(
     "Release visual comparisons require the pinned Darwin runner used by the reviewed baselines.",
   );
 const workerCount = serial ? 1 : releaseShard || process.env.CI ? 2 : undefined;
+
+/**
+ * The demo password gate redirects every non-exempt path, so the demo suite
+ * cannot share a server with the suites that sign in directly, and Next refuses
+ * a second dev server in the same app directory. The demo suite therefore runs
+ * as its own shard, the way the production proof already does:
+ *
+ *   CLOCKWORK_DEMO_ACCESS_PASSWORD=<secret> \
+ *     pnpm --filter @clockwork/web exec playwright test --project=demo-chromium
+ *
+ * Without the password the suite skips and the server keeps its ordinary
+ * environment, so every other project is unaffected.
+ */
+const demoPassword = process.env.CLOCKWORK_DEMO_ACCESS_PASSWORD ?? "";
+const demoSuite = Boolean(demoPassword);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -48,21 +64,43 @@ export default defineConfig({
   },
   webServer: {
     command: `pnpm dev --hostname 127.0.0.1 --port ${port}`,
-    url: `http://127.0.0.1:${port}`,
+    url: demoSuite
+      ? `http://127.0.0.1:${port}/demo/access`
+      : `http://127.0.0.1:${port}`,
     reuseExistingServer:
       !process.env.CI && !process.env.CLOCKWORK_RELEASE_SHARD,
     timeout: 120_000,
+    ...(demoSuite
+      ? {
+          env: {
+            CLOCKWORK_DEMO_DEPLOY: "1",
+            CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
+            CLOCKWORK_EVIDENCE_ADAPTER: "demo",
+            CLOCKWORK_DEMO_ACCESS_PASSWORD: demoPassword,
+          },
+        }
+      : {}),
   },
   projects: [
     {
       name: "functional-chromium",
-      testIgnore: ["production-proof.spec.ts", "visual.spec.ts"],
+      testIgnore: [
+        "production-proof.spec.ts",
+        "visual.spec.ts",
+        "demo.spec.ts",
+      ],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "chromium",
       testMatch: "visual.spec.ts",
       dependencies: ["functional-chromium"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "demo-chromium",
+      testMatch: "demo.spec.ts",
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
     },

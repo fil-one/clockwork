@@ -147,7 +147,7 @@ function apiError(status: number, error: unknown): CommerceApiError {
     return new CommerceApiError(
       status,
       "unavailable",
-      "The commerce service is unavailable. Nothing was changed.",
+      "The commerce service is unavailable.",
     );
   return new CommerceApiError(
     status,
@@ -173,7 +173,7 @@ async function generatedCall<T>(
     throw new CommerceApiError(
       503,
       "unavailable",
-      "The commerce service could not be reached. Nothing was changed.",
+      "The commerce service could not be reached.",
     );
   }
 }

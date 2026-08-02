@@ -341,6 +341,8 @@ const actionPermissionByResource: Partial<
 };
 
 const recentAuthenticationActions = new Set([
+  "price_books:add_rate",
+  "price_books:request_activation",
   "price_books:activate",
   "price_books:retire",
   "quotes:approve_exception",

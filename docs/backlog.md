@@ -285,23 +285,30 @@ requirement in the ledger depends on them, so they carry no P0 entry.
   time. The policy inputs behind this sit under `EXT-TAX-01`, but the sweep, the
   status transition, and the re-collection prompt are repository work and do not
   belong behind a gate row.
-- `supportedMoney` in `packages/integrations/src/core/stripe/webhooks.ts:261`
-  coalesces `amount`, `amount_paid`, `amount_due`, `total`, and `amount_total`
-  into one scalar `Money`. Any invoice event where `amount_paid` differs from
-  `amount_due` — underpayment, overpayment, or an installment against net terms
-  — normalizes to a single figure that carries no remainder, so nothing
-  downstream can distinguish a short payment from a settled invoice. No
-  `amountRemaining` or partially-paid state exists anywhere outside generated
-  code, and no test in the repository exercises a partial payment.
-- Following from the entry above, `collectionCases` in
-  `packages/db/src/schema/core/finance.ts:809` admits only `open`, `promised`,
-  `escalated`, `resolved`, and `written_off`, and the only registered
-  collections handlers are the scheduled `core.collections.dunning.v1` and
-  `core.collections.partner-credit.v1` in
-  `packages/workflows/src/core/outbox-handlers.ts`. No payment event updates a
-  case, so whether a part-paid invoice keeps dunning at its full amount depends
-  on what the scheduled sweep re-reads. The intended behaviour for a partly
-  settled case is undecided rather than implemented.
+- **Partial payment normalization `[RESOLVED]`:** invoice-category events now
+  carry `amountDue`, `amountPaid`, and `amountRemaining` beside the coalesced
+  `amount`, which keeps its previous meaning, and inbox rows written before the
+  totals existed still parse. `invoices` carries `amount_paid_minor` and the
+  stored generated `amount_remaining_minor`
+  (`supabase/migrations/001340_invoice_partial_payments.sql`), and the Stripe
+  projection advances the settled amount under the existing per-row watermark
+  instead of rejecting any figure other than the full total. Evidence:
+  `packages/integrations/src/core/stripe/webhooks.test.ts`,
+  `packages/db/src/repositories/system/partial-payments.integration.test.ts`
+  (underpayment, installments, overpayment, replay, late arrival, and a totals
+  invariant that dead-letters), and
+  `supabase/tests/1340_invoice_partial_payments.test.sql`.
+- **Part-paid collection cases `[RESOLVED]`:** the status vocabulary is
+  unchanged; "partially paid" is derived from an `open` invoice with a settled
+  amount above zero. Full settlement resolves an `open`, `promised`, or
+  `escalated` case inside the same projection transaction that records the
+  money, appending one `collectionActions` row attributed to the case owner and
+  no more on replay. A partial payment leaves the case and its aging alone, and
+  the dunning sweep chases the remainder rather than the original total,
+  skipping invoices with nothing outstanding. Evidence:
+  `packages/db/src/repositories/system/partial-payments.integration.test.ts`,
+  `packages/db/src/repositories/workflows/core-schedules.integration.test.ts`,
+  and the collections cases in `packages/workflows/src/core/engine.test.ts`.
 
 ### Cost of operation
 
@@ -312,17 +319,29 @@ matters because steady-state engineering cost, not vendor spend, dominates the
 cost of running this platform. Each names the verified present state rather than
 a desired capability.
 
-- **Price-book activation has no wired path.** `recordPriceBookActivation` in
-  `packages/db/src/repositories/core/finance.ts:128` writes
-  `priceBookActivationEvents` and has no caller anywhere outside its own
-  definition. No route in `packages/api/src/routes` accepts a price-book write,
-  and `PriceBookAdministration` in
-  `apps/web/src/features/internal-ops/administration-safety/price-books.tsx`
-  ends at "Activation not submitted … activate through the authorized pricing
-  workflow", which does not exist in this repository. A price change is the most
-  frequent commerce configuration change there is, and today every one of them
-  requires an engineer. Wire finance-approved activation end to end, keeping the
-  existing review, floor revalidation, and two-authority checks. Spec §9.
+- **Price-book activation `[RESOLVED]`.** Finance activates a price book from
+  `/internal/price-books` without an engineer. One finance approver proposes an
+  activation with a reason, a second decides it, and the persisted `approvals`
+  row carries both identities under the `approvals_two_person_check` constraint
+  that forbids them being the same person. Activation runs the domain
+  `activatePriceBook`, so floors, currency, duplicate SKU and region, version
+  uniqueness, and the effective date are revalidated against persisted truth,
+  and the incumbent version of that currency is retired in the same transaction
+  that activates its successor. `recordPriceBookActivation` is called on every
+  transition and is no longer a definition without a caller. `add_rate` was
+  allowlisted by the route while the repository rejected it as unsupported; it
+  now inserts a rate card into a draft only when the resulting book still passes
+  the guardrails whole. Two facts were blocking the path beneath the TypeScript:
+  `price_books` row policies admit the service connection alone, so writes run
+  there like the commitment ledger already does, and finance now holds a narrow
+  read on drafts (`supabase/migrations/001360_price_book_activation_write.sql`);
+  and the book carried only its published version number, which never moves, so
+  it now also carries `row_version` for the audit chain and for
+  `expectedVersion` conflict handling. Signed price content stays behind
+  EXT-COMMERCIAL-01. Evidence:
+  `packages/db/src/repositories/core/price-books.integration.test.ts`,
+  `supabase/tests/1360_price_book_activation.test.sql`, and
+  `apps/web/src/features/internal-ops/price-books/server-price-book-loader.test.ts`.
 - **No operator surface for outbox and dead-letter recovery.** Dead-letter state
   is persisted and queryable in `packages/db/src/repositories/system/outbox.ts`,
   `packages/db/src/repositories/workflows/lifecycle.ts`, and

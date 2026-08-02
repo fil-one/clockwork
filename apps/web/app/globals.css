@@ -166,7 +166,9 @@ input {
   border: 1px solid transparent;
   border-radius: 50%;
   background: transparent;
+  padding: 0;
   color: var(--web-ink);
+  font-family: inherit;
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -176,8 +178,7 @@ input {
     transform 160ms ease;
 }
 .icon-action:hover,
-.utility-menu[open] > .icon-action,
-.utility-menu[open] > .avatar {
+.utility-menu > .avatar[aria-expanded="true"] {
   border-color: var(--web-line);
   background: var(--web-canvas);
 }
@@ -205,14 +206,6 @@ input {
 }
 .utility-menu {
   position: relative;
-}
-.utility-menu > summary {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  list-style: none;
-}
-.utility-menu > summary::-webkit-details-marker {
-  display: none;
 }
 .utility-popover {
   position: absolute;

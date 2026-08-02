@@ -125,22 +125,28 @@ export class CoreFinanceRepository {
     return profile;
   }
 
+  /**
+   * The evidence row always lands. An audit is appended only for a book the
+   * calling mutation does not already audit itself, so a single activation
+   * never claims one aggregate version twice.
+   */
   public async recordPriceBookActivation(
     input: typeof priceBookActivationEvents.$inferInsert,
-    audit: CoreMutationAudit,
+    audit?: CoreMutationAudit,
   ) {
     const [event] = await this.transaction
       .insert(priceBookActivationEvents)
       .values(input)
       .returning();
     if (!event) throw new Error("Price book activation was not recorded");
-    await appendMutation(this.transaction, audit, {
-      priceBookId: event.priceBookId,
-      action: event.action,
-      resultingStatus: event.resultingStatus,
-      effectiveAt: event.effectiveAt.toISOString(),
-      activationEventId: event.id,
-    });
+    if (audit)
+      await appendMutation(this.transaction, audit, {
+        priceBookId: event.priceBookId,
+        action: event.action,
+        resultingStatus: event.resultingStatus,
+        effectiveAt: event.effectiveAt.toISOString(),
+        activationEventId: event.id,
+      });
     return event;
   }
 

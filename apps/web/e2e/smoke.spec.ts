@@ -7,7 +7,7 @@ test("@smoke renders the customer experience and its API lane mounts", async ({
 }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Good afternoon",
+    "Welcome back",
   );
   await expect(page.getByText("Demo environment").first()).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).analyze();

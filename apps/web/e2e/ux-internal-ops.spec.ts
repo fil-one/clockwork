@@ -33,6 +33,7 @@ const INTERNAL_DESTINATIONS = [
   "Queues & approvals",
   "Renewal command",
   "Provisioning",
+  "Recovery",
   "Migrations",
   "Reports",
   "External gates",
@@ -103,8 +104,8 @@ test.describe("internal operator operations journey", () => {
     await expect(table.getByText("EXC-COL-008").first()).toBeVisible();
     // The projection carries no risk, age, or backup for these records, and the
     // surface says so instead of filling in a plausible value.
-    await expect(table.getByText("Not supplied").first()).toBeVisible();
-    await expect(table.getByText("Backup needed").first()).toBeVisible();
+    await expect(table.getByText("Not recorded").first()).toBeVisible();
+    await expect(table.getByText("No backup").first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -177,7 +178,7 @@ test.describe("internal operator operations journey", () => {
       page.getByText("The staff actor never changes."),
     ).toBeVisible();
     await expect(
-      page.getByText(/Demo internal operator · operator@clockwork.test/),
+      page.getByText(/Demo internal operator · operator@filone.test/),
     ).toBeVisible();
     await page
       .getByRole("textbox", { name: /Assisted-mode reason/ })
@@ -264,9 +265,7 @@ test.describe("finance approver journey", () => {
     ).toBeVisible();
     // Review is not a decision: the surface says so rather than implying the
     // approval was recorded.
-    await expect(
-      page.getByText("Secure decision submission required"),
-    ).toBeVisible();
+    await expect(page.getByText("No decision recorded")).toBeVisible();
   });
 
   test("labels renewal and report values by their truth state", async ({

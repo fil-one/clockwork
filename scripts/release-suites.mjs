@@ -538,6 +538,18 @@ async function runSuite(name, index, context) {
           NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "test",
         }
       : {}),
+    // The same fixture environment as `ui`, plus the deploy opt-in and an
+    // access password minted for this run. Only this shard sets them, so the
+    // `ui` shard still answers 404 at /demo and the two stay independent.
+    ...(name === "demo"
+      ? {
+          CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
+          CLOCKWORK_EVIDENCE_ADAPTER: "demo",
+          NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "test",
+          CLOCKWORK_DEMO_DEPLOY: "1",
+          CLOCKWORK_DEMO_ACCESS_PASSWORD: context.demoAccessPassword,
+        }
+      : {}),
     ...(name === "proof"
       ? {
           NODE_ENV: "production",
@@ -1127,7 +1139,11 @@ async function main() {
       frozenInstallVerified = true;
       installationMode = "detached-clean-worktrees";
       fetchWorkspaceIsolation = "detached-clean-worktree";
-      if (names.some((name) => name === "ui" || name === "proof")) {
+      if (
+        names.some(
+          (name) => name === "ui" || name === "demo" || name === "proof",
+        )
+      ) {
         const browserWorkspace = workspaces.values().next().value;
         const browserInstall = await runCommand(
           "pnpm",
@@ -1165,6 +1181,7 @@ async function main() {
       portBase,
       runId,
       serial: mode === "serial" || hasFlag("debug"),
+      demoAccessPassword: randomBytes(32).toString("base64url"),
       proofSecret: randomBytes(32).toString("base64url"),
       providerFakePortBase,
       sourceIdentity: identity,

@@ -14,8 +14,9 @@
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=functional-chromium --project=chromium",
     "test:e2e:smoke": "playwright test --grep @smoke",
+    "test:e2e:demo": "playwright test --project=demo-chromium",
     "test:e2e:proof": "playwright test --config playwright.proof.config.ts"
   },
   "dependencies": {

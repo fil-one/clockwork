@@ -314,7 +314,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       mfaVerified: true,
       recentAuthenticationVerified: true,
       profile: isInternalStaff
-        ? { name: "Local operator", email: "operator@clockwork.test" }
+        ? { name: "Local operator", email: "operator@filone.test" }
         : { name: "Local portal user", email: "portal-user@demo.test" },
       memberships: [],
       selectedAccountId,

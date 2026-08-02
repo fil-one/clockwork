@@ -12,7 +12,7 @@ export const adminSafetyCopy = {
     reason: "Required reason",
   },
   approvals: {
-    eyebrow: "Internal operations · Safe decisions",
+    eyebrow: "Internal operations · Approvals",
     title: "Approval review",
     description:
       "Review the affected entity, evidence, policy basis, and downstream effect before recording a reasoned decision.",
@@ -30,13 +30,13 @@ export const adminSafetyCopy = {
       "Scan rate-card versions, routes, floors, and activation readiness while preserving finance authority.",
   },
   gates: {
-    eyebrow: "Administration · Activation safety",
+    eyebrow: "Administration · Activation",
     title: "External gates",
     description:
       "Operational readiness grouped by provider, legal, brand, and operations, with owners and activation evidence.",
   },
   gateVersionUnavailable:
-    "This gate has no current version to write against. Reload the register and try again; nothing was changed.",
+    "This gate has no current version to write against. Reload the register and try again.",
   assisted: {
     eyebrow: "Internal operations · Assisted mode",
     title: "Assisted account action",

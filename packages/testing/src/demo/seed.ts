@@ -1309,7 +1309,7 @@ export const pristineDemoSeed = {
       state: "unread",
       createdAt: "2026-07-31T13:00:00Z",
       title: "Your renewal notice window opens in two days",
-      route: "/client/renewals/renewal-meridian-2026",
+      route: "/dashboard",
     },
     {
       id: "notification-billing-retry",
@@ -1318,7 +1318,7 @@ export const pristineDemoSeed = {
       state: "unread",
       createdAt: "2026-07-31T14:42:00Z",
       title: "Payment needs a new authorization",
-      route: "/client/billing/invoice-meridian-overdue",
+      route: "/billing/invoice-meridian-overdue",
     },
     {
       id: "notification-reseller-clock",
@@ -1327,7 +1327,7 @@ export const pristineDemoSeed = {
       state: "unread",
       createdAt: "2026-07-31T12:00:00Z",
       title: "Partner agreement notice window opens tomorrow",
-      route: "/partner/agreements/agreement-reseller-v4",
+      route: "/partner",
     },
     {
       id: "notification-operator-recovery",
@@ -1336,7 +1336,7 @@ export const pristineDemoSeed = {
       state: "read",
       createdAt: "2026-07-31T15:20:00Z",
       title: "Cobalt provisioning is ready to retry",
-      route: "/internal/provisioning/queue-provision-cobalt",
+      route: "/internal/queues/queue-provision-cobalt",
     },
     {
       id: "notification-legal-stale",
@@ -1345,7 +1345,7 @@ export const pristineDemoSeed = {
       state: "unread",
       createdAt: "2026-07-31T15:10:00Z",
       title: "Meridian uploaded a newer customer-paper version",
-      route: "/internal/approvals/legal/queue-legal-meridian",
+      route: "/internal/queues/queue-legal-meridian",
     },
   ],
 } as const satisfies DemoSeed;

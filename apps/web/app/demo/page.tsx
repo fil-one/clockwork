@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import type { DemoPersona } from "@clockwork/testing/personas";
-import { BrandLogo, DocumentCard, StatusBadge } from "@clockwork/ui";
+import { BrandLogo, StatusBadge } from "@clockwork/ui";
 
 import {
   demoJourneyForPersona,
@@ -18,40 +18,50 @@ export const metadata = { title: "Guided demo" };
 // against the environment a build happened to run in.
 export const dynamic = "force-dynamic";
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 function PersonaCard({ persona }: { persona: DemoPersona }) {
   const journey = demoJourneyForPersona(persona.key);
   return (
-    <DocumentCard
-      title={persona.displayName}
-      type={persona.jobTitle}
-      status={
-        <StatusBadge tone={persona.isInternalStaff ? "info" : "neutral"}>
-          {demoPersonaAccountName(persona)}
-        </StatusBadge>
-      }
-      summary={
-        <dl className={styles.summary}>
-          {journey ? (
-            <div>
-              <dt>{t("demo.landing.journey")}</dt>
-              <dd>{journey.title}</dd>
-            </div>
-          ) : null}
+    <article className={styles.persona}>
+      <header className={styles.personaHead}>
+        <span className={styles.mark} aria-hidden="true">
+          {initials(persona.displayName)}
+        </span>
+        <span className={styles.identity}>
+          <h3>{persona.displayName}</h3>
+          <span className={styles.jobTitle}>{persona.jobTitle}</span>
+        </span>
+      </header>
+      <StatusBadge tone={persona.isInternalStaff ? "info" : "neutral"}>
+        {demoPersonaAccountName(persona)}
+      </StatusBadge>
+      <dl className={styles.summary}>
+        {journey ? (
           <div>
-            <dt>{t("demo.landing.intent")}</dt>
-            <dd>{persona.journeyIntent}</dd>
+            <dt>{t("demo.landing.journey")}</dt>
+            <dd>{journey.title}</dd>
           </div>
-        </dl>
-      }
-      actions={
-        <a
-          className="cw-button cw-button--primary"
-          href={`/demo/persona?persona=${persona.key}`}
-        >
-          {t("demo.landing.start", { name: persona.displayName })}
-        </a>
-      }
-    />
+        ) : null}
+        <div>
+          <dt>{t("demo.landing.intent")}</dt>
+          <dd>{persona.journeyIntent}</dd>
+        </div>
+      </dl>
+      <a
+        className="cw-button cw-button--primary"
+        href={`/demo/persona?persona=${persona.key}`}
+      >
+        {t("demo.landing.start", { name: persona.displayName })}
+      </a>
+    </article>
   );
 }
 
@@ -101,6 +111,9 @@ export default function Page() {
           (persona) => persona.isInternalStaff,
         )}
       />
+      <footer className={styles.footer}>
+        <p>{t("app.footer")}</p>
+      </footer>
     </main>
   );
 }

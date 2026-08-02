@@ -247,7 +247,15 @@ test("allows only complete loopback database configuration in shared shards", ()
 test("rejects cross-index application, provider, and database port overlaps", () => {
   assert.deepEqual(
     releasePortAllocationIssues({
-      suiteNames: ["static", "unit", "integration", "build", "ui", "proof"],
+      suiteNames: [
+        "static",
+        "unit",
+        "integration",
+        "build",
+        "ui",
+        "demo",
+        "proof",
+      ],
       portBase: 32_000,
       providerFakePortBase: 34_000,
       databasePortBase: 56_000,
@@ -423,9 +431,15 @@ test("accepts a complete passing release summary with one source identity", () =
         sourceIdentity,
         cachePolicy,
         installationPolicy,
-        results: ["static", "unit", "integration", "build", "ui", "proof"].map(
-          result,
-        ),
+        results: [
+          "static",
+          "unit",
+          "integration",
+          "build",
+          "ui",
+          "demo",
+          "proof",
+        ].map(result),
       },
       { expectedMode: "parallel" },
     ),
@@ -549,9 +563,15 @@ test("rejects a duration over budget even when the summary flag is stale", () =>
     sourceIdentity,
     cachePolicy,
     installationPolicy,
-    results: ["static", "unit", "integration", "build", "ui", "proof"].map(
-      result,
-    ),
+    results: [
+      "static",
+      "unit",
+      "integration",
+      "build",
+      "ui",
+      "demo",
+      "proof",
+    ].map(result),
   });
   assert.ok(
     issues.some(

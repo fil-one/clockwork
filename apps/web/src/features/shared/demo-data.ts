@@ -4,8 +4,8 @@ export const DEMO_NOW = new Date("2026-07-31T16:00:00Z");
 
 export const signingFixture = {
   reference: "AGR-2026-0042 · v3.2",
-  account: "Northstar Archive Labs",
-  term: "Jan 1 — Dec 31, 2026",
+  account: "Kestrel Data Works",
+  term: "Jan 1 – Dec 31, 2026",
   envelope: "env_demo_0042",
   status: "completed",
   hash: "73be9f02",
@@ -24,11 +24,11 @@ export interface DemoRecord {
 
 export const accounts = [
   {
-    id: "acct_northstar",
-    name: "Northstar Archive Labs",
+    id: "acct_kestrel",
+    name: "Kestrel Data Works",
     role: "Direct buyer",
   },
-  { id: "acct_meridian", name: "Meridian Channel Group", role: "Reseller" },
+  { id: "acct_windward", name: "Windward Channel Group", role: "Reseller" },
   { id: "acct_filone", name: "Fil One Operations", role: "Internal" },
 ] as const;
 
@@ -81,7 +81,7 @@ export const quotes: readonly DemoRecord[] = [
 export const orders: readonly DemoRecord[] = [
   {
     id: "ORD-2026-0098",
-    title: "Northstar primary archive",
+    title: "Kestrel primary archive",
     meta: "PO-NA-1048 · 500 TB · us-east · direct",
     status: "status.active",
     tone: "success",
@@ -119,7 +119,7 @@ export const pocs: readonly DemoRecord[] = [
 export const invoices: readonly DemoRecord[] = [
   {
     id: "INV-2026-0781",
-    title: "Northstar Archive Labs",
+    title: "Kestrel Data Works",
     meta: "PO-NA-1048 · ACH ending 1842 · sales tax exempt",
     status: "status.awaiting",
     tone: "warning",
@@ -127,7 +127,7 @@ export const invoices: readonly DemoRecord[] = [
   },
   {
     id: "INV-2026-0712",
-    title: "Northstar Archive Labs",
+    title: "Kestrel Data Works",
     meta: "Receipt RCPT-2026-0712 · paid Jul 3",
     status: "status.paid",
     tone: "success",
@@ -352,7 +352,7 @@ export const marketplaceRecords: readonly DemoRecord[] = [
   {
     id: "AWS-OFFER-1948",
     title: "AWS Marketplace private offer",
-    meta: "Northstar Archive Labs · fulfillment synchronized Jul 31",
+    meta: "Kestrel Data Works · fulfillment synchronized Jul 31",
     status: "status.active",
     tone: "success",
     value: "$184,800 annual",
@@ -379,7 +379,7 @@ export const supportTickets: readonly DemoRecord[] = [
   {
     id: "SUP-18421",
     title: "Restore sample timing",
-    meta: "Northstar Archive Labs · support system is source · updated 28 min ago",
+    meta: "Kestrel Data Works · support system is source · updated 28 min ago",
     status: "status.active",
     tone: "success",
     value: "Normal priority",
@@ -535,7 +535,7 @@ export const commissionRecords: readonly DemoRecord[] = [
 export const sandboxes: readonly DemoRecord[] = [
   {
     id: "SBX-2026-014",
-    title: "Meridian presales lab",
+    title: "Windward presales lab",
     meta: "10 TB · us-east · named keys · expires Aug 31",
     status: "status.active",
     tone: "success",
@@ -646,7 +646,7 @@ export const reportRecords: readonly DemoRecord[] = [
 export const migrationRecords: readonly DemoRecord[] = [
   {
     id: "MIG-2026-0038",
-    title: "Northstar Labs / Northstar Archive Labs",
+    title: "Kestrel Works / Kestrel Data Works",
     meta: "Legal name differs · Stripe customer and domain agree",
     status: "status.review",
     tone: "warning",

@@ -12,6 +12,7 @@ import type { AuthorizationContext } from "@clockwork/domain";
 import {
   accrueCommission,
   acceptOrder,
+  activatePriceBook,
   approveQuoteException,
   createAmendment,
   createQuoteDraft,
@@ -27,6 +28,7 @@ import {
   registerDeal,
   redactPartnerQuoteData,
   validateCommitmentContract,
+  validatePriceBook,
 } from "@clockwork/domain/core";
 import type {
   AccountCommercialRecord,
@@ -42,6 +44,7 @@ import {
   accounts,
   agreements,
   amendments,
+  approvals,
   commerceUsers,
   commissionAccruals,
   commitmentEntries,
@@ -101,7 +104,11 @@ import {
   replayCommitmentLedger,
   type LedgerTrailCorrection,
 } from "./commitments";
-import { CoreFinanceRepository, coreSnapshotHash } from "./finance";
+import {
+  CoreFinanceRepository,
+  coreSnapshotHash,
+  type CoreMutationAudit,
+} from "./finance";
 import { z } from "zod";
 
 type JsonRecord = Record<string, unknown>;
@@ -574,6 +581,35 @@ const DisputeCreateCommandSchema = z
   .strict();
 const DunningCommandSchema = z.object({}).strict();
 
+/** Signed price content arrives under EXT-COMMERCIAL-01; this carries it. */
+const RateCardCommandSchema = z
+  .object({
+    id: z.uuid().optional(),
+    sku: z.string().min(1).max(80),
+    region: z.string().min(1).max(80),
+    unit: z.string().min(1).max(40),
+    approvedClaim: z.string().min(1).max(500),
+    unitPrice: MoneySchema,
+    floorPrice: MoneySchema.optional(),
+    overageRate: MoneySchema,
+    minimumQuantity: z.string().regex(/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/),
+    trialLimit: z
+      .string()
+      .regex(/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/)
+      .optional(),
+    egressTreatment: z.string().min(1).max(40),
+    commitType: z.enum(["period_allowance", "term_drawdown"]),
+    stripeTaxCode: z.string().min(1).max(80),
+    qboIncomeAccount: z.string().min(1).max(120),
+    partnerTransferPrices: z.record(z.string(), MoneySchema).default({}),
+  })
+  .strict();
+
+/** Every price-book decision is reason-bound; the reason reaches the audit. */
+const PriceBookDecisionCommandSchema = z
+  .object({ reason: z.string().min(8).max(1_000) })
+  .strict();
+
 /** Canonical numeric(38,18) quantity strings; never a float. */
 const QuantitySchema = z.string().regex(/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/);
 const SignedQuantitySchema = z
@@ -1034,6 +1070,21 @@ function authorization(input: {
     roles: input.authorization.roles,
     isInternalStaff: input.authorization.isInternalStaff,
     requestId: input.requestId ?? uuidV7(),
+  };
+}
+
+function priceBookAudit(
+  input: CoreMutation,
+  book: { id: string; rowVersion: number },
+  eventType: string,
+): CoreMutationAudit {
+  return {
+    aggregateType: "price_book",
+    aggregateId: book.id,
+    aggregateVersion: book.rowVersion,
+    eventType,
+    actor: input.actor,
+    requestId: input.requestId,
   };
 }
 
@@ -1590,7 +1641,11 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     // not writable by the tenant runtime role. Metering runs on the service
     // connection; the account binding of every commitment command is checked
     // against persisted order ownership rather than left to row policies.
-    return input.resource === "commitments"
+    // A price book belongs to no account, so its row policies admit the service
+    // connection alone and there is no ownership for a row policy to check.
+    // Finance authority, the two-authority record, and the pricing guardrails
+    // carry the authorization instead, every one of them before any write.
+    return input.resource === "commitments" || input.resource === "price_books"
       ? withInternalTransaction(this.options.database, input.requestId, run)
       : withAuthorizedTransaction(
           this.options.database,
@@ -2597,32 +2652,359 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     });
     if (!prior)
       throw new CoreServiceError("NOT_FOUND", "Price book was not found");
-    const status =
-      input.action === "activate"
-        ? "active"
-        : input.action === "retire"
-          ? "retired"
-          : undefined;
-    if (!status)
+    if (
+      input.expectedVersion !== undefined &&
+      input.expectedVersion !== prior.rowVersion
+    )
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Price book changed since it was read",
+      );
+    if (input.action === "add_rate")
+      return this.addPriceBookRate(transaction, input, prior);
+    if (input.action === "request_activation")
+      return this.requestPriceBookActivation(transaction, input, prior);
+    if (input.action === "activate")
+      return this.activatePersistedPriceBook(transaction, input, prior);
+    if (input.action !== "retire")
       throw new CoreServiceError(
         "INVALID_STATE",
         "Unsupported price book action",
       );
-    if (
-      prior.status !== "draft" &&
-      !(prior.status === "active" && status === "retired")
-    )
+    assertFinanceApproval(input);
+    const command = PriceBookDecisionCommandSchema.parse(input.payload);
+    if (prior.status !== "active")
       throw new CoreServiceError(
         "INVALID_STATE",
-        "Invalid price book transition",
+        "Only an active price book can be retired",
       );
     const [row] = await transaction
       .update(priceBooks)
-      .set({ status })
-      .where(eq(priceBooks.id, prior.id))
+      .set({ status: "retired", effectiveTo: input.occurredAt.slice(0, 10) })
+      .where(
+        and(
+          eq(priceBooks.id, prior.id),
+          eq(priceBooks.status, prior.status),
+          eq(priceBooks.rowVersion, prior.rowVersion),
+        ),
+      )
       .returning();
-    if (!row) throw new Error("Price book update returned no row");
+    if (!row)
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Price book was retired concurrently",
+      );
+    await new CoreFinanceRepository(transaction).recordPriceBookActivation({
+      priceBookId: row.id,
+      action: "retire",
+      previousStatus: prior.status,
+      resultingStatus: row.status,
+      effectiveAt: new Date(input.occurredAt),
+      actorUserId: input.authorization.userId,
+      reason: command.reason,
+      requestId: input.requestId,
+    });
     return audited(transaction, input, coreRecord("price_books", row), prior);
+  }
+
+  /** Advances the book's concurrency counter when only its contents changed. */
+  private async touchPriceBook(
+    transaction: RuntimeTransaction,
+    prior: typeof priceBooks.$inferSelect,
+  ) {
+    const [row] = await transaction
+      .update(priceBooks)
+      .set({ updatedAt: new Date() })
+      .where(
+        and(
+          eq(priceBooks.id, prior.id),
+          eq(priceBooks.rowVersion, prior.rowVersion),
+        ),
+      )
+      .returning();
+    if (!row)
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Price book changed during this command",
+      );
+    return row;
+  }
+
+  /**
+   * A rate card is signed price content, so it may only join a draft book and
+   * only if the resulting book still passes the pricing guardrails whole.
+   */
+  private async addPriceBookRate(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    prior: typeof priceBooks.$inferSelect,
+  ) {
+    assertFinanceApproval(input);
+    const command = RateCardCommandSchema.parse(input.payload);
+    if (prior.status !== "draft")
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Rate cards may only be added to a draft price book",
+      );
+    const book = await serverPriceBook(transaction, prior.id);
+    const candidate = {
+      id: command.id ?? uuidV7(),
+      sku: command.sku,
+      region: command.region,
+      unit: command.unit,
+      approvedClaim: command.approvedClaim,
+      unitPrice: command.unitPrice,
+      ...(command.floorPrice ? { floorPrice: command.floorPrice } : {}),
+      overageRate: command.overageRate,
+      minimumQuantity: command.minimumQuantity,
+      ...(command.trialLimit ? { trialLimit: command.trialLimit } : {}),
+      egressTreatment: command.egressTreatment,
+      commitType: command.commitType,
+      stripeTaxCode: command.stripeTaxCode,
+      qboIncomeAccount: command.qboIncomeAccount,
+      partnerTransferPrices: command.partnerTransferPrices,
+    };
+    try {
+      validatePriceBook({
+        ...book,
+        rateCards: [...book.rateCards, candidate],
+      });
+    } catch (error) {
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        error instanceof Error ? error.message : "Rate card is invalid",
+      );
+    }
+    const [row] = await transaction
+      .insert(rateCards)
+      .values({
+        id: candidate.id,
+        priceBookId: prior.id,
+        sku: candidate.sku,
+        region: candidate.region,
+        unit: candidate.unit,
+        approvedClaim: candidate.approvedClaim,
+        unitPriceMinor: BigInt(candidate.unitPrice.minor),
+        floorPriceMinor: candidate.floorPrice
+          ? BigInt(candidate.floorPrice.minor)
+          : null,
+        overageRateMinor: BigInt(candidate.overageRate.minor),
+        minimumQuantity: candidate.minimumQuantity,
+        trialLimit: candidate.trialLimit ?? null,
+        egressTreatment: candidate.egressTreatment,
+        commitType: candidate.commitType,
+        stripeTaxCode: candidate.stripeTaxCode,
+        qboIncomeAccount: candidate.qboIncomeAccount,
+        partnerTransferPrices: candidate.partnerTransferPrices,
+      })
+      .returning();
+    if (!row) throw new Error("Rate card insert returned no row");
+    const touched = await this.touchPriceBook(transaction, prior);
+    return audited(
+      transaction,
+      input,
+      coreRecord("price_books", { ...touched, addedRateCardId: row.id }),
+      prior,
+    );
+  }
+
+  /**
+   * Activation is a two-authority decision. The request records who proposed
+   * it; a second finance approver decides it. The persisted approval carries
+   * both identities and the database refuses to let them be the same person.
+   */
+  private async requestPriceBookActivation(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    prior: typeof priceBooks.$inferSelect,
+  ) {
+    assertFinanceApproval(input);
+    const command = PriceBookDecisionCommandSchema.parse(input.payload);
+    if (prior.status !== "draft")
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Only a draft price book can be proposed for activation",
+      );
+    const book = await serverPriceBook(transaction, prior.id);
+    try {
+      validatePriceBook(book);
+    } catch (error) {
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        error instanceof Error ? error.message : "Price book is invalid",
+      );
+    }
+    const pending = await transaction.query.approvals.findFirst({
+      where: and(
+        eq(approvals.action, "price_book_activation"),
+        eq(approvals.objectId, prior.id),
+        eq(approvals.status, "pending"),
+      ),
+    });
+    if (pending)
+      throw new CoreServiceError(
+        "DUPLICATE",
+        "This price book already awaits a second approver",
+      );
+    const [approval] = await transaction
+      .insert(approvals)
+      .values({
+        id: input.id === prior.id ? uuidV7() : input.id,
+        action: "price_book_activation",
+        objectType: "price_book",
+        objectId: prior.id,
+        requestedBy: input.authorization.userId,
+        status: "pending",
+        requestedAt: new Date(input.occurredAt),
+      })
+      .returning();
+    if (!approval)
+      throw new Error("Price book approval insert returned no row");
+    await new CoreFinanceRepository(transaction).recordPriceBookActivation({
+      priceBookId: prior.id,
+      action: "schedule",
+      previousStatus: prior.status,
+      resultingStatus: prior.status,
+      effectiveAt: new Date(`${prior.effectiveFrom}T00:00:00.000Z`),
+      actorUserId: input.authorization.userId,
+      reason: command.reason,
+      requestId: input.requestId,
+    });
+    const touched = await this.touchPriceBook(transaction, prior);
+    return audited(
+      transaction,
+      input,
+      coreRecord("price_books", {
+        ...touched,
+        activationApprovalId: approval.id,
+        activationRequestedBy: approval.requestedBy,
+      }),
+      prior,
+    );
+  }
+
+  private async activatePersistedPriceBook(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    prior: typeof priceBooks.$inferSelect,
+  ) {
+    assertFinanceApproval(input);
+    const command = PriceBookDecisionCommandSchema.parse(input.payload);
+    const request = await transaction.query.approvals.findFirst({
+      where: and(
+        eq(approvals.action, "price_book_activation"),
+        eq(approvals.objectId, prior.id),
+        eq(approvals.status, "pending"),
+      ),
+    });
+    if (!request)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Activation requires a pending request from another finance approver",
+      );
+    if (request.requestedBy === input.authorization.userId)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "The approver of an activation cannot be the person who requested it",
+      );
+    const currencyBooks = await transaction.query.priceBooks.findMany({
+      where: eq(priceBooks.currency, prior.currency),
+    });
+    const allBooks = await Promise.all(
+      currencyBooks.map((row) => serverPriceBook(transaction, row.id)),
+    );
+    const candidate = allBooks.find((book) => book.id === prior.id);
+    if (!candidate) throw new Error("Price book candidate was not loaded");
+    let decision;
+    try {
+      decision = activatePriceBook({
+        candidate,
+        allBooks,
+        actorId: input.authorization.userId,
+        occurredAt: input.occurredAt,
+      });
+    } catch (error) {
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        error instanceof Error ? error.message : "Price book cannot activate",
+      );
+    }
+    const repository = new CoreFinanceRepository(transaction);
+    const effectiveAt = new Date(input.occurredAt);
+    // One active book per currency is a partial unique index, so the retirement
+    // the domain decided has to land before the activation it makes room for.
+    let activated: typeof priceBooks.$inferSelect | undefined;
+    for (const change of [
+      ...decision.audits.filter((audit) => audit.action === "retired"),
+      ...decision.audits.filter((audit) => audit.action === "activated"),
+    ]) {
+      const retiring = change.action === "retired";
+      const [row] = await transaction
+        .update(priceBooks)
+        .set({
+          status: retiring ? "retired" : "active",
+          ...(retiring
+            ? { effectiveTo: input.occurredAt.slice(0, 10) }
+            : { effectiveTo: null }),
+        })
+        .where(
+          and(
+            eq(priceBooks.id, change.priceBookId),
+            eq(priceBooks.status, change.beforeStatus),
+          ),
+        )
+        .returning();
+      if (!row)
+        throw new CoreServiceError(
+          "VERSION_CONFLICT",
+          "A price book in this currency changed during activation",
+        );
+      if (!retiring) activated = row;
+      // The activated book is audited by the command itself. A book retired to
+      // make room for it is not, so its transition carries its own audit.
+      await repository.recordPriceBookActivation(
+        {
+          priceBookId: row.id,
+          action: retiring ? "retire" : "activate",
+          previousStatus: change.beforeStatus,
+          resultingStatus: row.status,
+          effectiveAt,
+          actorUserId: input.authorization.userId,
+          reason: command.reason,
+          requestId: input.requestId,
+        },
+        retiring ? priceBookAudit(input, row, "price_book.retired") : undefined,
+      );
+    }
+    if (!activated) throw new Error("Price book activation produced no row");
+    const [decided] = await transaction
+      .update(approvals)
+      .set({
+        approvedBy: input.authorization.userId,
+        status: "approved",
+        decidedAt: effectiveAt,
+      })
+      .where(and(eq(approvals.id, request.id), eq(approvals.status, "pending")))
+      .returning();
+    if (!decided)
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "The activation request was decided concurrently",
+      );
+    return audited(
+      transaction,
+      input,
+      coreRecord("price_books", {
+        ...activated,
+        activationApprovalId: decided.id,
+        activationRequestedBy: decided.requestedBy,
+        activationApprovedBy: decided.approvedBy,
+        retiredPriceBookIds: decision.audits
+          .filter((audit) => audit.action === "retired")
+          .map((audit) => audit.priceBookId),
+      }),
+      prior,
+    );
   }
 
   private assertQuoteCommercialContext(
@@ -4130,6 +4512,10 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         now: input.occurredAt,
         firstThresholdDays: 7,
         secondThresholdDays: 30,
+        outstanding: parsedMoney(
+          invoice.currency,
+          invoice.amountRemainingMinor.toString(),
+        ),
         ...(maximumRetentionAt
           ? { maximumRetentionAt: maximumRetentionAt.toISOString() }
           : {}),
@@ -4251,9 +4637,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     });
     try {
       creditAmount({
+        // An open invoice can only be credited down to what is still owed; a
+        // paid invoice is creditable against its full settled total.
         invoiceRemaining: parsedMoney(
           invoice.currency,
-          invoice.amountMinor.toString(),
+          (invoice.status === "open"
+            ? invoice.amountRemainingMinor
+            : invoice.amountMinor
+          ).toString(),
         ),
         requested: command.amount,
         alreadyRefundedOrCredited: parsedMoney(
@@ -4712,6 +5103,34 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
               .orderBy(asc(accounts.id))
               .limit(input.limit + 1);
             break;
+          // A price book belongs to no account. Reads are internal-only and
+          // carry the rate-card count the activation surface scans on.
+          case "price_books": {
+            if (!input.authorization.isInternalStaff)
+              throw new CoreServiceError(
+                "INVALID_STATE",
+                "Price book reads require internal staff",
+              );
+            rows = await transaction
+              .select({
+                id: priceBooks.id,
+                name: priceBooks.name,
+                currency: priceBooks.currency,
+                effectiveFrom: priceBooks.effectiveFrom,
+                effectiveTo: priceBooks.effectiveTo,
+                status: priceBooks.status,
+                version: priceBooks.version,
+                createdAt: priceBooks.createdAt,
+                rateCardCount: sql<number>`count(${rateCards.id})::int`,
+              })
+              .from(priceBooks)
+              .leftJoin(rateCards, eq(rateCards.priceBookId, priceBooks.id))
+              .where(whereId)
+              .groupBy(priceBooks.id)
+              .orderBy(asc(priceBooks.id))
+              .limit(input.limit + 1);
+            break;
+          }
           case "quotes":
             rows = await transaction
               .select()

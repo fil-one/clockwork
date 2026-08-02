@@ -208,7 +208,7 @@ describe("WorkOS commerce session mapping", () => {
     await expect(getCommerceSession()).resolves.toMatchObject({
       authenticationSource: "local",
       providerBacked: false,
-      profile: { email: "operator@clockwork.test" },
+      profile: { email: "operator@filone.test" },
     });
   });
 

@@ -218,11 +218,10 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
             title={`${decision === "approved" ? "Approval" : "Rejection"} review summary`}
           />
           <section className={styles.handoff} role="note">
-            <strong>Secure decision submission required</strong>
+            <strong>No decision recorded</strong>
             <p>
-              This review has not recorded an approval or rejection. Continue in
-              the authorized server workflow, where authority, actor separation,
-              evidence, retention, and policy gates are revalidated.
+              Continue in the authorized workflow, where authority, actor
+              separation, evidence, retention, and policy gates are revalidated.
             </p>
           </section>
         </>

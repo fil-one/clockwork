@@ -37,7 +37,8 @@ acknowledged. Replay never bypasses that boundary.
 
 ### Stripe and core financial providers
 
-Use the internal replay action backed by
+Replay from `/internal/webhook-replay`, which lists the stopped callbacks and
+takes the reason with the decision. It is backed by
 `POST /v1/core/replays/{provider}/{eventId}`. The route requires
 `system:operate` and recent authentication and idempotently returns its workflow
 run. The processor reads the stored verified event; it does not accept amended

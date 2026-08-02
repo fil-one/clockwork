@@ -35,12 +35,12 @@ export const demoJourneys = {
     title: "Direct buyer reviews and accepts a renewal",
     steps: [
       {
-        route: "/client/dashboard",
+        route: "/dashboard",
         intent: "Open the renewal action from the account overview.",
         expectedFixtureId: "renewal-meridian-2026",
       },
       {
-        route: "/client/quotes/quote-direct-renewal-v2",
+        route: "/quotes/quote-direct-renewal-v2",
         intent: "Review the issued version and proceed to acceptance.",
         expectedFixtureId: demoIds.quotes.directRenewal,
       },
@@ -51,12 +51,12 @@ export const demoJourneys = {
     title: "Referral partner responds to a deal-registration dispute",
     steps: [
       {
-        route: "/partner/deals",
+        route: "/partner/registrations",
         intent: "Locate the protected deal whose attribution is disputed.",
         expectedFixtureId: "deal-northstar-lumen",
       },
       {
-        route: "/partner/deals/deal-northstar-lumen",
+        route: "/partner/disputes",
         intent: "Review the decision clock and dispute owner.",
         expectedFixtureId: "deal-northstar-lumen",
       },
@@ -99,7 +99,7 @@ export const demoJourneys = {
     title: "End client reviews usage without partner commercials",
     steps: [
       {
-        route: "/client/services/service-referral-end-client",
+        route: "/services",
         intent: "Review service usage and term dates.",
         expectedFixtureId: demoIds.services.endClient,
       },
@@ -110,12 +110,12 @@ export const demoJourneys = {
     title: "Billing user recovers an overdue payment",
     steps: [
       {
-        route: "/client/billing/invoice-meridian-overdue",
+        route: "/billing/invoice-meridian-overdue",
         intent: "Review the failed ACH attempt and choose recovery.",
         expectedFixtureId: "payment-meridian-failed",
       },
       {
-        route: "/client/billing/invoice-meridian-paid",
+        route: "/billing/invoice-meridian-paid",
         intent: "Download the deterministic paid-invoice receipt.",
         expectedFixtureId: "payment-meridian-paid",
       },
@@ -126,7 +126,7 @@ export const demoJourneys = {
     title: "Legal approver handles a stale customer-paper review",
     steps: [
       {
-        route: "/internal/approvals/legal/queue-legal-meridian",
+        route: "/internal/queues/queue-legal-meridian",
         intent: "Restore focus to the newer document version before deciding.",
         expectedFixtureId: "queue-legal-meridian",
       },
@@ -137,7 +137,7 @@ export const demoJourneys = {
     title: "Finance approver decides a below-floor quote",
     steps: [
       {
-        route: "/internal/approvals/finance/queue-price-harborline",
+        route: "/internal/queues/queue-price-harborline",
         intent: "Review annual value, floor variance, and decision deadline.",
         expectedFixtureId: "queue-price-harborline",
       },
@@ -148,12 +148,12 @@ export const demoJourneys = {
     title: "Internal operator retries provisioning in assisted mode",
     steps: [
       {
-        route: "/internal/provisioning/queue-provision-cobalt",
+        route: "/internal/queues/queue-provision-cobalt",
         intent: "Enter assisted mode and record a retry reason.",
         expectedFixtureId: "queue-provision-cobalt",
       },
       {
-        route: "/internal/accounts/cobalt-orchard/timeline",
+        route: "/internal/accounts/cobalt-orchard",
         intent: "Verify actual and effective actors on the account timeline.",
         expectedFixtureId: "timeline-cobalt-1",
       },

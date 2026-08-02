@@ -9,7 +9,7 @@ export const internalOpsCopy = {
     eyebrow: "Internal operations",
     title: "Operational health",
     description:
-      "Act on the exceptions that can affect customers, cash, or service delivery. Monitoring signals are separated from work that needs a decision.",
+      "Act on the exceptions that can affect customers, cash, or service delivery.",
     refreshed: "Operational snapshot refreshed 4 minutes ago",
     actionHeading: "Recommended actions",
     actionDescription:

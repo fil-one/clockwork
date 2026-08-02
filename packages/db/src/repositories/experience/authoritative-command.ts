@@ -24,6 +24,13 @@ import {
   databaseCoreResourceNames,
   type DatabaseCoreResourceName,
 } from "../core";
+import {
+  DatabaseDeadLetterRecoveryStore,
+  DeadLetterRecoveryError,
+  deadLetterSources,
+  type DeadLetterOperation,
+  type DeadLetterSource,
+} from "../system/dead-letter";
 import { DatabaseAuthoritativeStateLoader } from "./authoritative-state";
 
 const resourceByAggregate = {
@@ -576,5 +583,241 @@ export class DatabaseAuthoritativePortalCommandExecutor {
       }
       throw error;
     }
+  }
+}
+
+const SystemRecoveryInputSchema = z
+  .object({
+    action: z.enum(["retry", "abandon"]),
+    source: z.enum(deadLetterSources),
+    id: z.uuid(),
+    reason: z.string().trim().min(8).max(500),
+    actor: ActorSchema,
+    mfaVerified: z.boolean(),
+    recentAuthenticationVerified: z.boolean(),
+    authorizationCreatedAt: z.iso.datetime({ offset: true }),
+    idempotencyKey: z.string().min(16).max(255),
+    requestId: z.string().min(8).max(255),
+  })
+  .strict();
+
+export type DatabaseSystemRecoveryResult =
+  | { ok: true; operation: DeadLetterOperation; replayed: boolean }
+  | { ok: false; code: string; retryable: boolean };
+
+/**
+ * Operator recovery for work that has stopped.
+ *
+ * Stopped work is system-scoped: an outbox message may carry no account, a
+ * workflow run has none at all, and no assisted session can stand in for one.
+ * So this reloads internal-staff identity and checks `system:operate` without
+ * an account binding, rather than reusing the account-scoped portal path above.
+ * Everything else is the same contract: freshly re-read roles, recent
+ * authentication, a reason long enough to be evidence, one idempotency record
+ * per decision, and an audit event written with the state change.
+ */
+export class DatabaseSystemRecoveryCommandExecutor {
+  private readonly recovery: DatabaseDeadLetterRecoveryStore;
+  private readonly now: () => Date;
+
+  public constructor(input: { database: RuntimeDatabase; now?: () => Date }) {
+    this.database = input.database;
+    this.now = input.now ?? (() => new Date());
+    this.recovery = new DatabaseDeadLetterRecoveryStore(
+      input.database,
+      this.now,
+    );
+  }
+
+  private readonly database: RuntimeDatabase;
+
+  private internalAuthorization(input: {
+    actorUserId: string;
+    mfaVerified: boolean;
+    recentAuthenticationVerified: boolean;
+    requestId: string;
+  }): Promise<AuthorizationContext | null> {
+    return withInternalTransaction(
+      this.database,
+      `${input.requestId}:authorization`,
+      async (transaction) => {
+        const rows = await transaction.execute(sql`
+          select app_user.id, app_user.email, app_user.is_internal_staff,
+                 coalesce(
+                   jsonb_agg(distinct membership.role)
+                     filter (where membership.role is not null),
+                   '[]'::jsonb
+                 ) as roles,
+                 '[]'::jsonb as account_ids
+          from public.commerce_users app_user
+          left join public.memberships membership
+            on membership.user_id = app_user.id
+          where app_user.id = ${input.actorUserId}::uuid
+          group by app_user.id, app_user.email, app_user.is_internal_staff
+        `);
+        const identity = IdentityRowSchema.safeParse(rows[0]);
+        if (
+          !identity.success ||
+          !identity.data.is_internal_staff ||
+          identity.data.roles.length === 0 ||
+          !input.recentAuthenticationVerified
+        )
+          return null;
+        const roles = [...new Set(identity.data.roles)] as Role[];
+        if (
+          roles.some((role) =>
+            privilegedRoles.includes(role as (typeof privilegedRoles)[number]),
+          ) &&
+          !input.mfaVerified
+        )
+          return null;
+        return {
+          userId: identity.data.id as AuthorizationContext["userId"],
+          accountIds: [],
+          roles,
+          isInternalStaff: true,
+          mfaVerified: input.mfaVerified,
+          recentAuthenticationVerified: input.recentAuthenticationVerified,
+        };
+      },
+    );
+  }
+
+  public async execute(input: {
+    action: "retry" | "abandon";
+    source: DeadLetterSource;
+    id: string;
+    reason: string;
+    actor: Actor;
+    mfaVerified: boolean;
+    recentAuthenticationVerified: boolean;
+    authorizationCreatedAt: string;
+    idempotencyKey: string;
+    requestId: string;
+  }): Promise<DatabaseSystemRecoveryResult> {
+    const parsed = SystemRecoveryInputSchema.safeParse(input);
+    if (!parsed.success || parsed.data.actor.kind !== "user")
+      return { ok: false, code: "SYSTEM_RECOVERY_INVALID", retryable: false };
+    const authorizationCreatedAt = Date.parse(
+      parsed.data.authorizationCreatedAt,
+    );
+    const ageMs = this.now().getTime() - authorizationCreatedAt;
+    if (
+      !Number.isFinite(authorizationCreatedAt) ||
+      ageMs > maximumAuthorizationAgeMs ||
+      ageMs < -maximumFutureClockSkewMs
+    )
+      return {
+        ok: false,
+        code: "SYSTEM_RECOVERY_AUTHORIZATION_EXPIRED",
+        retryable: false,
+      };
+    const authorization = await this.internalAuthorization({
+      actorUserId: parsed.data.actor.id,
+      mfaVerified: parsed.data.mfaVerified,
+      recentAuthenticationVerified: parsed.data.recentAuthenticationVerified,
+      requestId: parsed.data.requestId,
+    });
+    if (!authorization)
+      return {
+        ok: false,
+        code: "SYSTEM_RECOVERY_AUTHORIZATION_REVOKED",
+        retryable: false,
+      };
+    try {
+      authorize(authorization, "system:operate");
+    } catch {
+      return {
+        ok: false,
+        code: "SYSTEM_RECOVERY_PERMISSION_REVOKED",
+        retryable: false,
+      };
+    }
+    const claim = await this.claimIdempotency(parsed.data);
+    if (claim.kind === "conflict")
+      return {
+        ok: false,
+        code: "SYSTEM_RECOVERY_IDEMPOTENCY_CONFLICT",
+        retryable: false,
+      };
+    try {
+      const operation =
+        parsed.data.action === "retry"
+          ? await this.recovery.retry({
+              source: parsed.data.source,
+              id: parsed.data.id,
+              reason: parsed.data.reason,
+              actor: authorizationActor(authorization),
+              requestId: parsed.data.requestId,
+            })
+          : await this.recovery.abandon({
+              source: parsed.data.source,
+              id: parsed.data.id,
+              reason: parsed.data.reason,
+              actor: authorizationActor(authorization),
+              requestId: parsed.data.requestId,
+            });
+      return { ok: true, operation, replayed: false };
+    } catch (error) {
+      if (error instanceof DeadLetterRecoveryError)
+        return { ok: false, code: error.code, retryable: false };
+      throw error;
+    }
+  }
+
+  /**
+   * One decision per key. The record is written before the decision so a crash
+   * between the two cannot present as a fresh key on replay.
+   */
+  private claimIdempotency(input: {
+    actor: Actor;
+    action: string;
+    source: string;
+    id: string;
+    reason: string;
+    idempotencyKey: string;
+    requestId: string;
+  }): Promise<{ kind: "claimed" | "conflict" }> {
+    const requestHash = coreSnapshotHash({
+      resource: "system_recovery",
+      id: input.id,
+      accountId: null,
+      action: input.action,
+      expectedVersion: 1,
+      payload: { source: input.source, reason: input.reason },
+    });
+    return withInternalTransaction(
+      this.database,
+      `${input.requestId}:idempotency`,
+      async (transaction) => {
+        const rows = await transaction.execute(sql`
+          insert into public.lifecycle_idempotency_records (
+            owner_user_id, scope, key, request_hash, lock_token,
+            locked_until, expires_at
+          ) values (
+            ${input.actor.id}::uuid, 'system:recovery',
+            ${input.idempotencyKey}, ${requestHash}, ${crypto.randomUUID()}::uuid,
+            ${new Date(this.now().getTime() + 60_000).toISOString()}::timestamptz,
+            ${new Date(this.now().getTime() + 86_400_000).toISOString()}::timestamptz
+          )
+          on conflict (owner_user_id, scope, key) do nothing
+          returning request_hash
+        `);
+        if (rows.length > 0) return { kind: "claimed" } as const;
+        const existing = await transaction.execute(sql`
+          select request_hash
+          from public.lifecycle_idempotency_records
+          where owner_user_id = ${input.actor.id}::uuid
+            and scope = 'system:recovery'
+            and key = ${input.idempotencyKey}
+        `);
+        const prior = z
+          .object({ request_hash: z.string() })
+          .safeParse(existing[0]);
+        return prior.success && prior.data.request_hash === requestHash
+          ? ({ kind: "claimed" } as const)
+          : ({ kind: "conflict" } as const);
+      },
+    );
   }
 }

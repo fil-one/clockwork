@@ -13,7 +13,21 @@ import {
 } from "@/src/auth/demo-persona";
 import { WebVitals } from "@/src/features/performance/web-vitals";
 import { parseTraceparent } from "@/src/features/performance/client-telemetry";
-import { DemoPersonaSwitcher } from "@/src/features/shell/demo-persona-switcher";
+import {
+  DemoPersonaSwitcher,
+  type DemoJourneyView,
+} from "@/src/features/shell/demo-persona-switcher";
+import type { DemoPersonaKey } from "@clockwork/testing/personas";
+
+function demoJourneyView(persona: DemoPersonaKey): DemoJourneyView | undefined {
+  const journey = demoJourneyForPersona(persona);
+  return journey
+    ? {
+        title: journey.title,
+        steps: journey.steps.map(({ route, intent }) => ({ route, intent })),
+      }
+    : undefined;
+}
 
 const description =
   "Agreements, services, billing, and partner commerce in one dependable chain.";
@@ -75,7 +89,7 @@ export default async function RootLayout({
             )}
             current={persona.key}
             personaName={persona.displayName}
-            journey={demoJourneyForPersona(persona.key)?.title ?? ""}
+            journey={demoJourneyView(persona.key)}
           />
         ) : null}
         <WebVitals {...(traceparent ? { traceparent } : {})} />

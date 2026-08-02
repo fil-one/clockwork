@@ -46,6 +46,7 @@ export const entityNames = [
   "idempotency_record",
   "impersonation_session",
   "provider_operation",
+  "provisioning_attempt",
   "role_sync_event",
   "workflow_run",
   "external_gate",

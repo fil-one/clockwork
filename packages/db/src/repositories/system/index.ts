@@ -1,9 +1,11 @@
 export * from "./capabilities";
+export * from "./dead-letter";
 export * from "./external-gates";
 export * from "./exception-routing";
 export * from "./gate-activation-tasks";
 export * from "./outbox";
 export * from "./providers";
+export * from "./webhook-replay";
 
 import { DatabaseExternalGateService } from "./external-gates";
 import { DatabaseSystemCapabilityGuard } from "./capabilities";

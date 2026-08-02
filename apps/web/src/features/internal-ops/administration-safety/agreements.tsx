@@ -285,11 +285,11 @@ export function AgreementAdministration({
             ]}
           />
           <section className={styles.handoff} role="note">
-            <strong>Publication not submitted</strong>
+            <strong>Not published</strong>
             <p>
-              This surface completes counsel review only. Publish through the
-              authorized template workflow, where counsel authority, exact text
-              hash, approval evidence, and effective date are verified.
+              Publish through the template workflow. Counsel authority, exact
+              text hash, approval evidence, and effective date are verified
+              there.
             </p>
           </section>
         </>

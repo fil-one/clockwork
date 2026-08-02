@@ -71,7 +71,7 @@ test("member keeps read access without owner-only customer actions", async ({
   await usePersona(page, "member");
   await page.goto("/dashboard");
   await expect(
-    page.getByRole("heading", { name: /Good afternoon/ }),
+    page.getByRole("heading", { name: /Welcome back/ }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Create quote" })).toHaveCount(0);
   await expect(
@@ -134,9 +134,7 @@ test("owner builds a quote from the session account and issues one protected com
   ).toBeVisible();
   const create = page.getByRole("button", { name: "Create priced draft" });
   await create.click();
-  await expect(
-    page.getByText(/The server created the priced draft/),
-  ).toBeVisible();
+  await expect(page.getByText(/Priced draft created/)).toBeVisible();
   // The created draft is not an open quote: the surface refuses to infer one.
   await expect(page.getByText(/current server status is draft/)).toBeVisible();
   await expect(create).toBeDisabled();
