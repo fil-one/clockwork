@@ -327,13 +327,14 @@ export class DemoExperienceRepository implements ExperienceRepository {
     now = new Date(),
   ): Promise<boolean> {
     const key = stateKey(opaqueState);
-    let completed = false;
-    await this.#store.update((current) => {
+    // The store may run this updater more than once when its compare-and-swap
+    // retries, so the outcome is read from the committed state rather than
+    // recorded by the updater itself.
+    const committed = (await this.#store.update((current) => {
       const state = current as DemoExperienceState;
       const correlation = state.esignCorrelations?.[key];
       if (!correlation || Date.parse(correlation.expiresAt) <= now.getTime())
         return state;
-      completed = true;
       const next: DemoExperienceState = {
         ...state,
         revision: state.revision + 1,
@@ -351,8 +352,8 @@ export class DemoExperienceRepository implements ExperienceRepository {
         },
       };
       return next;
-    });
-    return completed;
+    })) as DemoExperienceState;
+    return committed.esignCorrelations?.[key]?.state === "completed";
   }
 
   public async reserveEvidence(input: {
