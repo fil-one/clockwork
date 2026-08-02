@@ -3,6 +3,15 @@
 Written 2 Aug 2026. Everything in git is landed; the only blocked item is the
 Netlify deploy, which needs account access this session did not have.
 
+> **Correction, later on 2 Aug 2026.** Section 1's diagnosis was wrong in two
+> ways. The demo site is `clockwork-commerce-demo.netlify.app`, not
+> `commerce-demo.netlify.app` (that is an unrelated site outside the account).
+> And the site was never linked to the GitHub repository: there is no broken
+> webhook to repair, because the demo deploys directly from a local checkout by
+> design. The route, command, and token are in
+> [docs/operations/demo-deploy.md](../operations/demo-deploy.md). The branch
+> cleanup in section 3 is done; only `main` remains on the remote.
+
 ## 1. Netlify is not deploying (the blocking item)
 
 **Symptom.** No production deploy since the night of 1 Aug. `main` has advanced

@@ -198,6 +198,10 @@ explicit opt-in **and** the demo adapter, and it refuses to activate if any
 production marker is present in the environment, flag or no flag. A demo deploy
 can additionally be password-gated with `CLOCKWORK_DEMO_ACCESS_PASSWORD`.
 
+The hosted demo at https://clockwork-commerce-demo.netlify.app deploys directly
+from a local checkout, not from GitHub; the route and command are in
+[docs/operations/demo-deploy.md](docs/operations/demo-deploy.md).
+
 ## Commands
 
 Everything is a workspace-root `pnpm` script; Turborepo fans them out.
