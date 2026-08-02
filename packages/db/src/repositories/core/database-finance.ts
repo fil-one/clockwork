@@ -3524,6 +3524,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
   ): Promise<CoreMutationResult> {
+    // Metering runs on the service connection, so the account scope a row
+    // policy would apply is asserted here before any ledger row is read.
+    const scope = input.accountId;
+    if (
+      !scope ||
+      (!input.authorization.isInternalStaff &&
+        !input.authorization.accountIds.some((granted) => granted === scope))
+    )
+      throw new CoreServiceError("NOT_FOUND", "Commitment was not found");
     if (input.action === "create")
       return this.createCommitment(transaction, input);
     if (input.action === "reconcile")

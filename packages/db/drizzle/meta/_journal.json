@@ -43,6 +43,13 @@
       "when": 1785629416064,
       "tag": "0005_talented_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785634299065,
+      "tag": "0006_glossy_mystique",
+      "breakpoints": true
     }
   ]
 }

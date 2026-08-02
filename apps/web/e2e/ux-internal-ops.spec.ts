@@ -119,9 +119,11 @@ test.describe("internal operator operations journey", () => {
     await page.getByRole("button", { name: "review exception" }).click();
     // The receipt poll replaces the queued line with the authoritative result,
     // so either terminal wording proves the version-bound submission landed.
+    // The window covers the action route's first compile on a cold dev server
+    // followed by the fifteen one-second receipt polls.
     await expect(
       page.getByText(/review exception (is queued|applied)/),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible({ timeout: 60_000 });
     await page.reload();
     await expect(page.getByText("EXC-COL-008").first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
