@@ -1117,9 +1117,9 @@
       "portalDocument": ["agreements UI and documents"],
       "tests": ["agreement UX"],
       "externalGates": ["EXT-LEGAL-01", "EXT-PROVIDER-01"],
-      "backlog": ["P0-40"],
-      "status": "partial",
-      "rationale": "The agreements surface renders from the portal projection, and no agreement write path publishes an authoritative outbox event, so the customer, partner, and internal agreements channels materialize empty. P0-40 covers the missing events."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The agreements surface renders from the portal projection, and the counter-signed completion branch now publishes agreement.executed bound to the agreement at its own version, guarded by the insert result so it fires once per execution. The customer, partner, and internal agreements channels materialize from it."
     },
     {
       "id": "SPEC-06-03",
@@ -1162,9 +1162,9 @@
       "portalDocument": ["POC UI"],
       "tests": ["POC tests"],
       "externalGates": ["EXT-PROVISION-01"],
-      "backlog": ["P0-40"],
-      "status": "partial",
-      "rationale": "The POC surface renders from the portal projection, and no POC write path publishes an authoritative outbox event, so the POC channels materialize empty. P0-40 covers the missing events."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The POC surface renders from the portal projection, and the seven POC topics publish authoritative outbox events bound to the POC row. poc.activated took its version from the provisioning attempt and is corrected; the expiry branch published nothing and now emits poc.expired."
     },
     {
       "id": "SPEC-06-06",
@@ -1192,9 +1192,9 @@
       "portalDocument": ["account UI and certificates"],
       "tests": ["account and offboarding tests"],
       "externalGates": ["EXT-TAX-01", "EXT-TEARDOWN-01"],
-      "backlog": ["P0-40", "P0-46"],
+      "backlog": ["P0-46"],
       "status": "partial",
-      "rationale": "Termination write paths publish no authoritative outbox event, so the offboarding channel materializes empty (P0-40). The surface also has no notification preferences to manage because no notification delivery record exists (P0-46)."
+      "rationale": "The termination topics publish authoritative outbox events bound to the termination, so the offboarding channel materializes from them. The surface still has no notification preferences to manage because no notification delivery record exists (P0-46)."
     },
     {
       "id": "SPEC-06-08",
@@ -1237,9 +1237,9 @@
       "portalDocument": ["internal routes"],
       "tests": ["internal UX"],
       "externalGates": ["EXT-APPROVERS-01"],
-      "backlog": ["P0-40"],
-      "status": "partial",
-      "rationale": "The internal queue, approval, and provider-operation channels render from the portal projection, and the exception_case, approval, and provider_operation write paths publish no authoritative outbox event, so those channels materialize empty. P0-40 covers the missing events."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The internal queue, approval, and provider-operation channels render from the portal projection. exception_case.opened is appended beside the provider-operation event, approval.decided is emitted off the returned row, and the six lifecycle provider-operation topics are registered, so those channels materialize from them."
     },
     {
       "id": "SPEC-06-11",

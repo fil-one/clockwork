@@ -168,7 +168,7 @@ External inputs never excuse missing repository work.
   version, strips legacy mutation authority, terminalizes queued actions without
   inventing replay truth, fails closed on mismatch, restores canonical state,
   and was accepted in 93.813 seconds.
-- **P0-40 — Authoritative events for six portal aggregates `[RESOLVED]`:** the
+- **P0-40 — Authoritative events for six portal aggregates `[COMPLETE]`:** the
   `agreement`, `poc`, `exception_case`, `approval`, `provider_operation`, and
   `termination` write paths appended audit rows without publishing an
   authoritative outbox event, so those channels stayed empty on every audience
