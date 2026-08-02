@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Input, Select } from "@clockwork/ui";
+import { Button, buttonClassName, Input, Select } from "@clockwork/ui";
 
 import { registerOrganization } from "@/src/features/contracts/commerce-client";
 
@@ -117,7 +117,10 @@ export function RegistrationForm({
           Your organization record is being linked to WorkOS. Continue to sign
           in; access remains closed until that durable link is complete.
         </p>
-        <Link className="cw-button cw-button--primary" href="/sign-in">
+        <Link
+          className={buttonClassName({ variant: "primary" })}
+          href="/sign-in"
+        >
           Continue to sign in
         </Link>
       </div>
@@ -265,7 +268,10 @@ export function RegistrationForm({
         >
           Register organization
         </Button>
-        <Link className="cw-button cw-button--secondary" href="/sign-in">
+        <Link
+          className={buttonClassName({ variant: "secondary" })}
+          href="/sign-in"
+        >
           Already registered
         </Link>
       </div>

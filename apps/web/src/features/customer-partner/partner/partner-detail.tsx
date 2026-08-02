@@ -2,7 +2,11 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ApplicationStatePanel } from "@clockwork/ui";
+import {
+  ApplicationStatePanel,
+  Breadcrumbs,
+  buttonClassName,
+} from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
@@ -25,7 +29,10 @@ function MissingRecord({ backHref }: { backHref: Route }) {
           title={t("partner.detail.notFound.title")}
           description={t("partner.detail.notFound.description")}
           action={
-            <Link className="cw-button cw-button--secondary" href={backHref}>
+            <Link
+              className={buttonClassName({ variant: "secondary" })}
+              href={backHref}
+            >
               {t("partner.detail.notFound.action")}
             </Link>
           }
@@ -148,13 +155,14 @@ export async function PartnerPortfolioDetail({
   if (!record) return <MissingRecord backHref="/partner/portfolio" />;
   return (
     <main className={styles.main} id="main-content">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link href="/partner">{t("partner.title")}</Link>
-        <span>/</span>
-        <Link href="/partner/portfolio">{t("partner.portfolio.title")}</Link>
-        <span>/</span>
-        <span aria-current="page">{record.name}</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: t("partner.title"), href: "/partner" },
+          { label: t("partner.portfolio.title"), href: "/partner/portfolio" },
+          { label: record.name },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
       <header className={styles.detailHeading}>
         <div>
           <p className={styles.eyebrow}>
@@ -214,13 +222,14 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
   const actions = validPartnerQuoteActions(record.status, role);
   return (
     <main className={styles.main} id="main-content">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link href="/partner">{t("partner.title")}</Link>
-        <span>/</span>
-        <Link href="/partner/quotes">{t("partner.quotes.title")}</Link>
-        <span>/</span>
-        <span aria-current="page">{record.name}</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: t("partner.title"), href: "/partner" },
+          { label: t("partner.quotes.title"), href: "/partner/quotes" },
+          { label: record.name },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
       <header className={styles.detailHeading}>
         <div>
           <p className={styles.eyebrow}>{t("partner.detail.quote.eyebrow")}</p>

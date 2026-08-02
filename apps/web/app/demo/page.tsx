@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 
 import type { DemoPersona } from "@clockwork/testing/personas";
-import { BrandLogo, StatusBadge } from "@clockwork/ui";
+import { BrandLogo } from "@clockwork/ui";
 
 import {
-  demoJourneyForPersona,
   demoPersonaAccountName,
   demoPersonaCatalog,
   demoPersonaSurfacesEnabled,
@@ -28,41 +27,22 @@ function initials(name: string): string {
     .join("");
 }
 
-function PersonaCard({ persona }: { persona: DemoPersona }) {
-  const journey = demoJourneyForPersona(persona.key);
+function PersonaRow({ persona }: { persona: DemoPersona }) {
   return (
-    <article className={styles.persona}>
-      <header className={styles.personaHead}>
-        <span className={styles.mark} aria-hidden="true">
-          {initials(persona.displayName)}
-        </span>
-        <span className={styles.identity}>
-          <h3>{persona.displayName}</h3>
-          <span className={styles.jobTitle}>{persona.jobTitle}</span>
-        </span>
-      </header>
-      <StatusBadge tone={persona.isInternalStaff ? "info" : "neutral"}>
-        {demoPersonaAccountName(persona)}
-      </StatusBadge>
-      <dl className={styles.summary}>
-        {journey ? (
-          <div>
-            <dt>{t("demo.landing.journey")}</dt>
-            <dd>{journey.title}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>{t("demo.landing.intent")}</dt>
-          <dd>{persona.journeyIntent}</dd>
-        </div>
-      </dl>
-      <a
-        className="cw-button cw-button--primary"
-        href={`/demo/persona?persona=${persona.key}`}
-      >
+    <li className={styles.row}>
+      <span className={styles.mark} aria-hidden="true">
+        {initials(persona.displayName)}
+      </span>
+      <span className={styles.identity}>
+        <span className={styles.name}>{persona.displayName}</span>
+        <span className={styles.role}>{persona.jobTitle}</span>
+      </span>
+      <span className={styles.account}>{demoPersonaAccountName(persona)}</span>
+      <p className={styles.intent}>{persona.journeyIntent}</p>
+      <a className={styles.start} href={`/demo/persona?persona=${persona.key}`}>
         {t("demo.landing.start", { name: persona.displayName })}
       </a>
-    </article>
+    </li>
   );
 }
 
@@ -76,12 +56,14 @@ function PersonaGroup({
   const id = `demo-group-${heading.replaceAll(/\W+/g, "-").toLowerCase()}`;
   return (
     <section className={styles.group} aria-labelledby={id}>
-      <h2 id={id}>{heading}</h2>
-      <div className={styles.grid}>
+      <h2 id={id} className={styles.groupHeading}>
+        {heading}
+      </h2>
+      <ul className={styles.roster}>
         {personas.map((persona) => (
-          <PersonaCard key={persona.key} persona={persona} />
+          <PersonaRow key={persona.key} persona={persona} />
         ))}
-      </div>
+      </ul>
     </section>
   );
 }
@@ -96,9 +78,9 @@ export default function Page() {
           src={brandAsset()}
           name={t("app.name")}
         />
-        <p className="eyebrow">{t("demo.landing.eyebrow")}</p>
-        <h1>{t("demo.landing.title")}</h1>
-        <p>{t("demo.landing.description")}</p>
+        <p className={styles.eyebrow}>{t("demo.landing.eyebrow")}</p>
+        <h1 className={styles.title}>{t("demo.landing.title")}</h1>
+        <p className={styles.description}>{t("demo.landing.description")}</p>
       </header>
       <PersonaGroup
         heading={t("demo.landing.external")}

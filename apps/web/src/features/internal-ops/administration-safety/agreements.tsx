@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
+import { Table } from "@clockwork/ui";
+
 import { adminSafetyCopy } from "./copy";
 import { agreementVersions } from "./data";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
@@ -117,51 +119,38 @@ export function AgreementAdministration({
           {filtered.length} of {agreementVersions.length} versions · Sorted by
           effective date, newest first
         </p>
-        {filtered.length ? (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <caption className={styles.srOnly}>
-                Agreement template versions and approval scan state
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Template</th>
-                  <th scope="col">Version</th>
-                  <th scope="col">Jurisdiction</th>
-                  <th scope="col">Execution</th>
-                  <th scope="col">Effective</th>
-                  <th scope="col">State</th>
-                  <th scope="col">Scan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((version) => (
-                  <tr key={version.id}>
-                    <td>
-                      <strong>{version.label}</strong>
-                      <small>{version.type}</small>
-                    </td>
-                    <td>{version.version}</td>
-                    <td>{version.jurisdiction}</td>
-                    <td>{version.execution}</td>
-                    <td>{version.effectiveOn}</td>
-                    <td>
-                      <StatusPill state={version.state} />
-                    </td>
-                    <td>
-                      <strong>{version.scan}</strong>
-                      <small>Exact-text evidence retained</small>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className={styles.empty}>
-            No agreement versions match these filters.
-          </p>
-        )}
+        <Table
+          className={styles.scanTable ?? ""}
+          caption="Agreement template versions and approval scan state"
+          captionHidden
+          density="compact"
+          headers={[
+            "Template",
+            "Version",
+            "Jurisdiction",
+            "Execution",
+            "Effective",
+            "State",
+            "Scan",
+          ]}
+          rowKeys={filtered.map((version) => version.id)}
+          rows={filtered.map((version) => [
+            <span className={styles.stackCell}>
+              <strong>{version.label}</strong>
+              <small>{version.type}</small>
+            </span>,
+            version.version,
+            version.jurisdiction,
+            version.execution,
+            version.effectiveOn,
+            <StatusPill state={version.state} />,
+            <span className={styles.stackCell}>
+              <strong>{version.scan}</strong>
+              <small>Exact-text evidence retained</small>
+            </span>,
+          ])}
+          emptyState="No agreement versions match these filters."
+        />
       </section>
 
       <section

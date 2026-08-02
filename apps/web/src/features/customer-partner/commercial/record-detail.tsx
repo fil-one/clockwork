@@ -2,6 +2,8 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Breadcrumbs } from "@clockwork/ui";
+
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 import type { CommercialRecord } from "./model";
@@ -146,15 +148,19 @@ export function CommercialRecordDetail({
   const chain = artifactChain(record);
   return (
     <main className={styles.main} id="main-content">
-      <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link href={backHref}>
-          {record.kind === "pocs"
-            ? "POCs"
-            : record.kind[0]?.toUpperCase() + record.kind.slice(1)}
-        </Link>
-        {" / "}
-        <span aria-current="page">{record.title}</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          {
+            label:
+              record.kind === "pocs"
+                ? "POCs"
+                : record.kind[0]?.toUpperCase() + record.kind.slice(1),
+            href: backHref,
+          },
+          { label: record.title },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
 
       <header className={styles.detailHeader}>
         <div>

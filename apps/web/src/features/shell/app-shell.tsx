@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   useEffect,
   useId,
@@ -15,6 +15,7 @@ import {
 
 import {
   AppShell as StructuralAppShell,
+  ArrowLeftRight,
   BadgeDollarSign,
   BrandLogo,
   Building2,
@@ -22,21 +23,30 @@ import {
   ChevronDown,
   CircleHelp,
   CommandPalette,
+  FileDiff,
   FileText,
   FlaskConical,
   Handshake,
   Inbox,
+  Layers,
   LayoutDashboard,
   PackageCheck,
+  Paintbrush,
   ReceiptText,
   RefreshCw,
+  RotateCcw,
+  Scale,
   Search,
   ScrollText,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
+  Stamp,
   StatusBadge,
   Tooltip,
   Users,
+  WalletCards,
+  Webhook,
   ChartNoAxesCombined,
   type CommandPaletteItem,
   type NavigationGroup,
@@ -44,7 +54,7 @@ import {
 
 import { switchCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
-import { t } from "@/src/i18n/en";
+import { t, type MessageId } from "@/src/i18n/en";
 
 import { brandAsset } from "./brand-assets";
 import { getCommandItems } from "./command-items";
@@ -67,10 +77,10 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/quotes": <ScrollText size={19} strokeWidth={1.8} />,
   "/orders": <PackageCheck size={19} strokeWidth={1.8} />,
-  "/services": <PackageCheck size={19} strokeWidth={1.8} />,
+  "/services": <Layers size={19} strokeWidth={1.8} />,
   "/pocs": <FlaskConical size={19} strokeWidth={1.8} />,
   "/billing": <ReceiptText size={19} strokeWidth={1.8} />,
-  "/amendments": <FileText size={19} strokeWidth={1.8} />,
+  "/amendments": <FileDiff size={19} strokeWidth={1.8} />,
   "/marketplace": <Building2 size={19} strokeWidth={1.8} />,
   "/support": <CircleHelp size={19} strokeWidth={1.8} />,
   "/account": <Settings size={19} strokeWidth={1.8} />,
@@ -81,10 +91,10 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/partner/billing": <ReceiptText size={19} strokeWidth={1.8} />,
   "/partner/commissions": <BadgeDollarSign size={19} strokeWidth={1.8} />,
   "/partner/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
-  "/partner/disputes": <Inbox size={19} strokeWidth={1.8} />,
+  "/partner/disputes": <Scale size={19} strokeWidth={1.8} />,
   "/partner/marketplace": <Building2 size={19} strokeWidth={1.8} />,
   "/partner/sandboxes": <SlidersHorizontal size={19} strokeWidth={1.8} />,
-  "/partner/brand": <Settings size={19} strokeWidth={1.8} />,
+  "/partner/brand": <Paintbrush size={19} strokeWidth={1.8} />,
   "/partner/support": <CircleHelp size={19} strokeWidth={1.8} />,
   "/internal": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/internal/search": <Search size={19} strokeWidth={1.8} />,
@@ -92,13 +102,120 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
   "/internal/collections": <ReceiptText size={19} strokeWidth={1.8} />,
   "/internal/provisioning": <PackageCheck size={19} strokeWidth={1.8} />,
-  "/internal/migrations": <RefreshCw size={19} strokeWidth={1.8} />,
+  "/internal/recovery": <RotateCcw size={19} strokeWidth={1.8} />,
+  "/internal/webhook-replay": <Webhook size={19} strokeWidth={1.8} />,
+  "/internal/migrations": <ArrowLeftRight size={19} strokeWidth={1.8} />,
   "/internal/reports": <ChartNoAxesCombined size={19} strokeWidth={1.8} />,
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
-  "/internal/approvals": <Inbox size={19} strokeWidth={1.8} />,
-  "/internal/price-books": <Settings size={19} strokeWidth={1.8} />,
-  "/internal/gates": <SlidersHorizontal size={19} strokeWidth={1.8} />,
+  "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
+  "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
+  "/internal/gates": <ShieldCheck size={19} strokeWidth={1.8} />,
   "/internal/assisted": <Users size={19} strokeWidth={1.8} />,
+};
+
+interface NavigationSection {
+  id: string;
+  label?: MessageId;
+  hrefs: readonly string[];
+}
+
+/**
+ * Rail sections. Fifteen internal destinations do not scan as one list, so each
+ * portal declares its sections here and the rail orders items by section rather
+ * than by the flat list in `navigation`. The leading section carries no label:
+ * the home destination and the tools that reach every record need no heading.
+ * A section whose members are all filtered out by role is dropped.
+ */
+const navigationSections: Readonly<
+  Record<ExperienceAudience, readonly NavigationSection[]>
+> = {
+  customer: [
+    { id: "desk", hrefs: ["/dashboard"] },
+    {
+      id: "pricing",
+      label: "nav.group.pricing",
+      hrefs: ["/quotes", "/pocs", "/marketplace"],
+    },
+    {
+      id: "legal",
+      label: "nav.group.legal",
+      hrefs: ["/agreements", "/amendments"],
+    },
+    {
+      id: "service",
+      label: "nav.group.service",
+      hrefs: ["/orders", "/services", "/support"],
+    },
+    {
+      id: "organization",
+      label: "nav.group.organization",
+      hrefs: ["/billing", "/account"],
+    },
+  ],
+  partner: [
+    { id: "desk", hrefs: ["/partner", "/partner/portfolio"] },
+    {
+      id: "deal-flow",
+      label: "nav.group.partner.dealFlow",
+      hrefs: [
+        "/partner/registrations",
+        "/partner/quotes",
+        "/partner/sandboxes",
+        "/partner/marketplace",
+      ],
+    },
+    {
+      id: "revenue",
+      label: "nav.group.partner.revenue",
+      hrefs: [
+        "/partner/billing",
+        "/partner/commissions",
+        "/partner/renewals",
+        "/partner/disputes",
+      ],
+    },
+    {
+      id: "channel",
+      label: "nav.group.partner.channel",
+      hrefs: ["/partner/brand", "/partner/support"],
+    },
+  ],
+  internal: [
+    {
+      id: "desk",
+      hrefs: ["/internal", "/internal/search", "/internal/assisted"],
+    },
+    {
+      id: "queues",
+      label: "nav.group.internal.queues",
+      hrefs: [
+        "/internal/queues",
+        "/internal/approvals",
+        "/internal/collections",
+        "/internal/renewals",
+      ],
+    },
+    {
+      id: "provider-recovery",
+      label: "nav.group.internal.providerRecovery",
+      hrefs: [
+        "/internal/provisioning",
+        "/internal/recovery",
+        "/internal/webhook-replay",
+        "/internal/gates",
+      ],
+    },
+    {
+      id: "administration",
+      label: "nav.group.internal.administration",
+      hrefs: [
+        "/internal/agreements",
+        "/internal/price-books",
+        "/internal/migrations",
+        "/internal/reports",
+      ],
+    },
+  ],
 };
 
 /**
@@ -364,23 +481,44 @@ export function AppShell({
       }),
     [audience, roles, session.providerBacked],
   );
-  const navigationGroups = useMemo<readonly NavigationGroup[]>(
-    () => [
-      {
-        id: `${audience}-navigation`,
-        items: navigation[audience]
-          .filter((item) => canAccessNavigationItem(item, roles))
-          .map((item) => ({
+  const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
+    const remaining = new Map(
+      navigation[audience]
+        .filter((item) => canAccessNavigationItem(item, roles))
+        .map((item) => [
+          item.href as string,
+          {
             id: item.href,
             href: item.href,
             label: t(item.label),
             icon: navigationIcons[item.href],
             active: isNavigationItemActive(item, pathname),
-          })),
-      },
-    ],
-    [audience, pathname, roles],
-  );
+          },
+        ]),
+    );
+    const sections = navigationSections[audience].map((section) => {
+      const items = section.hrefs.flatMap((href) => {
+        const item = remaining.get(href);
+        if (!item) return [];
+        remaining.delete(href);
+        return [item];
+      });
+      return {
+        id: `${audience}-${section.id}`,
+        ...(section.label ? { label: t(section.label) } : {}),
+        items,
+      };
+    });
+    // A destination added to `navigation` but not to a section still has to
+    // reach the rail, so anything left over trails the declared sections.
+    if (remaining.size > 0) {
+      sections.push({
+        id: `${audience}-more`,
+        items: [...remaining.values()],
+      });
+    }
+    return sections.filter((section) => section.items.length > 0);
+  }, [audience, pathname, roles]);
 
   useEffect(() => {
     setHydrated(true);
@@ -418,6 +556,30 @@ export function AppShell({
     >
       <StructuralAppShell
         navigation={navigationGroups}
+        /*
+         * The rail renders framework links so moving between surfaces is a
+         * client transition against a prefetched route rather than a document
+         * load. A plain anchor would rebuild the shell, the session header and
+         * the command palette on every click. A disabled item has no href, so
+         * it stays a plain anchor and keeps its aria-disabled semantics.
+         */
+        renderNavigationItem={(item, content, linkProps) => {
+          const { href, ...rest } = linkProps;
+          // A disabled item has no href, so it stays a plain anchor.
+          if (!href) return <a {...linkProps}>{content}</a>;
+          // The rest of the bag is anchor attributes, which `Link` accepts at
+          // runtime. The assertion only satisfies exactOptionalPropertyTypes,
+          // which treats an explicitly undefined handler as different from an
+          // absent one.
+          return (
+            <Link
+              {...(rest as Omit<ComponentProps<typeof Link>, "href">)}
+              href={href as Route}
+            >
+              {content}
+            </Link>
+          );
+        }}
         skipLabel={t("app.skip")}
         brand={<Wordmark audience={audience} />}
         organization={
@@ -438,7 +600,7 @@ export function AppShell({
           </div>
         }
         navigationLabel={t("app.nav.primary")}
-        navigationDensity="compact"
+        navigationDensity="comfortable"
         mobileNavigationLabel={t("app.nav.open")}
         mobileNavigationTitle={t("app.nav.title")}
         mobileNavigationDescription={t("app.nav.description")}

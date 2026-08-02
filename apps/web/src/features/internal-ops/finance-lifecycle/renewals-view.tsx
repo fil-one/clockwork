@@ -1,3 +1,5 @@
+import { Table } from "@clockwork/ui";
+
 import { lifecycleCopy } from "./copy";
 import {
   renewals,
@@ -75,67 +77,50 @@ export function RenewalsView() {
                   {records.length} active · ordered by deadline
                 </span>
               </header>
-              <div className={styles.tableScroll} tabIndex={0}>
-                <table className={styles.table}>
-                  <caption className="sr-only">
-                    {renewalWindowLabels[window]} renewal exposure
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Account</th>
-                      <th scope="col">Route</th>
-                      <th scope="col">Deadline</th>
-                      <th scope="col">Owner</th>
-                      <th scope="col">Value truth</th>
-                      <th scope="col">Next action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.map((record) => (
-                      <tr key={record.id}>
-                        <td>
-                          <div className={styles.primaryCell}>
-                            <strong>{record.account}</strong>
-                            <span className={riskClass(record.risk)}>
-                              {record.risk} risk
-                            </span>
-                            <details className={styles.disclosure}>
-                              <summary>Record evidence</summary>
-                              <p>
-                                Renewal{" "}
-                                <span className={styles.id}>{record.id}</span>
-                                <br />
-                                Account ID:{" "}
-                                <span className={styles.id}>
-                                  {record.accountId}
-                                </span>
-                              </p>
-                            </details>
-                          </div>
-                        </td>
-                        <td>{record.route}</td>
-                        <td>
-                          <strong>{record.deadlineLabel}</strong>
-                        </td>
-                        <td>{record.owner}</td>
-                        <td>
-                          <div className={styles.truthStack}>
-                            <strong>
-                              {formatMoney(record.exposureCents)} estimated
-                              exposure
-                            </strong>
-                            <span>Invoice truth: {record.invoiceTruth}</span>
-                            <span>
-                              Collection truth: {record.collectedTruth}
-                            </span>
-                          </div>
-                        </td>
-                        <td>{record.nextAction}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                className={styles.dsTable ?? ""}
+                caption={`${renewalWindowLabels[window]} renewal exposure`}
+                captionHidden
+                density="compact"
+                headers={[
+                  "Account",
+                  "Route",
+                  "Deadline",
+                  "Owner",
+                  "Value truth",
+                  "Next action",
+                ]}
+                rowKeys={records.map((record) => record.id)}
+                rows={records.map((record) => [
+                  <div className={styles.primaryCell}>
+                    <strong>{record.account}</strong>
+                    <span className={riskClass(record.risk)}>
+                      {record.risk} risk
+                    </span>
+                    <details className={styles.disclosure}>
+                      <summary>Record evidence</summary>
+                      <p>
+                        Renewal <span className={styles.id}>{record.id}</span>
+                        <br />
+                        Account ID:{" "}
+                        <span className={styles.id}>{record.accountId}</span>
+                      </p>
+                    </details>
+                  </div>,
+                  record.route,
+                  <strong>{record.deadlineLabel}</strong>,
+                  record.owner,
+                  <div className={styles.truthStack}>
+                    <strong>
+                      {formatMoney(record.exposureCents)} estimated exposure
+                    </strong>
+                    <span>Invoice truth: {record.invoiceTruth}</span>
+                    <span>Collection truth: {record.collectedTruth}</span>
+                  </div>,
+                  record.nextAction,
+                ])}
+                emptyState="No renewals fall in this window."
+              />
             </section>
           );
         })}

@@ -16,7 +16,7 @@
 .header h1 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.08;
@@ -31,7 +31,7 @@
 
 .eyebrow {
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
@@ -43,55 +43,25 @@
 .freshness,
 .stale {
   font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .stale {
   color: var(--web-danger);
 }
 
-.tableRegion {
-  max-width: 100%;
-  overflow-x: auto;
-  border-block: 1px solid var(--web-line);
-}
-
-.tableRegion:focus-visible {
-  outline: 3px solid var(--cw-focus);
-  outline-offset: 3px;
-}
-
-.table {
-  width: 100%;
-  min-width: 62rem;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.table caption {
-  padding: 0.8rem 0.7rem;
-  color: var(--web-muted);
-  font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
-  text-align: left;
-}
-
-.table th,
-.table td {
-  padding: 0.85rem 0.7rem;
-  border-top: 1px solid var(--web-line);
+/*
+ * A record row stacks an action control against single-line cells, so the row
+ * reads as a ledger line only when every cell starts at the same top edge.
+ */
+.records table th,
+.records table td {
   vertical-align: top;
 }
 
-.table thead th {
-  color: var(--web-muted);
-  font-size: 0.7rem;
-  letter-spacing: 0.025em;
-}
-
-.table tbody th {
+.records table tbody th {
   max-width: 16rem;
-  font-size: 0.84rem;
 }
 
 .recordKey {
@@ -99,7 +69,8 @@
   margin-top: 0.25rem;
   color: var(--web-muted);
   font-family: var(--cw-font-mono);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
 }
 
@@ -107,9 +78,5 @@
   .main {
     gap: 1.1rem;
     padding: 1rem;
-  }
-
-  .tableRegion {
-    box-shadow: inset -1rem 0 1rem -1.2rem var(--web-muted);
   }
 }

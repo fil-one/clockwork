@@ -19,14 +19,14 @@
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
 .header h1 {
   max-width: 48rem;
   margin: 0;
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.052em;
   line-height: 0.98;
@@ -59,10 +59,10 @@
 .textButton {
   min-height: 2.75rem;
   border: 1px solid transparent;
-  border-radius: 0.48rem;
+  border-radius: var(--cw-radius-sm);
   padding: 0.62rem 0.88rem;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 800;
   cursor: pointer;
 }
@@ -105,7 +105,7 @@
 .assistedState {
   min-width: 0;
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   background: var(--web-paper);
 }
 
@@ -125,7 +125,7 @@
 .panelHeading h2,
 .panelHeading h3 {
   margin: 0;
-  font-size: 1.08rem;
+  font-size: var(--cw-text-xl);
 }
 
 .panelHeading p,
@@ -136,7 +136,7 @@
 
 .panelHeading p {
   margin: 0.25rem 0 0;
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
 }
 
 .panelBody {
@@ -160,7 +160,7 @@
   min-width: 0;
   gap: 0.35rem;
   color: var(--web-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
@@ -172,12 +172,12 @@
   width: 100%;
   min-height: 2.55rem;
   border: 1px solid var(--web-line-strong, var(--web-line));
-  border-radius: 0.45rem;
+  border-radius: var(--cw-radius-sm);
   background: var(--web-paper);
   color: var(--web-ink);
   padding: 0.58rem 0.68rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   font-weight: 500;
 }
 
@@ -202,49 +202,33 @@
 
 .fieldHint {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
   font-weight: 500;
 }
 
-.tableWrap {
-  max-width: 100%;
-  overflow-x: auto;
+/*
+ * The scan tables sit inside .panel, which already draws the card edge, so the
+ * shared table drops its own border and corner. Cells top-align because the
+ * first column stacks a name over its evidence while the rest are one line.
+ */
+.scanTable {
+  border: 0;
+  border-radius: 0;
+  /* Review dates and counts run down a column, so the digits hold one width. */
+  font-variant-numeric: tabular-nums;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.76rem;
-}
-
-.table th,
-.table td {
-  border-bottom: 1px solid var(--web-line);
-  padding: 0.72rem 0.85rem;
-  text-align: left;
+.scanTable table th,
+.scanTable table td {
   vertical-align: top;
 }
 
-.table th {
-  color: var(--web-muted);
-  font-family: var(--cw-font-accent);
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.table strong {
+.stackCell strong {
   display: block;
-  font-size: 0.79rem;
+  font-size: var(--cw-text-sm);
 }
 
-.table small {
+.stackCell small {
   display: block;
   margin-top: 0.18rem;
   color: var(--web-muted);
@@ -256,7 +240,8 @@
   padding: 0.72rem 1.2rem;
   border-bottom: 1px solid var(--web-line);
   color: var(--web-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .pill {
@@ -267,7 +252,7 @@
   border-radius: 999px;
   padding: 0.24rem 0.5rem;
   background: var(--web-canvas);
-  font-size: 0.66rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -303,12 +288,16 @@
   gap: 0.22rem;
   width: 100%;
   border: 1px solid var(--web-line);
-  border-radius: 0.55rem;
+  border-radius: var(--cw-radius-sm);
   background: var(--web-paper);
   color: var(--web-ink);
   padding: 0.75rem;
   text-align: left;
   cursor: pointer;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .caseButton[aria-pressed="true"] {
@@ -336,7 +325,7 @@
   margin: 0;
   border-bottom: 1px solid var(--web-line);
   padding: 0.9rem 1rem;
-  font-size: 0.95rem;
+  font-size: var(--cw-text-lg);
 }
 
 .summary dl,
@@ -363,7 +352,7 @@
 .metaGrid dt {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.64rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -372,7 +361,8 @@
 .summary dd,
 .metaGrid dd {
   margin: 0.28rem 0 0;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
   line-height: 1.45;
 }
 
@@ -396,7 +386,7 @@
   width: max-content;
   max-width: 100%;
   color: var(--web-accent);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   cursor: pointer;
 }
@@ -406,7 +396,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.35rem 0.75rem;
   margin: 0.75rem 0 0;
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
 }
 
 .technical dt {
@@ -424,7 +414,7 @@
 .roleNotice,
 .assistedState {
   padding: 0.9rem 1rem;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   line-height: 1.45;
 }
 
@@ -448,17 +438,17 @@
   border-left: 4px solid var(--web-accent);
   background: color-mix(in srgb, var(--web-soft) 55%, var(--web-paper));
   padding: 0.75rem 0.9rem;
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
 }
 
 .handoff {
   border: 1px solid var(--web-line);
   border-left: 4px solid var(--web-warm);
-  border-radius: 0.55rem;
+  border-radius: var(--cw-radius-sm);
   background: color-mix(in srgb, var(--web-canvas) 55%, var(--web-paper));
   padding: 0.85rem 1rem;
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   line-height: 1.5;
 }
 
@@ -486,13 +476,13 @@
 
 .gateGroupHeader h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
 }
 
 .gateGroupHeader p {
   margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .assistedState {
@@ -517,24 +507,8 @@
 .exitLink {
   margin-left: auto;
   color: var(--web-accent);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
-  white-space: nowrap;
-}
-
-.empty {
-  margin: 0;
-  padding: 2rem 1.2rem;
-  color: var(--web-muted);
-  text-align: center;
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
 }
 

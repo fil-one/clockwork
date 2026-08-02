@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ApplicationStatePanel } from "@clockwork/ui";
+import { ApplicationStatePanel, buttonClassName } from "@clockwork/ui";
 
 import { t } from "@/src/i18n/en";
 import { getRouteSession } from "@/src/features/shell/route-session";
@@ -26,7 +26,7 @@ function NoPartnerMembership() {
           description={t("partner.access.description")}
           action={
             <Link
-              className="cw-button cw-button--secondary"
+              className={buttonClassName({ variant: "secondary" })}
               href="/choose-organization"
             >
               {t("partner.access.action")}

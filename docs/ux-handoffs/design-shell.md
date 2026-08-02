@@ -8,9 +8,9 @@ repository-qualified on `main`; this is not an active lane or RC/launch record.
 `@clockwork/ui` is the structural source of truth for the Fil One application
 shell. The web adapter supplies Next.js routing, active-route matching,
 audience-scoped commands and records, session/connectivity state, organization
-switching, and demo controls. The result keeps the forest/parchment palette,
-editorial display type, dense record presentation, and term-bar identity while
-making hierarchy and navigation adaptive.
+switching, and demo controls. The result keeps the Filecoin Blue ramp on a cool
+neutral family, editorial display type, dense record presentation, and term-bar
+identity while making hierarchy and navigation adaptive.
 
 ## Adaptive shell contract
 

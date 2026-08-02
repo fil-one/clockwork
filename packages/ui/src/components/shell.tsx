@@ -7,7 +7,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   ReactNode,
 } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { BrandSlot } from "./brand";
 import { Tooltip } from "./tooltip";
@@ -72,15 +72,36 @@ export function Navigation({
   renderNavigationItem,
   className = "",
 }: NavigationProps) {
+  // The rail and the mobile drawer both render this, so the label ids have to
+  // stay distinct between the two copies.
+  const groupLabelPrefix = useId();
   return (
     <nav
       className={`cw-navigation cw-navigation--${density} ${className}`.trim()}
       aria-label={label}
     >
+      {/*
+       * A rail section label names a group of links, so it is not part of the
+       * document outline. Rendering it as a heading put wayfinding chrome in
+       * between the page's own headings, which is what a screen reader user
+       * walks when they browse by heading. The section takes its accessible
+       * name from the label instead.
+       */}
       {groups.map((group) => (
-        <section className="cw-navigation__group" key={group.id}>
+        <section
+          className="cw-navigation__group"
+          key={group.id}
+          {...(group.label
+            ? { "aria-labelledby": `${groupLabelPrefix}-${group.id}` }
+            : {})}
+        >
           {group.label ? (
-            <h2 className="cw-navigation__label">{group.label}</h2>
+            <p
+              className="cw-navigation__label"
+              id={`${groupLabelPrefix}-${group.id}`}
+            >
+              {group.label}
+            </p>
           ) : null}
           <ul className="cw-navigation__list">
             {group.items.map((item) => {
@@ -353,35 +374,6 @@ export function AppShell({
       </ContentElement>
       {footer ? <footer className="cw-shell__footer">{footer}</footer> : null}
     </div>
-  );
-}
-
-export function Breadcrumbs({
-  items,
-  label = "Breadcrumb",
-}: {
-  items: readonly { label: string; href?: string }[];
-  label?: string;
-}) {
-  return (
-    <nav className="cw-breadcrumbs" aria-label={label}>
-      <ol>
-        {items.map((item, index) => {
-          const current = index === items.length - 1;
-          return (
-            <li key={`${item.label}-${index}`}>
-              {item.href && !current ? (
-                <a href={item.href}>{item.label}</a>
-              ) : (
-                <span aria-current={current ? "page" : undefined}>
-                  {item.label}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
   );
 }
 

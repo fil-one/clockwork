@@ -1,4 +1,4 @@
-import { StatusBadge } from "@clockwork/ui";
+import { StatusBadge, Table } from "@clockwork/ui";
 
 import { plural } from "@/src/i18n/en";
 
@@ -72,109 +72,88 @@ export function CollectionsView() {
             priority order
           </span>
         </header>
-        <div className={styles.tableScroll} tabIndex={0}>
-          <table className={styles.table}>
-            <caption className="sr-only">
-              Collections prioritized by overdue value, age, dispute, and owner
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Priority / invoice</th>
-                <th scope="col">Overdue</th>
-                <th scope="col">Age</th>
-                <th scope="col">Dispute</th>
-                <th scope="col">Owner</th>
-                <th scope="col">Evidence / next action</th>
-                <th scope="col">Permitted action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prioritized.map((record, index) => {
-                const blockedByDispute = record.dispute !== "No dispute";
-                return (
-                  <tr key={record.id}>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <span className={styles.secondary}>
-                          Priority {index + 1}
-                        </span>
-                        <strong>{record.account}</strong>
-                        <span>{record.id}</span>
-                        <details className={styles.disclosure}>
-                          <summary>Technical evidence</summary>
-                          <p>
-                            Account ID:{" "}
-                            <span className={styles.id}>
-                              {record.accountId}
-                            </span>
-                          </p>
-                        </details>
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{formatMoney(record.overdueCents)}</strong>
-                    </td>
-                    <td>{record.ageDays} days</td>
-                    <td>
-                      <StatusBadge tone={disputeTone(record.dispute)}>
-                        {record.dispute}
-                      </StatusBadge>
-                    </td>
-                    <td>{record.owner}</td>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <span>{record.lastContact}</span>
-                        <strong>{record.nextAction}</strong>
-                        <details className={styles.disclosure}>
-                          <summary>Policy basis</summary>
-                          <p>{record.policyBasis}</p>
-                        </details>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.actionStack}>
-                        <ReviewAction
-                          triggerLabel={
-                            blockedByDispute
-                              ? "Review evidence routing"
-                              : "Review escalation"
-                          }
-                          confirmLabel="Complete review"
-                          summary={{
-                            action: blockedByDispute
-                              ? "Route dispute evidence"
-                              : "Stage collections escalation",
-                            entity: `${record.account} · ${record.id}`,
-                            impact: blockedByDispute
-                              ? "Evidence moves to the dispute owner; collection action stays paused."
-                              : "Finance may advance the invoice to the next policy-defined collection stage.",
-                            evidence: record.lastContact,
-                            policyBasis: record.policyBasis,
-                            downstreamEffect: blockedByDispute
-                              ? "No service, credit, or retention change."
-                              : "Server rechecks credit and service-restriction gates before execution.",
-                            technicalId: `${record.id} · account ${record.accountId}`,
-                            actorAuthority:
-                              "Finance approver permission is required; server attribution is authoritative.",
-                          }}
-                        />
-                        <span
-                          className={
-                            blockedByDispute ? styles.blocked : styles.safe
-                          }
-                        >
-                          {blockedByDispute
-                            ? "Adverse action blocked"
-                            : "Finance review required"}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          className={styles.dsTable ?? ""}
+          caption="Collections prioritized by overdue value, age, dispute, and owner"
+          captionHidden
+          density="compact"
+          headers={[
+            "Priority / invoice",
+            "Overdue",
+            "Age",
+            "Dispute",
+            "Owner",
+            "Evidence / next action",
+            "Permitted action",
+          ]}
+          numericColumns={[1, 2]}
+          rowKeys={prioritized.map((record) => record.id)}
+          rows={prioritized.map((record, index) => {
+            const blockedByDispute = record.dispute !== "No dispute";
+            return [
+              <div className={styles.primaryCell}>
+                <span className={styles.secondary}>Priority {index + 1}</span>
+                <strong>{record.account}</strong>
+                <span>{record.id}</span>
+                <details className={styles.disclosure}>
+                  <summary>Technical evidence</summary>
+                  <p>
+                    Account ID:{" "}
+                    <span className={styles.id}>{record.accountId}</span>
+                  </p>
+                </details>
+              </div>,
+              <strong>{formatMoney(record.overdueCents)}</strong>,
+              `${record.ageDays} days`,
+              <StatusBadge tone={disputeTone(record.dispute)}>
+                {record.dispute}
+              </StatusBadge>,
+              record.owner,
+              <div className={styles.primaryCell}>
+                <span>{record.lastContact}</span>
+                <strong>{record.nextAction}</strong>
+                <details className={styles.disclosure}>
+                  <summary>Policy basis</summary>
+                  <p>{record.policyBasis}</p>
+                </details>
+              </div>,
+              <div className={styles.actionStack}>
+                <ReviewAction
+                  triggerLabel={
+                    blockedByDispute
+                      ? "Review evidence routing"
+                      : "Review escalation"
+                  }
+                  confirmLabel="Complete review"
+                  summary={{
+                    action: blockedByDispute
+                      ? "Route dispute evidence"
+                      : "Stage collections escalation",
+                    entity: `${record.account} · ${record.id}`,
+                    impact: blockedByDispute
+                      ? "Evidence moves to the dispute owner; collection action stays paused."
+                      : "Finance may advance the invoice to the next policy-defined collection stage.",
+                    evidence: record.lastContact,
+                    policyBasis: record.policyBasis,
+                    downstreamEffect: blockedByDispute
+                      ? "No service, credit, or retention change."
+                      : "Server rechecks credit and service-restriction gates before execution.",
+                    technicalId: `${record.id} · account ${record.accountId}`,
+                    actorAuthority:
+                      "Finance approver permission is required; server attribution is authoritative.",
+                  }}
+                />
+                <span
+                  className={blockedByDispute ? styles.blocked : styles.safe}
+                >
+                  {blockedByDispute
+                    ? "Adverse action blocked"
+                    : "Finance review required"}
+                </span>
+              </div>,
+            ];
+          })}
+        />
       </section>
     </FinancePageFrame>
   );

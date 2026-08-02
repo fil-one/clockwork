@@ -79,11 +79,18 @@
   /* One shadow ink for every elevation and for the scrim. */
   --cw-shadow-color: 21 31 39;
   --cw-overlay: rgb(var(--cw-shadow-color) / 0.55);
+  /*
+   * Two container radii, and 0.375rem is the ceiling the shape rules set.
+   * The md/lg/xl names survive as aliases so existing declarations keep
+   * resolving; new work should reach for xs or sm. Pills (999px) and circles
+   * (50%) are shape marks rather than containers, so the cap does not apply
+   * to them.
+   */
   --cw-radius-xs: 0.25rem;
   --cw-radius-sm: 0.375rem;
-  --cw-radius-md: 0.5rem;
-  --cw-radius-lg: 0.75rem;
-  --cw-radius-xl: 1rem;
+  --cw-radius-md: var(--cw-radius-sm);
+  --cw-radius-lg: var(--cw-radius-sm);
+  --cw-radius-xl: var(--cw-radius-sm);
   --cw-shadow-sm: 0 1px 2px rgb(var(--cw-shadow-color) / 0.08);
   --cw-shadow-card: 0 1px 0 rgb(var(--cw-shadow-color) / 0.08);
   --cw-shadow-dialog: 0 28px 80px rgb(var(--cw-shadow-color) / 0.22);
@@ -104,6 +111,27 @@
   --cw-motion-fast: 140ms;
   --cw-motion-base: 180ms;
   --cw-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  /*
+   * One type scale. 0.75rem is the floor: nothing in the product may set a
+   * font-size below it, so xs is the smallest step and the auxiliary register
+   * (eyebrows, captions, table meta) compensates with letter-spacing and
+   * weight rather than with size. The two fluid steps carry the display
+   * register and clamp so a 320px viewport never overflows.
+   */
+  --cw-text-xs: 0.75rem;
+  --cw-text-sm: 0.8125rem;
+  --cw-text-md: 0.875rem;
+  --cw-text-lg: 1rem;
+  --cw-text-xl: 1.125rem;
+  --cw-text-2xl: 1.375rem;
+  --cw-text-3xl: 1.5rem;
+  --cw-text-display: clamp(1.7rem, 3vw, 2.5rem);
+  --cw-text-hero: clamp(2rem, 6vw, 3.4rem);
+  /* Leading tightens as type grows. Aux is the caption and label register. */
+  --cw-leading-tight: 1.1;
+  --cw-leading-snug: 1.3;
+  --cw-leading-aux: 1.45;
+  --cw-leading-body: 1.5;
 
   /* Backward-compatible aliases. Tailwind's theme layer publishes its own
      --font-sans and --font-mono, and Preflight points code and pre at the
@@ -148,7 +176,7 @@ body {
   background: var(--cw-canvas);
   color: var(--cw-ink);
   font-family: var(--cw-font-sans);
-  line-height: 1.5;
+  line-height: var(--cw-leading-body);
   text-rendering: optimizeLegibility;
 }
 
@@ -165,6 +193,15 @@ body {
 
 :where(button, input, select, textarea) {
   font: inherit;
+}
+
+/* Disclosure triggers are bare summary elements throughout the product, so the
+   hover response belongs on the element rather than on a class. */
+summary {
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-sr-only {
@@ -185,10 +222,10 @@ body {
   margin: 0;
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
   letter-spacing: 0.11em;
-  line-height: 1.4;
+  line-height: var(--cw-leading-aux);
   text-transform: uppercase;
 }
 
@@ -232,7 +269,7 @@ body {
   align-items: baseline;
   gap: 0.26em;
   font-family: var(--cw-font-display);
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
   font-weight: 400;
   letter-spacing: -0.01em;
 }
@@ -249,8 +286,8 @@ body {
   padding-left: var(--cw-space-3);
   border-left: 1px solid currentColor;
   color: var(--cw-muted);
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: var(--cw-text-xs);
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -266,16 +303,17 @@ body {
   border-radius: 999px;
   padding: 0.58rem 1.15rem;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
   font-weight: 700;
   letter-spacing: -0.005em;
   line-height: 1.25;
   cursor: pointer;
+  /* Only the three paint properties ease. The press lift below stays instant so
+     the control still reads as a physical press. */
   transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-button:active:not(:disabled) {
@@ -330,7 +368,7 @@ body {
 .cw-button--small {
   min-height: 2.625rem;
   padding: 0.38rem 0.85rem;
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-button--large {
@@ -366,13 +404,13 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--cw-space-3);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
   font-weight: 700;
 }
 
 .cw-field__optional {
   color: var(--cw-faint);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 500;
 }
 
@@ -439,7 +477,7 @@ body {
 
 .cw-input--large {
   min-height: 3.125rem;
-  font-size: 1.05rem;
+  font-size: var(--cw-text-lg);
 }
 
 .cw-textarea {
@@ -454,7 +492,7 @@ body {
 
 .cw-help,
 .cw-field__error {
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
   font-weight: 500;
 }
 
@@ -481,7 +519,7 @@ body {
 
 .cw-check-field label,
 .cw-radio-option label {
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
   font-weight: 700;
 }
 
@@ -489,7 +527,7 @@ body {
 .cw-radio-option p {
   margin: 0;
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-checkbox,
@@ -638,7 +676,7 @@ body {
   padding: var(--cw-space-6) clamp(1.25rem, 3vw, 3rem);
   border-top: 1px solid var(--cw-border);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-shell__mobile-navigation {
@@ -660,8 +698,8 @@ body {
   padding-inline: var(--cw-space-3);
   color: var(--cw-faint);
   font-family: var(--cw-font-accent);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
   letter-spacing: 0.04em;
 }
 
@@ -681,7 +719,7 @@ body {
   border-radius: var(--cw-radius-md);
   color: var(--cw-ink-soft);
   padding: 0.48rem var(--cw-space-3);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
   font-weight: 600;
   text-decoration: none;
   transition:
@@ -696,10 +734,16 @@ body {
   color: var(--cw-ink);
 }
 
+/* The current page reads from the marker and the icon; the label keeps the
+   normal ink so an active row does not shout across a grouped rail. */
 .cw-navigation__link[aria-current="page"] {
   background: var(--cw-brand-soft);
+  color: var(--cw-ink);
+  box-shadow: 2px 0 0 var(--cw-brand-strong) inset;
+}
+
+.cw-navigation__link[aria-current="page"] .cw-navigation__icon {
   color: var(--cw-brand-strong);
-  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
 }
 
 .cw-navigation__link:active:not([aria-disabled="true"]) {
@@ -727,8 +771,8 @@ body {
 .cw-navigation__description {
   overflow: hidden;
   color: var(--cw-muted);
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: var(--cw-text-xs);
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -745,7 +789,7 @@ body {
   margin: 0 0 var(--cw-space-5);
   padding: 0;
   color: var(--cw-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   list-style: none;
 }
 
@@ -757,6 +801,10 @@ body {
 
 .cw-breadcrumbs a {
   color: var(--cw-brand-strong);
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-page-header {
@@ -777,7 +825,7 @@ body {
 .cw-page-header h1 {
   margin: var(--cw-space-1) 0 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(2rem, 4vw, 3.15rem);
+  font-size: var(--cw-text-hero);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.05;
@@ -787,13 +835,13 @@ body {
   max-width: 46rem;
   margin-top: var(--cw-space-3);
   color: var(--cw-muted);
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .cw-page-header__metadata {
   margin-top: var(--cw-space-4);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-page-header__actions,
@@ -834,7 +882,7 @@ body {
 .cw-section__header h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: 1.5rem;
+  font-size: var(--cw-text-3xl);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -842,7 +890,7 @@ body {
 .cw-section__header h2 + div {
   margin-top: var(--cw-space-1);
   color: var(--cw-muted);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
 }
 
 /* State system */
@@ -937,7 +985,7 @@ body {
 .cw-state__body h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: 1.3rem;
+  font-size: var(--cw-text-2xl);
   font-weight: 600;
 }
 
@@ -953,7 +1001,7 @@ body {
   background: var(--cw-canvas);
   color: var(--cw-ink-soft);
   font-family: var(--cw-font-mono);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-state__actions {
@@ -971,7 +1019,7 @@ body {
   min-height: 3rem;
   border-bottom: 1px solid transparent;
   padding: 0.65rem clamp(1rem, 3vw, 2rem);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-banner--neutral {
@@ -1033,7 +1081,7 @@ body {
 
 .cw-validation-summary h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .cw-validation-summary ul {
@@ -1051,7 +1099,7 @@ body {
   align-items: center;
   gap: var(--cw-space-2);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
   font-weight: 600;
 }
 
@@ -1078,7 +1126,7 @@ body {
   min-width: 0;
   padding-right: var(--cw-space-4);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-steps__item::after {
@@ -1144,8 +1192,8 @@ body {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
   letter-spacing: 0.015em;
   line-height: 1.2;
   white-space: nowrap;
@@ -1194,7 +1242,7 @@ body {
 }
 
 .cw-term__labels {
-  font-size: 0.825rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-term__labels strong {
@@ -1267,7 +1315,7 @@ body {
 
 .cw-term__meta {
   color: var(--cw-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1353,26 +1401,26 @@ body {
 
 .cw-term-rollup__header h3 {
   font-family: var(--cw-font-display);
-  font-size: 1.25rem;
+  font-size: var(--cw-text-2xl);
   font-weight: 600;
 }
 
 .cw-term-rollup__header h3 + p {
   margin-top: 0.15rem;
   color: var(--cw-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-term-rollup__next {
   display: grid;
   justify-items: end;
   color: var(--cw-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-term-rollup__next strong {
   color: var(--cw-ink);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1394,7 +1442,7 @@ body {
   align-items: center;
   gap: var(--cw-space-2);
   color: var(--cw-ink-soft);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1494,7 +1542,7 @@ body {
 .cw-stat__label {
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   letter-spacing: 0.025em;
 }
@@ -1506,7 +1554,7 @@ body {
 .cw-stat__value {
   margin-top: var(--cw-space-4);
   font-family: var(--cw-font-display);
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1;
@@ -1518,7 +1566,7 @@ body {
   margin-top: auto;
   padding-top: var(--cw-space-4);
   color: var(--cw-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-stat__change {
@@ -1527,6 +1575,7 @@ body {
   gap: 0.3rem;
   color: var(--cw-ink-soft);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .cw-stat__action {
@@ -1602,14 +1651,14 @@ body {
 .cw-timeline__time,
 .cw-timeline__meta {
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
 .cw-timeline__description {
   margin-top: 0.2rem;
   color: var(--cw-muted);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-timeline__meta,
@@ -1674,7 +1723,7 @@ body {
 .cw-document-card h3 {
   margin: var(--cw-space-1) 0 0;
   font-family: var(--cw-font-display);
-  font-size: 1.12rem;
+  font-size: var(--cw-text-xl);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -1688,7 +1737,7 @@ body {
 .cw-document-card__summary {
   margin-top: var(--cw-space-2);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-document-card__meta {
@@ -1698,7 +1747,7 @@ body {
   margin: var(--cw-space-3) 0 0;
   color: var(--cw-faint);
   font-family: var(--cw-font-mono);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-document-card__meta dd {
@@ -1737,14 +1786,14 @@ body {
 
 .cw-queue-row h3 {
   margin: 0;
-  font-size: 0.93rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-queue-row__description,
 .cw-queue-row__metadata,
 .cw-queue-row__time {
   color: var(--cw-muted);
-  font-size: 0.77rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-queue-row__description {
@@ -1782,15 +1831,15 @@ body {
 .cw-description-list dt {
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 
 .cw-description-list dd {
   margin: var(--cw-space-1) 0 0;
   color: var(--cw-ink);
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-capacity {
@@ -1803,7 +1852,8 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--cw-space-4);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .cw-capacity__track {
@@ -1832,7 +1882,7 @@ body {
 
 .cw-capacity__threshold-label {
   color: var(--cw-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
   text-align: right;
 }
 
@@ -1860,18 +1910,18 @@ body {
 }
 
 .cw-chart__caption h3 {
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-chart__caption p {
   margin-top: 0.15rem;
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-chart__caption > strong {
   font-family: var(--cw-font-display);
-  font-size: 1.45rem;
+  font-size: var(--cw-text-3xl);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1936,7 +1986,7 @@ body {
   justify-content: space-between;
   margin-top: var(--cw-space-2);
   color: var(--cw-muted);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-chart__empty {
@@ -1946,13 +1996,13 @@ body {
   place-items: center;
   border: 1px dashed var(--cw-border);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-chart__data {
   margin-top: var(--cw-space-4);
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-chart__data summary {
@@ -1975,14 +2025,25 @@ body {
   text-align: left;
 }
 
+/* The row header carries the period and the cell carries the value, so only the
+   cell lines up as a column of figures. */
+.cw-chart__data td {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Tables */
+/*
+ * A table is a ledger, not a card. It takes the tightest corner in the system
+ * and no shadow: the audit rubric reserves elevation for modals, so a raised
+ * table would read as a floating surface inside the page rather than as part
+ * of it. The border alone carries the edge.
+ */
 .cw-table-wrap {
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--cw-border);
-  border-radius: var(--cw-radius-lg);
+  border-radius: var(--cw-radius-xs);
   background: var(--cw-surface);
-  box-shadow: var(--cw-shadow-sm);
 }
 
 .cw-table {
@@ -2000,14 +2061,14 @@ body {
 
 .cw-table caption strong {
   display: block;
-  font-size: 0.9rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-table caption span {
   display: block;
   margin-top: 0.1rem;
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-table th,
@@ -2021,20 +2082,27 @@ body {
   background: color-mix(in srgb, var(--cw-canvas) 70%, var(--cw-surface));
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .cw-table tbody th {
-  font-size: 0.84rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
 }
 
 .cw-table tbody td {
   color: var(--cw-ink-soft);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
+}
+
+.cw-table tbody tr {
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-table tbody tr:hover {
@@ -2067,6 +2135,25 @@ body {
   top: 0;
 }
 
+/*
+ * Below the tablet breakpoint a six-column operator table would otherwise
+ * compress to about 108px per column, and every cell wraps into a tower: a
+ * single row reached 798px, so one record filled the screen. The wrapper
+ * already scrolls, so give each cell a floor and let the table be wider than
+ * the viewport instead of taller than it. This holds rows near 120px and the
+ * page itself still never overflows.
+ */
+@media (max-width: 47.999rem) {
+  .cw-table th,
+  .cw-table td {
+    min-width: 9rem;
+  }
+
+  .cw-table__numeric {
+    min-width: 5.5rem;
+  }
+}
+
 .cw-table__empty {
   padding: var(--cw-space-8) !important;
   text-align: center;
@@ -2078,7 +2165,7 @@ body {
   z-index: 90;
   inset: 0;
   background: var(--cw-overlay);
-  animation: cw-fade-in 120ms ease-out;
+  animation: cw-fade-in var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-dialog-content {
@@ -2095,13 +2182,13 @@ body {
   background: var(--cw-surface);
   box-shadow: var(--cw-shadow-dialog);
   padding: var(--cw-space-6);
-  animation: cw-dialog-in 150ms ease-out;
+  animation: cw-dialog-in var(--cw-motion-base) var(--cw-motion-ease);
 }
 
 .cw-dialog-title {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: 1.55rem;
+  font-size: var(--cw-text-3xl);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -2156,8 +2243,8 @@ body {
   box-shadow: var(--cw-shadow-sm);
   padding: var(--cw-space-2) var(--cw-space-3);
   color: var(--cw-surface);
-  font-size: 0.8125rem;
-  line-height: 1.45;
+  font-size: var(--cw-text-sm);
+  line-height: var(--cw-leading-aux);
   animation: cw-fade-in var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
@@ -2232,7 +2319,7 @@ body {
   background: var(--cw-surface);
   color: var(--cw-ink);
   padding: var(--cw-space-2) var(--cw-space-4);
-  font-size: 0.875rem;
+  font-size: var(--cw-text-md);
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -2269,7 +2356,10 @@ body {
   color: currentColor;
   padding: 0;
   cursor: pointer;
-  transition: background-color var(--cw-motion-fast) var(--cw-motion-ease);
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .cw-icon-button:hover {
@@ -2316,7 +2406,7 @@ body {
 .cw-command-title {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: 1.4rem;
+  font-size: var(--cw-text-2xl);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -2324,7 +2414,7 @@ body {
 .cw-drawer-description {
   margin-top: var(--cw-space-1);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-drawer-body {
@@ -2341,7 +2431,7 @@ body {
   padding: 0.1rem 0.3rem;
   color: var(--cw-muted);
   font-family: var(--cw-font-sans);
-  font-size: 0.6875rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-command-content {
@@ -2400,7 +2490,7 @@ body {
   outline: 0;
   background: transparent;
   color: var(--cw-ink);
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .cw-command-results {
@@ -2420,7 +2510,7 @@ body {
   margin: 0;
   padding: var(--cw-space-2) var(--cw-space-3) var(--cw-space-1);
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -2470,7 +2560,7 @@ body {
 .cw-command-result__copy > span {
   overflow: hidden;
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2502,7 +2592,7 @@ body {
   border-top: 1px solid var(--cw-border);
   padding: var(--cw-space-2) var(--cw-space-4);
   color: var(--cw-muted);
-  font-size: 0.6875rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-command-footer kbd {
@@ -2578,7 +2668,7 @@ body {
 .cw-collection-toolbar__status {
   grid-column: 1 / 2;
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-collection-toolbar__actions {
@@ -2641,7 +2731,7 @@ body {
 
 .cw-entity-combobox__list small {
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-entity-combobox__empty {
@@ -2699,7 +2789,7 @@ body {
   border: 1px solid var(--cw-border-strong);
   border-radius: 50%;
   background: var(--cw-surface);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
@@ -2713,11 +2803,11 @@ body {
   min-width: 0;
   align-content: start;
   padding-top: var(--cw-space-1);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-workflow-stepper__copy > span {
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-workflow-stepper__step--complete .cw-workflow-stepper__marker {
@@ -2777,14 +2867,14 @@ body {
 
 .cw-review-summary > header h2 {
   font-family: var(--cw-font-display);
-  font-size: 1.35rem;
+  font-size: var(--cw-text-2xl);
   font-weight: 600;
 }
 
 .cw-review-summary > header p {
   margin-top: var(--cw-space-1);
   color: var(--cw-muted);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-review-summary__item {
@@ -2815,7 +2905,7 @@ body {
 .cw-review-summary__item dt,
 .cw-review-summary__item-status {
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-review-summary__item--warning,
@@ -2880,7 +2970,7 @@ body {
 .cw-inline-notice__copy {
   min-width: 0;
   color: var(--cw-ink);
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-inline-notice__copy > div {
@@ -2931,7 +3021,7 @@ body {
 
 .cw-responsive-record__identity h3 {
   overflow-wrap: anywhere;
-  font-size: 0.9375rem;
+  font-size: var(--cw-text-md);
 }
 
 .cw-responsive-record__identity h3 a {
@@ -2943,7 +3033,7 @@ body {
 .cw-responsive-record__description,
 .cw-responsive-record__field dt {
   color: var(--cw-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .cw-responsive-record__eyebrow,
@@ -2964,7 +3054,7 @@ body {
 
 .cw-responsive-record__field dd {
   overflow-wrap: anywhere;
-  font-size: 0.8125rem;
+  font-size: var(--cw-text-sm);
 }
 
 .cw-responsive-record__field[data-numeric="true"] dd {
@@ -3096,10 +3186,20 @@ body {
   }
 
   .cw-shell__rail .cw-navigation__label,
-  .cw-shell__rail .cw-navigation__text,
   .cw-shell__rail .cw-navigation__badge,
   .cw-shell__brand .cw-wordmark__descriptor {
     display: none;
+  }
+
+  /* The icon rail hides the label from sight only. Clipping rather than
+     removing it keeps the link's accessible name without a tooltip layer. */
+  .cw-shell__rail .cw-navigation__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .cw-shell__rail .cw-navigation__link {

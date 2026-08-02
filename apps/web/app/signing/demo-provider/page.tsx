@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { BrandLogo, Button, StatusBadge } from "@clockwork/ui";
+import { BrandLogo, Button, buttonClassName, StatusBadge } from "@clockwork/ui";
 
 import {
   demoExperienceEnabled,
@@ -34,7 +34,10 @@ export default async function Page({
           <p className="eyebrow">{t("signing.demo.eyebrow")}</p>
           <h1>{t("signing.demo.unavailable.title")}</h1>
           <p>{t("signing.demo.unavailable.description")}</p>
-          <Link className="cw-button cw-button--primary" href="/agreements">
+          <Link
+            className={buttonClassName({ variant: "primary" })}
+            href="/agreements"
+          >
             {t("signing.agreements")}
           </Link>
         </section>

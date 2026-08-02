@@ -1,3 +1,5 @@
+import { Table } from "@clockwork/ui";
+
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
@@ -50,65 +52,50 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
         {queue.readable && queue.events.length === 0 ? (
           <p className={styles.empty}>{webhookReplayCopy.empty}</p>
         ) : (
-          <div className={styles.tableScroll} tabIndex={0}>
-            <table className={styles.table}>
-              <caption className="sr-only">
-                {webhookReplayCopy.tableCaption}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">{webhookReplayCopy.columns.provider}</th>
-                  <th scope="col">{webhookReplayCopy.columns.callback}</th>
-                  <th scope="col">{webhookReplayCopy.columns.eventType}</th>
-                  <th scope="col">{webhookReplayCopy.columns.state}</th>
-                  <th scope="col">{webhookReplayCopy.columns.received}</th>
-                  <th scope="col">{webhookReplayCopy.columns.attempts}</th>
-                  <th scope="col">{webhookReplayCopy.columns.failure}</th>
-                  <th scope="col">{webhookReplayCopy.columns.decision}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {queue.events.map((event) => (
-                  <tr key={event.id}>
-                    <td>{event.provider}</td>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <strong>{event.providerEventId}</strong>
-                      </div>
-                    </td>
-                    <td>{event.eventType}</td>
-                    <td>{webhookReplayCopy.stateLabel[event.state]}</td>
-                    <td>
-                      <time dateTime={event.occurredAt}>
-                        {received(event.occurredAt)}
-                      </time>
-                    </td>
-                    <td>
-                      <strong>{event.attemptCount}</strong>
-                    </td>
-                    <td>
-                      {event.processingError ?? webhookReplayCopy.noError}
-                    </td>
-                    <td>
-                      <div className={styles.actionStack}>
-                        <SurfaceActionGate
-                          audience="internal"
-                          requiredPermission="system:operate"
-                        >
-                          <ReplayDecision
-                            provider={event.provider}
-                            providerEventId={event.providerEventId}
-                            eventType={event.eventType}
-                            payloadHash={event.payloadHash}
-                          />
-                        </SurfaceActionGate>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            className={styles.dsTable ?? ""}
+            caption={webhookReplayCopy.tableCaption}
+            captionHidden
+            density="compact"
+            headers={[
+              webhookReplayCopy.columns.provider,
+              webhookReplayCopy.columns.callback,
+              webhookReplayCopy.columns.eventType,
+              webhookReplayCopy.columns.state,
+              webhookReplayCopy.columns.received,
+              webhookReplayCopy.columns.attempts,
+              webhookReplayCopy.columns.failure,
+              webhookReplayCopy.columns.decision,
+            ]}
+            numericColumns={[5]}
+            rowKeys={queue.events.map((event) => event.id)}
+            rows={queue.events.map((event) => [
+              event.provider,
+              <div className={styles.primaryCell}>
+                <strong>{event.providerEventId}</strong>
+              </div>,
+              event.eventType,
+              webhookReplayCopy.stateLabel[event.state],
+              <time dateTime={event.occurredAt}>
+                {received(event.occurredAt)}
+              </time>,
+              <strong>{event.attemptCount}</strong>,
+              event.processingError ?? webhookReplayCopy.noError,
+              <div className={styles.actionStack}>
+                <SurfaceActionGate
+                  audience="internal"
+                  requiredPermission="system:operate"
+                >
+                  <ReplayDecision
+                    provider={event.provider}
+                    providerEventId={event.providerEventId}
+                    eventType={event.eventType}
+                    payloadHash={event.payloadHash}
+                  />
+                </SurfaceActionGate>
+              </div>,
+            ])}
+          />
         )}
       </section>
     </main>

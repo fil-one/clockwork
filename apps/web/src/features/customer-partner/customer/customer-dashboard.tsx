@@ -50,12 +50,13 @@ export interface CustomerDashboardProjection {
     agreementLabel: string;
   };
   services: readonly { id: string; name: string; detail: string }[];
+  /** Null while the account has no metered usage to report. */
   capacity: {
     committed: string;
     current: string;
     prior: string;
     freshnessLabel: string;
-  };
+  } | null;
   activity: readonly {
     id: string;
     title: string;
@@ -221,23 +222,34 @@ export function CustomerDashboard({
         <div className={styles.contextColumns}>
           <section aria-labelledby="capacity-facts-title">
             <h2 id="capacity-facts-title">Capacity facts</h2>
-            <dl className={styles.capacityFacts}>
-              <div>
-                <dt>Committed</dt>
-                <dd>{projection.capacity.committed}</dd>
-              </div>
-              <div>
-                <dt>Current use</dt>
-                <dd>{projection.capacity.current}</dd>
-              </div>
-              <div>
-                <dt>Prior 30 days</dt>
-                <dd>{projection.capacity.prior}</dd>
-              </div>
-            </dl>
-            <p className={styles.freshness}>
-              {projection.capacity.freshnessLabel}
-            </p>
+            {projection.capacity === null ? (
+              <ApplicationStatePanel
+                state="empty"
+                compact
+                title="Usage reporting is not connected yet"
+                description={t("dashboard.empty.capacity")}
+              />
+            ) : (
+              <>
+                <dl className={styles.capacityFacts}>
+                  <div>
+                    <dt>Committed</dt>
+                    <dd>{projection.capacity.committed}</dd>
+                  </div>
+                  <div>
+                    <dt>Current use</dt>
+                    <dd>{projection.capacity.current}</dd>
+                  </div>
+                  <div>
+                    <dt>Prior 30 days</dt>
+                    <dd>{projection.capacity.prior}</dd>
+                  </div>
+                </dl>
+                <p className={styles.freshness}>
+                  {projection.capacity.freshnessLabel}
+                </p>
+              </>
+            )}
           </section>
           <section aria-labelledby="activity-title">
             <h2 id="activity-title">{copy.activityTitle}</h2>

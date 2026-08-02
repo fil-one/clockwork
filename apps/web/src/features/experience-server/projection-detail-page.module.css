@@ -28,7 +28,7 @@
 
 .pageHeader h1 {
   font-family: var(--cw-font-display);
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.08;
@@ -48,13 +48,13 @@
 
 .context {
   color: var(--detail-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
 .description {
   color: var(--detail-muted);
-  font-size: clamp(0.96rem, 1.4vw, 1.08rem);
+  font-size: clamp(var(--cw-text-lg), 1.4vw, var(--cw-text-xl));
   line-height: 1.55;
   max-width: 62ch;
 }
@@ -62,7 +62,7 @@
 .freshness {
   border-left: 3px solid var(--detail-action);
   color: var(--detail-muted);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
   margin-top: 0.5rem;
   padding: 0.3rem 0.65rem;
@@ -102,11 +102,11 @@
 
 .promiseChain span {
   color: var(--detail-muted);
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
 }
 
 .promiseChain strong {
-  font-size: 0.95rem;
+  font-size: var(--cw-text-lg);
   line-height: 1.35;
 }
 
@@ -127,13 +127,13 @@
 
 .ledgerHeader h2 {
   font-family: var(--cw-font-display);
-  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-size: clamp(var(--cw-text-2xl), 2vw, var(--cw-text-3xl));
   font-weight: 600;
 }
 
 .ledgerHeader p {
   color: var(--detail-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   margin-top: 0.25rem;
 }
 
@@ -168,13 +168,14 @@
 .recordReference {
   color: var(--detail-muted);
   font-family: var(--cw-font-mono);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
 .recordHeader h3 {
   font-family: var(--cw-font-display);
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-size: clamp(var(--cw-text-xl), 2vw, var(--cw-text-3xl));
   font-weight: 600;
   line-height: 1.2;
   margin-top: 0.35rem;
@@ -190,7 +191,7 @@
 .recordStatus {
   border: 1px solid var(--detail-border);
   flex: 0 0 auto;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   padding: 0.45rem 0.6rem;
 }
@@ -236,10 +237,12 @@
 
 .factLedger dt {
   color: var(--detail-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
 }
 
+/* Values line up column to column, so the digits hold one width. */
 .factLedger dd {
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 1.4;
   margin: 0.3rem 0 0;
@@ -258,7 +261,7 @@
 
 .recordDecision p {
   color: var(--detail-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
 }
 
 .recordDecision strong {
@@ -286,8 +289,15 @@
 .recordEvidence {
   color: var(--detail-muted);
   display: grid;
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   gap: 0.75rem;
+}
+
+.recordEvidence a {
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .recordEvidence h3 {
@@ -305,7 +315,7 @@
 .technical {
   border-top: 1px solid var(--detail-border);
   color: var(--detail-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-xs);
   padding-top: 0.8rem;
 }
 
@@ -313,6 +323,10 @@
   color: var(--detail-ink);
   cursor: pointer;
   font-weight: 700;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .technical p {

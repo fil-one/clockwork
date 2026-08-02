@@ -35,7 +35,7 @@
 .eyebrow {
   color: var(--web-accent);
   font-family: var(--cw-font-accent);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
   margin: 0 0 8px;
@@ -62,7 +62,7 @@
 
 .taskContext {
   color: var(--color-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
   margin: 0 0 6px;
 }
@@ -95,11 +95,11 @@
 
 .promiseChain span {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .promiseChain strong {
-  font-size: 0.94rem;
+  font-size: var(--cw-text-lg);
   line-height: 1.35;
 }
 
@@ -108,7 +108,7 @@
 .textButton,
 .pageLink {
   align-items: center;
-  border-radius: 8px;
+  border-radius: var(--cw-radius-sm);
   display: inline-flex;
   font: inherit;
   font-weight: 700;
@@ -143,6 +143,7 @@
 .secondary:focus-visible,
 .textButton:focus-visible,
 .pageLink:focus-visible,
+.viewLink:focus-visible,
 .recordLink:focus-visible,
 .cardLink:focus-visible,
 .filters input:focus-visible,
@@ -161,7 +162,7 @@
 .state {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 0.8rem;
+  border-radius: var(--cw-radius-sm);
   min-width: 0;
 }
 
@@ -187,7 +188,7 @@
 .selector label,
 .fieldLabel {
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
 }
 
@@ -199,7 +200,7 @@
 .selector input {
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
+  border-radius: var(--cw-radius-sm);
   color: var(--color-text);
   font: inherit;
   min-height: 42px;
@@ -225,36 +226,50 @@
   margin: 4px 0 0;
 }
 
-.tableWrap {
-  border-top: 1px solid var(--color-border);
-  overflow-x: auto;
+.resultActions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
 }
 
-.table {
-  border-collapse: collapse;
-  min-width: 760px;
-  width: 100%;
+.viewControls {
+  align-items: center;
+  display: flex;
+  gap: 6px;
 }
 
-.table th {
-  background: var(--color-surface-subtle);
+.viewLabel {
   color: var(--color-text-muted);
-  font-family: var(--cw-font-accent);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  padding: 11px 16px;
-  text-align: left;
-  text-transform: uppercase;
+  font-size: var(--cw-text-sm);
+  font-weight: 700;
 }
 
-.table td {
+.viewLink {
+  border: 1px solid var(--color-border);
+  border-radius: var(--cw-radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--cw-text-xs);
+  font-weight: 700;
+  padding: 6px 9px;
+  text-decoration: none;
+}
+
+.viewLink[aria-current="true"] {
+  background: var(--web-soft);
+  border-color: var(--color-action);
+  color: var(--color-action);
+}
+
+/*
+ * The design-system table brings its own scroll container and chrome. Inside
+ * the results panel it stays flush against the panel border, and the card list
+ * replaces it below the table breakpoint.
+ */
+.main .tableWrap {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   border-top: 1px solid var(--color-border);
-  padding: 15px 16px;
-  vertical-align: middle;
-}
-
-.table tbody tr:hover {
-  background: var(--color-surface-subtle);
 }
 
 .recordLink,
@@ -264,12 +279,17 @@
   text-decoration-color: color-mix(in srgb, currentColor 28%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .recordMeta,
 .muted {
   color: var(--color-text-muted);
-  font-size: 0.83rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
   line-height: 1.45;
   margin-top: 4px;
 }
@@ -277,7 +297,7 @@
 .badge {
   border-radius: 999px;
   display: inline-flex;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
   padding: 5px 9px;
   white-space: nowrap;
@@ -304,7 +324,7 @@
 }
 
 .risk {
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   text-transform: capitalize;
 }
 
@@ -343,11 +363,12 @@
 
 .card dt {
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
 }
 
 .card dd {
-  font-size: 0.86rem;
+  font-size: var(--cw-text-md);
+  font-variant-numeric: tabular-nums;
   margin: 2px 0 0;
 }
 
@@ -377,15 +398,6 @@
   max-width: 54ch;
 }
 
-.breadcrumb {
-  color: var(--color-text-muted);
-  font-size: 0.88rem;
-}
-
-.breadcrumb a {
-  color: inherit;
-}
-
 .detailHeader {
   align-items: start;
   display: flex;
@@ -406,7 +418,7 @@
 
 .nextAction p {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   margin-bottom: 5px;
 }
 
@@ -439,10 +451,11 @@
 
 .definitionGrid dt {
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .definitionGrid dd {
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   margin: 5px 0 0;
   overflow-wrap: anywhere;
@@ -461,6 +474,7 @@
 .audit li {
   border-left: 2px solid var(--color-border-strong);
   display: grid;
+  font-variant-numeric: tabular-nums;
   gap: 3px;
   padding-left: 14px;
 }
@@ -468,7 +482,7 @@
 .chain span,
 .audit span {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .technical {
@@ -519,7 +533,7 @@
 
 .stageFields legend {
   color: var(--color-text);
-  font-size: 0.88rem;
+  font-size: var(--cw-text-md);
   font-weight: 700;
   padding: 0;
 }
@@ -548,7 +562,7 @@
 .steps li {
   border-top: 3px solid var(--color-border);
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   padding-top: 9px;
 }
 
@@ -575,7 +589,7 @@
 
 .fieldError {
   color: var(--web-danger);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   margin: 0;
 }
 
@@ -612,10 +626,11 @@
 
 .summary dt {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
 }
 
 .summary dd {
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   margin: 4px 0 0;
 }
@@ -630,7 +645,7 @@
 
 .reviewList li {
   background: var(--color-surface-subtle);
-  border-radius: 8px;
+  border-radius: var(--cw-radius-sm);
   display: grid;
   gap: 3px;
   padding: 13px;
@@ -638,13 +653,14 @@
 
 .reviewList span {
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .check {
   align-items: start;
   background: var(--color-surface-subtle);
-  border-radius: 8px;
+  border-radius: var(--cw-radius-sm);
   display: flex;
   gap: 10px;
   line-height: 1.45;
@@ -660,7 +676,7 @@
 .notice,
 .successMessage,
 .errorMessage {
-  border-radius: 8px;
+  border-radius: var(--cw-radius-sm);
   line-height: 1.5;
   margin: 0;
   padding: 12px 14px;

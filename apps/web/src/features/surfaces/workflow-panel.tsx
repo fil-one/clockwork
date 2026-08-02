@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
-import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
+import {
+  Button,
+  buttonClassName,
+  Dialog,
+  Input,
+  Select,
+  Textarea,
+} from "@clockwork/ui";
 
 import {
   CommerceApiError,
@@ -1502,7 +1509,7 @@ export function WorkflowPanel({
         {providerAction ? (
           <p className="form-message form-message--success">
             <a
-              className="cw-button cw-button--primary"
+              className={buttonClassName({ variant: "primary" })}
               href={providerAction.href}
               target="_blank"
               rel="noopener noreferrer"

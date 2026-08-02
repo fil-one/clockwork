@@ -257,7 +257,7 @@ describe("dashboard demo boundary", () => {
     const customer = await loadCustomerDashboardProjection();
     const partner = await loadPartnerDashboardProjection();
 
-    expect(customer.capacity.committed).toBe("620 TB");
+    expect(customer.capacity?.committed).toBe("620 TB");
     expect(partner.agreement.label).toBe(
       "Meridian Channel Partner Agreement - v4.1",
     );
@@ -359,7 +359,7 @@ describe("customer dashboard composition", () => {
       progressLabel: "Service term progress is not yet available",
       noticeLabel: "No notice date recorded",
     });
-    expect(projectionResult.capacity.current).toBe("Not yet available");
+    expect(projectionResult.capacity).toBeNull();
     expect(projectionResult.generatedAt).toBe(generatedAt);
   });
 

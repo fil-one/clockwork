@@ -1,4 +1,4 @@
-import { StatusBadge } from "@clockwork/ui";
+import { StatusBadge, Table } from "@clockwork/ui";
 
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
@@ -92,75 +92,64 @@ export function RecoveryView({
         {operations.length === 0 && readable ? (
           <p className={styles.empty}>{table.empty}</p>
         ) : (
-          <div className={styles.tableScroll} tabIndex={0}>
-            <table className={styles.table}>
-              <caption className="sr-only">{table.caption}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{table.columns.engine}</th>
-                  <th scope="col">{table.columns.work}</th>
-                  <th scope="col">{table.columns.record}</th>
-                  <th scope="col">{table.columns.failure}</th>
-                  <th scope="col">{table.columns.attempts}</th>
-                  <th scope="col">{table.columns.waiting}</th>
-                  <th scope="col">{table.columns.decision}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {operations.map((operation) => (
-                  <tr key={`${operation.source}-${operation.id}`}>
-                    <td>{sourceLabels[operation.source]}</td>
-                    <td>
-                      <div className={styles.primaryCell}>
-                        <strong>{operation.reference}</strong>
-                        <span className={styles.secondary}>
-                          {operation.id.slice(0, 8)}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{subject(operation)}</td>
-                    <td>
-                      <StatusBadge tone="danger">
-                        {operation.failureCode}
-                      </StatusBadge>
-                    </td>
-                    <td>
-                      <strong>{operation.attemptCount}</strong>
-                    </td>
-                    <td>{elapsed(operation.failedAt, now)}</td>
-                    <td>
-                      <div className={styles.actionStack}>
-                        {operation.decision === "retry_requested" ? (
-                          <span className={styles.waiting}>
-                            {table.retryingCell(operation.decisionReason)}
-                          </span>
-                        ) : null}
-                        <SurfaceActionGate
-                          audience="internal"
-                          requiredPermission="system:operate"
-                        >
-                          <RecoveryDecision
-                            decision="retry"
-                            source={operation.source}
-                            id={operation.id}
-                            reference={operation.reference}
-                            subject={subject(operation)}
-                          />
-                          <RecoveryDecision
-                            decision="abandon"
-                            source={operation.source}
-                            id={operation.id}
-                            reference={operation.reference}
-                            subject={subject(operation)}
-                          />
-                        </SurfaceActionGate>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            className={styles.dsTable ?? ""}
+            caption={table.caption}
+            captionHidden
+            density="compact"
+            headers={[
+              table.columns.engine,
+              table.columns.work,
+              table.columns.record,
+              table.columns.failure,
+              table.columns.attempts,
+              table.columns.waiting,
+              table.columns.decision,
+            ]}
+            numericColumns={[4]}
+            rowKeys={operations.map(
+              (operation) => `${operation.source}-${operation.id}`,
+            )}
+            rows={operations.map((operation) => [
+              sourceLabels[operation.source],
+              <div className={styles.primaryCell}>
+                <strong>{operation.reference}</strong>
+                <span className={styles.secondary}>
+                  {operation.id.slice(0, 8)}
+                </span>
+              </div>,
+              subject(operation),
+              <StatusBadge tone="danger">{operation.failureCode}</StatusBadge>,
+              <strong>{operation.attemptCount}</strong>,
+              elapsed(operation.failedAt, now),
+              <div className={styles.actionStack}>
+                {operation.decision === "retry_requested" ? (
+                  <span className={styles.waiting}>
+                    {table.retryingCell(operation.decisionReason)}
+                  </span>
+                ) : null}
+                <SurfaceActionGate
+                  audience="internal"
+                  requiredPermission="system:operate"
+                >
+                  <RecoveryDecision
+                    decision="retry"
+                    source={operation.source}
+                    id={operation.id}
+                    reference={operation.reference}
+                    subject={subject(operation)}
+                  />
+                  <RecoveryDecision
+                    decision="abandon"
+                    source={operation.source}
+                    id={operation.id}
+                    reference={operation.reference}
+                    subject={subject(operation)}
+                  />
+                </SurfaceActionGate>
+              </div>,
+            ])}
+          />
         )}
       </section>
     </FinancePageFrame>

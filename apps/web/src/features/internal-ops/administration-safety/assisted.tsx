@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { Select } from "@clockwork/ui";
+
 import { startAssistedSession } from "@/src/auth/actions";
 
 import { adminSafetyCopy } from "./copy";
@@ -152,23 +154,19 @@ export function AssistedMode({
               resetReview();
             }}
           />
-          <label className={styles.field}>
-            Assisted action
-            <select
-              name="action"
-              value={actionKey}
-              onChange={(event) => {
-                setActionKey(event.currentTarget.value as AssistedActionKey);
-                resetReview();
-              }}
-            >
-              {Object.entries(assistedActions).map(([key, value]) => (
-                <option key={key} value={key}>
-                  {value.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Assisted action"
+            name="action"
+            value={actionKey}
+            onChange={(event) => {
+              setActionKey(event.currentTarget.value as AssistedActionKey);
+              resetReview();
+            }}
+            options={Object.entries(assistedActions).map(([key, value]) => ({
+              value: key,
+              label: value.label,
+            }))}
+          />
           <label className={styles.field}>
             Assisted-mode reason
             <textarea

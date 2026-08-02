@@ -589,17 +589,6 @@ function recentActivity(
     });
 }
 
-/**
- * Metered usage has no projection channel yet, so the capacity card states that
- * rather than deriving a number from commercial records that do not measure it.
- */
-const capacityUnavailable: CustomerDashboardProjection["capacity"] = {
-  committed: "Not yet available",
-  current: "Not yet available",
-  prior: "Not yet available",
-  freshnessLabel: "Usage reporting is not yet available for this account.",
-};
-
 const customerChannels: readonly ProjectionChannel[] = [
   "billing",
   "quotes",
@@ -630,7 +619,10 @@ export async function loadCustomerDashboardProjection(): Promise<CustomerDashboa
       name: record.title,
       detail: record.description,
     })),
-    capacity: capacityUnavailable,
+    // Metered usage has no projection channel yet, so the capacity card falls
+    // back to its empty state rather than deriving a number from commercial
+    // records that do not measure use.
+    capacity: null,
     activity: recentActivity(loaded.records),
   };
 }

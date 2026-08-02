@@ -2,7 +2,12 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
+import {
+  ApplicationStatePanel,
+  buttonClassName,
+  StatusBadge,
+  Table,
+} from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
 import {
@@ -70,51 +75,40 @@ function CollectionTable({
   params: URLSearchParams;
 }) {
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
-        <caption>{`${config.title} results`}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{config.recordLabel}</th>
-            <th scope="col">{common.status}</th>
-            <th scope="col">{config.ownerLabel}</th>
-            <th scope="col">{config.valueLabel}</th>
-            <th scope="col">Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => (
-            <tr key={record.id}>
-              <th scope="row">
-                <Link
-                  className={styles.recordLink}
-                  href={recordHref(config, record, params)}
-                >
-                  {record.title}
-                </Link>
-                <span className={styles.recordDescription}>
-                  {record.description}
-                </span>
-                <span className={styles.recordId}>{record.id}</span>
-              </th>
-              <td>
-                <StatusBadge tone={tone(record)}>
-                  {record.statusLabel}
-                </StatusBadge>
-              </td>
-              <td className={styles.owner}>{record.owner}</td>
-              <td className={styles.value}>{record.value}</td>
-              <td>
-                {record.updatedLabel}
-                <span className={styles.updated}>
-                  Risk: {optionLabel(record.risk)}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      caption={`${config.title} results`}
+      captionHidden
+      className={styles.tableWrap ?? ""}
+      headers={[
+        config.recordLabel,
+        common.status,
+        config.ownerLabel,
+        config.valueLabel,
+        "Updated",
+      ]}
+      rowKeys={records.map((record) => record.id)}
+      rows={records.map((record) => [
+        <>
+          <Link
+            className={styles.recordLink}
+            href={recordHref(config, record, params)}
+          >
+            {record.title}
+          </Link>
+          <span className={styles.recordDescription}>{record.description}</span>
+          <span className={styles.recordId}>{record.id}</span>
+        </>,
+        <StatusBadge tone={tone(record)}>{record.statusLabel}</StatusBadge>,
+        record.owner,
+        <strong className={styles.value}>{record.value}</strong>,
+        <>
+          {record.updatedLabel}
+          <span className={styles.updated}>
+            Risk: {optionLabel(record.risk)}
+          </span>
+        </>,
+      ])}
+    />
   );
 }
 
@@ -354,7 +348,7 @@ export function CustomerCollection({
           <Link className={styles.clearLink} href={clearHref}>
             Clear filters
           </Link>
-          <button className={styles.submit} type="submit">
+          <button className={buttonClassName()} type="submit">
             Apply filters
           </button>
         </div>

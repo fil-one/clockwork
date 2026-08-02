@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T12:58:30Z",
+  "capturedAt": "2026-08-02T20:06:37Z",
   "captureRef": "main",
-  "captureCommit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-  "captureTree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
-  "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
-  "captureWorkingTreePathCount": 0,
+  "captureCommit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+  "captureTree": "1c8430871f63e81821390690363972122b2220ef",
+  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
+  "captureWorkingTreePathCount": 77,
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -39,34 +39,19 @@
   "remotes": ["origin"],
   "refs": [
     {
-      "ref": "brand/fil-one-visual-conformance",
-      "fullRef": "refs/heads/brand/fil-one-visual-conformance",
-      "refType": "branch",
-      "object": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "objectType": "commit",
-      "peeledCommit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "tree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
-      "treeEntryCount": 1031,
-      "treeListingSha256": "2c39ab3a8d0230ac5cc54471bba5dd2d8f05e854104e92b7aaf0b64517c8bd5f",
-      "parents": ["ba6a46465fffd38127032d0e9b6545191a4296e6"],
-      "subject": "docs(design): record the brand type, the ramp, and the recaptured baselines",
-      "mergeBaseWithMain": "b460396f162b0167e3589bcb6568932f003864b5"
-    },
-    {
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "b460396f162b0167e3589bcb6568932f003864b5",
+      "object": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
       "objectType": "commit",
-      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
-      "treeEntryCount": 1023,
-      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
-      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
-      "subject": "docs: close P0-40 and the resolved P1 findings",
-      "mergeBaseWithMain": "b460396f162b0167e3589bcb6568932f003864b5"
+      "peeledCommit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "tree": "1c8430871f63e81821390690363972122b2220ef",
+      "treeEntryCount": 1034,
+      "treeListingSha256": "a59b6d6607907ad7c96cd7af3fd3576800f2639d72063de21be5173bc4eb0317",
+      "parents": ["d184536668fa133658008653b1b1e52c2d064182"],
+      "subject": "docs: record the direct Netlify deploy route for the demo site",
+      "mergeBaseWithMain": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f"
     },
     {
       "ref": "notes/clockwork-lane-topology",
@@ -102,30 +87,30 @@
       "ref": "origin",
       "fullRef": "refs/remotes/origin/HEAD",
       "refType": "other",
-      "object": "b460396f162b0167e3589bcb6568932f003864b5",
+      "object": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
       "objectType": "commit",
-      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
-      "treeEntryCount": 1023,
-      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
-      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
-      "subject": "docs: close P0-40 and the resolved P1 findings",
+      "peeledCommit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "tree": "1c8430871f63e81821390690363972122b2220ef",
+      "treeEntryCount": 1034,
+      "treeListingSha256": "a59b6d6607907ad7c96cd7af3fd3576800f2639d72063de21be5173bc4eb0317",
+      "parents": ["d184536668fa133658008653b1b1e52c2d064182"],
+      "subject": "docs: record the direct Netlify deploy route for the demo site",
       "mergeBaseWithMain": null
     },
     {
       "ref": "origin/main",
       "fullRef": "refs/remotes/origin/main",
       "refType": "other",
-      "object": "b460396f162b0167e3589bcb6568932f003864b5",
+      "object": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
       "objectType": "commit",
-      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
-      "treeEntryCount": 1023,
-      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
-      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
-      "subject": "docs: close P0-40 and the resolved P1 findings",
+      "peeledCommit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "tree": "1c8430871f63e81821390690363972122b2220ef",
+      "treeEntryCount": 1034,
+      "treeListingSha256": "a59b6d6607907ad7c96cd7af3fd3576800f2639d72063de21be5173bc4eb0317",
+      "parents": ["d184536668fa133658008653b1b1e52c2d064182"],
+      "subject": "docs: record the direct Netlify deploy route for the demo site",
       "mergeBaseWithMain": null
     },
     {
@@ -191,20 +176,104 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "branch": "brand/fil-one-visual-conformance",
+      "head": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "branch": "main",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
-        "staged": [],
-        "unstaged": [],
-        "untracked": [],
+        "staged": [
+          "apps/web/src/features/customer-partner/customer/customer-state-gallery.tsx"
+        ],
+        "unstaged": [
+          "apps/web/app/access/mfa/page.tsx",
+          "apps/web/app/access/session-expired/page.tsx",
+          "apps/web/app/demo/demo-landing.module.css",
+          "apps/web/app/demo/page.tsx",
+          "apps/web/app/globals.css",
+          "apps/web/app/not-found.tsx",
+          "apps/web/app/signing/demo-provider/page.tsx",
+          "apps/web/app/signing/embedded/page.tsx",
+          "apps/web/app/signing/redirect/page.tsx",
+          "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-320-demo-chromium-darwin.png",
+          "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-demo-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-320-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/operator-priority-work-chromium-darwin.png",
+          "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
+          "apps/web/src/features/customer-partner/commercial/collection-page.tsx",
+          "apps/web/src/features/customer-partner/commercial/commercial.module.css",
+          "apps/web/src/features/customer-partner/customer/customer-collection.module.css",
+          "apps/web/src/features/customer-partner/customer/customer-collection.tsx",
+          "apps/web/src/features/customer-partner/customer/customer-dashboard.tsx",
+          "apps/web/src/features/customer-partner/customer/customer-pages.module.css",
+          "apps/web/src/features/customer-partner/partner/partner-collection.tsx",
+          "apps/web/src/features/customer-partner/partner/partner-detail.tsx",
+          "apps/web/src/features/customer-partner/partner/partner-route.tsx",
+          "apps/web/src/features/customer-partner/partner/partner.module.css",
+          "apps/web/src/features/experience-server/dashboard-loader.test.ts",
+          "apps/web/src/features/experience-server/dashboard-loader.ts",
+          "apps/web/src/features/experience-server/internal-projection-page.module.css",
+          "apps/web/src/features/experience-server/internal-projection-page.tsx",
+          "apps/web/src/features/experience-server/invoice-derivation-panel.module.css",
+          "apps/web/src/features/experience-server/projection-detail-page.module.css",
+          "apps/web/src/features/internal-ops/administration-safety/administration-safety.module.css",
+          "apps/web/src/features/internal-ops/administration-safety/agreements.tsx",
+          "apps/web/src/features/internal-ops/administration-safety/approvals.tsx",
+          "apps/web/src/features/internal-ops/administration-safety/assisted.tsx",
+          "apps/web/src/features/internal-ops/administration-safety/gates.tsx",
+          "apps/web/src/features/internal-ops/administration-safety/price-books.tsx",
+          "apps/web/src/features/internal-ops/assisted-session/assisted-session-banner.module.css",
+          "apps/web/src/features/internal-ops/finance-lifecycle/collections-view.tsx",
+          "apps/web/src/features/internal-ops/finance-lifecycle/finance-lifecycle.module.css",
+          "apps/web/src/features/internal-ops/finance-lifecycle/provisioning-view.tsx",
+          "apps/web/src/features/internal-ops/finance-lifecycle/renewals-view.tsx",
+          "apps/web/src/features/internal-ops/operations-home/operations-home.module.css",
+          "apps/web/src/features/internal-ops/queue-search/queue-search.module.css",
+          "apps/web/src/features/internal-ops/recovery/recovery-view.tsx",
+          "apps/web/src/features/internal-ops/webhook-replay/webhook-replay-view.tsx",
+          "apps/web/src/features/registration/registration-form.tsx",
+          "apps/web/src/features/shell/app-shell.tsx",
+          "apps/web/src/features/shell/demo-persona-switcher.module.css",
+          "apps/web/src/features/shell/demo-persona-switcher.tsx",
+          "apps/web/src/features/shell/navigation.ts",
+          "apps/web/src/features/shell/permission-gate.tsx",
+          "apps/web/src/features/signing/signing-experience.tsx",
+          "apps/web/src/features/surfaces/workflow-panel.tsx",
+          "apps/web/src/i18n/en.ts",
+          "docs/design/reject-list-audit.md",
+          "docs/ux-handoffs/design-shell.md",
+          "packages/ui/package.json",
+          "packages/ui/src/components/button.tsx",
+          "packages/ui/src/components/icons.ts",
+          "packages/ui/src/components/shell.tsx",
+          "packages/ui/src/components/table.tsx",
+          "packages/ui/src/index.ts",
+          "packages/ui/src/styles.css",
+          "pnpm-lock.yaml"
+        ],
+        "untracked": [
+          "apps/web/app/(experience)/(internal)/internal/loading.module.css",
+          "apps/web/app/(experience)/(internal)/internal/loading.tsx",
+          "apps/web/app/(experience)/(partner)/partner/loading.module.css",
+          "apps/web/app/(experience)/(partner)/partner/loading.tsx",
+          "packages/ui/src/components/button-class-name.ts"
+        ],
         "ignoredRoots": [
           ".artifacts",
           ".clockwork-archives",
           ".turbo",
           "apps",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.next",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/node_modules",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/node_modules",
+          "apps/web/.netlify/plugins/node_modules",
           "apps/web/.next",
           "apps/web/.turbo",
           "apps/web/node_modules",
@@ -232,7 +301,7 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 80701,
+        "ignoredArtifactCount": 85185,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
           ".clockwork-archives/Clockwork-qualified-20260801.bundle",
@@ -13345,43 +13414,49 @@
             ]
           }
         },
-        "rejectedIgnoredArtifactCount": 78930,
-        "ignoredArtifactListingSha256": "167574fcda1ff8d22534dc3f7a5e9e95e1b987c738692953e137e6db6fff047a",
-        "rejectedIgnoredArtifactListingSha256": "c6553cb557db3c65db96c6c09e7887cc7c0dfe578d4c4541a981c960c5670e46",
-        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+        "rejectedIgnoredArtifactCount": 83414,
+        "ignoredArtifactListingSha256": "1d6191ce3a045cdb43c1c9dba3c254e6bccec9431ed34d3b95d54e8ec8042271",
+        "rejectedIgnoredArtifactListingSha256": "e7a34d6ef5683f7770af9e15d42d903d8b48d7ca1e9df8208cb56c078a07cfd4",
+        "porcelainSha256": "4d7b9078878596798f14499181c4b4ee59212babc106f82dbc4c8ca28730c43b"
       }
     }
   ],
   "allReachableCommits": [
     {
-      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "tree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
-      "parents": ["ba6a46465fffd38127032d0e9b6545191a4296e6"],
-      "subject": "docs(design): record the brand type, the ramp, and the recaptured baselines"
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "tree": "1c8430871f63e81821390690363972122b2220ef",
+      "parents": ["d184536668fa133658008653b1b1e52c2d064182"],
+      "subject": "docs: record the direct Netlify deploy route for the demo site"
     },
     {
-      "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
-      "tree": "bbc22e8327b12a7d276a77513cb602879aa78caf",
-      "parents": ["04427171c79d2614e0b7758653ad89d6cce96bd8"],
-      "subject": "refactor(web): put the feature stylesheets back on the token layer"
+      "commit": "d184536668fa133658008653b1b1e52c2d064182",
+      "tree": "d743ea02c37cb5c094d8b3767fd7bb6744ece20e",
+      "parents": ["acdb24376a915d3145289526a1e371f0ef79aba4"],
+      "subject": "docs: hand off the Netlify deploy break and the remaining cleanup"
     },
     {
-      "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
-      "tree": "8471ed11c0f2e5bc4d8effaf349f26b98d9ecc7a",
-      "parents": ["be16f03da4730835ade2ec37663b1ce58cab7b94"],
-      "subject": "feat(ui): set the wordmark in the brand face and address the marks by surface"
+      "commit": "acdb24376a915d3145289526a1e371f0ef79aba4",
+      "tree": "f8f69ab70a04fd124df33b5d52744393023ee34d",
+      "parents": ["1a9dd86f8e64f2f2c32e43b7f14504354c07aaba"],
+      "subject": "test(web): stop the quote payload test depending on the runner's timezone (#4)"
     },
     {
-      "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
-      "tree": "0071ebdb8d919bb469dfcfd242885ff9179404e6",
-      "parents": ["488bb5407b7069f542b9ca9d88330bc87d8ec4c8"],
-      "subject": "feat(ui): move the token layer onto Filecoin Blue and one neutral family"
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "tree": "dd72a9df8a8178c81a5b101fe490a735b806199d",
+      "parents": ["fc39652a489e925966a6b310511efeb39ecef9a2"],
+      "subject": "Conform the experience to the Fil One brand visual language (#2)"
     },
     {
-      "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
-      "tree": "5b66d0d3e010c854bf8e613d2757e0069e4c9d76",
+      "commit": "fc39652a489e925966a6b310511efeb39ecef9a2",
+      "tree": "da1f80c6da9d348adac433bc7a1191c1a97fe3f6",
+      "parents": ["cea8b22730d8321aada33dfec020d07abd12927a"],
+      "subject": "fix(demo): clear the persona when a demo session signs out (#3)"
+    },
+    {
+      "commit": "cea8b22730d8321aada33dfec020d07abd12927a",
+      "tree": "8bce11f838a68a69a08321ce04affd4b811e8ede",
       "parents": ["b460396f162b0167e3589bcb6568932f003864b5"],
-      "subject": "feat(brand): serve the Fil One typefaces from the application"
+      "subject": "docs: rewrite the README as a real project front page (#1)"
     },
     {
       "commit": "b460396f162b0167e3589bcb6568932f003864b5",
@@ -14068,7 +14143,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 114,
+  "reachableCommitCount": 115,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -14146,18 +14221,117 @@
       "ancestorOfMain": true
     }
   ],
-  "mergeBases": [
-    {
-      "left": "brand/fil-one-visual-conformance",
-      "right": "main",
-      "mergeBase": "b460396f162b0167e3589bcb6568932f003864b5"
-    }
-  ],
+  "mergeBases": [],
   "reflogEntries": [
     {
-      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:55:01-04:00}",
-      "subject": "commit: docs(design): record the brand type, the ramp, and the recaptured baselines"
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "selector": "refs/remotes/origin/main@{2026-08-02T10:54:43-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "selector": "refs/heads/main@{2026-08-02T10:53:03-04:00}",
+      "subject": "commit: docs: record the direct Netlify deploy route for the demo site"
+    },
+    {
+      "commit": "68f86b2de2df1e4347e25eb0948cfb03a5582f8f",
+      "selector": "HEAD@{2026-08-02T10:53:03-04:00}",
+      "subject": "commit: docs: record the direct Netlify deploy route for the demo site"
+    },
+    {
+      "commit": "d184536668fa133658008653b1b1e52c2d064182",
+      "selector": "refs/remotes/origin/main@{2026-08-02T10:44:48-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "d184536668fa133658008653b1b1e52c2d064182",
+      "selector": "refs/heads/main@{2026-08-02T10:43:11-04:00}",
+      "subject": "commit: docs: hand off the Netlify deploy break and the remaining cleanup"
+    },
+    {
+      "commit": "d184536668fa133658008653b1b1e52c2d064182",
+      "selector": "HEAD@{2026-08-02T10:43:11-04:00}",
+      "subject": "commit: docs: hand off the Netlify deploy break and the remaining cleanup"
+    },
+    {
+      "commit": "acdb24376a915d3145289526a1e371f0ef79aba4",
+      "selector": "refs/heads/main@{2026-08-02T10:35:27-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "acdb24376a915d3145289526a1e371f0ef79aba4",
+      "selector": "refs/remotes/origin/main@{2026-08-02T10:35:27-04:00}",
+      "subject": "pull --ff-only origin main: fast-forward"
+    },
+    {
+      "commit": "acdb24376a915d3145289526a1e371f0ef79aba4",
+      "selector": "HEAD@{2026-08-02T10:35:27-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "selector": "HEAD@{2026-08-02T10:35:27-04:00}",
+      "subject": "checkout: moving from fix/timezone-dependent-quote-test to main"
+    },
+    {
+      "commit": "f106d9f511f9bad701a8bd567c13f83f18aea46d",
+      "selector": "HEAD@{2026-08-02T10:33:23-04:00}",
+      "subject": "commit: test(web): stop the quote payload test depending on the runner's timezone"
+    },
+    {
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "selector": "HEAD@{2026-08-02T10:31:48-04:00}",
+      "subject": "checkout: moving from main to fix/timezone-dependent-quote-test"
+    },
+    {
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "selector": "refs/heads/main@{2026-08-02T10:24:54-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "selector": "refs/remotes/origin/main@{2026-08-02T10:24:54-04:00}",
+      "subject": "pull --ff-only origin main: fast-forward"
+    },
+    {
+      "commit": "1a9dd86f8e64f2f2c32e43b7f14504354c07aaba",
+      "selector": "HEAD@{2026-08-02T10:24:54-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "HEAD@{2026-08-02T10:24:53-04:00}",
+      "subject": "checkout: moving from brand/fil-one-visual-conformance to main"
+    },
+    {
+      "commit": "fc39652a489e925966a6b310511efeb39ecef9a2",
+      "selector": "refs/remotes/origin/main@{2026-08-02T10:13:14-04:00}",
+      "subject": "fetch -q origin: fast-forward"
+    },
+    {
+      "commit": "5066f4d2e02dac00ac558f8602ccf9f8046a5ef7",
+      "selector": "HEAD@{2026-08-02T09:57:30-04:00}",
+      "subject": "checkout: moving from fix/demo-persona-sign-out to brand/fil-one-visual-conformance"
+    },
+    {
+      "commit": "27ed87f5d0bfb08e85fcfa086729679decbed85c",
+      "selector": "HEAD@{2026-08-02T09:53:31-04:00}",
+      "subject": "commit: fix(demo): clear the persona when a demo session signs out"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "HEAD@{2026-08-02T09:45:40-04:00}",
+      "subject": "checkout: moving from brand/fil-one-visual-conformance to fix/demo-persona-sign-out"
+    },
+    {
+      "commit": "5066f4d2e02dac00ac558f8602ccf9f8046a5ef7",
+      "selector": "HEAD@{2026-08-02T09:27:52-04:00}",
+      "subject": "commit: test(demo): recapture the demo baselines on the brand faces"
+    },
+    {
+      "commit": "a7716450b44a8b8287b0bdcaaf2242f57dfa701d",
+      "selector": "HEAD@{2026-08-02T08:58:54-04:00}",
+      "subject": "commit: chore(baseline): recapture the artifact manifests"
     },
     {
       "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
@@ -14166,18 +14340,8 @@
     },
     {
       "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:49:52-04:00}",
-      "subject": "commit: refactor(web): put the feature stylesheets back on the token layer"
-    },
-    {
-      "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
       "selector": "HEAD@{2026-08-02T08:49:52-04:00}",
       "subject": "commit: refactor(web): put the feature stylesheets back on the token layer"
-    },
-    {
-      "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:48:03-04:00}",
-      "subject": "commit: feat(ui): set the wordmark in the brand face and address the marks by surface"
     },
     {
       "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
@@ -14186,28 +14350,13 @@
     },
     {
       "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:46:13-04:00}",
-      "subject": "commit: feat(ui): move the token layer onto Filecoin Blue and one neutral family"
-    },
-    {
-      "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
       "selector": "HEAD@{2026-08-02T08:46:13-04:00}",
       "subject": "commit: feat(ui): move the token layer onto Filecoin Blue and one neutral family"
     },
     {
       "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:44:13-04:00}",
-      "subject": "commit: feat(brand): serve the Fil One typefaces from the application"
-    },
-    {
-      "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
       "selector": "HEAD@{2026-08-02T08:44:13-04:00}",
       "subject": "commit: feat(brand): serve the Fil One typefaces from the application"
-    },
-    {
-      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
-      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:12:15-04:00}",
-      "subject": "branch: Created from HEAD"
     },
     {
       "commit": "b460396f162b0167e3589bcb6568932f003864b5",
@@ -15091,6 +15240,10 @@
           ".artifacts",
           ".turbo",
           "apps",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.next",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/node_modules",
+          "apps/web/.netlify/functions-internal/___netlify-server-handler/node_modules",
+          "apps/web/.netlify/plugins/node_modules",
           "apps/web/.next",
           "apps/web/.turbo",
           "apps/web/node_modules",
@@ -15118,8 +15271,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 78930,
-        "listingSha256": "c6553cb557db3c65db96c6c09e7887cc7c0dfe578d4c4541a981c960c5670e46",
+        "artifactCount": 83414,
+        "listingSha256": "e7a34d6ef5683f7770af9e15d42d903d8b48d7ca1e9df8208cb56c078a07cfd4",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
@@ -16261,8 +16414,18 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "e680c2f9e728fb051e719d827331b9eaf0f54e6a"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "09412b61f3cd7264547b9480f8cac68c44380288"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "21017a1a6c81d1ac69a3fcee6fdc1814574abc19"
         },
         {
           "state": "unreachable",
@@ -16286,6 +16449,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "bbc22e8327b12a7d276a77513cb602879aa78caf"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "cc42e8f11bffa972778cb1a3291b7feb7beaf499"
         },
@@ -16306,13 +16474,28 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "3883b220c3c50d09d968a10694d34267e3eea2d8"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "39831085c9c5216c3dc0595faff61fb9d6211b41"
         },
         {
           "state": "unreachable",
+          "type": "blob",
+          "object": "7f03eb9979340405cc4eb321a5faaf15673f3944"
+        },
+        {
+          "state": "unreachable",
           "type": "tree",
           "object": "c303bb4e480abcc895ac6f15b9f5ebdeb871e07a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "cf83ce0138a4225c2bdaccd013098aeff5d9622d"
         },
         {
           "state": "unreachable",
@@ -16328,6 +16511,16 @@
           "state": "unreachable",
           "type": "tree",
           "object": "b344004e4591b65dd1af6ce6205725b51c80e497"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "f084960d4c8df618f20d1eb154c9fc8173de5d1f"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "0b0575ee8a0d3a3dfba423872a01432b38e156d2"
         },
         {
           "state": "unreachable",
@@ -16381,6 +16574,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "8348dab04dbffe5c8bd3ad0b0eace8c18148d955"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "b5883c05b23a9d77cee4298f231c16a4feffdf2b"
         },
@@ -16407,12 +16605,27 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "d1caf3509b88f0969215de1d511242ec67c92714"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "40cb469c527803fb48c4ea4b37e4eaedb5ad01bd"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "928bfbe97c42004e7c7f4b99d8f1d2329451c133"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b84b5ae553dc28e2bb16cd2424b6691c4ef30e87"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "d90b768ad018a0359c7e322197896ede777f3500"
         },
         {
           "state": "unreachable",
@@ -16451,6 +16664,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "894d4a397f3135d191986b92f622216011403be9"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "cb8d7d40f4bc17539dad0e2537d6a195e5897f8a"
         },
@@ -16458,6 +16676,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "f60d26bff08e7b05433f40e3407c7379c3089c63"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "900ed4fd98b716cbc5404d15158d9ee233325e3a"
         },
         {
           "state": "unreachable",
@@ -16471,6 +16694,11 @@
         },
         {
           "state": "unreachable",
+          "type": "blob",
+          "object": "f10e4fe0ce9fbabf08e67fae1c8fa2dd06a494bc"
+        },
+        {
+          "state": "unreachable",
           "type": "tree",
           "object": "040f587084061572605e77f5c23d5a5d46d17888"
         },
@@ -16478,6 +16706,21 @@
           "state": "unreachable",
           "type": "blob",
           "object": "26cfb8932171ad922d665936fb7365d61c11c6d8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "518faea731a172fdc88141de20dc14c5f03cd353"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "664f8a179433c9725dc8bf0b6ba99dec4aefe813"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "760fc67f6feca6374747f31a1ed0dfe0d9f73b7a"
         },
         {
           "state": "unreachable",
@@ -16532,12 +16775,27 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "fb5228d2fa5d36d76b28a6b1ed21c38135beb38a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "03138a73227dd4cc4ecb42b46d3a82c250dd70d2"
         },
         {
           "state": "unreachable",
           "type": "tree",
           "object": "9713b7143e73fb60c4271e85bcc6e67ee8f1ce2b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "dd143ccab769033cd563f7bbc8d9cc87504c3521"
         },
         {
           "state": "unreachable",
@@ -16582,7 +16840,27 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "e11854be17f04bb98259111c9a2289ab64fc6598"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "5e998553745233ab18c4b897f2cab9cfdcf99810"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "619977026a2728a886d3c3b32cf58e063366e703"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8499ae7245e70a8d731f1f32a0a55bb23b40caea"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "e0198a4697bdde16e4e6da59c70914f600ae2fe7"
         },
         {
           "state": "unreachable",
@@ -16593,6 +16871,11 @@
           "state": "unreachable",
           "type": "blob",
           "object": "b7dac9ffec4985128cf11f0b51c989c4baf08ba4"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f11ad38f68d81599ec821334f17469b6b02cdf55"
         },
         {
           "state": "unreachable",
@@ -16618,6 +16901,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "a59bd48059cac6c6b6d5749fa2e456c9c0586fe0"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c41b5f59b9d5481583009c3d692976190b9f291c"
         },
         {
           "state": "unreachable",
@@ -16652,12 +16940,27 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "0a1e19cb09e89d8837d2c66f1543042bed48bad4"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "5cdebaa830f721918005e95ba5210736bb680744"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "6edeec3ac640be0e48fbfb9ebfcdc024ea34be59"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "9e1e4efdc5188aef003ca444d76ca97075caaa5c"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "e09ee955dcf12c0301cba1ebae0a72160c97b65c"
         },
         {
           "state": "unreachable",
@@ -16687,12 +16990,27 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "f19f9b1071380eaddde658673c2d269a14be3a23"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "01e0ec669ddae2093068d8300143d1abc9d79948"
         },
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "0b604827260d122f816ce7a551b15494ba1218c0"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "3320a6dae3d9992e111f975d7833c8afedabfcd9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "85a0d4fd66ef53e8978c2be58eb4a13d10291bcc"
         },
         {
           "state": "unreachable",
@@ -16703,6 +17021,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "f7a0477be092ed00831f41fb0ac073fd264e2bae"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "44e1f69ae7a2bb19d76d77a69354c88a7179c425"
         },
         {
           "state": "unreachable",
@@ -16733,6 +17056,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "74649253e985b2df22f7e36e93b24f8121ac036f"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7e24a6e20c30cfb6b824035fba3526d5129425c7"
         },
         {
           "state": "unreachable",
@@ -16771,6 +17099,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "eca529377e47de88bf85256748d8b36fa8e5efb7"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "16260d3150fa745eb284f7f4b74f7effeb3a5ad9"
         },
@@ -16778,6 +17111,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "44e645d4409d698bf48079fb2604550306b031db"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "5b66d0d3e010c854bf8e613d2757e0069e4c9d76"
         },
         {
           "state": "unreachable",
@@ -16798,6 +17136,16 @@
           "state": "unreachable",
           "type": "blob",
           "object": "c0e72b5dd1b7ed8ffa94ccb7062239bde567def9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c1e77bead0229f63b79d01943bfe6f649087dd18"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "57a8cad21d493c3572d4578c975bfc1da33e6d58"
         },
         {
           "state": "unreachable",
@@ -16832,6 +17180,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "2a691c210bf9ad1e3ac9127e7d80c8ed53e9b392"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "4ea9526688361687c38c52a2d883e15257bbf8ac"
         },
         {
@@ -16856,8 +17209,18 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "80a94e4e5391fb40268d1acfe126259dc802586e"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "86a9cf151fdb361a77a92814a5c45d241b63d4f7"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "ad291a7dff039794ae361f95b16ecd2809388801"
         },
         {
           "state": "unreachable",
@@ -16891,6 +17254,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "fe2bd54a94cc8837083a435a6786562e5ac1eb83"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "61ac20c8fd6ca455655d31cdfbb681dfcb55aa76"
         },
@@ -16917,6 +17285,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "052e1519c3b2a978c599898a8c7899e4a98b372e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "d7aefddcd8d1460e97a67e6d3874fd0e1f35c724"
         },
         {
@@ -16926,8 +17299,23 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "6eaf3955a082e40ea6a627d02627447bafceb162"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "e5ef033a31725fdbb62c0e6c4f807af4738c5ee8"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "3bf0a762903d1bb0deb475aa523b3fc04604e9ba"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "50300c909335570eab4763b595b5793cf6199aa8"
         },
         {
           "state": "unreachable",
@@ -16948,6 +17336,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "fd706a8e4e18eccf8061d65d37da09321c1748ed"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "0071ebdb8d919bb469dfcfd242885ff9179404e6"
         },
         {
           "state": "unreachable",
@@ -16978,6 +17371,11 @@
           "state": "unreachable",
           "type": "blob",
           "object": "7bb1c1e724370ecb8ab724e23f7297fd6afb7db2"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8471ed11c0f2e5bc4d8effaf349f26b98d9ecc7a"
         },
         {
           "state": "unreachable",
@@ -17016,8 +17414,18 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "3a3369efbf04a74674a35565a962fe0e4e955e56"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "47f357eb17b334c921d2b3260fc3f3cf49a1d254"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "4ff3f1cc9a4077caa78e8ca3e04c1e7601cc681a"
         },
         {
           "state": "unreachable",
@@ -17057,6 +17465,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "56b593b410d419c794fbe5a413b2649617639c68"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "62b570fca0fb75a60b0d27ed33b13b14b517fc58"
         },
         {
@@ -17077,6 +17490,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "6836cce19aad3151d0855b652ea83c7457dd5d0b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "45f7e41dd706b4480facfcce8a5d05a6eedf2a14"
         },
         {
@@ -17088,6 +17506,31 @@
           "state": "unreachable",
           "type": "tree",
           "object": "5d777a0178cb7265757d1f7f0b8c418654a3a4d8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c7f78ce005ec4009a65dd0c673f3848c1ef5c07d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "dc77d02cbff8e5b19eb5def2cc891caf59221045"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "237890f6ffef8e4a5e01f59b40b911ea8772c884"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "35b84bb109f1d8c2909e368c9aac384eecd3977f"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "40f81b458bfb00f4ef1135cf6f8205fc03b83009"
         },
         {
           "state": "unreachable",
@@ -17111,8 +17554,23 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "dffadc115d1fb6e6ec2452dfac2f5b3ded117fd6"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "f4fa4b29318d164bcc93979ae9e79f52fd1bf522"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "ffbaca9fb10b5edd2717cad04b6df427f370361c"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "64fb18b7978e0b52271a4988c88974d586b67c44"
         },
         {
           "state": "unreachable",
@@ -17146,6 +17604,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "bebc8fd20c1ddc2c48d796fbaabeba18e214bcb6"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "62bdc33a56e16fbbbd2c049464e4826a5c795503"
         },
@@ -17161,6 +17624,11 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "6cfeadf7c3142fc670df4fa0fe4f50293462eae3"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "6fbea2fa5667fcc9f6294c184036e1d6c5b3aa55"
         },
@@ -17168,6 +17636,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "b7bedce5c8837ac74259ffebcada3957e27bfcf9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "123fb09e782383621b9fefc6542ab913473e2917"
         },
         {
           "state": "unreachable",
@@ -17188,6 +17661,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "c47fe602994b70d04d480bf297db34256d024393"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "e73f93450b55f8b4e56720319a8aec3b740b1e08"
         }
       ],
       "rationale": "Superseded intermediate source/config snapshots and generated tsbuildinfo; no post-inventory semantic delta."

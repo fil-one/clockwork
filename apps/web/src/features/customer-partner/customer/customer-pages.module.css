@@ -19,14 +19,14 @@
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--web-muted);
-  font-size: 0.76rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
 .header h1 {
   max-width: 48rem;
   margin: 0;
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.052em;
   line-height: 0.98;
@@ -37,7 +37,7 @@
   max-width: 47rem;
   margin: 1rem 0 0;
   color: var(--web-muted);
-  font-size: clamp(0.96rem, 1.4vw, 1.08rem);
+  font-size: var(--cw-text-lg);
 }
 
 .primaryLink,
@@ -47,9 +47,9 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--web-accent);
-  border-radius: 0.45rem;
+  border-radius: var(--cw-radius-sm);
   padding: 0.55rem 0.9rem;
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
   font-weight: 800;
   text-decoration: none;
 }
@@ -87,21 +87,21 @@
 .sectionHeading h2,
 .panel h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
 }
 
 .sectionHeading p,
 .panelIntro {
   margin: 0.3rem 0 0;
   color: var(--web-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .attentionGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   background: var(--web-paper);
   overflow: hidden;
 }
@@ -114,6 +114,10 @@
   color: inherit;
   padding: 1rem;
   text-decoration: none;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .attentionLink:last-child {
@@ -134,7 +138,7 @@
 .attentionType {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -142,20 +146,21 @@
 
 .attentionLink h3 {
   margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.25;
+  font-size: var(--cw-text-md);
+  line-height: var(--cw-leading-snug);
 }
 
 .attentionLink p {
   margin: 0;
   color: var(--web-muted);
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .attentionAction {
   align-self: end;
   color: var(--web-accent);
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
 }
 
@@ -172,7 +177,7 @@
 .activity,
 .accountCard {
   border: 1px solid var(--web-line);
-  border-radius: 0.25rem;
+  border-radius: var(--cw-radius-xs);
   background: var(--web-paper);
 }
 
@@ -191,7 +196,7 @@
 
 .termCard h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
 }
 
 .termRange {
@@ -199,6 +204,7 @@
   font-size: clamp(1.2rem, 2vw, 1.55rem);
   font-weight: 700;
   letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
 }
 
 .termTrack {
@@ -234,7 +240,7 @@
 .termMilestones dt,
 .accountFacts dt {
   color: var(--web-muted);
-  font-size: 0.66rem;
+  font-size: var(--cw-text-xs);
   font-weight: 700;
 }
 
@@ -242,8 +248,9 @@
 .accountFacts dd {
   margin: 0.22rem 0 0;
   overflow-wrap: anywhere;
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .rollup {
@@ -257,7 +264,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1rem;
-  font-size: 0.86rem;
+  font-size: var(--cw-text-md);
   font-weight: 800;
   cursor: pointer;
 }
@@ -268,8 +275,9 @@
 
 .rollupCount {
   color: var(--web-muted);
-  font-size: 0.72rem;
+  font-size: var(--cw-text-xs);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .serviceList {
@@ -287,12 +295,13 @@
 }
 
 .serviceList strong {
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
 }
 
 .serviceList span {
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .metricGrid {
@@ -328,14 +337,15 @@
 .chartHeader h2,
 .activity h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--cw-text-lg);
 }
 
 .freshness,
 .comparison {
   margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: 0.7rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .comparison {
@@ -359,7 +369,8 @@
 
 .barRow span,
 .barRow strong {
-  font-size: 0.74rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .barRow strong {
@@ -403,13 +414,14 @@
 }
 
 .activityList strong {
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .activityList span,
 .activityList time {
   color: var(--web-muted);
-  font-size: 0.68rem;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .accountFacts {
@@ -430,6 +442,10 @@
   color: inherit;
   padding: 1rem;
   text-decoration: none;
+  transition:
+    background-color var(--cw-motion-fast) var(--cw-motion-ease),
+    border-color var(--cw-motion-fast) var(--cw-motion-ease),
+    color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
 .accountCard:hover {
@@ -439,20 +455,21 @@
 
 .accountCard h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .accountCard p {
   margin: 0;
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .accountCard span {
   align-self: end;
   color: var(--web-accent);
-  font-size: 0.75rem;
+  font-size: var(--cw-text-xs);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .permissionNote {
@@ -461,7 +478,7 @@
   border-left: 3px solid var(--web-line);
   padding: 0.75rem 1rem;
   color: var(--web-muted);
-  font-size: 0.78rem;
+  font-size: var(--cw-text-sm);
 }
 
 .stateGrid {
@@ -572,10 +589,10 @@
   max-width: 24ch;
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-size: var(--cw-text-display);
   font-weight: 600;
   letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
 }
 
 .taskHeader p {
@@ -598,18 +615,19 @@
 
 .obligationHeading h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--cw-text-xl);
 }
 
 .obligationHeading p {
   margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: 0.8rem;
+  font-size: var(--cw-text-sm);
 }
 
 .asOf {
   flex: 0 0 auto;
   font-family: var(--cw-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .obligationList {
@@ -637,7 +655,8 @@
   padding-top: 0.15rem;
   color: var(--web-accent);
   font-family: var(--cw-font-display);
-  font-size: 1.5rem;
+  font-size: var(--cw-text-3xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .obligationCopy {
@@ -657,13 +676,14 @@
 
 .obligationCopy h3 {
   margin-top: 0.3rem;
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .obligationCopy p {
   margin-top: 0.2rem;
   color: var(--web-muted);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .obligationAction {
@@ -671,7 +691,7 @@
   min-height: 2.75rem;
   align-items: center;
   color: var(--web-accent);
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
   font-weight: 800;
 }
 
@@ -683,7 +703,7 @@
   min-height: 3.25rem;
   padding-block: 0.85rem;
   color: var(--web-accent);
-  font-size: 0.86rem;
+  font-size: var(--cw-text-md);
   font-weight: 800;
   cursor: pointer;
 }
@@ -697,7 +717,7 @@
 
 .contextColumns h2 {
   margin: 0 0 0.75rem;
-  font-size: 1rem;
+  font-size: var(--cw-text-lg);
 }
 
 .capacityFacts {
@@ -715,12 +735,13 @@
 .capacityFacts dt,
 .capacityFacts dd {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--cw-text-sm);
 }
 
 .capacityFacts dd {
   font-weight: 700;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 52rem) {
