@@ -1,0 +1,12 @@
+# Build mechanics only. Demo behaviour is env-gated and set on the site, never
+# committed, so a build from this file alone produces the ordinary application.
+[build]
+  command = "corepack enable && corepack prepare pnpm@10.34.5 --activate && pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=@clockwork/web"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "24"
+  TURBO_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
