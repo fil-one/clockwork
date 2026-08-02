@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BrandLogo } from "@clockwork/ui";
 
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 export default function Page() {
   return (
@@ -9,7 +10,7 @@ export default function Page() {
       <section className="access-card">
         <BrandLogo
           className="signing-wordmark"
-          src="/brand/fo-wordmark-dark.png"
+          src={brandAsset()}
           name={t("app.name")}
         />
         <p className="eyebrow">401</p>

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BrandLogo } from "@clockwork/ui";
 
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { SigningExperience } from "@/src/features/signing/signing-experience";
 import { t } from "@/src/i18n/en";
 
@@ -17,7 +18,7 @@ export default async function Page({
         <section className="access-card">
           <BrandLogo
             className="signing-wordmark"
-            src="/brand/fo-wordmark-dark.png"
+            src={brandAsset()}
             name={t("app.name")}
           />
           <p className="eyebrow">{t("signing.eyebrow")}</p>

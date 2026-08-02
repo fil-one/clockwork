@@ -11,6 +11,7 @@ import {
 } from "@/src/features/contracts/experience-client";
 import { trustedSigningUrl } from "@/src/features/contracts/provider-navigation";
 import type { EsignReturnStatus } from "@/src/features/experience-server/model";
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 
 type SigningState =
@@ -122,7 +123,7 @@ export function SigningExperience({
     <main className="signing-main" id="main-content">
       <header className="signing-header">
         <div className="signing-wordmark">
-          <BrandLogo src="/brand/fo-wordmark-dark.png" name={t("app.name")} />
+          <BrandLogo src={brandAsset()} name={t("app.name")} />
           <span>{t("app.product")}</span>
         </div>
         <StatusBadge tone={tone}>{statusLabel}</StatusBadge>
