@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+import { runtimeTelemetrySink } from "@/src/telemetry/runtime";
 
 import { POST } from "./route";
 
@@ -37,6 +39,7 @@ function request(body: unknown, csrf = token) {
       cookie: `clockwork-csrf=${token}`,
       origin: "http://localhost:3000",
       "sec-fetch-site": "same-origin",
+      traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
       "x-clockwork-csrf": csrf,
     },
     body: JSON.stringify(body),
@@ -58,6 +61,31 @@ describe("browser telemetry ingestion", () => {
   it("rejects non-ASCII and malformed CSRF tokens without throwing", async () => {
     expect((await POST(request(record(), "é".repeat(32)))).status).toBe(403);
     expect((await POST(request(record(), "a".repeat(31)))).status).toBe(403);
+  });
+
+  it("records a failed receiver span when the sink cannot deliver", async () => {
+    const exported = vi
+      .spyOn(runtimeTelemetrySink, "export")
+      .mockRejectedValue(new Error("collector unavailable"));
+    try {
+      expect((await POST(request(record()))).status).toBe(503);
+      const browserSpan = exported.mock.calls[0]?.[0]?.[0];
+      const receiverSpan = exported.mock.calls.at(-1)?.[0]?.[0];
+      expect(browserSpan).toMatchObject({
+        name: "document.load",
+        parentSpanId: "1111111111111111",
+      });
+      expect(receiverSpan).toMatchObject({
+        name: "api.telemetry_ingest",
+        boundary: "api",
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        parentSpanId: "00f067aa0ba902b7",
+        status: "error",
+      });
+      expect(receiverSpan?.attributes["clockwork.outcome"]).toBe("error");
+    } finally {
+      exported.mockRestore();
+    }
   });
 
   it("rejects an oversized body even when content-length is absent", async () => {

@@ -87,7 +87,9 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
     if (baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash)
       throw new Error("PROVIDER_ENDPOINT_INVALID");
     this.baseUrl = baseUrl;
-    this.fetcher = options.fetch ?? fetch;
+    // `fetch` accepts only its own global as the receiver. Calling it as a
+    // property of this transport throws before the request is sent.
+    this.fetcher = (options.fetch ?? fetch).bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     if (
       !Number.isInteger(this.timeoutMs) ||

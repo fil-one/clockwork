@@ -38,7 +38,9 @@ export class OtlpHttpTelemetrySink implements TelemetrySink {
       options.runtimeEnvironment,
       options.allowInsecureLocalhost ?? false,
     );
-    this.fetcher = options.fetch ?? fetch;
+    // `fetch` accepts only its own global as the receiver. Calling it as a
+    // property of this sink throws before the export is sent.
+    this.fetcher = (options.fetch ?? fetch).bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? 10_000;
     if (this.timeoutMs < 100 || this.timeoutMs > 30_000)
       throw new Error("OTEL_EXPORT_TIMEOUT_INVALID");

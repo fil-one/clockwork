@@ -189,7 +189,11 @@ export class HttpEvidenceGateway implements EvidenceGateway {
       throw new Error("Evidence storage gateway token is invalid");
     this.token = configuration.bearerToken;
     this.allowedOrigins = configuration.allowedClientOrigins;
-    this.fetchImplementation = configuration.fetchImplementation ?? fetch;
+    // `fetch` accepts only its own global as the receiver. Calling it as a
+    // property of this gateway throws before the request is sent.
+    this.fetchImplementation = (
+      configuration.fetchImplementation ?? fetch
+    ).bind(globalThis);
   }
 
   private readonly token: string;

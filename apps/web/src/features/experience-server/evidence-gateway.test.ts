@@ -159,6 +159,26 @@ describe("evidence credential containment and expiry", () => {
     ).rejects.toMatchObject({ code: "EVIDENCE_DOWNLOAD_EXPIRY_INVALID" });
   });
 
+  it("calls the injected fetch with the global receiver", async () => {
+    const receivers: unknown[] = [];
+    const fetchImplementation: typeof fetch = function (this: unknown) {
+      receivers.push(this);
+      if (this !== undefined && this !== globalThis)
+        throw new TypeError("Illegal invocation");
+      return Promise.resolve(
+        Response.json({
+          url: "https://upload.example/download",
+          expiresAt: "2026-07-31T12:05:00.000Z",
+        }),
+      );
+    };
+
+    await expect(
+      gateway(fetchImplementation).createDownload(upload(), 300),
+    ).resolves.toMatchObject({ expiresAt: "2026-07-31T12:05:00.000Z" });
+    expect(receivers).toEqual([globalThis]);
+  });
+
   it("binds provider calls to versioned storage without exposing the bearer token", async () => {
     const fetchImplementation = vi.fn<typeof fetch>(() =>
       Promise.resolve(

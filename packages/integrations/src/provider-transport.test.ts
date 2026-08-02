@@ -79,6 +79,37 @@ describe("FetchJsonProviderTransport", () => {
     );
   });
 
+  it("calls the injected fetch with the global receiver", async () => {
+    const receivers: unknown[] = [];
+    const fetcher: typeof fetch = function (this: unknown) {
+      receivers.push(this);
+      if (this !== undefined && this !== globalThis)
+        throw new TypeError("Illegal invocation");
+      return Promise.resolve(
+        new Response(JSON.stringify({ id: "provider-1" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    };
+    const transport = new FetchJsonProviderTransport({
+      baseUrl: "https://provider.example/api/",
+      bearerToken: "secret-token",
+      provider: "example",
+      fetch: fetcher,
+    });
+
+    await expect(
+      transport.request({
+        operation: "objects.create",
+        path: "/v1/objects",
+        body: {},
+        response: z.object({ id: z.string() }),
+      }),
+    ).resolves.toEqual({ id: "provider-1" });
+    expect(receivers).toEqual([globalThis]);
+  });
+
   it("maps rate limits to retryable transport failures", async () => {
     const transport = new FetchJsonProviderTransport({
       baseUrl: "https://provider.example/",

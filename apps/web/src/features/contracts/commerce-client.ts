@@ -362,27 +362,6 @@ export function executeClickAgreement(
   );
 }
 
-export function startAgreementEnvelope(
-  input: {
-    accountId: string;
-    agreementId: string;
-    documentId: string;
-    signerEmail: string;
-    mode: "redirect" | "embedded";
-    returnUrl: string;
-  },
-  options: CommerceClientOptions = {},
-) {
-  const mutation = mutationHeaders(options);
-  return generatedCall(() =>
-    client(options).POST("/v1/lifecycle/agreements/envelopes", {
-      params: { header: { "idempotency-key": mutation.idempotencyKey } },
-      headers: mutation.headers,
-      body: input,
-    }),
-  );
-}
-
 export function createInvoicePaymentSession(
   input: { accountId: string; invoiceId: string },
   options: CommerceClientOptions = {},

@@ -2,13 +2,20 @@ import { timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import type { TelemetrySpanRecord } from "@clockwork/integrations/telemetry";
+import { uuidV7 } from "@clockwork/contracts";
+import {
+  parseTraceparent,
+  type TelemetrySpanRecord,
+} from "@clockwork/integrations/telemetry";
 
 import {
   redactTelemetryAttributes,
   type OpenTelemetryRecord,
 } from "@/src/features/performance/client-telemetry";
-import { runtimeTelemetrySink } from "@/src/telemetry/runtime";
+import {
+  runtimeBoundaryInstrumentation,
+  runtimeTelemetrySink,
+} from "@/src/telemetry/runtime";
 
 export const runtime = "nodejs";
 
@@ -151,7 +158,19 @@ function asSpan(record: OpenTelemetryRecord): TelemetrySpanRecord {
   };
 }
 
-export async function POST(request: Request) {
+// The sink swallows delivery failures, so the receiver span would end "ok"
+// while the caller sees 503. Raising this instead carries the failed outcome
+// onto the span, and the boundary maps it back to the same response.
+class TelemetrySinkUnavailableError extends Error {
+  public readonly code = "TELEMETRY_SINK_UNAVAILABLE";
+
+  public constructor() {
+    super("Telemetry delivery unavailable");
+    this.name = "TelemetrySinkUnavailableError";
+  }
+}
+
+async function ingest(request: Request): Promise<NextResponse> {
   if (!csrfAuthorized(request))
     return NextResponse.json(
       { title: "Forbidden", status: 403 },
@@ -191,10 +210,33 @@ export async function POST(request: Request) {
   try {
     await runtimeTelemetrySink.export([asSpan(record)]);
   } catch {
-    return NextResponse.json(
-      { title: "Telemetry delivery unavailable", status: 503 },
-      { status: 503 },
-    );
+    throw new TelemetrySinkUnavailableError();
   }
   return new NextResponse(null, { status: 202 });
+}
+
+export async function POST(request: Request) {
+  // The traceparent header joins this receiver span to the browser trace. The
+  // browser span travels in the body and keeps the parent it arrived with.
+  const parent = parseTraceparent(request.headers.get("traceparent"));
+  try {
+    return await runtimeBoundaryInstrumentation.api({
+      name: "api.telemetry_ingest",
+      correlation: { requestId: uuidV7() },
+      attributes: {
+        "clockwork.operation": "api.telemetry_ingest",
+        "http.request.method": request.method,
+        "http.route": "/api/telemetry",
+      },
+      ...(parent ? { parent } : {}),
+      operation: () => ingest(request),
+    });
+  } catch (error) {
+    if (error instanceof TelemetrySinkUnavailableError)
+      return NextResponse.json(
+        { title: "Telemetry delivery unavailable", status: 503 },
+        { status: 503 },
+      );
+    throw error;
+  }
 }

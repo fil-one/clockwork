@@ -61,6 +61,27 @@ describe("OTLP HTTP telemetry", () => {
     expect((init?.body as ArrayBuffer).byteLength).toBeGreaterThan(100);
   });
 
+  it("calls the injected fetch with the global receiver", async () => {
+    const receivers: unknown[] = [];
+    const fetcher: typeof fetch = function (this: unknown) {
+      receivers.push(this);
+      if (this !== undefined && this !== globalThis)
+        throw new TypeError("Illegal invocation");
+      return Promise.resolve(new Response(null, { status: 200 }));
+    };
+    const sink = new OtlpHttpTelemetrySink({
+      environment: {
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:
+          "https://collector.example.test/v1/traces",
+      },
+      runtimeEnvironment: "production",
+      fetch: fetcher,
+    });
+
+    await expect(sink.export([span])).resolves.toBeUndefined();
+    expect(receivers).toEqual([globalThis]);
+  });
+
   it("uses a signal-specific traces endpoint verbatim as required by OTLP", () => {
     expect(
       readOtlpConfiguration(
