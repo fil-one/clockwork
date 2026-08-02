@@ -57,8 +57,8 @@ input {
   font-size: 0.8125rem;
 }
 .connection-banner {
-  background: #3b271d;
-  color: #fff4e8;
+  background: var(--web-ink);
+  color: var(--web-canvas);
 }
 .wordmark {
   display: inline-flex;
@@ -68,14 +68,13 @@ input {
   gap: 0.55rem;
   width: max-content;
   text-decoration: none;
-  letter-spacing: 0.16em;
   font-size: 0.82rem;
-  font-weight: 850;
 }
 .wordmark small {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.62rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -96,8 +95,9 @@ input {
 }
 .organization-switcher > span:first-child {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.7rem;
-  font-weight: 680;
+  font-weight: 700;
   letter-spacing: 0.015em;
 }
 .organization-switcher__control {
@@ -201,7 +201,7 @@ input {
   background: var(--web-ink);
   color: white;
   font-size: 0.67rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.04em;
 }
 .utility-menu {
@@ -216,7 +216,7 @@ input {
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 1.25rem 3rem rgb(16 25 20 / 16%);
+  box-shadow: 0 1.25rem 3rem rgb(var(--cw-shadow-color) / 16%);
   padding: 1rem;
   font-size: 0.76rem;
 }
@@ -277,6 +277,7 @@ input {
 .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -352,13 +353,14 @@ input {
 .stat-tile p {
   margin: 0;
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.72rem;
   font-weight: 700;
 }
 .stat-tile strong {
   margin-top: auto;
   font-size: clamp(1.15rem, 2vw, 1.55rem);
-  font-weight: 620;
+  font-weight: 600;
   letter-spacing: -0.04em;
 }
 .stat-tile span {
@@ -409,7 +411,7 @@ input {
   color: var(--web-accent);
   padding: 0.45rem 0.55rem;
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
   cursor: pointer;
   transition:
     background-color 160ms ease,
@@ -457,7 +459,7 @@ input {
 .record-main h3 {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 730;
+  font-weight: 700;
 }
 .record-main p {
   margin: 0.2rem 0 0;
@@ -489,7 +491,7 @@ input {
   border-left: 2px solid;
   padding-left: 0.5rem;
   font-size: 0.67rem;
-  font-weight: 750;
+  font-weight: 700;
   white-space: nowrap;
 }
 .risk--low {
@@ -514,7 +516,7 @@ input {
 }
 .data-chart figcaption {
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 .data-chart svg {
   display: block;
@@ -622,7 +624,7 @@ input {
   align-items: start;
   gap: 0.6rem;
   font-size: 0.82rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 .checkbox-field input {
   width: 1.1rem;
@@ -720,12 +722,11 @@ input {
   width: min(62rem, 100%);
 }
 .signing-wordmark {
-  letter-spacing: 0.16em;
   font-size: 0.8rem;
-  font-weight: 850;
 }
 .signing-wordmark span {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.6rem;
   text-transform: uppercase;
 }
@@ -735,7 +736,7 @@ input {
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 1.5rem 4rem rgb(36 36 26 / 8%);
+  box-shadow: 0 1.5rem 4rem rgb(var(--cw-shadow-color) / 8%);
   padding: clamp(1.4rem, 5vw, 3.5rem);
 }
 .registration-card {
@@ -755,7 +756,7 @@ input {
 .access-card h1 {
   margin: 0;
   font-size: clamp(2rem, 6vw, 3.4rem);
-  font-weight: 630;
+  font-weight: 600;
   letter-spacing: -0.05em;
   line-height: 1;
 }
@@ -774,8 +775,9 @@ input {
 }
 .signing-summary dt {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.66rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -856,7 +858,6 @@ input {
     width: 100%;
     justify-content: center;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
     white-space: nowrap;
   }
   .cw-shell__brand .wordmark small {
@@ -950,7 +951,6 @@ input {
 @media (max-width: 30rem) {
   .wordmark {
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
     white-space: nowrap;
   }
   .wordmark small {
@@ -996,21 +996,21 @@ input {
   }
 }
 
-/* The three audiences separate by hue and stay inside the brand's blue family. */
+/* The three audiences take different steps of the one brand ramp. The step is a
+   quiet marker; composition and structure carry the real difference. */
 .web-shell--customer {
   --web-accent: var(--color-accent-strong);
   --web-soft: var(--color-accent-soft);
 }
 
 .web-shell--partner {
-  --web-accent: #0b6e8f;
-  --web-soft: #ddeff6;
+  --web-accent: var(--cw-blue-800);
+  --web-soft: var(--cw-blue-50);
 }
 
 .web-shell--internal {
-  --web-accent: #3f5a78;
-  --web-soft: #e4eaf1;
-  --web-canvas: #f1f4f7;
+  --web-accent: var(--cw-blue-950);
+  --web-soft: var(--cw-canvas-deep);
 }
 
 .web-shell--partner .cw-shell__rail {
@@ -1035,6 +1035,7 @@ input {
 .surface-context {
   margin: 0 0 0.35rem;
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.76rem;
   font-weight: 700;
 }
