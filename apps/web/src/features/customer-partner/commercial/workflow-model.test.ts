@@ -29,6 +29,9 @@ const validDraft: QuoteDraft = {
   route: "direct",
   endClient: "",
   partner: "",
+  // A datetime-local field carries no offset, so 17:00 means 17:00 wherever the
+  // seller is. The expected instant is built from the same local parts rather
+  // than pinned to one machine's offset.
   expiresAt: "2026-08-31T17:00",
 };
 
@@ -100,7 +103,7 @@ describe("quote workflow model", () => {
     expect(result.payload).toMatchObject({
       priceBookId: "44444444-4444-4444-8444-444444444444",
       route: "direct",
-      expiresAt: "2026-08-31T21:00:00.000Z",
+      expiresAt: new Date(2026, 7, 31, 17, 0).toISOString(),
       lines: [
         {
           sku: "FIL-ARCHIVE-CAPACITY",
