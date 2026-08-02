@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 
 describe("lane package composition", () => {
   it("exports every domain and provider family through stable subpaths", () => {
-    expect(coreDomainRegistry).toHaveLength(10);
+    expect(coreDomainRegistry).toHaveLength(11);
     expect(lifecycleDomainRegistry).toEqual([
       "agreements",
       "compliance",
