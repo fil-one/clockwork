@@ -1,6 +1,7 @@
 import { BrandLogo } from "@clockwork/ui";
 
 import { RegistrationForm } from "@/src/features/registration/registration-form";
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 
 function first(value: string | string[] | undefined): string {
@@ -21,7 +22,7 @@ export default async function RegistrationPage({
       <section className="access-card registration-card">
         <BrandLogo
           className="signing-wordmark"
-          src="/brand/fo-wordmark-dark.png"
+          src={brandAsset()}
           name={t("app.name")}
         />
         <p className="eyebrow">Organization registration</p>

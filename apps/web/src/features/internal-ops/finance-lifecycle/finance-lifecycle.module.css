@@ -94,19 +94,19 @@
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  border: 1px solid #c9d6cd;
+  border: 1px solid var(--cw-success);
   border-radius: 0.6rem;
-  background: #edf4ef;
+  background: var(--cw-success-soft);
   padding: 0.75rem 0.9rem;
-  color: #254632;
+  color: var(--cw-success);
   font-size: 0.78rem;
   line-height: 1.5;
 }
 
 .warningNotice {
-  border-color: #dfcaa8;
-  background: #faf1df;
-  color: #5e401f;
+  border-color: var(--cw-warning);
+  background: var(--cw-warning-soft);
+  color: var(--cw-warning-ink);
 }
 
 .notice strong,
@@ -175,9 +175,10 @@
 }
 
 .table th {
-  background: color-mix(in srgb, var(--web-canvas) 70%, white);
+  background: color-mix(in srgb, var(--web-canvas) 70%, var(--web-paper));
   color: var(--web-muted);
   padding: 0.6rem 0.75rem;
+  font-family: var(--cw-font-accent);
   font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.045em;
@@ -236,22 +237,22 @@
   border-radius: 999px;
   padding: 0.17rem 0.48rem;
   font-size: 0.65rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .riskHigh {
-  background: #f4dfdc;
-  color: #812d2a;
+  background: var(--cw-danger-soft);
+  color: var(--cw-danger-strong);
 }
 
 .riskMedium {
-  background: #f4ead7;
-  color: #76501f;
+  background: var(--cw-warning-soft);
+  color: var(--cw-warning-ink);
 }
 
 .riskLow {
-  background: #e4efe8;
-  color: #2c5d40;
+  background: var(--cw-success-soft);
+  color: var(--cw-success);
 }
 
 .disclosure {
@@ -274,7 +275,7 @@
 
 .id {
   overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--cw-font-mono);
   font-size: 0.65rem;
 }
 
@@ -293,11 +294,11 @@
 .blocked,
 .waiting {
   font-size: 0.68rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .safe {
-  color: #2c6844;
+  color: var(--cw-success);
 }
 
 .blocked {
@@ -305,7 +306,7 @@
 }
 
 .waiting {
-  color: #76501f;
+  color: var(--cw-warning);
 }
 
 .reviewGrid {
@@ -323,6 +324,7 @@
 
 .reviewGrid dt {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -338,7 +340,7 @@
 
 .actorNote {
   border-left: 3px solid var(--web-warm);
-  background: #faf6ed;
+  background: var(--cw-warning-soft);
   padding: 0.65rem 0.75rem;
   color: var(--web-muted);
   font-size: 0.72rem;
@@ -364,7 +366,7 @@
 
 .statusMessage {
   margin: 0.75rem 0 0;
-  color: #2c6844;
+  color: var(--cw-success);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -601,7 +603,7 @@
   cursor: pointer;
   color: var(--web-accent);
   font-size: 0.72rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .compactTable {

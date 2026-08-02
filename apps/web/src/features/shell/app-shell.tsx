@@ -46,6 +46,7 @@ import { switchCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
 import { t } from "@/src/i18n/en";
 
+import { brandAsset } from "./brand-assets";
 import { getCommandItems } from "./command-items";
 import {
   canAccessNavigationItem,
@@ -111,7 +112,7 @@ function Wordmark({ audience }: { audience: ExperienceAudience }) {
       href={audienceHome[audience]}
       aria-label={`${t("app.name")} ${t("app.product")}`}
     >
-      <BrandLogo src="/brand/fo-wordmark-dark.png" name={t("app.name")} />
+      <BrandLogo src={brandAsset()} name={t("app.name")} />
       <small>{t("app.product")}</small>
     </Link>
   );

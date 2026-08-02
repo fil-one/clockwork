@@ -1,10 +1,10 @@
 .main {
-  --detail-action: var(--web-accent, #245c43);
-  --detail-border: var(--web-line, #d9ded9);
-  --detail-canvas: var(--web-canvas, #f4f5f0);
-  --detail-ink: var(--web-ink, #16231c);
-  --detail-muted: var(--web-muted, #5b675f);
-  --detail-paper: var(--web-paper, #fff);
+  --detail-action: var(--web-accent);
+  --detail-border: var(--web-line);
+  --detail-canvas: var(--web-canvas);
+  --detail-ink: var(--web-ink);
+  --detail-muted: var(--web-muted);
+  --detail-paper: var(--web-paper);
 
   display: grid;
   gap: 1.5rem;
@@ -70,8 +70,8 @@
 }
 
 .freshness.stale {
-  border-left-color: var(--web-warm, #b36c34);
-  color: #6e4308;
+  border-left-color: var(--web-warm);
+  color: var(--cw-warning);
 }
 
 .promiseChain {
@@ -191,26 +191,26 @@
   border: 1px solid var(--detail-border);
   flex: 0 0 auto;
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
   padding: 0.45rem 0.6rem;
 }
 
 .recordStatus.success {
-  background: var(--web-soft, #e3eee7);
+  background: var(--web-soft);
   border-color: var(--detail-action);
   color: var(--detail-action);
 }
 
 .recordStatus.warning {
-  background: color-mix(in srgb, var(--web-warm, #b36c34) 12%, white);
-  border-color: var(--web-warm, #b36c34);
-  color: #6e4308;
+  background: color-mix(in srgb, var(--web-warm) 12%, white);
+  border-color: var(--web-warm);
+  color: var(--cw-warning);
 }
 
 .recordStatus.danger {
-  background: color-mix(in srgb, var(--web-danger, #993b37) 10%, white);
-  border-color: var(--web-danger, #993b37);
-  color: var(--web-danger, #993b37);
+  background: color-mix(in srgb, var(--web-danger) 10%, white);
+  border-color: var(--web-danger);
+  color: var(--web-danger);
 }
 
 .recordStatus.neutral {
@@ -248,7 +248,7 @@
 
 .recordDecision {
   align-items: center;
-  background: var(--web-soft, #e3eee7);
+  background: var(--web-soft);
   border-left: 4px solid var(--detail-action);
   display: flex;
   gap: 1rem 2rem;

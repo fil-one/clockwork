@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "mount": {
     "openapiPrefix": "/v1",
     "nextPrefix": "/api",
@@ -533,6 +533,21 @@
       "source": "apps/web/app/(experience)/(internal)/internal/queues/page.tsx"
     },
     {
+      "route": "/internal/recovery",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/recovery/page.tsx"
+    },
+    {
       "route": "/internal/renewals",
       "audience": "internal",
       "intendedAccess": "authenticated-internal-role",
@@ -576,6 +591,21 @@
       },
       "kind": "page",
       "source": "apps/web/app/(experience)/(internal)/internal/search/page.tsx"
+    },
+    {
+      "route": "/internal/webhook-replay",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/webhook-replay/page.tsx"
     },
     {
       "route": "/partner/billing",
@@ -843,6 +873,22 @@
       "source": "apps/web/app/api/[[...route]]/route.ts"
     },
     {
+      "route": "/api/demo/reset",
+      "audience": "api-mount",
+      "intendedAccess": "operation-specific-session-permission",
+      "observedGuard": {
+        "behavior": "Hono operation authorization through WorkosNextSessionResolver",
+        "sources": [
+          "apps/web/app/api/[[...route]]/route.ts",
+          "apps/web/src/auth/session.ts",
+          "packages/api/src/app.ts"
+        ],
+        "limitation": "OpenAPI security fields are null; operation-to-permission proof remains source/test based."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/api/demo/reset/route.ts"
+    },
+    {
       "route": "/api/experience/[[...segments]]",
       "audience": "api-mount",
       "intendedAccess": "authenticated-experience-operation",
@@ -901,6 +947,54 @@
       "source": "apps/web/app/choose-organization/page.tsx"
     },
     {
+      "route": "/demo/access",
+      "audience": "shared",
+      "intendedAccess": "authenticated-session",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/demo/access/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/demo/access/page.tsx"
+    },
+    {
+      "route": "/demo/access/submit",
+      "audience": "shared",
+      "intendedAccess": "route-handler-review-required",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/demo/access/submit/route.ts"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/demo/access/submit/route.ts"
+    },
+    {
+      "route": "/demo",
+      "audience": "shared",
+      "intendedAccess": "authenticated-session",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/demo/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/demo/page.tsx"
+    },
+    {
+      "route": "/demo/persona",
+      "audience": "shared",
+      "intendedAccess": "route-handler-review-required",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/demo/persona/route.ts"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/demo/persona/route.ts"
+    },
+    {
       "route": "/",
       "audience": "access",
       "intendedAccess": "public-entry",
@@ -935,6 +1029,30 @@
       },
       "kind": "route-handler",
       "source": "apps/web/app/sign-in/route.ts"
+    },
+    {
+      "route": "/signing/demo-provider/complete",
+      "audience": "signing",
+      "intendedAccess": "route-handler-review-required",
+      "observedGuard": {
+        "behavior": "public client page; identifiers/session parameters flow to API operations",
+        "sources": ["apps/web/src/features/signing/signing-experience.tsx"],
+        "limitation": "The page itself does not establish a provider-authenticated signing session."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/signing/demo-provider/complete/route.ts"
+    },
+    {
+      "route": "/signing/demo-provider",
+      "audience": "signing",
+      "intendedAccess": "public-signing-entry-with-api-enforcement",
+      "observedGuard": {
+        "behavior": "public client page; identifiers/session parameters flow to API operations",
+        "sources": ["apps/web/src/features/signing/signing-experience.tsx"],
+        "limitation": "The page itself does not establish a provider-authenticated signing session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/signing/demo-provider/page.tsx"
     },
     {
       "route": "/signing/embedded",

@@ -23,9 +23,9 @@
   gap: 0.5rem;
   align-items: center;
   border-radius: 999px;
-  box-shadow: 0 0.75rem 2rem rgb(36 36 26 / 18%);
+  box-shadow: 0 0.75rem 2rem rgb(var(--cw-shadow-color) / 18%);
   padding: 0.5rem 0.9rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .launcher::before {
@@ -43,7 +43,7 @@
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 0.75rem 2.5rem rgb(36 36 26 / 20%);
+  box-shadow: 0 0.75rem 2.5rem rgb(var(--cw-shadow-color) / 20%);
   padding: 0.9rem;
 }
 
@@ -56,8 +56,9 @@
 
 .title {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.66rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -79,15 +80,16 @@
 
 .journey span {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.66rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .journeyTitle {
   margin: 0;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .steps {
@@ -118,7 +120,7 @@
   color: var(--web-muted);
   content: counter(demo-step);
   font-size: 0.6rem;
-  font-weight: 750;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -143,7 +145,7 @@
 }
 
 .step[data-state="current"] a {
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .error {

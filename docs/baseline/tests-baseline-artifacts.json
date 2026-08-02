@@ -1,9 +1,15 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "testFiles": [
+    "apps/web/app/api/[[...route]]/demo-app.test.ts",
+    "apps/web/app/api/[[...route]]/route.test.ts",
+    "apps/web/app/api/demo/reset/route.test.ts",
     "apps/web/app/api/experience/[[...segments]]/route.test.ts",
     "apps/web/app/api/telemetry/route.test.ts",
+    "apps/web/app/signing/demo-provider/complete/route.test.ts",
+    "apps/web/app/signing/guard.test.tsx",
+    "apps/web/e2e/demo.spec.ts",
     "apps/web/e2e/experience.spec.ts",
     "apps/web/e2e/production-proof.spec.ts",
     "apps/web/e2e/smoke.spec.ts",
@@ -12,6 +18,8 @@
     "apps/web/e2e/ux-shell.spec.ts",
     "apps/web/e2e/visual.spec.ts",
     "apps/web/src/auth/actions.test.ts",
+    "apps/web/src/auth/demo-access.test.ts",
+    "apps/web/src/auth/demo-persona.test.ts",
     "apps/web/src/auth/identity-repository.test.ts",
     "apps/web/src/auth/release-proof-repository.integration.test.ts",
     "apps/web/src/auth/release-proof.test.ts",
@@ -30,6 +38,7 @@
     "apps/web/src/features/customer-partner/customer/permissions.test.ts",
     "apps/web/src/features/customer-partner/partner/partner-query.test.ts",
     "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+    "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
     "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts",
     "apps/web/src/features/experience-server/artifact-delivery-list.test.tsx",
     "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
@@ -37,8 +46,14 @@
     "apps/web/src/features/experience-server/authorization.test.ts",
     "apps/web/src/features/experience-server/controller.test.ts",
     "apps/web/src/features/experience-server/dashboard-loader.test.ts",
+    "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
+    "apps/web/src/features/experience-server/demo-state-store.test.ts",
+    "apps/web/src/features/experience-server/derivation-loader.test.ts",
     "apps/web/src/features/experience-server/evidence-gateway.test.ts",
     "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
+    "apps/web/src/features/experience-server/invoice-derivation-panel.test.tsx",
+    "apps/web/src/features/experience-server/portal-view-loader.test.ts",
+    "apps/web/src/features/experience-server/projection-action-buttons.test.tsx",
     "apps/web/src/features/experience-server/projection-authorization.test.ts",
     "apps/web/src/features/experience-server/projection-detail-page.test.tsx",
     "apps/web/src/features/experience-server/projection-source.demo-reset.test.ts",
@@ -52,7 +67,12 @@
     "apps/web/src/features/internal-ops/finance-lifecycle/review-action.test.tsx",
     "apps/web/src/features/internal-ops/gates/server-gate-loader.test.ts",
     "apps/web/src/features/internal-ops/operations-home/operations-home.test.tsx",
+    "apps/web/src/features/internal-ops/price-books/server-price-book-loader.test.ts",
     "apps/web/src/features/internal-ops/queue-search/queue-search.test.tsx",
+    "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
+    "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+    "apps/web/src/features/internal-ops/webhook-replay/replay-decision.test.tsx",
+    "apps/web/src/features/internal-ops/webhook-replay/webhook-replay-loader.test.ts",
     "apps/web/src/features/performance/client-telemetry.test.ts",
     "apps/web/src/features/performance/web-vitals.test.ts",
     "apps/web/src/features/registration/registration-form.test.tsx",
@@ -60,6 +80,7 @@
     "apps/web/src/features/shared/format.test.ts",
     "apps/web/src/features/shell/command-items.test.ts",
     "apps/web/src/features/shell/permission-gate.test.tsx",
+    "apps/web/src/features/shell/shell-dismissal.test.tsx",
     "apps/web/src/features/signing/signing-experience.test.tsx",
     "apps/web/src/features/states/state-gallery.test.tsx",
     "apps/web/src/features/surfaces/external-gate-records.test.ts",
@@ -69,9 +90,11 @@
     "apps/web/src/proxy.test.ts",
     "apps/web/src/storybook/experience.a11y.test.tsx",
     "apps/web/src/storybook/foundation.a11y.test.tsx",
+    "apps/web/src/storybook/tooltip.a11y.test.tsx",
     "apps/web/src/storybook/ux-shell.a11y.test.tsx",
     "apps/web/src/telemetry/runtime.test.ts",
     "packages/api/src/app.integration.test.ts",
+    "packages/api/src/auth/denial-telemetry.integration.test.ts",
     "packages/api/src/auth/session.test.ts",
     "packages/api/src/experience-openapi.test.ts",
     "packages/api/src/lane-composition.integration.test.ts",
@@ -82,28 +105,36 @@
     "packages/api/src/routes/lifecycle/service.test.ts",
     "packages/api/src/routes/system/external-gate-simulator.test.ts",
     "packages/api/src/routes/system/external-gates.integration.test.ts",
+    "packages/api/src/webhooks.test.ts",
+    "packages/contracts/src/errors.test.ts",
     "packages/contracts/src/primitives.test.ts",
     "packages/contracts/src/uuid-v7.test.ts",
     "packages/db/src/durability.integration.test.ts",
     "packages/db/src/repositories/core/collections.integration.test.ts",
+    "packages/db/src/repositories/core/commitments.integration.test.ts",
     "packages/db/src/repositories/core/database-finance.integration.test.ts",
+    "packages/db/src/repositories/core/price-books.integration.test.ts",
     "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
     "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
     "packages/db/src/repositories/experience/authoritative-command.test.ts",
     "packages/db/src/repositories/experience/authoritative-state.test.ts",
     "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+    "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
     "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
     "packages/db/src/repositories/lifecycle/command-repository.test.ts",
     "packages/db/src/repositories/lifecycle/schemas.test.ts",
+    "packages/db/src/repositories/system/dead-letter.integration.test.ts",
     "packages/db/src/repositories/system/exception-routing.integration.test.ts",
     "packages/db/src/repositories/system/external-gates.integration.test.ts",
     "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+    "packages/db/src/repositories/system/partial-payments.integration.test.ts",
     "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
     "packages/db/src/repositories/webhooks.test.ts",
     "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
     "packages/db/src/repositories/workflows/core-schedules.test.ts",
     "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
     "packages/db/src/repositories/workflows/lifecycle.test.ts",
+    "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
     "packages/db/src/repositories/workflows/runtime.integration.test.ts",
     "packages/documents/src/delivery.test.ts",
     "packages/documents/src/documents.test.ts",
@@ -115,7 +146,9 @@
     "packages/domain/src/compliance/compliance.test.ts",
     "packages/domain/src/core/billing/stripe-adjustments.test.ts",
     "packages/domain/src/core/core-finance.test.ts",
+    "packages/domain/src/core/derivation/derivation.test.ts",
     "packages/domain/src/core/partners/index.test.ts",
+    "packages/domain/src/core/procurement/procurement.test.ts",
     "packages/domain/src/exceptions/exceptions.test.ts",
     "packages/domain/src/identity/identity.test.ts",
     "packages/domain/src/migrations/migrations.test.ts",
@@ -132,6 +165,7 @@
     "packages/integrations/src/core/stripe/payment-sessions.test.ts",
     "packages/integrations/src/core/stripe/test-clock.integration.test.ts",
     "packages/integrations/src/core/stripe/webhooks.integration.test.ts",
+    "packages/integrations/src/core/stripe/webhooks.test.ts",
     "packages/integrations/src/crm/crm.contract.test.ts",
     "packages/integrations/src/domain-ownership/domain-ownership.test.ts",
     "packages/integrations/src/esign/esign.contract.test.ts",
@@ -207,6 +241,7 @@
     "packages/workflows/src/runtime/production-adapter-factory.test.ts",
     "packages/workflows/src/runtime/provider-lifecycle.test.ts",
     "packages/workflows/src/runtime/trigger-worker-bootstrap.test.ts",
+    "packages/workflows/src/system/dead-letter-redrive.test.ts",
     "packages/workflows/src/system/lifecycle-task-dispatch.test.ts",
     "packages/workflows/src/system/outbox-dispatcher.test.ts",
     "packages/workflows/src/system/workos-organization.test.ts",
@@ -221,6 +256,12 @@
     "supabase/tests/100_core_finance.test.sql",
     "supabase/tests/1200_identity_experience.test.sql",
     "supabase/tests/1300_release_integrity.test.sql",
+    "supabase/tests/1310_pricing_discount_matrix.test.sql",
+    "supabase/tests/1320_commitment_ledger_write_path.test.sql",
+    "supabase/tests/1330_notification_deliveries.test.sql",
+    "supabase/tests/1340_invoice_partial_payments.test.sql",
+    "supabase/tests/1350_procurement_certificate_status.test.sql",
+    "supabase/tests/1360_price_book_activation.test.sql",
     "supabase/tests/200_lifecycle_platform.test.sql",
     "supabase/tests/900_integration_security_reports.test.sql",
     "supabase/tests/901_external_gates.test.sql",
@@ -231,23 +272,30 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 227,
-    "unitFiles": 171,
-    "storybookFiles": 3,
-    "integrationFiles": 30,
+    "totalFiles": 268,
+    "unitFiles": 196,
+    "storybookFiles": 4,
+    "integrationFiles": 38,
     "scriptFiles": 2,
-    "playwrightSpecFiles": 7,
+    "playwrightSpecFiles": 8,
     "playwrightSupportFiles": 4,
-    "browserSourceDeclarations": 55,
-    "browserExpandedExecutableTests": 79,
-    "pgTapFiles": 16,
-    "pgTapPlannedAssertions": 431
+    "browserSourceDeclarations": 65,
+    "browserExpandedExecutableTests": 91,
+    "pgTapFiles": 22,
+    "pgTapPlannedAssertions": 488
   },
   "suites": {
     "unit": [
+      "apps/web/app/api/[[...route]]/demo-app.test.ts",
+      "apps/web/app/api/[[...route]]/route.test.ts",
+      "apps/web/app/api/demo/reset/route.test.ts",
       "apps/web/app/api/experience/[[...segments]]/route.test.ts",
       "apps/web/app/api/telemetry/route.test.ts",
+      "apps/web/app/signing/demo-provider/complete/route.test.ts",
+      "apps/web/app/signing/guard.test.tsx",
       "apps/web/src/auth/actions.test.ts",
+      "apps/web/src/auth/demo-access.test.ts",
+      "apps/web/src/auth/demo-persona.test.ts",
       "apps/web/src/auth/identity-repository.test.ts",
       "apps/web/src/auth/release-proof.test.ts",
       "apps/web/src/auth/session.test.ts",
@@ -265,6 +313,7 @@
       "apps/web/src/features/customer-partner/customer/permissions.test.ts",
       "apps/web/src/features/customer-partner/partner/partner-query.test.ts",
       "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+      "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
       "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts",
       "apps/web/src/features/experience-server/artifact-delivery-list.test.tsx",
       "apps/web/src/features/experience-server/artifact-sources.resolution.test.ts",
@@ -272,8 +321,14 @@
       "apps/web/src/features/experience-server/authorization.test.ts",
       "apps/web/src/features/experience-server/controller.test.ts",
       "apps/web/src/features/experience-server/dashboard-loader.test.ts",
+      "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
+      "apps/web/src/features/experience-server/demo-state-store.test.ts",
+      "apps/web/src/features/experience-server/derivation-loader.test.ts",
       "apps/web/src/features/experience-server/evidence-gateway.test.ts",
       "apps/web/src/features/experience-server/evidence-upload-control.test.tsx",
+      "apps/web/src/features/experience-server/invoice-derivation-panel.test.tsx",
+      "apps/web/src/features/experience-server/portal-view-loader.test.ts",
+      "apps/web/src/features/experience-server/projection-action-buttons.test.tsx",
       "apps/web/src/features/experience-server/projection-authorization.test.ts",
       "apps/web/src/features/experience-server/projection-detail-page.test.tsx",
       "apps/web/src/features/experience-server/projection-source.demo-reset.test.ts",
@@ -286,7 +341,11 @@
       "apps/web/src/features/internal-ops/finance-lifecycle/review-action.test.tsx",
       "apps/web/src/features/internal-ops/gates/server-gate-loader.test.ts",
       "apps/web/src/features/internal-ops/operations-home/operations-home.test.tsx",
+      "apps/web/src/features/internal-ops/price-books/server-price-book-loader.test.ts",
       "apps/web/src/features/internal-ops/queue-search/queue-search.test.tsx",
+      "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+      "apps/web/src/features/internal-ops/webhook-replay/replay-decision.test.tsx",
+      "apps/web/src/features/internal-ops/webhook-replay/webhook-replay-loader.test.ts",
       "apps/web/src/features/performance/client-telemetry.test.ts",
       "apps/web/src/features/performance/web-vitals.test.ts",
       "apps/web/src/features/registration/registration-form.test.tsx",
@@ -294,6 +353,7 @@
       "apps/web/src/features/shared/format.test.ts",
       "apps/web/src/features/shell/command-items.test.ts",
       "apps/web/src/features/shell/permission-gate.test.tsx",
+      "apps/web/src/features/shell/shell-dismissal.test.tsx",
       "apps/web/src/features/signing/signing-experience.test.tsx",
       "apps/web/src/features/states/state-gallery.test.tsx",
       "apps/web/src/features/surfaces/external-gate-records.test.ts",
@@ -307,6 +367,8 @@
       "packages/api/src/routes/lifecycle/events.test.ts",
       "packages/api/src/routes/lifecycle/service.test.ts",
       "packages/api/src/routes/system/external-gate-simulator.test.ts",
+      "packages/api/src/webhooks.test.ts",
+      "packages/contracts/src/errors.test.ts",
       "packages/contracts/src/primitives.test.ts",
       "packages/contracts/src/uuid-v7.test.ts",
       "packages/db/src/repositories/experience/authoritative-command.test.ts",
@@ -324,7 +386,9 @@
       "packages/domain/src/compliance/compliance.test.ts",
       "packages/domain/src/core/billing/stripe-adjustments.test.ts",
       "packages/domain/src/core/core-finance.test.ts",
+      "packages/domain/src/core/derivation/derivation.test.ts",
       "packages/domain/src/core/partners/index.test.ts",
+      "packages/domain/src/core/procurement/procurement.test.ts",
       "packages/domain/src/exceptions/exceptions.test.ts",
       "packages/domain/src/identity/identity.test.ts",
       "packages/domain/src/migrations/migrations.test.ts",
@@ -339,6 +403,7 @@
       "packages/integrations/src/core/stripe/adjustments.test.ts",
       "packages/integrations/src/core/stripe/gateway.test.ts",
       "packages/integrations/src/core/stripe/payment-sessions.test.ts",
+      "packages/integrations/src/core/stripe/webhooks.test.ts",
       "packages/integrations/src/crm/crm.contract.test.ts",
       "packages/integrations/src/domain-ownership/domain-ownership.test.ts",
       "packages/integrations/src/esign/esign.contract.test.ts",
@@ -410,6 +475,7 @@
       "packages/workflows/src/runtime/production-adapter-factory.test.ts",
       "packages/workflows/src/runtime/provider-lifecycle.test.ts",
       "packages/workflows/src/runtime/trigger-worker-bootstrap.test.ts",
+      "packages/workflows/src/system/dead-letter-redrive.test.ts",
       "packages/workflows/src/system/lifecycle-task-dispatch.test.ts",
       "packages/workflows/src/system/outbox-dispatcher.test.ts",
       "packages/workflows/src/system/workos-organization.test.ts",
@@ -420,12 +486,15 @@
     "storybook": [
       "apps/web/src/storybook/experience.a11y.test.tsx",
       "apps/web/src/storybook/foundation.a11y.test.tsx",
+      "apps/web/src/storybook/tooltip.a11y.test.tsx",
       "apps/web/src/storybook/ux-shell.a11y.test.tsx"
     ],
     "integration": [
       "apps/web/src/auth/release-proof-repository.integration.test.ts",
       "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+      "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
       "packages/api/src/app.integration.test.ts",
+      "packages/api/src/auth/denial-telemetry.integration.test.ts",
       "packages/api/src/lane-composition.integration.test.ts",
       "packages/api/src/middleware.integration.test.ts",
       "packages/api/src/routes/core/core.integration.test.ts",
@@ -433,17 +502,23 @@
       "packages/api/src/routes/system/external-gates.integration.test.ts",
       "packages/db/src/durability.integration.test.ts",
       "packages/db/src/repositories/core/collections.integration.test.ts",
+      "packages/db/src/repositories/core/commitments.integration.test.ts",
       "packages/db/src/repositories/core/database-finance.integration.test.ts",
+      "packages/db/src/repositories/core/price-books.integration.test.ts",
       "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
       "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
       "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+      "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
       "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+      "packages/db/src/repositories/system/dead-letter.integration.test.ts",
       "packages/db/src/repositories/system/exception-routing.integration.test.ts",
       "packages/db/src/repositories/system/external-gates.integration.test.ts",
       "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
+      "packages/db/src/repositories/system/partial-payments.integration.test.ts",
       "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
       "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
       "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
+      "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
       "packages/db/src/repositories/workflows/runtime.integration.test.ts",
       "packages/documents/src/render.integration.test.ts",
       "packages/documents/src/semantic-pdf.integration.test.ts",
@@ -459,6 +534,7 @@
       "scripts/release-artifacts.test.mjs"
     ],
     "playwright": [
+      "apps/web/e2e/demo.spec.ts",
       "apps/web/e2e/experience.spec.ts",
       "apps/web/e2e/production-proof.spec.ts",
       "apps/web/e2e/smoke.spec.ts",
@@ -482,6 +558,12 @@
       "supabase/tests/100_core_finance.test.sql",
       "supabase/tests/1200_identity_experience.test.sql",
       "supabase/tests/1300_release_integrity.test.sql",
+      "supabase/tests/1310_pricing_discount_matrix.test.sql",
+      "supabase/tests/1320_commitment_ledger_write_path.test.sql",
+      "supabase/tests/1330_notification_deliveries.test.sql",
+      "supabase/tests/1340_invoice_partial_payments.test.sql",
+      "supabase/tests/1350_procurement_certificate_status.test.sql",
+      "supabase/tests/1360_price_book_activation.test.sql",
       "supabase/tests/200_lifecycle_platform.test.sql",
       "supabase/tests/900_integration_security_reports.test.sql",
       "supabase/tests/901_external_gates.test.sql",
@@ -534,6 +616,36 @@
       "sha256": "c9ffee8061e932e7826e958aa471bed4daa25804b3455739923c2e1532fd9383"
     },
     {
+      "path": "supabase/tests/1310_pricing_discount_matrix.test.sql",
+      "plannedAssertions": 3,
+      "sha256": "3461da9dd6aba98be10a60df837c009bc1a091d7610284e1c0f2684d8098f972"
+    },
+    {
+      "path": "supabase/tests/1320_commitment_ledger_write_path.test.sql",
+      "plannedAssertions": 11,
+      "sha256": "7739b1916dfc1abbdf9792d608575058e8675fe0965261d6d11e478022aa1d61"
+    },
+    {
+      "path": "supabase/tests/1330_notification_deliveries.test.sql",
+      "plannedAssertions": 8,
+      "sha256": "855cf6696bee648054dd877a65cd1563cff7dd92e5617e62b163d02da288af38"
+    },
+    {
+      "path": "supabase/tests/1340_invoice_partial_payments.test.sql",
+      "plannedAssertions": 14,
+      "sha256": "bfcf343c1979f96f615623ff771ca78d8b0bbdbea94170fe3c0f75bff218625a"
+    },
+    {
+      "path": "supabase/tests/1350_procurement_certificate_status.test.sql",
+      "plannedAssertions": 7,
+      "sha256": "9b351c7cac90c6c278c81480b6398874f158ca7ce9ef96855998d30172ebaae8"
+    },
+    {
+      "path": "supabase/tests/1360_price_book_activation.test.sql",
+      "plannedAssertions": 14,
+      "sha256": "5f008ee20190dc06c7b8081822a393a1d5b379904e12392ef4fcc9729c7681fc"
+    },
+    {
       "path": "supabase/tests/200_lifecycle_platform.test.sql",
       "plannedAssertions": 33,
       "sha256": "8e567048559314f3c54c64158b9a63c44f25a556b3d64ae0adf461fcdb1ec493"
@@ -576,6 +688,34 @@
   ],
   "browserScenarios": [
     {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "refuses the wrong password and keeps the return path"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "opens the landing page on the right password"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "groups every persona and starts one"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "carries the persona into the panel and switches from it"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "visual demo access at ${viewport.label}"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "visual demo landing at ${viewport.label}"
+    },
+    {
+      "source": "apps/web/e2e/demo.spec.ts",
+      "name": "confirms once and restores seeded data"
+    },
+    {
       "source": "apps/web/e2e/experience.spec.ts",
       "name": "${journey.persona} mocked journey is navigable and axe-clean"
     },
@@ -589,7 +729,7 @@
     },
     {
       "source": "apps/web/e2e/experience.spec.ts",
-      "name": "direct buyer submits a record-bound quote action with an optimistic version"
+      "name": "direct buyer creates a quote draft through a protected, record-bound command"
     },
     {
       "source": "apps/web/e2e/experience.spec.ts",
@@ -629,7 +769,7 @@
     },
     {
       "source": "apps/web/e2e/ux-customer-partner.spec.ts",
-      "name": "owner starts a quote from an authorized projection with an optimistic version"
+      "name": "owner builds a quote from the session account and issues one protected command"
     },
     {
       "source": "apps/web/e2e/ux-customer-partner.spec.ts",
@@ -637,7 +777,15 @@
     },
     {
       "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "click-through acceptance stays closed until the approved template loads"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
       "name": "owner reviews complete persisted order commitments before acceptance"
+    },
+    {
+      "source": "apps/web/e2e/ux-customer-partner.spec.ts",
+      "name": "order acceptance requires an explicit attestation before it binds"
     },
     {
       "source": "apps/web/e2e/ux-customer-partner.spec.ts",
@@ -669,7 +817,11 @@
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
-      "name": "loads the queue projection and submits a version-bound action"
+      "name": "loads the queue projection without inventing unrecorded facts"
+    },
+    {
+      "source": "apps/web/e2e/ux-internal-ops.spec.ts",
+      "name": "submits a version-bound queue action from the record detail"
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
@@ -689,15 +841,15 @@
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
-      "name": "queues only the persisted finance approval action"
+      "name": "reviews the finance case it holds authority over without recording a decision"
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
-      "name": "renders honest empty renewal and report projections"
+      "name": "labels renewal and report values by their truth state"
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
-      "name": "shows the authorized agreement projection without invented versions"
+      "name": "holds legal authority on the agreement template scan"
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
@@ -705,7 +857,7 @@
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
-      "name": "cannot use the finance-only projection action"
+      "name": "cannot decide the finance-only approval case"
     },
     {
       "source": "apps/web/e2e/ux-internal-ops.spec.ts",
@@ -799,52 +951,55 @@
   "playwrightDiscovery": {
     "command": "pnpm --filter @clockwork/web exec playwright test --list --reporter=list",
     "expandedTests": [
-      "[functional-chromium] › experience.spec.ts:62:3 › direct buyer mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › referral partner mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › reseller mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › distributor mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › end client mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › billing user mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › legal approver mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › finance approver mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:62:3 › internal operator mocked journey is navigable and axe-clean",
-      "[functional-chromium] › experience.spec.ts:76:1 › billing user is denied quote mutation access",
-      "[functional-chromium] › experience.spec.ts:86:1 › new buyer registers a verified legal entity through the bootstrap contract",
-      "[functional-chromium] › experience.spec.ts:125:1 › direct buyer submits a record-bound quote action with an optimistic version",
-      "[functional-chromium] › experience.spec.ts:173:1 › redirect signing creates an envelope without activating the agreement",
-      "[functional-chromium] › experience.spec.ts:217:1 › billing prepares a Stripe handoff while payment truth remains webhook-derived",
-      "[functional-chromium] › experience.spec.ts:260:1 › internal assisted review names the immutable actor before starting a server session",
+      "[functional-chromium] › experience.spec.ts:66:3 › direct buyer mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › referral partner mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › reseller mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › distributor mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › end client mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › billing user mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › legal approver mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › finance approver mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:66:3 › internal operator mocked journey is navigable and axe-clean",
+      "[functional-chromium] › experience.spec.ts:80:1 › billing user is denied quote mutation access",
+      "[functional-chromium] › experience.spec.ts:90:1 › new buyer registers a verified legal entity through the bootstrap contract",
+      "[functional-chromium] › experience.spec.ts:129:1 › direct buyer creates a quote draft through a protected, record-bound command",
+      "[functional-chromium] › experience.spec.ts:170:1 › redirect signing creates an envelope without activating the agreement",
+      "[functional-chromium] › experience.spec.ts:214:1 › billing prepares a Stripe handoff while payment truth remains webhook-derived",
+      "[functional-chromium] › experience.spec.ts:257:1 › internal assisted review names the immutable actor before starting a server session",
       "[functional-chromium] › smoke.spec.ts:4:1 › @smoke renders the customer experience and its API lane mounts",
-      "[functional-chromium] › ux-customer-partner.spec.ts:37:1 › owner dashboard leads with decisions and one commercial term",
-      "[functional-chromium] › ux-customer-partner.spec.ts:64:1 › member keeps read access without owner-only customer actions",
-      "[functional-chromium] › ux-customer-partner.spec.ts:90:1 › owner starts a quote from an authorized projection with an optimistic version",
-      "[functional-chromium] › ux-customer-partner.spec.ts:136:1 › owner reviews persisted agreement identity before the signing handoff",
-      "[functional-chromium] › ux-customer-partner.spec.ts:159:1 › owner reviews complete persisted order commitments before acceptance",
-      "[functional-chromium] › ux-customer-partner.spec.ts:179:1 › offboarding review reflects the selected named service",
-      "[functional-chromium] › ux-customer-partner.spec.ts:194:1 › billing prepares a safe provider handoff while payment truth stays webhook-derived",
-      "[functional-chromium] › ux-customer-partner.spec.ts:236:1 › partner seller can search the named portfolio but cannot open partner billing",
-      "[functional-chromium] › ux-customer-partner.spec.ts:269:1 › partner collection state survives reload and browser history",
-      "[functional-chromium] › ux-customer-partner.spec.ts:299:1 › partner seller starts resale work only from authorized persisted records",
-      "[functional-chromium] › ux-customer-partner.spec.ts:316:1 › partner admin reviews financial boundaries before any renewal request",
-      "[functional-chromium] › ux-customer-partner.spec.ts:351:3 › customer and partner priority layouts avoid overflow at 1440px",
-      "[functional-chromium] › ux-customer-partner.spec.ts:351:3 › customer and partner priority layouts avoid overflow at 1024px",
-      "[functional-chromium] › ux-customer-partner.spec.ts:351:3 › customer and partner priority layouts avoid overflow at 768px",
-      "[functional-chromium] › ux-customer-partner.spec.ts:351:3 › customer and partner priority layouts avoid overflow at 390px",
-      "[functional-chromium] › ux-customer-partner.spec.ts:351:3 › customer and partner priority layouts avoid overflow at 320px",
-      "[functional-chromium] › ux-internal-ops.spec.ts:70:3 › internal operator operations journey › loads the queue projection and submits a version-bound action",
-      "[functional-chromium] › ux-internal-ops.spec.ts:95:3 › internal operator operations journey › search route returns only scoped operational projections",
-      "[functional-chromium] › ux-internal-ops.spec.ts:115:3 › internal operator operations journey › shows grouped fail-closed gates and assisted review before submission",
-      "[functional-chromium] › ux-internal-ops.spec.ts:151:3 › internal operator operations journey › keeps every internal destination operable in the 320px drawer",
-      "[functional-chromium] › ux-internal-ops.spec.ts:178:3 › internal operator operations journey › uses a full-page queue detail on mobile",
-      "[functional-chromium] › ux-internal-ops.spec.ts:201:3 › finance approver journey › queues only the persisted finance approval action",
-      "[functional-chromium] › ux-internal-ops.spec.ts:212:3 › finance approver journey › renders honest empty renewal and report projections",
-      "[functional-chromium] › ux-internal-ops.spec.ts:237:3 › legal approver journey › shows the authorized agreement projection without invented versions",
-      "[functional-chromium] › ux-internal-ops.spec.ts:250:3 › legal approver journey › cannot approve finance price-book activation",
-      "[functional-chromium] › ux-internal-ops.spec.ts:267:3 › destructive-action approver journey › cannot use the finance-only projection action",
-      "[functional-chromium] › ux-internal-ops.spec.ts:283:3 › internal responsive and accessibility coverage › keeps representative surfaces responsive across release viewports",
-      "[functional-chromium] › ux-internal-ops.spec.ts:307:3 › internal responsive and accessibility coverage › keeps internal primary targets reachable with visible focus at 320px",
-      "[functional-chromium] › ux-internal-ops.spec.ts:322:3 › internal responsive and accessibility coverage › passes axe on representative operations, queue, and report surfaces",
-      "[functional-chromium] › ux-internal-ops.spec.ts:332:3 › internal responsive and accessibility coverage › removes internal loading motion when reduced motion is requested",
+      "[functional-chromium] › ux-customer-partner.spec.ts:41:1 › owner dashboard leads with decisions and one commercial term",
+      "[functional-chromium] › ux-customer-partner.spec.ts:68:1 › member keeps read access without owner-only customer actions",
+      "[functional-chromium] › ux-customer-partner.spec.ts:94:1 › owner builds a quote from the session account and issues one protected command",
+      "[functional-chromium] › ux-customer-partner.spec.ts:164:1 › owner reviews persisted agreement identity before the signing handoff",
+      "[functional-chromium] › ux-customer-partner.spec.ts:187:1 › click-through acceptance stays closed until the approved template loads",
+      "[functional-chromium] › ux-customer-partner.spec.ts:210:1 › owner reviews complete persisted order commitments before acceptance",
+      "[functional-chromium] › ux-customer-partner.spec.ts:240:1 › order acceptance requires an explicit attestation before it binds",
+      "[functional-chromium] › ux-customer-partner.spec.ts:262:1 › offboarding review reflects the selected named service",
+      "[functional-chromium] › ux-customer-partner.spec.ts:293:1 › billing prepares a safe provider handoff while payment truth stays webhook-derived",
+      "[functional-chromium] › ux-customer-partner.spec.ts:335:1 › partner seller can search the named portfolio but cannot open partner billing",
+      "[functional-chromium] › ux-customer-partner.spec.ts:368:1 › partner collection state survives reload and browser history",
+      "[functional-chromium] › ux-customer-partner.spec.ts:398:1 › partner seller starts resale work only from authorized persisted records",
+      "[functional-chromium] › ux-customer-partner.spec.ts:416:1 › partner admin reviews financial boundaries before any renewal request",
+      "[functional-chromium] › ux-customer-partner.spec.ts:451:3 › customer and partner priority layouts avoid overflow at 1440px",
+      "[functional-chromium] › ux-customer-partner.spec.ts:451:3 › customer and partner priority layouts avoid overflow at 1024px",
+      "[functional-chromium] › ux-customer-partner.spec.ts:451:3 › customer and partner priority layouts avoid overflow at 768px",
+      "[functional-chromium] › ux-customer-partner.spec.ts:451:3 › customer and partner priority layouts avoid overflow at 390px",
+      "[functional-chromium] › ux-customer-partner.spec.ts:451:3 › customer and partner priority layouts avoid overflow at 320px",
+      "[functional-chromium] › ux-internal-ops.spec.ts:89:3 › internal operator operations journey › loads the queue projection without inventing unrecorded facts",
+      "[functional-chromium] › ux-internal-ops.spec.ts:112:3 › internal operator operations journey › submits a version-bound queue action from the record detail",
+      "[functional-chromium] › ux-internal-ops.spec.ts:134:3 › internal operator operations journey › search route returns only scoped operational projections",
+      "[functional-chromium] › ux-internal-ops.spec.ts:163:3 › internal operator operations journey › shows grouped fail-closed gates and assisted review before submission",
+      "[functional-chromium] › ux-internal-ops.spec.ts:199:3 › internal operator operations journey › keeps every internal destination operable in the 320px drawer",
+      "[functional-chromium] › ux-internal-ops.spec.ts:226:3 › internal operator operations journey › uses a full-page queue detail on mobile",
+      "[functional-chromium] › ux-internal-ops.spec.ts:249:3 › finance approver journey › reviews the finance case it holds authority over without recording a decision",
+      "[functional-chromium] › ux-internal-ops.spec.ts:271:3 › finance approver journey › labels renewal and report values by their truth state",
+      "[functional-chromium] › ux-internal-ops.spec.ts:301:3 › legal approver journey › holds legal authority on the agreement template scan",
+      "[functional-chromium] › ux-internal-ops.spec.ts:315:3 › legal approver journey › cannot approve finance price-book activation",
+      "[functional-chromium] › ux-internal-ops.spec.ts:346:3 › destructive-action approver journey › cannot decide the finance-only approval case",
+      "[functional-chromium] › ux-internal-ops.spec.ts:367:3 › internal responsive and accessibility coverage › keeps representative surfaces responsive across release viewports",
+      "[functional-chromium] › ux-internal-ops.spec.ts:391:3 › internal responsive and accessibility coverage › keeps internal primary targets reachable with visible focus at 320px",
+      "[functional-chromium] › ux-internal-ops.spec.ts:409:3 › internal responsive and accessibility coverage › passes axe on representative operations, queue, and report surfaces",
+      "[functional-chromium] › ux-internal-ops.spec.ts:419:3 › internal responsive and accessibility coverage › removes internal loading motion when reduced motion is requested",
       "[functional-chromium] › ux-shell.spec.ts:116:3 › desktop keeps every destination discoverable without horizontal overflow",
       "[functional-chromium] › ux-shell.spec.ts:116:3 › compact-desktop keeps every destination discoverable without horizontal overflow",
       "[functional-chromium] › ux-shell.spec.ts:116:3 › tablet keeps every destination discoverable without horizontal overflow",
@@ -877,7 +1032,16 @@
       "[chromium] › visual.spec.ts:204:3 › commercial quote and order pass Axe and reflow at 320px",
       "[chromium] › visual.spec.ts:220:1 › approval surfaces preserve content at 200% zoom and 400% reflow equivalents",
       "[chromium] › visual.spec.ts:240:1 › approval surfaces tolerate WCAG text spacing overrides",
-      "[chromium] › visual.spec.ts:261:1 › approval surfaces honor reduced motion and retain keyboard focus"
+      "[chromium] › visual.spec.ts:261:1 › approval surfaces honor reduced motion and retain keyboard focus",
+      "[demo-chromium] › demo.spec.ts:41:3 › demo access gate › refuses the wrong password and keeps the return path",
+      "[demo-chromium] › demo.spec.ts:57:3 › demo access gate › opens the landing page on the right password",
+      "[demo-chromium] › demo.spec.ts:75:3 › demo landing › groups every persona and starts one",
+      "[demo-chromium] › demo.spec.ts:95:3 › demo landing › carries the persona into the panel and switches from it",
+      "[demo-chromium] › demo.spec.ts:121:3 › visual demo access at desktop",
+      "[demo-chromium] › demo.spec.ts:134:3 › visual demo landing at desktop",
+      "[demo-chromium] › demo.spec.ts:121:3 › visual demo access at 320",
+      "[demo-chromium] › demo.spec.ts:134:3 › visual demo landing at 320",
+      "[demo-chromium] › demo.spec.ts:150:3 › demo reset › confirms once and restores seeded data"
     ]
   },
   "visualStateGalleryContract": {
@@ -909,93 +1073,129 @@
   },
   "visualBaselines": [
     {
-      "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
-      "sha256": "7758a9e23ff5c898ca28c25974170c6ca726a49e1c8e5f9049f1b3401b88537d",
-      "bytes": 113161,
+      "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-access-320-demo-chromium-darwin.png",
+      "sha256": "b281851b614fa804c624f2dbaae3322bbe909104bb155373cfa6125d496d97b4",
+      "bytes": 29216,
       "dimensions": {
         "width": 320,
-        "height": 1780
+        "height": 800
+      }
+    },
+    {
+      "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-access-demo-chromium-darwin.png",
+      "sha256": "03a58d093209f76e0c6a8e11e7070ce8a2f703127ed553a8bccb11070d0a97a2",
+      "bytes": 42108,
+      "dimensions": {
+        "width": 1440,
+        "height": 1000
+      }
+    },
+    {
+      "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-320-demo-chromium-darwin.png",
+      "sha256": "3bf164424128415d539ac691ed00d76351878b6fb7b09f9e5f538a997a32e8aa",
+      "bytes": 236434,
+      "dimensions": {
+        "width": 320,
+        "height": 3661
+      }
+    },
+    {
+      "path": "apps/web/e2e/demo.spec.ts-snapshots/demo-landing-demo-chromium-darwin.png",
+      "sha256": "2d5fd1af3b7fd60e93724a936c49b1f9cf970799b7d32d5be0edfb516f5244a9",
+      "bytes": 206289,
+      "dimensions": {
+        "width": 1440,
+        "height": 1514
+      }
+    },
+    {
+      "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-320-chromium-darwin.png",
+      "sha256": "452231be0ecd3e17f6ad6f9f8325b08774c5d54a7290c3d64375d183c9d12687",
+      "bytes": 109791,
+      "dimensions": {
+        "width": 320,
+        "height": 1700
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-dashboard-chromium-darwin.png",
-      "sha256": "c72779667fefd4eb58549c5d0d5fd286b531245d5cd942f6253ce9ead86ea324",
-      "bytes": 162766,
+      "sha256": "16195a6551b470ccdc0057a828d5f5543513ab0f9257a053f13ac888b8c5651a",
+      "bytes": 161239,
       "dimensions": {
         "width": 1440,
-        "height": 1077
+        "height": 1053
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-320-chromium-darwin.png",
-      "sha256": "e5db44b72ec0ec5436710a4efcd4bea4bda1e1dc0b08a03ab2039ff581888e6b",
-      "bytes": 151179,
+      "sha256": "928fc7c1dbe5d6c2c230889b9cd6a40e01fa8098faf6b9603281d0293628ff3f",
+      "bytes": 141383,
       "dimensions": {
         "width": 320,
-        "height": 2490
+        "height": 2278
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-order-acceptance-chromium-darwin.png",
-      "sha256": "f84702d7ed9369b0b8eeb35023d48afdb5611253ec746b4d94b73706209eef2a",
-      "bytes": 202358,
+      "sha256": "501bee0bbd4c3df2b9bbb8d802d5a8e4c936edddd1ef2b7647568bf52dc8ef32",
+      "bytes": 192763,
       "dimensions": {
         "width": 1440,
-        "height": 1494
+        "height": 1296
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-320-chromium-darwin.png",
-      "sha256": "4abf673a2231635bd0b243ae85943618eb09d835c9985348a114953e73f7c6eb",
-      "bytes": 236212,
+      "sha256": "e350c8cfd34102db095b7aafde053ec212836f562db2e2872a9ade2b7ad179a6",
+      "bytes": 117540,
       "dimensions": {
         "width": 320,
-        "height": 4129
+        "height": 2082
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-quote-workspace-chromium-darwin.png",
-      "sha256": "e66f511ebab666d591854b7042f1c0d9ba0be38e2d0fbbfa144a7d94c9d2aa65",
-      "bytes": 295180,
+      "sha256": "3c27dd47fe1651c7f918c208bf58d2e58a07fd9a750a4ba3c8bd1080a6778014",
+      "bytes": 164354,
       "dimensions": {
         "width": 1440,
-        "height": 2382
+        "height": 1135
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-320-chromium-darwin.png",
-      "sha256": "e80e2e53797b8cb0b597b7d5c3dad7581e72768ed68b239c6083123d7733133a",
-      "bytes": 218942,
+      "sha256": "c7f6105f0d02ce8edc15fcca353c8cadd326add8f96ee30deb6ceee0243d00f3",
+      "bytes": 216486,
       "dimensions": {
         "width": 320,
-        "height": 3791
+        "height": 3717
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/customer-state-gallery-chromium-darwin.png",
-      "sha256": "a91232f55770876014d9be722fb59061ff509ddc7ba4b6135b4033684289dab7",
-      "bytes": 263073,
+      "sha256": "e7ab1376213f8af20b8a85df2920430e9f2ad4bae586e54f79280fb3678dfa66",
+      "bytes": 263597,
       "dimensions": {
         "width": 1440,
-        "height": 2039
+        "height": 2014
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/operator-priority-work-chromium-darwin.png",
-      "sha256": "daf91dc7083c15a25b29796004cf7c9ee745dd292d51a3685ee73bcc922dcb75",
-      "bytes": 209155,
+      "sha256": "3e1f0cbbc87166884de310a8b3aca0a9bd7eb9ce13f493321124a5708dd282c0",
+      "bytes": 223245,
       "dimensions": {
         "width": 1440,
-        "height": 1022
+        "height": 1374
       }
     },
     {
       "path": "apps/web/e2e/visual.spec.ts-snapshots/partner-agreement-clock-chromium-darwin.png",
-      "sha256": "6fc954460d4a5cdf63018532d4351c2a41c5029572dda37fe4f9d238b2797e6a",
-      "bytes": 179262,
+      "sha256": "c4b90e39be84283abab8e1e14f3d14f68de974caab91029ba5b5788212eb3548",
+      "bytes": 178520,
       "dimensions": {
         "width": 1440,
-        "height": 1095
+        "height": 1059
       }
     }
   ],

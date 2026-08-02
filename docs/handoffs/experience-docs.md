@@ -56,12 +56,14 @@ state.
 ## Design system and visual decisions
 
 `@clockwork/ui` is a neutral, swappable Fil One system built from tokens rather
-than a dashboard template. It uses an editorial cream field, near-black type,
-deep archival green, sparing amber/red exception colors, strong whitespace, and
-a text wordmark with an explicit replacement slot. Components include shell,
-navigation, forms, dialog, tables, stat tiles, timelines, document cards, queue
-rows, risk indicators, capacity and metric charts, skeleton/empty/error states,
-and reduced-motion behavior.
+than a dashboard template. It uses a white field over a cool neutral canvas,
+near-black type, the Filecoin Blue ramp for action and emphasis, sparing
+green/amber/red state colors, strong whitespace, and a text wordmark with an
+explicit replacement slot. Type is Aspekta for headings and the mark, Funnel
+Sans for body, and Funnel Display for the accent register. Components include
+shell, navigation, forms, dialog, tables, stat tiles, timelines, document cards,
+queue rows, risk indicators, capacity and metric charts, skeleton/empty/error
+states, and reduced-motion behavior.
 
 The signature term bar shows elapsed service, notice window, end date, renewal
 state, and remaining time in visual and screen-reader text. Compact, table, and

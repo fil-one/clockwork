@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-01T23:00:15Z",
+  "capturedAt": "2026-08-02T12:58:30Z",
   "captureRef": "main",
-  "captureCommit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
-  "captureTree": "97f52f485d43d92b7501a93676c124ab4ffe19df",
+  "captureCommit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+  "captureTree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -36,202 +36,37 @@
     "commit": "27fb33bab754b001acf26134d988daa10d177390",
     "tree": "47a76be91f3f95c9a429e57c203dad33b1692d8a"
   },
-  "remotes": [],
+  "remotes": ["origin"],
   "refs": [
     {
-      "ref": "commerce/core-finance",
-      "fullRef": "refs/heads/commerce/core-finance",
+      "ref": "brand/fil-one-visual-conformance",
+      "fullRef": "refs/heads/brand/fil-one-visual-conformance",
       "refType": "branch",
-      "object": "12c590d5d386066fc120f90792b2f3c038c294a8",
+      "object": "35214990b8d0bf27d7c506fc849481eff38c12dd",
       "objectType": "commit",
-      "peeledCommit": "12c590d5d386066fc120f90792b2f3c038c294a8",
-      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
-      "tree": "fcdfe12dba21f65f97fe29cc382614c2cc36df98",
-      "treeEntryCount": 249,
-      "treeListingSha256": "bbe124c54942d5d54e2dc47c0b2405a76e1dc6516e9958663d183f7f65acfa4c",
-      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
-      "subject": "feat: implement core finance commerce lane",
-      "mergeBaseWithMain": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "ref": "commerce/experience-docs",
-      "fullRef": "refs/heads/commerce/experience-docs",
-      "refType": "branch",
-      "object": "de5f761ec82ccce4966b82825a3de9b356e953b7",
-      "objectType": "commit",
-      "peeledCommit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
-      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
-      "tree": "10f130d0b5913d74e21c4c7bfa2d603edf05cbe5",
-      "treeEntryCount": 328,
-      "treeListingSha256": "ef3717fff4788e85319551a82ac317818ba525a5fcc08751c86a06e73cfd7483",
-      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
-      "subject": "feat(experience): deliver commerce portal and documents",
-      "mergeBaseWithMain": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "ref": "commerce/foundation",
-      "fullRef": "refs/heads/commerce/foundation",
-      "refType": "branch",
-      "object": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "objectType": "commit",
-      "peeledCommit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "tree": "3ffd027aa94b54c988778f7d52a74a17a70a58e8",
-      "treeEntryCount": 206,
-      "treeListingSha256": "f91f63843827d776b3467b0ab15770c6d9902462a7668423756e84fc50b46846",
-      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
-      "subject": "docs: preserve production specification rewrite",
-      "mergeBaseWithMain": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
-    },
-    {
-      "ref": "commerce/integration",
-      "fullRef": "refs/heads/commerce/integration",
-      "refType": "branch",
-      "object": "92d10d3b8a12728804b70215799f9929e880c996",
-      "objectType": "commit",
-      "peeledCommit": "92d10d3b8a12728804b70215799f9929e880c996",
-      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
-      "tree": "c463e9b62315c1a2349830a5dc526d0d158bbd4b",
-      "treeEntryCount": 576,
-      "treeListingSha256": "f69c2d702a14334201f4213a44b8175f80ee458db008c697fe2a73b1e42bada8",
-      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
-      "subject": "docs: preserve consolidation backlog",
-      "mergeBaseWithMain": "92d10d3b8a12728804b70215799f9929e880c996"
-    },
-    {
-      "ref": "commerce/lifecycle-platform",
-      "fullRef": "refs/heads/commerce/lifecycle-platform",
-      "refType": "branch",
-      "object": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
-      "objectType": "commit",
-      "peeledCommit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
-      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
-      "tree": "3331ced96f7775063bda8e231f671a9934e2df32",
-      "treeEntryCount": 278,
-      "treeListingSha256": "6b95c52574e3f7ef3a347928357d4b996454bf86bfee4032bb3d647260f9158d",
-      "parents": ["d9fdacce7eb3d66e3ba0aaa698814e3d42660668"],
-      "subject": "feat: implement lifecycle platform lane",
-      "mergeBaseWithMain": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
+      "peeledCommit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "tree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
+      "treeEntryCount": 1031,
+      "treeListingSha256": "2c39ab3a8d0230ac5cc54471bba5dd2d8f05e854104e92b7aaf0b64517c8bd5f",
+      "parents": ["ba6a46465fffd38127032d0e9b6545191a4296e6"],
+      "subject": "docs(design): record the brand type, the ramp, and the recaptured baselines",
+      "mergeBaseWithMain": "b460396f162b0167e3589bcb6568932f003864b5"
     },
     {
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
+      "object": "b460396f162b0167e3589bcb6568932f003864b5",
       "objectType": "commit",
-      "peeledCommit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
-      "commit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
-      "tree": "97f52f485d43d92b7501a93676c124ab4ffe19df",
-      "treeEntryCount": 898,
-      "treeListingSha256": "a76399bd107eb9935dd0542e4bed4bb848239452dac2cd1a3b83c61a66da82aa",
-      "parents": ["820fe9934f8849b34a1c25c6bc91ae16e379a7e5"],
-      "subject": "test: provision timeouts for parallel qualification load",
-      "mergeBaseWithMain": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e"
-    },
-    {
-      "ref": "rc/commercial-integrity",
-      "fullRef": "refs/heads/rc/commercial-integrity",
-      "refType": "branch",
-      "object": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
-      "objectType": "commit",
-      "peeledCommit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
-      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
-      "tree": "10fb9f38f2a42e98b1a63b4011f54f7ef3942c1f",
-      "treeEntryCount": 729,
-      "treeListingSha256": "3d6be54b60d01f26913869a9626d5e5343bfc8a63870ddc7060a655955f080c2",
-      "parents": ["ecf5574c5f496475f57ff190f79a2e03df323892"],
-      "subject": "docs: record commercial integrity handoff",
-      "mergeBaseWithMain": "cc23bce784ee60a27ad3e34fd245136f37394a2d"
-    },
-    {
-      "ref": "rc/experience-release",
-      "fullRef": "refs/heads/rc/experience-release",
-      "refType": "branch",
-      "object": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
-      "objectType": "commit",
-      "peeledCommit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
-      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
-      "tree": "b6fa1d310adcc34fcb8292c057d079d73e0a2261",
-      "treeEntryCount": 778,
-      "treeListingSha256": "fa2ac2f8573f75aa5f1dbb337a42208e79bc52f8751597e28fb16484f70926da",
-      "parents": ["7ebae9ff01351671a34a972b8ad6f3440e1eda6c"],
-      "subject": "test(web): bound release browser concurrency",
-      "mergeBaseWithMain": "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
-    },
-    {
-      "ref": "rc/runtime-operations",
-      "fullRef": "refs/heads/rc/runtime-operations",
-      "refType": "branch",
-      "object": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
-      "objectType": "commit",
-      "peeledCommit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
-      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
-      "tree": "f1cae86ccb4782b8666c4bf0ed3a98eef95a6726",
-      "treeEntryCount": 748,
-      "treeListingSha256": "eb87269931d4f2c5b2b2dcf7f5a27d8183f8a522981e4e3c89ba2a5e7322274f",
-      "parents": ["cd9ac147de7fa9b998de762adb4b2c3d1f6110fe"],
-      "subject": "docs(runtime): hand off operations integration",
-      "mergeBaseWithMain": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
-    },
-    {
-      "ref": "ux/customer-partner",
-      "fullRef": "refs/heads/ux/customer-partner",
-      "refType": "branch",
-      "object": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
-      "objectType": "commit",
-      "peeledCommit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
-      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
-      "tree": "bc411d3f37c39be4e57b362b6ecf6a782687204f",
-      "treeEntryCount": 635,
-      "treeListingSha256": "61e038889364ae7fec966603177a742400206b83cf621b1600df3d6a3b073bd0",
-      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
-      "subject": "feat(web): overhaul customer and partner UX",
-      "mergeBaseWithMain": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "ref": "ux/design-shell",
-      "fullRef": "refs/heads/ux/design-shell",
-      "refType": "branch",
-      "object": "d8589e816bbd62233bd5fcbce345afec929252c6",
-      "objectType": "commit",
-      "peeledCommit": "d8589e816bbd62233bd5fcbce345afec929252c6",
-      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
-      "tree": "f2c5ecd7d3bcfd3f3ba2957cbd037452c70e06e1",
-      "treeEntryCount": 589,
-      "treeListingSha256": "0574b1213f11acc3c9824574c6786738977c4074dc8593b121d02e581fc8f904",
-      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
-      "subject": "feat(ux): unify responsive design shell",
-      "mergeBaseWithMain": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "ref": "ux/integration",
-      "fullRef": "refs/heads/ux/integration",
-      "refType": "branch",
-      "object": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
-      "objectType": "commit",
-      "peeledCommit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
-      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
-      "tree": "a212cf5769d2fa4856e36c0817cd8163c73bbd53",
-      "treeEntryCount": 690,
-      "treeListingSha256": "f65aa9e5749ba7ea17395ca59f215d6c229fd4e118f0758a16db59fccbe8e355",
-      "parents": ["f513bd86fedc17ca9d36d15c8a9a873f1fa65b60"],
-      "subject": "fix(ux): complete integrated release-quality pass",
-      "mergeBaseWithMain": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-    },
-    {
-      "ref": "ux/internal-ops",
-      "fullRef": "refs/heads/ux/internal-ops",
-      "refType": "branch",
-      "object": "30ad76a8bb2118b2605358da1694d3aa54464eef",
-      "objectType": "commit",
-      "peeledCommit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
-      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
-      "tree": "db3266eb280d35d60b56966273a253c85ff8e92d",
-      "treeEntryCount": 617,
-      "treeListingSha256": "1a3e7d5b59ac01d3ee32f0dfc78c13001495ebbd363ab5a05a5e5943fd0366e9",
-      "parents": ["821697c9863342ed2eedc4341eb444000562e5dd"],
-      "subject": "feat(web): build internal operations UX",
-      "mergeBaseWithMain": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
+      "treeEntryCount": 1023,
+      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
+      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
+      "subject": "docs: close P0-40 and the resolved P1 findings",
+      "mergeBaseWithMain": "b460396f162b0167e3589bcb6568932f003864b5"
     },
     {
       "ref": "notes/clockwork-lane-topology",
@@ -264,6 +99,36 @@
       "mergeBaseWithMain": null
     },
     {
+      "ref": "origin",
+      "fullRef": "refs/remotes/origin/HEAD",
+      "refType": "other",
+      "object": "b460396f162b0167e3589bcb6568932f003864b5",
+      "objectType": "commit",
+      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
+      "treeEntryCount": 1023,
+      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
+      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
+      "subject": "docs: close P0-40 and the resolved P1 findings",
+      "mergeBaseWithMain": null
+    },
+    {
+      "ref": "origin/main",
+      "fullRef": "refs/remotes/origin/main",
+      "refType": "other",
+      "object": "b460396f162b0167e3589bcb6568932f003864b5",
+      "objectType": "commit",
+      "peeledCommit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
+      "treeEntryCount": 1023,
+      "treeListingSha256": "fd5ad9965a4f9a157927897361b69d4a11db2fd5bbc6584de52fb6c8c4436f4f",
+      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
+      "subject": "docs: close P0-40 and the resolved P1 findings",
+      "mergeBaseWithMain": null
+    },
+    {
       "ref": "pre-consolidation-20260731",
       "fullRef": "refs/tags/pre-consolidation-20260731",
       "refType": "tag",
@@ -292,6 +157,21 @@
       "parents": ["34c2a5001859221dc3def61d7d86231fe2026151"],
       "subject": "fix: align integration qualification origin",
       "mergeBaseWithMain": "27fb33bab754b001acf26134d988daa10d177390"
+    },
+    {
+      "ref": "repository-qualified-20260801",
+      "fullRef": "refs/tags/repository-qualified-20260801",
+      "refType": "tag",
+      "object": "afe9611f81aab0208eb2657449d566be22275c2e",
+      "objectType": "tag",
+      "peeledCommit": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd",
+      "commit": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd",
+      "tree": "8352a2a9a8e4b6de047a7d3cf09f11d18fbafe34",
+      "treeEntryCount": 898,
+      "treeListingSha256": "fcac7ee5240b21404572607430465d03087a1b4af148884fb94e2d77b37dfda6",
+      "parents": ["0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e"],
+      "subject": "docs: recapture baselines for the qualified tree",
+      "mergeBaseWithMain": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd"
     }
   ],
   "specialRefInventory": {
@@ -311,8 +191,8 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Downloads/Fil One/Clockwork",
-      "head": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
-      "branch": "main",
+      "head": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "branch": "brand/fil-one-visual-conformance",
       "detached": false,
       "locked": false,
       "prunable": false,
@@ -330,6 +210,7 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
+          "deno.lock",
           "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
@@ -351,9 +232,11 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 76331,
+        "ignoredArtifactCount": 80701,
         "retainedArchivePaths": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
+          ".clockwork-archives/Clockwork-qualified-20260801.bundle",
+          ".clockwork-archives/Clockwork-qualified-20260801.bundle.sha256",
           ".clockwork-archives/pre-final-inventory/refs.tsv",
           ".clockwork-archives/pre-final-inventory/status-porcelain-v2.txt",
           ".clockwork-archives/pre-final-inventory/untracked-files.tar.gz",
@@ -364,7 +247,139 @@
           ".clockwork-archives/pre-source-commit-inventory/status-porcelain-v2.txt",
           ".clockwork-archives/pre-source-commit-inventory/untracked-files.tar.gz",
           ".clockwork-archives/pre-source-commit-inventory/working-tree.patch",
-          ".clockwork-archives/pre-source-commit-inventory/worktrees.txt"
+          ".clockwork-archives/pre-source-commit-inventory/worktrees.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/migration-state-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/qualification-summary.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/migration-state-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/qualification-summary.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/migration-dry-run.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/qualification-summary.json"
         ],
         "retainedQualificationEvidencePaths": [
           ".artifacts/release-benchmark/quality-5af2de1b687c-qual-4/serial/build/contract.json",
@@ -2100,6 +2115,17 @@
                   "stress evidence file differs: stress-2/summary.json",
                   "stress evidence file differs: stress-3/summary.json",
                   "serial/summary.json: summary status is not passed",
+                  "serial/summary.json: missing suites: demo",
+                  "serial/summary.json: expected 7 suite results",
+                  "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui command manifest differs",
+                  "serial/summary.json: ui assertion fingerprint differs",
+                  "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                  "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                   "serial/summary.json: proof status is not passed",
                   "serial/summary.json: proof step 4 did not exit 0",
                   "serial/summary.json: source identity differs from stress summary",
@@ -2146,12 +2172,34 @@
                   "stress evidence file differs: stress-1/summary.json",
                   "stress evidence file differs: stress-2/summary.json",
                   "stress evidence file differs: stress-3/summary.json",
+                  "serial/summary.json: missing suites: demo",
+                  "serial/summary.json: expected 7 suite results",
+                  "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui command manifest differs",
+                  "serial/summary.json: ui assertion fingerprint differs",
+                  "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                  "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                   "serial/summary.json: source identity differs from stress summary",
                   "parallel/summary.json: summary status is not passed",
+                  "parallel/summary.json: missing suites: demo",
+                  "parallel/summary.json: expected 7 suite results",
+                  "parallel/summary.json: static documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: unit documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: unit status is not passed",
                   "parallel/summary.json: unit step 1 did not exit 0",
+                  "parallel/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: build documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: ui documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: ui status is not passed",
+                  "parallel/summary.json: ui command manifest differs",
+                  "parallel/summary.json: ui assertion fingerprint differs",
                   "parallel/summary.json: ui step 1 did not exit 0",
+                  "parallel/summary.json: ui assertion step 2 differs from its command manifest",
+                  "parallel/summary.json: proof documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: source identity differs from stress summary",
                   "stress-1/summary.json: summary is missing",
                   "stress-1/summary.json: result fingerprints differ from parallel",
@@ -2345,7 +2393,9 @@
                   "ui provider isolation declaration is invalid",
                   "ui simulator isolation declaration is invalid",
                   "ui local database inheritance declaration is invalid",
-                  "ui assertion fingerprint differs"
+                  "ui command manifest differs",
+                  "ui assertion fingerprint differs",
+                  "ui assertion step 2 differs from its command manifest"
                 ],
                 "incompleteReason": null
               }
@@ -2393,6 +2443,17 @@
                   "stress evidence file differs: stress-2/summary.json",
                   "stress evidence file differs: stress-3/summary.json",
                   "serial/summary.json: summary status is not passed",
+                  "serial/summary.json: missing suites: demo",
+                  "serial/summary.json: expected 7 suite results",
+                  "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui command manifest differs",
+                  "serial/summary.json: ui assertion fingerprint differs",
+                  "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                  "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                   "serial/summary.json: proof status is not passed",
                   "serial/summary.json: proof step 4 did not exit 0",
                   "serial/summary.json: source identity differs from stress summary",
@@ -2423,9 +2484,21 @@
                 "sha256": "57c8f496a7082c08da820fdb5ddaa44a34c75ef423c77963c984711b9285ca2a",
                 "runId": "repository-quality-820fe9934f88-serial",
                 "mode": "serial",
-                "outcome": "passed",
+                "outcome": "reported-passed-unvalidated",
                 "reportedOutcome": "passed",
-                "validationIssues": [],
+                "validationIssues": [
+                  "missing suites: demo",
+                  "expected 7 suite results",
+                  "static documented runtime environment differs from the canonical contract",
+                  "unit documented runtime environment differs from the canonical contract",
+                  "integration documented runtime environment differs from the canonical contract",
+                  "build documented runtime environment differs from the canonical contract",
+                  "ui documented runtime environment differs from the canonical contract",
+                  "ui command manifest differs",
+                  "ui assertion fingerprint differs",
+                  "ui assertion step 2 differs from its command manifest",
+                  "proof documented runtime environment differs from the canonical contract"
+                ],
                 "durationMs": 908643,
                 "sourceRevision": "820fe9934f8849b34a1c25c6bc91ae16e379a7e5"
               },
@@ -2455,12 +2528,34 @@
                   "stress evidence file differs: stress-1/summary.json",
                   "stress evidence file differs: stress-2/summary.json",
                   "stress evidence file differs: stress-3/summary.json",
+                  "serial/summary.json: missing suites: demo",
+                  "serial/summary.json: expected 7 suite results",
+                  "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                  "serial/summary.json: ui command manifest differs",
+                  "serial/summary.json: ui assertion fingerprint differs",
+                  "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                  "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                   "serial/summary.json: source identity differs from stress summary",
                   "parallel/summary.json: summary status is not passed",
+                  "parallel/summary.json: missing suites: demo",
+                  "parallel/summary.json: expected 7 suite results",
+                  "parallel/summary.json: static documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: unit documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: unit status is not passed",
                   "parallel/summary.json: unit step 1 did not exit 0",
+                  "parallel/summary.json: integration documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: build documented runtime environment differs from the canonical contract",
+                  "parallel/summary.json: ui documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: ui status is not passed",
+                  "parallel/summary.json: ui command manifest differs",
+                  "parallel/summary.json: ui assertion fingerprint differs",
                   "parallel/summary.json: ui step 1 did not exit 0",
+                  "parallel/summary.json: ui assertion step 2 differs from its command manifest",
+                  "parallel/summary.json: proof documented runtime environment differs from the canonical contract",
                   "parallel/summary.json: source identity differs from stress summary",
                   "stress-1/summary.json: summary is missing",
                   "stress-1/summary.json: result fingerprints differ from parallel",
@@ -2606,7 +2701,9 @@
                   "ui provider isolation declaration is invalid",
                   "ui simulator isolation declaration is invalid",
                   "ui local database inheritance declaration is invalid",
-                  "ui assertion fingerprint differs"
+                  "ui command manifest differs",
+                  "ui assertion fingerprint differs",
+                  "ui assertion step 2 differs from its command manifest"
                 ],
                 "durationMs": 140241,
                 "sourceRevision": "9464bab03beb8a5298d57f4181cf7bf3ff5072df"
@@ -12366,14 +12463,26 @@
             ]
           },
           "archives": {
-            "artifactCount": 12,
-            "aggregateSha256": "09773865210b053ce9a8d273cdd45a7ccef0bb0cd914ecc4745a39ed583a716f",
+            "artifactCount": 146,
+            "aggregateSha256": "402301aee53230c84bb7dde081934eb7fa662661da97ab6432028fc45680f109",
             "artifacts": [
               {
                 "path": ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
                 "kind": "archive",
                 "bytes": 3340426,
                 "sha256": "78be81aeb4eef96c59545873c062e7415883e8150274128867d6f5a5422e1070"
+              },
+              {
+                "path": ".clockwork-archives/Clockwork-qualified-20260801.bundle",
+                "kind": "archive",
+                "bytes": 6538620,
+                "sha256": "3a534fc0e306593a0a2d3cbfe291777d35f501ca55137c21f2b4c90ce8477024"
+              },
+              {
+                "path": ".clockwork-archives/Clockwork-qualified-20260801.bundle.sha256",
+                "kind": "archive",
+                "bytes": 122,
+                "sha256": "535bdc5137efe07b66df763d7ab245fd560db27f31be980d80ece3a8e48b3fe9"
               },
               {
                 "path": ".clockwork-archives/pre-final-inventory/refs.tsv",
@@ -12440,18 +12549,978 @@
                 "kind": "archive",
                 "bytes": 124,
                 "sha256": "5fdf9bf43d62d84d7f311e30ebd0104e96bfee65c1d983ca7df92219f2df99cc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/artifact-manifest.json",
+                "kind": "archive",
+                "bytes": 6419,
+                "sha256": "cc2f838d6a632e946455f5358cd1d4a44d69b70f090799c25823891eae8d8e91"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/ignored-artifacts.txt",
+                "kind": "archive",
+                "bytes": 7398721,
+                "sha256": "34d4917325c133f4478e0b17aea3cc99341a118ef1d427fcd00ee04ae3f2babc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/application-build.log",
+                "kind": "archive",
+                "bytes": 7811,
+                "sha256": "c9a362c7a2a16f97e13249ec04a67e65259139abd5a5804a88467c0d8aa60dd5"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/boundaries.log",
+                "kind": "archive",
+                "bytes": 268,
+                "sha256": "e4f1509afe71cac855b8685591b0ef2de338f2d759040d9769478701811a6ead"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-drizzle-check.log",
+                "kind": "archive",
+                "bytes": 334,
+                "sha256": "144d13af0904283b234dd36458ed8977002e66d053319b5e971c78fad374db60"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-pgtap.log",
+                "kind": "archive",
+                "bytes": 9750,
+                "sha256": "fa8b149dd01fe1a8c7abf89fcf0ceedc024b00658d50bc43e97e0a872ac779fc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset-before-serial.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "e324ef577e63b584a9410ec35d1f67bac924df72e2bf43bab70dfc0388439a95"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "e324ef577e63b584a9410ec35d1f67bac924df72e2bf43bab70dfc0388439a95"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-start.log",
+                "kind": "archive",
+                "bytes": 5744,
+                "sha256": "16633ffb7b151aaa5691d7f63b029b3255907ebfccf406efd23cbf2dbf9c9d06"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-after.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-before.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-production-refusal.log",
+                "kind": "archive",
+                "bytes": 65,
+                "sha256": "930ce729721fed0f3a311273d80ae5924d09b49f92a48034f7a6e871958b13a1"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-reset.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "4d8fbc5487da69a8f8ea48d69ffdd471b255c915a9cc9766dcb570002c3b352a"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/dependency-audit.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "e38142ed4ef6ec5ef09adeae71b3a60cd563c311e6a94d8a548245a7009fb7e9"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/format.log",
+                "kind": "archive",
+                "bytes": 193,
+                "sha256": "94d789fd25c36085e03c90166f813b18a12ba0c307e4620e83e4485da46304c7"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/frozen-install.log",
+                "kind": "archive",
+                "bytes": 4305,
+                "sha256": "0c783b261a8fc9d0882300e90b76e1bccc74b1b0462eb2d6cb253e607a39343e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/generated-drift.log",
+                "kind": "archive",
+                "bytes": 646,
+                "sha256": "6e21523fc926e57b58b6e9227dc9159c88722fcbd6524477730c463504f8a032"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-parallel.log",
+                "kind": "archive",
+                "bytes": 29862,
+                "sha256": "08f3a5f7f1c9f03fa17364b16678f31593976391b16f9a518883df72bc2deb05"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 29799,
+                "sha256": "2b8b09ddf1b04aaf7ee3b542f0bc66bcbe9f9a9ba5bb4a7d10daedfc3e37050f"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/lint.log",
+                "kind": "archive",
+                "bytes": 235,
+                "sha256": "b9ecde72eb43da8fcd4e9d8f5caa5d62b8e40f6a9347fa82e26c1f83da20bbd9"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/migration-state-check.log",
+                "kind": "archive",
+                "bytes": 62,
+                "sha256": "97932182f1628d29c1232acbbeb33e4fb1f0e30b0f4df3445cf88b8590afa3c5"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-full.log",
+                "kind": "archive",
+                "bytes": 4297,
+                "sha256": "fb49d3a044bd681b12b4b21ccbb61ae5c85f689da631cc810f89ced1ddea6a33"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-install.log",
+                "kind": "archive",
+                "bytes": 7197,
+                "sha256": "6239c61eb82a9b665f6d21c0a82da884b447d63d59b1da2c39bb7a114f4b13f9"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/repository-clean-after-generated.log",
+                "kind": "archive",
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/revision-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "817dc0a4fe8feb5d935ed52d69500802c54c5d0681009cb613a1157b074d2a46"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-docker.log",
+                "kind": "archive",
+                "bytes": 40,
+                "sha256": "5963fbdfc673998662c7017721aae175f338e9fed227d42a45a4e628827fbae3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-node.log",
+                "kind": "archive",
+                "bytes": 9,
+                "sha256": "1f2f55b6a7002be8f9992bdfa80f6a4a2b133df9201a4cbc2c35fb471256cd48"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-playwright.log",
+                "kind": "archive",
+                "bytes": 15,
+                "sha256": "47de3041a9b82754419b455f44018d3278b4e3cd6f1dc4385a871ceb13bca325"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-pnpm.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "a82028df3ca327b7e19f23fbc0121aec7763353c7dc0c816422db7f52f6365bc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-supabase.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "08e6cc4664e756f03d06c2c37be50a19af821527d5c2acef581c3e1028f10fc4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-turbo.log",
+                "kind": "archive",
+                "bytes": 7,
+                "sha256": "062bb3959d7c69ccae534cb207d0cc4cf159631cda31e4914262a240a2dd5be8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-vitest.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "6f132a755059ee9a29162e1492e87a8cd5145f766386ba1a1d46c227774584b6"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/secret-scan.log",
+                "kind": "archive",
+                "bytes": 197,
+                "sha256": "979ac2907264b0157981c414ae208f38fcb7198359c487e9689f238efbc22069"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-axe.log",
+                "kind": "archive",
+                "bytes": 6188,
+                "sha256": "3ccc905fc30cbed75969a45fc22285e6e875b8ca026308d312db4f5538598c27"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-build.log",
+                "kind": "archive",
+                "bytes": 7654,
+                "sha256": "0fd9d6a94bffa238b8b75f31afbc4e674d931acf73bfeb59ebe43916bd037225"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/traceability.log",
+                "kind": "archive",
+                "bytes": 828,
+                "sha256": "0ded3f4f3f312c17e8d550644153817a53b2c6f10052c9337a9a03a3e5dd2ae3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/tree-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "ef505dd940c5b536cdcd1af5afac99aabdb80e15d0d8ec27abba4c390283b651"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/typecheck.log",
+                "kind": "archive",
+                "bytes": 3996,
+                "sha256": "87a8ac8b9a8a69bbd14a4cad4200bf201429fe2dd189ad50521d7d5395faeb8f"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-parallel.log",
+                "kind": "archive",
+                "bytes": 27670,
+                "sha256": "532e8efeaee15ab40785b8ce964c77e26cbc723ecfcf143294c14156a33de1c5"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 27407,
+                "sha256": "7d4995874fd2764ec8d61be4c9cb039f6874767b9b493c36f9cc16a6c6f41a21"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/.last-run.json",
+                "kind": "archive",
+                "bytes": 96,
+                "sha256": "bf9496e776d23e2dd23c8f44992f445fc0816ef8b37aa44f357aca9b114b8874"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+                "kind": "archive",
+                "bytes": 20089,
+                "sha256": "6451592b0e121b90fa5383b1f88687e2c7013752e4d9e5b56e8f1c167fa6638e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+                "kind": "archive",
+                "bytes": 705938,
+                "sha256": "069632378fdd7671d46a095e5a3694f9901fa3b9123147594c5850a83fe74a26"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/qualification-summary.json",
+                "kind": "archive",
+                "bytes": 63940,
+                "sha256": "47cf6df64a59681852d6dece47b809752860341726606685128d674f640a6c62"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/artifact-manifest.json",
+                "kind": "archive",
+                "bytes": 6419,
+                "sha256": "6bb9fc6867cb35869c8977b2b7c36d0faf2ea667cd2ecf4be56cea51c83bb5fb"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/ignored-artifacts.txt",
+                "kind": "archive",
+                "bytes": 7398721,
+                "sha256": "b1dff435ece0d4619653a8166597bee437c947431a3e1ed20567ef8adac7d026"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/application-build.log",
+                "kind": "archive",
+                "bytes": 7811,
+                "sha256": "8f6034dc990425ae55b4878e0b868e861d6d81416dd0966c40e8ce51102ad8e4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/boundaries.log",
+                "kind": "archive",
+                "bytes": 268,
+                "sha256": "b6931d27e5aeee5837f18a62838502843f46a976ee2f5738aeb05f3ad49ce5be"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-drizzle-check.log",
+                "kind": "archive",
+                "bytes": 334,
+                "sha256": "2a7df5494128514ad65b1ce899206f4bffd4f9d6cdc17f5b866b5da43103fdb3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-pgtap.log",
+                "kind": "archive",
+                "bytes": 9750,
+                "sha256": "dc76cc9829c53c43bf5f11795aecf1d7f945760d48c20b3ba806feb5eb3da976"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset-before-serial.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "e829034080b5508010ffbfd3f473614332c58b31d01ea2481dbcf9d141069eb8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "e829034080b5508010ffbfd3f473614332c58b31d01ea2481dbcf9d141069eb8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-start.log",
+                "kind": "archive",
+                "bytes": 5744,
+                "sha256": "a2c9901c4fce4097b2a7ac34b3e2b34b408c6aa3788e34d3e788b64e10110ac7"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-after.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-before.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-production-refusal.log",
+                "kind": "archive",
+                "bytes": 65,
+                "sha256": "930ce729721fed0f3a311273d80ae5924d09b49f92a48034f7a6e871958b13a1"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-reset.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "4d8fbc5487da69a8f8ea48d69ffdd471b255c915a9cc9766dcb570002c3b352a"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/dependency-audit.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "fc115800fcf17e07604c71188f58c04995c3a446635c5933abcf9a226a4dfbdb"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/format.log",
+                "kind": "archive",
+                "bytes": 193,
+                "sha256": "1fef0beb4b745d34beef0d1815132af1c0330a5946a38b5bc367f8cfbda1fe89"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/frozen-install.log",
+                "kind": "archive",
+                "bytes": 5453,
+                "sha256": "8c0dc4741d4388b807e57521d37b4d4d2f2287b73c20f6ad99a5f9414bdd2995"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/generated-drift.log",
+                "kind": "archive",
+                "bytes": 648,
+                "sha256": "62c64728830aa1dcc4567f3c808f580f790798eb73e45c68dca1dd52f71cf6a3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-parallel.log",
+                "kind": "archive",
+                "bytes": 56363,
+                "sha256": "06ff26b20533697eec469dda3123837615d0e0fd3005e1acccc182681787ebc3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 56640,
+                "sha256": "83ddadb215b878ced0d879e8400a2bdaff5ab90606ed4af6b74a62e9792be27e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/lint.log",
+                "kind": "archive",
+                "bytes": 235,
+                "sha256": "fed07468b8bcfd14ef9e229f631653eedfcdd6c0e07c60d77acdbec5275c1da1"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/migration-state-check.log",
+                "kind": "archive",
+                "bytes": 62,
+                "sha256": "97932182f1628d29c1232acbbeb33e4fb1f0e30b0f4df3445cf88b8590afa3c5"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-full.log",
+                "kind": "archive",
+                "bytes": 4297,
+                "sha256": "9ea678c2747f155ddea419fe1ef19cf73a7e0556f9ec683b9bbc7f44b0139874"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-install.log",
+                "kind": "archive",
+                "bytes": 7197,
+                "sha256": "6c7c5feac78b1fe3a7d9c240bf7eeccdb4294803993c8c8630662ad7c6787eb8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/repository-clean-after-generated.log",
+                "kind": "archive",
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/revision-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "899dd45a855618d3829f60672bc53668b8318f6f62c4c9e6375c841353f52a7d"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-docker.log",
+                "kind": "archive",
+                "bytes": 40,
+                "sha256": "5963fbdfc673998662c7017721aae175f338e9fed227d42a45a4e628827fbae3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-node.log",
+                "kind": "archive",
+                "bytes": 9,
+                "sha256": "1f2f55b6a7002be8f9992bdfa80f6a4a2b133df9201a4cbc2c35fb471256cd48"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-playwright.log",
+                "kind": "archive",
+                "bytes": 15,
+                "sha256": "47de3041a9b82754419b455f44018d3278b4e3cd6f1dc4385a871ceb13bca325"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-pnpm.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "a82028df3ca327b7e19f23fbc0121aec7763353c7dc0c816422db7f52f6365bc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-supabase.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "08e6cc4664e756f03d06c2c37be50a19af821527d5c2acef581c3e1028f10fc4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-turbo.log",
+                "kind": "archive",
+                "bytes": 7,
+                "sha256": "062bb3959d7c69ccae534cb207d0cc4cf159631cda31e4914262a240a2dd5be8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-vitest.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "6f132a755059ee9a29162e1492e87a8cd5145f766386ba1a1d46c227774584b6"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/secret-scan.log",
+                "kind": "archive",
+                "bytes": 197,
+                "sha256": "cf5fb535100e04c111baf4880649b5df736f03590068bff9d7f7ef755137c80e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-axe.log",
+                "kind": "archive",
+                "bytes": 6188,
+                "sha256": "b8fd754dd308fd1927b53cfa8028e1b52b0a52f5bbfb204a208746f23c5a7103"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-build.log",
+                "kind": "archive",
+                "bytes": 7654,
+                "sha256": "0d6dbd0ed95218e031996465ed427189d58c41f36efb8133b1ea1e12c218ee45"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/traceability.log",
+                "kind": "archive",
+                "bytes": 828,
+                "sha256": "c1a00628b917210a5c925cc8838b2c5f50071ee736fcc56dbdfded343229b82e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/tree-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "3a99d39c49ec291da4a32fc9d9c4df2ef0e1494f14f7459e2adda5cae49f3947"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/typecheck.log",
+                "kind": "archive",
+                "bytes": 3996,
+                "sha256": "fc77bc982ad0e11ca67d9d246aa7346ff839b5664528fd26e39ac559bac0f58d"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-parallel.log",
+                "kind": "archive",
+                "bytes": 27094,
+                "sha256": "08e0c99d477706e87c48d27b40b2e22fa7225c0eef71d0f6b084bb693b79d374"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 27407,
+                "sha256": "25713a353487057a271345ef02cdf587a514dec683011117bca86619722052c3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/.last-run.json",
+                "kind": "archive",
+                "bytes": 96,
+                "sha256": "bf9496e776d23e2dd23c8f44992f445fc0816ef8b37aa44f357aca9b114b8874"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+                "kind": "archive",
+                "bytes": 20089,
+                "sha256": "6451592b0e121b90fa5383b1f88687e2c7013752e4d9e5b56e8f1c167fa6638e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+                "kind": "archive",
+                "bytes": 784432,
+                "sha256": "c67c16406768b891aa3ce610f533bf472bb592b59fa7675f4648365ecabf0832"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/qualification-summary.json",
+                "kind": "archive",
+                "bytes": 64828,
+                "sha256": "b980ae6222aa9598ce72f41446ef1b87d96be0e852e6710cd98d6568ec6a9eff"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/artifact-manifest.json",
+                "kind": "archive",
+                "bytes": 6418,
+                "sha256": "380deca3dbc92991fdd3f98386903125b2dc937b4622160aa8f047704a3a32c5"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/ignored-artifacts.txt",
+                "kind": "archive",
+                "bytes": 7398721,
+                "sha256": "083a2d61e8e49829440b41cb0487a1ea58c940e6d5f175b7854bff73d70260b8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/application-build.log",
+                "kind": "archive",
+                "bytes": 7811,
+                "sha256": "1e5d9e287bf85948299a67524dbe5f2632fa62ebe4953dd94984d46c3354b2cc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/boundaries.log",
+                "kind": "archive",
+                "bytes": 268,
+                "sha256": "2a800edd5946005677e6972627ff80121fd66b1875f245637fbcf47396e9afb7"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-drizzle-check.log",
+                "kind": "archive",
+                "bytes": 334,
+                "sha256": "d10534246963ff0397a0e7581e3101c75b6f890baa5459276966c92afe432fca"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-pgtap.log",
+                "kind": "archive",
+                "bytes": 9750,
+                "sha256": "7b16ecea3c4a3d44dbfcc482e3c5fb79a9096c9f0b8c868e4c3e2485f69e0920"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset-before-serial.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "5c7ea295baf548f12a7180a3888c9048b9a0281b812d9f95d47584e4d4e33c16"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset.log",
+                "kind": "archive",
+                "bytes": 1351,
+                "sha256": "5c7ea295baf548f12a7180a3888c9048b9a0281b812d9f95d47584e4d4e33c16"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-start.log",
+                "kind": "archive",
+                "bytes": 5744,
+                "sha256": "d67b92ee6d7f2bea1f67a314333581ef6c4c0956da6728d9140c77dcc3674ffa"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-after.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-before.log",
+                "kind": "archive",
+                "bytes": 75,
+                "sha256": "73428baabc19186cf9d3e0090ab4db09f9900b11f24db897fc648789dc7bac19"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-production-refusal.log",
+                "kind": "archive",
+                "bytes": 65,
+                "sha256": "930ce729721fed0f3a311273d80ae5924d09b49f92a48034f7a6e871958b13a1"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-reset.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "4d8fbc5487da69a8f8ea48d69ffdd471b255c915a9cc9766dcb570002c3b352a"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/dependency-audit.log",
+                "kind": "archive",
+                "bytes": 189,
+                "sha256": "8905046657730214aaf2500d9a0f32e0299a6a0b970988fd395c89ab4ccad906"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/format.log",
+                "kind": "archive",
+                "bytes": 193,
+                "sha256": "f55ae89398d8b549cff0b0f24910b85598155d7229b70466a75097a44db8de88"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/frozen-install.log",
+                "kind": "archive",
+                "bytes": 3992,
+                "sha256": "7d5e7cb12c79b50b116f8f0d5b456351094542a5201a8c19939e476905d9671b"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/generated-drift.log",
+                "kind": "archive",
+                "bytes": 648,
+                "sha256": "39524912eaca894ebd8452aac12f9bdba500b689974ad606462692b49f531aac"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-parallel.log",
+                "kind": "archive",
+                "bytes": 56514,
+                "sha256": "0d800883d12d797fa561d0462d376d473f5b420c373e0c1e0a132bcb9eeedacd"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 56640,
+                "sha256": "59e62d1fbcb9f0d3931069039abeed5dbf6beb63cf04c557e494d54922962d7b"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/lint.log",
+                "kind": "archive",
+                "bytes": 1898,
+                "sha256": "e0b10f3af2f84ed846b904c6c70b91c6c9ab9dde9651edc8630c16daf7ef7503"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/migration-dry-run.log",
+                "kind": "archive",
+                "bytes": 2477,
+                "sha256": "cc1130853676aa85a4c481affa269a0c3e3f6041d5b8ee3e64c37dcdb3d9557c"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-full.log",
+                "kind": "archive",
+                "bytes": 4297,
+                "sha256": "f8698a31352e9053d1c881c5a7f0a6166a6d92bef23579ce8c28fb371abf2d3a"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-install.log",
+                "kind": "archive",
+                "bytes": 7197,
+                "sha256": "400364caea9df51297da99157538ac765123d2fe9ff9fc1f1d58b43f83113f9f"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/repository-clean-after-generated.log",
+                "kind": "archive",
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/revision-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "9f149f95efe8380a738fefe23db8cfee270e9e8db9203e7e5a120880d37d8675"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-docker.log",
+                "kind": "archive",
+                "bytes": 40,
+                "sha256": "5963fbdfc673998662c7017721aae175f338e9fed227d42a45a4e628827fbae3"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-node.log",
+                "kind": "archive",
+                "bytes": 9,
+                "sha256": "1f2f55b6a7002be8f9992bdfa80f6a4a2b133df9201a4cbc2c35fb471256cd48"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-playwright.log",
+                "kind": "archive",
+                "bytes": 15,
+                "sha256": "47de3041a9b82754419b455f44018d3278b4e3cd6f1dc4385a871ceb13bca325"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-pnpm.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "a82028df3ca327b7e19f23fbc0121aec7763353c7dc0c816422db7f52f6365bc"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-supabase.log",
+                "kind": "archive",
+                "bytes": 8,
+                "sha256": "08e6cc4664e756f03d06c2c37be50a19af821527d5c2acef581c3e1028f10fc4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-turbo.log",
+                "kind": "archive",
+                "bytes": 7,
+                "sha256": "062bb3959d7c69ccae534cb207d0cc4cf159631cda31e4914262a240a2dd5be8"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-vitest.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "6f132a755059ee9a29162e1492e87a8cd5145f766386ba1a1d46c227774584b6"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/secret-scan.log",
+                "kind": "archive",
+                "bytes": 197,
+                "sha256": "f2ca39c11a0b87088253e1b40e09508591270c7fae70847b652fb2d14addeea4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-axe.log",
+                "kind": "archive",
+                "bytes": 6188,
+                "sha256": "821b500810be83e6058d598be4d0c3dd05a16d5990f2657e3d1ae2f03058008a"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-build.log",
+                "kind": "archive",
+                "bytes": 7654,
+                "sha256": "4b131702e4b2b8aef79d7476fae1b08228c14671dfbaf4ea38ceaa7f8f2c92da"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/traceability.log",
+                "kind": "archive",
+                "bytes": 828,
+                "sha256": "1bb6f7c7360423b7ad4d57bc8c4336b32a69c7390079d7c6bdb4386d1b36c760"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/tree-unchanged-after-generated.log",
+                "kind": "archive",
+                "bytes": 41,
+                "sha256": "bd8e7a5a2c86d570cf265fb8300fface74196bdaf30a2c5e58ebaeed2f3d7ae4"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/typecheck.log",
+                "kind": "archive",
+                "bytes": 3996,
+                "sha256": "09bc47362c35ae2624bae1edfe544b2d59a8b0ecef1cdb3e153d2f6ad2174be9"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-parallel.log",
+                "kind": "archive",
+                "bytes": 27220,
+                "sha256": "89dc9885b97e20416d7896f8b651caa112b87daddc8d711bbae585dfd4540b8d"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-serial-confirmation.log",
+                "kind": "archive",
+                "bytes": 27407,
+                "sha256": "0182b5ed374e37055b66a4f6c536c95951fce69c7b528dcece8c4984c60f4a2b"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/.last-run.json",
+                "kind": "archive",
+                "bytes": 96,
+                "sha256": "bf9496e776d23e2dd23c8f44992f445fc0816ef8b37aa44f357aca9b114b8874"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+                "kind": "archive",
+                "bytes": 20089,
+                "sha256": "6451592b0e121b90fa5383b1f88687e2c7013752e4d9e5b56e8f1c167fa6638e"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+                "kind": "archive",
+                "bytes": 738045,
+                "sha256": "40fc89496735fe95e725fa41528264d28ce04b1ba964bbace3db155e2a7cda65"
+              },
+              {
+                "path": ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/qualification-summary.json",
+                "kind": "archive",
+                "bytes": 66926,
+                "sha256": "5351fd9ea70f0f587d08e8d00d63f9116e298a4cdd41354cdea159fd06d743f3"
               }
             ]
           }
         },
-        "rejectedIgnoredArtifactCount": 74694,
-        "ignoredArtifactListingSha256": "ca4412badce22e74471f2a0b56d1ef609164052291580eeb96e370e6a2c6e211",
-        "rejectedIgnoredArtifactListingSha256": "e7d6ea06887bf248d341ac6462e06abdf658107319517d0d0c12cde2afad0faa",
+        "rejectedIgnoredArtifactCount": 78930,
+        "ignoredArtifactListingSha256": "167574fcda1ff8d22534dc3f7a5e9e95e1b987c738692953e137e6db6fff047a",
+        "rejectedIgnoredArtifactListingSha256": "c6553cb557db3c65db96c6c09e7887cc7c0dfe578d4c4541a981c960c5670e46",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "tree": "1294b5e2ba1395cb08cde5b900da6d7b765fc22e",
+      "parents": ["ba6a46465fffd38127032d0e9b6545191a4296e6"],
+      "subject": "docs(design): record the brand type, the ramp, and the recaptured baselines"
+    },
+    {
+      "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
+      "tree": "bbc22e8327b12a7d276a77513cb602879aa78caf",
+      "parents": ["04427171c79d2614e0b7758653ad89d6cce96bd8"],
+      "subject": "refactor(web): put the feature stylesheets back on the token layer"
+    },
+    {
+      "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
+      "tree": "8471ed11c0f2e5bc4d8effaf349f26b98d9ecc7a",
+      "parents": ["be16f03da4730835ade2ec37663b1ce58cab7b94"],
+      "subject": "feat(ui): set the wordmark in the brand face and address the marks by surface"
+    },
+    {
+      "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
+      "tree": "0071ebdb8d919bb469dfcfd242885ff9179404e6",
+      "parents": ["488bb5407b7069f542b9ca9d88330bc87d8ec4c8"],
+      "subject": "feat(ui): move the token layer onto Filecoin Blue and one neutral family"
+    },
+    {
+      "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
+      "tree": "5b66d0d3e010c854bf8e613d2757e0069e4c9d76",
+      "parents": ["b460396f162b0167e3589bcb6568932f003864b5"],
+      "subject": "feat(brand): serve the Fil One typefaces from the application"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "tree": "8943760f48cf942b0cafaf9ddb87f311c20629a0",
+      "parents": ["666188aacb5c1852be49a5d294765a645f262d4a"],
+      "subject": "docs: close P0-40 and the resolved P1 findings"
+    },
+    {
+      "commit": "666188aacb5c1852be49a5d294765a645f262d4a",
+      "tree": "eb5bfb3f2f8362198eae5dc8b1748bd4ed7dfa74",
+      "parents": ["e8d49161574d33a8a2b47003d5767f87c8a7b292"],
+      "subject": "fix(ui): let Escape close the command palette, and refresh the baselines"
+    },
+    {
+      "commit": "e8d49161574d33a8a2b47003d5767f87c8a7b292",
+      "tree": "6262268000f00d722864d9dfc0830dff2739a902",
+      "parents": ["07e901b7064470f690e0639aa6f04b5c896e187f"],
+      "subject": "feat(internal): give operators the recovery, replay and pricing actions"
+    },
+    {
+      "commit": "07e901b7064470f690e0639aa6f04b5c896e187f",
+      "tree": "64dc40aec8481030bff8858fed81b74edc2dfe55",
+      "parents": ["b344856e8d2fca6d311c8a9057aea206739c0736"],
+      "subject": "feat(finance): track partial payments and re-check exemption expiry"
+    },
+    {
+      "commit": "b344856e8d2fca6d311c8a9057aea206739c0736",
+      "tree": "0764cb770f0f65dd03a91bd6020449ac7d0a390b",
+      "parents": ["1cdf6cc7476d9ba4ba073b1950315db9a4a04aed"],
+      "subject": "feat(web): rewrite the customer-facing copy and converge the UI patterns"
+    },
+    {
+      "commit": "1cdf6cc7476d9ba4ba073b1950315db9a4a04aed",
+      "tree": "376a40a41c41fce167f1c117042c2417f4c7fcbc",
+      "parents": ["7d5850a080035ba02f2c0a5b28f04898ec3e4b74"],
+      "subject": "feat(domain): explain how an invoice amount was reached"
+    },
+    {
+      "commit": "7d5850a080035ba02f2c0a5b28f04898ec3e4b74",
+      "tree": "f842e36987207c7f1cec13dfeeb2ebb1c8c8ff02",
+      "parents": ["3280afff502ddf64b7843daec9ca0a75d4c68cda"],
+      "subject": "feat(experience): publish authoritative events for six portal aggregates"
+    },
+    {
+      "commit": "3280afff502ddf64b7843daec9ca0a75d4c68cda",
+      "tree": "29a690e2088dc3a3d947448d0855eb140dcf5512",
+      "parents": ["3db0b4c2bada190bb4daebe771443ba31abce062"],
+      "subject": "fix(test): correct the stale lifecycle task registry count"
+    },
+    {
+      "commit": "3db0b4c2bada190bb4daebe771443ba31abce062",
+      "tree": "9890b390e281ba4cf82b063e245d07984c46d230",
+      "parents": ["0af120a5a869b933098173c61c7b2d0c247567d0"],
+      "subject": "fix(telemetry): emit canonical denial codes so the auth alert can fire"
+    },
+    {
+      "commit": "0af120a5a869b933098173c61c7b2d0c247567d0",
+      "tree": "20209b356dae6558385679b73c013764b56e8e9b",
+      "parents": ["933ce1f78586e6e4d66b59156eab2c57e18699b8"],
+      "subject": "fix(runtime): bind injected fetch and instrument the telemetry receiver"
+    },
+    {
+      "commit": "933ce1f78586e6e4d66b59156eab2c57e18699b8",
+      "tree": "f8799c95e21052a309ed242b423abdc618d63e3a",
+      "parents": ["a70d1a5da0ddad6c2c6772934974facb0d41a307"],
+      "subject": "fix(demo): tidy the demo experience repository"
+    },
+    {
+      "commit": "a70d1a5da0ddad6c2c6772934974facb0d41a307",
+      "tree": "5f1658fe5847ed48230061d343a6af483bc6b1d5",
+      "parents": ["bf06a43f511bf0e9c7ee0e00420c3b865a91724b"],
+      "subject": "fix(demo): exempt the demo form posts from the middleware"
+    },
+    {
+      "commit": "bf06a43f511bf0e9c7ee0e00420c3b865a91724b",
+      "tree": "a1b88f9e3f01943dd2406cb3d5e990180d70d741",
+      "parents": ["f12292ac51ac0ea9900224257e0b7df36ceeebb8"],
+      "subject": "fix(demo): parse the access form from the raw body"
+    },
+    {
+      "commit": "f12292ac51ac0ea9900224257e0b7df36ceeebb8",
+      "tree": "8d5a5057194e7be01c6164572e5dc3cc0bf30400",
+      "parents": ["9add1b1c7314d86a8d5871971ada725d76d7fbe9"],
+      "subject": "docs: reclassify cost-of-operation work from P0 to P1"
+    },
+    {
+      "commit": "9add1b1c7314d86a8d5871971ada725d76d7fbe9",
+      "tree": "0d654246c54c095f9fca45ffe29f7cc2f3e34533",
+      "parents": ["de878d536729c2c90b1a96f872977d7145fa8a49"],
+      "subject": "docs: add P0-47..P0-50 for recurring engineering cost"
+    },
+    {
+      "commit": "de878d536729c2c90b1a96f872977d7145fa8a49",
+      "tree": "fd05c86fb290c964d059bf791476cfd23efaa841",
+      "parents": ["2d80e591f6dca4c493e78fc80e0a139a064a1639"],
+      "subject": "docs: record three billing and tax edge-case findings in P1"
+    },
+    {
+      "commit": "2d80e591f6dca4c493e78fc80e0a139a064a1639",
+      "tree": "a04f451f37a17af082c691314af678465b4e9fa7",
+      "parents": ["c5308f3065f4788013aa0547f7e2206e67123a27"],
+      "subject": "feat(demo): self-contained demo deployment on fixtures"
+    },
+    {
+      "commit": "c5308f3065f4788013aa0547f7e2206e67123a27",
+      "tree": "2a434c9e6ea16a214f9d96961359361fc139938c",
+      "parents": ["39e0257ab3e7fd7a20c6ad04a7b0fda95d9a1fac"],
+      "subject": "build: add Netlify build configuration"
+    },
+    {
+      "commit": "39e0257ab3e7fd7a20c6ad04a7b0fda95d9a1fac",
+      "tree": "2492c9d5d5a3207461004b1f10a6a8eb350e186a",
+      "parents": ["2d842b25277dc9e36e6a68ed3e4d4b3565642aa7"],
+      "subject": "chore: record the notification delivery artifact and a cold-compile timeout"
+    },
+    {
+      "commit": "2d842b25277dc9e36e6a68ed3e4d4b3565642aa7",
+      "tree": "823ad04ce2f9885849b754a4a7c75e14dcc1302a",
+      "parents": ["b17917a5aa254734d226f7c89a9fb8c2e532f0c4"],
+      "subject": "feat: reach stranded commerce actions, close the metering loop, correct the record"
+    },
+    {
+      "commit": "b17917a5aa254734d226f7c89a9fb8c2e532f0c4",
+      "tree": "1c96b7aed871922665813907ea7ebca1a457d436",
+      "parents": ["aeb697dca73dc60d97f3f89c80ec89038e982eaf"],
+      "subject": "fix(ui): raise term and capacity fills to the non-text contrast minimum"
+    },
+    {
+      "commit": "aeb697dca73dc60d97f3f89c80ec89038e982eaf",
+      "tree": "830d103a0b953e901e29b00dcc0ad75359b553f4",
+      "parents": ["7ced36bfd773a9e87363b0491a1dae37f34cfdbd"],
+      "subject": "feat: give the portal real data, close P0s, adopt the Fil One brand"
+    },
+    {
+      "commit": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd",
+      "tree": "8352a2a9a8e4b6de047a7d3cf09f11d18fbafe34",
+      "parents": ["0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e"],
+      "subject": "docs: recapture baselines for the qualified tree"
+    },
     {
       "commit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
       "tree": "97f52f485d43d92b7501a93676c124ab4ffe19df",
@@ -12999,7 +14068,7 @@
       "subject": "Notes added by 'git notes add'"
     }
   ],
-  "reachableCommitCount": 86,
+  "reachableCommitCount": 114,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -13079,397 +14148,337 @@
   ],
   "mergeBases": [
     {
-      "left": "commerce/core-finance",
-      "right": "commerce/experience-docs",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "commerce/foundation",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "commerce/integration",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "commerce/lifecycle-platform",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/core-finance",
+      "left": "brand/fil-one-visual-conformance",
       "right": "main",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "rc/experience-release",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "rc/runtime-operations",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "ux/customer-partner",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "ux/design-shell",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "ux/integration",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/core-finance",
-      "right": "ux/internal-ops",
-      "mergeBase": "12c590d5d386066fc120f90792b2f3c038c294a8"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "commerce/foundation",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "commerce/integration",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "commerce/lifecycle-platform",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "main",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "rc/experience-release",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "rc/runtime-operations",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "ux/customer-partner",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "ux/design-shell",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "ux/integration",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/experience-docs",
-      "right": "ux/internal-ops",
-      "mergeBase": "de5f761ec82ccce4966b82825a3de9b356e953b7"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "commerce/integration",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "commerce/lifecycle-platform",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "main",
-      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "rc/experience-release",
-      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "rc/runtime-operations",
-      "mergeBase": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "ux/customer-partner",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "ux/design-shell",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "ux/integration",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/foundation",
-      "right": "ux/internal-ops",
-      "mergeBase": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "commerce/lifecycle-platform",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "main",
-      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "rc/experience-release",
-      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "rc/runtime-operations",
-      "mergeBase": "92d10d3b8a12728804b70215799f9929e880c996"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "ux/customer-partner",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "ux/design-shell",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "ux/integration",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "commerce/integration",
-      "right": "ux/internal-ops",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "main",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "rc/experience-release",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "rc/runtime-operations",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "ux/customer-partner",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "ux/design-shell",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "ux/integration",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "commerce/lifecycle-platform",
-      "right": "ux/internal-ops",
-      "mergeBase": "abbddae5d8f7945830e53a9526f47d71f4e43c23"
-    },
-    {
-      "left": "main",
-      "right": "rc/commercial-integrity",
-      "mergeBase": "cc23bce784ee60a27ad3e34fd245136f37394a2d"
-    },
-    {
-      "left": "main",
-      "right": "rc/experience-release",
-      "mergeBase": "b13a1ec6816b9a547aaa20bf8806cd3996c840be"
-    },
-    {
-      "left": "main",
-      "right": "rc/runtime-operations",
-      "mergeBase": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5"
-    },
-    {
-      "left": "main",
-      "right": "ux/customer-partner",
-      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "left": "main",
-      "right": "ux/design-shell",
-      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "left": "main",
-      "right": "ux/integration",
-      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-    },
-    {
-      "left": "main",
-      "right": "ux/internal-ops",
-      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "rc/experience-release",
-      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "rc/runtime-operations",
-      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "ux/customer-partner",
-      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "ux/design-shell",
-      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "ux/integration",
-      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-    },
-    {
-      "left": "rc/commercial-integrity",
-      "right": "ux/internal-ops",
-      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
-    },
-    {
-      "left": "rc/experience-release",
-      "right": "rc/runtime-operations",
-      "mergeBase": "27fb33bab754b001acf26134d988daa10d177390"
-    },
-    {
-      "left": "rc/experience-release",
-      "right": "ux/customer-partner",
-      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "left": "rc/experience-release",
-      "right": "ux/design-shell",
-      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "left": "rc/experience-release",
-      "right": "ux/integration",
-      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-    },
-    {
-      "left": "rc/experience-release",
-      "right": "ux/internal-ops",
-      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
-    },
-    {
-      "left": "rc/runtime-operations",
-      "right": "ux/customer-partner",
-      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "left": "rc/runtime-operations",
-      "right": "ux/design-shell",
-      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "left": "rc/runtime-operations",
-      "right": "ux/integration",
-      "mergeBase": "c2f1e8c5ed0704956a004db6de518316bfd0f44f"
-    },
-    {
-      "left": "rc/runtime-operations",
-      "right": "ux/internal-ops",
-      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
-    },
-    {
-      "left": "ux/customer-partner",
-      "right": "ux/design-shell",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "ux/customer-partner",
-      "right": "ux/integration",
-      "mergeBase": "041e65de2864e5e24a131c2c7ba88e6cd13618b5"
-    },
-    {
-      "left": "ux/customer-partner",
-      "right": "ux/internal-ops",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "ux/design-shell",
-      "right": "ux/integration",
-      "mergeBase": "d8589e816bbd62233bd5fcbce345afec929252c6"
-    },
-    {
-      "left": "ux/design-shell",
-      "right": "ux/internal-ops",
-      "mergeBase": "821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "left": "ux/integration",
-      "right": "ux/internal-ops",
-      "mergeBase": "30ad76a8bb2118b2605358da1694d3aa54464eef"
+      "mergeBase": "b460396f162b0167e3589bcb6568932f003864b5"
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:55:01-04:00}",
+      "subject": "commit: docs(design): record the brand type, the ramp, and the recaptured baselines"
+    },
+    {
+      "commit": "35214990b8d0bf27d7c506fc849481eff38c12dd",
+      "selector": "HEAD@{2026-08-02T08:55:01-04:00}",
+      "subject": "commit: docs(design): record the brand type, the ramp, and the recaptured baselines"
+    },
+    {
+      "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:49:52-04:00}",
+      "subject": "commit: refactor(web): put the feature stylesheets back on the token layer"
+    },
+    {
+      "commit": "ba6a46465fffd38127032d0e9b6545191a4296e6",
+      "selector": "HEAD@{2026-08-02T08:49:52-04:00}",
+      "subject": "commit: refactor(web): put the feature stylesheets back on the token layer"
+    },
+    {
+      "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:48:03-04:00}",
+      "subject": "commit: feat(ui): set the wordmark in the brand face and address the marks by surface"
+    },
+    {
+      "commit": "04427171c79d2614e0b7758653ad89d6cce96bd8",
+      "selector": "HEAD@{2026-08-02T08:48:03-04:00}",
+      "subject": "commit: feat(ui): set the wordmark in the brand face and address the marks by surface"
+    },
+    {
+      "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:46:13-04:00}",
+      "subject": "commit: feat(ui): move the token layer onto Filecoin Blue and one neutral family"
+    },
+    {
+      "commit": "be16f03da4730835ade2ec37663b1ce58cab7b94",
+      "selector": "HEAD@{2026-08-02T08:46:13-04:00}",
+      "subject": "commit: feat(ui): move the token layer onto Filecoin Blue and one neutral family"
+    },
+    {
+      "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:44:13-04:00}",
+      "subject": "commit: feat(brand): serve the Fil One typefaces from the application"
+    },
+    {
+      "commit": "488bb5407b7069f542b9ca9d88330bc87d8ec4c8",
+      "selector": "HEAD@{2026-08-02T08:44:13-04:00}",
+      "subject": "commit: feat(brand): serve the Fil One typefaces from the application"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "refs/heads/brand/fil-one-visual-conformance@{2026-08-02T08:12:15-04:00}",
+      "subject": "branch: Created from HEAD"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "HEAD@{2026-08-02T08:12:15-04:00}",
+      "subject": "checkout: moving from main to brand/fil-one-visual-conformance"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "refs/remotes/origin/main@{2026-08-02T02:23:13-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "refs/heads/main@{2026-08-02T02:20:48-04:00}",
+      "subject": "commit: docs: close P0-40 and the resolved P1 findings"
+    },
+    {
+      "commit": "b460396f162b0167e3589bcb6568932f003864b5",
+      "selector": "HEAD@{2026-08-02T02:20:48-04:00}",
+      "subject": "commit: docs: close P0-40 and the resolved P1 findings"
+    },
+    {
+      "commit": "666188aacb5c1852be49a5d294765a645f262d4a",
+      "selector": "refs/heads/main@{2026-08-02T02:15:42-04:00}",
+      "subject": "commit: fix(ui): let Escape close the command palette, and refresh the baselines"
+    },
+    {
+      "commit": "666188aacb5c1852be49a5d294765a645f262d4a",
+      "selector": "HEAD@{2026-08-02T02:15:42-04:00}",
+      "subject": "commit: fix(ui): let Escape close the command palette, and refresh the baselines"
+    },
+    {
+      "commit": "e8d49161574d33a8a2b47003d5767f87c8a7b292",
+      "selector": "refs/heads/main@{2026-08-02T01:51:46-04:00}",
+      "subject": "commit: feat(internal): give operators the recovery, replay and pricing actions"
+    },
+    {
+      "commit": "e8d49161574d33a8a2b47003d5767f87c8a7b292",
+      "selector": "HEAD@{2026-08-02T01:51:46-04:00}",
+      "subject": "commit: feat(internal): give operators the recovery, replay and pricing actions"
+    },
+    {
+      "commit": "07e901b7064470f690e0639aa6f04b5c896e187f",
+      "selector": "refs/heads/main@{2026-08-02T01:41:43-04:00}",
+      "subject": "commit: feat(finance): track partial payments and re-check exemption expiry"
+    },
+    {
+      "commit": "07e901b7064470f690e0639aa6f04b5c896e187f",
+      "selector": "HEAD@{2026-08-02T01:41:43-04:00}",
+      "subject": "commit: feat(finance): track partial payments and re-check exemption expiry"
+    },
+    {
+      "commit": "b344856e8d2fca6d311c8a9057aea206739c0736",
+      "selector": "refs/heads/main@{2026-08-02T01:31:04-04:00}",
+      "subject": "commit: feat(web): rewrite the customer-facing copy and converge the UI patterns"
+    },
+    {
+      "commit": "b344856e8d2fca6d311c8a9057aea206739c0736",
+      "selector": "HEAD@{2026-08-02T01:31:04-04:00}",
+      "subject": "commit: feat(web): rewrite the customer-facing copy and converge the UI patterns"
+    },
+    {
+      "commit": "1cdf6cc7476d9ba4ba073b1950315db9a4a04aed",
+      "selector": "refs/heads/main@{2026-08-02T00:34:42-04:00}",
+      "subject": "commit: feat(domain): explain how an invoice amount was reached"
+    },
+    {
+      "commit": "1cdf6cc7476d9ba4ba073b1950315db9a4a04aed",
+      "selector": "HEAD@{2026-08-02T00:34:42-04:00}",
+      "subject": "commit: feat(domain): explain how an invoice amount was reached"
+    },
+    {
+      "commit": "7d5850a080035ba02f2c0a5b28f04898ec3e4b74",
+      "selector": "refs/heads/main@{2026-08-02T00:30:15-04:00}",
+      "subject": "commit: feat(experience): publish authoritative events for six portal aggregates"
+    },
+    {
+      "commit": "7d5850a080035ba02f2c0a5b28f04898ec3e4b74",
+      "selector": "HEAD@{2026-08-02T00:30:15-04:00}",
+      "subject": "commit: feat(experience): publish authoritative events for six portal aggregates"
+    },
+    {
+      "commit": "3280afff502ddf64b7843daec9ca0a75d4c68cda",
+      "selector": "refs/heads/main@{2026-08-02T00:20:53-04:00}",
+      "subject": "commit: fix(test): correct the stale lifecycle task registry count"
+    },
+    {
+      "commit": "3280afff502ddf64b7843daec9ca0a75d4c68cda",
+      "selector": "HEAD@{2026-08-02T00:20:53-04:00}",
+      "subject": "commit: fix(test): correct the stale lifecycle task registry count"
+    },
+    {
+      "commit": "3db0b4c2bada190bb4daebe771443ba31abce062",
+      "selector": "refs/heads/main@{2026-08-02T00:19:05-04:00}",
+      "subject": "commit: fix(telemetry): emit canonical denial codes so the auth alert can fire"
+    },
+    {
+      "commit": "3db0b4c2bada190bb4daebe771443ba31abce062",
+      "selector": "HEAD@{2026-08-02T00:19:05-04:00}",
+      "subject": "commit: fix(telemetry): emit canonical denial codes so the auth alert can fire"
+    },
+    {
+      "commit": "0af120a5a869b933098173c61c7b2d0c247567d0",
+      "selector": "refs/heads/main@{2026-08-02T00:18:25-04:00}",
+      "subject": "commit: fix(runtime): bind injected fetch and instrument the telemetry receiver"
+    },
+    {
+      "commit": "0af120a5a869b933098173c61c7b2d0c247567d0",
+      "selector": "HEAD@{2026-08-02T00:18:25-04:00}",
+      "subject": "commit: fix(runtime): bind injected fetch and instrument the telemetry receiver"
+    },
+    {
+      "commit": "933ce1f78586e6e4d66b59156eab2c57e18699b8",
+      "selector": "refs/remotes/origin/main@{2026-08-01T22:35:27-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "933ce1f78586e6e4d66b59156eab2c57e18699b8",
+      "selector": "refs/heads/main@{2026-08-01T22:34:23-04:00}",
+      "subject": "commit: fix(demo): tidy the demo experience repository"
+    },
+    {
+      "commit": "933ce1f78586e6e4d66b59156eab2c57e18699b8",
+      "selector": "HEAD@{2026-08-01T22:34:23-04:00}",
+      "subject": "commit: fix(demo): tidy the demo experience repository"
+    },
+    {
+      "commit": "a70d1a5da0ddad6c2c6772934974facb0d41a307",
+      "selector": "refs/remotes/origin/main@{2026-08-01T22:30:10-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "a70d1a5da0ddad6c2c6772934974facb0d41a307",
+      "selector": "refs/heads/main@{2026-08-01T22:28:58-04:00}",
+      "subject": "commit: fix(demo): exempt the demo form posts from the middleware"
+    },
+    {
+      "commit": "a70d1a5da0ddad6c2c6772934974facb0d41a307",
+      "selector": "HEAD@{2026-08-01T22:28:58-04:00}",
+      "subject": "commit: fix(demo): exempt the demo form posts from the middleware"
+    },
+    {
+      "commit": "bf06a43f511bf0e9c7ee0e00420c3b865a91724b",
+      "selector": "refs/remotes/origin/main@{2026-08-01T22:23:52-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "bf06a43f511bf0e9c7ee0e00420c3b865a91724b",
+      "selector": "refs/heads/main@{2026-08-01T22:23:41-04:00}",
+      "subject": "pull --rebase origin main (finish): refs/heads/main onto f12292ac51ac0ea9900224257e0b7df36ceeebb8"
+    },
+    {
+      "commit": "bf06a43f511bf0e9c7ee0e00420c3b865a91724b",
+      "selector": "HEAD@{2026-08-01T22:23:41-04:00}",
+      "subject": "pull --rebase origin main (finish): returning to refs/heads/main"
+    },
+    {
+      "commit": "bf06a43f511bf0e9c7ee0e00420c3b865a91724b",
+      "selector": "HEAD@{2026-08-01T22:23:41-04:00}",
+      "subject": "pull --rebase origin main (pick): fix(demo): parse the access form from the raw body"
+    },
+    {
+      "commit": "f12292ac51ac0ea9900224257e0b7df36ceeebb8",
+      "selector": "HEAD@{2026-08-01T22:23:41-04:00}",
+      "subject": "pull --rebase origin main (start): checkout f12292ac51ac0ea9900224257e0b7df36ceeebb8"
+    },
+    {
+      "commit": "f12292ac51ac0ea9900224257e0b7df36ceeebb8",
+      "selector": "refs/remotes/origin/HEAD@{2026-08-01T22:23:32-04:00}",
+      "subject": "fetch"
+    },
+    {
+      "commit": "f12292ac51ac0ea9900224257e0b7df36ceeebb8",
+      "selector": "refs/remotes/origin/main@{2026-08-01T22:23:32-04:00}",
+      "subject": "fetch origin: fast-forward"
+    },
+    {
+      "commit": "0d72bc9eac572255ab5b5d46bed9ef19bcb817c4",
+      "selector": "refs/heads/main@{2026-08-01T22:21:41-04:00}",
+      "subject": "commit: fix(demo): parse the access form from the raw body"
+    },
+    {
+      "commit": "0d72bc9eac572255ab5b5d46bed9ef19bcb817c4",
+      "selector": "HEAD@{2026-08-01T22:21:41-04:00}",
+      "subject": "commit: fix(demo): parse the access form from the raw body"
+    },
+    {
+      "commit": "2d80e591f6dca4c493e78fc80e0a139a064a1639",
+      "selector": "refs/remotes/origin/main@{2026-08-01T22:17:09-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "2d80e591f6dca4c493e78fc80e0a139a064a1639",
+      "selector": "refs/heads/main@{2026-08-01T22:15:52-04:00}",
+      "subject": "commit: feat(demo): self-contained demo deployment on fixtures"
+    },
+    {
+      "commit": "2d80e591f6dca4c493e78fc80e0a139a064a1639",
+      "selector": "HEAD@{2026-08-01T22:15:52-04:00}",
+      "subject": "commit: feat(demo): self-contained demo deployment on fixtures"
+    },
+    {
+      "commit": "c5308f3065f4788013aa0547f7e2206e67123a27",
+      "selector": "refs/remotes/origin/main@{2026-08-01T21:42:51-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "c5308f3065f4788013aa0547f7e2206e67123a27",
+      "selector": "refs/heads/main@{2026-08-01T21:41:39-04:00}",
+      "subject": "commit: build: add Netlify build configuration"
+    },
+    {
+      "commit": "c5308f3065f4788013aa0547f7e2206e67123a27",
+      "selector": "HEAD@{2026-08-01T21:41:39-04:00}",
+      "subject": "commit: build: add Netlify build configuration"
+    },
+    {
+      "commit": "39e0257ab3e7fd7a20c6ad04a7b0fda95d9a1fac",
+      "selector": "refs/remotes/origin/main@{2026-08-01T21:39:25-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "39e0257ab3e7fd7a20c6ad04a7b0fda95d9a1fac",
+      "selector": "refs/heads/main@{2026-08-01T21:33:53-04:00}",
+      "subject": "commit: chore: record the notification delivery artifact and a cold-compile timeout"
+    },
+    {
+      "commit": "39e0257ab3e7fd7a20c6ad04a7b0fda95d9a1fac",
+      "selector": "HEAD@{2026-08-01T21:33:53-04:00}",
+      "subject": "commit: chore: record the notification delivery artifact and a cold-compile timeout"
+    },
+    {
+      "commit": "2d842b25277dc9e36e6a68ed3e4d4b3565642aa7",
+      "selector": "refs/heads/main@{2026-08-01T21:28:40-04:00}",
+      "subject": "commit: feat: reach stranded commerce actions, close the metering loop, correct the record"
+    },
+    {
+      "commit": "2d842b25277dc9e36e6a68ed3e4d4b3565642aa7",
+      "selector": "HEAD@{2026-08-01T21:28:40-04:00}",
+      "subject": "commit: feat: reach stranded commerce actions, close the metering loop, correct the record"
+    },
+    {
+      "commit": "b17917a5aa254734d226f7c89a9fb8c2e532f0c4",
+      "selector": "refs/heads/main@{2026-08-01T19:50:45-04:00}",
+      "subject": "commit: fix(ui): raise term and capacity fills to the non-text contrast minimum"
+    },
+    {
+      "commit": "b17917a5aa254734d226f7c89a9fb8c2e532f0c4",
+      "selector": "HEAD@{2026-08-01T19:50:45-04:00}",
+      "subject": "commit: fix(ui): raise term and capacity fills to the non-text contrast minimum"
+    },
+    {
+      "commit": "aeb697dca73dc60d97f3f89c80ec89038e982eaf",
+      "selector": "refs/heads/main@{2026-08-01T19:44:11-04:00}",
+      "subject": "commit: feat: give the portal real data, close P0s, adopt the Fil One brand"
+    },
+    {
+      "commit": "aeb697dca73dc60d97f3f89c80ec89038e982eaf",
+      "selector": "HEAD@{2026-08-01T19:44:11-04:00}",
+      "subject": "commit: feat: give the portal real data, close P0s, adopt the Fil One brand"
+    },
+    {
+      "commit": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd",
+      "selector": "refs/heads/main@{2026-08-01T19:00:28-04:00}",
+      "subject": "commit: docs: recapture baselines for the qualified tree"
+    },
+    {
+      "commit": "7ced36bfd773a9e87363b0491a1dae37f34cfdbd",
+      "selector": "HEAD@{2026-08-01T19:00:28-04:00}",
+      "subject": "commit: docs: recapture baselines for the qualified tree"
+    },
     {
       "commit": "0caa3b7a3d2ba5c05842fffe9b7d1e42011edc4e",
       "selector": "refs/heads/main@{2026-08-01T18:59:05-04:00}",
@@ -13911,121 +14920,6 @@
       "subject": "commit (merge): merge: integrate commercial integrity RC lane"
     },
     {
-      "commit": "b13a1ec6816b9a547aaa20bf8806cd3996c840be",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:59:53-04:00}",
-      "subject": "commit: test(web): bound release browser concurrency"
-    },
-    {
-      "commit": "7ebae9ff01351671a34a972b8ad6f3440e1eda6c",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:47:26-04:00}",
-      "subject": "commit: test(release): normalize Next build identity"
-    },
-    {
-      "commit": "80ee2aaa0709596cc5f85aaca5d03edad1463628",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:34:27-04:00}",
-      "subject": "commit: test(release): compare semantic shard artifacts"
-    },
-    {
-      "commit": "3572eb2ff7b575cc5a8d8d024c406e921c307d1c",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:14:40-04:00}",
-      "subject": "commit: fix(test): rotate proof database authorization secret"
-    },
-    {
-      "commit": "637f906186b574886e26080356219582c764bd9e",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:10:16-04:00}",
-      "subject": "commit: fix(ci): sign proof authorization context"
-    },
-    {
-      "commit": "8cfd5b1bb26687b6503daa568fe3e8caa91007bb",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:08:01-04:00}",
-      "subject": "revert: Revert \"fix(ci): isolate database test fixtures from demo seed\""
-    },
-    {
-      "commit": "cfb4c3535a497cda20838661916726a8d83e77f6",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:06:03-04:00}",
-      "subject": "commit: fix(ci): isolate database test fixtures from demo seed"
-    },
-    {
-      "commit": "57b496171ecf758eea1ca3962734471fca587032",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T02:03:34-04:00}",
-      "subject": "commit: fix(ci): use Docker-shared database scratch paths"
-    },
-    {
-      "commit": "cc23bce784ee60a27ad3e34fd245136f37394a2d",
-      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T02:01:24-04:00}",
-      "subject": "commit: docs: record commercial integrity handoff"
-    },
-    {
-      "commit": "ecf5574c5f496475f57ff190f79a2e03df323892",
-      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T01:58:57-04:00}",
-      "subject": "commit: fix: enforce commercial integrity boundaries"
-    },
-    {
-      "commit": "2d1511912c5f1be17e4e42091bfca73d1e921632",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:58:21-04:00}",
-      "subject": "commit: fix(ci): create isolated Supabase secret directory"
-    },
-    {
-      "commit": "9ae768cb138940efaf1034d463aef1e43d0294e1",
-      "selector": "refs/heads/rc/commercial-integrity@{2026-08-01T01:56:42-04:00}",
-      "subject": "commit: contracts: add collection case audit aggregate"
-    },
-    {
-      "commit": "de8b6b719d43004d2ef8e2c40951fcfb40f31903",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:53:19-04:00}",
-      "subject": "commit: fix(experience): harden projection release gate"
-    },
-    {
-      "commit": "38ab8bdffe4aa32499b05c195e90cfb51d731eea",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:11:43-04:00}",
-      "subject": "commit: fix(ci): run schema checks with database shard"
-    },
-    {
-      "commit": "2d62c15811dd74e983285af2da17d5be6d0fa4cc",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:10:00-04:00}",
-      "subject": "commit: fix(ci): preserve canonical typed-route output"
-    },
-    {
-      "commit": "33645b076b98bbe97d505e49696b12c5b7c08396",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T01:03:55-04:00}",
-      "subject": "commit: fix(ci): ignore isolated Next build outputs"
-    },
-    {
-      "commit": "302bd59742d3c83d55bab7db05c1eded3c44da33",
-      "selector": "refs/heads/rc/experience-release@{2026-08-01T00:58:03-04:00}",
-      "subject": "commit: feat(experience): harden release candidate experience"
-    },
-    {
-      "commit": "0c91acfa2666d93d3f4cb563f3fc5b9f27f20ae5",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:40-04:00}",
-      "subject": "commit: docs(runtime): hand off operations integration"
-    },
-    {
-      "commit": "cd9ac147de7fa9b998de762adb4b2c3d1f6110fe",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:36-04:00}",
-      "subject": "commit: feat(runtime): activate persisted gates by default"
-    },
-    {
-      "commit": "22caf99e0861dc2025077f2ae656701c807291df",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:23:31-04:00}",
-      "subject": "commit: feat(runtime): persist gates and exception ownership"
-    },
-    {
-      "commit": "6fcf22915080024c7a57c2cf6770fb109486b3bf",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:22:42-04:00}",
-      "subject": "commit: feat(workflows): execute lifecycle transitions durably"
-    },
-    {
-      "commit": "0250e45d990ce660e5cf5bbce728f0b47c57134a",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:22:36-04:00}",
-      "subject": "commit: feat(observability): add vendor-neutral runtime telemetry"
-    },
-    {
-      "commit": "64c86b79adcaa6d534cf8605dd96b288678cbc06",
-      "selector": "refs/heads/rc/runtime-operations@{2026-08-01T00:20:54-04:00}",
-      "subject": "commit: feat(runtime): enforce persisted provider effects"
-    },
-    {
       "commit": "fe7911f544711bdcfbafa834d23c15d735b69113",
       "selector": "refs/notes/clockwork-lane-topology@{2026-07-31T22:47:05-04:00}",
       "subject": "notes: Notes added by 'git notes add'"
@@ -14034,21 +14928,6 @@
       "commit": "27fb33bab754b001acf26134d988daa10d177390",
       "selector": "HEAD@{2026-07-31T22:46:38-04:00}",
       "subject": "checkout: moving from commerce/foundation to main"
-    },
-    {
-      "commit": "27fb33bab754b001acf26134d988daa10d177390",
-      "selector": "refs/heads/rc/experience-release@{2026-07-31T22:46:31-04:00}",
-      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
-    },
-    {
-      "commit": "27fb33bab754b001acf26134d988daa10d177390",
-      "selector": "refs/heads/rc/runtime-operations@{2026-07-31T22:46:31-04:00}",
-      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
-    },
-    {
-      "commit": "27fb33bab754b001acf26134d988daa10d177390",
-      "selector": "refs/heads/rc/commercial-integrity@{2026-07-31T22:46:30-04:00}",
-      "subject": "branch: Created from 27fb33bab754b001acf26134d988daa10d177390"
     },
     {
       "commit": "e474f13ddcc4671c5ec247f5fb453932ee617a9c",
@@ -14091,139 +14970,9 @@
       "subject": "branch: Created from HEAD"
     },
     {
-      "commit": "92d10d3b8a12728804b70215799f9929e880c996",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T21:08:27-04:00}",
-      "subject": "commit: docs: preserve consolidation backlog"
-    },
-    {
-      "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
-      "selector": "refs/heads/commerce/foundation@{2026-07-31T21:08:09-04:00}",
-      "subject": "commit: docs: preserve production specification rewrite"
-    },
-    {
       "commit": "6eec5773ab0dd4f578464a4dd88aa4982d5f3e5a",
       "selector": "HEAD@{2026-07-31T21:08:09-04:00}",
       "subject": "commit: docs: preserve production specification rewrite"
-    },
-    {
-      "commit": "c2f1e8c5ed0704956a004db6de518316bfd0f44f",
-      "selector": "refs/heads/ux/integration@{2026-07-31T20:48:24-04:00}",
-      "subject": "commit: fix(ux): complete integrated release-quality pass"
-    },
-    {
-      "commit": "f513bd86fedc17ca9d36d15c8a9a873f1fa65b60",
-      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:12-04:00}",
-      "subject": "merge ux/internal-ops: Merge made by the 'ort' strategy."
-    },
-    {
-      "commit": "e10c37105cda508bda3382cd5eb020c36dd2d464",
-      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:10-04:00}",
-      "subject": "merge ux/customer-partner: Merge made by the 'ort' strategy."
-    },
-    {
-      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
-      "selector": "refs/heads/ux/integration@{2026-07-31T20:13:07-04:00}",
-      "subject": "merge ux/design-shell: Fast-forward"
-    },
-    {
-      "commit": "041e65de2864e5e24a131c2c7ba88e6cd13618b5",
-      "selector": "refs/heads/ux/customer-partner@{2026-07-31T20:11:04-04:00}",
-      "subject": "commit: feat(web): overhaul customer and partner UX"
-    },
-    {
-      "commit": "30ad76a8bb2118b2605358da1694d3aa54464eef",
-      "selector": "refs/heads/ux/internal-ops@{2026-07-31T19:59:07-04:00}",
-      "subject": "commit: feat(web): build internal operations UX"
-    },
-    {
-      "commit": "d8589e816bbd62233bd5fcbce345afec929252c6",
-      "selector": "refs/heads/ux/design-shell@{2026-07-31T19:58:45-04:00}",
-      "subject": "commit: feat(ux): unify responsive design shell"
-    },
-    {
-      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "refs/heads/ux/customer-partner@{2026-07-31T19:31:07-04:00}",
-      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "refs/heads/ux/design-shell@{2026-07-31T19:31:07-04:00}",
-      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "refs/heads/ux/integration@{2026-07-31T19:31:07-04:00}",
-      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "refs/heads/ux/internal-ops@{2026-07-31T19:31:07-04:00}",
-      "subject": "branch: Created from 821697c9863342ed2eedc4341eb444000562e5dd"
-    },
-    {
-      "commit": "821697c9863342ed2eedc4341eb444000562e5dd",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T19:29:20-04:00}",
-      "subject": "commit: fix(web): stabilize generated Next type declarations"
-    },
-    {
-      "commit": "19bef06887556490ff28d79b4f60154e9f0110d1",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T19:19:25-04:00}",
-      "subject": "commit: release: integrate commerce lanes and record RC gaps"
-    },
-    {
-      "commit": "65c740e881c270065fb01e49c6911821177ea78e",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:26-04:00}",
-      "subject": "merge commerce/experience-docs: Merge made by the 'ort' strategy."
-    },
-    {
-      "commit": "549c4167067b99968715ec2988e809df5ab1c5c6",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:22-04:00}",
-      "subject": "merge commerce/lifecycle-platform: Merge made by the 'ort' strategy."
-    },
-    {
-      "commit": "3aa1d89ec221f932945b19d4f6226a8cab58867f",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T16:48:20-04:00}",
-      "subject": "merge commerce/core-finance: Merge made by the 'ort' strategy."
-    },
-    {
-      "commit": "abbddae5d8f7945830e53a9526f47d71f4e43c23",
-      "selector": "refs/heads/commerce/lifecycle-platform@{2026-07-31T16:05:47-04:00}",
-      "subject": "commit: feat: implement lifecycle platform lane"
-    },
-    {
-      "commit": "de5f761ec82ccce4966b82825a3de9b356e953b7",
-      "selector": "refs/heads/commerce/experience-docs@{2026-07-31T16:04:05-04:00}",
-      "subject": "commit: feat(experience): deliver commerce portal and documents"
-    },
-    {
-      "commit": "12c590d5d386066fc120f90792b2f3c038c294a8",
-      "selector": "refs/heads/commerce/core-finance@{2026-07-31T15:53:15-04:00}",
-      "subject": "commit: feat: implement core finance commerce lane"
-    },
-    {
-      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "refs/heads/commerce/experience-docs@{2026-07-31T15:27:43-04:00}",
-      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "refs/heads/commerce/integration@{2026-07-31T15:27:43-04:00}",
-      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "refs/heads/commerce/core-finance@{2026-07-31T15:27:42-04:00}",
-      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "refs/heads/commerce/lifecycle-platform@{2026-07-31T15:27:42-04:00}",
-      "subject": "branch: Created from d9fdacce7eb3d66e3ba0aaa698814e3d42660668"
-    },
-    {
-      "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
-      "selector": "refs/heads/commerce/foundation@{2026-07-31T15:26:50-04:00}",
-      "subject": "commit (initial): feat: establish Clockwork commerce foundation"
     },
     {
       "commit": "d9fdacce7eb3d66e3ba0aaa698814e3d42660668",
@@ -14347,6 +15096,7 @@
           "apps/web/node_modules",
           "apps/web/storybook-static",
           "apps/web/test-results",
+          "deno.lock",
           "node_modules",
           "packages/api/.turbo",
           "packages/api/node_modules",
@@ -14368,11 +15118,13 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 74694,
-        "listingSha256": "e7d6ea06887bf248d341ac6462e06abdf658107319517d0d0c12cde2afad0faa",
+        "artifactCount": 78930,
+        "listingSha256": "c6553cb557db3c65db96c6c09e7887cc7c0dfe578d4c4541a981c960c5670e46",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [
           ".clockwork-archives/Clockwork-pre-consolidation-20260731.bundle",
+          ".clockwork-archives/Clockwork-qualified-20260801.bundle",
+          ".clockwork-archives/Clockwork-qualified-20260801.bundle.sha256",
           ".clockwork-archives/pre-final-inventory/refs.tsv",
           ".clockwork-archives/pre-final-inventory/status-porcelain-v2.txt",
           ".clockwork-archives/pre-final-inventory/untracked-files.tar.gz",
@@ -14383,7 +15135,139 @@
           ".clockwork-archives/pre-source-commit-inventory/status-porcelain-v2.txt",
           ".clockwork-archives/pre-source-commit-inventory/untracked-files.tar.gz",
           ".clockwork-archives/pre-source-commit-inventory/working-tree.patch",
-          ".clockwork-archives/pre-source-commit-inventory/worktrees.txt"
+          ".clockwork-archives/pre-source-commit-inventory/worktrees.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/migration-state-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-27fb33b/qualification-summary.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/migration-state-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-34c2a50/qualification-summary.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/artifact-manifest.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/ignored-artifacts.txt",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/application-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/boundaries.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-drizzle-check.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-pgtap.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset-before-serial.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-start.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-after.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/db-stop-before.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-production-refusal.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/demo-reset.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/dependency-audit.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/format.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/frozen-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/generated-drift.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/integration-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/lint.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/migration-dry-run.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-full.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/playwright-install.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/repository-clean-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/revision-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-docker.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-node.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-playwright.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-pnpm.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-supabase.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-turbo.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/runtime-vitest.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/secret-scan.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-axe.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/storybook-build.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/traceability.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/tree-unchanged-after-generated.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/typecheck.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-parallel.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/logs/unit-serial-confirmation.log",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/.last-run.json",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/error-context.md",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/playwright-results/ux-internal-ops-internal-o-16887-page-queue-detail-on-mobile-chromium/trace.zip",
+          ".clockwork-archives/qualification-evidence/Clockwork-qualification-evidence-7ae3fbc/qualification-summary.json"
         ],
         "retainedArchiveDecision": "retained-and-file-hashed-in-worktree-status",
         "retainedQualificationEvidence": {
@@ -14492,6 +15376,17 @@
                 "stress evidence file differs: stress-2/summary.json",
                 "stress evidence file differs: stress-3/summary.json",
                 "serial/summary.json: summary status is not passed",
+                "serial/summary.json: missing suites: demo",
+                "serial/summary.json: expected 7 suite results",
+                "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui command manifest differs",
+                "serial/summary.json: ui assertion fingerprint differs",
+                "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                 "serial/summary.json: proof status is not passed",
                 "serial/summary.json: proof step 4 did not exit 0",
                 "serial/summary.json: source identity differs from stress summary",
@@ -14538,12 +15433,34 @@
                 "stress evidence file differs: stress-1/summary.json",
                 "stress evidence file differs: stress-2/summary.json",
                 "stress evidence file differs: stress-3/summary.json",
+                "serial/summary.json: missing suites: demo",
+                "serial/summary.json: expected 7 suite results",
+                "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui command manifest differs",
+                "serial/summary.json: ui assertion fingerprint differs",
+                "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                 "serial/summary.json: source identity differs from stress summary",
                 "parallel/summary.json: summary status is not passed",
+                "parallel/summary.json: missing suites: demo",
+                "parallel/summary.json: expected 7 suite results",
+                "parallel/summary.json: static documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: unit documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: unit status is not passed",
                 "parallel/summary.json: unit step 1 did not exit 0",
+                "parallel/summary.json: integration documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: build documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: ui documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: ui status is not passed",
+                "parallel/summary.json: ui command manifest differs",
+                "parallel/summary.json: ui assertion fingerprint differs",
                 "parallel/summary.json: ui step 1 did not exit 0",
+                "parallel/summary.json: ui assertion step 2 differs from its command manifest",
+                "parallel/summary.json: proof documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: source identity differs from stress summary",
                 "stress-1/summary.json: summary is missing",
                 "stress-1/summary.json: result fingerprints differ from parallel",
@@ -14737,7 +15654,9 @@
                 "ui provider isolation declaration is invalid",
                 "ui simulator isolation declaration is invalid",
                 "ui local database inheritance declaration is invalid",
-                "ui assertion fingerprint differs"
+                "ui command manifest differs",
+                "ui assertion fingerprint differs",
+                "ui assertion step 2 differs from its command manifest"
               ],
               "incompleteReason": null
             }
@@ -14785,6 +15704,17 @@
                 "stress evidence file differs: stress-2/summary.json",
                 "stress evidence file differs: stress-3/summary.json",
                 "serial/summary.json: summary status is not passed",
+                "serial/summary.json: missing suites: demo",
+                "serial/summary.json: expected 7 suite results",
+                "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui command manifest differs",
+                "serial/summary.json: ui assertion fingerprint differs",
+                "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                 "serial/summary.json: proof status is not passed",
                 "serial/summary.json: proof step 4 did not exit 0",
                 "serial/summary.json: source identity differs from stress summary",
@@ -14815,9 +15745,21 @@
               "sha256": "57c8f496a7082c08da820fdb5ddaa44a34c75ef423c77963c984711b9285ca2a",
               "runId": "repository-quality-820fe9934f88-serial",
               "mode": "serial",
-              "outcome": "passed",
+              "outcome": "reported-passed-unvalidated",
               "reportedOutcome": "passed",
-              "validationIssues": [],
+              "validationIssues": [
+                "missing suites: demo",
+                "expected 7 suite results",
+                "static documented runtime environment differs from the canonical contract",
+                "unit documented runtime environment differs from the canonical contract",
+                "integration documented runtime environment differs from the canonical contract",
+                "build documented runtime environment differs from the canonical contract",
+                "ui documented runtime environment differs from the canonical contract",
+                "ui command manifest differs",
+                "ui assertion fingerprint differs",
+                "ui assertion step 2 differs from its command manifest",
+                "proof documented runtime environment differs from the canonical contract"
+              ],
               "durationMs": 908643,
               "sourceRevision": "820fe9934f8849b34a1c25c6bc91ae16e379a7e5"
             },
@@ -14847,12 +15789,34 @@
                 "stress evidence file differs: stress-1/summary.json",
                 "stress evidence file differs: stress-2/summary.json",
                 "stress evidence file differs: stress-3/summary.json",
+                "serial/summary.json: missing suites: demo",
+                "serial/summary.json: expected 7 suite results",
+                "serial/summary.json: static documented runtime environment differs from the canonical contract",
+                "serial/summary.json: unit documented runtime environment differs from the canonical contract",
+                "serial/summary.json: integration documented runtime environment differs from the canonical contract",
+                "serial/summary.json: build documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui documented runtime environment differs from the canonical contract",
+                "serial/summary.json: ui command manifest differs",
+                "serial/summary.json: ui assertion fingerprint differs",
+                "serial/summary.json: ui assertion step 2 differs from its command manifest",
+                "serial/summary.json: proof documented runtime environment differs from the canonical contract",
                 "serial/summary.json: source identity differs from stress summary",
                 "parallel/summary.json: summary status is not passed",
+                "parallel/summary.json: missing suites: demo",
+                "parallel/summary.json: expected 7 suite results",
+                "parallel/summary.json: static documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: unit documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: unit status is not passed",
                 "parallel/summary.json: unit step 1 did not exit 0",
+                "parallel/summary.json: integration documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: build documented runtime environment differs from the canonical contract",
+                "parallel/summary.json: ui documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: ui status is not passed",
+                "parallel/summary.json: ui command manifest differs",
+                "parallel/summary.json: ui assertion fingerprint differs",
                 "parallel/summary.json: ui step 1 did not exit 0",
+                "parallel/summary.json: ui assertion step 2 differs from its command manifest",
+                "parallel/summary.json: proof documented runtime environment differs from the canonical contract",
                 "parallel/summary.json: source identity differs from stress summary",
                 "stress-1/summary.json: summary is missing",
                 "stress-1/summary.json: result fingerprints differ from parallel",
@@ -14998,7 +15962,9 @@
                 "ui provider isolation declaration is invalid",
                 "ui simulator isolation declaration is invalid",
                 "ui local database inheritance declaration is invalid",
-                "ui assertion fingerprint differs"
+                "ui command manifest differs",
+                "ui assertion fingerprint differs",
+                "ui assertion step 2 differs from its command manifest"
               ],
               "durationMs": 140241,
               "sourceRevision": "9464bab03beb8a5298d57f4181cf7bf3ff5072df"
@@ -15265,18 +16231,68 @@
       "objects": [
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "228061e8ce23315cef2b454109893af03dc32124"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "724042378356d3fe8badc540cc14e7905033a617"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8d805e1198cc08d7414bc0c7da59ef8d549e81ec"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "98c0f2d6e5af6dcd7046dafcadb6edb18325d956"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a2402b802da23b79b49e34a17b7de0591c00f6ca"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b9c0d00746d9f0b2b83d5ffe19eae909ab5c7b7d"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "09412b61f3cd7264547b9480f8cac68c44380288"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "1022ddd8e93f9d713a921b1ac979ece9e39a580b"
+          "object": "26c2562b57c6422ad2192ecb54b252c4b830cbcd"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "33c2f0dea368831541fac09f91e9e5c60ecfc77b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7002bd0cb2550c51c42566808e83856de9d1f77d"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "a542b3016edbfc4368e2211c7e77415d3c94c784"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "cc42e8f11bffa972778cb1a3291b7feb7beaf499"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "d6c26159df1e6f50c67751833ff06c8d90d2d233"
         },
         {
           "state": "unreachable",
@@ -15290,8 +16306,423 @@
         },
         {
           "state": "unreachable",
+          "type": "blob",
+          "object": "39831085c9c5216c3dc0595faff61fb9d6211b41"
+        },
+        {
+          "state": "unreachable",
           "type": "tree",
           "object": "c303bb4e480abcc895ac6f15b9f5ebdeb871e07a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "fd831034e0b9652fdbf49a13b45af3b1f78bfe32"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a1c4c881e8ac0b38c9eddbca9672c644954db7be"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b344004e4591b65dd1af6ce6205725b51c80e497"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "2c45d84c1389c5a25a9a7a28fd44922507b35cc7"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3f850741abbc7e11cc0bb594541a4ee064359d8b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "de853e43ffae5f8b02b33233c16bd799ebc16f80"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "1246b4307f43b2062dbd2669df010e23c6663584"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f1869f48efb01d21ac56543c8cf78ccd807251ad"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "1a47d6aec4329ffcdd77211f451661e6105560ae"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "31c77c28a121c8dd59b7f8068dec0c60138b2fd6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "32c72e604484e29131f6d089f563655bd2d52041"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "07084a09a7d24f293d084df1691ededb4d531fd6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7a884f4bdc6734658aa28b51db23a6177933b9f7"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b5883c05b23a9d77cee4298f231c16a4feffdf2b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "0d09e30919807271050e6c588a7951312ecdf25b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b4c9693bb33dbf68d9d51f0d54ce3e784265ee2e"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "eac98942648d40f95f723f8cd33aa8316dc6059e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "934a3750c5c753273edbb9df9ef7cd08d27decfa"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "40cb469c527803fb48c4ea4b37e4eaedb5ad01bd"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "928bfbe97c42004e7c7f4b99d8f1d2329451c133"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "09cc459c2968490e10069011d01b48b4f87a04e3"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3d8c17a8d4ed8c814b6c72cf1eaa8526b5769908"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "d3ccbfa693f539671cb0b504c187bf738bcf9f80"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e24caa725bb5c87adaca2a2183fb4d50057047aa"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "010d070cfcc920425ae94cbc7780ccbcfa4c36d2"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "29cdcdafa05d6d7be1008d81f85cc0546437f1a8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "69cd745aa03f4588936624232d01036702215eb3"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "cb8d7d40f4bc17539dad0e2537d6a195e5897f8a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f60d26bff08e7b05433f40e3407c7379c3089c63"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "91ced1ddfbd603f98c68dc54b1851857f6063229"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "f00ee859be931811b1fbc5d62e00ded1bcfe4954"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "040f587084061572605e77f5c23d5a5d46d17888"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "26cfb8932171ad922d665936fb7365d61c11c6d8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "d1cff8ea9ffe21c032c37711bfa98795ee207122"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "fe0fb1c80790f27b763a196bba7618d99b1ce0e0"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "69d0a8c67b38a058e344f8c7e88423ff9bd58354"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "dad08bbf160cee98239b14c79cd35f67ff44dee6"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "95d1f1aade0b7bc4f2aa8656eac2cca7bfc52bb6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "de51a0afc1953c373d62f8c44f74f11a3829d8df"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "2c9235ecc8ef1483e43f880af92bc201f8ae2b6f"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "2e92f2665587ee2ac3d8b45ccc6e14ba167ed16d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8552b209cc6c4aac54754c349ff343782445d9fd"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "9152eb270e4bfff9b5ef63045ed1996217a44d19"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "03138a73227dd4cc4ecb42b46d3a82c250dd70d2"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "9713b7143e73fb60c4271e85bcc6e67ee8f1ce2b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "ecd46c5782c195e01debdda2c6403df1fe556770"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "eed602bed27a58edb2487c7df6d27402877bfb4b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "bc579a25be2326e6158adc2c3a3e3c00ea47bb45"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "cd97d8d0eda15dda2a38fb00532e96f421c7b114"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e2d73b00972a06182c18ccea741b87593c78fa43"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "601812ac456b54e12be2c14e51f2685b5106095e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "ca981f7a05ed3eb5c8ac5f869d1a693041b8939c"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "cd9859fe3904b5b8d1ce153ef327f4294be18c30"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "5e998553745233ab18c4b897f2cab9cfdcf99810"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8bda219898f9aebf875b80361ebffe566bc5feb8"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b7dac9ffec4985128cf11f0b51c989c4baf08ba4"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "075b9120c3642ae2ea29e7160bcd864a40a99f05"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "309bb19c0ccaffd81484d0aa987d936e3c9fc3df"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "3bdbf011a57e72711b6d7e50a35c88a227bec392"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "6e1b6e3b6fcfced251991482f5d9d9d80ad1248e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a59bd48059cac6c6b6d5749fa2e456c9c0586fe0"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "e81b59123f49e4fd535b91e21b3544adc4da1206"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3ddc1e47633fe3ce5497b7b9fcbf6c549b633352"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "8f1cebbb35bbb925803e2fcfb5a9d1a8b7dc82dc"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b19cc1f8b2c71e9df31453a19a3d7cfbbc69cf7d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "e8dccd58d454a1c6f839d77e38ec05c285b5f211"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3b9da92648eb7879c8cd81c517df33a74d10ce33"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "5cdebaa830f721918005e95ba5210736bb680744"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "6edeec3ac640be0e48fbfb9ebfcdc024ea34be59"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "171fd1f723a9dbfb950c6ec3ec5c82bd3dc7ccec"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "325f886664ef7a78334df40143dd53043417f951"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5b1fd4432504ff04292abceb911b83ec3e6102e6"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "7c9f5f41edbe2425d7e5b2bfa3bfb82288ebd190"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "809f5fb696f85cbb55c9b39ce1e55feef7a9a060"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "01e0ec669ddae2093068d8300143d1abc9d79948"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3320a6dae3d9992e111f975d7833c8afedabfcd9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "db60072347b516c0cfb5e673dec633aa8679eb24"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f7a0477be092ed00831f41fb0ac073fd264e2bae"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "1022ddd8e93f9d713a921b1ac979ece9e39a580b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5de23a4f18736d0f446bf00f23f4b9d22a0e5b3a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3d63d6ee99253d031bfc9d8135bdedf8a8c11ead"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "b1e3726f5397f4fce2817510ce28d8ddac82b5f5"
         },
         {
           "state": "unreachable",
@@ -15301,12 +16732,27 @@
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "8f64e2327a10614415c0b262b30294c348677f91"
+          "object": "74649253e985b2df22f7e36e93b24f8121ac036f"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "2c45d84c1389c5a25a9a7a28fd44922507b35cc7"
+          "object": "8f64e2327a10614415c0b262b30294c348677f91"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "39a54058a5cde40801dd0a5c871798fa99bf656b"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "6c25ccbcb932a2ae043e5597dbcb69260039a5f4"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "7125191f1ece51eaaa9f87d659853f838f211a19"
         },
         {
           "state": "unreachable",
@@ -15321,6 +16767,11 @@
         {
           "state": "unreachable",
           "type": "blob",
+          "object": "e8e576f691a78e1e2293fea32538c062679a9542"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
           "object": "16260d3150fa745eb284f7f4b74f7effeb3a5ad9"
         },
         {
@@ -15330,13 +16781,8 @@
         },
         {
           "state": "unreachable",
-          "type": "tree",
-          "object": "f1869f48efb01d21ac56543c8cf78ccd807251ad"
-        },
-        {
-          "state": "unreachable",
           "type": "blob",
-          "object": "31c77c28a121c8dd59b7f8068dec0c60138b2fd6"
+          "object": "f4e653a1bf5f8d773541234c0ecbdc1e19e10fc1"
         },
         {
           "state": "unreachable",
@@ -15355,28 +16801,48 @@
         },
         {
           "state": "unreachable",
-          "type": "tree",
-          "object": "07084a09a7d24f293d084df1691ededb4d531fd6"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "7a884f4bdc6734658aa28b51db23a6177933b9f7"
-        },
-        {
-          "state": "unreachable",
           "type": "blob",
           "object": "93a8f2efc1c05e91d0ff7513c91c51b0c5c22906"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "b5883c05b23a9d77cee4298f231c16a4feffdf2b"
+          "type": "tree",
+          "object": "c66817bc92d3c1eb4695c3bb3b996baca6829de0"
         },
         {
           "state": "unreachable",
           "type": "blob",
           "object": "092936b710202c11a8dde9a0a88ed9704b1fc65c"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "0fe97f943f3837b6abe57e59528de92bc840001a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "10e91a42b0ecf546fa2115b1565ca68ec4253822"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "1d292a9cc0cdca111cc6f2d3c1a0ccdd0b1004cd"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "4ea9526688361687c38c52a2d883e15257bbf8ac"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "5329a66aebe7d6b38ac17c94575efbefdb346c66"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "6729ed592fd499e437c433290bb82ac2c080bce0"
         },
         {
           "state": "unreachable",
@@ -15405,18 +16871,33 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "1c6aa2625f57556696affefd559a0fd9c2b89e27"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3a2a58bdba90c0339052673047b408b6e446617b"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "8bea6708fe518bc7bfa9e3832e6f26a1147a6dac"
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "14eb7643b35abe391cb681495bbe208b60b7cd81"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
-          "object": "928bfbe97c42004e7c7f4b99d8f1d2329451c133"
+          "object": "61ac20c8fd6ca455655d31cdfbb681dfcb55aa76"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "3d8c17a8d4ed8c814b6c72cf1eaa8526b5769908"
+          "object": "6aac0cbf8d68aa7982c76d5d7903b75f01bd6471"
         },
         {
           "state": "unreachable",
@@ -15426,22 +16907,22 @@
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "010d070cfcc920425ae94cbc7780ccbcfa4c36d2"
+          "object": "bbed0c05facfb0d91608f708cad26dfe51d31ee0"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "29cdcdafa05d6d7be1008d81f85cc0546437f1a8"
+          "object": "fb2dee56a4c927e4eb29cda319b211ed04e3d43c"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "f00ee859be931811b1fbc5d62e00ded1bcfe4954"
+          "type": "tree",
+          "object": "d7aefddcd8d1460e97a67e6d3874fd0e1f35c724"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "26cfb8932171ad922d665936fb7365d61c11c6d8"
+          "type": "tree",
+          "object": "392f8b5dc5e37be463de582a8dd37be62badba8b"
         },
         {
           "state": "unreachable",
@@ -15450,8 +16931,33 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "58300380f5beb20e3d1789c92819712be380cfd9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "7d709a2b27b62129be6e01e091d6f356ac58f6db"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a4b0306153744d0e16215de6f9520b537f4cecef"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "fd706a8e4e18eccf8061d65d37da09321c1748ed"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
-          "object": "dad08bbf160cee98239b14c79cd35f67ff44dee6"
+          "object": "0b316c587c338c40c92ab63abde29a26a8dde87d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "1571d2774437274fe984ac8862dae209b278c088"
         },
         {
           "state": "unreachable",
@@ -15476,17 +16982,7 @@
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "95d1f1aade0b7bc4f2aa8656eac2cca7bfc52bb6"
-        },
-        {
-          "state": "unreachable",
-          "type": "tree",
           "object": "b5f1c0ef2c74ad27f086c14569986a1a2aab758c"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "de51a0afc1953c373d62f8c44f74f11a3829d8df"
         },
         {
           "state": "unreachable",
@@ -15506,22 +17002,12 @@
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "2c9235ecc8ef1483e43f880af92bc201f8ae2b6f"
+          "object": "727267a61aad9bd89b0fd4486bb336fa20c045b2"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "2e92f2665587ee2ac3d8b45ccc6e14ba167ed16d"
-        },
-        {
-          "state": "unreachable",
-          "type": "tree",
-          "object": "8552b209cc6c4aac54754c349ff343782445d9fd"
-        },
-        {
-          "state": "unreachable",
-          "type": "tree",
-          "object": "9152eb270e4bfff9b5ef63045ed1996217a44d19"
+          "object": "80f22bc2e6ce23d7b7dc7423893042bcc42c2977"
         },
         {
           "state": "unreachable",
@@ -15531,7 +17017,47 @@
         {
           "state": "unreachable",
           "type": "blob",
+          "object": "47f357eb17b334c921d2b3260fc3f3cf49a1d254"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "2cf41f8aa4fb7ff1b3ea69cc20453714ee65f49e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "6674d657b92a15683961f43d1ba182e4c39ae68e"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "a334705276be98b1d17ad695fba240894562b1d2"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
           "object": "e0f4e4ca0aa2544275c4529a289376b8fefb4038"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f8f4c3cc4c6387e33a9f32fd845198f5ba514a8a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "16b57ab5e09f5b0c7776b40d1025ca38d2baf3e9"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "53354adf8a72f5398dad370d7b387fd8feddd439"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "62b570fca0fb75a60b0d27ed33b13b14b517fc58"
         },
         {
           "state": "unreachable",
@@ -15545,8 +17071,13 @@
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "eed602bed27a58edb2487c7df6d27402877bfb4b"
+          "type": "tree",
+          "object": "4136bbaf0e087989c39c004a41fa0275ca52848f"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "45f7e41dd706b4480facfcce8a5d05a6eedf2a14"
         },
         {
           "state": "unreachable",
@@ -15560,28 +17091,28 @@
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "601812ac456b54e12be2c14e51f2685b5106095e"
+          "type": "tree",
+          "object": "5b3878cc4f139d0a72f66a2a4cd54ccae7342cb7"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "ca981f7a05ed3eb5c8ac5f869d1a693041b8939c"
+          "object": "5a39c980f20b86b0af9c28ad5da2b8698903a437"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "5cf98b3e6a2acedde4e1f52e9e281b1049983f5f"
         },
         {
           "state": "unreachable",
           "type": "tree",
-          "object": "075b9120c3642ae2ea29e7160bcd864a40a99f05"
+          "object": "0d7aebf3cc40b4068ac9ed68e7ea9cfdb0cbd5ae"
         },
         {
           "state": "unreachable",
           "type": "blob",
-          "object": "309bb19c0ccaffd81484d0aa987d936e3c9fc3df"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "3bdbf011a57e72711b6d7e50a35c88a227bec392"
+          "object": "f4fa4b29318d164bcc93979ae9e79f52fd1bf522"
         },
         {
           "state": "unreachable",
@@ -15590,13 +17121,23 @@
         },
         {
           "state": "unreachable",
+          "type": "blob",
+          "object": "a7fb478deef6650d215e9d519680f02fcd4995d9"
+        },
+        {
+          "state": "unreachable",
           "type": "tree",
-          "object": "a59bd48059cac6c6b6d5749fa2e456c9c0586fe0"
+          "object": "aa3b9ddfbb588e315397e03a4c363f0f24271c1b"
         },
         {
           "state": "unreachable",
           "type": "tree",
           "object": "d33b9af0f567b2c56006a54a4f7b93e82202c9a5"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "56fc96adfd16660e6d1f085f639c76251dbf268d"
         },
         {
           "state": "unreachable",
@@ -15610,18 +17151,23 @@
         },
         {
           "state": "unreachable",
+          "type": "tree",
+          "object": "a73dcb7e093329f69e2cf16a468aa9ed7016dbe6"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "513e1af1ba431b3d3571a62da209d2f07cab723f"
+        },
+        {
+          "state": "unreachable",
           "type": "blob",
           "object": "6fbea2fa5667fcc9f6294c184036e1d6c5b3aa55"
         },
         {
           "state": "unreachable",
-          "type": "blob",
-          "object": "325f886664ef7a78334df40143dd53043417f951"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "5b1fd4432504ff04292abceb911b83ec3e6102e6"
+          "type": "tree",
+          "object": "b7bedce5c8837ac74259ffebcada3957e27bfcf9"
         },
         {
           "state": "unreachable",
@@ -15636,17 +17182,12 @@
         {
           "state": "unreachable",
           "type": "blob",
-          "object": "7c9f5f41edbe2425d7e5b2bfa3bfb82288ebd190"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
-          "object": "809f5fb696f85cbb55c9b39ce1e55feef7a9a060"
-        },
-        {
-          "state": "unreachable",
-          "type": "blob",
           "object": "b93f0077d0e982bc76f015ac9adf01825c708eed"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c47fe602994b70d04d480bf297db34256d024393"
         }
       ],
       "rationale": "Superseded intermediate source/config snapshots and generated tsbuildinfo; no post-inventory semantic delta."

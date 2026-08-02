@@ -27,14 +27,14 @@
 
 .taskHeader {
   padding-block-end: 1.1rem;
-  border-bottom: 2px solid #29363a;
+  border-bottom: 2px solid var(--cw-ink);
 }
 
 .taskHeader h1 {
   margin: 0;
   font-family: var(--cw-font-mono);
   font-size: clamp(1.55rem, 2.5vw, 2.2rem);
-  font-weight: 720;
+  font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.1;
 }
@@ -79,9 +79,9 @@
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
-  color: #174f42;
+  color: var(--cw-brand-strong);
   font-size: 0.8rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .primaryLink {
@@ -89,7 +89,7 @@
   justify-content: center;
   padding-inline: 0.9rem;
   border-radius: 0.25rem;
-  background: #173f48;
+  background: var(--cw-brand-strong);
   color: white;
   text-decoration: none;
 }
@@ -126,7 +126,7 @@
 
 .rank {
   align-self: start;
-  color: #245565;
+  color: var(--cw-brand-ink);
   font-family: var(--cw-font-mono);
   font-size: 1rem;
   font-weight: 800;
@@ -165,7 +165,7 @@
 }
 
 .signalTable tbody tr {
-  border-left: 4px solid #617176;
+  border-left: 4px solid var(--cw-border-strong);
 }
 
 .signalTable tbody tr[data-tone="critical"] {

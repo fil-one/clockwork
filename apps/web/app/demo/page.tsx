@@ -9,6 +9,7 @@ import {
   demoPersonaCatalog,
   demoPersonaSurfacesEnabled,
 } from "@/src/auth/demo-persona";
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 
 import styles from "./demo-landing.module.css";
@@ -92,7 +93,7 @@ export default function Page() {
       <header className={styles.header}>
         <BrandLogo
           className={styles.wordmark ?? ""}
-          src="/brand/fo-wordmark-dark.png"
+          src={brandAsset()}
           name={t("app.name")}
         />
         <p className="eyebrow">{t("demo.landing.eyebrow")}</p>

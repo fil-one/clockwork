@@ -234,27 +234,21 @@ export const BrandMark: Story = {
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={<BrandLogo src={brandAsset.wordmarkMonoDark} tone="mono" />}
+          asset={<BrandLogo src={brandAsset.wordmarkMonoDark} />}
         />
       </MarkPanel>
       <MarkPanel label="Wordmark, colour on ink" inverse>
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={<BrandLogo src={brandAsset.wordmarkLight} ink="light" />}
+          asset={<BrandLogo src={brandAsset.wordmarkLight} />}
         />
       </MarkPanel>
       <MarkPanel label="Wordmark, mono light ink" inverse>
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={
-            <BrandLogo
-              src={brandAsset.wordmarkMonoLight}
-              tone="mono"
-              ink="light"
-            />
-          }
+          asset={<BrandLogo src={brandAsset.wordmarkMonoLight} />}
         />
       </MarkPanel>
       <MarkPanel label="Icon, colour">
@@ -268,23 +262,14 @@ export const BrandMark: Story = {
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={
-            <BrandLogo src={brandAsset.iconMonoDark} mark="icon" tone="mono" />
-          }
+          asset={<BrandLogo src={brandAsset.iconMonoDark} mark="icon" />}
         />
       </MarkPanel>
       <MarkPanel label="Icon, mono light ink" inverse>
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={
-            <BrandLogo
-              src={brandAsset.iconMonoLight}
-              mark="icon"
-              tone="mono"
-              ink="light"
-            />
-          }
+          asset={<BrandLogo src={brandAsset.iconMonoLight} mark="icon" />}
         />
       </MarkPanel>
       <MarkPanel label="No asset resolves">
@@ -298,7 +283,7 @@ export const BrandMark: Story = {
         <BrandSlot
           homeLink="#"
           homeLabel="Fil One home"
-          asset={<BrandLogo ink="light" descriptor="Commerce" />}
+          asset={<BrandLogo inverse descriptor="Commerce" />}
         />
       </MarkPanel>
     </div>

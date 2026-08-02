@@ -12,7 +12,7 @@
   align-items: end;
   gap: 1rem 2rem;
   padding-block-end: 1.2rem;
-  border-bottom: 2px solid #6e4a19;
+  border-bottom: 2px solid var(--web-accent);
 }
 
 .taskHeader h1 {
@@ -59,9 +59,9 @@
 
 .classifier {
   margin: 0 0 0.25rem;
-  color: #6e4a19;
+  color: var(--web-accent);
   font-size: 0.72rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .authorityState,
@@ -79,7 +79,7 @@
 }
 
 .authorityFacts div {
-  border-left: 2px solid #b88a45;
+  border-left: 2px solid var(--cw-border-strong);
   padding-left: 0.75rem;
 }
 
@@ -142,14 +142,14 @@
 
 .ledger tbody th {
   max-width: 14rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .ledger a {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
-  color: #6e4a19;
+  color: var(--web-accent);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -294,7 +294,7 @@
   min-width: 0;
   color: var(--web-muted);
   font-size: 0.67rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 .field input,
 .field select {
@@ -324,6 +324,7 @@
 }
 .table th {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.67rem;
   letter-spacing: 0.04em;
   text-align: left;
@@ -344,7 +345,7 @@
 .recordLink {
   color: var(--web-ink);
   font-size: 0.88rem;
-  font-weight: 760;
+  font-weight: 800;
   text-decoration-color: color-mix(in srgb, var(--web-accent) 45%, transparent);
   text-underline-offset: 0.2rem;
 }
@@ -375,7 +376,7 @@
 .pill[data-tone="pending"],
 .pill[data-tone="open"] {
   border-color: var(--web-warm);
-  color: #7a461f;
+  color: var(--cw-warning);
 }
 .pill[data-tone="blocked"],
 .pill[data-risk="high"] {
@@ -573,7 +574,7 @@
   gap: 0.5rem;
   margin-top: auto;
   font-size: 0.7rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 .dashboardGrid {
   display: grid;
@@ -662,7 +663,7 @@
 .technical summary {
   cursor: pointer;
   color: var(--web-accent);
-  font-weight: 750;
+  font-weight: 700;
 }
 .technical code {
   overflow-wrap: anywhere;
@@ -690,7 +691,7 @@
 .stage[data-active="true"] {
   border-color: var(--web-accent);
   color: var(--web-ink);
-  font-weight: 750;
+  font-weight: 700;
 }
 .formGrid {
   display: grid;
@@ -714,7 +715,7 @@
   align-items: flex-start;
   gap: 0.55rem;
   font-size: 0.77rem;
-  font-weight: 680;
+  font-weight: 700;
 }
 .success {
   border-left: 3px solid var(--web-accent);
@@ -728,7 +729,7 @@
   padding: 0.75rem;
   color: var(--web-ink);
   font-size: 0.78rem;
-  font-weight: 640;
+  font-weight: 600;
 }
 
 @media (max-width: 74rem) {

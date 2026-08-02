@@ -7,6 +7,7 @@ import {
   demoAccessSubmitRoute,
   safeDemoReturnPath,
 } from "@/src/auth/demo-access";
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 
 export const metadata = { title: "Demo access" };
@@ -24,7 +25,7 @@ export default async function Page({
       <section className="access-card">
         <BrandLogo
           className="signing-wordmark"
-          src="/brand/fo-wordmark-dark.png"
+          src={brandAsset()}
           name={t("app.name")}
         />
         <p className="eyebrow">{t("demo.access.eyebrow")}</p>

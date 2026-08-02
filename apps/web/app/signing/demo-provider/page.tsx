@@ -7,6 +7,7 @@ import {
   demoExperienceEnabled,
   demoExperienceRepository,
 } from "@/src/features/experience-server/demo-experience-repository";
+import { brandAsset } from "@/src/features/shell/brand-assets";
 import { t } from "@/src/i18n/en";
 
 export const metadata = { title: "Demo signing" };
@@ -27,7 +28,7 @@ export default async function Page({
         <section className="access-card">
           <BrandLogo
             className="signing-wordmark"
-            src="/brand/fo-wordmark-dark.png"
+            src={brandAsset()}
             name={t("app.name")}
           />
           <p className="eyebrow">{t("signing.demo.eyebrow")}</p>
@@ -43,7 +44,7 @@ export default async function Page({
     <main className="signing-main" id="main-content">
       <header className="signing-header">
         <div className="signing-wordmark">
-          <BrandLogo src="/brand/fo-wordmark-dark.png" name={t("app.name")} />
+          <BrandLogo src={brandAsset()} name={t("app.name")} />
           <span>{t("signing.demo.eyebrow")}</span>
         </div>
         <StatusBadge

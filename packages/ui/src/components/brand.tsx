@@ -7,16 +7,20 @@ export interface TextWordmarkProps {
   className?: string;
 }
 
-/** The default brand is text-only so a supplied mark can replace it without layout changes. */
+/**
+ * The default brand is text-only so a supplied mark can replace it without
+ * layout changes. The leading word sets the regular weight and the trailing
+ * word takes the bold weight of the same face, not a second family or colour.
+ */
 export function TextWordmark({
-  name = "FIL ONE",
+  name = "Fil One",
   descriptor,
   inverse = false,
   className = "",
 }: TextWordmarkProps) {
   const words = name.trim().split(/\s+/u);
-  const firstWord = words.shift() ?? name;
-  const remainingWords = words.join(" ");
+  const leadWord = words.shift() ?? name;
+  const emphasisWords = words.join(" ");
 
   return (
     <span
@@ -24,9 +28,9 @@ export function TextWordmark({
       aria-label={[name, descriptor].filter(Boolean).join(", ")}
     >
       <span className="cw-wordmark__name" aria-hidden="true">
-        <span>{firstWord}</span>
-        {remainingWords ? (
-          <span className="cw-wordmark__counterweight">{remainingWords}</span>
+        <span>{leadWord}</span>
+        {emphasisWords ? (
+          <span className="cw-wordmark__emphasis">{emphasisWords}</span>
         ) : null}
       </span>
       {descriptor ? (
@@ -44,32 +48,21 @@ const MARK_DIMENSIONS = {
   icon: { width: 1000, height: 1000 },
 } as const;
 
-export interface BrandLogoProps extends Omit<TextWordmarkProps, "inverse"> {
+export interface BrandLogoProps extends TextWordmarkProps {
   /** The resolved asset path. Without one the remaining props render the text mark. */
   src?: string;
   mark?: keyof typeof MARK_DIMENSIONS;
-  /** Records which supplied file this is; the caller pairs it with the surface. */
-  tone?: "colour" | "mono";
-  ink?: "dark" | "light";
 }
 
 /** The mark is decorative here: the accessible name belongs to the link around it. */
 export function BrandLogo({
   src,
   mark = "wordmark",
-  tone = "colour",
-  ink = "dark",
   className = "",
   ...wordmarkProps
 }: BrandLogoProps) {
   if (!src) {
-    return (
-      <TextWordmark
-        inverse={ink === "light"}
-        className={className}
-        {...wordmarkProps}
-      />
-    );
+    return <TextWordmark className={className} {...wordmarkProps} />;
   }
 
   const { width, height } = MARK_DIMENSIONS[mark];
@@ -82,8 +75,6 @@ export function BrandLogo({
       width={width}
       height={height}
       data-mark={mark}
-      data-tone={tone}
-      data-ink={ink}
     />
   );
 }
