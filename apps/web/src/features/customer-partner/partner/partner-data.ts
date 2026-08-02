@@ -477,13 +477,6 @@ export const partnerSurfaces: Readonly<
   },
 };
 
-export function recordForSurface(
-  surface: PartnerSurfaceKey,
-  id: string,
-): PartnerRecord | undefined {
-  return partnerSurfaces[surface].records.find((record) => record.id === id);
-}
-
 export const partnerIds = {
   account: "22222222-2222-4222-8222-222222222222",
   endClient: "33333333-3333-4333-8333-333333333333",

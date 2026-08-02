@@ -15,6 +15,7 @@ import {
   documents,
   exceptionCases,
   invoices,
+  notificationDeliveries,
   orders,
   providerOperations,
   reportExports,
@@ -601,6 +602,10 @@ export class DatabaseCoreWorkflowRecordPort {
       input.record.kind === "report_exported"
         ? ReportExportedWorkflowRecordSchema.parse(input.record)
         : undefined;
+    const dunningDecided =
+      input.record.kind === "dunning_decided"
+        ? DunningDecidedWorkflowRecordSchema.parse(input.record)
+        : undefined;
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
       const inserted = await tx
         .insert(providerOperations)
@@ -676,6 +681,8 @@ export class DatabaseCoreWorkflowRecordPort {
         );
         return {};
       }
+      if (dunningDecided)
+        await recordDunningNotification(tx, input, dunningDecided);
       const appended = await appendAuditAndOutbox(tx, {
         aggregateType: "provider_operation",
         aggregateId: operation.id,
@@ -700,6 +707,67 @@ export class DatabaseCoreWorkflowRecordPort {
       return {};
     });
   }
+}
+
+const DunningDecidedWorkflowRecordSchema = z
+  .object({
+    kind: z.literal("dunning_decided"),
+    taskId: z.literal("core.collections.dunning.v1"),
+    input: z
+      .object({
+        invoiceId: z.uuid(),
+        billingAccountId: z.uuid(),
+        collectionsOwner: z.email(),
+        billingRecipients: z.array(z.email()).min(1).max(100),
+      })
+      .passthrough(),
+    decision: z.object({ stage: z.string().min(1) }).passthrough(),
+    notificationMessageId: z.string().min(1).max(255).optional(),
+  })
+  .passthrough();
+
+type DunningDecidedWorkflowRecord = z.infer<
+  typeof DunningDecidedWorkflowRecordSchema
+>;
+
+/**
+ * A dunning notice is only defensible if the platform can show who it reached.
+ * The delivery lands in the same transaction as the workflow record, so the
+ * evidence cannot survive a rolled-back decision or go missing after one.
+ */
+async function recordDunningNotification(
+  transaction: RuntimeTransaction,
+  input: { invocationKey: IdempotencyKey; occurredAt: string },
+  record: DunningDecidedWorkflowRecord,
+): Promise<void> {
+  if (!record.notificationMessageId) return;
+  const occurredAt = new Date(input.occurredAt);
+  if (!Number.isFinite(occurredAt.valueOf()))
+    throw new Error("DUNNING_NOTIFICATION_OCCURRED_AT_INVALID");
+  await transaction
+    .insert(notificationDeliveries)
+    .values({
+      accountId: record.input.billingAccountId,
+      channel: "email",
+      alertKind: "collections_dunning",
+      subjectType: "invoice",
+      subjectId: record.input.invoiceId,
+      template: `collections.${record.decision.stage}.v1`,
+      recipients: [
+        ...new Set([
+          record.input.collectionsOwner,
+          ...record.input.billingRecipients,
+        ]),
+      ].sort(),
+      idempotencyKey: input.invocationKey,
+      status: "sent",
+      providerMessageId: record.notificationMessageId,
+      requestedAt: occurredAt,
+      deliveredAt: occurredAt,
+    })
+    .onConflictDoNothing({
+      target: notificationDeliveries.idempotencyKey,
+    });
 }
 
 const InvoiceIssuedWorkflowRecordSchema = z

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
-import { Button, Input, Select, Textarea } from "@clockwork/ui";
+import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
 
 import {
   CommerceApiError,
@@ -28,6 +28,7 @@ import {
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
 import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
+import { t } from "@/src/i18n/en";
 
 import type { SurfaceConfig, SurfaceKey } from "./surface-catalog";
 
@@ -117,10 +118,34 @@ function quotePayload(data: FormData) {
   };
 }
 
+/**
+ * Workflows whose submitted decision closes a commercial path. The selection
+ * lives in component state because the confirmation step has to know which
+ * branch is about to run before the form is read.
+ */
+function defaultDecision(
+  workflow: NonNullable<SurfaceConfig["workflow"]>,
+): string {
+  if (workflow === "renewal") return "renew";
+  if (workflow === "approval") return "approved";
+  return "";
+}
+
+function decisionIsDestructive(
+  workflow: NonNullable<SurfaceConfig["workflow"]>,
+  decision: string,
+): boolean {
+  if (workflow === "offboarding") return true;
+  if (workflow === "renewal") return decision === "decline";
+  if (workflow === "approval") return decision === "rejected";
+  return false;
+}
+
 function mutationFields(
   workflow: NonNullable<SurfaceConfig["workflow"]>,
   surface: SurfaceKey,
   activeAgreementTemplate?: ActiveAgreementTemplate,
+  onDecisionChange?: (decision: string) => void,
 ): ReactNode {
   if (workflow === "agreement")
     return (
@@ -489,6 +514,7 @@ function mutationFields(
           label="Renewal action"
           name="renewalAction"
           defaultValue="renew"
+          onChange={(event) => onDecisionChange?.(event.target.value)}
           options={[
             { value: "renew", label: "Renew" },
             { value: "change_term", label: "Change term" },
@@ -692,6 +718,7 @@ function mutationFields(
           label="Decision"
           name="decision"
           defaultValue="approved"
+          onChange={(event) => onDecisionChange?.(event.target.value)}
           options={[
             { value: "approved", label: "Approve" },
             { value: "rejected", label: "Reject" },
@@ -1003,7 +1030,11 @@ export function WorkflowPanel({
   const [agreementTemplateLoading, setAgreementTemplateLoading] = useState(
     workflow === "agreement",
   );
+  const [decision, setDecision] = useState(defaultDecision(workflow));
+  /** Bumped on confirmation so the uncontrolled dialog returns to its closed state. */
+  const [confirmations, setConfirmations] = useState(0);
   const errorRef = useRef<HTMLParagraphElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (workflow !== "agreement") return;
@@ -1404,6 +1435,25 @@ export function WorkflowPanel({
     }
   };
 
+  const destructive = decisionIsDestructive(workflow, decision);
+  const submitControl = (
+    <Button
+      type={destructive ? "button" : "submit"}
+      {...(destructive ? { variant: "danger" as const } : {})}
+      disabled={
+        pending || (workflow === "agreement" && !activeAgreementTemplate)
+      }
+    >
+      {workflow === "reports"
+        ? "View report"
+        : workflow === "payment"
+          ? "Open secure payment"
+          : workflow === "assisted"
+            ? "Create assisted quote"
+            : "Submit securely"}
+    </Button>
+  );
+
   return (
     <section
       className="workflow-panel"
@@ -1414,6 +1464,7 @@ export function WorkflowPanel({
         <h2 id={`workflow-title-${surface}`}>{titles[workflow]}</h2>
       </div>
       <form
+        ref={formRef}
         onSubmit={(event) => {
           void run(event);
         }}
@@ -1421,7 +1472,12 @@ export function WorkflowPanel({
       >
         {workflow === "reports"
           ? reportFields()
-          : mutationFields(workflow, surface, activeAgreementTemplate)}
+          : mutationFields(
+              workflow,
+              surface,
+              activeAgreementTemplate,
+              setDecision,
+            )}
         {agreementTemplateLoading ? (
           <p className="form-message" role="status">
             Loading the active counsel-approved CSA text…
@@ -1467,20 +1523,30 @@ export function WorkflowPanel({
           </pre>
         ) : null}
         <div className="form-actions">
-          <Button
-            type="submit"
-            disabled={
-              pending || (workflow === "agreement" && !activeAgreementTemplate)
-            }
-          >
-            {workflow === "reports"
-              ? "View report"
-              : workflow === "payment"
-                ? "Open secure payment"
-                : workflow === "assisted"
-                  ? "Create assisted quote"
-                  : "Submit securely"}
-          </Button>
+          {destructive ? (
+            <Dialog
+              key={confirmations}
+              title={t("workflow.confirm.title")}
+              description={t("workflow.confirm.description")}
+              closeLabel={t("workflow.confirm.cancel")}
+              trigger={submitControl}
+              footer={
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    setConfirmations((count) => count + 1);
+                    formRef.current?.requestSubmit();
+                  }}
+                >
+                  {t("workflow.confirm.action")}
+                </Button>
+              }
+            >
+              <p>{t("workflow.confirm.detail")}</p>
+            </Dialog>
+          ) : (
+            submitControl
+          )}
           {workflow === "reports" ? (
             <Button
               variant="secondary"
@@ -1509,6 +1575,9 @@ export function WorkflowPanel({
               setSuccess("");
               setReportResult(null);
               setProviderAction(null);
+              // The reset restores each select to its default, so the tracked
+              // decision has to follow or the confirmation step goes stale.
+              setDecision(defaultDecision(workflow));
             }}
           >
             Clear

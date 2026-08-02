@@ -29,13 +29,6 @@ export type QuoteField = keyof QuoteDraft;
 export type QuoteErrors = Partial<Record<QuoteField, string>>;
 
 export const quoteSelectorOptions = {
-  accounts: [
-    {
-      id: "11111111-1111-4111-8111-111111111111",
-      label: "Northstar Archive Labs",
-      description: "Direct customer · United States",
-    },
-  ],
   offers: [
     {
       id: "44444444-4444-4444-8444-444444444444",
@@ -64,6 +57,25 @@ export const quoteSelectorOptions = {
   ],
 } as const satisfies Record<string, readonly SelectorOption[]>;
 
+/**
+ * A draft carries no commercial facts of its own. Only the account, which the
+ * session already fixes, and the two select defaults are seeded; every priced
+ * value is entered against the current price book.
+ */
+export function emptyQuoteDraft(accountName: string): QuoteDraft {
+  return {
+    account: accountName,
+    offer: "",
+    region: "us-east",
+    capacity: "",
+    termMonths: "",
+    route: "direct",
+    endClient: "",
+    partner: "",
+    expiresAt: "",
+  };
+}
+
 export function resolveSelectorId(
   input: string,
   options: readonly SelectorOption[],
@@ -79,10 +91,11 @@ export function resolveSelectorId(
 export function validateQuoteStage(
   stage: QuoteStage,
   draft: QuoteDraft,
+  accounts: readonly SelectorOption[],
 ): QuoteErrors {
   const errors: QuoteErrors = {};
   if (stage === 1) {
-    if (!resolveSelectorId(draft.account, quoteSelectorOptions.accounts))
+    if (!resolveSelectorId(draft.account, accounts))
       errors.account = "Choose a customer from the available accounts.";
     if (!resolveSelectorId(draft.offer, quoteSelectorOptions.offers))
       errors.offer = "Choose an offer from the current price book.";
@@ -128,15 +141,15 @@ export function firstQuoteError(errors: QuoteErrors): QuoteField | undefined {
   return order.find((field) => Boolean(errors[field]));
 }
 
-export function quotePayload(draft: QuoteDraft) {
+export function quotePayload(
+  draft: QuoteDraft,
+  accounts: readonly SelectorOption[],
+) {
   const priceBookId = resolveSelectorId(
     draft.offer,
     quoteSelectorOptions.offers,
   );
-  const accountId = resolveSelectorId(
-    draft.account,
-    quoteSelectorOptions.accounts,
-  );
+  const accountId = resolveSelectorId(draft.account, accounts);
   const endClientAccountId = resolveSelectorId(
     draft.endClient,
     quoteSelectorOptions.endClients,
@@ -192,14 +205,14 @@ export function orderReviewSummary(input: {
   agreementVersion: string;
   poNumber?: string;
   serviceStart: string;
-  capacity: string;
+  scope: string;
   spend: string;
 }): OrderReviewSummary {
   return {
     quote: `${input.quoteTitle} · version ${input.quoteVersion} · accepted`,
     agreement: `${input.agreementTitle} · version ${input.agreementVersion} · active`,
     purchaseOrder: input.poNumber || "No purchase order supplied",
-    serviceStart: input.serviceStart,
-    commitment: `${input.capacity} committed · ${input.spend} estimated annual spend`,
+    serviceStart: input.serviceStart || "Not selected",
+    commitment: `${input.scope} · ${input.spend} estimated annual spend`,
   };
 }

@@ -1,72 +1,165 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { TermBar } from "@clockwork/ui";
+import { ApplicationStatePanel } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 import { getRouteRoles } from "@/src/features/shell/route-session";
+import { t } from "@/src/i18n/en";
 
-import { recordForSurface } from "./partner-data";
+import type { PartnerRecord, PartnerSurfaceKey } from "./partner-data";
 import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
 import styles from "./partner.module.css";
+
+const common = customerPartnerCopy.common;
+const partnerCopy = customerPartnerCopy.partner;
 
 function MissingRecord({ backHref }: { backHref: Route }) {
   return (
     <main className={styles.main} id="main-content">
-      <section className={styles.detailCard}>
-        <p className={styles.eyebrow}>Record unavailable</p>
-        <h1>This partner record was not found</h1>
-        <p className={styles.muted}>
-          It may have moved or your role may no longer have access.
-        </p>
-        <Link className={styles.buttonLink} href={backHref}>
-          Back to collection
-        </Link>
-      </section>
+      <div className={styles.state}>
+        <ApplicationStatePanel
+          state="empty"
+          title={t("partner.detail.notFound.title")}
+          description={t("partner.detail.notFound.description")}
+          action={
+            <Link className="cw-button cw-button--secondary" href={backHref}>
+              {t("partner.detail.notFound.action")}
+            </Link>
+          }
+        />
+      </div>
     </main>
   );
 }
 
-export function PartnerPortfolioDetail({ id }: { id: string }) {
-  const record = recordForSurface("portfolio", id);
+/**
+ * Detail surfaces read the same authorized projection the collection reads, so
+ * a record a partner cannot list is a record they cannot open.
+ */
+async function partnerRecordFor(
+  surface: PartnerSurfaceKey,
+  recordKey: string,
+): Promise<PartnerRecord | undefined> {
+  const projection = await loadPartnerRecords(surface);
+  return projection.records.find(
+    (record) => record.recordKey === recordKey || record.id === recordKey,
+  );
+}
+
+/**
+ * The partner projection carries one commercial position per record, never a
+ * separated transfer and resale figure. Both boundaries are labelled so the
+ * redaction rule stays visible, and each states that its own number is not
+ * recorded rather than borrowing one that belongs to a different record.
+ */
+function PriceBoundary() {
+  const notRecorded = t("partner.detail.notRecorded");
+  return (
+    <section
+      className={styles.boundary}
+      aria-label={t("partner.detail.quote.boundary")}
+    >
+      <div>
+        <h2>{partnerCopy.transferPrice}</h2>
+        <strong>{notRecorded}</strong>
+        <p>{t("partner.detail.transfer.description")}</p>
+      </div>
+      <div>
+        <h2>{partnerCopy.partnerPrice}</h2>
+        <strong>{notRecorded}</strong>
+        <p>{t("partner.detail.resale.description")}</p>
+      </div>
+      <div>
+        <h2>{partnerCopy.merchantOfRecord}</h2>
+        <strong>{notRecorded}</strong>
+        <p>{t("partner.detail.merchant.description")}</p>
+      </div>
+    </section>
+  );
+}
+
+function CommercialSummary({ record }: { record: PartnerRecord }) {
+  return (
+    <section className={styles.detailCard}>
+      <h2>{common.commercialSummary}</h2>
+      <dl>
+        <div>
+          <dt>{t("partner.detail.position")}</dt>
+          <dd>{record.value}</dd>
+        </div>
+        <div>
+          <dt>{t("partner.detail.milestone")}</dt>
+          <dd>{record.secondary}</dd>
+        </div>
+        <div>
+          <dt>{t("partner.detail.owner")}</dt>
+          <dd>{record.owner}</dd>
+        </div>
+        <div>
+          <dt>{t("partner.detail.risk")}</dt>
+          <dd>{record.risk}</dd>
+        </div>
+      </dl>
+      <p className={styles.gate}>{partnerCopy.boundary}</p>
+      <ProjectionEvidence record={record} />
+    </section>
+  );
+}
+
+function ProjectionEvidence({ record }: { record: PartnerRecord }) {
+  return (
+    <details className={styles.technical}>
+      <summary>{common.technicalDetails}</summary>
+      <p>
+        {t("partner.detail.reference")}: <code>{record.id}</code>
+      </p>
+      {record.projectionId ? (
+        <p>
+          {t("partner.detail.projection.record")}:{" "}
+          <code>{record.projectionId}</code>
+        </p>
+      ) : null}
+      {record.recordVersion === undefined ? null : (
+        <p>
+          {t("partner.detail.projection.version")}:{" "}
+          <code>{record.recordVersion}</code>
+        </p>
+      )}
+    </details>
+  );
+}
+
+export async function PartnerPortfolioDetail({
+  id,
+  actions,
+}: {
+  id: string;
+  /**
+   * Server-backed action for this end client, supplied by the route so the
+   * panel carries the route's own permission gate rather than a second guess
+   * at it.
+   */
+  actions?: ReactNode;
+}) {
+  const record = await partnerRecordFor("portfolio", id);
   if (!record) return <MissingRecord backHref="/partner/portfolio" />;
-  const common = customerPartnerCopy.common;
-  const commercial =
-    id === "EC-0041"
-      ? {
-          action: "Review commission eligibility",
-          due: "December 1, 2026",
-          transfer: "Not applicable on referral route",
-          resale: "Clockwork contracts directly with Solace",
-          merchant: "Clockwork",
-        }
-      : id === "EC-0047"
-        ? {
-            action: "Complete POC qualification",
-            due: "Today",
-            transfer: "£6,900 proposed · private to channel",
-            resale: "£8,400 proposed · not yet issued",
-            merchant: "Authorized downstream reseller after conversion",
-          }
-        : {
-            action: "Review renewal commitment",
-            due: "September 2, 2026",
-            transfer: "$91,200 annually · private to Meridian",
-            resale: "$112,000 annually · shown to Halcyon",
-            merchant: "Meridian Channel Group",
-          };
   return (
     <main className={styles.main} id="main-content">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link href="/partner">Partner desk</Link>
+        <Link href="/partner">{t("partner.title")}</Link>
         <span>/</span>
-        <Link href="/partner/portfolio">End-client portfolio</Link>
+        <Link href="/partner/portfolio">{t("partner.portfolio.title")}</Link>
         <span>/</span>
         <span aria-current="page">{record.name}</span>
       </nav>
       <header className={styles.detailHeading}>
         <div>
-          <p className={styles.eyebrow}>End-client commercial record</p>
+          <p className={styles.eyebrow}>
+            {t("partner.detail.portfolio.eyebrow")}
+          </p>
           <h1>{record.name}</h1>
           <p className={styles.muted}>{record.context}</p>
         </div>
@@ -78,302 +171,109 @@ export function PartnerPortfolioDetail({ id }: { id: string }) {
         <div className={styles.termHeader}>
           <div>
             <p className={styles.eyebrow}>{common.termState}</p>
-            <h2 id="client-term-title">Service and commercial term</h2>
+            <h2 id="client-term-title">{t("partner.detail.portfolio.term")}</h2>
           </div>
-          <strong>Next: {commercial.action}</strong>
+          <strong>{record.secondary}</strong>
         </div>
-        <TermBar
-          label={`${record.name} commercial clock`}
-          start={new Date("2026-01-01T00:00:00Z")}
-          noticeStart={new Date("2026-09-01T00:00:00Z")}
-          end={new Date("2026-12-31T00:00:00Z")}
-          now={new Date("2026-07-31T16:00:00Z")}
-          renewalState="auto-renews"
+        <ApplicationStatePanel
+          state="partial"
+          compact
+          title={t("partner.detail.term.unavailable.title")}
+          description={t("partner.detail.term.unavailable.description")}
         />
       </section>
+      <PriceBoundary />
       <div className={styles.detailsGrid}>
         <section className={styles.detailCard}>
           <h2>{common.nextAction}</h2>
           <dl>
             <div>
-              <dt>Action</dt>
-              <dd>{commercial.action}</dd>
+              <dt>{t("partner.detail.milestone")}</dt>
+              <dd>{record.secondary}</dd>
             </div>
             <div>
-              <dt>Owner</dt>
+              <dt>{t("partner.detail.owner")}</dt>
               <dd>{record.owner}</dd>
             </div>
-            <div>
-              <dt>Due</dt>
-              <dd>{commercial.due}</dd>
-            </div>
           </dl>
         </section>
-        <section className={styles.detailCard}>
-          <h2>{common.commercialSummary}</h2>
-          <dl>
-            <div>
-              <dt>{customerPartnerCopy.partner.transferPrice}</dt>
-              <dd>{commercial.transfer}</dd>
-            </div>
-            <div>
-              <dt>{customerPartnerCopy.partner.partnerPrice}</dt>
-              <dd>{commercial.resale}</dd>
-            </div>
-            <div>
-              <dt>{customerPartnerCopy.partner.merchantOfRecord}</dt>
-              <dd>{commercial.merchant}</dd>
-            </div>
-          </dl>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.artifactChain}</h2>
-          <dl>
-            <div>
-              <dt>Agreement</dt>
-              <dd>Meridian Channel Partner Agreement · v4.1</dd>
-            </div>
-            <div>
-              <dt>Quote</dt>
-              <dd>Halcyon archive quote · accepted v2</dd>
-            </div>
-            <div>
-              <dt>Order</dt>
-              <dd>Halcyon primary archive · active</dd>
-            </div>
-            <div>
-              <dt>Invoice</dt>
-              <dd>
-                July consolidated invoice · awaiting provider payment truth
-              </dd>
-            </div>
-          </dl>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.documents}</h2>
-          <dl>
-            <div>
-              <dt>End-client artifact</dt>
-              <dd>Partner-priced order form · v2</dd>
-            </div>
-            <div>
-              <dt>Partner artifact</dt>
-              <dd>Transfer-price schedule · v2 · partner private</dd>
-            </div>
-          </dl>
-          <details className={styles.technical}>
-            <summary>{common.technicalDetails}</summary>
-            <p>
-              End-client account ID:{" "}
-              <code>33333333-3333-4333-8333-333333333333</code>
-            </p>
-            <p>
-              Order ID: <code>cccccccc-cccc-4ccc-8ccc-cccccccccccc</code>
-            </p>
-            <p>
-              Artifact hash: <code>bb0ac4a19c3f…</code>
-            </p>
-          </details>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.auditEvidence}</h2>
-          <dl>
-            <div>
-              <dt>Jul 31 · 3:42 PM</dt>
-              <dd>Usage projection reconciled by system</dd>
-            </div>
-            <div>
-              <dt>Jul 22 · 10:16 AM</dt>
-              <dd>Partner-priced quote accepted by Halcyon authority</dd>
-            </div>
-            <div>
-              <dt>Jul 22 · 10:17 AM</dt>
-              <dd>Transfer-price artifact retained for Meridian</dd>
-            </div>
-          </dl>
-        </section>
+        <CommercialSummary record={record} />
       </div>
+      {actions}
     </main>
   );
 }
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
-  const record = recordForSurface("quotes", id);
+  const [record, roles] = await Promise.all([
+    partnerRecordFor("quotes", id),
+    getRouteRoles("partner"),
+  ]);
   if (!record) return <MissingRecord backHref="/partner/quotes" />;
-  const roles = await getRouteRoles("partner");
   const role = currentPartnerRole(roles) ?? "partner_seller";
   const actions = validPartnerQuoteActions(record.status, role);
-  const common = customerPartnerCopy.common;
   return (
     <main className={styles.main} id="main-content">
       <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-        <Link href="/partner">Partner desk</Link>
+        <Link href="/partner">{t("partner.title")}</Link>
         <span>/</span>
-        <Link href="/partner/quotes">Partner quotes</Link>
+        <Link href="/partner/quotes">{t("partner.quotes.title")}</Link>
         <span>/</span>
         <span aria-current="page">{record.name}</span>
       </nav>
       <header className={styles.detailHeading}>
         <div>
-          <p className={styles.eyebrow}>Partner resale quote</p>
+          <p className={styles.eyebrow}>{t("partner.detail.quote.eyebrow")}</p>
           <h1>{record.name}</h1>
-          <p className={styles.muted}>Revision 3 · {record.context}</p>
+          <p className={styles.muted}>{record.context}</p>
         </div>
         <span className={styles.pill} data-tone={record.status}>
           {record.status}
         </span>
       </header>
-      <section className={styles.boundary} aria-label="Quote price boundary">
-        <div>
-          <h2>{customerPartnerCopy.partner.transferPrice}</h2>
-          <p>$184,800 · private partner artifact</p>
-        </div>
-        <div>
-          <h2>{customerPartnerCopy.partner.partnerPrice}</h2>
-          <p>$218,400 · end-client artifact</p>
-        </div>
-        <div>
-          <h2>{customerPartnerCopy.partner.merchantOfRecord}</h2>
-          <p>Meridian Channel Group</p>
-        </div>
-      </section>
+      <PriceBoundary />
       <section className={styles.summary} aria-labelledby="valid-actions-title">
         <div className={styles.sectionHeader}>
           <div>
             <p className={styles.eyebrow}>{common.nextAction}</p>
             <h2 id="valid-actions-title">
-              Valid actions for this {record.status} quote
+              {t("partner.detail.quote.actions")}
             </h2>
           </div>
         </div>
         <div className={styles.actions}>
           {actions.includes("edit") ? (
             <Link className={styles.buttonLink} href="/partner/quotes/new">
-              Edit draft
+              {t("partner.detail.quote.edit")}
             </Link>
           ) : null}
           {actions.includes("revise") ? (
             <Link className={styles.buttonLink} href="/partner/quotes/new">
-              Create revision
+              {t("partner.detail.quote.revise")}
             </Link>
           ) : null}
         </div>
         {actions.includes("issue") ? (
           <p className={styles.gate}>
-            <strong>Issue is gated:</strong> Clockwork must first prepare and
-            bind separate end-client and partner artifacts. The action appears
-            after both artifacts are ready, then opens review and confirmation.
+            <strong>{t("partner.detail.quote.issue.title")}:</strong>{" "}
+            {t("partner.detail.quote.issue.description")}
           </p>
         ) : null}
         {actions.includes("cancel") ? (
           <p className={styles.gate}>
-            <strong>Cancellation is unavailable here:</strong> the current
-            commerce contract has no partner quote-cancel command. Contact
-            channel operations; no dead primary action is presented.
+            <strong>{t("partner.detail.quote.cancel.title")}:</strong>{" "}
+            {t("partner.detail.quote.cancel.description")}
           </p>
         ) : null}
         {actions.includes("download") ? (
           <p className={styles.gate}>
-            <strong>Download is provider-gated:</strong> the immutable artifact
-            link appears only when the document service returns a retained
-            partner-visible document.
+            <strong>{t("partner.detail.quote.download.title")}:</strong>{" "}
+            {t("partner.detail.quote.download.description")}
           </p>
         ) : null}
       </section>
       <div className={styles.detailsGrid}>
-        <section className={styles.detailCard}>
-          <h2>{common.commercialSummary}</h2>
-          <dl>
-            <div>
-              <dt>Offer</dt>
-              <dd>US committed archive · USD 2026.3</dd>
-            </div>
-            <div>
-              <dt>Capacity and term</dt>
-              <dd>400 TB · 12 months</dd>
-            </div>
-            <div>
-              <dt>Expiry</dt>
-              <dd>August 6, 2026 at 5:00 PM ET</dd>
-            </div>
-          </dl>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.termState}</h2>
-          <dl>
-            <div>
-              <dt>Quote clock</dt>
-              <dd>Open · 6 days remaining</dd>
-            </div>
-            <div>
-              <dt>Service term</dt>
-              <dd>12 months after accepted order start</dd>
-            </div>
-            <div>
-              <dt>Renewal</dt>
-              <dd>No renewal commitment exists until order acceptance</dd>
-            </div>
-          </dl>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.artifactChain}</h2>
-          <dl>
-            <div>
-              <dt>Registration</dt>
-              <dd>Halcyon expansion · protected</dd>
-            </div>
-            <div>
-              <dt>Agreement</dt>
-              <dd>Meridian Channel Partner Agreement · v4.1</dd>
-            </div>
-            <div>
-              <dt>Quote</dt>
-              <dd>Halcyon archive expansion · revision 3</dd>
-            </div>
-          </dl>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.documents}</h2>
-          <dl>
-            <div>
-              <dt>End-client quote</dt>
-              <dd>Meridian resale price · prepared</dd>
-            </div>
-            <div>
-              <dt>Partner schedule</dt>
-              <dd>Clockwork transfer price · partner private · prepared</dd>
-            </div>
-          </dl>
-          <details className={styles.technical}>
-            <summary>{common.technicalDetails}</summary>
-            <p>
-              Quote ID: <code>88888888-8888-4888-8888-888888888888</code>
-            </p>
-            <p>
-              Series ID: <code>27f63a6f-54bc-4eaa-8a0b-31e296c64b7d</code>
-            </p>
-            <p>
-              Source hash: <code>884e3c937be1…</code>
-            </p>
-          </details>
-        </section>
-        <section className={styles.detailCard}>
-          <h2>{common.auditEvidence}</h2>
-          <dl>
-            <div>
-              <dt>Jul 31 · 3:42 PM</dt>
-              <dd>Revision 3 created by Juno Okafor</dd>
-            </div>
-            <div>
-              <dt>Jul 31 · 3:42 PM</dt>
-              <dd>Server pricing passed transfer margin policy</dd>
-            </div>
-            <div>
-              <dt>Jul 31 · 3:43 PM</dt>
-              <dd>Partner and end-client artifacts prepared separately</dd>
-            </div>
-          </dl>
-        </section>
+        <CommercialSummary record={record} />
       </div>
     </main>
   );

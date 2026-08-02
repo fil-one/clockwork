@@ -4,11 +4,11 @@ export const QUEUE_COPY = {
   title: "Operational queues",
   description:
     "Prioritized policy, provider, and lifecycle work with clear ownership and evidence.",
-  freshness: "Live sources checked 9 min ago",
+  freshness: "Projection generated",
   staleTitle: "Data may be stale.",
   staleDescription:
-    "The provider feed was last refreshed 2 hours ago. Decisions should be verified against the source.",
-  staleAction: "Retry refresh",
+    "At least one record is past its refresh window. Decisions should be verified against the source.",
+  staleAction: "Refresh projection",
   savedViewsLabel: "Saved queue views",
   filtersTitle: "Filter queue",
   filtersDescription:
@@ -44,14 +44,6 @@ export const QUEUE_COPY = {
     "no-match": [
       "No work matches these filters",
       "Clear one or more filters to broaden the result set.",
-    ],
-    permission: [
-      "You can’t view this queue",
-      "Your role does not include the evidence scope required for these records.",
-    ],
-    error: [
-      "Queue data couldn’t be fetched",
-      "Your filter state is safe. Try the request again.",
     ],
   },
   details: {

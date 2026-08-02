@@ -1,11 +1,4 @@
-import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+import { ResaleQuoteBuilder } from "@/src/features/customer-partner/partner/resale-quote-builder";
 export default function Page() {
-  return (
-    <ProjectionDetailPage
-      audience="partner"
-      channel="quotes"
-      title="Partner quote task"
-      description="Start from an authorized registration or quote record; pricing remains server authoritative."
-    />
-  );
+  return <ResaleQuoteBuilder />;
 }

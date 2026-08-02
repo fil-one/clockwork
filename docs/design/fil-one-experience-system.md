@@ -1,16 +1,20 @@
 # Fil One experience system
 
-Status: repository-qualified implementation using neutral assets; `EXT-BRAND-01`
-licensed assets and any human design approval are future launch-only inputs and
-are not claimed here
+Status: the Fil One wordmark files and the brand palette are integrated. The
+remaining `EXT-BRAND-01` inputs are licensed webfont files and their rights,
+claims-approved copy, and legal entity and footer content. Human design approval
+is a future launch-only input and is not claimed here.
 
 ## Product idea
 
 Fil One commerce is a chain of promises: agreement, quote, order, service,
 evidence, invoice, and retention outcome. The visual system makes that chain
 legible. It uses lines, aligned facts, document-like typography, and restrained
-color instead of a floating tile aesthetic. Licensed marks are not assumed; the
-text wordmark remains neutral until `EXT-BRAND-01` is genuinely active.
+color instead of a floating tile aesthetic. The supplied Fil One marks live in
+`apps/web/public/brand/` and render through `BrandLogo`, which falls back to the
+text wordmark when a surface passes no asset path. The application shell and the
+signing surface use the wordmark; the icon variants are available to surfaces
+that need a square mark.
 
 ## Typography
 
@@ -37,17 +41,27 @@ containers do not.
 
 ## Color
 
-- Evergreen (`#245a40`) marks available primary action and confirmed success.
-- Ink (`#172019`) carries primary content; slate (`#5b675f`) carries supporting
-  content.
-- Paper (`#fffefa`) and canvas (`#f5f3ed`) provide document-like layers.
-- Blue (`#075fc5`) is reserved for focus and links; it is never repurposed as a
+The values below are the live tokens in `packages/ui/src/styles.css`.
+
+- The mark's blue (`--cw-brand`, `#0090ff`) fills shapes and draws the mark. It
+  never carries text.
+- Available primary action uses `--cw-brand-strong` (`#0067cc`) with white text
+  and deepens to `--cw-brand-ink` (`#06305c`) on hover. `--cw-brand-ink` is also
+  the text-weight blue for links and emphasis, and `--cw-brand-soft` (`#dff1ff`)
+  is the tinted background.
+- Ink (`#172019`) carries primary content, `--cw-ink-soft` (`#344039`) carries
+  secondary content, muted (`#5b675f`) carries supporting content, and faint
+  (`#7c867f`) carries annotation.
+- Surface (`#ffffff`) sits on canvas (`#f4f6f8`) and canvas-deep (`#e7ebef`).
+  Borders are `#e3e7ec`, strengthening to `#7c8794` where a boundary must carry
+  meaning.
+- Green (`#2d6a49`) marks confirmed success, blue-grey (`#2e6383`) information,
+  amber (`#8a5719`) warning, and red (`#9a3434`) failure. Each appears with a
+  textual state or icon and never as the only signal.
+- Violet (`#7a3df5`) is reserved for the focus ring; it is never repurposed as a
   status.
-- Amber and red always appear with a textual state/icon and never as the only
-  signal.
-- Customer, partner, and operator accents differ through composition first, then
-  restrained tokens: customer evergreen/document; partner ochre/ledger; operator
-  graphite/terminal-blue.
+- Customer, partner, and operator surfaces share one token set and differ
+  through composition and structure rather than through per-audience color.
 
 Contrast evidence is automated with Axe and browser checks. Token pairs target
 at least 4.5:1 for ordinary text and 3:1 for large text/non-text boundaries.

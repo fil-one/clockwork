@@ -8,6 +8,7 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import { t } from "@/src/i18n/en";
 
 import {
   clientOptions,
@@ -39,7 +40,8 @@ export function ResaleQuoteBuilder() {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
-  const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState("");
+  const [failure, setFailure] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const submissionRef = useRef<{
     idempotencyKey: string;
@@ -56,7 +58,8 @@ export function ResaleQuoteBuilder() {
     setErrors((current) => ({ ...current, [key]: undefined }));
     submissionRef.current = null;
     setSucceeded(false);
-    setMessage("");
+    setNotice("");
+    setFailure("");
   }
 
   function focusFirstInvalid(nextErrors: QuoteValidation) {
@@ -72,11 +75,9 @@ export function ResaleQuoteBuilder() {
   }
 
   function advance() {
-    const nextErrors = validateResaleQuoteStage(
-      stage,
-      draft,
-      new Date("2026-07-31T16:00:00Z"),
-    );
+    // Expiry is validated against the clock at the moment of the interaction,
+    // so a stale tab cannot accept an expiry that has already passed.
+    const nextErrors = validateResaleQuoteStage(stage, draft, new Date());
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
     setStage((current) => (current === 1 ? 2 : 3));
@@ -84,16 +85,13 @@ export function ResaleQuoteBuilder() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextErrors = validateResaleQuoteStage(
-      3,
-      draft,
-      new Date("2026-07-31T16:00:00Z"),
-    );
+    const nextErrors = validateResaleQuoteStage(3, draft, new Date());
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
     if (!confirmed) return;
     setPending(true);
-    setMessage("");
+    setNotice("");
+    setFailure("");
     try {
       submissionRef.current ??= {
         idempotencyKey: crypto.randomUUID(),
@@ -112,14 +110,10 @@ export function ResaleQuoteBuilder() {
         { idempotencyKey: submission.idempotencyKey },
       );
       setSucceeded(true);
-      setMessage(
-        "Draft created from server pricing. Review the server-returned transfer price before using the valid Issue action.",
-      );
+      setNotice(t("partner.quote.new.success"));
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "The quote could not be created. Nothing changed.",
+      setFailure(
+        error instanceof Error ? error.message : t("partner.quote.new.failure"),
       );
     } finally {
       setPending(false);
@@ -129,6 +123,15 @@ export function ResaleQuoteBuilder() {
   const offerId = resolveSelectorId(draft.offerName, offerOptions);
   const endClientId = resolveSelectorId(draft.endClientName, clientOptions);
   const summary = quoteReviewSummary(draft);
+  // A disabled primary action always says what would enable it.
+  const submitReason =
+    stage < 3
+      ? ""
+      : succeeded
+        ? t("partner.quote.new.disabled.created")
+        : confirmed
+          ? ""
+          : t("partner.quote.new.disabled.unconfirmed");
 
   return (
     <main className={styles.main} id="main-content">
@@ -388,14 +391,25 @@ export function ResaleQuoteBuilder() {
                 type="submit"
                 disabled={!confirmed || succeeded}
                 loading={pending}
+                aria-describedby={submitReason ? "submit-reason" : undefined}
               >
                 Create priced draft
               </Button>
             )}
           </div>
-          {message ? (
+          {submitReason ? (
+            <p className={styles.muted} id="submit-reason">
+              {submitReason}
+            </p>
+          ) : null}
+          {failure ? (
+            <p className={styles.failure} role="alert">
+              {failure}
+            </p>
+          ) : null}
+          {notice ? (
             <p className={styles.success} role="status">
-              {message}
+              {notice}
             </p>
           ) : null}
         </form>

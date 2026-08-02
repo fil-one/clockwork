@@ -1,11 +1,5 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { OperationsHome } from "@/src/features/internal-ops/operations-home/operations-home";
 
 export default function Page() {
-  return (
-    <InternalProjectionPage
-      channel="dashboard"
-      title="Operator home"
-      description="Choose the highest-priority authorized task from current system projections."
-    />
-  );
+  return <OperationsHome />;
 }

@@ -4,51 +4,72 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { requestOffboarding } from "@/src/features/contracts/commerce-client";
+import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 
-const services = [
-  {
-    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-    label: "Northstar primary archive · 500 TB · ends Dec 31, 2026",
-    name: "Northstar primary archive",
-  },
-  {
-    id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
-    label: "Madrid compliance replica · 120 TB · ends Jul 31, 2027",
-    name: "Madrid compliance replica",
-  },
-] as const;
+export interface OffboardableService {
+  id: string;
+  reference: string;
+  name: string;
+  label: string;
+}
 
-export function OffboardingWorkflow() {
+export function OffboardingWorkflow({
+  account,
+  services,
+  selectedServiceId,
+}: {
+  account: { id: string; name: string };
+  services: readonly OffboardableService[];
+  selectedServiceId?: string;
+}) {
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
-    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    selectedServiceId ?? services[0]?.id ?? "",
   );
   const [reason, setReason] = useState("non_renewal");
-  const [effectiveAt, setEffectiveAt] = useState("2026-12-31T23:59");
+  const [effectiveAt, setEffectiveAt] = useState("");
   const [retrievalDays, setRetrievalDays] = useState("30");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
+  const [requested, setRequested] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
-  const selectedService =
-    services.find((service) => service.id === orderId) ?? services[0];
+  const selectedService = services.find((service) => service.id === orderId);
 
   const submit = async () => {
-    if (!confirmed) {
-      document.getElementById("offboarding-confirmation")?.focus();
+    if (!selectedService) return;
+    const invalid = !effectiveAt
+      ? {
+          id: "effective-at",
+          message: t("account.offboarding.validation.effectiveAt"),
+        }
+      : !confirmed
+        ? {
+            id: "offboarding-confirmation",
+            message: t("account.offboarding.validation.confirmation"),
+          }
+        : undefined;
+    if (invalid) {
+      setValidationError(invalid);
+      document.getElementById(invalid.id)?.focus();
       return;
     }
+    setValidationError(null);
     setPending(true);
     setError("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       await requestOffboarding(
         {
-          accountId: "11111111-1111-4111-8111-111111111111",
+          accountId: account.id,
           orderId,
           reason: reason as
             | "customer_request"
@@ -62,14 +83,13 @@ export function OffboardingWorkflow() {
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
-      setMessage(
-        "The server recorded the offboarding request for controlled approval. Service has not been torn down.",
-      );
+      setRequested(true);
+      setMessage(t("account.offboarding.requested"));
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : "The offboarding request could not be submitted.",
+          : t("account.offboarding.failed"),
       );
     } finally {
       setPending(false);
@@ -93,141 +113,195 @@ export function OffboardingWorkflow() {
         </Link>
       </header>
 
-      <div className={styles.workflowGrid}>
-        <section className={`${styles.panel} ${styles.workflow}`}>
-          <div className={styles.formGrid}>
-            <div className={`${styles.field} ${styles.spanTwo}`}>
-              <label htmlFor="offboarding-service">Service</label>
-              <select
-                id="offboarding-service"
-                onChange={(event) => setOrderId(event.target.value)}
-                value={orderId}
-              >
-                {services.map((service) => (
-                  <option value={service.id} key={service.id}>
-                    {service.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.field}>
-              <label htmlFor="offboarding-reason">Reason</label>
-              <select
-                id="offboarding-reason"
-                onChange={(event) => setReason(event.target.value)}
-                value={reason}
-              >
-                <option value="non_renewal">Non-renewal</option>
-                <option value="customer_request">Customer request</option>
-                <option value="material_breach">Material breach</option>
-              </select>
-            </div>
-            <div className={styles.field}>
-              <label htmlFor="retrieval-days">Retrieval window</label>
-              <select
-                id="retrieval-days"
-                onChange={(event) => setRetrievalDays(event.target.value)}
-                value={retrievalDays}
-              >
-                <option value="30">30 days</option>
-                <option value="60">60 days</option>
-                <option value="90">90 days</option>
-              </select>
-            </div>
-            <div className={`${styles.field} ${styles.spanTwo}`}>
-              <label htmlFor="effective-at">Requested effective time</label>
-              <input
-                id="effective-at"
-                onChange={(event) => setEffectiveAt(event.target.value)}
-                required
-                type="datetime-local"
-                value={effectiveAt}
-              />
-            </div>
-          </div>
-          <button
-            className={styles.secondary}
-            onClick={() => setReviewing(true)}
-            type="button"
-          >
-            {customerPartnerCopy.commercial.confirmMutation}
-          </button>
+      {services.length === 0 ? (
+        <section className={styles.state} role="status">
+          <h2>{t("account.offboarding.empty.title")}</h2>
+          <p>{t("account.offboarding.empty.description")}</p>
+          <Link className={styles.secondary} href="/orders">
+            {t("account.offboarding.empty.action")}
+          </Link>
         </section>
-
-        <aside
-          className={styles.summary}
-          aria-labelledby="offboarding-review-title"
-        >
-          <div>
-            <p className={styles.eyebrow}>Safeguarded request</p>
-            <h2 id="offboarding-review-title">Review impact</h2>
-          </div>
-          {reviewing ? (
-            <>
-              <ul className={styles.reviewList}>
-                <li>
-                  <span>Service</span>
-                  <strong>{selectedService.name}</strong>
-                </li>
-                <li>
-                  <span>Requested effective time</span>
-                  <strong>{effectiveAt}</strong>
-                </li>
-                <li>
-                  <span>Retrieval window</span>
-                  <strong>{retrievalDays} days</strong>
-                </li>
-                <li>
-                  <span>Approval</span>
-                  <strong>Two distinct approvers required</strong>
-                </li>
-              </ul>
-              <label
-                className={styles.check}
-                htmlFor="offboarding-confirmation"
-              >
+      ) : (
+        <div className={styles.workflowGrid}>
+          <section className={`${styles.panel} ${styles.workflow}`}>
+            <div className={styles.formGrid}>
+              <div className={`${styles.field} ${styles.spanTwo}`}>
+                <label htmlFor="offboarding-service">
+                  {t("account.offboarding.service")}
+                </label>
+                <select
+                  id="offboarding-service"
+                  onChange={(event) => {
+                    setOrderId(event.target.value);
+                    setValidationError(null);
+                    idempotencyKeyRef.current = null;
+                  }}
+                  value={orderId}
+                >
+                  {services.map((service) => (
+                    <option value={service.id} key={service.id}>
+                      {service.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="offboarding-reason">Reason</label>
+                <select
+                  id="offboarding-reason"
+                  onChange={(event) => setReason(event.target.value)}
+                  value={reason}
+                >
+                  <option value="non_renewal">Non-renewal</option>
+                  <option value="customer_request">Customer request</option>
+                  <option value="material_breach">Material breach</option>
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="retrieval-days">Retrieval window</label>
+                <select
+                  id="retrieval-days"
+                  onChange={(event) => setRetrievalDays(event.target.value)}
+                  value={retrievalDays}
+                >
+                  <option value="30">30 days</option>
+                  <option value="60">60 days</option>
+                  <option value="90">90 days</option>
+                </select>
+              </div>
+              <div className={`${styles.field} ${styles.spanTwo}`}>
+                <label htmlFor="effective-at">Requested effective time</label>
                 <input
-                  checked={confirmed}
-                  id="offboarding-confirmation"
-                  onChange={(event) => setConfirmed(event.target.checked)}
-                  type="checkbox"
+                  aria-describedby={
+                    validationError?.id === "effective-at"
+                      ? "offboarding-validation"
+                      : undefined
+                  }
+                  aria-invalid={
+                    validationError?.id === "effective-at" || undefined
+                  }
+                  id="effective-at"
+                  onChange={(event) => {
+                    setEffectiveAt(event.target.value);
+                    setValidationError(null);
+                    idempotencyKeyRef.current = null;
+                  }}
+                  required
+                  type="datetime-local"
+                  value={effectiveAt}
                 />
-                <span>
-                  I reviewed the term, retrieval window, retention safeguards,
-                  and approval requirement.
-                </span>
-              </label>
-              {message ? (
-                <p className={styles.successMessage} role="status">
-                  {message}
-                </p>
-              ) : null}
-              {error ? (
-                <p className={styles.errorMessage} role="alert">
-                  {error}
-                </p>
-              ) : null}
-              <button
-                className={styles.primary}
-                disabled={pending || Boolean(message)}
-                onClick={() => {
-                  void submit();
-                }}
-                type="button"
-              >
-                {pending
-                  ? "Submitting…"
-                  : "Submit controlled offboarding request"}
-              </button>
-            </>
-          ) : (
-            <p className={styles.notice}>
-              Select the service, reason, effective time, and retrieval window,
-              then open the final confirmation.
-            </p>
-          )}
-        </aside>
-      </div>
+              </div>
+            </div>
+            <button
+              className={styles.secondary}
+              onClick={() => setReviewing(true)}
+              type="button"
+            >
+              {customerPartnerCopy.commercial.confirmMutation}
+            </button>
+          </section>
+
+          <aside
+            className={styles.summary}
+            aria-labelledby="offboarding-review-title"
+          >
+            <div>
+              <p className={styles.eyebrow}>Safeguarded request</p>
+              <h2 id="offboarding-review-title">Review impact</h2>
+            </div>
+            {reviewing ? (
+              <>
+                <ul className={styles.reviewList}>
+                  <li>
+                    <span>Service</span>
+                    <strong>{selectedService?.name ?? "Not selected"}</strong>
+                  </li>
+                  <li>
+                    <span>Requested effective time</span>
+                    <strong>{effectiveAt || "Not selected"}</strong>
+                  </li>
+                  <li>
+                    <span>Retrieval window</span>
+                    <strong>{retrievalDays} days</strong>
+                  </li>
+                  <li>
+                    <span>Approval</span>
+                    <strong>Two distinct approvers required</strong>
+                  </li>
+                </ul>
+                <label
+                  className={styles.check}
+                  htmlFor="offboarding-confirmation"
+                >
+                  <input
+                    aria-describedby={
+                      validationError?.id === "offboarding-confirmation"
+                        ? "offboarding-validation"
+                        : undefined
+                    }
+                    aria-invalid={
+                      validationError?.id === "offboarding-confirmation" ||
+                      undefined
+                    }
+                    checked={confirmed}
+                    id="offboarding-confirmation"
+                    onChange={(event) => {
+                      setConfirmed(event.target.checked);
+                      setValidationError(null);
+                    }}
+                    type="checkbox"
+                  />
+                  <span>
+                    I reviewed the term, retrieval window, retention safeguards,
+                    and approval requirement.
+                  </span>
+                </label>
+                {validationError ? (
+                  <p
+                    className={styles.errorMessage}
+                    id="offboarding-validation"
+                    role="alert"
+                  >
+                    {validationError.message}
+                  </p>
+                ) : null}
+                {message ? (
+                  <p className={styles.successMessage} role="status">
+                    {message}{" "}
+                    {requested && selectedService ? (
+                      <Link href={`/orders/${selectedService.reference}`}>
+                        {t("account.offboarding.requestedLink")}
+                      </Link>
+                    ) : null}
+                  </p>
+                ) : null}
+                {error ? (
+                  <p className={styles.errorMessage} role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <button
+                  className={styles.primary}
+                  disabled={pending || Boolean(message)}
+                  onClick={() => {
+                    void submit();
+                  }}
+                  type="button"
+                >
+                  {pending
+                    ? "Submitting…"
+                    : "Submit controlled offboarding request"}
+                </button>
+              </>
+            ) : (
+              <p className={styles.notice}>
+                Select the service, reason, effective time, and retrieval
+                window, then open the final confirmation.
+              </p>
+            )}
+          </aside>
+        </div>
+      )}
     </main>
   );
 }

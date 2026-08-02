@@ -25,6 +25,7 @@ export type LifecycleAggregateLoader =
   | "signature_envelope"
   | "provisioning_attempt"
   | "poc"
+  | "quote"
   | "order"
   | "termination"
   | "exception_case"
@@ -135,6 +136,12 @@ export const lifecycleTaskExecutionSpecs: Readonly<
     "plan_poc_conversion",
     "provisioning_provider",
   ),
+  "lifecycle-quotes-expiry-alerts-v1": executionSpec(
+    "lifecycle-quotes-expiry-alerts-v1",
+    "quote",
+    "plan_quote_expiry_alert",
+    "notification_provider",
+  ),
   "lifecycle-renewals-term-alerts-v1": executionSpec(
     "lifecycle-renewals-term-alerts-v1",
     "order",
@@ -225,6 +232,7 @@ const aggregateIdKeys = {
   "lifecycle-agreements-": ["agreementId", "envelopeId"],
   "lifecycle-provisioning-": ["orderId", "provisioningAttemptId"],
   "lifecycle-pocs-": ["pocId"],
+  "lifecycle-quotes-": ["quoteId"],
   "lifecycle-renewals-": ["orderId", "renewalId"],
   "lifecycle-offboarding-": ["terminationId", "orderId"],
   "lifecycle-exceptions-": ["caseId", "exceptionCaseId"],

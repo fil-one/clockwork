@@ -3,10 +3,26 @@ import type { Route } from "next";
 
 import { StatusBadge } from "@clockwork/ui";
 
+import { t } from "@/src/i18n/en";
+
 import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
 
 const copy = customerPartnerCopy.customer;
+
+/**
+ * The badge reports the term's own renewal position. An open notice window is
+ * the decision that matters, so it outranks the renewal type.
+ */
+function renewalTone(
+  term: CustomerDashboardProjection["term"],
+): "neutral" | "success" | "warning" {
+  if (/^opened\b/iu.test(term.noticeLabel)) return "warning";
+  const state = term.renewalState.toLocaleLowerCase();
+  if (state.includes("auto")) return "success";
+  if (state.includes("expire")) return "warning";
+  return "neutral";
+}
 
 export interface CustomerDashboardProjection {
   generatedAt: string;
@@ -91,6 +107,11 @@ export function CustomerDashboard({
             </time>
           </p>
         </div>
+        {projection.obligations.length === 0 ? (
+          <p className={styles.permissionNote}>
+            {t("dashboard.empty.obligations")}
+          </p>
+        ) : null}
         <ol className={styles.obligationList}>
           {projection.obligations.map((item) => (
             <li key={item.id}>
@@ -126,7 +147,7 @@ export function CustomerDashboard({
               <h2 id="term-title">{projection.term.title}</h2>
               <p className={styles.termRange}>{projection.term.rangeLabel}</p>
             </div>
-            <StatusBadge tone="success">
+            <StatusBadge tone={renewalTone(projection.term)}>
               {projection.term.renewalState}
             </StatusBadge>
           </div>
@@ -163,14 +184,20 @@ export function CustomerDashboard({
               {projection.services.length} services
             </span>
           </summary>
-          <ul className={styles.serviceList}>
-            {projection.services.map((service) => (
-              <li key={service.id}>
-                <strong>{service.name}</strong>
-                <span>{service.detail}</span>
-              </li>
-            ))}
-          </ul>
+          {projection.services.length === 0 ? (
+            <p className={styles.permissionNote}>
+              {t("dashboard.empty.services")}
+            </p>
+          ) : (
+            <ul className={styles.serviceList}>
+              {projection.services.map((service) => (
+                <li key={service.id}>
+                  <strong>{service.name}</strong>
+                  <span>{service.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </details>
       </div>
 
@@ -199,15 +226,21 @@ export function CustomerDashboard({
           </section>
           <section aria-labelledby="activity-title">
             <h2 id="activity-title">{copy.activityTitle}</h2>
-            <ol className={styles.activityList}>
-              {projection.activity.map((item) => (
-                <li key={item.id}>
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                  <time dateTime={item.occurredAt}>{item.occurredLabel}</time>
-                </li>
-              ))}
-            </ol>
+            {projection.activity.length === 0 ? (
+              <p className={styles.permissionNote}>
+                {t("dashboard.empty.activity")}
+              </p>
+            ) : (
+              <ol className={styles.activityList}>
+                {projection.activity.map((item) => (
+                  <li key={item.id}>
+                    <strong>{item.title}</strong>
+                    <span>{item.detail}</span>
+                    <time dateTime={item.occurredAt}>{item.occurredLabel}</time>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
         </div>
       </details>

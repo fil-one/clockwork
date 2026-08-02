@@ -30,7 +30,6 @@ export function ProvisioningView() {
       description={lifecycleCopy.provisioning.description}
       freshness={lifecycleCopy.provisioning.freshness}
       source={lifecycleCopy.provisioning.source}
-      permission="system:operate"
     >
       <section
         className={styles.summaryGrid}

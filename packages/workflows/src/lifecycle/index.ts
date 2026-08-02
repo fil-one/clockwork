@@ -6,6 +6,7 @@ export * from "../onboarding";
 export * from "../onboarding/trigger-runtime";
 export * from "../pocs";
 export * from "../provisioning";
+export * from "../quotes";
 export * from "../renewals";
 
 import { agreementTaskIds } from "../agreements";
@@ -15,6 +16,7 @@ import { offboardingTaskIds } from "../offboarding";
 import { onboardingTaskIds } from "../onboarding";
 import { pocTaskIds } from "../pocs";
 import { provisioningTaskIds } from "../provisioning";
+import { quoteTaskIds } from "../quotes";
 import { renewalTaskIds } from "../renewals";
 
 /** Lifecycle-platform task IDs are versioned and must never be reused. */
@@ -23,6 +25,7 @@ export const lifecycleWorkflowRegistry = [
   ...Object.values(agreementTaskIds),
   ...Object.values(provisioningTaskIds),
   ...Object.values(pocTaskIds),
+  ...Object.values(quoteTaskIds),
   ...Object.values(renewalTaskIds),
   ...Object.values(offboardingTaskIds),
   ...Object.values(exceptionTaskIds),

@@ -138,9 +138,17 @@ function GateControls({
     });
   };
 
+  /** A gate read from the fail-closed fallback carries no writable version. */
+  const requireRowVersion = () => {
+    if (gate.rowVersion) return true;
+    setMessage("");
+    setError(adminSafetyCopy.gateVersionUnavailable);
+    return false;
+  };
+
   const save = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!gate.rowVersion) return;
+    if (!requireRowVersion()) return;
     operate(() =>
       updateGeneratedExternalGate(gate.id as GeneratedExternalGate["gateKey"], {
         expectedRowVersion: gate.rowVersion as number,
@@ -223,7 +231,7 @@ function GateControls({
             disabled={pending}
             type="button"
             onClick={() => {
-              if (!gate.rowVersion) return;
+              if (!requireRowVersion()) return;
               operate(() =>
                 runGeneratedExternalGateActivationTest(
                   gate.id as GeneratedExternalGate["gateKey"],

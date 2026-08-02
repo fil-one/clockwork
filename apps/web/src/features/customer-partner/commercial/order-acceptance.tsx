@@ -6,19 +6,11 @@ import { useMemo, useRef, useState } from "react";
 import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 import { orderReviewSummary } from "./workflow-model";
-
-const orderIds = {
-  account: "11111111-1111-4111-8111-111111111111",
-  quote: "88888888-8888-4888-8888-888888888888",
-  agreement: "99999999-9999-4999-8999-999999999999",
-  user: "66666666-6666-4666-8666-666666666666",
-  orderForm: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-  orderLine: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-} as const;
 
 const reviewLabels = {
   quote: "Accepted quote",
@@ -28,14 +20,50 @@ const reviewLabels = {
   commitment: "Resulting commitment",
 } as const;
 
-export function OrderAcceptance() {
-  const [poNumber, setPoNumber] = useState("PO-NA-1092");
-  const [serviceStart, setServiceStart] = useState("2026-08-15");
-  const [authorityTitle, setAuthorityTitle] = useState(
-    "Chief Operating Officer",
+const ARTIFACT_RETENTION_YEARS = 7;
+
+export interface AcceptableQuote {
+  id: string;
+  reference: string;
+  title: string;
+  version: string;
+  scope: string;
+  spend: string;
+  acceptedLabel: string;
+}
+
+export interface GoverningAgreement {
+  title: string;
+  version: string;
+}
+
+function retainUntil(acceptedAt: string): string {
+  const retention = new Date(acceptedAt);
+  retention.setUTCFullYear(
+    retention.getUTCFullYear() + ARTIFACT_RETENTION_YEARS,
   );
+  return retention.toISOString();
+}
+
+export function OrderAcceptance({
+  account,
+  signerUserId,
+  quote,
+  agreement,
+  orderFormDocumentId,
+}: {
+  account: { id: string; name: string };
+  signerUserId: string;
+  quote: AcceptableQuote | null;
+  agreement: GoverningAgreement | null;
+  orderFormDocumentId: string | null;
+}) {
+  const [poNumber, setPoNumber] = useState("");
+  const [serviceStart, setServiceStart] = useState("");
+  const [authorityTitle, setAuthorityTitle] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState<{
@@ -45,35 +73,51 @@ export function OrderAcceptance() {
   const idempotencyKeyRef = useRef<string | null>(null);
   const orderIdRef = useRef<string | null>(null);
   const acceptedAtRef = useRef<string | null>(null);
+  const orderLineIdsRef = useRef<readonly string[] | null>(null);
   const summary = useMemo(
     () =>
-      orderReviewSummary({
-        agreementTitle: "Cloud Service Agreement",
-        agreementVersion: "3.2",
-        capacity: "120 TB in US East",
-        poNumber,
-        quoteTitle: "Compliance replica renewal",
-        quoteVersion: "2",
-        serviceStart,
-        spend: "$55,440.00",
-      }),
-    [poNumber, serviceStart],
+      quote
+        ? orderReviewSummary({
+            agreementTitle:
+              agreement?.title ?? t("orders.accept.agreement.unknown"),
+            agreementVersion: agreement?.version ?? "—",
+            scope: quote.scope,
+            poNumber,
+            quoteTitle: quote.title,
+            quoteVersion: quote.version,
+            serviceStart,
+            spend: quote.spend,
+          })
+        : null,
+    [agreement, poNumber, quote, serviceStart],
   );
 
+  const resetSubmission = () => {
+    setValidationError(null);
+    idempotencyKeyRef.current = null;
+    orderIdRef.current = null;
+    acceptedAtRef.current = null;
+    orderLineIdsRef.current = null;
+  };
+
   const accept = async () => {
+    if (!quote) return;
     const invalid = !poNumber.trim()
-      ? { id: "po-number", message: "Enter the purchase order reference." }
+      ? { id: "po-number", message: t("orders.accept.validation.po") }
       : !serviceStart
-        ? { id: "service-start", message: "Choose the service start date." }
+        ? {
+            id: "service-start",
+            message: t("orders.accept.validation.serviceStart"),
+          }
         : !authorityTitle.trim()
           ? {
               id: "order-authority-title",
-              message: "Enter the title that holds acceptance authority.",
+              message: t("orders.accept.validation.authority"),
             }
           : !confirmed
             ? {
                 id: "order-confirmation",
-                message: "Confirm the reviewed commitment before accepting.",
+                message: t("orders.accept.validation.confirmation"),
               }
             : undefined;
     if (invalid) {
@@ -89,35 +133,40 @@ export function OrderAcceptance() {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       orderIdRef.current ??= uuidV7();
       acceptedAtRef.current ??= new Date().toISOString();
+      orderLineIdsRef.current ??= [uuidV7()];
+      const command = {
+        quoteId: quote.id,
+        signerUserId,
+        authorityTitle,
+        authorityAttested: true,
+        poNumber,
+        acceptedAt: acceptedAtRef.current,
+        serviceStartsOn: serviceStart,
+        orderLineIds: orderLineIdsRef.current,
+      };
       await sendCoreCommand(
         {
           resource: "orders",
           id: orderIdRef.current,
-          accountId: orderIds.account,
-          action: "create",
-          payload: {
-            quoteId: orderIds.quote,
-            agreementId: orderIds.agreement,
-            signerUserId: orderIds.user,
-            authorityTitle,
-            authorityAttested: true,
-            poNumber,
-            acceptedAt: acceptedAtRef.current,
-            serviceStartsOn: serviceStart,
-            orderFormDocumentId: orderIds.orderForm,
-            orderLineIds: [orderIds.orderLine],
-          },
+          accountId: account.id,
+          // The order form is bound evidence: acceptance can only be recorded
+          // once it exists, so a first pass asks the server to render it.
+          action: orderFormDocumentId ? "create" : "prepare_artifact",
+          payload: orderFormDocumentId
+            ? { ...command, orderFormDocumentId }
+            : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
+      setCreatedOrderId(orderFormDocumentId ? orderIdRef.current : "");
       setMessage(
-        "The server created the order. Its current commitment and provisioning state are now authoritative.",
+        orderFormDocumentId
+          ? t("orders.accept.created")
+          : t("orders.accept.prepared"),
       );
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "The order could not be accepted. Nothing was changed.",
+        caught instanceof Error ? caught.message : t("orders.accept.failed"),
       );
     } finally {
       setPending(false);
@@ -145,185 +194,212 @@ export function OrderAcceptance() {
         </Link>
       </header>
 
-      <ol aria-label="Commercial promise chain" className={styles.promiseChain}>
-        <li>
-          <span>Authoritative input</span>
-          <strong>Accepted quote · version 2</strong>
-        </li>
-        <li aria-current="step">
-          <span>Current decision</span>
-          <strong>Order authority and service start</strong>
-        </li>
-        <li>
-          <span>Created on acceptance</span>
-          <strong>Service commitment and provisioning state</strong>
-        </li>
-      </ol>
-
-      <form
-        className={styles.workflowGrid}
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          void accept();
-        }}
-      >
-        <section
-          className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
-        >
-          <div>
-            <p className={styles.taskContext}>Accepted commercial source</p>
-            <h2>Compliance replica renewal · version 2</h2>
-            <p className={styles.description}>
-              Accepted Jul 25 by Maya Chen · 120 TB · US East · 12 months
-            </p>
-          </div>
-          <fieldset className={styles.stageFields}>
-            <legend>Acceptance inputs</legend>
-            <div className={styles.formGrid}>
-              <div className={styles.field}>
-                <label htmlFor="po-number">Purchase order</label>
-                <input
-                  aria-describedby={
-                    validationError?.id === "po-number"
-                      ? "order-validation"
-                      : undefined
-                  }
-                  aria-invalid={
-                    validationError?.id === "po-number" || undefined
-                  }
-                  id="po-number"
-                  onChange={(event) => {
-                    setPoNumber(event.target.value);
-                    setValidationError(null);
-                    idempotencyKeyRef.current = null;
-                    orderIdRef.current = null;
-                    acceptedAtRef.current = null;
-                  }}
-                  required
-                  value={poNumber}
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="service-start">Service start</label>
-                <input
-                  aria-describedby={
-                    validationError?.id === "service-start"
-                      ? "order-validation"
-                      : undefined
-                  }
-                  aria-invalid={
-                    validationError?.id === "service-start" || undefined
-                  }
-                  id="service-start"
-                  onChange={(event) => {
-                    setServiceStart(event.target.value);
-                    setValidationError(null);
-                    idempotencyKeyRef.current = null;
-                    orderIdRef.current = null;
-                    acceptedAtRef.current = null;
-                  }}
-                  required
-                  type="date"
-                  value={serviceStart}
-                />
-              </div>
-              <div className={`${styles.field} ${styles.spanTwo}`}>
-                <label htmlFor="order-authority-title">Authority title</label>
-                <input
-                  aria-describedby={
-                    validationError?.id === "order-authority-title"
-                      ? "order-validation"
-                      : undefined
-                  }
-                  aria-invalid={
-                    validationError?.id === "order-authority-title" || undefined
-                  }
-                  id="order-authority-title"
-                  onChange={(event) => {
-                    setAuthorityTitle(event.target.value);
-                    setValidationError(null);
-                    idempotencyKeyRef.current = null;
-                    orderIdRef.current = null;
-                    acceptedAtRef.current = null;
-                  }}
-                  required
-                  value={authorityTitle}
-                />
-              </div>
-            </div>
-          </fieldset>
-          {validationError ? (
-            <p
-              className={styles.errorMessage}
-              id="order-validation"
-              role="alert"
-            >
-              {validationError.message}
-            </p>
-          ) : null}
-          <p className={styles.notice}>
-            Estimated spend is a quote calculation. Invoices and payments remain
-            separate server records after this order is created.
-          </p>
-        </section>
-
-        <aside
-          className={`${styles.summary} ${styles.commitmentSummary}`}
-          aria-labelledby="order-summary-title"
-        >
-          <div>
-            <p className={styles.taskContext}>Resulting commitment</p>
-            <h2 id="order-summary-title">Review before accepting</h2>
-          </div>
-          <ul className={styles.reviewList}>
-            {Object.entries(summary).map(([label, value]) => (
-              <li key={label}>
-                <span>{reviewLabels[label as keyof typeof reviewLabels]}</span>
-                <strong>{value}</strong>
-              </li>
-            ))}
-          </ul>
-          <label className={styles.check} htmlFor="order-confirmation">
-            <input
-              aria-describedby={
-                validationError?.id === "order-confirmation"
-                  ? "order-validation"
-                  : undefined
-              }
-              aria-invalid={
-                validationError?.id === "order-confirmation" || undefined
-              }
-              checked={confirmed}
-              id="order-confirmation"
-              onChange={(event) => {
-                setConfirmed(event.target.checked);
-                setValidationError(null);
-              }}
-              required
-              type="checkbox"
-            />
-            <span>{customerPartnerCopy.commercial.orderConfirmation}</span>
-          </label>
-          {message ? (
-            <p className={styles.successMessage} role="status">
-              {message}
-            </p>
-          ) : null}
-          {error ? (
-            <p className={styles.errorMessage} role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button
-            className={styles.primary}
-            disabled={pending || Boolean(message)}
-            type="submit"
+      {quote ? (
+        <>
+          <ol
+            aria-label="Commercial promise chain"
+            className={styles.promiseChain}
           >
-            {pending ? "Accepting…" : "Accept order and create commitment"}
-          </button>
-        </aside>
-      </form>
+            <li>
+              <span>Authoritative input</span>
+              <strong>
+                {t("orders.accept.source", {
+                  reference: quote.reference,
+                  version: quote.version,
+                })}
+              </strong>
+            </li>
+            <li aria-current="step">
+              <span>Current decision</span>
+              <strong>Order authority and service start</strong>
+            </li>
+            <li>
+              <span>Created on acceptance</span>
+              <strong>Service commitment and provisioning state</strong>
+            </li>
+          </ol>
+
+          <form
+            className={styles.workflowGrid}
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              void accept();
+            }}
+          >
+            <section
+              className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
+            >
+              <div>
+                <p className={styles.taskContext}>Accepted commercial source</p>
+                <h2>
+                  {quote.title} · version {quote.version}
+                </h2>
+                <p className={styles.description}>
+                  {quote.acceptedLabel} · {quote.scope}
+                </p>
+              </div>
+              <fieldset className={styles.stageFields}>
+                <legend>Acceptance inputs</legend>
+                <div className={styles.formGrid}>
+                  <div className={styles.field}>
+                    <label htmlFor="po-number">Purchase order</label>
+                    <input
+                      aria-describedby={
+                        validationError?.id === "po-number"
+                          ? "order-validation"
+                          : undefined
+                      }
+                      aria-invalid={
+                        validationError?.id === "po-number" || undefined
+                      }
+                      id="po-number"
+                      onChange={(event) => {
+                        setPoNumber(event.target.value);
+                        resetSubmission();
+                      }}
+                      required
+                      value={poNumber}
+                    />
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="service-start">Service start</label>
+                    <input
+                      aria-describedby={
+                        validationError?.id === "service-start"
+                          ? "order-validation"
+                          : undefined
+                      }
+                      aria-invalid={
+                        validationError?.id === "service-start" || undefined
+                      }
+                      id="service-start"
+                      onChange={(event) => {
+                        setServiceStart(event.target.value);
+                        resetSubmission();
+                      }}
+                      required
+                      type="date"
+                      value={serviceStart}
+                    />
+                  </div>
+                  <div className={`${styles.field} ${styles.spanTwo}`}>
+                    <label htmlFor="order-authority-title">
+                      Authority title
+                    </label>
+                    <input
+                      aria-describedby={
+                        validationError?.id === "order-authority-title"
+                          ? "order-validation"
+                          : undefined
+                      }
+                      aria-invalid={
+                        validationError?.id === "order-authority-title" ||
+                        undefined
+                      }
+                      id="order-authority-title"
+                      onChange={(event) => {
+                        setAuthorityTitle(event.target.value);
+                        resetSubmission();
+                      }}
+                      required
+                      value={authorityTitle}
+                    />
+                  </div>
+                </div>
+              </fieldset>
+              {validationError ? (
+                <p
+                  className={styles.errorMessage}
+                  id="order-validation"
+                  role="alert"
+                >
+                  {validationError.message}
+                </p>
+              ) : null}
+              <p className={styles.notice}>
+                Estimated spend is a quote calculation. Invoices and payments
+                remain separate server records after this order is created.
+              </p>
+            </section>
+
+            <aside
+              className={`${styles.summary} ${styles.commitmentSummary}`}
+              aria-labelledby="order-summary-title"
+            >
+              <div>
+                <p className={styles.taskContext}>Resulting commitment</p>
+                <h2 id="order-summary-title">Review before accepting</h2>
+              </div>
+              <ul className={styles.reviewList}>
+                {Object.entries(summary ?? {}).map(([label, value]) => (
+                  <li key={label}>
+                    <span>
+                      {reviewLabels[label as keyof typeof reviewLabels]}
+                    </span>
+                    <strong>{value}</strong>
+                  </li>
+                ))}
+              </ul>
+              <label className={styles.check} htmlFor="order-confirmation">
+                <input
+                  aria-describedby={
+                    validationError?.id === "order-confirmation"
+                      ? "order-validation"
+                      : undefined
+                  }
+                  aria-invalid={
+                    validationError?.id === "order-confirmation" || undefined
+                  }
+                  checked={confirmed}
+                  id="order-confirmation"
+                  onChange={(event) => {
+                    setConfirmed(event.target.checked);
+                    setValidationError(null);
+                  }}
+                  required
+                  type="checkbox"
+                />
+                <span>{customerPartnerCopy.commercial.orderConfirmation}</span>
+              </label>
+              {message ? (
+                <p className={styles.successMessage} role="status">
+                  {message}{" "}
+                  {createdOrderId ? (
+                    <Link href={`/orders/order-${createdOrderId}`}>
+                      {t("orders.accept.createdLink")}
+                    </Link>
+                  ) : (
+                    <Link href="/orders">
+                      {t("orders.accept.preparedLink")}
+                    </Link>
+                  )}
+                </p>
+              ) : null}
+              {error ? (
+                <p className={styles.errorMessage} role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <button
+                className={styles.primary}
+                disabled={pending || Boolean(message)}
+                type="submit"
+              >
+                {pending ? "Accepting…" : "Accept order and create commitment"}
+              </button>
+            </aside>
+          </form>
+        </>
+      ) : (
+        <section className={styles.state} role="alert">
+          <h2>{t("orders.accept.unavailable.title")}</h2>
+          <p>{t("orders.accept.unavailable.description")}</p>
+          <Link className={styles.secondary} href="/quotes">
+            {t("orders.accept.unavailable.action")}
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

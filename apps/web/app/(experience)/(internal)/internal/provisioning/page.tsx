@@ -1,11 +1,13 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { ProvisioningView } from "@/src/features/internal-ops/finance-lifecycle/provisioning-view";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
 export default function Page() {
   return (
-    <InternalProjectionPage
-      channel="provisioning"
-      title="Provisioning recovery"
-      description="Review provider state and idempotency evidence before recovery."
-    />
+    <SurfacePermissionGate
+      audience="internal"
+      requiredPermission="system:operate"
+    >
+      <ProvisioningView />
+    </SurfacePermissionGate>
   );
 }

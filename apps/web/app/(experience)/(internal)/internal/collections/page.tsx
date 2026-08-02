@@ -1,11 +1,13 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
 export default function Page() {
   return (
-    <InternalProjectionPage
-      channel="collections"
-      title="Collections"
-      description="Prioritize evidence-bound finance follow-up without crossing account scope."
-    />
+    <SurfacePermissionGate
+      audience="internal"
+      requiredPermission="billing:approve"
+    >
+      <CollectionsView />
+    </SurfacePermissionGate>
   );
 }

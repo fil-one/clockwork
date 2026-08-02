@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { adminSafetyCopy } from "./copy";
 import { agreementVersions } from "./data";
@@ -16,8 +16,14 @@ import {
 
 export function AgreementAdministration({
   roles,
+  publishAction,
 }: {
   roles: readonly string[];
+  /**
+   * The authorized template publication workflow this review hands off to,
+   * supplied by the route so it carries the route's own permission gate.
+   */
+  publishAction?: ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const [jurisdiction, setJurisdiction] = useState("All");
@@ -288,6 +294,8 @@ export function AgreementAdministration({
           </section>
         </>
       ) : null}
+
+      {publishAction}
     </AdministrationPage>
   );
 }

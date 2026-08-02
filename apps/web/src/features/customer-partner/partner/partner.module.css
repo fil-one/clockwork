@@ -481,6 +481,11 @@
   color: var(--web-muted);
   font-size: 0.76rem;
 }
+.boundary strong {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+}
 .term {
   padding: 1rem 1.2rem;
 }
@@ -716,6 +721,14 @@
   background: var(--web-soft);
   padding: 0.75rem;
   font-size: 0.78rem;
+}
+.failure {
+  border-left: 3px solid var(--web-danger);
+  background: color-mix(in srgb, var(--web-danger) 8%, var(--web-paper));
+  padding: 0.75rem;
+  color: var(--web-ink);
+  font-size: 0.78rem;
+  font-weight: 640;
 }
 
 @media (max-width: 74rem) {

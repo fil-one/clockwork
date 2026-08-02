@@ -179,6 +179,12 @@ export const en = {
   "dashboard.spend": "Spend by month",
   "dashboard.chain": "Latest activity",
   "dashboard.activeServices": "Active services",
+  "dashboard.empty.obligations":
+    "Nothing needs a decision. New commercial deadlines appear here as records change.",
+  "dashboard.empty.services":
+    "No service is active yet. Accepted orders appear here once provisioning starts.",
+  "dashboard.empty.activity":
+    "No account activity has been recorded in this period.",
   "dashboard.openQuotes": "Open quotes",
   "dashboard.invoiceDue": "Invoice due",
   "dashboard.daysToNotice": "Days to notice window",
@@ -191,6 +197,16 @@ export const en = {
   "agreements.paper": "Paper",
   "agreements.version": "Version",
   "agreements.evidence": "Acceptance evidence",
+  "agreements.execute.binding":
+    "Confirm the agreement title, version, exact approved terms, and your authority before binding {account}.",
+  "agreements.execute.source": "Executing under agreement {reference}",
+  "agreements.execute.validation.authority":
+    "Enter the title that holds signing authority for this legal entity.",
+  "agreements.execute.validation.attestation":
+    "Confirm your authority to bind this legal entity before executing.",
+  "agreements.execute.accepted":
+    "The server accepted the agreement and recorded the authority evidence.",
+  "agreements.execute.acceptedLink": "Open the executed agreement record",
   "quotes.eyebrow": "Price with confidence",
   "quotes.title": "Quotes",
   "quotes.description":
@@ -208,6 +224,14 @@ export const en = {
   "quotes.validation": "Enter a committed capacity of at least 10 TB.",
   "quotes.optimistic":
     "Draft updated locally. Checking the latest commercial version.",
+  "quotes.builder.account.description": "Account authorized for this session",
+  "quotes.builder.origin.revision": "Revises quote {reference}",
+  "quotes.builder.origin.poc": "Converts proof of concept {reference}",
+  "quotes.builder.origin.unavailable":
+    "The referenced record is outside this account. The draft starts from an empty scope.",
+  "quotes.builder.created":
+    "The server created the priced draft. Its current server status is draft; issuance becomes available after the rendered artifact is prepared and bound.",
+  "quotes.builder.createdLink": "Open the created draft",
   "orders.eyebrow": "From commit to service",
   "orders.title": "Orders & services",
   "orders.description":
@@ -216,6 +240,27 @@ export const en = {
   "orders.entitlement": "Entitlement",
   "orders.provisioning": "Provisioning activity",
   "orders.amendment": "Request an amendment",
+  "orders.accept.source": "Accepted quote {reference} · version {version}",
+  "orders.accept.agreement.unknown":
+    "No active governing agreement is recorded for this account.",
+  "orders.accept.unavailable.title": "No acceptable quote is selected",
+  "orders.accept.unavailable.description":
+    "Order acceptance starts from an accepted quote in this account. Choose one from the quote ledger.",
+  "orders.accept.unavailable.action": "Open the quote ledger",
+  "orders.accept.validation.po": "Enter the purchase order reference.",
+  "orders.accept.validation.serviceStart": "Choose the service start date.",
+  "orders.accept.validation.authority":
+    "Enter the title that holds acceptance authority.",
+  "orders.accept.validation.confirmation":
+    "Confirm the reviewed commitment before accepting.",
+  "orders.accept.created":
+    "The server created the order. Its current commitment and provisioning state are now authoritative.",
+  "orders.accept.createdLink": "Open the created order",
+  "orders.accept.prepared":
+    "The server requested the order form for this acceptance. The commitment is created once that document is rendered and bound to the quote.",
+  "orders.accept.preparedLink": "Track this acceptance in orders",
+  "orders.accept.failed":
+    "The order could not be accepted. Nothing was changed.",
   "pocs.eyebrow": "Prove it safely",
   "pocs.title": "Proofs of concept",
   "pocs.description":
@@ -240,6 +285,30 @@ export const en = {
   "account.procurement": "Procurement profile",
   "account.offboarding": "Offboarding & certificates",
   "account.notifications": "Notification routing",
+  "account.owner": "Account owner",
+  "account.billingContact": "Billing contact",
+  "account.people": "People with access",
+  "account.invitations": "Pending invitations",
+  "account.unassigned": "Not recorded",
+  "account.areas.users.meta.one": "{count} person with access",
+  "account.areas.users.meta.other": "{count} people with access",
+  "account.areas.procurement.meta.one": "{count} requirement recorded",
+  "account.areas.procurement.meta.other": "{count} requirements recorded",
+  "account.areas.offboarding.meta": "Confirmation required for every request",
+  "account.offboarding.service": "Service",
+  "account.offboarding.empty.title": "No service is open to offboarding",
+  "account.offboarding.empty.description":
+    "Offboarding starts from an active order in this account. Active commitments appear in orders and services.",
+  "account.offboarding.empty.action": "Open orders and services",
+  "account.offboarding.validation.effectiveAt":
+    "Choose the requested effective date and time.",
+  "account.offboarding.validation.confirmation":
+    "Confirm the reviewed retention and approval safeguards before submitting.",
+  "account.offboarding.requested":
+    "The server recorded the offboarding request for controlled approval. Service has not been torn down.",
+  "account.offboarding.requestedLink": "Open the affected service record",
+  "account.offboarding.failed":
+    "The offboarding request could not be submitted.",
   "partner.eyebrow": "Agreement clock first",
   "partner.title": "Partner desk",
   "partner.description":
@@ -271,6 +340,56 @@ export const en = {
   "partner.marketplace.title": "Marketplace status",
   "partner.marketplace.description":
     "Read-only offer, buyer, fulfillment, and disbursement status from AWS, Azure, and Google Cloud Marketplace.",
+  "partner.access.title": "No partner membership for the selected organization",
+  "partner.access.description":
+    "This partner workspace opens for an organization your identity is authorized to represent. Switch organizations, or ask a partner administrator to add your membership.",
+  "partner.access.action": "Switch organization",
+  "partner.detail.notFound.title": "This partner record is not available",
+  "partner.detail.notFound.description":
+    "The reference is unknown to the partner projection, or it sits outside the authorized account scope. Nothing was changed.",
+  "partner.detail.notFound.action": "Back to the collection",
+  "partner.detail.notRecorded": "Not yet recorded",
+  "partner.detail.reference": "Reference",
+  "partner.detail.position": "Commercial position",
+  "partner.detail.milestone": "Next milestone",
+  "partner.detail.owner": "Owner",
+  "partner.detail.risk": "Commercial risk",
+  "partner.detail.portfolio.eyebrow": "End-client commercial record",
+  "partner.detail.portfolio.term": "Service and commercial term",
+  "partner.detail.term.unavailable.title":
+    "No service term is recorded for this end client",
+  "partner.detail.term.unavailable.description":
+    "The elapsed term, notice window, and end date appear here once an order or agreement publishes them. Until then no term clock is shown.",
+  "partner.detail.transfer.description":
+    "The private Fil One cost for this route. It is returned by the approved price book and is never shown to the end client.",
+  "partner.detail.resale.description":
+    "The price the partner sets and presents to the named end client.",
+  "partner.detail.merchant.description":
+    "The party that contracts with and invoices the end client on this route.",
+  "partner.detail.quote.eyebrow": "Partner resale quote",
+  "partner.detail.quote.boundary": "Quote price boundary",
+  "partner.detail.quote.actions": "Valid actions for this quote",
+  "partner.detail.quote.edit": "Edit draft",
+  "partner.detail.quote.revise": "Create revision",
+  "partner.detail.quote.issue.title": "Issue is gated",
+  "partner.detail.quote.issue.description":
+    "Fil One prepares and binds separate end-client and partner artifacts first. The action appears once both artifacts are ready, then opens review and confirmation.",
+  "partner.detail.quote.cancel.title": "Cancellation is unavailable here",
+  "partner.detail.quote.cancel.description":
+    "The current commerce contract carries no partner quote-cancel command. Contact channel operations; no dead primary action is presented.",
+  "partner.detail.quote.download.title": "Download is provider-gated",
+  "partner.detail.quote.download.description":
+    "The immutable artifact link appears once the document service returns a retained partner-visible document.",
+  "partner.detail.projection.record": "Projection record",
+  "partner.detail.projection.version": "Record version",
+  "partner.quote.new.disabled.unconfirmed":
+    "Confirm the review above to create the priced draft.",
+  "partner.quote.new.disabled.created":
+    "The priced draft was created. Open it from the quotes collection to continue.",
+  "partner.quote.new.success":
+    "Draft created from server pricing. Review the server-returned transfer price before using the valid Issue action.",
+  "partner.quote.new.failure":
+    "The quote could not be created. Nothing changed.",
   "support.title": "Support visibility",
   "support.description":
     "Read-only tickets associated with this account. Continue to use the existing support channel for intake.",
@@ -430,6 +549,87 @@ export const en = {
   "home.empty.title": "No exceptions need attention",
   "home.empty.description":
     "Pricing, legal, and credit exceptions appear with an owner and response target.",
+  "projection.action.readOnly":
+    "Read only. An account owner or the assigned approver can act on this record.",
+  "projection.action.pending": "Submitting…",
+  "projection.action.submitting": "Sending {action} to the commerce API.",
+  "projection.action.queued":
+    "{action} is queued. Waiting for the authoritative result.",
+  "projection.action.applied":
+    "{action} applied at authoritative version {version}.",
+  "projection.action.appliedUnknownVersion":
+    "{action} applied. The authoritative version was not returned.",
+  "projection.action.rejected":
+    "{action} was not applied. The commerce API returned {status}: {code}.",
+  "projection.action.timeout":
+    "{action} is still running. The result is not confirmed yet, so the record may still change.",
+  "projection.action.rechecking": "Checking the result of {action}.",
+  "projection.action.recheck": "Check the result again",
+  "projection.action.conflict": "The record changed. Refresh before retrying.",
+  "projection.action.confirm.title": "{action}?",
+  "projection.action.confirm.description":
+    "This applies to {record} at version {version}.",
+  "projection.action.confirm.detail":
+    "The command runs against the authoritative record and is written to the audit trail. Reversing it takes a separate authorized action.",
+  "projection.action.confirm.cancel": "Keep the record unchanged",
+  "projection.action.accept": "Accept",
+  "projection.action.addContact": "Add a contact",
+  "projection.action.addRole": "Add a role",
+  "projection.action.applyAmendment": "Apply amendment",
+  "projection.action.approveException": "Approve exception",
+  "projection.action.consolidate": "Consolidate invoices",
+  "projection.action.create": "Create record",
+  "projection.action.evaluateDunning": "Evaluate dunning",
+  "projection.action.expire": "Expire now",
+  "projection.action.issue": "Issue",
+  "projection.action.markUncollectible": "Mark uncollectible",
+  "projection.action.openInvoice": "Open invoice",
+  "projection.action.pay": "Record payment",
+  "projection.action.prepareArtifact": "Prepare document",
+  "projection.action.price": "Price this quote",
+  "projection.action.rejectException": "Reject exception",
+  "projection.action.requestTeardown": "Request teardown",
+  "projection.action.revise": "Create a revision",
+  "projection.action.setPartnerCredit": "Set partner credit",
+  "projection.action.setPaymentTerms": "Set payment terms",
+  "projection.action.update": "Update details",
+  "projection.action.void": "Void invoice",
+  "signing.agreementId": "Agreement ID",
+  "signing.agreementReference": "Agreement reference",
+  "signing.serverSelected":
+    "Your account, signer identity, and immutable agreement document are selected by the server from this persisted agreement.",
+  "signing.startEmbedded": "Start embedded signing",
+  "signing.accepted":
+    "Envelope accepted. The agreement remains inactive until a signed provider callback is verified.",
+  "signing.continue": "Continue to the approved e-sign provider",
+  "signing.frame": "Secure e-sign provider",
+  "signing.checking": "Checking the persisted envelope status…",
+  "signing.download": "Download signed agreement",
+  "signing.pending.title": "Signature pending",
+  "signing.pending.description":
+    "The provider has not yet confirmed a completed signature.",
+  "signing.refresh": "Refresh status",
+  "signing.declined.title": "Signature declined",
+  "signing.expired.title": "Signing session expired",
+  "signing.unchanged":
+    "The agreement remains unchanged. Open the agreement record to review next steps.",
+  "signing.agreements": "Back to agreements",
+  "signing.missingState":
+    "The signing return does not contain an authoritative state reference.",
+  "signing.unverifiable":
+    "The signing state could not be verified by the server.",
+  "signing.requestFailed":
+    "The signing request failed. The agreement remains unchanged.",
+  "signing.choose.title": "Choose an agreement first",
+  "signing.choose.description":
+    "Signing starts from an authorized agreement record so the server can select the exact document version.",
+  "workflow.confirm.title": "Confirm this decision",
+  "workflow.confirm.description":
+    "The server records this decision against the identifiers entered above.",
+  "workflow.confirm.detail":
+    "Check the record identifiers, the stated reason, and the evidence reference. A decline, a rejection, and a teardown request each close the current commercial path, and only a new decision reopens it.",
+  "workflow.confirm.cancel": "Keep the record unchanged",
+  "workflow.confirm.action": "Confirm and submit",
 } as const;
 
 export type MessageId = keyof typeof en;

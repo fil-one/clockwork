@@ -2,20 +2,21 @@
 
 This is the canonical Clockwork commerce backlog. `main` is the only active
 branch. Historical lane names and tips are provenance only. The current state is
-`repository-qualified`: repository-controlled launch requirements are complete,
-while production activation remains disabled until the exact registered external
-inputs arrive. This is not an RC or launch declaration.
+`post-merge-pre-qualification`: the work recorded in P0-01 through P0-39 is
+accepted, and P0-40 through P0-46 are repository findings that no external input
+can close. This is not an RC or launch declaration.
 
 Status markers mean:
 
 - `[COMPLETE]`: repository implementation and direct acceptance evidence are
   complete;
+- `[OPEN]`: the requirement is not met in this repository, and closing it is
+  repository work;
 - `[EXTERNAL-ONLY]`: repository controls, deterministic simulator, fail-closed
   enforcement, and activation test are complete; only a named external input or
   live evidence remains.
 
-No P0 is `OPEN` or `INTEGRATED-PENDING`. External inputs never excuse missing
-repository work.
+External inputs never excuse missing repository work.
 
 ## P0 — repository-critical work
 
@@ -167,8 +168,58 @@ repository work.
   version, strips legacy mutation authority, terminalizes queued actions without
   inventing replay truth, fails closed on mismatch, restores canonical state,
   and was accepted in 93.813 seconds.
+- **P0-40 — Authoritative events for six portal aggregates `[OPEN]`:** the
+  `agreement`, `poc`, `exception_case`, `approval`, `provider_operation`, and
+  `termination` write paths append audit rows without publishing an
+  authoritative outbox event. The `agreements`, `pocs`, `exceptions`,
+  `approvals`, `operations`, and `terminations` channels therefore stay empty on
+  every audience whatever the materializer does.
+  `aggregatesWithoutAuthoritativeEvents` in
+  `packages/workflows/src/experience/projection-definitions.ts` records the
+  exact set. Registering topics those paths do not publish would hide the gap
+  rather than close it.
+- **P0-41 — Commitment ledger write path `[OPEN]`:** `createCommitmentPeriod`
+  and `appendLedgerCorrection` in `packages/db/src/repositories/core/finance.ts`
+  have no production caller, and `decideCommitmentOverage` and
+  `reconcileCommitmentToSource` are reached only from
+  `packages/domain/src/core/core-finance.test.ts`. Nothing inserts
+  `commitment_ledgers` or `usage_events`, so the overage-sync and
+  usage-reconciliation schedules read tables that are never populated. Spec §4
+  step 10 and §10.
+- **P0-42 — Missing reporting-layer reports `[OPEN]`:** the report catalog in
+  `packages/contracts/src/schemas.ts` and the report functions in
+  `packages/domain/src/core/reports/index.ts` cover seven of the ten §17
+  reports. ARR and MRR, billing and collections, and commission and settlement
+  have no report function, no catalog entry, and no API report key.
+- **P0-43 — Missing exception queues and split queue vocabulary `[OPEN]`:**
+  `exceptionQueues` in `packages/domain/src/exceptions/index.ts` names seven of
+  the ten §16 queues; provisioning recovery, migration review, and
+  offboarding/destructive are absent. A second `ExceptionQueue` union in
+  `packages/workflows/src/core/ports.ts` names six queues that appear in neither
+  the domain vocabulary nor §16, so a workflow-raised exception cannot resolve
+  an owner or backup from the roster.
+- **P0-44 — CRM projection has no runtime caller `[OPEN]`:** `CrmProjectionPort`
+  and `OutboundCrmProjectionAdapter` in `packages/integrations/src/crm/index.ts`
+  are reached only from `crm.contract.test.ts`. No production composition
+  constructs the adapter, no outbox consumer projects to CRM, and
+  `accounts.crm_record_id` is never written. Spec §15.
+- **P0-45 — Tax identifier validation and reverse charge `[OPEN]`:**
+  `TaxPort.validateTaxId` in `packages/contracts/src/providers.ts` has no caller
+  outside the deterministic fake, so a tax identifier entered at registration is
+  persisted without verification. `reverse_charge_eligible` is created by
+  `supabase/migrations/000100_core_finance.sql` and never set, and no code
+  determines EU or UK reverse-charge treatment. Spec §4, §10 and §19.
+- **P0-46 — Notification delivery record `[OPEN]`:** no table records a
+  notification recipient, template, or delivery outcome; a lifecycle
+  notification effect leaves only a generic `provider_operations` row. The
+  generated OpenAPI contract exposes no notification operation, so the §18 API
+  catalog claim is unmet and the account surface has no notification preferences
+  to manage. Quote expiry has an authoritative command and no schedule that
+  fires it. The renewal term-alert, renewal notice-window, and POC milestone
+  schedules are registered and route through the notification provider. Spec §4,
+  §11, §12 and §18.
 
-## Repository qualification evidence
+## Accepted verification evidence
 
 - Canonical Drizzle SQL SHA-256:
   `ae5872e0deff09115d847268c3acb7f97cfd828e9773887cfb99d268330de70c`; snapshot
@@ -197,6 +248,34 @@ repository work.
   this documentation commit in the tag annotation and ignored
   `.clockwork-archives/` manifest; that required sequencing is not open
   repository work.
+
+## P1 — open repository findings
+
+These are quality and operability gaps rather than absent capability. No launch
+requirement in the ledger depends on them, so they carry no P0 entry.
+
+- The `runtime-auth-anomaly` alert in `docs/operations/runtime-alerts.json`
+  filters on `AUTHORIZATION_DENIED`, `CROSS_ACCOUNT_DENIED`, and
+  `WEBHOOK_SIGNATURE_INVALID`. No code sets `error.code` to any of those values,
+  and the experience boundary ends every span `ok`, so the alert cannot fire as
+  configured even after a collector is selected under `EXT-ACC-01`.
+- `apps/web/app/api/telemetry/route.ts` converts a browser record into a span
+  and opens no boundary span of its own, so a failure inside the receiver is
+  invisible to the telemetry it serves.
+- `packages/integrations/src/provider-transport.ts` and
+  `packages/integrations/src/telemetry/otlp.ts` hold `fetch` as an instance
+  property without binding it to `globalThis`. That is the pattern that silently
+  stopped browser telemetry until
+  `apps/web/src/features/performance/client-telemetry.ts` bound it; both files
+  run in Node, where the receiver rule is looser.
+- `startAgreementEnvelope` in
+  `apps/web/src/features/contracts/commerce-client.ts` has no caller anywhere,
+  including tests. `apps/web/src/features/experience-server/controller.ts`
+  already posts to `/v1/lifecycle/agreements/envelopes` directly, so the helper
+  is a second unused path to the same endpoint.
+- `scripts/benchmark-release.mjs` sets a 45-minute local budget. The suite has
+  grown since that number was measured and the budget has not been re-measured
+  against it.
 
 ## P1 — external activation and approval gates
 
@@ -237,3 +316,11 @@ fail-closed enforcement boundary, and exact live activation test in
 - Deeper distribution trees if a future channel program requires them.
 - Bidirectional CRM editing or write-enabled support only after a new
   ownership/security ADR; the current support feed is deliberately read-only.
+- One shared exception-queue vocabulary declared in a single package, once P0-43
+  has settled which queues exist.
+- Reporting dimensions beyond the ten §17 reports, and any BI export, after
+  P0-42 completes the ten.
+- Per-user and per-account notification preferences, once P0-46 gives deliveries
+  a record to reference.
+- Usage ingestion from a second orchestrator source, after the first source
+  contract is live under `EXT-PROVISION-01`.

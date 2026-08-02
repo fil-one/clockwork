@@ -11,6 +11,33 @@ is the exact production input and live evidence in `docs/external-gates.md`.
 Repository qualification does not activate a capability, authorize deployment,
 contact an external party, or infer human design approval.
 
+## Correction recorded 2026-08-01
+
+The annotated tag `repository-qualified-20260801` points at `7ced36b` and
+predates the review described here. It stands as the record of what was accepted
+at that commit and is not re-cut.
+
+A review of `7ced36b` found repository gaps behind the `repository-qualified`
+designation. Commits `aeb697d` and `b17917a`, plus uncommitted work on `main`,
+closed these:
+
+- the portal projection payload carries per-record content, so the customer
+  dashboard returns a page instead of a 502 and the partner surfaces no longer
+  throw;
+- internal and partner actions execute instead of returning a blanket 403;
+- previously unmounted workflow components are mounted on their routes and
+  `WorkflowPanel` reaches four detail routes;
+- the e-sign iframe sandbox escape, a fail-open role default, an unbounded
+  in-memory file hash, and the absent sign-out control are fixed;
+- two shipped debug surfaces and several navigation dead ends are removed; and
+- the Fil One marks and palette are integrated, and the discount matrix with
+  computed margin impact was added.
+
+Seven findings remain open. They are P0-40 through P0-46 in `docs/backlog.md`,
+and fifteen ledger requirements now carry `partial`. The ledger `reviewState` is
+`post-merge-pre-qualification`. The counts under "Traceability disposition"
+below describe the tagged commit and no longer describe `main`.
+
 ## Commit-addressed identity
 
 The final consolidated SHA cannot include itself in a tracked document. The

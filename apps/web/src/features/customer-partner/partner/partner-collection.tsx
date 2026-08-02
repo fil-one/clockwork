@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApplicationStatePanel, Button } from "@clockwork/ui";
 
@@ -28,41 +28,13 @@ import styles from "./partner.module.css";
 const copy = customerPartnerCopy.common;
 const partnerCopy = customerPartnerCopy.partner;
 
-function StateView({
-  view,
-}: {
-  view: "loading" | "empty" | "permission" | "error";
-}) {
-  const state =
-    view === "loading"
-      ? {
-          state: "loading" as const,
-          title: copy.loadingTitle,
-          body: copy.loadingBody,
-        }
-      : view === "permission"
-        ? {
-            state: "permission" as const,
-            title: copy.permissionTitle,
-            body: copy.permissionBody,
-          }
-        : view === "error"
-          ? {
-              state: "recoverable-error" as const,
-              title: copy.errorTitle,
-              body: copy.errorBody,
-            }
-          : {
-              state: "empty" as const,
-              title: copy.emptyTitle,
-              body: copy.emptyBody,
-            };
+function PermissionView() {
   return (
     <div className={styles.state}>
       <ApplicationStatePanel
-        state={state.state}
-        title={state.title}
-        description={state.body}
+        state="permission"
+        title={copy.permissionTitle}
+        description={copy.permissionBody}
       />
     </div>
   );
@@ -337,11 +309,17 @@ export function PartnerCollection({
   config,
   roles,
   partnerName,
+  actions,
 }: {
   surface: PartnerSurfaceKey;
   config: PartnerSurfaceConfig;
   roles: readonly string[];
   partnerName: string;
+  /**
+   * Server-backed action for this surface, supplied by the route so the panel
+   * carries the route's own permission gate rather than a second guess at it.
+   */
+  actions?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -375,12 +353,7 @@ export function PartnerCollection({
     router.push(href, { scroll: false });
   }
 
-  const explicitState = !canUse
-    ? "permission"
-    : ["loading", "empty", "permission", "error"].includes(state.view)
-      ? state.view
-      : null;
-  const noMatch = !explicitState && filtered.length === 0;
+  const noMatch = canUse && filtered.length === 0;
   const canCreate = config.primaryAction?.roles.includes(role);
 
   return (
@@ -400,6 +373,8 @@ export function PartnerCollection({
 
       <PriceBoundary partnerName={partnerName} surface={surface} />
       {config.gate ? <p className={styles.gate}>{config.gate}</p> : null}
+
+      {actions}
 
       <form
         className={styles.filters}
@@ -486,9 +461,6 @@ export function PartnerCollection({
           >
             <option value="table">Responsive</option>
             <option value="cards">Cards</option>
-            <option value="loading">Loading state</option>
-            <option value="empty">Empty state</option>
-            <option value="error">Error state</option>
           </select>
         </label>
         <label className={styles.field}>
@@ -513,14 +485,12 @@ export function PartnerCollection({
             <p className={styles.eyebrow}>Results</p>
             <h2 id="partner-results-title">{config.title}</h2>
           </div>
-          <p className={styles.count}>
+          <p className={styles.count} aria-live="polite">
             {filtered.length} {config.noun}
           </p>
         </div>
-        {explicitState ? (
-          <StateView
-            view={explicitState as "loading" | "empty" | "permission" | "error"}
-          />
+        {!canUse ? (
+          <PermissionView />
         ) : noMatch ? (
           <div className={styles.state}>
             <ApplicationStatePanel
@@ -543,7 +513,7 @@ export function PartnerCollection({
             <RecordCards records={page.records} />
           </>
         )}
-        {!explicitState && !noMatch ? (
+        {canUse && !noMatch ? (
           <nav className={styles.pagination} aria-label="Results pages">
             <p>
               Page {page.page} of {page.pageCount}

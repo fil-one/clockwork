@@ -1,11 +1,13 @@
-import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+import { MigrationsView } from "@/src/features/internal-ops/finance-lifecycle/migrations-view";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+
 export default function Page() {
   return (
-    <ProjectionDetailPage
+    <SurfacePermissionGate
       audience="internal"
-      channel="provisioning"
-      title="Migration work"
-      description="Migration readiness and recovery use current provider-backed projections."
-    />
+      requiredPermission="system:operate"
+    >
+      <MigrationsView />
+    </SurfacePermissionGate>
   );
 }

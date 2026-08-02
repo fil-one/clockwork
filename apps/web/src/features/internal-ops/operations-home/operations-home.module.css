@@ -8,6 +8,15 @@
   color: var(--cw-ink);
 }
 
+/*
+ * Grid items default to min-width: auto, so the signal table's 68rem minimum
+ * would widen the whole column and push the page past the viewport instead of
+ * scrolling inside .tableRegion.
+ */
+.main > * {
+  min-width: 0;
+}
+
 .taskHeader,
 .sectionHeading {
   display: flex;

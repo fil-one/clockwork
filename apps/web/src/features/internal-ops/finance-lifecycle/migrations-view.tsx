@@ -216,7 +216,6 @@ export function MigrationsView() {
       description={lifecycleCopy.migrations.description}
       freshness={lifecycleCopy.migrations.freshness}
       source={lifecycleCopy.migrations.source}
-      permission="system:operate"
     >
       <section
         className={styles.summaryGrid}

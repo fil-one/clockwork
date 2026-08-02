@@ -1,6 +1,7 @@
 import { ProjectionActionButtons } from "./projection-action-buttons";
 import Link from "next/link";
 import type { Route } from "next";
+import type { ReactNode } from "react";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
 import styles from "./projection-detail-page.module.css";
@@ -133,12 +134,18 @@ export async function ProjectionDetailPage({
   title,
   description,
   recordKey,
+  actions,
 }: {
   audience: ExperienceAudience;
   channel: ProjectionChannel;
   title: string;
   description: string;
   recordKey?: string;
+  /**
+   * Server-backed action for this surface, supplied by the route so the panel
+   * carries the route's own permission gate rather than a second guess at it.
+   */
+  actions?: ReactNode;
 }) {
   const [projection, roles] = await Promise.all([
     loadPortalRecords(audience, channel),
@@ -194,6 +201,8 @@ export async function ProjectionDetailPage({
           ))}
         </ol>
       ) : null}
+
+      {actions}
 
       {visibleRecords.length === 0 ? (
         <section className={styles.emptyState} role="alert">

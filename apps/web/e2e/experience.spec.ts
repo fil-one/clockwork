@@ -1,6 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+const CUSTOMER_ACCOUNT_ID = "10000000-0000-4000-8000-000000000001";
+const OFFER = "Enterprise archive capacity";
+const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
+
 const journeys = [
   {
     persona: "direct buyer",
@@ -42,13 +46,13 @@ const journeys = [
     persona: "legal approver",
     role: "legal_approver",
     path: "/internal/agreements",
-    heading: "Agreement administration",
+    heading: "Agreement templates",
   },
   {
     persona: "finance approver",
     role: "finance_approver",
     path: "/internal/reports",
-    heading: "Reports",
+    heading: "Operational reports",
   },
   {
     persona: "internal operator",
@@ -122,51 +126,46 @@ test("new buyer registers a verified legal entity through the bootstrap contract
   });
 });
 
-test("direct buyer submits a record-bound quote action with an optimistic version", async ({
+test("direct buyer creates a quote draft through a protected, record-bound command", async ({
   page,
 }) => {
   await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
   let requestBody: Record<string, unknown> | undefined;
-  await page.route(
-    "**/api/experience/projections/customer/quotes/**/actions**",
-    async (route) => {
-      const request = route.request();
-      expect(request.headers()["idempotency-key"]).toBeTruthy();
-      expect(request.headers()["x-csrf-token"]).toBeTruthy();
-      requestBody = request.postDataJSON() as Record<string, unknown>;
-      await route.fulfill({
-        status: 202,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "action-demo",
-          projectionId: requestBody.projectionId,
-          aggregateType: "quotes",
-          aggregateId: "quote-demo",
-          action: requestBody.action,
-          expectedVersion: requestBody.expectedVersion,
-          status: "queued",
-          createdAt: "2026-07-31T16:00:00.000Z",
-          auditEventId: "audit-demo",
-          outboxMessageId: "outbox-demo",
-        }),
-      });
-    },
-  );
+  await page.route("**/api/v1/core/commands/quotes", async (route) => {
+    const request = route.request();
+    expect(request.headers()["idempotency-key"]).toBeTruthy();
+    expect(request.headers()["x-csrf-token"]).toBeTruthy();
+    requestBody = request.postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: requestBody.id,
+        status: "draft",
+        version: 1,
+      }),
+    });
+  });
 
   await page.goto("/quotes/new");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Quote workspace" }),
+    page.getByRole("heading", { level: 1, name: "Create a quote" }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "accept", exact: true })
-    .first()
-    .click();
-  await expect(page.getByText("accept queued")).toBeVisible();
+  await page.getByLabel("Offer", { exact: true }).fill(OFFER);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Committed capacity (TB)").fill("120");
+  await page.getByLabel("Term (months)").fill("12");
+  await page.getByLabel("Quote expiry").fill("2026-09-30T17:00");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Create priced draft" }).click();
+  await expect(
+    page.getByText(/The server created the priced draft/),
+  ).toBeVisible();
   expect(requestBody).toMatchObject({
-    action: "accept",
-    expectedVersion: expect.any(Number),
-    projectionId: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    payload: {},
+    id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    accountId: CUSTOMER_ACCOUNT_ID,
+    action: "create",
+    payload: { priceBookId: OFFER_PRICE_BOOK_ID, route: "direct" },
   });
 });
 

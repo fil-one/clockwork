@@ -1,3 +1,5 @@
+import type { ProjectionRecord } from "@/src/features/experience-server/model";
+
 export type SearchGroup =
   | "Accounts"
   | "Agreements"
@@ -28,149 +30,75 @@ export const SEARCH_GROUPS: readonly SearchGroup[] = [
   "Documents",
 ];
 
-export const SEARCH_RECORDS: readonly SearchRecord[] = [
-  {
-    id: "acct_northstar",
-    group: "Accounts",
-    title: "Northstar Archive Labs",
-    subtitle: "Direct buyer · account owner Maya Chen",
-    href: "/internal/accounts/acct_northstar",
-    status: "Active",
-  },
-  {
-    id: "acct_meridian",
-    group: "Accounts",
-    title: "Meridian Channel Group",
-    subtitle: "Reseller · United States",
-    href: "/internal/accounts/acct_meridian",
-    status: "Active",
-  },
-  {
-    id: "AGR-2026-0042",
-    group: "Agreements",
-    title: "Cloud Service Agreement",
-    subtitle: "Northstar Archive Labs · Fil One paper · v3.2",
-    href: "/internal/agreements",
-    status: "Signed",
-  },
-  {
-    id: "AGR-2026-0061",
-    group: "Agreements",
-    title: "Customer security addendum",
-    subtitle: "Northstar Archive Labs · four key terms under review",
-    href: "/internal/agreements",
-    status: "Review",
-  },
-  {
-    id: "Q-2026-0184-v3",
-    group: "Quotes",
-    title: "Enterprise committed capacity",
-    subtitle: "Halcyon Research Cooperative · 400 TB · annual",
-    href: "/internal/queues/EXC-PRC-019",
-    status: "Awaiting approval",
-  },
-  {
-    id: "Q-2026-0171-v1",
-    group: "Quotes",
-    title: "Annual business expansion",
-    subtitle: "Northstar Archive Labs · 80 TB · EU West",
-    href: "/internal/accounts/acct_northstar",
-    status: "Draft",
-  },
-  {
-    id: "ORD-2026-0098",
-    group: "Orders",
-    title: "Northstar primary archive",
-    subtitle: "Northstar Archive Labs · 500 TB · US East",
-    href: "/internal/accounts/acct_northstar",
-    status: "Active",
-  },
-  {
-    id: "ORD-2026-0112",
-    group: "Orders",
-    title: "Madrid compliance replica",
-    subtitle: "Northstar Archive Labs · 120 TB · EU West",
-    href: "/internal/provisioning",
-    status: "Provisioning",
-  },
-  {
-    id: "INV-2026-0781",
-    group: "Invoices",
-    title: "Northstar July service invoice",
-    subtitle: "$15,400 final invoice truth · PO-NA-1048",
-    href: "/internal/collections",
-    status: "Overdue",
-  },
-  {
-    id: "INV-2026-0712",
-    group: "Invoices",
-    title: "Northstar June service invoice",
-    subtitle: "$15,400 collected Jul 3 · ACH",
-    href: "/internal/collections",
-    status: "Paid",
-  },
-  {
-    id: "EC-0038",
-    group: "End clients",
-    title: "Halcyon Research Cooperative",
-    subtitle: "Resale · 280 TB · renewal action Sep 2",
-    href: "/internal/renewals",
-    status: "In notice",
-  },
-  {
-    id: "EC-0047",
-    group: "End clients",
-    title: "Atlas Field Imaging",
-    subtitle: "Distributor → reseller · POC active",
-    href: "/internal/migrations",
-    status: "Review",
-  },
-  {
-    id: "EXC-COL-008",
-    group: "Queues",
-    title: "Collections aging decision",
-    subtitle: "Northstar Archive Labs · owner Amina Cole",
-    href: "/internal/queues/EXC-COL-008",
-    status: "SLA breached",
-  },
-  {
-    id: "EXC-SCR-004",
-    group: "Queues",
-    title: "Restricted-party possible match",
-    subtitle: "Atlas Field Imaging · owner James Kurz",
-    href: "/internal/queues/EXC-SCR-004",
-    status: "Blocked",
-  },
-  {
-    id: "EXC-PRC-019",
-    group: "Queues",
-    title: "Pricing exception for Halcyon expansion",
-    subtitle: "Halcyon Research Cooperative · owner James Kurz",
-    href: "/internal/queues/EXC-PRC-019",
-    status: "Due soon",
-  },
-  {
-    id: "DOC-CSA-3.2",
-    group: "Documents",
-    title: "Cloud Service Agreement v3.2",
-    subtitle: "Approved template · effective Jul 1, 2026",
-    href: "/internal/agreements",
-    status: "Current",
-  },
-  {
-    id: "DOC-COL-PLAYBOOK",
-    group: "Documents",
-    title: "Collections escalation playbook",
-    subtitle: "Operations policy · FIN-COL-04",
-    href: "/internal/collections",
-    status: "Current",
-  },
-];
+/** Operator channels that resolve to a destination inside the internal shell. */
+export const SEARCHABLE_CHANNELS = {
+  dashboard: "Accounts",
+  agreements: "Agreements",
+  quotes: "Quotes",
+  orders: "Orders",
+  collections: "Invoices",
+  queues: "Queues",
+} as const satisfies Readonly<Record<string, SearchGroup>>;
 
-export function searchRecords(
-  query: string,
-  records: readonly SearchRecord[] = SEARCH_RECORDS,
-) {
+export type SearchableChannel = keyof typeof SEARCHABLE_CHANNELS;
+
+function text(
+  data: Readonly<Record<string, unknown>>,
+  key: string,
+): string | null {
+  const value = data[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function contextLine(data: Readonly<Record<string, unknown>>): string | null {
+  const entries = data.context;
+  if (!Array.isArray(entries)) return null;
+  const parts = entries.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const item = entry as Readonly<Record<string, unknown>>;
+    const label = text(item, "label");
+    const value = text(item, "value");
+    return label && value ? [`${label} ${value}`] : [];
+  });
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/**
+ * Every destination stays inside the internal shell. A record whose type has no
+ * dedicated operator surface resolves to the account that owns it, which is the
+ * only other place an operator can act on it.
+ */
+function destination(record: ProjectionRecord, group: SearchGroup): string {
+  const key = encodeURIComponent(record.recordKey);
+  if (group === "Accounts") return `/internal/accounts/${key}`;
+  if (group === "Queues") return `/internal/queues/${key}`;
+  if (group === "Agreements") return "/internal/agreements";
+  if (group === "Invoices") return "/internal/collections";
+  return record.accountId
+    ? `/internal/accounts/${encodeURIComponent(record.accountId)}`
+    : "/internal/queues";
+}
+
+export function searchRecordFromProjection(
+  record: ProjectionRecord,
+  group: SearchGroup,
+): SearchRecord {
+  const data = record.data;
+  return {
+    id: record.recordKey,
+    group,
+    title: text(data, "title") ?? text(data, "name") ?? record.recordKey,
+    subtitle:
+      text(data, "description") ??
+      contextLine(data) ??
+      text(data, "nextAction") ??
+      `Updated ${record.sourceUpdatedAt}`,
+    href: destination(record, group),
+    status: text(data, "statusLabel") ?? text(data, "status") ?? "Available",
+  };
+}
+
+export function searchRecords(query: string, records: readonly SearchRecord[]) {
   const terms = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return [];
   return records.filter((record) => {

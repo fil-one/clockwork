@@ -37,6 +37,13 @@ describe("partner collection URL state", () => {
     expect(next.get("pageSize")).toBe("5");
   });
 
+  it("refuses synthetic view states so a partner cannot fake one", () => {
+    for (const view of ["loading", "empty", "permission", "error"])
+      expect(parsePartnerQuery(new URLSearchParams(`view=${view}`)).view).toBe(
+        "table",
+      );
+  });
+
   it("falls back safely for invalid URL values", () => {
     expect(
       parsePartnerQuery(

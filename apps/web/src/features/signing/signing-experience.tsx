@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import { BrandLogo, Button, Input, StatusBadge } from "@clockwork/ui";
 
@@ -51,9 +52,7 @@ export function SigningExperience({
 
   const reconcileReturn = useCallback(async () => {
     if (!returnState) {
-      setError(
-        "The signing return does not contain an authoritative state reference.",
-      );
+      setError(t("signing.missingState"));
       setState("failed");
       return;
     }
@@ -66,9 +65,7 @@ export function SigningExperience({
     } catch (caught) {
       setReturnStatus(null);
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "The signing state could not be verified by the server.",
+        caught instanceof Error ? caught.message : t("signing.unverifiable"),
       );
       setState("failed");
       window.setTimeout(() => errorRef.current?.focus(), 0);
@@ -99,9 +96,7 @@ export function SigningExperience({
       setState("requested");
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "The signing request failed. The agreement remains unchanged.",
+        caught instanceof Error ? caught.message : t("signing.requestFailed"),
       );
       setState("failed");
       window.setTimeout(() => errorRef.current?.focus(), 0);
@@ -132,7 +127,7 @@ export function SigningExperience({
         </div>
         <StatusBadge tone={tone}>{statusLabel}</StatusBadge>
       </header>
-      <section className="signing-card" aria-live="polite">
+      <section className="signing-card">
         <p className="eyebrow">{t("signing.eyebrow")}</p>
         <h1>{t(mode === "embedded" ? "signing.embedded" : "signing.title")}</h1>
         <p>{t("signing.description")}</p>
@@ -142,16 +137,18 @@ export function SigningExperience({
               <>
                 <input type="hidden" name="agreementId" value={agreementId} />
                 <p>
-                  Agreement reference: <strong>{agreementId}</strong>
+                  {t("signing.agreementReference")}:{" "}
+                  <strong>{agreementId}</strong>
                 </p>
               </>
             ) : (
-              <Input label="Agreement ID" name="agreementId" required />
+              <Input
+                label={t("signing.agreementId")}
+                name="agreementId"
+                required
+              />
             )}
-            <p>
-              Your account, signer identity, and immutable agreement document
-              are selected by the server from this persisted agreement.
-            </p>
+            <p>{t("signing.serverSelected")}</p>
             {state === "loading" ? (
               <div className="provider-state" role="status">
                 <span className="provider-progress" aria-hidden="true" />
@@ -160,10 +157,7 @@ export function SigningExperience({
             ) : null}
             {state === "requested" ? (
               <div className="provider-state" role="status">
-                <p>
-                  Envelope accepted. The agreement remains inactive until a
-                  signed provider callback is verified.
-                </p>
+                <p>{t("signing.accepted")}</p>
                 {mode === "redirect" ? (
                   <a
                     className="cw-button cw-button--primary"
@@ -171,13 +165,13 @@ export function SigningExperience({
                     rel="noopener noreferrer"
                     referrerPolicy="no-referrer"
                   >
-                    Continue to the approved e-sign provider
+                    {t("signing.continue")}
                   </a>
                 ) : (
                   <iframe
                     className="signing-frame"
                     src={providerUrl}
-                    title="Secure e-sign provider"
+                    title={t("signing.frame")}
                     /* The provider frame keeps an opaque origin. Pairing
                        allow-same-origin with allow-scripts would let framed
                        script reach this document whenever the allow-listed
@@ -204,7 +198,7 @@ export function SigningExperience({
                 {state === "failed"
                   ? t("signing.recover")
                   : mode === "embedded"
-                    ? "Start embedded signing"
+                    ? t("signing.startEmbedded")
                     : t("signing.redirect")}
               </Button>
               <Button
@@ -225,7 +219,7 @@ export function SigningExperience({
 
         {mode === "return" && state === "loading" ? (
           <div className="provider-state" role="status">
-            <p>Checking the persisted envelope status…</p>
+            <p>{t("signing.checking")}</p>
           </div>
         ) : null}
         {mode === "return" && state === "completed" ? (
@@ -237,35 +231,40 @@ export function SigningExperience({
                 className="cw-button cw-button--secondary"
                 href={`/api/experience/esign/returns/${encodeURIComponent(returnState)}/signed-document`}
               >
-                Download signed agreement
+                {t("signing.download")}
               </a>
             ) : null}
+            <Link className="cw-button cw-button--primary" href="/agreements">
+              {t("signing.agreements")}
+            </Link>
           </div>
         ) : null}
         {mode === "return" && state === "pending" ? (
           <div className="provider-state" role="status">
-            <h2>Signature pending</h2>
-            <p>The provider has not yet confirmed a completed signature.</p>
+            <h2>{t("signing.pending.title")}</h2>
+            <p>{t("signing.pending.description")}</p>
             <Button
               variant="secondary"
               type="button"
               onClick={() => void reconcileReturn()}
             >
-              Refresh status
+              {t("signing.refresh")}
             </Button>
           </div>
         ) : null}
         {mode === "return" && (state === "declined" || state === "expired") ? (
           <div className="provider-state provider-state--error" role="alert">
             <h2>
-              {state === "declined"
-                ? "Signature declined"
-                : "Signing session expired"}
+              {t(
+                state === "declined"
+                  ? "signing.declined.title"
+                  : "signing.expired.title",
+              )}
             </h2>
-            <p>
-              The agreement remains unchanged. Return to the agreement to review
-              next steps.
-            </p>
+            <p>{t("signing.unchanged")}</p>
+            <Link className="cw-button cw-button--primary" href="/agreements">
+              {t("signing.agreements")}
+            </Link>
           </div>
         ) : null}
         {mode === "return" && state === "failed" ? (
@@ -277,6 +276,9 @@ export function SigningExperience({
           >
             <h2>{t("signing.failed")}</h2>
             <p>{error || t("signing.unverified")}</p>
+            <Link className="cw-button cw-button--primary" href="/agreements">
+              {t("signing.agreements")}
+            </Link>
           </div>
         ) : null}
       </section>

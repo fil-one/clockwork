@@ -1,40 +1,62 @@
 import Link from "next/link";
+import type { Route } from "next";
+import type { ReactNode } from "react";
 
 import { StatusBadge } from "@clockwork/ui";
+
+import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
 
 const copy = customerPartnerCopy.customer;
 
-const accountAreas = [
-  {
-    title: "Users and access",
-    description:
-      "Review roles, approval authority, MFA state, and pending invitations.",
-    meta: "4 active · 1 invitation pending",
-    href: "/account/users" as const,
-  },
-  {
-    title: "Procurement",
-    description:
-      "Maintain invoice delivery, supplier onboarding, purchase orders, and tax evidence.",
-    meta: "1 requirement needs attention",
-    href: "/account/procurement" as const,
-  },
-  {
-    title: "Offboarding",
-    description:
-      "Review retrieval, final billing, retention exclusions, and teardown authority.",
-    meta: "Confirmation required for every request",
-    href: "/account/offboarding" as const,
-  },
-] as const;
+export interface AccountOverviewProjection {
+  accountName: string;
+  organizationName: string;
+  roleLabel: string;
+  facts: readonly { label: string; value: string }[];
+  areaMeta: { users: string; procurement: string };
+}
+
+function accountAreas(meta: AccountOverviewProjection["areaMeta"]) {
+  return [
+    {
+      title: "Users and access",
+      description:
+        "Review roles, approval authority, MFA state, and pending invitations.",
+      meta: meta.users,
+      href: "/account/users" as Route,
+    },
+    {
+      title: "Procurement",
+      description:
+        "Maintain invoice delivery, supplier onboarding, purchase orders, and tax evidence.",
+      meta: meta.procurement,
+      href: "/account/procurement" as Route,
+    },
+    {
+      title: "Offboarding",
+      description:
+        "Review retrieval, final billing, retention exclusions, and teardown authority.",
+      meta: t("account.areas.offboarding.meta"),
+      href: "/account/offboarding" as Route,
+    },
+  ];
+}
 
 export function AccountOverview({
+  projection,
   canManageAccount = true,
+  actions,
 }: {
+  projection: AccountOverviewProjection;
   canManageAccount?: boolean;
+  /**
+   * Server-backed account action, supplied by the route so the panel carries
+   * the route's own permission gate rather than a second guess at it.
+   */
+  actions?: ReactNode;
 }) {
   return (
     <main className={styles.main} id="main-content">
@@ -50,28 +72,18 @@ export function AccountOverview({
         <div className={styles.sectionHeading}>
           <div>
             <p className={styles.eyebrow}>Organization</p>
-            <h2 id="organization-title">Northstar Archive Labs</h2>
-            <p>Direct customer · commercial account in good standing</p>
+            <h2 id="organization-title">{projection.accountName}</h2>
+            <p>{projection.organizationName}</p>
           </div>
-          <StatusBadge tone="success">Verified</StatusBadge>
+          <StatusBadge tone="neutral">{projection.roleLabel}</StatusBadge>
         </div>
         <dl className={styles.accountFacts}>
-          <div>
-            <dt>Account owner</dt>
-            <dd>Maya Chen</dd>
-          </div>
-          <div>
-            <dt>Billing contact</dt>
-            <dd>Elias Romero</dd>
-          </div>
-          <div>
-            <dt>Primary region</dt>
-            <dd>US East</dd>
-          </div>
-          <div>
-            <dt>Account currency</dt>
-            <dd>USD</dd>
-          </div>
+          {projection.facts.map((fact) => (
+            <div key={fact.label}>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
         </dl>
       </section>
 
@@ -84,7 +96,7 @@ export function AccountOverview({
         </div>
         {canManageAccount ? (
           <div className={styles.accountGrid}>
-            {accountAreas.map((area) => (
+            {accountAreas(projection.areaMeta).map((area) => (
               <Link
                 className={styles.accountCard}
                 href={area.href}
@@ -100,6 +112,8 @@ export function AccountOverview({
           <p className={styles.permissionNote}>{copy.accountPermissionNote}</p>
         )}
       </section>
+
+      {actions}
     </main>
   );
 }

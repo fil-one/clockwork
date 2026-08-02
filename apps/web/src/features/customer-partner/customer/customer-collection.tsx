@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 
@@ -233,9 +234,16 @@ function SelectedRecord({
 export function CustomerCollection({
   config,
   searchParams,
+  actions,
 }: {
   config: CustomerCollectionConfig;
   searchParams: RawCollectionSearchParams;
+  /**
+   * Server-backed action for this collection, supplied by the route so the
+   * panel carries the route's own permission gate rather than a second guess
+   * at it.
+   */
+  actions?: ReactNode;
 }) {
   const state = parseCollectionState(searchParams);
   const filtered = filterAndSortRecords(config.records, state);
@@ -275,6 +283,8 @@ export function CustomerCollection({
           <span>{config.providerNote}</span>
         </aside>
       ) : null}
+
+      {actions}
 
       <form className={styles.filters} action={config.path} method="get">
         <label className={styles.field}>

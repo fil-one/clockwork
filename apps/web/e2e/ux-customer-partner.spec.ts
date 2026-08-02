@@ -6,6 +6,10 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 // and navigation races in the local Next development server.
 test.describe.configure({ mode: "serial" });
 
+const CUSTOMER_ACCOUNT_ID = "10000000-0000-4000-8000-000000000001";
+const OFFER = "Enterprise archive capacity";
+const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
+
 async function usePersona(page: Page, role: string) {
   await page.setExtraHTTPHeaders({ "x-clockwork-persona": role });
 }
@@ -87,49 +91,73 @@ test("member keeps read access without owner-only customer actions", async ({
   await expect(page).toHaveURL(/pageSize=5/);
 });
 
-test("owner starts a quote from an authorized projection with an optimistic version", async ({
+test("owner builds a quote from the session account and issues one protected command", async ({
   page,
 }) => {
   await usePersona(page, "owner");
-  let command: Record<string, unknown> | undefined;
-  await page.route(
-    "**/api/experience/projections/customer/quotes/**/actions**",
-    async (route) => {
-      expectProtectedMutation(route);
-      command = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({
-        status: 202,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "action-quote",
-          projectionId: command.projectionId,
-          aggregateType: "quotes",
-          aggregateId: "quote-demo",
-          action: command.action,
-          expectedVersion: command.expectedVersion,
-          status: "queued",
-          createdAt: "2026-07-31T16:00:00.000Z",
-          auditEventId: "audit-quote",
-          outboxMessageId: "outbox-quote",
-        }),
-      });
-    },
-  );
+  const commands: Array<Record<string, unknown>> = [];
+  await page.route("**/api/v1/core/commands/quotes", async (route) => {
+    expectProtectedMutation(route);
+    const command = route.request().postDataJSON() as Record<string, unknown>;
+    commands.push(command);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: command.id, status: "draft", version: 1 }),
+    });
+  });
 
   await page.goto("/quotes/new");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Quote workspace" }),
+    page.getByRole("heading", { level: 1, name: "Create a quote" }),
   ).toBeVisible();
+  // The account is fixed by the session; the builder never offers another one.
+  await expect(page.getByLabel("Customer account")).toHaveValue(
+    "Northstar Archive Labs",
+  );
+
+  await page.getByLabel("Offer", { exact: true }).fill(OFFER);
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(
-    page.getByRole("heading", { name: "Enterprise committed capacity" }),
+    page.getByRole("heading", {
+      level: 2,
+      name: "Capacity, term, route, end client or partner, and expiry",
+    }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "accept", exact: true }).click();
-  await expect(page.getByText("accept queued")).toBeVisible();
-  expect(command).toMatchObject({
-    action: "accept",
-    expectedVersion: 3,
-    projectionId: expect.stringMatching(/^[0-9a-f-]{36}$/),
-    payload: {},
+  await page.getByLabel("Committed capacity (TB)").fill("120");
+  await page.getByLabel("Term (months)").fill("12");
+  await page.getByLabel("Quote expiry").fill("2026-09-30T17:00");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByRole("heading", { level: 3, name: "Draft boundary" }),
+  ).toBeVisible();
+  const create = page.getByRole("button", { name: "Create priced draft" });
+  await create.click();
+  await expect(
+    page.getByText(/The server created the priced draft/),
+  ).toBeVisible();
+  // The created draft is not an open quote: the surface refuses to infer one.
+  await expect(page.getByText(/current server status is draft/)).toBeVisible();
+  await expect(create).toBeDisabled();
+
+  expect(commands).toHaveLength(1);
+  expect(commands[0]).toMatchObject({
+    id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    accountId: CUSTOMER_ACCOUNT_ID,
+    action: "create",
+    payload: {
+      priceBookId: OFFER_PRICE_BOOK_ID,
+      route: "direct",
+      lines: [
+        {
+          sku: "FIL-ARCHIVE-CAPACITY",
+          region: "us-east",
+          quantity: "120",
+          termMonths: 12,
+        },
+      ],
+    },
   });
 });
 
@@ -138,22 +166,45 @@ test("owner reviews persisted agreement identity before the signing handoff", as
 }) => {
   await usePersona(page, "owner");
 
-  await page.goto("/agreements/execute");
+  await page.goto("/agreements/AGR-2026-0042");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Choose an agreement" }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Cloud Service Agreement · version 3.2",
+    }),
   ).toBeVisible();
+  const artifacts = page.getByRole("region", { name: "Artifact chain" });
+  await expect(artifacts.getByText("AGR-2026-0042")).toBeVisible();
+  await expect(artifacts.getByText("3.2")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Cloud Service Agreement" }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Reference AGR-2026-0042 · version 3.2", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Sign this authorized agreement" }).first(),
+    page.getByRole("link", { name: "Sign this agreement" }),
   ).toHaveAttribute("href", /\/signing\/redirect\?agreementId=[0-9a-f-]{36}/);
   await expect(
-    page.getByRole("group", { name: "Attach evidence" }).first(),
+    page.getByRole("group", { name: "Attach customer agreement paper" }),
   ).toBeVisible();
+});
+
+test("click-through acceptance stays closed until the approved template loads", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
+
+  await page.goto("/agreements/execute");
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Review and accept agreement",
+    }),
+  ).toBeVisible();
+  // Without the counsel-approved server record there is no exact text to bind,
+  // so the surface offers no acceptance control at all.
+  await expect(
+    page.getByRole("heading", { name: "Agreement unavailable" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/No legal acceptance action is available/),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /accept/i })).toHaveCount(0);
 });
 
 test("owner reviews complete persisted order commitments before acceptance", async ({
@@ -162,18 +213,50 @@ test("owner reviews complete persisted order commitments before acceptance", asy
   await usePersona(page, "owner");
   await page.goto("/orders/accept");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Order acceptance" }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Review resulting commitment",
+    }),
+  ).toBeVisible();
+  // Both authoritative inputs keep their reference and version attached.
+  await expect(
+    page.getByText("Accepted quote Q-2026-0184-v3 · version 3"),
+  ).toBeVisible();
+  const review = page.getByRole("complementary", {
+    name: "Review before accepting",
+  });
+  await expect(
+    review.getByText("Enterprise committed capacity · version 3 · accepted"),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Northstar primary archive" }),
+    review.getByText("Cloud Service Agreement · version 3.2 · active"),
   ).toBeVisible();
+  // Estimated spend is labeled as a quote calculation, not as billed value.
   await expect(
-    page.getByRole("heading", { name: "Madrid compliance replica" }),
+    page.getByText(/Estimated spend is a quote calculation/),
   ).toBeVisible();
-  await expect(
-    page.getByText(/Reference ORD-2026-0098 · version 1/),
-  ).toBeVisible();
-  await expect(page.getByText("Read only")).toHaveCount(2);
+});
+
+test("order acceptance requires an explicit attestation before it binds", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
+  let accepted = false;
+  await page.route("**/api/v1/core/commands/orders", async (route) => {
+    accepted = true;
+    await route.abort();
+  });
+  await page.goto("/orders/accept");
+  await page.getByRole("textbox", { name: "Purchase order" }).fill("PO-77120");
+  await page.getByRole("textbox", { name: "Service start" }).fill("2026-09-01");
+  await page
+    .getByRole("textbox", { name: "Authority title" })
+    .fill("Director of Infrastructure");
+  await page
+    .getByRole("button", { name: "Accept order and create commitment" })
+    .click();
+  await expect(page.getByRole("checkbox")).toBeFocused();
+  expect(accepted).toBe(false);
 });
 
 test("offboarding review reflects the selected named service", async ({
@@ -182,13 +265,29 @@ test("offboarding review reflects the selected named service", async ({
   await usePersona(page, "owner");
   await page.goto("/account/offboarding");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Account offboarding" }),
+    page.getByRole("heading", { level: 1, name: "Review service offboarding" }),
   ).toBeVisible();
+  // The service list is the customer's persisted orders, named as the customer
+  // knows them.
+  const service = page.getByRole("combobox", { name: "Service", exact: true });
+  const madrid = service.locator("option", {
+    hasText: "Madrid compliance replica",
+  });
+  await service.selectOption((await madrid.getAttribute("value")) ?? "");
+  await page
+    .getByRole("combobox", { name: "Retrieval window" })
+    .selectOption("60");
+  await page
+    .getByRole("textbox", { name: "Requested effective time" })
+    .fill("2026-12-01T09:00");
+  await page.getByRole("button", { name: "Review and confirm" }).click();
+
+  const review = page.getByRole("complementary", { name: "Review impact" });
+  await expect(review.getByText("Madrid compliance replica")).toBeVisible();
+  await expect(review.getByText("60 days")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Restore sample timing" }),
+    review.getByText("Two distinct approvers required"),
   ).toBeVisible();
-  await expect(page.getByText("Reference SUP-18421 · version 1")).toBeVisible();
-  await expect(page.getByText("Read only")).toHaveCount(4);
 });
 
 test("billing prepares a safe provider handoff while payment truth stays webhook-derived", async ({
@@ -302,15 +401,16 @@ test("partner seller starts resale work only from authorized persisted records",
   await usePersona(page, "partner_seller");
   await page.goto("/partner/quotes/new");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Partner quote task" }),
+    page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
   ).toBeVisible();
+  const summary = page.getByRole("complementary", { name: "Quote summary" });
+  await expect(summary.getByText("Halcyon Research Cooperative")).toBeVisible();
+  await expect(summary.getByText("Meridian Channel Group")).toBeVisible();
+  // Transfer pricing is a server calculation, so the builder refuses to state
+  // one before the draft exists.
   await expect(
-    page.getByRole("heading", { name: "Halcyon archive expansion" }),
+    summary.getByText("Server-priced after draft creation"),
   ).toBeVisible();
-  await expect(
-    page.getByText("Reference PQ-2026-0184-v3 · version 1"),
-  ).toBeVisible();
-  await expect(page.getByText("Read only")).toHaveCount(3);
 });
 
 test("partner admin reviews financial boundaries before any renewal request", async ({
@@ -361,7 +461,7 @@ for (const viewport of [
 
     await page.goto("/quotes/new");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Quote workspace" }),
+      page.getByRole("heading", { level: 1, name: "Create a quote" }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
 

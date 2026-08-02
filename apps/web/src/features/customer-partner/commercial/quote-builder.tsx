@@ -7,10 +7,13 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
+import { t } from "@/src/i18n/en";
+
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 import { SearchableSelector } from "./searchable-selector";
 import {
+  emptyQuoteDraft,
   firstQuoteError,
   quotePayload,
   quoteSelectorOptions,
@@ -20,19 +23,26 @@ import {
   type QuoteErrors,
   type QuoteField,
   type QuoteStage,
+  type SelectorOption,
 } from "./workflow-model";
 
-const initialDraft: QuoteDraft = {
-  account: "Northstar Archive Labs",
-  offer: "Enterprise archive capacity",
-  region: "us-east",
-  capacity: "120",
-  termMonths: "12",
-  route: "direct",
-  endClient: "",
-  partner: "",
-  expiresAt: "2026-08-31T17:00",
-};
+export interface QuoteAccount {
+  id: string;
+  name: string;
+}
+
+export interface QuoteOrigin {
+  kind: "revision" | "poc";
+  reference: string;
+  resolved: boolean;
+}
+
+function originLabel(origin: QuoteOrigin): string {
+  if (!origin.resolved) return t("quotes.builder.origin.unavailable");
+  return origin.kind === "revision"
+    ? t("quotes.builder.origin.revision", { reference: origin.reference })
+    : t("quotes.builder.origin.poc", { reference: origin.reference });
+}
 
 function labelFor(value: string, fallback = "Not selected") {
   return value.trim() || fallback;
@@ -157,11 +167,27 @@ function Field({
   );
 }
 
-export function QuoteBuilder() {
+export function QuoteBuilder({
+  account,
+  origin,
+}: {
+  account: QuoteAccount;
+  origin?: QuoteOrigin;
+}) {
+  const accountOptions: readonly SelectorOption[] = [
+    {
+      id: account.id,
+      label: account.name,
+      description: t("quotes.builder.account.description"),
+    },
+  ];
   const [stage, setStage] = useState<QuoteStage>(1);
-  const [draft, setDraft] = useState<QuoteDraft>(initialDraft);
+  const [draft, setDraft] = useState<QuoteDraft>(() =>
+    emptyQuoteDraft(account.name),
+  );
   const [errors, setErrors] = useState<QuoteErrors>({});
   const [pending, setPending] = useState(false);
+  const [createdQuoteId, setCreatedQuoteId] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const workflowRef = useRef<HTMLDivElement>(null);
@@ -175,6 +201,7 @@ export function QuoteBuilder() {
     idempotencyKeyRef.current = null;
     quoteIdRef.current = null;
     quoteInputRef.current = null;
+    setCreatedQuoteId("");
     setMessage("");
     setErrorMessage("");
   };
@@ -191,7 +218,7 @@ export function QuoteBuilder() {
   };
 
   const next = () => {
-    const nextErrors = validateQuoteStage(stage, draft);
+    const nextErrors = validateQuoteStage(stage, draft, accountOptions);
     setErrors(nextErrors);
     const firstError = firstQuoteError(nextErrors);
     if (firstError) {
@@ -204,8 +231,8 @@ export function QuoteBuilder() {
 
   const issue = async () => {
     const allErrors = {
-      ...validateQuoteStage(1, draft),
-      ...validateQuoteStage(2, draft),
+      ...validateQuoteStage(1, draft, accountOptions),
+      ...validateQuoteStage(2, draft, accountOptions),
     };
     setErrors(allErrors);
     const firstError = firstQuoteError(allErrors);
@@ -225,7 +252,7 @@ export function QuoteBuilder() {
     setMessage("");
     setErrorMessage("");
     try {
-      quoteInputRef.current ??= quotePayload(draft);
+      quoteInputRef.current ??= quotePayload(draft, accountOptions);
       const input = quoteInputRef.current;
       idempotencyKeyRef.current ??= crypto.randomUUID();
       quoteIdRef.current ??= uuidV7();
@@ -241,9 +268,8 @@ export function QuoteBuilder() {
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
-      setMessage(
-        "The server created the priced draft. Its current server status is draft; issuance becomes available after the rendered artifact is prepared and bound.",
-      );
+      setCreatedQuoteId(quoteIdRef.current);
+      setMessage(t("quotes.builder.created"));
     } catch (caught) {
       setErrorMessage(
         caught instanceof Error
@@ -273,6 +299,12 @@ export function QuoteBuilder() {
           Cancel and return
         </Link>
       </header>
+
+      {origin ? (
+        <p className={styles.notice} role="status">
+          {originLabel(origin)}
+        </p>
+      ) : null}
 
       <ol aria-label="Commercial promise chain" className={styles.promiseChain}>
         <li>
@@ -332,7 +364,7 @@ export function QuoteBuilder() {
                   id="account"
                   label="Customer account"
                   onChange={(value) => update("account", value)}
-                  options={quoteSelectorOptions.accounts}
+                  options={accountOptions}
                   value={draft.account}
                 />
                 <SearchableSelector
@@ -501,7 +533,12 @@ export function QuoteBuilder() {
 
           {message ? (
             <p className={styles.successMessage} role="status">
-              {message}
+              {message}{" "}
+              {createdQuoteId ? (
+                <Link href={`/quotes/quote-${createdQuoteId}`}>
+                  {t("quotes.builder.createdLink")}
+                </Link>
+              ) : null}
             </p>
           ) : null}
           {errorMessage ? (

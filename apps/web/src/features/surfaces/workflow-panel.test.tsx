@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -222,6 +222,52 @@ describe("generated-client commerce workflows", () => {
       exactTextHash,
       authorityAttested: true,
     });
+  });
+
+  it("renews an order in one submission and confirms a decline first", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(<WorkflowPanel workflow="renewal" surface="services" />);
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(/server record is now the source of truth/i),
+    ).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect((fetchMock.mock.calls[0]?.[0] as Request).url).toContain(
+      "/requests",
+    );
+
+    await user.selectOptions(
+      screen.getByLabelText("Renewal action"),
+      "decline",
+    );
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Confirm this decision");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Keep the record unchanged" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Confirm and submit",
+      }),
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect((fetchMock.mock.calls[1]?.[0] as Request).url).toContain(
+      "/declines",
+    );
   });
 
   it("loads and downloads each report through the generated report operation", async () => {

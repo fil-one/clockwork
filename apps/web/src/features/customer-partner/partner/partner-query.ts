@@ -13,8 +13,11 @@ export const partnerQueryKeys = [
 
 export type PartnerQueryKey = (typeof partnerQueryKeys)[number];
 export type PartnerSort = "name-asc" | "name-desc" | "risk-desc" | "status-asc";
-export type PartnerView =
-  "table" | "cards" | "loading" | "empty" | "permission" | "error";
+/**
+ * Layout only. Loading, empty and error are outcomes of the request, never a
+ * choice a partner can make from the URL against their own live records.
+ */
+export type PartnerView = "table" | "cards";
 
 export interface PartnerQueryState {
   q: string;
@@ -33,14 +36,7 @@ const sortValues: readonly PartnerSort[] = [
   "risk-desc",
   "status-asc",
 ];
-const viewValues: readonly PartnerView[] = [
-  "table",
-  "cards",
-  "loading",
-  "empty",
-  "permission",
-  "error",
-];
+const viewValues: readonly PartnerView[] = ["table", "cards"];
 
 function positiveInteger(value: string | null, fallback: number): number {
   if (!value) return fallback;

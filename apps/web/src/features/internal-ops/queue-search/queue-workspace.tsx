@@ -11,24 +11,22 @@ import {
   activeFilterLabels,
   DEFAULT_FILTERS,
   filterQueueItems,
+  paginateQueueItems,
   parseQueueFilters,
-  PEOPLE,
-  QUEUE_ITEMS,
-  SAVED_VIEWS,
+  queueOwnerOptions,
+  queueTypeOptions,
   selectQueueItem,
   serializeQueueFilters,
   slaFor,
   sortQueueItems,
+  SAVED_VIEWS,
   type QueueFilters,
   type QueueItem,
   type OperationalRole,
 } from "./model";
 import { QueueDetail } from "./queue-detail";
 
-const OWNER_OPTIONS = PEOPLE.map((person) => ({
-  value: person.id,
-  label: person.label,
-}));
+const NOT_SUPPLIED = "Not supplied";
 
 function SelectFilter({
   label,
@@ -60,35 +58,58 @@ function QueueState({
   kind,
   onReset,
 }: {
-  kind: "empty" | "no-match" | "permission" | "error";
+  kind: "empty" | "no-match";
   onReset: () => void;
 }) {
   const content = QUEUE_COPY.states[kind];
   return (
-    <section
-      className={styles.stateCard}
-      role={kind === "error" ? "alert" : "status"}
-    >
+    <section className={styles.stateCard} role="status">
       <h2>{content[0]}</h2>
       <p>{content[1]}</p>
-      <button
-        className={styles.secondaryButton}
-        type="button"
-        onClick={onReset}
-      >
-        {kind === "error" ? "Try again" : "Clear filters"}
-      </button>
+      {kind === "no-match" ? (
+        <button
+          className={styles.secondaryButton}
+          type="button"
+          onClick={onReset}
+        >
+          {QUEUE_COPY.clearAll}
+        </button>
+      ) : null}
     </section>
+  );
+}
+
+function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
+  const sla = slaFor(item, now);
+  if (!sla || !item.dueAt) return <span>{NOT_SUPPLIED}</span>;
+  return (
+    <>
+      <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
+        {sla === "breached"
+          ? "Breached"
+          : sla === "due-soon"
+            ? "Due soon"
+            : "Healthy"}
+      </span>
+      <time dateTime={item.dueAt}>
+        {new Date(item.dueAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })}
+      </time>
+    </>
   );
 }
 
 function QueueTable({
   items,
   selected,
+  now,
   onSelect,
 }: {
   items: readonly QueueItem[];
   selected: QueueItem | null;
+  now: Date;
   onSelect: (id: string) => void;
 }) {
   return (
@@ -122,7 +143,8 @@ function QueueTable({
                 >
                   <strong>{item.title}</strong>
                   <span>
-                    {item.entity} · {item.type}
+                    {[item.entity, item.type].filter(Boolean).join(" · ") ||
+                      item.id}
                   </span>
                 </button>
                 <Link
@@ -131,42 +153,37 @@ function QueueTable({
                 >
                   {item.title}
                   <span>
-                    {item.entity} · {item.type}
+                    {[item.entity, item.type].filter(Boolean).join(" · ") ||
+                      item.id}
                   </span>
                 </Link>
               </th>
               <td data-label="Owner">
-                <strong>{item.owner}</strong>
+                <strong>{item.owner ?? "Unassigned"}</strong>
                 <span>
                   {item.backup ? `Backup ${item.backup}` : "Backup needed"}
                 </span>
               </td>
               <td data-label="SLA">
-                <span
-                  className={`${styles.sla} ${styles[`sla_${slaFor(item)}`]}`}
-                >
-                  {slaFor(item) === "breached"
-                    ? "Breached"
-                    : slaFor(item) === "due-soon"
-                      ? "Due soon"
-                      : "Healthy"}
-                </span>
-                <time dateTime={item.dueAt}>
-                  {new Date(item.dueAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </time>
+                <SlaCell item={item} now={now} />
               </td>
               <td data-label="Risk">
-                <span
-                  className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}
-                >
-                  {item.risk}
-                </span>
+                {item.risk ? (
+                  <span
+                    className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}
+                  >
+                    {item.risk}
+                  </span>
+                ) : (
+                  NOT_SUPPLIED
+                )}
               </td>
-              <td data-label="Status">{item.status}</td>
-              <td data-label="Age">{item.ageDays}d</td>
+              <td data-label="Status">
+                {item.statusLabel ?? item.status ?? NOT_SUPPLIED}
+              </td>
+              <td data-label="Age">
+                {item.ageDays === null ? NOT_SUPPLIED : `${item.ageDays}d`}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -177,51 +194,49 @@ function QueueTable({
 
 export function QueueWorkspace({
   roles,
+  items,
+  generatedAt,
+  stale,
+  actorId = null,
 }: {
   roles: readonly OperationalRole[];
+  items: readonly QueueItem[];
+  generatedAt: string;
+  stale: boolean;
+  actorId?: string | null;
 }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const now = new Date();
   const filters = useMemo(
     () => parseQueueFilters(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
   const [searchDraft, setSearchDraft] = useState(filters.text);
-  const effectiveFilters = useMemo(
-    () =>
-      filters.text.toLocaleLowerCase().startsWith("demo:")
-        ? { ...filters, text: "" }
-        : filters,
-    [filters],
+  const people = useMemo(() => queueOwnerOptions(items), [items]);
+  const typeOptions = useMemo(() => queueTypeOptions(items), [items]);
+  const ownerOptions = useMemo(
+    () => people.map((person) => ({ value: person.id, label: person.label })),
+    [people],
   );
   const filtered = useMemo(
     () =>
       sortQueueItems(
-        filterQueueItems(QUEUE_ITEMS, effectiveFilters),
-        effectiveFilters.sort,
+        filterQueueItems(items, filters, { actorId }),
+        filters.sort,
       ),
-    [effectiveFilters],
+    [actorId, filters, items],
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectQueueItem(filtered, selectedId);
-  const labels = activeFilterLabels(filters);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / filters.pageSize));
-  const page = Math.min(filters.page, pageCount);
-  const paginated = filtered.slice(
-    (page - 1) * filters.pageSize,
-    page * filters.pageSize,
-  );
-  const state = filters.text.toLocaleLowerCase();
-  const demoState =
-    state === "demo:empty"
-      ? "empty"
-      : state === "demo:permission"
-        ? "permission"
-        : state === "demo:error"
-          ? "error"
-          : null;
+  const labels = activeFilterLabels(filters, people);
+  const {
+    items: paginated,
+    page,
+    pageCount,
+  } = paginateQueueItems(filtered, filters.page, filters.pageSize);
 
   useEffect(() => {
     if (selectedId && !filtered.some((item) => item.id === selectedId))
@@ -253,15 +268,16 @@ export function QueueWorkspace({
         </div>
         <p className={styles.freshness}>
           <span aria-hidden="true" />
-          {QUEUE_COPY.freshness}
+          {QUEUE_COPY.freshness}{" "}
+          <time dateTime={generatedAt}>{generatedAt}</time>
         </p>
       </header>
 
-      {state === "demo:stale" ? (
+      {stale ? (
         <section className={styles.staleBanner} role="alert">
           <strong>{QUEUE_COPY.staleTitle}</strong>
           <span>{QUEUE_COPY.staleDescription}</span>
-          <button type="button" onClick={reset}>
+          <button type="button" onClick={() => router.refresh()}>
             {QUEUE_COPY.staleAction}
           </button>
         </section>
@@ -312,30 +328,20 @@ export function QueueWorkspace({
             label={QUEUE_COPY.filterLabels.type}
             value={filters.type}
             onChange={(type) => update({ type })}
-            options={[
-              "pricing",
-              "legal",
-              "collections",
-              "screening",
-              "migration",
-              "provisioning",
-            ].map((value) => ({
-              value,
-              label: value.charAt(0).toUpperCase() + value.slice(1),
-            }))}
+            options={typeOptions}
           />
           <SelectFilter
             label={QUEUE_COPY.filterLabels.owner}
             value={filters.owner}
             onChange={(owner) => update({ owner })}
-            options={OWNER_OPTIONS}
+            options={ownerOptions}
           />
           <SelectFilter
             label={QUEUE_COPY.filterLabels.backup}
             value={filters.backup}
             onChange={(backup) => update({ backup })}
             options={[
-              ...OWNER_OPTIONS,
+              ...ownerOptions,
               { value: "unassigned", label: "Unassigned" },
             ]}
           />
@@ -419,8 +425,8 @@ export function QueueWorkspace({
           {QUEUE_COPY.updating}
         </div>
       ) : null}
-      {demoState ? (
-        <QueueState kind={demoState} onReset={reset} />
+      {items.length === 0 ? (
+        <QueueState kind="empty" onReset={reset} />
       ) : filtered.length === 0 ? (
         <QueueState kind="no-match" onReset={reset} />
       ) : (
@@ -432,6 +438,7 @@ export function QueueWorkspace({
             <QueueTable
               items={paginated}
               selected={selected}
+              now={now}
               onSelect={setSelectedId}
             />
             <div className={styles.pagination}>

@@ -26,6 +26,7 @@ import {
   priceQuote,
   registerDeal,
   redactPartnerQuoteData,
+  validateCommitmentContract,
 } from "@clockwork/domain/core";
 import type {
   AccountCommercialRecord,
@@ -43,6 +44,8 @@ import {
   amendments,
   commerceUsers,
   commissionAccruals,
+  commitmentEntries,
+  commitmentLedgers,
   creditNotes,
   dealRegistrations,
   disputeCases,
@@ -58,6 +61,7 @@ import {
   rateCards,
   refunds,
   reportExports,
+  usageEvents,
   webhookEvents,
   workflowRuns,
 } from "../../schema";
@@ -66,10 +70,13 @@ import {
   billingPolicies,
   collectionActions,
   collectionCases,
+  commitmentAllowanceAdjustments,
+  commitmentPeriods,
   orderCommercialProfiles,
   orderLineSnapshots,
   quoteCommercialProfiles,
   quoteSnapshots,
+  usageReconciliations,
   dealRegistrationExclusions,
 } from "../../schema/core/finance";
 import { lifecycleIdempotencyRecords } from "../../schema/lifecycle/platform";
@@ -87,6 +94,13 @@ import {
   quoteArtifactDefinition,
 } from "./artifact-definitions";
 import { assertCommercialArtifactBinding } from "./commercial-artifacts";
+import {
+  applyCommitmentDecision,
+  ingestUsageEvents,
+  reconcileLedgerToSource,
+  replayCommitmentLedger,
+  type LedgerTrailCorrection,
+} from "./commitments";
 import { CoreFinanceRepository, coreSnapshotHash } from "./finance";
 import { z } from "zod";
 
@@ -332,6 +346,8 @@ const QuoteLineSnapshotSchema = z.object({
   stripeTaxCode: z.string().min(1),
   qboIncomeAccount: z.string().min(1),
   marginResult: z.enum(["not_configured", "pass", "exception_required"]),
+  discountCeilingBps: z.number().int().min(0).max(10_000).optional(),
+  marginImpact: MoneySchema.optional(),
 });
 const QuoteSnapshotSchema = z.object({
   id: z.uuid(),
@@ -558,6 +574,88 @@ const DisputeCreateCommandSchema = z
   .strict();
 const DunningCommandSchema = z.object({}).strict();
 
+/** Canonical numeric(38,18) quantity strings; never a float. */
+const QuantitySchema = z.string().regex(/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/);
+const SignedQuantitySchema = z
+  .string()
+  .regex(/^-?(?:0|[1-9]\d*)(?:\.\d{1,18})?$/);
+const CommitmentPeriodInputSchema = z
+  .object({
+    startsAt: z.iso.datetime({ offset: true }),
+    endsAt: z.iso.datetime({ offset: true }),
+    allowanceQuantity: QuantitySchema,
+  })
+  .strict();
+const CommitmentCreateCommandSchema = z
+  .object({
+    orderId: z.uuid(),
+    orderLineId: z.uuid(),
+    commitType: z.enum(["period_allowance", "term_drawdown"]),
+    contractualTimeZone: z.string().min(1).max(80),
+    periods: z.array(CommitmentPeriodInputSchema).min(1).max(120),
+  })
+  .strict();
+const CommitmentUsageCommandSchema = z
+  .object({
+    events: z
+      .array(
+        z
+          .object({
+            externalEventId: z.string().min(1).max(255),
+            measuredAt: z.iso.datetime({ offset: true }),
+            quantity: QuantitySchema,
+            meter: z.string().min(1).max(120),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(500),
+  })
+  .strict();
+const CommitmentCorrectionCommandSchema = z
+  .object({
+    externalEventId: z.string().min(1).max(255),
+    correctsExternalEventId: z.string().min(1).max(255),
+    measuredAt: z.iso.datetime({ offset: true }),
+    quantityDelta: SignedQuantitySchema,
+    meter: z.string().min(1).max(120),
+    reasonCode: z.string().min(3).max(120),
+    sourceReference: z.string().min(1).max(255),
+  })
+  .strict();
+const CommitmentAllowanceCommandSchema = z
+  .object({
+    effectiveAt: z.iso.datetime({ offset: true }),
+    quantityDelta: SignedQuantitySchema,
+    reason: z.enum(["amendment", "renewal", "correction"]),
+    sourceReference: z.string().min(1).max(255),
+    periodId: z.uuid().optional(),
+  })
+  .strict();
+const CommitmentRenewCommandSchema = z
+  .object({
+    startsAt: z.iso.datetime({ offset: true }),
+    endsAt: z.iso.datetime({ offset: true }),
+    allowanceQuantity: QuantitySchema,
+    sourceReference: z.string().min(1).max(255),
+  })
+  .strict();
+const CommitmentReconcileCommandSchema = z
+  .object({
+    sourceSystem: z.string().min(1).max(120),
+    records: z
+      .array(
+        z
+          .object({
+            externalEventId: z.string().min(1).max(255),
+            quantity: QuantitySchema,
+          })
+          .strict(),
+      )
+      .max(5000),
+  })
+  .strict();
+
 function pricedQuoteLine(
   input: z.output<typeof QuoteLineSnapshotSchema>,
 ): PricedQuoteLine {
@@ -580,6 +678,10 @@ function pricedQuoteLine(
     stripeTaxCode: input.stripeTaxCode,
     qboIncomeAccount: input.qboIncomeAccount,
     marginResult: input.marginResult,
+    ...(input.discountCeilingBps === undefined
+      ? {}
+      : { discountCeilingBps: input.discountCeilingBps }),
+    ...(input.marginImpact ? { marginImpact: input.marginImpact } : {}),
   };
 }
 
@@ -1056,6 +1158,65 @@ function assertQuoteIdentity(
     );
 }
 
+const DiscountMatrixSchema = z.object({
+  id: z.string().min(1),
+  version: z.number().int().min(0),
+  defaultMaxDiscountBps: z.number().int().min(0).max(10_000),
+  rules: z.array(
+    z.object({
+      id: z.string().min(1),
+      sku: z.string().min(1).optional(),
+      region: z.string().min(1).optional(),
+      route: z
+        .enum(["direct", "referral", "resale", "distributor", "marketplace"])
+        .optional(),
+      partnerTier: z.string().min(1).optional(),
+      minTermMonths: z.number().int().positive().optional(),
+      minQuantity: z.string().optional(),
+      maxDiscountBps: z.number().int().min(0).max(10_000),
+    }),
+  ),
+});
+
+/**
+ * An empty column is a book published before signed discount policy exists;
+ * pricing then falls back to its conservative zero-discount ceiling. Anything
+ * else must parse, so a malformed matrix surfaces instead of silently changing
+ * the authority a quote is priced under.
+ */
+function serverDiscountMatrix(
+  persisted: unknown,
+): PriceBook["discountMatrix"] | undefined {
+  if (
+    !persisted ||
+    typeof persisted !== "object" ||
+    Object.keys(persisted).length === 0
+  )
+    return undefined;
+  const matrix = DiscountMatrixSchema.parse(persisted);
+  return {
+    id: matrix.id,
+    version: matrix.version,
+    defaultMaxDiscountBps: matrix.defaultMaxDiscountBps,
+    rules: matrix.rules.map((rule) => ({
+      id: rule.id,
+      maxDiscountBps: rule.maxDiscountBps,
+      ...(rule.sku === undefined ? {} : { sku: rule.sku }),
+      ...(rule.region === undefined ? {} : { region: rule.region }),
+      ...(rule.route === undefined ? {} : { route: rule.route }),
+      ...(rule.partnerTier === undefined
+        ? {}
+        : { partnerTier: rule.partnerTier }),
+      ...(rule.minTermMonths === undefined
+        ? {}
+        : { minTermMonths: rule.minTermMonths }),
+      ...(rule.minQuantity === undefined
+        ? {}
+        : { minQuantity: rule.minQuantity }),
+    })),
+  };
+}
+
 async function serverPriceBook(
   transaction: RuntimeTransaction,
   priceBookId: string,
@@ -1071,6 +1232,7 @@ async function serverPriceBook(
   if (!header)
     throw new CoreServiceError("NOT_FOUND", "Price book was not found");
   const currency = CurrencySchema.parse(header.currency);
+  const discountMatrix = serverDiscountMatrix(header.discountMatrix);
   return {
     id: header.id,
     name: header.name,
@@ -1079,6 +1241,7 @@ async function serverPriceBook(
     effectiveFrom: header.effectiveFrom,
     ...(header.effectiveTo ? { effectiveTo: header.effectiveTo } : {}),
     status: z.enum(["draft", "active", "retired"]).parse(header.status),
+    ...(discountMatrix ? { discountMatrix } : {}),
     rateCards: persistedRates.map((rate) => ({
       id: rate.id,
       sku: rate.sku,
@@ -1129,6 +1292,15 @@ async function persistedQuoteSnapshot(
     .object({
       exceptionReasons: z.array(z.string()),
       whiteLabel: QuoteSnapshotSchema.shape.whiteLabel,
+      lineGuardrails: z
+        .record(
+          z.string(),
+          z.object({
+            discountCeilingBps: z.number().int().min(0).max(10_000),
+            marginImpact: MoneySchema,
+          }),
+        )
+        .optional(),
     })
     .parse(profile.pricingInputs);
   const rateById = new Map(book.rateCards.map((rate) => [rate.id, rate]));
@@ -1160,6 +1332,7 @@ async function persistedQuoteSnapshot(
         persisted.marginFloorResult === "exception_required"
           ? ("exception_required" as const)
           : ("pass" as const),
+      ...(inputEvidence.lineGuardrails?.[line.id] ?? {}),
     };
   });
   return quoteSnapshot({
@@ -1403,21 +1576,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       this.loadOrderAcceptanceContext(input),
       this.loadCommissionContext(input),
     ]);
-    return withAuthorizedTransaction(
-      this.options.database,
-      authorization(input),
-      { secret: this.options.authorizationSecret, now: this.now() },
-      (transaction) =>
-        this.mutateIdempotently(
-          transaction,
-          input,
-          confidentialPriceBook,
-          dealRegistrationContext,
-          quoteCommercialContext,
-          orderAcceptanceContext,
-          commissionContext,
-        ),
-    );
+    const run = (transaction: RuntimeTransaction) =>
+      this.mutateIdempotently(
+        transaction,
+        input,
+        confidentialPriceBook,
+        dealRegistrationContext,
+        quoteCommercialContext,
+        orderAcceptanceContext,
+        commissionContext,
+      );
+    // The commitment ledger, its periods, and its corrections are deliberately
+    // not writable by the tenant runtime role. Metering runs on the service
+    // connection; the account binding of every commitment command is checked
+    // against persisted order ownership rather than left to row policies.
+    return input.resource === "commitments"
+      ? withInternalTransaction(this.options.database, input.requestId, run)
+      : withAuthorizedTransaction(
+          this.options.database,
+          authorization(input),
+          { secret: this.options.authorizationSecret, now: this.now() },
+          run,
+        );
   }
 
   private async mutateIdempotently(
@@ -2143,6 +2323,8 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         return this.mutateOrder(transaction, input, orderAcceptanceContext);
       case "amendments":
         return this.mutateAmendment(transaction, input);
+      case "commitments":
+        return this.mutateCommitment(transaction, input);
       case "invoices":
         return this.mutateInvoice(transaction, input);
       case "credit_notes":
@@ -2719,6 +2901,23 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
             ? { dealRegistrationId: commercialContext.registration.id }
             : {}),
           exceptionReasons: priced.exceptionReasons,
+          marginImpact: priced.marginImpact,
+          guardrailBreaches: priced.guardrailBreaches,
+          lineGuardrails: Object.fromEntries(
+            priced.lines.flatMap((line) =>
+              line.discountCeilingBps === undefined || !line.marginImpact
+                ? []
+                : [
+                    [
+                      line.id,
+                      {
+                        discountCeilingBps: line.discountCeilingBps,
+                        marginImpact: line.marginImpact,
+                      },
+                    ],
+                  ],
+            ),
+          ),
           ...(whiteLabel ? { whiteLabel } : {}),
         },
         pricingCalculatedAt: new Date(input.occurredAt),
@@ -3319,6 +3518,506 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       input,
       coreRecord("amendments", row, parent.accountId),
     );
+  }
+
+  private mutateCommitment(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<CoreMutationResult> {
+    if (input.action === "create")
+      return this.createCommitment(transaction, input);
+    if (input.action === "reconcile")
+      return this.reconcileCommitment(transaction, input);
+    if (
+      input.action === "record_usage" ||
+      input.action === "correct_usage" ||
+      input.action === "amend_allowance" ||
+      input.action === "renew"
+    )
+      return this.advanceCommitment(transaction, input);
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Unsupported commitment command",
+    );
+  }
+
+  private async createCommitment(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<CoreMutationResult> {
+    const parsed = CommitmentCreateCommandSchema.safeParse(input.payload);
+    if (!parsed.success)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment create payload is invalid",
+      );
+    const command = parsed.data;
+    const order = await transaction.query.orders.findFirst({
+      where: eq(orders.id, command.orderId),
+    });
+    if (!order || order.accountId !== input.accountId)
+      throw new CoreServiceError("NOT_FOUND", "Order was not found");
+    const line = await transaction.query.orderLines.findFirst({
+      where: eq(orderLines.id, command.orderLineId),
+    });
+    if (!line || line.orderId !== order.id)
+      throw new CoreServiceError("NOT_FOUND", "Order line was not found");
+    const quote = await transaction.query.quotes.findFirst({
+      where: eq(quotes.id, order.quoteId),
+    });
+    if (!quote)
+      throw new CoreServiceError("NOT_FOUND", "Order quote was not found");
+    const existing = await transaction.query.commitmentLedgers.findFirst({
+      where: eq(commitmentLedgers.orderLineId, line.id),
+    });
+    if (existing)
+      throw new CoreServiceError(
+        "DUPLICATE",
+        "Order line already carries a commitment ledger",
+      );
+    const ordered = [...command.periods].sort(
+      (left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt),
+    );
+    // Contiguity, ordering, and zone validity are decided by the domain before
+    // any row is written, so an invalid contract never reaches the ledger.
+    validateCommitmentContract({
+      ledgerId: input.id,
+      orderId: order.id,
+      orderLineId: line.id,
+      commitType: command.commitType,
+      timeZone: command.contractualTimeZone,
+      periods: ordered.map((period, index) => ({
+        id: `period-${index + 1}`,
+        startsAt: period.startsAt,
+        endsAt: period.endsAt,
+        allowance: period.allowanceQuantity,
+        partial: false,
+      })),
+      contractedOverageRate: MoneySchema.parse({
+        currency: quote.currency,
+        minor: line.overageRateMinor.toString(),
+      }),
+      allowanceAdjustments: [],
+    });
+    const opening = ordered[0];
+    const closing = ordered[ordered.length - 1];
+    if (!opening || !closing)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment requires at least one contracted period",
+      );
+    const [ledger] = await transaction
+      .insert(commitmentLedgers)
+      .values({
+        id: input.id,
+        orderId: order.id,
+        orderLineId: line.id,
+        commitType: command.commitType,
+        committedQuantity: line.quantity,
+        periodStartsAt: new Date(opening.startsAt),
+        periodEndsAt: new Date(closing.endsAt),
+      })
+      .returning();
+    if (!ledger) throw new Error("Commitment ledger insert returned no row");
+    const repository = new CoreFinanceRepository(transaction);
+    for (const [index, period] of ordered.entries()) {
+      // Each period carries its own audit aggregate so the ledger's own version
+      // line stays free for the commands that change its balance.
+      const periodId = uuidV7();
+      await repository.createCommitmentPeriod(
+        {
+          id: periodId,
+          ledgerId: ledger.id,
+          sequence: index + 1,
+          startsAt: new Date(period.startsAt),
+          endsAt: new Date(period.endsAt),
+          contractualTimeZone: command.contractualTimeZone,
+          allowanceQuantity: period.allowanceQuantity,
+          contractedOverageRateMinor: line.overageRateMinor,
+        },
+        {
+          accountId: order.accountId,
+          aggregateType: "commitment_ledger",
+          aggregateId: periodId,
+          aggregateVersion: 1,
+          eventType: "core.commitments.period_created",
+          actor: input.actor,
+          requestId: input.requestId,
+        },
+      );
+    }
+    return audited(
+      transaction,
+      input,
+      coreRecord("commitments", ledger, order.accountId),
+    );
+  }
+
+  private async advanceCommitment(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<CoreMutationResult> {
+    const binding = await this.authorizedCommitment(transaction, input);
+    const now = new Date(input.occurredAt);
+    const trail = await this.applyCommitmentSource(
+      transaction,
+      input,
+      binding,
+      now,
+    );
+    const replay = await replayCommitmentLedger(transaction, input.id);
+    const applied = await applyCommitmentDecision(
+      transaction,
+      replay,
+      trail,
+      now,
+    );
+    const ledger = await transaction.query.commitmentLedgers.findFirst({
+      where: eq(commitmentLedgers.id, input.id),
+    });
+    if (!ledger) throw new Error("Commitment ledger disappeared mid-command");
+    const record = coreRecord("commitments", ledger, binding.accountId);
+    return audited(transaction, input, {
+      ...record,
+      data: JsonRecordSchema.parse({
+        ...record.data,
+        authority: applied.decision.authority,
+        totalConsumed: applied.decision.totalConsumed,
+        totalOverage: applied.decision.totalOverage,
+        overageAmount: applied.decision.overageAmount,
+        entriesAppended: applied.entriesAppended,
+        duplicateExternalEventIds:
+          applied.decision.duplicateExternalEventIds.length,
+        ...(applied.correctionId ? { correctionId: applied.correctionId } : {}),
+        ...(trail.ingested ? { ingestedUsageEventIds: trail.ingested } : {}),
+        ...(trail.duplicates
+          ? { duplicateUsageEventIds: trail.duplicates }
+          : {}),
+      }),
+    });
+  }
+
+  /**
+   * Writes the source fact for one commitment command and returns how the
+   * append-only correction trail should record it.
+   */
+  private async applyCommitmentSource(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    binding: {
+      accountId: string;
+      entitlementId: string;
+      ledgerRowVersion: number;
+    },
+    now: Date,
+  ): Promise<
+    LedgerTrailCorrection & {
+      ingested?: readonly string[];
+      duplicates?: readonly string[];
+    }
+  > {
+    const recordedBy = z.uuid().parse(input.authorization.userId);
+    if (input.action === "record_usage") {
+      const parsed = CommitmentUsageCommandSchema.safeParse(input.payload);
+      if (!parsed.success)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Commitment usage payload is invalid",
+        );
+      const result = await ingestUsageEvents(
+        transaction,
+        binding.entitlementId,
+        parsed.data.events,
+      );
+      return {
+        reasonCode: "late_usage_replay",
+        sourceReference: `usage:${input.idempotencyKey}`,
+        recordedBy,
+        recordedAt: now,
+        append: "on_drift",
+        ingested: result.ingested,
+        duplicates: result.duplicates,
+      };
+    }
+    if (input.action === "correct_usage") {
+      const parsed = CommitmentCorrectionCommandSchema.safeParse(input.payload);
+      if (!parsed.success)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Commitment correction payload is invalid",
+        );
+      const command = parsed.data;
+      const corrected = await transaction.query.usageEvents.findFirst({
+        where: and(
+          eq(usageEvents.entitlementId, binding.entitlementId),
+          eq(usageEvents.externalEventId, command.correctsExternalEventId),
+        ),
+      });
+      if (!corrected)
+        throw new CoreServiceError(
+          "NOT_FOUND",
+          "Corrected usage event was not found on this commitment",
+        );
+      const [appended] = await transaction
+        .insert(usageEvents)
+        .values({
+          entitlementId: binding.entitlementId,
+          externalEventId: command.externalEventId,
+          measuredAt: new Date(command.measuredAt),
+          quantity: command.quantityDelta,
+          kind: command.meter,
+          ledgerKind: "correction",
+          correctsUsageEventId: corrected.id,
+        })
+        .onConflictDoNothing({
+          target: [usageEvents.entitlementId, usageEvents.externalEventId],
+        })
+        .returning({ id: usageEvents.id });
+      if (!appended)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "Correction event id was already recorded",
+        );
+      const reversed = await transaction.query.commitmentEntries.findFirst({
+        where: eq(commitmentEntries.usageEventId, corrected.id),
+      });
+      return {
+        reasonCode: command.reasonCode,
+        sourceReference: command.sourceReference,
+        recordedBy,
+        recordedAt: now,
+        append: "always",
+        quantityDelta: command.quantityDelta,
+        ...(reversed ? { reversesEntryId: reversed.id } : {}),
+      };
+    }
+    if (input.action === "amend_allowance") {
+      const parsed = CommitmentAllowanceCommandSchema.safeParse(input.payload);
+      if (!parsed.success)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Commitment allowance payload is invalid",
+        );
+      const command = parsed.data;
+      const [adjustment] = await transaction
+        .insert(commitmentAllowanceAdjustments)
+        .values({
+          ledgerId: input.id,
+          ...(command.periodId ? { periodId: command.periodId } : {}),
+          effectiveAt: new Date(command.effectiveAt),
+          quantityDelta: command.quantityDelta,
+          reason: command.reason,
+          sourceReference: command.sourceReference,
+          recordedBy,
+          recordedAt: now,
+        })
+        .onConflictDoNothing({
+          target: [
+            commitmentAllowanceAdjustments.ledgerId,
+            commitmentAllowanceAdjustments.sourceReference,
+          ],
+        })
+        .returning({ id: commitmentAllowanceAdjustments.id });
+      if (!adjustment)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "Allowance adjustment reference was already recorded",
+        );
+      return {
+        reasonCode: "allowance_amendment",
+        sourceReference: `allowance:${command.sourceReference}`,
+        recordedBy,
+        recordedAt: now,
+        append: "on_drift",
+        ...(command.periodId ? { periodId: command.periodId } : {}),
+      };
+    }
+    const parsed = CommitmentRenewCommandSchema.safeParse(input.payload);
+    if (!parsed.success)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment renewal payload is invalid",
+      );
+    const command = parsed.data;
+    const periods = await transaction.query.commitmentPeriods.findMany({
+      where: eq(commitmentPeriods.ledgerId, input.id),
+      orderBy: [asc(commitmentPeriods.sequence)],
+    });
+    const last = periods[periods.length - 1];
+    if (!last)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment has no period to renew from",
+      );
+    if (Date.parse(command.startsAt) !== last.endsAt.getTime())
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "A renewal period must begin where the prior period ended",
+      );
+    const renewedPeriodId = uuidV7();
+    await new CoreFinanceRepository(transaction).createCommitmentPeriod(
+      {
+        id: renewedPeriodId,
+        ledgerId: input.id,
+        sequence: last.sequence + 1,
+        startsAt: new Date(command.startsAt),
+        endsAt: new Date(command.endsAt),
+        contractualTimeZone: last.contractualTimeZone,
+        allowanceQuantity: command.allowanceQuantity,
+        contractedOverageRateMinor: last.contractedOverageRateMinor,
+      },
+      {
+        accountId: binding.accountId,
+        aggregateType: "commitment_ledger",
+        aggregateId: renewedPeriodId,
+        aggregateVersion: 1,
+        eventType: "core.commitments.period_renewed",
+        actor: input.actor,
+        requestId: input.requestId,
+      },
+    );
+    const [extended] = await transaction
+      .update(commitmentLedgers)
+      .set({ periodEndsAt: new Date(command.endsAt) })
+      .where(
+        and(
+          eq(commitmentLedgers.id, input.id),
+          eq(commitmentLedgers.rowVersion, binding.ledgerRowVersion),
+        ),
+      )
+      .returning({ id: commitmentLedgers.id });
+    if (!extended)
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Commitment ledger changed during renewal",
+      );
+    return {
+      reasonCode: "renewal",
+      sourceReference: `renewal:${command.sourceReference}`,
+      recordedBy,
+      recordedAt: now,
+      append: "on_drift",
+    };
+  }
+
+  private async reconcileCommitment(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<CoreMutationResult> {
+    const parsed = CommitmentReconcileCommandSchema.safeParse(input.payload);
+    if (!parsed.success)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment reconciliation payload is invalid",
+      );
+    const binding = await this.authorizedCommitment(transaction, input);
+    const replay = await replayCommitmentLedger(transaction, input.id);
+    const result = reconcileLedgerToSource(
+      replay.decision,
+      parsed.data.records,
+    );
+    const status = result.matched ? "matched" : "variance";
+    const [reconciliation] = await transaction
+      .insert(usageReconciliations)
+      .values({
+        entitlementId: binding.entitlementId,
+        periodStartsAt: replay.binding.ledger.periodStartsAt,
+        periodEndsAt: replay.binding.ledger.periodEndsAt,
+        sourceSystem: parsed.data.sourceSystem,
+        sourceQuantity: result.sourceQuantity,
+        ledgerQuantity: result.ledgerQuantity,
+        varianceQuantity: result.varianceQuantity,
+        status,
+      })
+      .onConflictDoUpdate({
+        target: [
+          usageReconciliations.entitlementId,
+          usageReconciliations.periodStartsAt,
+          usageReconciliations.periodEndsAt,
+          usageReconciliations.sourceSystem,
+        ],
+        set: {
+          sourceQuantity: result.sourceQuantity,
+          ledgerQuantity: result.ledgerQuantity,
+          varianceQuantity: result.varianceQuantity,
+          status,
+        },
+      })
+      .returning();
+    if (!reconciliation)
+      throw new Error("Usage reconciliation insert returned no row");
+    const record = coreRecord(
+      "commitments",
+      replay.binding.ledger,
+      binding.accountId,
+    );
+    return audited(
+      transaction,
+      input,
+      {
+        ...record,
+        data: JsonRecordSchema.parse({
+          ...record.data,
+          reconciliationId: reconciliation.id,
+          sourceSystem: parsed.data.sourceSystem,
+          status,
+          ledgerQuantity: result.ledgerQuantity,
+          sourceQuantity: result.sourceQuantity,
+          varianceQuantity: result.varianceQuantity,
+          missingFromLedger: result.missingFromLedger,
+          missingFromSource: result.missingFromSource,
+        }),
+      },
+      undefined,
+      // Reconciliation compares the ledger against a source without changing
+      // its balance, so it audits against the reconciliation it produced.
+      {
+        type: "commitment_ledger",
+        id: reconciliation.id,
+        version: reconciliation.rowVersion,
+      },
+    );
+  }
+
+  private async authorizedCommitment(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+  ): Promise<{
+    accountId: string;
+    entitlementId: string;
+    ledgerRowVersion: number;
+  }> {
+    const ledger = await transaction.query.commitmentLedgers.findFirst({
+      where: eq(commitmentLedgers.id, input.id),
+    });
+    if (!ledger)
+      throw new CoreServiceError("NOT_FOUND", "Commitment was not found");
+    const order = await transaction.query.orders.findFirst({
+      where: eq(orders.id, ledger.orderId),
+    });
+    if (!order || order.accountId !== input.accountId)
+      throw new CoreServiceError("NOT_FOUND", "Commitment was not found");
+    if (
+      input.expectedVersion !== undefined &&
+      input.expectedVersion !== ledger.rowVersion
+    )
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Commitment ledger version does not match",
+      );
+    const entitlement = await transaction.query.entitlements.findFirst({
+      where: eq(entitlements.orderLineId, ledger.orderLineId),
+    });
+    if (!entitlement)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Commitment has no metered entitlement",
+      );
+    return {
+      accountId: order.accountId,
+      entitlementId: entitlement.id,
+      ledgerRowVersion: ledger.rowVersion,
+    };
   }
 
   private async mutateInvoice(

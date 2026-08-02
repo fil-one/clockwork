@@ -191,7 +191,6 @@ export function ReportsView() {
       description={lifecycleCopy.reports.description}
       freshness={lifecycleCopy.reports.freshness}
       source={lifecycleCopy.reports.source}
-      permission="report:read"
     >
       <form
         className={styles.filterBar}

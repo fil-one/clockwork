@@ -610,6 +610,41 @@ export const commitmentLedgerCorrections = pgTable(
   ],
 );
 
+export const commitmentAllowanceAdjustments = pgTable(
+  "core_commitment_allowance_adjustments",
+  {
+    id: id(),
+    ledgerId: uuid("ledger_id")
+      .notNull()
+      .references(() => commitmentLedgers.id),
+    periodId: uuid("period_id").references(() => commitmentPeriods.id),
+    effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull(),
+    quantityDelta: quantity("quantity_delta"),
+    reason: text("reason").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    recordedBy: uuid("recorded_by")
+      .notNull()
+      .references(() => commerceUsers.id),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("core_commitment_allowance_adjustment_source_unique").on(
+      table.ledgerId,
+      table.sourceReference,
+    ),
+    index("core_commitment_allowance_adjustment_replay_idx").on(
+      table.ledgerId,
+      table.effectiveAt,
+      table.id,
+    ),
+    check(
+      "core_commitment_allowance_adjustment_reason_check",
+      sql`${table.reason} in ('amendment','renewal','correction')`,
+    ),
+  ],
+);
+
 export const usageReconciliations = pgTable(
   "core_usage_reconciliations",
   {
@@ -1388,6 +1423,7 @@ export const coreFinanceTables = {
   amendmentLineSupersessions,
   commitmentPeriods,
   commitmentLedgerCorrections,
+  commitmentAllowanceAdjustments,
   usageReconciliations,
   billingPolicies,
   invoiceEndClientAllocations,

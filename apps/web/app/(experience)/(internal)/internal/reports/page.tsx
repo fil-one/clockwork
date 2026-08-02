@@ -1,11 +1,10 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { ReportsView } from "@/src/features/internal-ops/finance-lifecycle/reports-view";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
 export default function Page() {
   return (
-    <InternalProjectionPage
-      channel="reports"
-      title="Reports"
-      description="Inspect generated report requests and immutable output status."
-    />
+    <SurfacePermissionGate audience="internal" requiredPermission="report:read">
+      <ReportsView />
+    </SurfacePermissionGate>
   );
 }

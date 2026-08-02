@@ -4,7 +4,6 @@ import {
   and,
   asc,
   eq,
-  gt,
   gte,
   inArray,
   isNotNull,
@@ -13,9 +12,14 @@ import {
   sql,
 } from "drizzle-orm";
 
-import { multiplyMinorByQuantity } from "@clockwork/domain/core";
+import {
+  multiplyMinorByQuantity,
+  parseDecimal,
+  type CommitmentLedgerDecision,
+} from "@clockwork/domain/core";
 
 import type { RuntimeDatabase } from "../../client";
+import { replayCommitmentLedger } from "../core/commitments";
 import {
   accounts,
   auditEvents,
@@ -318,20 +322,29 @@ export class DatabaseCoreScheduledDispatchStore {
   ): Promise<readonly CoreWorkflowTaskDispatch[]> {
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
       const periods = await tx.query.commitmentPeriods.findMany({
-        where: and(
-          eq(commitmentPeriods.status, "closed"),
-          lte(commitmentPeriods.endsAt, scheduledAt),
-          gt(commitmentPeriods.overageQuantity, "0"),
-        ),
+        where: lte(commitmentPeriods.endsAt, scheduledAt),
         orderBy: [asc(commitmentPeriods.endsAt), asc(commitmentPeriods.id)],
         limit,
       });
       const dispatches: CoreWorkflowTaskDispatch[] = [];
+      const decisions = new Map<string, CommitmentLedgerDecision>();
       for (const period of periods) {
         const ledger = await tx.query.commitmentLedgers.findFirst({
           where: eq(commitmentLedgers.id, period.ledgerId),
         });
         if (!ledger) throw new Error("SCHEDULED_OVERAGE_LEDGER_NOT_FOUND");
+        // The ledger decides whether overage exists; the materialized column is
+        // a cache and never the authority for what gets invoiced.
+        let decision = decisions.get(ledger.id);
+        if (!decision) {
+          decision = (await replayCommitmentLedger(tx, ledger.id)).decision;
+          decisions.set(ledger.id, decision);
+        }
+        const decided = decision.periods.find(
+          (balance) => balance.periodId === period.id,
+        );
+        if (!decided) throw new Error("SCHEDULED_OVERAGE_PERIOD_NOT_DECIDED");
+        if (parseDecimal(decided.overage) === 0n) continue;
         const [order, line] = await Promise.all([
           tx.query.orders.findFirst({ where: eq(orders.id, ledger.orderId) }),
           tx.query.orderLines.findFirst({
@@ -357,13 +370,12 @@ export class DatabaseCoreScheduledDispatchStore {
           }),
           tx.query.quotes.findFirst({ where: eq(quotes.id, order.quoteId) }),
         ]);
-        if (
-          !invoice?.stripeInvoiceId ||
-          !account?.stripeCustomerId ||
-          !quoteLine ||
-          !sourceQuote
-        )
+        if (!quoteLine || !sourceQuote)
           throw new Error("SCHEDULED_OVERAGE_PROVIDER_BINDING_INCOMPLETE");
+        // An order that owes overage before its invoice is open is not yet
+        // billable. It is picked up on a later run rather than failing the
+        // whole true-up scan for every other account.
+        if (!invoice?.stripeInvoiceId || !account?.stripeCustomerId) continue;
         const rateCard = await tx.query.rateCards.findFirst({
           where: eq(rateCards.id, quoteLine.rateCardId),
         });
@@ -403,7 +415,7 @@ export class DatabaseCoreScheduledDispatchStore {
           throw new Error("SCHEDULED_OVERAGE_SOURCE_USAGE_MISSING");
         const amountMinor = multiplyMinorByQuantity(
           period.contractedOverageRateMinor,
-          period.overageQuantity,
+          decided.overage,
         );
         if (amountMinor <= 0n)
           throw new Error("SCHEDULED_OVERAGE_AMOUNT_INVALID");
@@ -434,7 +446,7 @@ export class DatabaseCoreScheduledDispatchStore {
                 ledgerEntryId: firstEntry.id,
                 sku: line.sku,
                 taxCode: rateCard.stripeTaxCode,
-                quantity: period.overageQuantity,
+                quantity: decided.overage,
                 contractedUnitRate: {
                   currency: invoice.currency,
                   minor: period.contractedOverageRateMinor.toString(),

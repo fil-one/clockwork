@@ -165,6 +165,48 @@ export async function getRouteRoles(
   return (await getRouteSession(audience)).roles;
 }
 
+export interface RouteIdentity {
+  accountId: string;
+  accountName: string;
+  organizationName: string;
+  role: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+}
+
+/**
+ * The account and acting user a commercial mutation must be bound to. The
+ * server rejects an order whose signer is not the authenticated actor, so a
+ * surface that submits one reads its identifiers from here rather than from a
+ * component-level constant.
+ */
+export async function getRouteIdentity(
+  audience: ExperienceAudience,
+): Promise<RouteIdentity> {
+  const session = await getRouteSession(audience);
+  const membership =
+    session.memberships.find(
+      ({ accountId }) => accountId === session.effectiveAccountId,
+    ) ??
+    session.memberships.find(
+      ({ accountId }) => accountId === session.selectedAccountId,
+    );
+  if (!membership)
+    throw new Error(
+      "Authorized membership for the selected account is missing",
+    );
+  return {
+    accountId: session.effectiveAccountId,
+    accountName: membership.accountName,
+    organizationName: membership.organizationName,
+    role: membership.role,
+    userId: membership.userId,
+    userName: membership.userName,
+    userEmail: membership.userEmail,
+  };
+}
+
 export async function getAuthenticatedHome(): Promise<
   "/dashboard" | "/partner" | "/internal" | "/choose-organization"
 > {

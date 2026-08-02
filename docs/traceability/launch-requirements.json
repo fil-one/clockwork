@@ -6,7 +6,7 @@
     "generatedFrom": "commerce_platform_spec.md",
     "requirementCount": 312,
     "requirementIdSetSha256": "23aed1a04004de57c6b7d1e7174c0dfe0f78e632878b3189b833e6bb54f02199",
-    "reviewState": "repository-qualified",
+    "reviewState": "post-merge-pre-qualification",
     "activeBranch": "main",
     "reviewedAgainst": [
       "docs/backlog.md",
@@ -1117,9 +1117,9 @@
       "portalDocument": ["agreements UI and documents"],
       "tests": ["agreement UX"],
       "externalGates": ["EXT-LEGAL-01", "EXT-PROVIDER-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-LEGAL-01, EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-40"],
+      "status": "partial",
+      "rationale": "The agreements surface renders from the portal projection, and no agreement write path publishes an authoritative outbox event, so the customer, partner, and internal agreements channels materialize empty. P0-40 covers the missing events."
     },
     {
       "id": "SPEC-06-03",
@@ -1162,9 +1162,9 @@
       "portalDocument": ["POC UI"],
       "tests": ["POC tests"],
       "externalGates": ["EXT-PROVISION-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-PROVISION-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-40"],
+      "status": "partial",
+      "rationale": "The POC surface renders from the portal projection, and no POC write path publishes an authoritative outbox event, so the POC channels materialize empty. P0-40 covers the missing events."
     },
     {
       "id": "SPEC-06-06",
@@ -1192,9 +1192,9 @@
       "portalDocument": ["account UI and certificates"],
       "tests": ["account and offboarding tests"],
       "externalGates": ["EXT-TAX-01", "EXT-TEARDOWN-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-TAX-01, EXT-TEARDOWN-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-40", "P0-46"],
+      "status": "partial",
+      "rationale": "Termination write paths publish no authoritative outbox event, so the offboarding channel materializes empty (P0-40). The surface also has no notification preferences to manage because no notification delivery record exists (P0-46)."
     },
     {
       "id": "SPEC-06-08",
@@ -1237,9 +1237,9 @@
       "portalDocument": ["internal routes"],
       "tests": ["internal UX"],
       "externalGates": ["EXT-APPROVERS-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-APPROVERS-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-40"],
+      "status": "partial",
+      "rationale": "The internal queue, approval, and provider-operation channels render from the portal projection, and the exception_case, approval, and provider_operation write paths publish no authoritative outbox event, so those channels materialize empty. P0-40 covers the missing events."
     },
     {
       "id": "SPEC-06-11",
@@ -1807,9 +1807,9 @@
       "portalDocument": ["usage"],
       "tests": ["property and contract tests"],
       "externalGates": ["EXT-COMMERCIAL-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-COMMERCIAL-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-41"],
+      "status": "partial",
+      "rationale": "Commitment period and correction repositories exist and the overage decision is proven by property tests, but no production caller creates a period, appends a correction, or inserts commitment_ledgers or usage_events, so no commitment is billed from persisted truth. P0-41 covers the missing write path."
     },
     {
       "id": "SPEC-10-03",
@@ -2407,9 +2407,9 @@
       "portalDocument": [],
       "tests": ["CRM contract tests"],
       "externalGates": ["EXT-PROVIDER-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-44"],
+      "status": "partial",
+      "rationale": "The one-way CRM port, adapter, replay behavior, and export fallback exist and are covered by contract tests, and no production composition constructs the adapter and no outbox consumer projects to it, so accounts.crm_record_id is never populated. P0-44 covers the missing runtime path."
     },
     {
       "id": "SPEC-15-02",
@@ -2542,9 +2542,9 @@
       "portalDocument": ["provisioning recovery"],
       "tests": ["recovery tests"],
       "externalGates": ["EXT-PROVISION-01", "EXT-APPROVERS-01"],
-      "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered inputs EXT-PROVISION-01, EXT-APPROVERS-01; the gate register supplies the absent input and activation test."
+      "backlog": ["P0-43"],
+      "status": "partial",
+      "rationale": "Stuck-provisioning recovery has workflow and API support, and provisioning recovery is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
     },
     {
       "id": "SPEC-16-Q09",
@@ -2557,9 +2557,9 @@
       "portalDocument": ["migration review"],
       "tests": ["migration tests"],
       "externalGates": ["EXT-MIGRATION-01", "EXT-APPROVERS-01"],
-      "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered inputs EXT-MIGRATION-01, EXT-APPROVERS-01; the gate register supplies the absent input and activation test."
+      "backlog": ["P0-43"],
+      "status": "partial",
+      "rationale": "Migration match review has workflow and API support, and migration review is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
     },
     {
       "id": "SPEC-16-Q10",
@@ -2572,9 +2572,9 @@
       "portalDocument": ["offboarding approval"],
       "tests": ["destructive approval tests"],
       "externalGates": ["EXT-TEARDOWN-01", "EXT-APPROVERS-01"],
-      "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered inputs EXT-TEARDOWN-01, EXT-APPROVERS-01; the gate register supplies the absent input and activation test."
+      "backlog": ["P0-43"],
+      "status": "partial",
+      "rationale": "Termination approval enforces two distinct approvers, and offboarding/destructive is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
     },
     {
       "id": "SPEC-16-11",
@@ -2587,9 +2587,9 @@
       "portalDocument": ["internal queues"],
       "tests": ["exception/separation tests"],
       "externalGates": ["EXT-APPROVERS-01"],
-      "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-APPROVERS-01; the gate register supplies the absent input and activation test."
+      "backlog": ["P0-43"],
+      "status": "partial",
+      "rationale": "Owner, backup, target, escalation, separation, and evidence controls hold for the seven queues the domain vocabulary declares. A second disjoint ExceptionQueue union in the workflows package names six further queues that no roster entry can match, so the invariant does not span every queue the system raises. P0-43 covers the reconciliation."
     },
     {
       "id": "SPEC-16-12",
@@ -2707,9 +2707,9 @@
       "portalDocument": ["ARR/MRR"],
       "tests": ["report tests"],
       "externalGates": ["EXT-COMMERCIAL-01", "EXT-TAX-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-COMMERCIAL-01, EXT-TAX-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-42"],
+      "status": "partial",
+      "rationale": "recurringRevenue supports the forecast, and no ARR/MRR report exists: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
     },
     {
       "id": "SPEC-17-R08",
@@ -2722,9 +2722,9 @@
       "portalDocument": ["collections report"],
       "tests": ["report tests"],
       "externalGates": ["EXT-TAX-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-TAX-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-42"],
+      "status": "partial",
+      "rationale": "Invoice, aging, payment, credit, refund, dispute, and collection records are persisted, and no billing and collections report reads them: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
     },
     {
       "id": "SPEC-17-R09",
@@ -2737,9 +2737,9 @@
       "portalDocument": ["settlement report"],
       "tests": ["commission/marketplace tests"],
       "externalGates": ["EXT-TAX-01", "EXT-MARKETPLACE-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-TAX-01, EXT-MARKETPLACE-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-42"],
+      "status": "partial",
+      "rationale": "Commission accrual, statement, and settlement records are persisted, and no commission and settlement report reads them: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
     },
     {
       "id": "SPEC-17-R10",
@@ -3037,9 +3037,9 @@
       "portalDocument": ["internal queues"],
       "tests": ["exception tests"],
       "externalGates": ["EXT-APPROVERS-01", "EXT-PROVIDER-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-APPROVERS-01, EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-46"],
+      "status": "partial",
+      "rationale": "Exception operations and termination approval operations are in the generated contract. No notification operation is, and no table records a notification delivery. P0-46 covers the missing notification surface."
     },
     {
       "id": "SPEC-18-API-09",
@@ -3647,9 +3647,9 @@
       "portalDocument": ["tax labels/invoices"],
       "tests": ["tax fixtures"],
       "externalGates": ["EXT-TAX-01"],
-      "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-TAX-01; the gate register supplies the absent input and activation test."
+      "backlog": ["P0-45"],
+      "status": "partial",
+      "rationale": "Tax identifier, exemption certificate, and per-SKU tax code storage exists, and TaxPort.validateTaxId has no caller outside the fake and no code sets reverse_charge_eligible or determines EU or UK reverse-charge treatment. Those are repository gaps that EXT-TAX-01 does not cover. P0-45 covers them."
     },
     {
       "id": "SPEC-19-04",

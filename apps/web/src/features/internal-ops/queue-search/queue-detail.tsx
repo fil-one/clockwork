@@ -19,8 +19,11 @@ const DATE_TIME = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-function formatDate(value: string) {
-  return DATE_TIME.format(new Date(value));
+const NOT_SUPPLIED = "Not supplied";
+
+function Moment({ value }: { value: string | null }) {
+  if (!value) return <>{NOT_SUPPLIED}</>;
+  return <time dateTime={value}>{DATE_TIME.format(new Date(value))}</time>;
 }
 
 export function QueueDetail({
@@ -34,6 +37,7 @@ export function QueueDetail({
 }) {
   const actions = permittedActions(item, roles);
   const restricted = actions.length !== item.permittedActions.length;
+  const sla = slaFor(item);
   return (
     <article
       className={standalone ? styles.detailStandalone : styles.detail}
@@ -42,26 +46,31 @@ export function QueueDetail({
       <header className={styles.detailHeader}>
         <div>
           <p className={styles.eyebrow}>
-            {item.type} queue · {item.id}
+            {item.type ? `${item.type} queue · ` : ""}
+            {item.id}
           </p>
           <h2 id={`detail-title-${item.id}`}>{item.title}</h2>
-          <p className={styles.entity}>{item.entity}</p>
+          {item.entity ? <p className={styles.entity}>{item.entity}</p> : null}
         </div>
-        <span className={`${styles.sla} ${styles[`sla_${slaFor(item)}`]}`}>
-          {slaFor(item) === "breached"
-            ? "SLA breached"
-            : slaFor(item) === "due-soon"
-              ? "Due soon"
-              : "SLA healthy"}
-        </span>
+        {sla ? (
+          <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
+            {sla === "breached"
+              ? "SLA breached"
+              : sla === "due-soon"
+                ? "Due soon"
+                : "SLA healthy"}
+          </span>
+        ) : null}
       </header>
 
-      <p className={styles.detailSummary}>{item.summary}</p>
+      {item.summary ? (
+        <p className={styles.detailSummary}>{item.summary}</p>
+      ) : null}
 
       <dl className={styles.detailFacts}>
         <div>
           <dt>{QUEUE_COPY.details.owner}</dt>
-          <dd>{item.owner}</dd>
+          <dd>{item.owner ?? "Unassigned"}</dd>
         </div>
         <div>
           <dt>{QUEUE_COPY.details.backup}</dt>
@@ -70,45 +79,53 @@ export function QueueDetail({
         <div>
           <dt>{QUEUE_COPY.details.risk}</dt>
           <dd>
-            <span className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}>
-              {item.risk}
-            </span>
+            {item.risk ? (
+              <span className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}>
+                {item.risk}
+              </span>
+            ) : (
+              NOT_SUPPLIED
+            )}
           </dd>
         </div>
         <div>
           <dt>{QUEUE_COPY.details.status}</dt>
-          <dd>{item.status}</dd>
+          <dd>{item.statusLabel ?? item.status ?? NOT_SUPPLIED}</dd>
         </div>
         <div>
           <dt>{QUEUE_COPY.details.created}</dt>
           <dd>
-            <time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time>
+            <Moment value={item.createdAt} />
           </dd>
         </div>
         <div>
           <dt>{QUEUE_COPY.details.updated}</dt>
           <dd>
-            <time dateTime={item.updatedAt}>{formatDate(item.updatedAt)}</time>
+            <Moment value={item.updatedAt} />
           </dd>
         </div>
         <div>
           <dt>{QUEUE_COPY.details.deadline}</dt>
           <dd>
-            <time dateTime={item.dueAt}>{formatDate(item.dueAt)}</time>
+            <Moment value={item.dueAt} />
           </dd>
         </div>
       </dl>
 
-      <section
-        className={styles.detailSection}
-        aria-labelledby={`policy-${item.id}`}
-      >
-        <h3 id={`policy-${item.id}`}>{QUEUE_COPY.details.reason}</h3>
-        <p>{item.policyReason}</p>
-        <p className={styles.policyBasis}>
-          <strong>{QUEUE_COPY.details.policy}</strong> {item.policyBasis}
-        </p>
-      </section>
+      {item.policyReason || item.policyBasis ? (
+        <section
+          className={styles.detailSection}
+          aria-labelledby={`policy-${item.id}`}
+        >
+          <h3 id={`policy-${item.id}`}>{QUEUE_COPY.details.reason}</h3>
+          {item.policyReason ? <p>{item.policyReason}</p> : null}
+          {item.policyBasis ? (
+            <p className={styles.policyBasis}>
+              <strong>{QUEUE_COPY.details.policy}</strong> {item.policyBasis}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section
         className={styles.detailSection}
@@ -133,19 +150,21 @@ export function QueueDetail({
         </dl>
       </section>
 
-      <section
-        className={styles.detailSection}
-        aria-labelledby={`related-${item.id}`}
-      >
-        <h3 id={`related-${item.id}`}>{QUEUE_COPY.details.related}</h3>
-        <ul className={styles.linkList}>
-          {item.related.map((record) => (
-            <li key={record.label}>
-              <Link href={record.href as Route}>{record.label}</Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {item.related.length ? (
+        <section
+          className={styles.detailSection}
+          aria-labelledby={`related-${item.id}`}
+        >
+          <h3 id={`related-${item.id}`}>{QUEUE_COPY.details.related}</h3>
+          <ul className={styles.linkList}>
+            {item.related.map((record) => (
+              <li key={record.label}>
+                <Link href={record.href as Route}>{record.label}</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section
         className={styles.detailSection}

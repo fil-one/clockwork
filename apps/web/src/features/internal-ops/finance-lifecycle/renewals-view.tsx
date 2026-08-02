@@ -24,7 +24,6 @@ export function RenewalsView() {
       description={lifecycleCopy.renewals.description}
       freshness={lifecycleCopy.renewals.freshness}
       source={lifecycleCopy.renewals.source}
-      permission="report:read"
     >
       <section className={styles.summaryGrid} aria-label="Exposure by horizon">
         {renewalWindows.map((window) => {

@@ -83,3 +83,24 @@ export async function SurfacePermissionGate({
   if (!permitted(audience, roles, requiredPermission)) return <Denied />;
   return children;
 }
+
+/**
+ * Gates one mutation inside a surface the reader is already allowed to open.
+ * A denied action renders nothing rather than replacing the page with a 403,
+ * and resolves its roles on the server so the form never reaches a browser
+ * that may not submit it.
+ */
+export async function SurfaceActionGate({
+  audience,
+  requiredPermission,
+  children,
+}: {
+  audience: ExperienceAudience;
+  requiredPermission: Permission;
+  children: ReactNode;
+}) {
+  const { getRouteRoles } = await import("./route-session");
+  const roles = await getRouteRoles(audience);
+  if (!permitted(audience, roles, requiredPermission)) return null;
+  return children;
+}

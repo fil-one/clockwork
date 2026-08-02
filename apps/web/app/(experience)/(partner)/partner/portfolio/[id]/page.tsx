@@ -1,4 +1,7 @@
-import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+import { PartnerPortfolioDetail } from "@/src/features/customer-partner/partner/partner-detail";
+import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
+import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
+
 export default async function Page({
   params,
 }: {
@@ -6,12 +9,13 @@ export default async function Page({
 }) {
   const { id } = await params;
   return (
-    <ProjectionDetailPage
-      audience="partner"
-      channel="portfolio"
-      recordKey={id}
-      title="End-client portfolio record"
-      description="Private partner and end-client data remain bound to this authorized projection."
+    <PartnerPortfolioDetail
+      actions={
+        <SurfaceActionGate audience="partner" requiredPermission="order:write">
+          <WorkflowPanel workflow="renewal" surface="partnerRenewals" />
+        </SurfaceActionGate>
+      }
+      id={id}
     />
   );
 }

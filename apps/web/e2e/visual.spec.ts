@@ -27,12 +27,12 @@ const commercialSurfaces = [
   {
     name: "customer-quote-workspace",
     path: "/quotes/new",
-    heading: "Quote workspace",
+    heading: "Create a quote",
   },
   {
     name: "customer-order-acceptance",
     path: "/orders/accept",
-    heading: "Order acceptance",
+    heading: "Review resulting commitment",
   },
 ] as const;
 

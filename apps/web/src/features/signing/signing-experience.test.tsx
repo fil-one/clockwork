@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -177,6 +177,58 @@ describe("authoritative e-sign experience", () => {
       "/api/experience/esign/returns/opaque-state/signed-document",
     );
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("offers a way back to the agreement record from every terminal state", async () => {
+    for (const state of ["completed", "declined", "expired"] as const) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(returnResponse(state))),
+      );
+      const view = render(
+        <SigningExperience mode="return" returnState="opaque-state" />,
+      );
+
+      expect(
+        await screen.findByRole("link", { name: "Back to agreements" }),
+      ).toHaveAttribute("href", "/agreements");
+      view.unmount();
+    }
+  });
+
+  it("explains the declined and expired outcomes without a dead end", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(returnResponse("declined"))),
+    );
+    render(<SigningExperience mode="return" returnState="opaque-state" />);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Signature declined");
+    expect(alert).toHaveTextContent(
+      "The agreement remains unchanged. Open the agreement record to review next steps.",
+    );
+    expect(
+      within(alert).getByRole("link", { name: "Back to agreements" }),
+    ).toBeVisible();
+  });
+
+  it("scopes the live region to the status text instead of the whole card", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(returnResponse("pending"))),
+    );
+    const { container } = render(
+      <SigningExperience mode="return" returnState="opaque-state" />,
+    );
+
+    await screen.findByRole("heading", { name: "Signature pending" });
+    const card = container.querySelector(".signing-card");
+    expect(card).not.toHaveAttribute("aria-live");
+    expect(card?.querySelectorAll("[aria-live]")).toHaveLength(0);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Signature pending");
+    expect(status).not.toHaveTextContent("Review and sign");
   });
 });
 

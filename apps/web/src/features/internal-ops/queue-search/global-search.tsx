@@ -18,9 +18,14 @@ import {
   groupSearchResults,
   nextSearchIndex,
   searchRecords,
+  type SearchRecord,
 } from "./search-model";
 
-export function GlobalSearch() {
+export function GlobalSearch({
+  records,
+}: {
+  records: readonly SearchRecord[];
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -29,7 +34,10 @@ export function GlobalSearch() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
   const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
-  const results = useMemo(() => searchRecords(query), [query]);
+  const results = useMemo(
+    () => searchRecords(query, records),
+    [query, records],
+  );
   const groups = useMemo(() => groupSearchResults(results), [results]);
 
   useEffect(() => setDraft(query), [query]);

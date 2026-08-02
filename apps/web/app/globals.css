@@ -79,6 +79,16 @@ input {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+/*
+ * The supplied mark is a fixed-width asset, and the compact header clips its
+ * brand slot. Letting the asset shrink with the slot keeps the whole name
+ * readable instead of cutting it to "Fil O".
+ */
+.wordmark,
+.wordmark img {
+  min-width: 0;
+  max-width: 100%;
+}
 .organization-switcher {
   display: grid;
   gap: 0.2rem;

@@ -1,0 +1,1 @@
+ALTER TABLE "price_books" ADD COLUMN "discount_matrix" jsonb DEFAULT '{}'::jsonb NOT NULL;

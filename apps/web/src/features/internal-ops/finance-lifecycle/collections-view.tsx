@@ -32,7 +32,6 @@ export function CollectionsView() {
       description={lifecycleCopy.collections.description}
       freshness={lifecycleCopy.collections.freshness}
       source={lifecycleCopy.collections.source}
-      permission="billing:approve"
     >
       <section className={styles.summaryGrid} aria-label="Collections health">
         <article className={styles.summaryCard}>

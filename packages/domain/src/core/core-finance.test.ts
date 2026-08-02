@@ -31,6 +31,7 @@ import {
 import type {
   AccountCommercialRecord,
   CommitmentContract,
+  DiscountMatrix,
   LedgerUsageEvent,
   PriceBook,
 } from ".";
@@ -92,6 +93,22 @@ const book = (floorMinor = 80n): PriceBook => ({
       partnerTransferPrices: { gold: money(85n) },
     },
   ],
+});
+
+const matrix = (overrides: Partial<DiscountMatrix> = {}): DiscountMatrix => ({
+  id: "matrix-1",
+  version: 1,
+  defaultMaxDiscountBps: 1_000,
+  rules: [],
+  ...overrides,
+});
+
+const line = (overrides: { discountBps?: number } = {}) => ({
+  sku: "storage",
+  region: "us-east",
+  quantity: "10",
+  termMonths: 12,
+  ...overrides,
 });
 
 describe("core commercial domain", () => {
@@ -182,6 +199,188 @@ describe("core commercial domain", () => {
       ],
     });
     expect(resale.marginResult).toBe("pass");
+  });
+
+  it("issues a quote inside the standard discount matrix with no review", () => {
+    const priced = priceQuote({
+      book: { ...book(), discountMatrix: matrix() },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 1_000 })],
+    });
+    expect(priced.marginResult).toBe("pass");
+    expect(priced.exceptionReasons).toEqual([]);
+    expect(priced.guardrailBreaches).toEqual([]);
+    expect(priced.marginImpact).toEqual(money(0n));
+    expect(priced.lines[0]?.unitPrice).toEqual(money(90n));
+    expect(priced.lines[0]?.discountCeilingBps).toBe(1_000);
+  });
+
+  it("routes an above-matrix discount to the exception queue with its margin impact", () => {
+    const priced = priceQuote({
+      book: { ...book(), discountMatrix: matrix() },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 1_500 })],
+    });
+    expect(priced.marginResult).toBe("exception_required");
+    expect(priced.exceptionReasons).toEqual([
+      "storage/us-east discounts 1500 bps above the 1000 bps standard matrix ceiling",
+    ]);
+    // The 85 quoted unit price clears the 80 floor, so only the matrix binds:
+    // (90 authorized - 85 quoted) x 10 units x 12 months.
+    expect(priced.marginImpact).toEqual(money(600n));
+    expect(priced.guardrailBreaches).toEqual([
+      expect.objectContaining({
+        guardrail: "discount_matrix",
+        quotedUnitPrice: money(85n),
+        guardrailUnitPrice: money(90n),
+        marginImpact: money(600n),
+      }),
+    ]);
+  });
+
+  it("authorizes no discount until a signed matrix is loaded", () => {
+    const priced = priceQuote({
+      book: book(),
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 100 })],
+    });
+    expect(priced.marginResult).toBe("exception_required");
+    expect(priced.lines[0]?.discountCeilingBps).toBe(0);
+    expect(priced.marginImpact).toEqual(money(120n));
+  });
+
+  it("grants the deepest matrix band the line qualifies for", () => {
+    const banded = matrix({
+      defaultMaxDiscountBps: 1_000,
+      rules: [
+        {
+          id: "long-term-volume",
+          minTermMonths: 24,
+          minQuantity: "50",
+          maxDiscountBps: 2_000,
+        },
+      ],
+    });
+    const qualified = priceQuote({
+      book: { ...book(), discountMatrix: banded },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        {
+          sku: "storage",
+          region: "us-east",
+          quantity: "50",
+          termMonths: 24,
+          discountBps: 2_000,
+        },
+      ],
+    });
+    expect(qualified.marginResult).toBe("pass");
+    expect(qualified.lines[0]?.discountCeilingBps).toBe(2_000);
+    const shortTerm = priceQuote({
+      book: { ...book(), discountMatrix: banded },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        {
+          sku: "storage",
+          region: "us-east",
+          quantity: "50",
+          termMonths: 12,
+          discountBps: 2_000,
+        },
+      ],
+    });
+    expect(shortTerm.marginResult).toBe("exception_required");
+    expect(shortTerm.lines[0]?.discountCeilingBps).toBe(1_000);
+  });
+
+  it("computes the margin impact of a price below the SKU floor", () => {
+    const priced = priceQuote({
+      book: {
+        ...book(),
+        discountMatrix: matrix({ defaultMaxDiscountBps: 2_500 }),
+      },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 2_500 })],
+    });
+    expect(priced.marginResult).toBe("exception_required");
+    expect(priced.exceptionReasons).toEqual([
+      "storage/us-east prices below configured floor",
+    ]);
+    // (80 floor - 75 quoted) x 10 units x 12 months.
+    expect(priced.marginImpact).toEqual(money(600n));
+    expect(priced.guardrailBreaches).toEqual([
+      expect.objectContaining({
+        guardrail: "floor",
+        quotedUnitPrice: money(75n),
+        guardrailUnitPrice: money(80n),
+        marginImpact: money(600n),
+      }),
+    ]);
+  });
+
+  it("charges a line breaking both guardrails only the binding impact", () => {
+    const priced = priceQuote({
+      book: { ...book(), discountMatrix: matrix() },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 3_000 })],
+    });
+    expect(priced.exceptionReasons).toHaveLength(2);
+    // The 90 matrix ceiling binds above the 80 floor: (90 - 70) x 10 x 12.
+    expect(priced.marginImpact).toEqual(money(2_400n));
+    expect(
+      priced.guardrailBreaches.map((breach) => breach.marginImpact),
+    ).toEqual([money(1_200n), money(2_400n)]);
+  });
+
+  it("never measures a partner's own resale price against either guardrail", () => {
+    const resale = priceQuote({
+      book: { ...book(), discountMatrix: matrix({ defaultMaxDiscountBps: 0 }) },
+      route: "resale",
+      partnerTier: "gold",
+      partnerResaleTotal: money(1n),
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line()],
+    });
+    expect(resale.marginResult).toBe("pass");
+    expect(resale.exceptionReasons).toEqual([]);
+    expect(resale.guardrailBreaches).toEqual([]);
+    expect(resale.marginImpact).toEqual(money(0n));
+    expect(resale.lines[0]?.unitPrice).toEqual(money(85n));
+    const discountedTransfer = priceQuote({
+      book: { ...book(), discountMatrix: matrix() },
+      route: "resale",
+      partnerTier: "gold",
+      partnerResaleTotal: money(1n),
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [line({ discountBps: 1_000 })],
+    });
+    expect(discountedTransfer.marginResult).toBe("exception_required");
+    expect(discountedTransfer.exceptionReasons).toEqual([
+      "storage/us-east prices below configured floor",
+    ]);
+    // The transfer price we set is guardrailed: (80 floor - 77 quoted) x 10 x 12.
+    expect(discountedTransfer.marginImpact).toEqual(money(360n));
+  });
+
+  it("rejects a discount matrix outside the basis-point range", () => {
+    expect(() =>
+      priceQuote({
+        book: {
+          ...book(),
+          discountMatrix: matrix({ defaultMaxDiscountBps: 10_001 }),
+        },
+        route: "direct",
+        quotedAt: "2026-07-31T16:00:00Z",
+        lines: [line()],
+      }),
+    ).toThrow(/Discount matrix default/);
   });
 
   it("isolates merchant-of-record rules", () => {

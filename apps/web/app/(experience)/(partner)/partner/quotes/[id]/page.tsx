@@ -1,17 +1,9 @@
-import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
+import { PartnerQuoteDetail } from "@/src/features/customer-partner/partner/partner-detail";
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return (
-    <ProjectionDetailPage
-      audience="partner"
-      channel="quotes"
-      recordKey={id}
-      title="Partner quote"
-      description="Transfer and resale truth from the scoped quote projection."
-    />
-  );
+  return <PartnerQuoteDetail id={id} />;
 }

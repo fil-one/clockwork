@@ -1,11 +1,20 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { AgreementAdministration } from "@/src/features/internal-ops/administration-safety/agreements";
+import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
+import { getRouteRoles } from "@/src/features/shell/route-session";
+import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
-export default function Page() {
+export default async function Page() {
   return (
-    <InternalProjectionPage
-      channel="agreements"
-      title="Agreement administration"
-      description="Review canonical agreement versions and their authorized next task."
+    <AgreementAdministration
+      roles={await getRouteRoles("internal")}
+      publishAction={
+        <SurfaceActionGate
+          audience="internal"
+          requiredPermission="agreement:approve"
+        >
+          <WorkflowPanel workflow="agreementAdmin" surface="agreementAdmin" />
+        </SurfaceActionGate>
+      }
     />
   );
 }

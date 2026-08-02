@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  emptyQuoteDraft,
   firstQuoteError,
   orderReviewSummary,
   quotePayload,
@@ -11,6 +12,13 @@ import {
   validateQuoteStage,
   type QuoteDraft,
 } from "./workflow-model";
+
+const accounts = [
+  {
+    id: "10000000-0000-4000-8000-000000000001",
+    label: "Northstar Archive Labs",
+  },
+];
 
 const validDraft: QuoteDraft = {
   account: "Northstar Archive Labs",
@@ -34,30 +42,39 @@ describe("quote workflow model", () => {
   });
 
   it("resolves human-readable searchable selector values to existing IDs", () => {
-    expect(
-      resolveSelectorId(
-        "Northstar Archive Labs",
-        quoteSelectorOptions.accounts,
-      ),
-    ).toBe("11111111-1111-4111-8111-111111111111");
+    expect(resolveSelectorId("Northstar Archive Labs", accounts)).toBe(
+      "10000000-0000-4000-8000-000000000001",
+    );
     expect(
       resolveSelectorId(
         "44444444-4444-4444-8444-444444444444",
         quoteSelectorOptions.offers,
       ),
     ).toBe("44444444-4444-4444-8444-444444444444");
-    expect(
-      resolveSelectorId("Unknown account", quoteSelectorOptions.accounts),
-    ).toBeUndefined();
+    expect(resolveSelectorId("Unknown account", accounts)).toBeUndefined();
+  });
+
+  it("starts a draft with no commercial facts beyond the session account", () => {
+    expect(emptyQuoteDraft("Northstar Archive Labs")).toMatchObject({
+      account: "Northstar Archive Labs",
+      offer: "",
+      capacity: "",
+      termMonths: "",
+      expiresAt: "",
+    });
   });
 
   it("validates by stage and identifies the first field to focus", () => {
-    const errors = validateQuoteStage(2, {
-      ...validDraft,
-      capacity: "4",
-      termMonths: "0",
-      expiresAt: "",
-    });
+    const errors = validateQuoteStage(
+      2,
+      {
+        ...validDraft,
+        capacity: "4",
+        termMonths: "0",
+        expiresAt: "",
+      },
+      accounts,
+    );
     expect(errors.capacity).toContain("at least 10 TB");
     expect(errors.termMonths).toContain("between 1 and 60");
     expect(errors.expiresAt).toContain("date and time");
@@ -65,17 +82,21 @@ describe("quote workflow model", () => {
   });
 
   it("requires named commercial parties for a resale route", () => {
-    const errors = validateQuoteStage(2, {
-      ...validDraft,
-      route: "resale",
-    });
+    const errors = validateQuoteStage(
+      2,
+      {
+        ...validDraft,
+        route: "resale",
+      },
+      accounts,
+    );
     expect(errors.endClient).toBeTruthy();
     expect(errors.partner).toBeTruthy();
   });
 
   it("submits IDs and the established quote payload shape", () => {
-    const result = quotePayload(validDraft);
-    expect(result.accountId).toBe("11111111-1111-4111-8111-111111111111");
+    const result = quotePayload(validDraft, accounts);
+    expect(result.accountId).toBe("10000000-0000-4000-8000-000000000001");
     expect(result.payload).toMatchObject({
       priceBookId: "44444444-4444-4444-8444-444444444444",
       route: "direct",
@@ -103,7 +124,7 @@ describe("quote workflow model", () => {
       orderReviewSummary({
         agreementTitle: "Cloud Service Agreement",
         agreementVersion: "3.2",
-        capacity: "120 TB",
+        scope: "120 TB",
         poNumber: "PO-NA-1092",
         quoteTitle: "Compliance replica renewal",
         quoteVersion: "2",
@@ -115,7 +136,7 @@ describe("quote workflow model", () => {
       agreement: "Cloud Service Agreement · version 3.2 · active",
       purchaseOrder: "PO-NA-1092",
       serviceStart: "Aug 15, 2026",
-      commitment: "120 TB committed · $55,440.00 estimated annual spend",
+      commitment: "120 TB · $55,440.00 estimated annual spend",
     });
   });
 });

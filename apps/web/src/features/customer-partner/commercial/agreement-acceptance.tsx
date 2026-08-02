@@ -8,6 +8,7 @@ import {
   getActiveAgreementTemplate,
   type ActiveAgreementTemplate,
 } from "@/src/features/contracts/commerce-client";
+import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
@@ -22,21 +23,39 @@ async function sha256(text: string): Promise<string> {
   ).join("");
 }
 
-export function AgreementAcceptance() {
+export interface ExecutableAgreement {
+  reference: string;
+  title: string;
+  jurisdiction: string;
+  type: string;
+}
+
+export function AgreementAcceptance({
+  account,
+  agreement,
+}: {
+  account: { id: string; name: string };
+  agreement?: ExecutableAgreement;
+}) {
+  const jurisdiction = agreement?.jurisdiction ?? "US";
+  const type = agreement?.type ?? "csa";
   const [template, setTemplate] = useState<ActiveAgreementTemplate>();
-  const [authorityTitle, setAuthorityTitle] = useState(
-    "Chief Operating Officer",
-  );
+  const [authorityTitle, setAuthorityTitle] = useState("");
   const [attested, setAttested] = useState(false);
   const [pending, setPending] = useState(false);
+  const [executed, setExecuted] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationError, setValidationError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    getActiveAgreementTemplate({ jurisdiction: "US", type: "csa" })
+    getActiveAgreementTemplate({ jurisdiction, type })
       .then((result) => {
         if (active) setTemplate(result);
       })
@@ -51,20 +70,27 @@ export function AgreementAcceptance() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [jurisdiction, type]);
 
   const accept = async () => {
     if (!template) return;
-    if (!authorityTitle.trim()) {
-      document.querySelector<HTMLInputElement>("#authority-title")?.focus();
+    const invalid = !authorityTitle.trim()
+      ? {
+          id: "authority-title",
+          message: t("agreements.execute.validation.authority"),
+        }
+      : !attested
+        ? {
+            id: "authority-attestation",
+            message: t("agreements.execute.validation.attestation"),
+          }
+        : undefined;
+    if (invalid) {
+      setValidationError(invalid);
+      document.getElementById(invalid.id)?.focus();
       return;
     }
-    if (!attested) {
-      document
-        .querySelector<HTMLInputElement>("#authority-attestation")
-        ?.focus();
-      return;
-    }
+    setValidationError(null);
     setPending(true);
     setMessage("");
     setError("");
@@ -77,7 +103,7 @@ export function AgreementAcceptance() {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       await executeClickAgreement(
         {
-          accountId: "11111111-1111-4111-8111-111111111111",
+          accountId: account.id,
           templateId: template.id,
           templateVersion: template.semanticVersion,
           exactText: template.exactText,
@@ -86,9 +112,8 @@ export function AgreementAcceptance() {
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
-      setMessage(
-        "The server accepted the agreement and recorded the authority evidence.",
-      );
+      setExecuted(true);
+      setMessage(t("agreements.execute.accepted"));
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -108,14 +133,19 @@ export function AgreementAcceptance() {
           <p className={styles.eyebrow}>Legal review</p>
           <h1>{customerPartnerCopy.commercial.agreementReview}</h1>
           <p className={styles.description}>
-            Confirm the agreement title, version, exact approved terms, and your
-            authority before binding Northstar Archive Labs.
+            {t("agreements.execute.binding", { account: account.name })}
           </p>
         </div>
         <Link className={styles.secondary} href="/agreements">
           Return to agreements
         </Link>
       </header>
+
+      {agreement ? (
+        <p className={styles.notice} role="status">
+          {t("agreements.execute.source", { reference: agreement.reference })}
+        </p>
+      ) : null}
 
       {!template && !error ? (
         <section className={styles.state} role="status">
@@ -130,7 +160,8 @@ export function AgreementAcceptance() {
             <div>
               <p className={styles.eyebrow}>Governing agreement</p>
               <h2>
-                Cloud Service Agreement · version {template.semanticVersion}
+                {agreement?.title ?? template.type.toUpperCase()} · version{" "}
+                {template.semanticVersion}
               </h2>
               <p className={styles.description}>
                 {template.jurisdiction} · effective {template.effectiveOn} ·{" "}
@@ -182,29 +213,65 @@ export function AgreementAcceptance() {
             <div className={styles.field}>
               <label htmlFor="authority-title">Authority title</label>
               <input
+                aria-describedby={
+                  validationError?.id === "authority-title"
+                    ? "agreement-validation"
+                    : undefined
+                }
+                aria-invalid={
+                  validationError?.id === "authority-title" || undefined
+                }
                 id="authority-title"
-                onChange={(event) => setAuthorityTitle(event.target.value)}
+                onChange={(event) => {
+                  setAuthorityTitle(event.target.value);
+                  setValidationError(null);
+                }}
                 required
                 value={authorityTitle}
               />
             </div>
             <label className={styles.check} htmlFor="authority-attestation">
               <input
+                aria-describedby={
+                  validationError?.id === "authority-attestation"
+                    ? "agreement-validation"
+                    : undefined
+                }
+                aria-invalid={
+                  validationError?.id === "authority-attestation" || undefined
+                }
                 checked={attested}
                 id="authority-attestation"
-                onChange={(event) => setAttested(event.target.checked)}
+                onChange={(event) => {
+                  setAttested(event.target.checked);
+                  setValidationError(null);
+                }}
                 required
                 type="checkbox"
               />
               <span>{customerPartnerCopy.commercial.agreementAuthority}</span>
             </label>
+            {validationError ? (
+              <p
+                className={styles.errorMessage}
+                id="agreement-validation"
+                role="alert"
+              >
+                {validationError.message}
+              </p>
+            ) : null}
             <p className={styles.notice}>
               Accepting is a legal mutation. Clockwork records the version,
               exact text hash, actor, title, and time as audit evidence.
             </p>
             {message ? (
               <p className={styles.successMessage} role="status">
-                {message}
+                {message}{" "}
+                {executed ? (
+                  <Link href="/agreements">
+                    {t("agreements.execute.acceptedLink")}
+                  </Link>
+                ) : null}
               </p>
             ) : null}
             {error ? (

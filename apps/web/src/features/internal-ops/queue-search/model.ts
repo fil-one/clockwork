@@ -14,7 +14,7 @@ export const SAVED_VIEWS: ReadonlyArray<{
   {
     id: "assigned-to-me",
     label: "Assigned to me",
-    description: "Open work owned by James Kurz",
+    description: "Open work assigned to the signed-in operator",
   },
   {
     id: "sla-breached",
@@ -34,30 +34,37 @@ export const SAVED_VIEWS: ReadonlyArray<{
   { id: "all", label: "All", description: "All queue work" },
 ];
 
+export interface QueuePerson {
+  id: string;
+  label: string;
+}
+
+/**
+ * Fields the operational projection cannot supply are `null` rather than a
+ * filled-in default: a queue record carries no assignment, policy citation or
+ * created date until the source aggregate publishes one. Filters that read a
+ * null field match nothing, so no row is presented as more complete than it is.
+ */
 export interface QueueItem {
   id: string;
   title: string;
-  entity: string;
-  type:
-    | "Pricing"
-    | "Legal"
-    | "Collections"
-    | "Screening"
-    | "Migration"
-    | "Provisioning";
-  owner: string;
-  ownerId: string;
+  entity: string | null;
+  type: string | null;
+  owner: string | null;
+  ownerId: string | null;
   backup: string | null;
   backupId: string | null;
-  risk: QueueRisk;
-  status: QueueStatus;
-  createdAt: string;
+  risk: QueueRisk | null;
+  status: QueueStatus | null;
+  /** Source-supplied status wording; falls back to the machine status. */
+  statusLabel?: string;
+  createdAt: string | null;
   updatedAt: string;
-  dueAt: string;
-  ageDays: number;
-  summary: string;
-  policyReason: string;
-  policyBasis: string;
+  dueAt: string | null;
+  ageDays: number | null;
+  summary: string | null;
+  policyReason: string | null;
+  policyBasis: string | null;
   evidence: ReadonlyArray<{
     label: string;
     value: string;
@@ -68,335 +75,6 @@ export interface QueueItem {
   requiredRole?:
     "legal_approver" | "finance_approver" | "destructive_action_approver";
 }
-
-export const QUEUE_ITEMS: readonly QueueItem[] = [
-  {
-    id: "EXC-COL-008",
-    title: "Collections aging decision",
-    entity: "Northstar Archive Labs",
-    type: "Collections",
-    owner: "Amina Cole",
-    ownerId: "usr_amina_cole",
-    backup: "James Kurz",
-    backupId: "usr_james_kurz",
-    risk: "high",
-    status: "blocked",
-    createdAt: "2026-07-02T14:22:00Z",
-    updatedAt: "2026-07-31T15:42:00Z",
-    dueAt: "2026-07-30T17:00:00Z",
-    ageDays: 29,
-    summary:
-      "$22,800 is 46 days overdue; service suspension remains policy-gated.",
-    policyReason:
-      "Collections action crossed the 45-day threshold while a retention hold remains active.",
-    policyBasis: "FIN-COL-04 · collections suspension and retention exception",
-    evidence: [
-      { label: "Overdue balance", value: "$22,800 final invoice truth" },
-      {
-        label: "Retention hold",
-        value: "Locked through Apr 15, 2027",
-        technicalId: "RET-2027-0415",
-      },
-      { label: "Last customer contact", value: "Jul 29, 2026 at 2:14 PM EDT" },
-    ],
-    related: [
-      { label: "Invoice INV-2026-0781", href: "/internal/collections" },
-      { label: "Northstar account", href: "/internal/accounts/acct_northstar" },
-    ],
-    permittedActions: [
-      "Request finance review",
-      "Add evidence",
-      "Reassign owner",
-    ],
-    requiredRole: "finance_approver",
-  },
-  {
-    id: "EXC-SCR-004",
-    title: "Restricted-party possible match",
-    entity: "Atlas Field Imaging",
-    type: "Screening",
-    owner: "James Kurz",
-    ownerId: "usr_james_kurz",
-    backup: null,
-    backupId: null,
-    risk: "high",
-    status: "blocked",
-    createdAt: "2026-07-18T13:05:00Z",
-    updatedAt: "2026-07-31T15:18:00Z",
-    dueAt: "2026-07-31T14:00:00Z",
-    ageDays: 13,
-    summary:
-      "A provider screening match blocks the transaction until legal records a disposition.",
-    policyReason:
-      "Potential restricted-party match exceeds the automatic-clear confidence boundary.",
-    policyBasis: "LGL-SCR-02 · manual match resolution with actor attribution",
-    evidence: [
-      { label: "Provider confidence", value: "0.81 possible match" },
-      { label: "Matched jurisdiction", value: "United States" },
-      {
-        label: "Screening request",
-        value: "Provider response retained",
-        technicalId: "scr_01J4Q9NZX8M3",
-      },
-    ],
-    related: [
-      { label: "Atlas end client", href: "/internal/search?q=Atlas" },
-      { label: "Migration APR-MIG-016", href: "/internal/queues/APR-MIG-016" },
-    ],
-    permittedActions: [
-      "Request legal review",
-      "Attach screening evidence",
-      "Assign backup",
-    ],
-    requiredRole: "legal_approver",
-  },
-  {
-    id: "EXC-PRC-019",
-    title: "Pricing exception for Halcyon expansion",
-    entity: "Halcyon Research Cooperative",
-    type: "Pricing",
-    owner: "James Kurz",
-    ownerId: "usr_james_kurz",
-    backup: "Amina Cole",
-    backupId: "usr_amina_cole",
-    risk: "medium",
-    status: "open",
-    createdAt: "2026-07-21T11:30:00Z",
-    updatedAt: "2026-07-31T15:35:00Z",
-    dueAt: "2026-07-31T17:00:00Z",
-    ageDays: 10,
-    summary: "Requested annual price is 1.7% below the current floor.",
-    policyReason:
-      "Discount is outside the operator band and requires attributed approval.",
-    policyBasis: "COM-PRC-07 · floor variance approval",
-    evidence: [
-      { label: "Requested annual value", value: "$91,200 estimate" },
-      { label: "Floor variance", value: "−1.7%" },
-      {
-        label: "Price book version",
-        value: "USD 2026.3",
-        technicalId: "pb_usd_2026_3",
-      },
-    ],
-    related: [
-      { label: "Quote Q-2026-0184-v3", href: "/internal/approvals" },
-      { label: "Halcyon end client", href: "/internal/search?q=Halcyon" },
-    ],
-    permittedActions: [
-      "Submit approval recommendation",
-      "Return for revision",
-      "Reassign owner",
-    ],
-    requiredRole: "finance_approver",
-  },
-  {
-    id: "EXC-LGL-011",
-    title: "Customer paper variance review",
-    entity: "Northstar Archive Labs",
-    type: "Legal",
-    owner: "Juno Okafor",
-    ownerId: "usr_juno_okafor",
-    backup: "Triage rotation",
-    backupId: "team_legal_triage",
-    risk: "medium",
-    status: "pending",
-    createdAt: "2026-07-23T09:12:00Z",
-    updatedAt: "2026-07-31T13:04:00Z",
-    dueAt: "2026-08-02T17:00:00Z",
-    ageDays: 8,
-    summary:
-      "Four terms differ materially from the approved service agreement template.",
-    policyReason:
-      "Liability, governing law, audit, and termination terms require counsel review.",
-    policyBasis: "LGL-AGR-03 · material customer-paper variance",
-    evidence: [
-      { label: "Material variances", value: "4 clauses" },
-      { label: "Compared template", value: "Cloud Service Agreement v3.2" },
-      {
-        label: "Comparison run",
-        value: "Jul 31 at 9:04 AM EDT",
-        technicalId: "cmp_01J4QAB0D",
-      },
-    ],
-    related: [
-      { label: "Agreement AGR-2026-0061", href: "/internal/agreements" },
-    ],
-    permittedActions: [
-      "Record legal recommendation",
-      "Request counterparty clarification",
-      "Add evidence",
-    ],
-    requiredRole: "legal_approver",
-  },
-  {
-    id: "EXC-PRO-014",
-    title: "Provisioning recovery approval",
-    entity: "Madrid compliance replica",
-    type: "Provisioning",
-    owner: "Amina Cole",
-    ownerId: "usr_amina_cole",
-    backup: null,
-    backupId: null,
-    risk: "high",
-    status: "open",
-    createdAt: "2026-07-24T16:18:00Z",
-    updatedAt: "2026-07-31T15:51:00Z",
-    dueAt: "2026-07-31T18:00:00Z",
-    ageDays: 7,
-    summary:
-      "A retry-safe capacity step has failed three times with a transient provider response.",
-    policyReason:
-      "Automated retry limit reached; a person must verify provider state before replay.",
-    policyBasis: "OPS-PRO-05 · idempotent recovery after retry exhaustion",
-    evidence: [
-      { label: "Attempts", value: "3 of 3 automatic attempts" },
-      { label: "Failure class", value: "Transient provider timeout" },
-      {
-        label: "Idempotency key",
-        value: "Available and unchanged",
-        technicalId: "idem_ord_0112_capacity",
-      },
-    ],
-    related: [{ label: "Order ORD-2026-0112", href: "/internal/provisioning" }],
-    permittedActions: [
-      "Verify provider state",
-      "Approve safe retry",
-      "Assign backup",
-    ],
-  },
-  {
-    id: "APR-MIG-016",
-    title: "Resolve ambiguous account match",
-    entity: "Northstar Archive Services",
-    type: "Migration",
-    owner: "James Kurz",
-    ownerId: "usr_james_kurz",
-    backup: "Amina Cole",
-    backupId: "usr_amina_cole",
-    risk: "medium",
-    status: "pending",
-    createdAt: "2026-07-08T10:42:00Z",
-    updatedAt: "2026-07-31T12:22:00Z",
-    dueAt: "2026-08-04T17:00:00Z",
-    ageDays: 23,
-    summary:
-      "Three account candidates share identifiers; new-account creation is disabled.",
-    policyReason:
-      "The legal entity and domain do not produce one unambiguous existing-account match.",
-    policyBasis: "OPS-MIG-01 · no account creation on ambiguous identity",
-    evidence: [
-      { label: "Candidate matches", value: "3 existing records" },
-      { label: "Creation safety", value: "New account creation blocked" },
-      {
-        label: "Source row",
-        value: "Legacy row retained",
-        technicalId: "legacy_account_00981",
-      },
-    ],
-    related: [
-      { label: "Migration candidate report", href: "/internal/migrations" },
-    ],
-    permittedActions: [
-      "Choose existing account",
-      "Mark for data correction",
-      "Add evidence",
-    ],
-  },
-  {
-    id: "EXC-DSP-012",
-    title: "Invoice service-period dispute",
-    entity: "Halcyon Research Cooperative",
-    type: "Collections",
-    owner: "James Kurz",
-    ownerId: "usr_james_kurz",
-    backup: "Amina Cole",
-    backupId: "usr_amina_cole",
-    risk: "medium",
-    status: "open",
-    createdAt: "2026-07-16T12:10:00Z",
-    updatedAt: "2026-07-30T17:11:00Z",
-    dueAt: "2026-08-03T17:00:00Z",
-    ageDays: 15,
-    summary:
-      "$8,460 remains disputed while service-period evidence is collected.",
-    policyReason: "A recorded dispute pauses automated collections escalation.",
-    policyBasis: "FIN-DSP-02 · disputed balance hold",
-    evidence: [
-      { label: "Disputed value", value: "$8,460 final invoice truth" },
-      { label: "Evidence deadline", value: "Aug 3, 2026 at 5:00 PM EDT" },
-    ],
-    related: [{ label: "Collections record", href: "/internal/collections" }],
-    permittedActions: [
-      "Add service evidence",
-      "Request finance review",
-      "Reassign owner",
-    ],
-    requiredRole: "finance_approver",
-  },
-  {
-    id: "APR-DEL-003",
-    title: "Retention-exclusion deletion approval",
-    entity: "Legacy analytics archive",
-    type: "Legal",
-    owner: "Juno Okafor",
-    ownerId: "usr_juno_okafor",
-    backup: null,
-    backupId: null,
-    risk: "high",
-    status: "blocked",
-    createdAt: "2026-07-11T08:45:00Z",
-    updatedAt: "2026-07-31T14:48:00Z",
-    dueAt: "2026-08-01T16:00:00Z",
-    ageDays: 20,
-    summary:
-      "A destructive action excludes four locked objects and needs two distinct approvers.",
-    policyReason:
-      "Deletion cannot include retained objects or use the requesting actor as final approver.",
-    policyBasis: "SEC-DEL-09 · dual control and retention preservation",
-    evidence: [
-      { label: "Affected objects", value: "8,214 eligible; 4 excluded" },
-      { label: "Dual control", value: "Second distinct approver required" },
-      {
-        label: "Retention set",
-        value: "Immutable evidence retained",
-        technicalId: "retset_7f3c9",
-      },
-    ],
-    related: [
-      {
-        label: "Offboarding record",
-        href: "/internal/search?q=Legacy%20analytics",
-      },
-    ],
-    permittedActions: ["Add evidence", "Assign backup", "Open approval review"],
-    requiredRole: "destructive_action_approver",
-  },
-  {
-    id: "EXC-POC-021",
-    title: "POC qualification review",
-    entity: "Atlas Field Imaging",
-    type: "Provisioning",
-    owner: "James Kurz",
-    ownerId: "usr_james_kurz",
-    backup: "Amina Cole",
-    backupId: "usr_amina_cole",
-    risk: "low",
-    status: "resolved",
-    createdAt: "2026-07-28T10:00:00Z",
-    updatedAt: "2026-07-31T15:59:00Z",
-    dueAt: "2026-08-02T16:00:00Z",
-    ageDays: 3,
-    summary:
-      "Qualification evidence is complete and the record is ready to close.",
-    policyReason: "All four technical success criteria were recorded.",
-    policyBasis: "COM-POC-01 · evidence-based qualification",
-    evidence: [{ label: "Success tests", value: "4 of 4 passed" }],
-    related: [
-      { label: "Atlas search results", href: "/internal/search?q=Atlas" },
-    ],
-    permittedActions: ["Close item", "Add evidence"],
-  },
-] as const;
 
 export interface QueueFilters {
   text: string;
@@ -427,6 +105,12 @@ export const DEFAULT_FILTERS: QueueFilters = {
   page: 1,
   pageSize: 10,
 };
+
+export interface QueueScope {
+  /** Identifier of the signed-in operator, used by the assigned-to-me view. */
+  actorId?: string | null;
+  now?: Date;
+}
 
 const VIEWS = new Set(SAVED_VIEWS.map((view) => view.id));
 const STRUCTURED_FILTER = /(?:^|\s)(type|backup|sla|age):("[^"]*"|\S+)/gi;
@@ -499,21 +183,30 @@ export function serializeQueueFilters(filters: QueueFilters): URLSearchParams {
   return params;
 }
 
-export function slaFor(
-  item: QueueItem,
-  now = new Date("2026-07-31T16:00:00Z"),
-): QueueSla {
-  const remaining = new Date(item.dueAt).getTime() - now.getTime();
+/** Null when the record carries no policy deadline to measure against. */
+export function slaFor(item: QueueItem, now = new Date()): QueueSla | null {
+  if (!item.dueAt) return null;
+  const deadline = Date.parse(item.dueAt);
+  if (!Number.isFinite(deadline)) return null;
+  const remaining = deadline - now.getTime();
   if (remaining < 0) return "breached";
   if (remaining <= 24 * 60 * 60 * 1000) return "due-soon";
   return "healthy";
 }
 
-export function matchesSavedView(item: QueueItem, view: QueueView): boolean {
+export function matchesSavedView(
+  item: QueueItem,
+  view: QueueView,
+  scope: QueueScope = {},
+): boolean {
   if (view === "assigned-to-me")
-    return item.ownerId === "usr_james_kurz" && item.status !== "resolved";
+    return Boolean(
+      scope.actorId &&
+      item.ownerId === scope.actorId &&
+      item.status !== "resolved",
+    );
   if (view === "sla-breached")
-    return slaFor(item) === "breached" && item.status !== "resolved";
+    return slaFor(item, scope.now) === "breached" && item.status !== "resolved";
   if (view === "high-risk")
     return item.risk === "high" && item.status !== "resolved";
   if (view === "awaiting-backup")
@@ -522,6 +215,8 @@ export function matchesSavedView(item: QueueItem, view: QueueView): boolean {
 }
 
 function matchesAge(item: QueueItem, age: string) {
+  if (age === "all") return true;
+  if (item.ageDays === null) return false;
   if (age === "7") return item.ageDays <= 7;
   if (age === "8-30") return item.ageDays >= 8 && item.ageDays <= 30;
   if (age === "30+") return item.ageDays > 30;
@@ -531,21 +226,22 @@ function matchesAge(item: QueueItem, age: string) {
 export function filterQueueItems(
   items: readonly QueueItem[],
   filters: QueueFilters,
+  scope: QueueScope = {},
 ) {
   const term = filters.text.toLocaleLowerCase();
   return items.filter((item) => {
     const text =
-      `${item.title} ${item.entity} ${item.id} ${item.summary}`.toLocaleLowerCase();
+      `${item.title} ${item.entity ?? ""} ${item.id} ${item.summary ?? ""}`.toLocaleLowerCase();
     return (
-      matchesSavedView(item, filters.view) &&
+      matchesSavedView(item, filters.view, scope) &&
       (!term || text.includes(term)) &&
       (filters.type === "all" ||
-        item.type.toLocaleLowerCase() === filters.type) &&
+        item.type?.toLocaleLowerCase() === filters.type) &&
       (filters.backup === "all" ||
         (filters.backup === "unassigned"
           ? item.backup === null
           : item.backupId === filters.backup)) &&
-      (filters.sla === "all" || slaFor(item) === filters.sla) &&
+      (filters.sla === "all" || slaFor(item, scope.now) === filters.sla) &&
       matchesAge(item, filters.age) &&
       (filters.status === "all" || item.status === filters.status) &&
       (filters.risk === "all" || item.risk === filters.risk) &&
@@ -561,39 +257,78 @@ const SLA_ORDER: Record<QueueSla, number> = {
   healthy: 2,
 };
 
+/** Records without a deadline or age sort after the ones that have them. */
+function slaRank(item: QueueItem, now?: Date) {
+  const sla = slaFor(item, now);
+  return sla === null ? SLA_ORDER.healthy + 1 : SLA_ORDER[sla];
+}
+
+function ageRank(item: QueueItem) {
+  return item.ageDays ?? -1;
+}
+
+function riskRank(item: QueueItem) {
+  return item.risk === null ? RISK_ORDER.low + 1 : RISK_ORDER[item.risk];
+}
+
 export function sortQueueItems(
   items: readonly QueueItem[],
   sort: string = DEFAULT_QUEUE_SORT,
+  now?: Date,
 ) {
   return [...items].sort((left, right) => {
-    if (sort === "oldest") return right.ageDays - left.ageDays;
+    if (sort === "oldest") return ageRank(right) - ageRank(left);
     if (sort === "risk")
-      return (
-        RISK_ORDER[left.risk] - RISK_ORDER[right.risk] ||
-        right.ageDays - left.ageDays
-      );
+      return riskRank(left) - riskRank(right) || ageRank(right) - ageRank(left);
     if (sort === "updated")
       return (
         new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
       );
     return (
-      SLA_ORDER[slaFor(left)] - SLA_ORDER[slaFor(right)] ||
-      RISK_ORDER[left.risk] - RISK_ORDER[right.risk] ||
-      right.ageDays - left.ageDays
+      slaRank(left, now) - slaRank(right, now) ||
+      riskRank(left) - riskRank(right) ||
+      ageRank(right) - ageRank(left)
     );
   });
 }
 
-export function activeFilterLabels(filters: QueueFilters) {
+export interface QueuePage {
+  items: readonly QueueItem[];
+  page: number;
+  pageCount: number;
+}
+
+/**
+ * Clamps the requested page into the result set. A saved link that outlived the
+ * work it pointed at lands on the last page rather than on a blank one.
+ */
+export function paginateQueueItems(
+  items: readonly QueueItem[],
+  page: number,
+  pageSize: number,
+): QueuePage {
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const current = Math.min(Math.max(1, page), pageCount);
+  return {
+    items: items.slice((current - 1) * pageSize, current * pageSize),
+    page: current,
+    pageCount,
+  };
+}
+
+export function activeFilterLabels(
+  filters: QueueFilters,
+  people: readonly QueuePerson[] = [],
+) {
   const labels: string[] = [];
   const view = SAVED_VIEWS.find((candidate) => candidate.id === filters.view);
   if (filters.view !== "all" && view) labels.push(`View: ${view.label}`);
   if (filters.text) labels.push(`Search: ${filters.text}`);
   if (filters.type !== "all") labels.push(`Type: ${filters.type}`);
   if (filters.owner !== "all")
-    labels.push(`Owner: ${ownerLabel(filters.owner)}`);
+    labels.push(`Owner: ${ownerLabel(filters.owner, people)}`);
   if (filters.backup !== "all")
-    labels.push(`Backup: ${ownerLabel(filters.backup)}`);
+    labels.push(`Backup: ${ownerLabel(filters.backup, people)}`);
   if (filters.sla !== "all") labels.push(`SLA: ${filters.sla}`);
   if (filters.risk !== "all") labels.push(`Risk: ${filters.risk}`);
   if (filters.status !== "all") labels.push(`Status: ${filters.status}`);
@@ -601,22 +336,51 @@ export function activeFilterLabels(filters: QueueFilters) {
   return labels;
 }
 
-export const PEOPLE = [
-  { id: "usr_james_kurz", label: "James Kurz", role: "Internal operator" },
-  { id: "usr_amina_cole", label: "Amina Cole", role: "Finance approver" },
-  { id: "usr_juno_okafor", label: "Juno Okafor", role: "Legal approver" },
-] as const;
-
-function ownerLabel(id: string) {
+function ownerLabel(id: string, people: readonly QueuePerson[]) {
   if (id === "unassigned") return "Unassigned";
-  return PEOPLE.find((person) => person.id === id)?.label ?? id;
+  return people.find((person) => person.id === id)?.label ?? id;
 }
 
-export type OperationalRole =
-  | "internal_operator"
-  | "finance_approver"
-  | "legal_approver"
-  | "destructive_action_approver";
+/** Selectable owners and types come from the loaded records, never a roster. */
+export function queueOwnerOptions(
+  items: readonly QueueItem[],
+): readonly QueuePerson[] {
+  const people = new Map<string, string>();
+  for (const item of items) {
+    if (item.ownerId && item.owner) people.set(item.ownerId, item.owner);
+    if (item.backupId && item.backup) people.set(item.backupId, item.backup);
+  }
+  return [...people]
+    .map(([id, label]) => ({ id, label }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function queueTypeOptions(items: readonly QueueItem[]) {
+  const types = items
+    .map((item) => item.type)
+    .filter((type): type is string => Boolean(type));
+  return [...new Set(types)]
+    .sort((left, right) => left.localeCompare(right))
+    .map((type) => ({ value: type.toLocaleLowerCase(), label: type }));
+}
+
+export const operationalRoleNames = [
+  "internal_operator",
+  "finance_approver",
+  "legal_approver",
+  "destructive_action_approver",
+] as const;
+
+export type OperationalRole = (typeof operationalRoleNames)[number];
+
+/** Narrows a session's roles without widening what the workspace will honor. */
+export function operationalRoles(
+  roles: readonly string[],
+): readonly OperationalRole[] {
+  return roles.filter((role): role is OperationalRole =>
+    (operationalRoleNames as readonly string[]).includes(role),
+  );
+}
 
 export function permittedActions(
   item: QueueItem,

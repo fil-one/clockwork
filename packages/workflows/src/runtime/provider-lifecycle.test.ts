@@ -104,8 +104,8 @@ describe("authoritative lifecycle task handlers", () => {
     );
   });
 
-  it("declares a persisted loader, planner, and typed effect boundary for all 24 IDs", () => {
-    expect(lifecycleWorkflowRegistry).toHaveLength(24);
+  it("declares a persisted loader, planner, and typed effect boundary for all 25 IDs", () => {
+    expect(lifecycleWorkflowRegistry).toHaveLength(25);
     expect(Object.keys(lifecycleTaskExecutionSpecs).sort()).toEqual(
       [...lifecycleWorkflowRegistry].sort(),
     );

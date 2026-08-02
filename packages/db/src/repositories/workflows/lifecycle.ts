@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -9,7 +9,13 @@ import {
 } from "@clockwork/domain/lifecycle";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
-import { accounts, pocs, providerOperations } from "../../schema";
+import {
+  accounts,
+  notificationDeliveries,
+  pocs,
+  providerOperations,
+} from "../../schema";
+import { accountContacts } from "../../schema/core/finance";
 import {
   lifecycleDomainEvents,
   lifecycleProvisioningAttempts,
@@ -478,6 +484,7 @@ export interface PreparedLifecycleEffect {
     | "signature_envelope"
     | "provisioning_attempt"
     | "poc"
+    | "quote"
     | "order"
     | "termination"
     | "exception_case"
@@ -579,6 +586,15 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
               }),
             );
             break;
+          case "lifecycle-quotes-expiry-alerts-v1":
+            aggregates = (await tx.query.quotes.findMany({ limit })).map(
+              (row) => ({
+                aggregateId: row.id,
+                aggregateVersion: row.rowVersion,
+                persistedState: row,
+              }),
+            );
+            break;
           case "lifecycle-renewals-term-alerts-v1":
           case "lifecycle-renewals-notice-windows-v1":
           case "lifecycle-renewals-auto-renew-evaluation-v1":
@@ -643,19 +659,36 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
           throw new Error(
             `LIFECYCLE_TASK_STALE_AGGREGATE_VERSION:${input.expectedAggregateVersion}:${stale.aggregateVersion}`,
           );
-        return selected
-          .filter((aggregate) =>
-            shouldPlanLifecycleTransition(
-              input.spec.taskId,
-              aggregate.persistedState,
-              input.scheduled,
-              this.now(),
-            ),
+        const now = this.now();
+        const due = selected.filter((aggregate) =>
+          shouldPlanLifecycleTransition(
+            input.spec.taskId,
+            aggregate.persistedState,
+            input.scheduled,
+            now,
+          ),
+        );
+        // Commercial recipients are read from persisted contacts. An account
+        // with no active commercial contact is skipped rather than guessed at.
+        const recipients = await lifecycleAlertRecipients(
+          tx,
+          input.spec.taskId,
+          due.map((aggregate) => aggregate.persistedState),
+        );
+        return due
+          .filter(
+            (aggregate) =>
+              !isLifecycleAlertTask(input.spec.taskId) ||
+              (recipients.get(aggregate.aggregateId)?.length ?? 0) > 0,
           )
           .map((aggregate) => {
             const persistedState = withLifecycleProviderInput(
               input.spec.taskId,
-              aggregate.persistedState,
+              {
+                ...aggregate.persistedState,
+                alertRecipients: recipients.get(aggregate.aggregateId) ?? [],
+              },
+              now,
             );
             const fingerprint = sanitizedPlannerFingerprint(
               input.spec,
@@ -943,6 +976,10 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
           )
           .returning();
         if (!committed) throw new Error("LIFECYCLE_EFFECT_STALE_CLAIM");
+        await recordLifecycleNotification(tx, input.effect, this.now(), {
+          status: "sent",
+          providerMessageId: input.reference,
+        });
         await appendAuditAndOutbox(tx, {
           aggregateType: "provider_operation",
           aggregateId: committed.id,
@@ -1007,6 +1044,11 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
           )
           .returning();
         if (!failed) throw new Error("LIFECYCLE_EFFECT_STALE_CLAIM");
+        if (input.failure.kind === "permanent")
+          await recordLifecycleNotification(tx, input.effect, this.now(), {
+            status: "failed",
+            failureCode: code,
+          });
         await appendAuditAndOutbox(tx, {
           aggregateType: "provider_operation",
           aggregateId: failed.id,
@@ -1054,19 +1096,255 @@ const plannerFingerprintFields = [
   "providerInput",
 ] as const;
 
+const lifecycleAlertSubjects: Readonly<
+  Record<string, { alertKind: string; subjectType: string }>
+> = {
+  "lifecycle-renewals-term-alerts-v1": {
+    alertKind: "renewal_term_window",
+    subjectType: "order",
+  },
+  "lifecycle-renewals-notice-windows-v1": {
+    alertKind: "renewal_notice_window",
+    subjectType: "order",
+  },
+  "lifecycle-pocs-milestones-v1": {
+    alertKind: "poc_milestone",
+    subjectType: "poc",
+  },
+  "lifecycle-quotes-expiry-alerts-v1": {
+    alertKind: "quote_expiry",
+    subjectType: "quote",
+  },
+};
+
+/**
+ * The delivery record commits with the effect it describes, so an alert the
+ * platform claims to have sent always has a row naming the recipients, and one
+ * that permanently failed has a row naming why.
+ */
+async function recordLifecycleNotification(
+  transaction: RuntimeTransaction,
+  effect: PreparedLifecycleEffect,
+  now: Date,
+  outcome:
+    | { status: "sent"; providerMessageId: string }
+    | { status: "failed"; failureCode: string },
+): Promise<void> {
+  if (effect.effectBoundary !== "notification_provider") return;
+  const subject = lifecycleAlertSubjects[effect.taskId];
+  if (!subject) return;
+  const providerInput = effect.persistedState.providerInput;
+  if (!providerInput || typeof providerInput !== "object") return;
+  const { template, recipients } = providerInput as {
+    template?: unknown;
+    recipients?: unknown;
+  };
+  const accountId = alertAccountId(effect.taskId, effect.persistedState);
+  if (
+    !accountId ||
+    typeof template !== "string" ||
+    !Array.isArray(recipients) ||
+    recipients.length === 0
+  )
+    return;
+  await transaction
+    .insert(notificationDeliveries)
+    .values({
+      accountId,
+      channel: "email",
+      alertKind: subject.alertKind,
+      subjectType: subject.subjectType,
+      subjectId: effect.aggregateId,
+      template,
+      recipients: recipients.map(String),
+      idempotencyKey: effect.effectKey,
+      requestedAt: now,
+      ...(outcome.status === "sent"
+        ? {
+            status: "sent",
+            providerMessageId: outcome.providerMessageId,
+            deliveredAt: now,
+          }
+        : { status: "failed", failureCode: outcome.failureCode }),
+    })
+    .onConflictDoNothing({ target: notificationDeliveries.idempotencyKey });
+}
+
+/**
+ * Every boundary here is a date the contract already fixed: the notice date, the
+ * service end date, the POC milestones agreed at kickoff, and the quote's own
+ * expiry. No lead time is invented, because how far ahead a warning should go
+ * out is commercial policy the platform does not hold.
+ */
+function alertBoundary(
+  taskId: string,
+  state: Readonly<Record<string, unknown>>,
+  now: Date,
+): { template: string; window: string; at: string } | undefined {
+  if (taskId === "lifecycle-renewals-term-alerts-v1") {
+    const boundary = reachedAlertBoundary(
+      [{ window: "service_end", at: state.serviceEndsOn }],
+      now,
+    );
+    return boundary
+      ? { template: "renewals.term_end.v1", ...boundary }
+      : undefined;
+  }
+  if (taskId === "lifecycle-renewals-notice-windows-v1") {
+    const boundary = reachedAlertBoundary(
+      [{ window: "notice_open", at: state.noticeOn }],
+      now,
+    );
+    return boundary
+      ? { template: "renewals.notice_window.v1", ...boundary }
+      : undefined;
+  }
+  if (taskId === "lifecycle-pocs-milestones-v1") {
+    const boundary = reachedAlertBoundary(
+      [
+        { window: "kickoff", at: state.kickoffAt },
+        { window: "midpoint", at: state.midpointAt },
+        { window: "final_report", at: state.finalReportAt },
+      ],
+      now,
+    );
+    return boundary
+      ? { template: "pocs.milestone.v1", ...boundary }
+      : undefined;
+  }
+  if (taskId === "lifecycle-quotes-expiry-alerts-v1") {
+    const boundary = reachedAlertBoundary(
+      [{ window: "expired", at: state.expiresAt }],
+      now,
+    );
+    return boundary ? { template: "quotes.expiry.v1", ...boundary } : undefined;
+  }
+  return undefined;
+}
+
+const lifecycleAlertTaskIds = new Set([
+  "lifecycle-renewals-term-alerts-v1",
+  "lifecycle-renewals-notice-windows-v1",
+  "lifecycle-pocs-milestones-v1",
+  "lifecycle-quotes-expiry-alerts-v1",
+]);
+
+export function isLifecycleAlertTask(taskId: string): boolean {
+  return lifecycleAlertTaskIds.has(taskId);
+}
+
+/**
+ * A resale order is owned by the partner, so its commercial notices go to the
+ * partner's contacts; every other subject notifies its own account.
+ */
+function alertAccountId(
+  taskId: string,
+  state: Readonly<Record<string, unknown>>,
+): string | undefined {
+  const accountId =
+    typeof state.accountId === "string" ? state.accountId : undefined;
+  if (taskId.startsWith("lifecycle-renewals-") && state.sourcing === "resale")
+    return typeof state.partnerAccountId === "string"
+      ? state.partnerAccountId
+      : undefined;
+  return accountId;
+}
+
+async function lifecycleAlertRecipients(
+  transaction: RuntimeTransaction,
+  taskId: string,
+  states: readonly Readonly<Record<string, unknown>>[],
+): Promise<ReadonlyMap<string, readonly string[]>> {
+  const result = new Map<string, readonly string[]>();
+  if (!isLifecycleAlertTask(taskId) || states.length === 0) return result;
+  const byAccount = new Map<string, string[]>();
+  for (const state of states) {
+    const aggregateId = typeof state.id === "string" ? state.id : undefined;
+    const accountId = alertAccountId(taskId, state);
+    if (!aggregateId || !accountId) continue;
+    const bucket = byAccount.get(accountId);
+    if (bucket) bucket.push(aggregateId);
+    else byAccount.set(accountId, [aggregateId]);
+  }
+  if (byAccount.size === 0) return result;
+  const contacts = await transaction.query.accountContacts.findMany({
+    columns: { accountId: true, email: true },
+    where: and(
+      inArray(accountContacts.accountId, [...byAccount.keys()]),
+      eq(accountContacts.kind, "commercial"),
+      eq(accountContacts.active, true),
+    ),
+  });
+  const emails = new Map<string, string[]>();
+  for (const contact of contacts) {
+    const bucket = emails.get(contact.accountId);
+    if (bucket) bucket.push(contact.email);
+    else emails.set(contact.accountId, [contact.email]);
+  }
+  for (const [accountId, aggregateIds] of byAccount) {
+    const addresses = [...new Set(emails.get(accountId) ?? [])].sort();
+    for (const aggregateId of aggregateIds) result.set(aggregateId, addresses);
+  }
+  return result;
+}
+
 function withLifecycleProviderInput(
   taskId: string,
   state: Readonly<Record<string, unknown>>,
+  now: Date,
 ): Readonly<Record<string, unknown>> {
-  const providerInput = deriveLifecycleProviderInput(taskId, state);
+  const providerInput = deriveLifecycleProviderInput(taskId, state, now);
   return providerInput === undefined ? state : { ...state, providerInput };
+}
+
+/**
+ * The alert boundary a subject has actually reached, or undefined when none
+ * has. Encoding the boundary in the provider input is what makes each window
+ * fire exactly once: the effect key changes only when a new boundary is due.
+ */
+function reachedAlertBoundary(
+  boundaries: readonly { window: string; at: unknown }[],
+  now: Date,
+): { window: string; at: string } | undefined {
+  const reached = boundaries
+    .flatMap((boundary) => {
+      const at = dateValue(boundary.at);
+      return at !== undefined && at <= now.getTime()
+        ? [{ window: boundary.window, at }]
+        : [];
+    })
+    .sort((left, right) => right.at - left.at);
+  const latest = reached[0];
+  return latest
+    ? { window: latest.window, at: new Date(latest.at).toISOString() }
+    : undefined;
 }
 
 /** Pure, allow-listed planner projection; absence means fail closed. */
 export function deriveLifecycleProviderInput(
   taskId: string,
   state: Readonly<Record<string, unknown>>,
+  now: Date = new Date(),
 ): unknown {
+  if (isLifecycleAlertTask(taskId)) {
+    const recipients = Array.isArray(state.alertRecipients)
+      ? state.alertRecipients.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    if (recipients.length === 0) return undefined;
+    const boundary = alertBoundary(taskId, state, now);
+    if (!boundary) return undefined;
+    return {
+      template: boundary.template,
+      recipients,
+      data: {
+        subjectId: state.id,
+        window: boundary.window,
+        boundaryAt: boundary.at,
+      },
+    };
+  }
   if (taskId === "lifecycle-onboarding-screening-refresh-v1")
     return {
       accountId: state.id,
@@ -1180,7 +1458,17 @@ function shouldPlanLifecycleTransition(
         envelopeState ?? "",
       );
     case "lifecycle-pocs-milestones-v1":
-      return status === "active";
+      return (
+        status === "active" &&
+        (dateValue(state.kickoffAt) ?? Number.POSITIVE_INFINITY) <=
+          now.getTime()
+      );
+    case "lifecycle-quotes-expiry-alerts-v1":
+      return (
+        status === "issued" &&
+        (dateValue(state.expiresAt) ?? Number.POSITIVE_INFINITY) <=
+          now.getTime()
+      );
     case "lifecycle-pocs-expiry-v1":
       return (
         status === "active" &&
@@ -1192,12 +1480,13 @@ function shouldPlanLifecycleTransition(
     case "lifecycle-renewals-term-alerts-v1":
       return (
         ["active", "amended"].includes(status ?? "") &&
-        dateValue(state.serviceEndsOn) !== undefined
+        (dateValue(state.serviceEndsOn) ?? Number.POSITIVE_INFINITY) <=
+          now.getTime()
       );
     case "lifecycle-renewals-notice-windows-v1":
       return (
         ["active", "amended"].includes(status ?? "") &&
-        dateValue(state.noticeOn) !== undefined
+        (dateValue(state.noticeOn) ?? Number.POSITIVE_INFINITY) <= now.getTime()
       );
     case "lifecycle-renewals-auto-renew-evaluation-v1":
       return ["active", "amended"].includes(status ?? "");
@@ -1385,6 +1674,12 @@ async function currentLifecycleAggregateVersion(
       break;
     case "poc":
       row = await transaction.query.pocs.findFirst({
+        columns: { rowVersion: true },
+        where: (table, { eq }) => eq(table.id, aggregateId),
+      });
+      break;
+    case "quote":
+      row = await transaction.query.quotes.findFirst({
         columns: { rowVersion: true },
         where: (table, { eq }) => eq(table.id, aggregateId),
       });

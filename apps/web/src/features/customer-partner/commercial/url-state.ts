@@ -31,6 +31,14 @@ function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
+/** The single forward-link value a task surface was opened with, if any. */
+export function firstSearchParam(
+  input: RawSearchParams,
+  key: string,
+): string | undefined {
+  return first(input[key]).trim() || undefined;
+}
+
 function positiveInt(value: string, fallback: number): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;

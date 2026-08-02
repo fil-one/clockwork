@@ -12,6 +12,7 @@ const productionTaskImporters: readonly TriggerTaskImporter[] = [
   () => import("../onboarding/tasks"),
   () => import("../pocs/tasks"),
   () => import("../provisioning/tasks"),
+  () => import("../quotes/tasks"),
   () => import("../renewals/tasks"),
   () => import("../system/tasks"),
   () => import("../system/gate-activation-tasks"),

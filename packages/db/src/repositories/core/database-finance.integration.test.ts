@@ -1270,6 +1270,190 @@ describe("database core direct-owner artifact chain", () => {
     );
   });
 
+  it("meters an accepted order through the commitment ledger and trues it up", async () => {
+    const ledgerId = crypto.randomUUID();
+    const command = (
+      action: string,
+      payload: Record<string, unknown>,
+      label: string,
+    ) =>
+      repository.mutate({
+        resource: "commitments",
+        id: ledgerId,
+        accountId,
+        action,
+        payload,
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: `core-commitment-${label}`,
+        idempotencyKey: testKey(`core-commitment-${label}`),
+        occurredAt: "2026-09-15T00:00:00.000Z",
+      });
+
+    const created = await command(
+      "create",
+      {
+        orderId,
+        orderLineId,
+        commitType: "period_allowance",
+        contractualTimeZone: "America/New_York",
+        periods: [
+          {
+            startsAt: "2026-08-01T00:00:00.000Z",
+            endsAt: "2027-02-01T00:00:00.000Z",
+            allowanceQuantity: "10",
+          },
+          {
+            startsAt: "2027-02-01T00:00:00.000Z",
+            endsAt: "2027-08-01T00:00:00.000Z",
+            allowanceQuantity: "10",
+          },
+        ],
+      },
+      "create",
+    );
+    expect(created.record.data).toMatchObject({
+      id: ledgerId,
+      orderId,
+      commitType: "period_allowance",
+    });
+
+    const metered = await command(
+      "record_usage",
+      {
+        events: [
+          {
+            externalEventId: `meter-${runId}-1`,
+            measuredAt: "2026-09-01T00:00:00.000Z",
+            quantity: "6",
+            meter: "storage",
+          },
+        ],
+      },
+      "usage-1",
+    );
+    expect(metered.record.data).toMatchObject({
+      authority: "commitment_ledger",
+      totalConsumed: "6",
+      totalOverage: "0",
+    });
+
+    // A second delivery of the same provider event must not consume twice.
+    const redelivered = await repository.mutate({
+      resource: "commitments",
+      id: ledgerId,
+      accountId,
+      action: "record_usage",
+      payload: {
+        events: [
+          {
+            externalEventId: `meter-${runId}-1`,
+            measuredAt: "2026-09-01T00:00:00.000Z",
+            quantity: "6",
+            meter: "storage",
+          },
+        ],
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-commitment-usage-redelivery",
+      idempotencyKey: testKey("core-commitment-usage-redelivery"),
+      occurredAt: "2026-09-16T00:00:00.000Z",
+    });
+    expect(redelivered.record.data).toMatchObject({
+      totalConsumed: "6",
+      duplicateUsageEventIds: [`meter-${runId}-1`],
+    });
+
+    const exceeded = await command(
+      "record_usage",
+      {
+        events: [
+          {
+            externalEventId: `meter-${runId}-2`,
+            measuredAt: "2026-10-01T00:00:00.000Z",
+            quantity: "7",
+            meter: "storage",
+          },
+        ],
+      },
+      "usage-2",
+    );
+    expect(exceeded.record.data).toMatchObject({
+      totalConsumed: "13",
+      totalOverage: "3",
+    });
+
+    const corrected = await command(
+      "correct_usage",
+      {
+        externalEventId: `meter-${runId}-2-correction`,
+        correctsExternalEventId: `meter-${runId}-2`,
+        measuredAt: "2026-10-01T00:00:00.000Z",
+        quantityDelta: "-3",
+        meter: "storage",
+        reasonCode: "over_reported_by_provider",
+        sourceReference: `SUP-${runId}-1`,
+      },
+      "correction",
+    );
+    expect(corrected.record.data).toMatchObject({
+      totalConsumed: "10",
+      totalOverage: "0",
+    });
+    expect(corrected.record.data.correctionId).toBeDefined();
+
+    // Reducing the contracted allowance puts the same consumption into overage.
+    const amended = await command(
+      "amend_allowance",
+      {
+        effectiveAt: "2026-09-01T00:00:00.000Z",
+        quantityDelta: "-4",
+        reason: "amendment",
+        sourceReference: `AMD-${runId}-1`,
+      },
+      "allowance",
+    );
+    expect(amended.record.data).toMatchObject({
+      totalConsumed: "10",
+      totalOverage: "4",
+    });
+
+    const renewed = await command(
+      "renew",
+      {
+        startsAt: "2027-08-01T00:00:00.000Z",
+        endsAt: "2028-02-01T00:00:00.000Z",
+        allowanceQuantity: "10",
+        sourceReference: `RNW-${runId}-1`,
+      },
+      "renew",
+    );
+    expect(renewed.record.data).toMatchObject({
+      periodEndsAt: "2028-02-01T00:00:00.000Z",
+      totalOverage: "4",
+    });
+
+    const reconciled = await command(
+      "reconcile",
+      {
+        sourceSystem: "provisioning-meter",
+        records: [
+          { externalEventId: `meter-${runId}-1`, quantity: "6" },
+          { externalEventId: `meter-${runId}-2`, quantity: "7" },
+        ],
+      },
+      "reconcile",
+    );
+    expect(reconciled.record.data).toMatchObject({
+      status: "variance",
+      ledgerQuantity: "10",
+      sourceQuantity: "13",
+      varianceQuantity: "3",
+      missingFromSource: [`meter-${runId}-2-correction`],
+    });
+  });
+
   it("derives house-account and prior-deal exclusions from persisted truth", async () => {
     const partnerAccountId = "10000000-0000-4000-8000-000000000002";
     const partnerUserId = "20000000-0000-4000-8000-000000000003";

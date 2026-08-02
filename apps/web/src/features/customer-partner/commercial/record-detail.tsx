@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
@@ -111,10 +112,16 @@ export function CommercialRecordDetail({
   id,
   canMutate = false,
   record,
+  actions,
 }: {
   id: string;
   canMutate?: boolean;
   record: CommercialRecord | null;
+  /**
+   * Server-backed action for this record, supplied by the route so the panel
+   * carries the route's own permission gate rather than a second guess at it.
+   */
+  actions?: ReactNode;
 }) {
   if (!record) {
     return (
@@ -251,6 +258,7 @@ export function CommercialRecordDetail({
         </div>
 
         <div className={styles.stack}>
+          {actions}
           {record.kind === "billing" &&
           record.status === "open" &&
           canMutate ? (

@@ -1,11 +1,6 @@
-import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
+import { ApprovalWorkspace } from "@/src/features/internal-ops/administration-safety/approvals";
+import { getRouteRoles } from "@/src/features/shell/route-session";
 
-export default function Page() {
-  return (
-    <InternalProjectionPage
-      channel="approvals"
-      title="Approval decisions"
-      description="Review evidence and segregated authority before recording a decision."
-    />
-  );
+export default async function Page() {
+  return <ApprovalWorkspace roles={await getRouteRoles("internal")} />;
 }

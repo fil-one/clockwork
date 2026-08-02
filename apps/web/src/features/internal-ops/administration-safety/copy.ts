@@ -35,6 +35,8 @@ export const adminSafetyCopy = {
     description:
       "Operational readiness grouped by provider, legal, brand, and operations, with owners and activation evidence.",
   },
+  gateVersionUnavailable:
+    "This gate has no current version to write against. Reload the register and try again; nothing was changed.",
   assisted: {
     eyebrow: "Internal operations · Assisted mode",
     title: "Assisted account action",

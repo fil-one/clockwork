@@ -338,6 +338,7 @@ export const priceBooks = pgTable(
     effectiveFrom: date("effective_from").notNull(),
     effectiveTo: date("effective_to"),
     status: text("status").notNull(),
+    discountMatrix: jsonb("discount_matrix").notNull().default({}),
     createdAt: createdAt(),
     version: integer("version").notNull().default(1),
   },
@@ -759,6 +760,10 @@ export const usageEvents = pgTable(
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
     quantity: numeric("quantity", { precision: 38, scale: 18 }).notNull(),
     kind: text("kind").notNull(),
+    ledgerKind: text("ledger_kind").notNull().default("usage"),
+    correctsUsageEventId: uuid("corrects_usage_event_id").references(
+      (): AnyPgColumn => usageEvents.id,
+    ),
     createdAt: createdAt(),
     version: integer("version").notNull().default(1),
   },
@@ -768,6 +773,18 @@ export const usageEvents = pgTable(
       table.externalEventId,
     ),
     index("usage_events_meter_idx").on(table.entitlementId, table.measuredAt),
+    check(
+      "usage_events_ledger_kind_check",
+      sql`${table.ledgerKind} in ('usage','correction')`,
+    ),
+    check(
+      "usage_events_correction_target_check",
+      sql`(${table.ledgerKind} = 'correction') = (${table.correctsUsageEventId} is not null)`,
+    ),
+    check(
+      "usage_events_usage_sign_check",
+      sql`${table.ledgerKind} = 'correction' or ${table.quantity} >= 0`,
+    ),
   ],
 );
 
@@ -1530,6 +1547,60 @@ export const roleSyncEvents = pgTable(
   ],
 );
 
+export const notificationDeliveries = pgTable(
+  "notification_deliveries",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    channel: text("channel").notNull(),
+    alertKind: text("alert_kind").notNull(),
+    subjectType: text("subject_type").notNull(),
+    subjectId: uuid("subject_id").notNull(),
+    template: text("template").notNull(),
+    recipients: text("recipients").array().notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    status: text("status").notNull(),
+    providerMessageId: text("provider_message_id"),
+    failureCode: text("failure_code"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("notification_delivery_idempotency_unique").on(
+      table.idempotencyKey,
+    ),
+    index("notification_delivery_subject_idx").on(
+      table.subjectType,
+      table.subjectId,
+      table.requestedAt,
+    ),
+    index("notification_delivery_account_idx").on(
+      table.accountId,
+      table.alertKind,
+      table.requestedAt,
+    ),
+    check(
+      "notification_delivery_channel_check",
+      sql`${table.channel} = 'email'`,
+    ),
+    check(
+      "notification_delivery_alert_kind_check",
+      sql`${table.alertKind} in ('renewal_term_window','renewal_notice_window','poc_milestone','quote_expiry','collections_dunning')`,
+    ),
+    check(
+      "notification_delivery_subject_check",
+      sql`${table.subjectType} in ('order','poc','quote','invoice')`,
+    ),
+    check(
+      "notification_delivery_outcome_check",
+      sql`(${table.status} = 'sent' and ${table.providerMessageId} is not null and ${table.deliveredAt} is not null and ${table.failureCode} is null) or (${table.status} = 'failed' and ${table.providerMessageId} is null and ${table.deliveredAt} is null and ${table.failureCode} is not null)`,
+    ),
+  ],
+);
+
 export const schemaTables = {
   accounts,
   documents,
@@ -1577,4 +1648,5 @@ export const schemaTables = {
   workflowRuns,
   impersonationSessions,
   roleSyncEvents,
+  notificationDeliveries,
 };
