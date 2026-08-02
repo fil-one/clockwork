@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
+import type { InvoiceDerivation } from "@clockwork/db";
 import { uuidV7 } from "@clockwork/contracts";
 import { demoPersonas } from "@clockwork/testing/personas";
 import {
@@ -153,6 +154,14 @@ export class DemoExperienceRepository implements ExperienceRepository {
   #evidenceGateway(): EvidenceGateway {
     this.#gateway ??= this.#openGateway();
     return this.#gateway;
+  }
+
+  public invoiceDerivation(): never {
+    unavailable("Invoice derivation");
+  }
+
+  public accountInvoiceDerivations(): Promise<readonly InvoiceDerivation[]> {
+    return Promise.resolve([]);
   }
 
   public signingTarget(

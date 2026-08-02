@@ -5,6 +5,8 @@ import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { Tooltip } from "./tooltip";
+
 export type CommandPaletteCategory = "navigation" | "actions" | "records";
 
 export interface CommandPaletteItem {
@@ -196,16 +198,21 @@ export function CommandPalette({
                 {description}
               </DialogPrimitive.Description>
             </div>
-            <DialogPrimitive.Close asChild>
-              <button
-                className="cw-icon-button"
-                type="button"
-                aria-label={closeLabel}
-                title={closeLabel}
-              >
-                <X aria-hidden="true" />
-              </button>
-            </DialogPrimitive.Close>
+            <Tooltip
+              side="bottom"
+              revealOnTouch={false}
+              trigger={
+                <DialogPrimitive.Close
+                  className="cw-icon-button"
+                  type="button"
+                  aria-label={closeLabel}
+                >
+                  <X aria-hidden="true" />
+                </DialogPrimitive.Close>
+              }
+            >
+              {closeLabel}
+            </Tooltip>
           </header>
           <div className="cw-command-search">
             <Search aria-hidden="true" />

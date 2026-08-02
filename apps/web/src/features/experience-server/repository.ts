@@ -6,8 +6,12 @@ import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
 import type { CommerceDocumentInput } from "@clockwork/documents";
 import {
+  InvoiceDerivationError,
+  loadAccountInvoiceDerivations,
+  loadInvoiceDerivation,
   withAuthorizedTransaction,
   withInternalTransaction,
+  type InvoiceDerivation,
   type RuntimeDatabase,
   type RuntimeTransaction,
 } from "@clockwork/db";
@@ -605,6 +609,42 @@ export class DatabaseExperienceRepository {
           );
         return actionReceipt(rows[0]);
       },
+    );
+  }
+
+  /**
+   * Rebuilds one billed amount from persisted rows. The transaction carries the
+   * caller's own authorization context, so an invoice outside their visibility
+   * is absent rather than redacted.
+   */
+  public invoiceDerivation(
+    session: SessionClaims,
+    invoiceId: string,
+    requestId: string,
+  ): Promise<InvoiceDerivation> {
+    return this.authorized(session, requestId, async (transaction) => {
+      try {
+        return await loadInvoiceDerivation(transaction, invoiceId);
+      } catch (error) {
+        if (error instanceof InvoiceDerivationError)
+          throw new ExperienceProblem(
+            404,
+            "INVOICE_DERIVATION_NOT_FOUND",
+            "Invoice derivation not found",
+          );
+        throw error;
+      }
+    });
+  }
+
+  public accountInvoiceDerivations(
+    session: SessionClaims,
+    accountId: string,
+    limit: number,
+    requestId: string,
+  ): Promise<readonly InvoiceDerivation[]> {
+    return this.authorized(session, requestId, (transaction) =>
+      loadAccountInvoiceDerivations(transaction, accountId, limit),
     );
   }
 

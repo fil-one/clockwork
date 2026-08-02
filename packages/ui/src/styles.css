@@ -2090,6 +2090,49 @@ body {
   list-style: none;
 }
 
+.cw-tooltip {
+  z-index: 130;
+  max-width: 18rem;
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-ink);
+  box-shadow: var(--cw-shadow-sm);
+  padding: var(--cw-space-2) var(--cw-space-3);
+  color: var(--cw-surface);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  animation: cw-fade-in var(--cw-motion-fast) var(--cw-motion-ease);
+}
+
+.cw-tooltip__arrow {
+  fill: var(--cw-ink);
+}
+
+.cw-infotip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--cw-muted);
+  cursor: help;
+  vertical-align: middle;
+}
+
+.cw-infotip:hover {
+  background: var(--cw-canvas-deep);
+  color: var(--cw-ink);
+}
+
+.cw-infotip > svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.8;
+}
+
 .cw-error {
   border: 1px solid color-mix(in srgb, var(--cw-danger) 40%, var(--cw-border));
   border-left: 4px solid var(--cw-danger);

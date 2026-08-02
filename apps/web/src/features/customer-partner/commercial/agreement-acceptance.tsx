@@ -261,8 +261,9 @@ export function AgreementAcceptance({
               </p>
             ) : null}
             <p className={styles.notice}>
-              Accepting is a legal mutation. Clockwork records the version,
-              exact text hash, actor, title, and time as audit evidence.
+              Accepting binds your organization to this agreement. The version,
+              exact text hash, actor, title, and time are recorded as audit
+              evidence.
             </p>
             {message ? (
               <p className={styles.successMessage} role="status">

@@ -26,7 +26,9 @@ describe("design shell public primitives", () => {
     );
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain('title="Overview"');
+    // The compact rail hides the label and names each link through a tooltip.
+    expect(html).toContain('aria-label="Overview"');
+    expect(html).toContain('data-state="closed"');
   });
 
   it("allows an existing page to own the main target", () => {

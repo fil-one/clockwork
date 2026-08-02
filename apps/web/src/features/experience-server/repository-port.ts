@@ -10,6 +10,8 @@ type RepositoryMethod<Key extends keyof DatabaseExperienceRepository> =
  * database one.
  */
 export interface ExperienceRepository {
+  invoiceDerivation: RepositoryMethod<"invoiceDerivation">;
+  accountInvoiceDerivations: RepositoryMethod<"accountInvoiceDerivations">;
   signingTarget: RepositoryMethod<"signingTarget">;
   createEsignCorrelation: RepositoryMethod<"createEsignCorrelation">;
   readEsignReturn: RepositoryMethod<"readEsignReturn">;

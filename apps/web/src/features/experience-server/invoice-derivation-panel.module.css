@@ -1,0 +1,205 @@
+.panel {
+  display: grid;
+  min-width: 0;
+  gap: 1.15rem;
+  color: var(--web-ink);
+}
+
+.heading {
+  display: grid;
+  gap: 0.35rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 2px solid var(--web-ink);
+}
+
+.heading h2 {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.heading p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--web-muted);
+}
+
+.empty {
+  margin: 0;
+  color: var(--web-muted);
+}
+
+.invoices {
+  display: grid;
+  gap: 1.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invoice {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--web-rule, currentColor);
+  border-radius: 0.35rem;
+}
+
+.invoiceHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.invoiceHeader h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin: 0;
+  font-family: var(--cw-font-mono);
+  font-size: 0.82rem;
+}
+
+.totals div {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.totals dt {
+  color: var(--web-muted);
+}
+
+.totals dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.variance {
+  color: var(--web-danger, currentColor);
+}
+
+.notes {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.notes li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.noteCode {
+  font-family: var(--cw-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--web-muted);
+}
+
+.lines {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--web-rule, currentColor);
+}
+
+.lineHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.lineHeader h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.lineAmount {
+  font-family: var(--cw-font-mono);
+  font-weight: 600;
+}
+
+.chain {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0 0 0 1.15rem;
+}
+
+.step {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.stepHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  align-items: baseline;
+}
+
+.stepLabel {
+  font-weight: 600;
+}
+
+.stepSource {
+  font-family: var(--cw-font-mono);
+  font-size: 0.72rem;
+  color: var(--web-muted);
+}
+
+.stepSummary {
+  margin: 0;
+  color: var(--web-muted);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.2rem 1rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.facts div {
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.facts dt {
+  color: var(--web-muted);
+  white-space: nowrap;
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--cw-font-mono);
+}

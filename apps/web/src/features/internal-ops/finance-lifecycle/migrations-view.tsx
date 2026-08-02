@@ -241,8 +241,8 @@ export function MigrationsView() {
       <div className={styles.warningNotice} role="note">
         <strong>Ambiguity never creates an account.</strong>
         <span>
-          Search by a human-readable name, route, or domain. Clockwork retains
-          the selected account ID only after an exact candidate is chosen and
+          Search by a human-readable name, route, or domain. The selected
+          account ID is retained only after an exact candidate is chosen and
           reviewed.
         </span>
       </div>

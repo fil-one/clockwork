@@ -24,10 +24,13 @@ export default function GlobalError({
       <body>
         <main id="main-content">
           <h1>This page could not be loaded</h1>
-          <p>
-            The application failed to start. Try again, and if it keeps
-            happening quote reference {error.digest ?? "unavailable"}.
-          </p>
+          <p>The application failed to start. Try again.</p>
+          {error.digest ? (
+            <p>
+              If it keeps happening, quote this reference:{" "}
+              <code>{error.digest}</code>
+            </p>
+          ) : null}
           <button type="button" onClick={reset}>
             Try again
           </button>

@@ -28,7 +28,7 @@ export function externalGateRecords(
         `Owner: ${gate.owner}`,
         `Input: ${gate.inputRequired}`,
         `Affected: ${gate.affectedFeature}`,
-        `Simulator: ${gate.simulatorState} — ${gate.simulatorDetails}`,
+        `Simulator: ${gate.simulatorState} · ${gate.simulatorDetails}`,
         `Activation test: ${gate.lastActivationTestStatus} at ${gate.lastActivationTestAt ?? "never"} by ${gate.lastActivationTestedBy ?? "unassigned"}`,
         `Evidence: ${gate.activationEvidenceReference ?? "missing"}`,
         `Review: ${gate.reviewOn ?? "unscheduled"}`,

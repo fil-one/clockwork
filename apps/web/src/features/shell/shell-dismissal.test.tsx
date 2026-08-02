@@ -1,0 +1,147 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AppShell } from "./app-shell";
+import type { RouteSession } from "./route-session";
+
+const push = vi.fn();
+const replace = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/internal",
+  useRouter: () => ({ push, replace, prefetch: vi.fn(), refresh: vi.fn() }),
+}));
+vi.mock("@/src/auth/actions", () => ({
+  switchCommerceAccount: vi.fn(() => Promise.resolve({ ok: true })),
+}));
+vi.mock("@/src/auth/sign-out", () => ({
+  signOutCommerceSession: vi.fn(),
+}));
+
+// Radix positions the drawer tooltips with Popper, which observes the trigger.
+// jsdom ships no ResizeObserver, so the fixture supplies an inert one.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
+const session: RouteSession = {
+  roles: ["internal_operator"],
+  profile: { name: "Demo internal operator", email: "operator@filone.test" },
+  memberships: [
+    {
+      userId: "20000000-0000-4000-8000-000000000001",
+      userName: "Demo internal operator",
+      userEmail: "operator@filone.test",
+      isInternalStaff: true,
+      organizationId: "30000000-0000-4000-8000-000000000008",
+      workosOrganizationId: "org_local_clockwork_staff",
+      organizationName: "Fil One Staff",
+      accountId: "10000000-0000-4000-8000-000000000008",
+      accountName: "Fil One Internal Operations",
+      role: "internal_operator",
+      audience: "internal",
+      home: "/internal",
+    },
+  ],
+  selectedAccountId: "10000000-0000-4000-8000-000000000008",
+  effectiveAccountId: "10000000-0000-4000-8000-000000000008",
+  providerBacked: false,
+  authenticationSource: "local",
+};
+
+function renderShell() {
+  return render(
+    <AppShell audience="internal" session={session}>
+      <p>Operator content</p>
+    </AppShell>,
+  );
+}
+
+/**
+ * Escape dismissal is task-critical on every shell overlay, and the overlays
+ * are independent implementations: the drawer is a Radix dialog, the profile
+ * popover is a controlled element in this app. Radix arms its Escape handler
+ * only on the highest dismissable layer, so a second overlay opening on top of
+ * the drawer silently disarms the drawer's own handler. Both are pinned here.
+ */
+describe("shell overlay dismissal", () => {
+  beforeEach(() => {
+    push.mockClear();
+    replace.mockClear();
+  });
+
+  it("closes the navigation drawer on Escape and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    await user.click(trigger);
+    expect(
+      await screen.findByRole("dialog", { name: "Navigation" }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Navigation" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes the navigation drawer on Escape when it was opened from the keyboard", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+    expect(
+      await screen.findByRole("dialog", { name: "Navigation" }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Navigation" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("closes the profile popover on Escape and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open profile menu" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("operator@filone.test")).toBeVisible();
+
+    await user.keyboard("{Escape}");
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("operator@filone.test")).not.toBeVisible();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes the profile popover when a pointer lands outside it", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open profile menu" });
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByText("Operator content"));
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("operator@filone.test")).not.toBeVisible();
+  });
+});

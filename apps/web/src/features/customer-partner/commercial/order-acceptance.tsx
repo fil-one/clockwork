@@ -80,7 +80,7 @@ export function OrderAcceptance({
         ? orderReviewSummary({
             agreementTitle:
               agreement?.title ?? t("orders.accept.agreement.unknown"),
-            agreementVersion: agreement?.version ?? "—",
+            agreementVersion: agreement?.version ?? "Not recorded",
             scope: quote.scope,
             poNumber,
             quoteTitle: quote.title,

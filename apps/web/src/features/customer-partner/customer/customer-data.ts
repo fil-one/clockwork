@@ -98,7 +98,7 @@ const amendmentRecords: readonly CustomerCollectionRecord[] = [
     title: "Early-start request",
     description: "Request closed after the original service date was retained.",
     status: "blocked",
-    statusLabel: "Closed — not accepted",
+    statusLabel: "Closed · not accepted",
     risk: "medium",
     owner: "Amina Cole",
     value: "No commitment",
@@ -292,7 +292,7 @@ const procurementRecords: readonly CustomerCollectionRecord[] = [
 const marketplaceRecords: readonly CustomerCollectionRecord[] = [
   {
     id: "AWS-OFFER-1948",
-    title: "AWS private offer — primary archive",
+    title: "AWS private offer · primary archive",
     description: "Provider reports that the accepted offer is fulfilled.",
     status: "active",
     statusLabel: "Active",
@@ -309,7 +309,7 @@ const marketplaceRecords: readonly CustomerCollectionRecord[] = [
   },
   {
     id: "AZURE-OFFER-0412",
-    title: "Azure offer — UK expansion",
+    title: "Azure offer · UK expansion",
     description:
       "The offer is available in the buyer account but not accepted.",
     status: "pending",
@@ -327,7 +327,7 @@ const marketplaceRecords: readonly CustomerCollectionRecord[] = [
   },
   {
     id: "GCP-OFFER-0087",
-    title: "Google Cloud offer — Madrid replica",
+    title: "Google Cloud offer · Madrid replica",
     description: "Disbursement is pending in the read-only provider feed.",
     status: "review",
     statusLabel: "Disbursement pending",
@@ -344,7 +344,7 @@ const marketplaceRecords: readonly CustomerCollectionRecord[] = [
   },
   {
     id: "AWS-OFFER-1764",
-    title: "AWS private offer — recovery sandbox",
+    title: "AWS private offer · recovery sandbox",
     description: "Expired offer retained as commercial audit evidence.",
     status: "complete",
     statusLabel: "Expired",
@@ -490,7 +490,7 @@ export const customerCollections: Readonly<
     valueLabel: "Priority / outcome",
     ownerLabel: "Customer contact",
     providerNote:
-      "The support provider is the source of truth. Clockwork shows a synchronized summary and does not duplicate provider-only actions.",
+      "The support provider is the source of truth. Fil One shows a synchronized summary and does not duplicate provider-only actions.",
     records: supportRecords,
   },
 };

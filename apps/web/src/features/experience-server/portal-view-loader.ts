@@ -89,7 +89,7 @@ function contextLine(data: Readonly<Record<string, unknown>>): string {
   const joined = contextEntries(data)
     .map((entry) => `${entry.label} ${entry.value}`)
     .join(" · ");
-  return joined || "—";
+  return joined || "Not recorded";
 }
 
 function portalAccountId(

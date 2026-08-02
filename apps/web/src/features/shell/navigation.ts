@@ -141,6 +141,11 @@ export const navigation: Readonly<
       allowedRoles: ["internal_operator"],
     },
     {
+      href: "/internal/recovery",
+      label: "nav.internal.recovery",
+      allowedRoles: ["internal_operator"],
+    },
+    {
       href: "/internal/migrations",
       label: "nav.internal.migrations",
       allowedRoles: ["internal_operator"],

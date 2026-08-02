@@ -1,8 +1,11 @@
+import { EmptyState } from "@clockwork/ui";
+
 import { ProjectionActionButtons } from "./projection-action-buttons";
 import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
+import { plural } from "@/src/i18n/en";
 import styles from "./internal-projection-page.module.css";
 
 function value(
@@ -54,17 +57,19 @@ export async function InternalProjectionPage({
           <time dateTime={projection.generatedAt}>
             {projection.generatedAt}
           </time>{" "}
-          · {projection.pagesRead} server page
-          {projection.pagesRead === 1 ? "" : "s"}
+          ·{" "}
+          {plural(
+            projection.pagesRead,
+            "{count} server page",
+            "{count} server pages",
+          )}
         </p>
       </header>
       {projection.records.length === 0 ? (
-        <section className={styles.empty} role="status">
-          <h2>No work in this queue</h2>
-          <p>
-            There are no authorized records for the selected operator scope.
-          </p>
-        </section>
+        <EmptyState
+          title="No work in this queue"
+          description="Work authorized for your operator scope appears here."
+        />
       ) : (
         <div
           className={styles.tableRegion}
@@ -73,7 +78,7 @@ export async function InternalProjectionPage({
           aria-label={`${title} records`}
         >
           <table className={styles.table}>
-            <caption>{title} — session-scoped records</caption>
+            <caption>{title} · session-scoped records</caption>
             <thead>
               <tr>
                 <th scope="col">Record</th>
@@ -100,21 +105,21 @@ export async function InternalProjectionPage({
                     {value(
                       record,
                       ["statusLabel", "status", "state"],
-                      "Available",
+                      "Not recorded",
                     )}
                   </td>
                   <td>
                     {value(
                       record,
                       ["owner", "assignee", "requestedBy"],
-                      "Unassigned",
+                      "Not recorded",
                     )}
                   </td>
                   <td>
                     {value(
                       record,
                       ["nextAction", "task", "decision"],
-                      "Review record",
+                      "Not recorded",
                     )}
                   </td>
                   <td>

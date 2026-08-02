@@ -140,7 +140,9 @@ describe("generated-client commerce workflows", () => {
     const user = userEvent.setup();
     render(<WorkflowPanel workflow="assisted" surface="assisted" />);
 
-    expect(screen.getByText(/server—not this form—records/i)).toBeVisible();
+    expect(
+      screen.getByText(/assisted session supplies the staff actor/i),
+    ).toBeVisible();
     await user.click(
       screen.getByRole("checkbox", { name: /active assisted session/i }),
     );

@@ -22,8 +22,7 @@
 
 .pageHeader h1,
 .ledgerHeader h2,
-.recordHeader h3,
-.emptyState h2 {
+.recordHeader h3 {
   margin: 0;
 }
 
@@ -111,20 +110,10 @@
   line-height: 1.35;
 }
 
-.recordLedger,
-.emptyState {
+.recordLedger {
   background: var(--detail-paper);
   border: 1px solid var(--detail-border);
   min-width: 0;
-}
-
-.emptyState {
-  padding: clamp(1.5rem, 4vw, 3rem);
-}
-
-.emptyState p {
-  color: var(--detail-muted);
-  margin: 0.5rem 0 0;
 }
 
 .ledgerHeader {

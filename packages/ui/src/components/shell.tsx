@@ -10,6 +10,7 @@ import type {
 import { useState } from "react";
 
 import { BrandSlot } from "./brand";
+import { Tooltip } from "./tooltip";
 
 export interface NavigationItem {
   id: string;
@@ -114,7 +115,6 @@ export function Navigation({
                       ? `${item.label}. ${item.description}`
                       : item.label
                     : undefined,
-                title: density === "compact" ? item.label : undefined,
                 tabIndex: item.disabled ? -1 : undefined,
                 onClick: (event) => {
                   if (item.disabled) return;
@@ -122,12 +122,21 @@ export function Navigation({
                   onNavigate?.(item, event);
                 },
               };
+              const link = renderNavigationItem ? (
+                renderNavigationItem(item, content, linkProps)
+              ) : (
+                <a {...linkProps}>{content}</a>
+              );
               return (
                 <li key={item.id}>
-                  {renderNavigationItem ? (
-                    renderNavigationItem(item, content, linkProps)
+                  {/* The compact rail hides the label, so name it on hover and
+                      on focus. Navigation stays the job of the first tap. */}
+                  {density === "compact" ? (
+                    <Tooltip side="right" revealOnTouch={false} trigger={link}>
+                      {item.label}
+                    </Tooltip>
                   ) : (
-                    <a {...linkProps}>{content}</a>
+                    link
                   )}
                 </li>
               );
@@ -171,19 +180,26 @@ export function ResponsiveNavigationDrawer({
       {...(defaultOpen === undefined ? {} : { defaultOpen })}
       {...(onOpenChange ? { onOpenChange } : {})}
     >
-      <DialogPrimitive.Trigger asChild>
-        {trigger ?? (
-          <button
-            className="cw-shell__drawer-trigger"
-            type="button"
-            aria-label={triggerLabel}
-            title={triggerLabel}
-          >
-            <Menu aria-hidden="true" />
-            <span>{title}</span>
-          </button>
-        )}
-      </DialogPrimitive.Trigger>
+      {trigger ? (
+        <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
+      ) : (
+        <Tooltip
+          side="bottom"
+          revealOnTouch={false}
+          trigger={
+            <DialogPrimitive.Trigger
+              className="cw-shell__drawer-trigger"
+              type="button"
+              aria-label={triggerLabel}
+            >
+              <Menu aria-hidden="true" />
+              <span>{title}</span>
+            </DialogPrimitive.Trigger>
+          }
+        >
+          {triggerLabel}
+        </Tooltip>
+      )}
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="cw-drawer-overlay" />
         <DialogPrimitive.Content
@@ -199,15 +215,19 @@ export function ResponsiveNavigationDrawer({
                 {description}
               </DialogPrimitive.Description>
             </div>
-            <DialogPrimitive.Close asChild>
-              <button
-                className="cw-icon-button"
-                type="button"
-                aria-label={closeLabel}
-                title={closeLabel}
-              >
-                <X aria-hidden="true" />
-              </button>
+            {/*
+              No tooltip on this control. Radix arms Escape on the highest
+              dismissable layer only, and the drawer autofocuses this button,
+              which would open a tooltip layer above the dialog and leave the
+              drawer unable to close on Escape. The tooltip would also only
+              repeat the accessible name.
+            */}
+            <DialogPrimitive.Close
+              className="cw-icon-button"
+              type="button"
+              aria-label={closeLabel}
+            >
+              <X aria-hidden="true" />
             </DialogPrimitive.Close>
           </header>
           <div className="cw-drawer-body">
@@ -236,6 +256,7 @@ export interface AppShellProps {
   banner?: ReactNode;
   bannerLabel?: string;
   footer?: ReactNode;
+  skipLabel?: ReactNode;
   navigationLabel?: string;
   mobileNavigationLabel?: string;
   mobileNavigationTitle?: string;
@@ -264,6 +285,7 @@ export function AppShell({
   banner,
   bannerLabel = "Application status",
   footer,
+  skipLabel,
   navigationLabel = "Primary",
   mobileNavigationLabel = "Open navigation",
   mobileNavigationTitle = "Navigation",
@@ -282,7 +304,10 @@ export function AppShell({
 
   return (
     <div className={`cw-shell ${className}`.trim()}>
-      <SkipLink href={`#${mainId}`} />
+      <SkipLink
+        href={`#${mainId}`}
+        {...(skipLabel === undefined ? {} : { children: skipLabel })}
+      />
       <header className="cw-shell__header">
         <div className="cw-shell__brand">{brand}</div>
         <div className="cw-shell__organization">{organization}</div>

@@ -84,7 +84,7 @@ export function quoteReviewSummary(draft: ResaleQuoteDraft): readonly string[] {
     `${draft.capacity} TB in ${draft.region} for ${draft.termMonths} months`,
     `Partner resale price: $${Number(draft.resalePrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `Quote expires ${draft.expiresAt ? new Date(draft.expiresAt).toLocaleString("en-US") : "after selection"}`,
-    "Clockwork will calculate and return the authoritative transfer price from the selected price book.",
+    "The authoritative transfer price is calculated from the selected price book.",
   ];
 }
 

@@ -19,10 +19,10 @@ const DATE_TIME = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 
-const NOT_SUPPLIED = "Not supplied";
+const NOT_RECORDED = "Not recorded";
 
 function Moment({ value }: { value: string | null }) {
-  if (!value) return <>{NOT_SUPPLIED}</>;
+  if (!value) return <>{NOT_RECORDED}</>;
   return <time dateTime={value}>{DATE_TIME.format(new Date(value))}</time>;
 }
 
@@ -67,49 +67,59 @@ export function QueueDetail({
         <p className={styles.detailSummary}>{item.summary}</p>
       ) : null}
 
+      {/*
+        Whether an item is owned and what state it is in drives the operator's
+        next move, so those rows appear even when the value is absent. A backup,
+        a risk band, and a deadline are not carried by every queue type; those
+        rows appear only once there is something to read.
+      */}
       <dl className={styles.detailFacts}>
         <div>
           <dt>{QUEUE_COPY.details.owner}</dt>
-          <dd>{item.owner ?? "Unassigned"}</dd>
+          <dd>{item.owner ?? NOT_RECORDED}</dd>
         </div>
-        <div>
-          <dt>{QUEUE_COPY.details.backup}</dt>
-          <dd>{item.backup ?? "Unassigned — backup needed"}</dd>
-        </div>
-        <div>
-          <dt>{QUEUE_COPY.details.risk}</dt>
-          <dd>
-            {item.risk ? (
+        {item.backup ? (
+          <div>
+            <dt>{QUEUE_COPY.details.backup}</dt>
+            <dd>{item.backup}</dd>
+          </div>
+        ) : null}
+        {item.risk ? (
+          <div>
+            <dt>{QUEUE_COPY.details.risk}</dt>
+            <dd>
               <span className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}>
                 {item.risk}
               </span>
-            ) : (
-              NOT_SUPPLIED
-            )}
-          </dd>
-        </div>
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt>{QUEUE_COPY.details.status}</dt>
-          <dd>{item.statusLabel ?? item.status ?? NOT_SUPPLIED}</dd>
+          <dd>{item.statusLabel ?? item.status ?? NOT_RECORDED}</dd>
         </div>
-        <div>
-          <dt>{QUEUE_COPY.details.created}</dt>
-          <dd>
-            <Moment value={item.createdAt} />
-          </dd>
-        </div>
+        {item.createdAt ? (
+          <div>
+            <dt>{QUEUE_COPY.details.created}</dt>
+            <dd>
+              <Moment value={item.createdAt} />
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt>{QUEUE_COPY.details.updated}</dt>
           <dd>
             <Moment value={item.updatedAt} />
           </dd>
         </div>
-        <div>
-          <dt>{QUEUE_COPY.details.deadline}</dt>
-          <dd>
-            <Moment value={item.dueAt} />
-          </dd>
-        </div>
+        {item.dueAt ? (
+          <div>
+            <dt>{QUEUE_COPY.details.deadline}</dt>
+            <dd>
+              <Moment value={item.dueAt} />
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
       {item.policyReason || item.policyBasis ? (
@@ -178,11 +188,10 @@ export function QueueDetail({
           </p>
         ) : null}
         <div className={styles.actionHandoff} role="note">
-          <strong>Authorized workflow required</strong>
+          <strong>Review only</strong>
           <p>
-            This evidence review is read-only and does not submit queue
-            mutations. Continue through the authorized system workflow, where
-            role, actor, policy, and provider gates are revalidated.
+            Nothing is submitted here. Continue through the authorized workflow,
+            where role, actor, policy, and provider gates are revalidated.
           </p>
           {actions.length ? (
             <ul>

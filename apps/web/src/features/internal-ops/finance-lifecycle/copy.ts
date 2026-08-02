@@ -42,7 +42,7 @@ export const lifecycleCopy = {
     dialogDescription:
       "Review the affected entity, evidence, policy, and downstream effect before staging this action.",
     actorNote:
-      "The server—not this form—derives staff actor authority and rechecks credit, screening, provider, retention, and dual-control gates where applicable.",
+      "Staff actor authority is derived from the server session. Credit, screening, provider, retention, and dual-control gates are rechecked where applicable.",
     complete:
       "Review complete. Continue through the server-authorized workflow to apply the action; no lifecycle state changed here.",
   },

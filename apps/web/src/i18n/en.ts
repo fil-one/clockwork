@@ -3,7 +3,6 @@ export const en = {
   "app.product": "Commerce",
   "app.demo": "Demo environment",
   "app.demo.short": "Demo",
-  "app.demo.reset": "Reset demo",
   "app.demo.reset.success": "Demo restored to July 31, 2026.",
   "app.demo.reset.confirm.title": "Reset the demo environment?",
   "app.demo.reset.confirm.description":
@@ -33,7 +32,7 @@ export const en = {
   "demo.panel.close": "Close demo controls",
   "demo.panel.persona": "Signed in as",
   "demo.panel.journey": "Journey",
-  "demo.panel.reset": "Reset demo data",
+  "demo.panel.reset": "Restore demo data",
   "demo.panel.resetting": "Resetting…",
   "demo.panel.reset.failed": "The demo data could not be reset.",
   "demo.panel.browse": "All personas",
@@ -44,6 +43,7 @@ export const en = {
   "app.nav.open": "Open navigation",
   "app.nav.title": "Navigation",
   "app.nav.description": "Browse every destination.",
+  "app.nav.close": "Close navigation",
   "app.search": "Search",
   "app.search.hint": "Accounts, orders, invoices, or documents",
   "app.command": "Open command menu",
@@ -65,11 +65,6 @@ export const en = {
   "app.command.action.reviewApprovals":
     "Open the approvals and exception queue.",
   "app.command.shortcut": "Command K",
-  "app.notifications": "Notifications",
-  "app.notifications.count": "3 unread notifications",
-  "app.notifications.renewal": "Halcyon renewal enters notice in 33 days.",
-  "app.notifications.invoice": "Invoice INV-2026-0781 is due August 15.",
-  "app.notifications.poc": "Telemetry archive final report is due August 7.",
   "app.help": "Help",
   "app.help.description": "Guides, support, and service status",
   "app.help.internal": "External gates and operating guidance",
@@ -84,8 +79,6 @@ export const en = {
   "app.account.choose.empty.description":
     "This identity has no active commerce membership. An organization administrator can grant access, or you can sign out and use a different identity.",
   "app.profile": "Open profile menu",
-  "app.profile.name": "Maya Chen",
-  "app.profile.role": "Commerce owner · MFA verified",
   "app.requestId": "Request {id}",
   "app.footer":
     "Fil One commerce records are synchronized from the operating ledger.",
@@ -133,6 +126,7 @@ export const en = {
   "nav.internal.renewals": "Renewal command",
   "nav.internal.collections": "Collections",
   "nav.internal.provisioning": "Provisioning",
+  "nav.internal.recovery": "Recovery",
   "nav.internal.migrations": "Migrations",
   "nav.internal.reports": "Reports",
   "nav.internal.agreements": "Agreement versions",
@@ -142,70 +136,36 @@ export const en = {
   "nav.internal.assisted": "Assisted mode",
   "action.view": "View details",
   "action.review": "Review",
-  "action.continue": "Continue",
   "action.retry": "Try again",
   "action.returnHome": "Return to your dashboard",
   "action.cancel": "Cancel",
-  "action.save": "Save changes",
-  "action.saved": "Changes saved",
   "action.download": "Download PDF",
-  "action.export": "Export CSV",
   "action.createQuote": "Build a quote",
-  "action.issueQuote": "Issue quote",
-  "action.convert": "Convert to paid quote",
-  "action.pay": "Pay invoice",
   "action.invite": "Invite user",
-  "action.resolve": "Resolve exception",
   "action.open": "Open record",
-  "action.renew": "Prepare renewal",
-  "action.decline": "Decline renewal",
   "action.register": "Register a deal",
-  "action.newAccount": "Add account",
   "common.status": "Status",
-  "common.owner": "Owner",
-  "common.backup": "Backup",
-  "common.target": "Response target",
   "common.updated": "Last updated",
-  "common.amount": "Amount",
   "common.term": "Term",
-  "common.endDate": "End date",
-  "common.nextAction": "Next action",
-  "common.account": "Account",
-  "common.reference": "Reference",
-  "common.direct": "Direct",
-  "common.referral": "Referral",
-  "common.resale": "Resale",
-  "common.distributor": "Distributor",
-  "common.whiteLabel": "White-label",
-  "common.marketplace": "Marketplace",
   "status.active": "Active",
   "status.inNotice": "In notice",
   "status.awaiting": "Awaiting action",
   "status.review": "Needs review",
   "status.paid": "Paid",
-  "status.overdue": "Overdue",
   "status.ready": "Ready",
-  "status.atRisk": "At risk",
   "status.pending": "Pending",
   "status.provisioning": "Provisioning",
   "status.blocked": "Blocked",
   "status.complete": "Complete",
   "status.draft": "Draft",
   "status.signed": "Signed",
-  "risk.low": "Low risk",
-  "risk.medium": "Watch",
-  "risk.high": "High risk",
   "dashboard.eyebrow": "Account pulse",
-  "dashboard.title": "Good afternoon, Maya.",
   "dashboard.description":
     "Commercial activity, service health, and the next contract dates for Northstar Archive Labs.",
-  "dashboard.attention": "What needs attention",
-  "dashboard.usage": "Protected capacity",
-  "dashboard.spend": "Spend by month",
   "dashboard.chain": "Latest activity",
   "dashboard.activeServices": "Active services",
   "dashboard.empty.obligations":
-    "Nothing needs a decision. New commercial deadlines appear here as records change.",
+    "Nothing needs a decision right now. Commercial deadlines appear here as they approach.",
   "dashboard.empty.services":
     "No service is active yet. Accepted orders appear here once provisioning starts.",
   "dashboard.empty.activity":
@@ -218,10 +178,6 @@ export const en = {
   "agreements.description":
     "Executed terms, signature evidence, governing versions, and renewal clocks in one record.",
   "agreements.execute": "Execute an agreement",
-  "agreements.signer": "Authorized signer",
-  "agreements.paper": "Paper",
-  "agreements.version": "Version",
-  "agreements.evidence": "Acceptance evidence",
   "agreements.execute.binding":
     "Confirm the agreement title, version, exact approved terms, and your authority before binding {account}.",
   "agreements.execute.source": "Executing under agreement {reference}",
@@ -230,7 +186,7 @@ export const en = {
   "agreements.execute.validation.attestation":
     "Confirm your authority to bind this legal entity before executing.",
   "agreements.execute.accepted":
-    "The server accepted the agreement and recorded the authority evidence.",
+    "Agreement executed. Your authority evidence is on the record.",
   "agreements.execute.acceptedLink": "Open the executed agreement record",
   "quotes.eyebrow": "Price with confidence",
   "quotes.title": "Quotes",
@@ -239,31 +195,18 @@ export const en = {
   "quotes.builder.title": "Build a quote",
   "quotes.builder.description":
     "Configure the service; the commerce API remains the source of pricing and approval decisions.",
-  "quotes.offer": "Offer",
-  "quotes.region": "Data region",
-  "quotes.capacity": "Committed capacity",
-  "quotes.billing": "Billing cadence",
-  "quotes.currency": "Currency",
-  "quotes.term": "Term length",
-  "quotes.discount": "Requested discount",
-  "quotes.validation": "Enter a committed capacity of at least 10 TB.",
-  "quotes.optimistic":
-    "Draft updated locally. Checking the latest commercial version.",
   "quotes.builder.account.description": "Account authorized for this session",
   "quotes.builder.origin.revision": "Revises quote {reference}",
   "quotes.builder.origin.poc": "Converts proof of concept {reference}",
   "quotes.builder.origin.unavailable":
     "The referenced record is outside this account. The draft starts from an empty scope.",
   "quotes.builder.created":
-    "The server created the priced draft. Its current server status is draft; issuance becomes available after the rendered artifact is prepared and bound.",
+    "Priced draft created. You can issue it once its document is prepared and bound.",
   "quotes.builder.createdLink": "Open the created draft",
   "orders.eyebrow": "From commit to service",
   "orders.title": "Orders & services",
   "orders.description":
     "Purchase orders, provisioning, entitlements, usage, amendments, and term status without re-keying.",
-  "orders.po": "Purchase order",
-  "orders.entitlement": "Entitlement",
-  "orders.provisioning": "Provisioning activity",
   "orders.amendment": "Request an amendment",
   "orders.accept.source": "Accepted quote {reference} · version {version}",
   "orders.accept.agreement.unknown":
@@ -279,10 +222,10 @@ export const en = {
   "orders.accept.validation.confirmation":
     "Confirm the reviewed commitment before accepting.",
   "orders.accept.created":
-    "The server created the order. Its current commitment and provisioning state are now authoritative.",
+    "Order created. Its commitment and provisioning state are now authoritative.",
   "orders.accept.createdLink": "Open the created order",
   "orders.accept.prepared":
-    "The server requested the order form for this acceptance. The commitment is created once that document is rendered and bound to the quote.",
+    "Order form requested. Your commitment is created once that document is rendered and bound to the quote.",
   "orders.accept.preparedLink": "Track this acceptance in orders",
   "orders.accept.failed":
     "The order could not be accepted. Nothing was changed.",
@@ -290,18 +233,11 @@ export const en = {
   "pocs.title": "Proofs of concept",
   "pocs.description":
     "Isolated environments with explicit caps, milestones, success criteria, cost, and a data-preserving conversion path.",
-  "pocs.days": "Days remaining",
-  "pocs.capacity": "Capacity used",
-  "pocs.success": "Success tests passed",
-  "pocs.milestone": "Next milestone",
   "billing.eyebrow": "Clear, traceable billing",
   "billing.title": "Billing & payments",
   "billing.description":
     "Invoices carry the originating order and PO, with receipts, credits, aging, tax treatment, and payment rails.",
-  "billing.invoices": "Invoices",
-  "billing.methods": "Payment methods",
   "billing.aging": "Accounts receivable aging",
-  "billing.tax": "Tax treatment",
   "account.eyebrow": "Organization controls",
   "account.title": "Account, users & procurement",
   "account.description":
@@ -309,7 +245,6 @@ export const en = {
   "account.users": "Users & roles",
   "account.procurement": "Procurement profile",
   "account.offboarding": "Offboarding & certificates",
-  "account.notifications": "Notification routing",
   "account.owner": "Account owner",
   "account.billingContact": "Billing contact",
   "account.people": "People with access",
@@ -330,7 +265,7 @@ export const en = {
   "account.offboarding.validation.confirmation":
     "Confirm the reviewed retention and approval safeguards before submitting.",
   "account.offboarding.requested":
-    "The server recorded the offboarding request for controlled approval. Service has not been torn down.",
+    "Offboarding request submitted for approval. Your service is still running.",
   "account.offboarding.requestedLink": "Open the affected service record",
   "account.offboarding.failed":
     "The offboarding request could not be submitted.",
@@ -371,9 +306,9 @@ export const en = {
   "partner.access.action": "Switch organization",
   "partner.detail.notFound.title": "This partner record is not available",
   "partner.detail.notFound.description":
-    "The reference is unknown to the partner projection, or it sits outside the authorized account scope. Nothing was changed.",
+    "That reference is unknown, or it sits outside your authorized accounts.",
   "partner.detail.notFound.action": "Back to the collection",
-  "partner.detail.notRecorded": "Not yet recorded",
+  "partner.detail.notRecorded": "Not recorded",
   "partner.detail.reference": "Reference",
   "partner.detail.position": "Commercial position",
   "partner.detail.milestone": "Next milestone",
@@ -384,7 +319,7 @@ export const en = {
   "partner.detail.term.unavailable.title":
     "No service term is recorded for this end client",
   "partner.detail.term.unavailable.description":
-    "The elapsed term, notice window, and end date appear here once an order or agreement publishes them. Until then no term clock is shown.",
+    "The elapsed term, notice window, and end date appear here once an order or agreement publishes them.",
   "partner.detail.transfer.description":
     "The private Fil One cost for this route. It is returned by the approved price book and is never shown to the end client.",
   "partner.detail.resale.description":
@@ -401,11 +336,11 @@ export const en = {
     "Fil One prepares and binds separate end-client and partner artifacts first. The action appears once both artifacts are ready, then opens review and confirmation.",
   "partner.detail.quote.cancel.title": "Cancellation is unavailable here",
   "partner.detail.quote.cancel.description":
-    "The current commerce contract carries no partner quote-cancel command. Contact channel operations; no dead primary action is presented.",
+    "Cancelling a partner quote is handled by channel operations. Contact them to cancel this quote.",
   "partner.detail.quote.download.title": "Download is provider-gated",
   "partner.detail.quote.download.description":
     "The immutable artifact link appears once the document service returns a retained partner-visible document.",
-  "partner.detail.projection.record": "Projection record",
+  "partner.detail.projection.record": "Record ID",
   "partner.detail.projection.version": "Record version",
   "partner.quote.new.disabled.unconfirmed":
     "Confirm the review above to create the priced draft.",
@@ -413,8 +348,7 @@ export const en = {
     "The priced draft was created. Open it from the quotes collection to continue.",
   "partner.quote.new.success":
     "Draft created from server pricing. Review the server-returned transfer price before using the valid Issue action.",
-  "partner.quote.new.failure":
-    "The quote could not be created. Nothing changed.",
+  "partner.quote.new.failure": "The quote could not be created.",
   "support.title": "Support visibility",
   "support.description":
     "Read-only tickets associated with this account. Continue to use the existing support channel for intake.",
@@ -479,7 +413,7 @@ export const en = {
     "Agreement clocks and financial records arrive independently; available sections render first.",
   "state.empty.title": "No records yet",
   "state.empty.description":
-    "Start with a quote; it becomes the source for the rest of the artifact chain.",
+    "Start with a quote. Everything else follows from it.",
   "state.partial.title": "Usage is temporarily delayed",
   "state.partial.description":
     "Commercial records are current through 4:00 PM UTC. Usage will fill in without changing totals.",
@@ -501,14 +435,6 @@ export const en = {
   "state.fatal.title": "This action cannot continue",
   "state.fatal.description":
     "The record is unchanged. Contact support with the request ID so the cause can be reviewed.",
-  "table.records": "Commerce records",
-  "table.item": "Item",
-  "table.path": "Path",
-  "table.scope": "Scope",
-  "table.balance": "Balance",
-  "table.due": "Due",
-  "table.risk": "Risk",
-  "table.window": "Window",
   "detail.eyebrow": "Artifact record",
   "detail.description":
     "Identifiers, governing references, evidence, documents, and the latest audit events for this immutable version.",
@@ -518,18 +444,11 @@ export const en = {
   "detail.hash": "Content hash",
   "detail.documents": "Related documents",
   "detail.audit": "Audit timeline",
-  "detail.unknown": "The requested record is not in this demo projection.",
   "chart.usage": "Stored capacity over the last six months",
   "chart.spend": "Invoiced spend over the last six months",
   "chart.capacity": "Committed and provisioned capacity by region",
   "chart.axis.month": "Month",
   "chart.axis.value": "Value",
-  "term.elapsed": "{percent}% of the term has elapsed.",
-  "term.notice": "The notice window opens {date}.",
-  "term.end": "The current term ends {date}.",
-  "term.renewal.auto": "Renews automatically unless notice is served.",
-  "term.renewal.expires": "Expires at the end of the current term.",
-  "term.renewal.declined": "Renewal has been declined and recorded.",
   "term.annual": "Annual committed service",
   "term.partner": "Meridian partner agreement",
   "term.rollup": "Account term rollup",
@@ -539,41 +458,15 @@ export const en = {
   "term.none": "No active terms",
   "term.archive": "Primary archive",
   "term.replica": "Madrid compliance replica",
-  "options.offer.annual": "Annual business",
-  "options.offer.enterprise": "Enterprise committed capacity",
-  "options.offer.poc": "POC conversion",
-  "options.currency.usd": "USD — US dollar",
-  "options.currency.eur": "EUR — Euro",
-  "options.currency.gbp": "GBP — Pound sterling",
-  "options.region.us": "United States — East",
-  "options.region.eu": "European Union — West",
-  "options.region.uk": "United Kingdom — South",
-  "options.payment.ach": "ACH ending 1842",
-  "options.payment.wire": "Bank transfer",
-  "options.payment.card": "Card ending 4418",
-  "options.role.coo": "Chief Operating Officer",
   "states.optimistic.title": "Change shown while it is checked",
   "states.optimistic.description":
     "If the contract rejects it, the previous value returns and focus moves to the explanation.",
   "states.offline.title": "Saved for reconnection",
   "states.offline.description":
     "Read-only records remain available; no money or agreement action is assumed complete.",
-  "form.required": "Required",
-  "form.invalid": "Review this field",
-  "form.reason": "Reason for assisted action",
-  "form.authority": "I am authorized to bind this legal entity",
   "format.tax.us": "Sales tax",
   "format.tax.eu": "VAT",
   "format.tax.uk": "VAT",
-  "home.eyebrow": "Commerce operations, synchronized",
-  "home.title": "Every agreement, term, and payment in one dependable chain.",
-  "home.description":
-    "A complete customer, partner, and operations experience.",
-  "home.term": "Northstar annual term",
-  "home.action": "Open demo action",
-  "home.empty.title": "No exceptions need attention",
-  "home.empty.description":
-    "Pricing, legal, and credit exceptions appear with an owner and response target.",
   "projection.action.readOnly":
     "Read only. An account owner or the assigned approver can act on this record.",
   "projection.action.pending": "Submitting…",
@@ -661,9 +554,9 @@ export const en = {
     "The signing state is unknown or has expired. Start again from the agreement record.",
   "workflow.confirm.title": "Confirm this decision",
   "workflow.confirm.description":
-    "The server records this decision against the identifiers entered above.",
+    "This decision is recorded against the identifiers above.",
   "workflow.confirm.detail":
-    "Check the record identifiers, the stated reason, and the evidence reference. A decline, a rejection, and a teardown request each close the current commercial path, and only a new decision reopens it.",
+    "Check the record identifiers, the reason, and the evidence reference. A decline, rejection, or teardown request closes the current commercial path; only a new decision reopens it.",
   "workflow.confirm.cancel": "Keep the record unchanged",
   "workflow.confirm.action": "Confirm and submit",
 } as const;

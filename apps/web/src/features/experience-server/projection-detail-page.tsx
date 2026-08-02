@@ -1,3 +1,5 @@
+import { EmptyState } from "@clockwork/ui";
+
 import { ProjectionActionButtons } from "./projection-action-buttons";
 import Link from "next/link";
 import type { Route } from "next";
@@ -61,6 +63,7 @@ function isCommercialDecision(
   );
 }
 
+/** A fact the record does not carry is left out rather than shown as absent. */
 function commercialFacts(
   record: ProjectionRecord,
   channel: "quotes" | "orders",
@@ -68,21 +71,18 @@ function commercialFacts(
   return [
     {
       label: text(record, "valueLabel") ?? "Commercial value",
-      value: text(record, "value") ?? "Not supplied",
+      value: text(record, "value"),
     },
     {
       label: channel === "quotes" ? "Quote term" : "Service term",
-      value: text(record, "term") ?? "Not supplied",
+      value: text(record, "term"),
     },
-    {
-      label: "Timing",
-      value: text(record, "dateLabel") ?? "Not supplied",
-    },
-    {
-      label: "Owner",
-      value: text(record, "owner") ?? "Not assigned",
-    },
-  ];
+    { label: "Timing", value: text(record, "dateLabel") },
+    { label: "Owner", value: text(record, "owner") },
+  ].filter(
+    (fact): fact is { label: string; value: string } =>
+      fact.value !== undefined,
+  );
 }
 
 function promiseChain(channel: "quotes" | "orders") {
@@ -135,6 +135,7 @@ export async function ProjectionDetailPage({
   description,
   recordKey,
   actions,
+  supporting,
 }: {
   audience: ExperienceAudience;
   channel: ProjectionChannel;
@@ -146,6 +147,8 @@ export async function ProjectionDetailPage({
    * carries the route's own permission gate rather than a second guess at it.
    */
   actions?: ReactNode;
+  /** Read-only evidence the route adds beneath the records, such as a derivation. */
+  supporting?: ReactNode;
 }) {
   const [projection, roles] = await Promise.all([
     loadPortalRecords(audience, channel),
@@ -205,13 +208,14 @@ export async function ProjectionDetailPage({
       {actions}
 
       {visibleRecords.length === 0 ? (
-        <section className={styles.emptyState} role="alert">
-          <h2>{recordKey ? "Record unavailable" : "No records available"}</h2>
-          <p>
-            The record is missing or outside the authenticated account scope. No
-            action was taken.
-          </p>
-        </section>
+        <EmptyState
+          title={recordKey ? "Record unavailable" : "No records yet"}
+          description={
+            recordKey
+              ? "Check the reference, or switch to the account that holds this record."
+              : "Records appear here once they exist in your authorized account scope."
+          }
+        />
       ) : (
         <section
           aria-label={
@@ -359,6 +363,8 @@ export async function ProjectionDetailPage({
           </div>
         </section>
       )}
+
+      {supporting}
     </main>
   );
 }

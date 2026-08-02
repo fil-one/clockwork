@@ -50,22 +50,6 @@
   color: var(--web-danger);
 }
 
-.empty {
-  max-width: 42rem;
-  padding-block: 1rem;
-  border-block: 1px solid var(--web-line);
-}
-
-.empty h2,
-.empty p {
-  margin: 0;
-}
-
-.empty p {
-  margin-top: 0.4rem;
-  color: var(--web-muted);
-}
-
 .tableRegion {
   max-width: 100%;
   overflow-x: auto;

@@ -52,7 +52,7 @@ export function renewalReviewSummary(
   return [
     `${input.client}: ${action}`,
     `Current service term ends ${input.currentEnd}`,
-    `Clockwork transfer price: ${input.transferPrice}`,
+    `Fil One transfer price: ${input.transferPrice}`,
     `Partner resale price: ${input.resalePrice}`,
     `Merchant of record: ${input.merchantOfRecord}`,
   ];
@@ -63,7 +63,7 @@ export function partnerRoleSummary(role: PartnerRole): readonly string[] {
     ? [
         "Can manage billing, renewal requests, POCs, and brand settings.",
         "Can create and issue partner quotes.",
-        "Cannot make Clockwork operations or provider decisions.",
+        "Cannot make Fil One operations or provider decisions.",
       ]
     : [
         "Can view the portfolio, register opportunities, and create partner quotes.",

@@ -25,7 +25,7 @@ export const customerPartnerCopy = {
     loadingTitle: "Loading records",
     loadingBody: "The latest records are being retrieved.",
     emptyTitle: "Nothing here yet",
-    emptyBody: "New records will appear here when they are created.",
+    emptyBody: "Records appear here as work starts on this account.",
     noMatchTitle: "No records match these filters",
     noMatchBody: "Clear or change a filter to see more results.",
     permissionTitle: "This information is not available to your role",
@@ -34,7 +34,7 @@ export const customerPartnerCopy = {
     errorBody: "Try again. Your filters have been preserved.",
   },
   customer: {
-    dashboardTitle: "Good afternoon, Maya",
+    dashboardGreeting: "Welcome back",
     dashboardDescription:
       "Act on commercial deadlines first, then review account performance.",
     attentionTitle: "Needs attention",
@@ -102,7 +102,7 @@ export const customerPartnerCopy = {
     paymentTruth: "Payment status",
     paymentWebhook: "Reported by the payment provider webhook",
     externalPayment:
-      "You will continue with the payment provider. Clockwork will not mark this invoice paid until the provider confirms it.",
+      "You will continue with the payment provider. The invoice is marked paid only after the provider confirms it.",
     confirmMutation: "Review and confirm",
   },
   partner: {
@@ -112,7 +112,7 @@ export const customerPartnerCopy = {
     agreementClock: "Partner agreement clock",
     urgentTitle: "Urgent partner work",
     portfolioTitle: "End-client portfolio",
-    transferPrice: "Clockwork transfer price",
+    transferPrice: "Fil One transfer price",
     partnerPrice: "Partner resale price",
     merchantOfRecord: "Merchant of record",
     boundary:

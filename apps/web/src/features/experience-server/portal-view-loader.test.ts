@@ -115,7 +115,7 @@ describe("partner record context", () => {
 
     const page = await loadPartnerRecords("quotes");
 
-    expect(page.records[0]?.context).toBe("—");
+    expect(page.records[0]?.context).toBe("Not recorded");
   });
 
   it("rejects a context entry that is not a label and value pair", async () => {

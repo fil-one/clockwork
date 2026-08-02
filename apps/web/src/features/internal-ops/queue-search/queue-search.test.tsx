@@ -483,7 +483,7 @@ describe("queue permission and evidence disclosure", () => {
         )}
       />,
     );
-    expect(screen.getAllByText("Not supplied").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Not recorded").length).toBeGreaterThan(0);
     expect(
       screen.queryByRole("heading", { name: "Related records" }),
     ).toBeNull();

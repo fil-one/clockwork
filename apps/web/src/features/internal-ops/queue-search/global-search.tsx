@@ -12,6 +12,10 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { Button, EmptyState } from "@clockwork/ui";
+
+import { plural } from "@/src/i18n/en";
+
 import styles from "./queue-search.module.css";
 import { SEARCH_COPY } from "./copy";
 import {
@@ -138,23 +142,21 @@ export function GlobalSearch({
           </ul>
         </section>
       ) : results.length === 0 ? (
-        <section className={styles.stateCard} role="status">
-          <h2>No results for “{query}”</h2>
-          <p>
-            Check the spelling, use fewer terms, or search a known entity name
-            instead of an identifier.
-          </p>
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            onClick={() => {
-              setDraft("");
-              commit("");
-            }}
-          >
-            {SEARCH_COPY.clear}
-          </button>
-        </section>
+        <EmptyState
+          title={`No results for “${query}”`}
+          description="Check the spelling, use fewer terms, or search a known entity name instead of an identifier."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDraft("");
+                commit("");
+              }}
+            >
+              {SEARCH_COPY.clear}
+            </Button>
+          }
+        />
       ) : (
         <section
           id="global-search-results"
@@ -162,7 +164,9 @@ export function GlobalSearch({
           aria-label={SEARCH_COPY.resultsLabel}
         >
           <div className={styles.searchResultCount} aria-live="polite">
-            <strong>{results.length} results</strong>
+            <strong>
+              {plural(results.length, "{count} result", "{count} results")}
+            </strong>
             <span>{SEARCH_COPY.grouped}</span>
           </div>
           {groups.map((entry) => (
@@ -173,7 +177,16 @@ export function GlobalSearch({
             >
               <h2 id={`search-group-${entry.group.replaceAll(" ", "-")}`}>
                 {entry.group}
-                <span>{entry.results.length}</span>
+                <span className={styles.groupCount} aria-hidden="true">
+                  {entry.results.length}
+                </span>
+                <span className="sr-only">
+                  {plural(
+                    entry.results.length,
+                    "{count} result",
+                    "{count} results",
+                  )}
+                </span>
               </h2>
               <ul>
                 {entry.results.map((record) => {

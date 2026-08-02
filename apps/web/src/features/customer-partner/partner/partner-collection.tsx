@@ -162,15 +162,13 @@ function PriceBoundary({
     return null;
   const merchant =
     surface === "billing"
-      ? `${partnerName} for end-client resale; Clockwork invoices the selected partner account`
+      ? `${partnerName} for end-client resale; Fil One invoices the selected partner account`
       : `${partnerName} on resale routes`;
   return (
     <section className={styles.boundary} aria-label="Commercial price boundary">
       <div>
         <h2>{partnerCopy.transferPrice}</h2>
-        <p>
-          Private partner cost returned from the approved Clockwork price book.
-        </p>
+        <p>Private partner cost from the approved Fil One price book.</p>
       </div>
       <div>
         <h2>{partnerCopy.partnerPrice}</h2>
@@ -236,7 +234,7 @@ function RenewalPanel({ record }: { record: PartnerRecord | undefined }) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "The renewal request could not be submitted. Nothing changed.",
+          : "The renewal request could not be submitted.",
       );
     } finally {
       setPending(false);

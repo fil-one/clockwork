@@ -20,6 +20,13 @@ export type PublicStatus =
   | "blocked"
   | "complete";
 
+/**
+ * Shown wherever an aggregate has no amount or date to report. The dashboard
+ * suppresses a field carrying this token, so any consumer that tests for
+ * absence must compare against this export rather than a copied literal.
+ */
+export const NOT_RECORDED = "Not recorded";
+
 export type Tone = "neutral" | "success" | "warning" | "danger";
 export type Risk = "low" | "medium" | "high";
 
@@ -217,7 +224,7 @@ export function describeAggregate(
             : empty),
           { label: "Revision", value: String(revision ?? 1) },
         ],
-        value: formatMoney(total, currency) ?? "—",
+        value: formatMoney(total, currency) ?? NOT_RECORDED,
         valueSort: minorUnitsToNumber(total),
         valueLabel: currency ? `Total ${currency}` : "Total",
         secondary: floor
@@ -225,7 +232,9 @@ export function describeAggregate(
           : `Revision ${revision ?? 1}`,
         term: countdown(expiresAt, now, "expires"),
         dateLabel:
-          formatDate(expiresAt) ?? formatDate(state.sourceUpdatedAt) ?? "—",
+          formatDate(expiresAt) ??
+          formatDate(state.sourceUpdatedAt) ??
+          NOT_RECORDED,
         overdue,
       };
     }
@@ -261,7 +270,7 @@ export function describeAggregate(
         valueLabel: "Service term",
         secondary: sourcing ? titleCase(sourcing) : "Direct",
         term: range,
-        dateLabel: formatDate(startsOn) ?? "—",
+        dateLabel: formatDate(startsOn) ?? NOT_RECORDED,
         overdue: noticeDays !== null && noticeDays >= 0 && noticeDays <= 30,
       };
     }
@@ -287,14 +296,14 @@ export function describeAggregate(
             ? [{ label: "Paid", value: formatDate(paidAt) ?? paidAt }]
             : empty),
         ],
-        value: formatMoney(amountMinor, currency) ?? "—",
+        value: formatMoney(amountMinor, currency) ?? NOT_RECORDED,
         valueSort: minorUnitsToNumber(amountMinor),
         valueLabel: currency ? `Amount ${currency}` : "Amount",
         secondary: paidAt ? "Settled" : (countdown(dueAt, now, "due") ?? ""),
         term: paidAt
           ? `Paid ${formatDate(paidAt)}`
           : countdown(dueAt, now, "due"),
-        dateLabel: formatDate(dueAt) ?? "—",
+        dateLabel: formatDate(dueAt) ?? NOT_RECORDED,
         overdue,
       };
     }
@@ -340,7 +349,7 @@ export function describeAggregate(
         term: effectiveOn
           ? `Effective ${formatDate(effectiveOn)} · ${termLabel}`
           : termLabel,
-        dateLabel: formatDate(effectiveOn) ?? "—",
+        dateLabel: formatDate(effectiveOn) ?? NOT_RECORDED,
         overdue: false,
       };
     }
@@ -371,12 +380,12 @@ export function describeAggregate(
               ]
             : empty),
         ],
-        value: capacityCap ?? "—",
+        value: capacityCap ?? NOT_RECORDED,
         valueSort: expiresAt ? Date.parse(expiresAt) : 0,
         valueLabel: "Capacity cap",
         secondary: countdown(expiresAt, now, "expires"),
         term: countdown(expiresAt, now, "expires"),
-        dateLabel: formatDate(expiresAt) ?? "—",
+        dateLabel: formatDate(expiresAt) ?? NOT_RECORDED,
         overdue: expiryDays !== null && expiryDays >= 0 && expiryDays <= 7,
       };
     }
@@ -405,7 +414,7 @@ export function describeAggregate(
         valueLabel: "Change",
         secondary: formatDate(effectiveOn) ?? "Pending",
         term: `Effective ${formatDate(effectiveOn) ?? "on approval"}`,
-        dateLabel: formatDate(effectiveOn) ?? "—",
+        dateLabel: formatDate(effectiveOn) ?? NOT_RECORDED,
         overdue: false,
       };
     }
@@ -432,12 +441,12 @@ export function describeAggregate(
             ? [{ label: "Teardown", value: titleCase(teardownStatus) }]
             : empty),
         ],
-        value: formatDate(effectiveAt) ?? "—",
+        value: formatDate(effectiveAt) ?? NOT_RECORDED,
         valueSort: effectiveAt ? Date.parse(effectiveAt) : 0,
         valueLabel: "Effective",
         secondary: teardownStatus ? titleCase(teardownStatus) : "Scheduled",
         term: countdown(effectiveAt, now, "ends"),
-        dateLabel: formatDate(effectiveAt) ?? "—",
+        dateLabel: formatDate(effectiveAt) ?? NOT_RECORDED,
         overdue: false,
       };
     }
@@ -466,7 +475,7 @@ export function describeAggregate(
         valueLabel: "Queue",
         secondary: countdown(targetAt, now, "target"),
         term: countdown(targetAt, now, "target"),
-        dateLabel: formatDate(targetAt) ?? "—",
+        dateLabel: formatDate(targetAt) ?? NOT_RECORDED,
         overdue: targetDays !== null && targetDays < 0,
       };
     }
@@ -500,7 +509,7 @@ export function describeAggregate(
         term: decidedAt
           ? `Decided ${formatDate(decidedAt)}`
           : "Awaiting decision",
-        dateLabel: formatDate(requestedAt) ?? "—",
+        dateLabel: formatDate(requestedAt) ?? NOT_RECORDED,
         overdue: false,
       };
     }
@@ -538,7 +547,7 @@ export function describeAggregate(
         term: nextAttemptAt
           ? `Retries ${formatDate(nextAttemptAt)}`
           : "No retry scheduled",
-        dateLabel: formatDate(nextAttemptAt) ?? "—",
+        dateLabel: formatDate(nextAttemptAt) ?? NOT_RECORDED,
         overdue: (attemptCount ?? 0) > 3,
       };
     }
@@ -558,7 +567,7 @@ export function describeAggregate(
         valueLabel: "Report",
         secondary: titleCase(status ?? "pending"),
         term: `Export ${titleCase(status ?? "pending")}`,
-        dateLabel: formatDate(state.sourceUpdatedAt) ?? "—",
+        dateLabel: formatDate(state.sourceUpdatedAt) ?? NOT_RECORDED,
         overdue: false,
       };
     }
@@ -597,7 +606,7 @@ export function describeAggregate(
         term: screeningStatus
           ? `Screening ${titleCase(screeningStatus)}`
           : "Account",
-        dateLabel: formatDate(state.sourceUpdatedAt) ?? "—",
+        dateLabel: formatDate(state.sourceUpdatedAt) ?? NOT_RECORDED,
         overdue: screeningStatus === "blocked",
       };
     }
@@ -609,12 +618,12 @@ export function describeAggregate(
         title: identifier,
         description: `${titleCase(state.aggregateType)} record`,
         context: empty,
-        value: "—",
+        value: NOT_RECORDED,
         valueSort: 0,
         valueLabel: titleCase(state.aggregateType),
         secondary: titleCase(state.aggregateType),
         term: titleCase(state.aggregateType),
-        dateLabel: formatDate(state.sourceUpdatedAt) ?? "—",
+        dateLabel: formatDate(state.sourceUpdatedAt) ?? NOT_RECORDED,
         overdue: false,
       };
     }

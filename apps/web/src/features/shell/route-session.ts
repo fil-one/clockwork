@@ -44,7 +44,7 @@ const demoMemberships: Readonly<
 > = {
   customer: {
     userId: "20000000-0000-4000-8000-000000000002",
-    userName: "Demo customer owner",
+    userName: "Maya Chen",
     userEmail: "owner@northstar.test",
     isInternalStaff: false,
     organizationId: "30000000-0000-4000-8000-000000000001",
@@ -73,13 +73,13 @@ const demoMemberships: Readonly<
   internal: {
     userId: "20000000-0000-4000-8000-000000000001",
     userName: "Demo internal operator",
-    userEmail: "operator@clockwork.test",
+    userEmail: "operator@filone.test",
     isInternalStaff: true,
     organizationId: "30000000-0000-4000-8000-000000000008",
     workosOrganizationId: "org_local_clockwork_staff",
-    organizationName: "Clockwork Staff",
+    organizationName: "Fil One Staff",
     accountId: "10000000-0000-4000-8000-000000000009",
-    accountName: "Clockwork Internal Operations",
+    accountName: "Fil One Internal Operations",
     role: "internal_operator",
     audience: "internal",
     home: "/internal",

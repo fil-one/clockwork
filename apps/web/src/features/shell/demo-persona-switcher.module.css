@@ -85,6 +85,67 @@
   text-transform: uppercase;
 }
 
+.journeyTitle {
+  margin: 0;
+  font-weight: 650;
+}
+
+.steps {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: demo-step;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+  counter-increment: demo-step;
+}
+
+.step::before {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--web-line);
+  border-radius: 999px;
+  color: var(--web-muted);
+  content: counter(demo-step);
+  font-size: 0.6rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.step[data-state="current"]::before {
+  border-color: var(--web-accent);
+  background: var(--web-accent);
+  color: var(--web-paper);
+}
+
+.step[data-state="complete"]::before {
+  border-color: var(--web-muted);
+}
+
+.step a {
+  color: inherit;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.step[data-state="upcoming"] a {
+  color: var(--web-muted);
+}
+
+.step[data-state="current"] a {
+  font-weight: 650;
+}
+
 .error {
   margin: 0;
   color: var(--web-danger);

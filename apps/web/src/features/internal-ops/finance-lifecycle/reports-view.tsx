@@ -125,7 +125,7 @@ function RevenueChart() {
                   <td>{formatMoney(metric.estimatedCents)}</td>
                   <td>
                     {metric.reconciledCents === null
-                      ? "—"
+                      ? "Not recorded"
                       : formatMoney(metric.reconciledCents)}
                   </td>
                   <td>

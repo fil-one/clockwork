@@ -19,9 +19,13 @@ export default function ExperienceError({
   return (
     <main className="permission-view" id="main-content">
       <section className="state-card state-card--danger" role="alert">
-        <p className="eyebrow">{t("common.reference")}</p>
         <h1>{t("state.fatal.title")}</h1>
         <p>{t("state.fatal.description")}</p>
+        {error.digest ? (
+          <p className="eyebrow">
+            <code>{t("app.requestId", { id: error.digest })}</code>
+          </p>
+        ) : null}
         <Button onClick={reset}>{t("action.retry")}</Button>
       </section>
     </main>

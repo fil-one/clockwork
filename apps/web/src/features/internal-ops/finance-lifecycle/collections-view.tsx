@@ -1,5 +1,7 @@
 import { StatusBadge } from "@clockwork/ui";
 
+import { plural } from "@/src/i18n/en";
+
 import { lifecycleCopy } from "./copy";
 import { collections, type DisputeState } from "./lifecycle-data";
 import { formatMoney, prioritizeCollections } from "./lifecycle-logic";
@@ -66,7 +68,8 @@ export function CollectionsView() {
             <p>Review evidence and downstream effects before any escalation.</p>
           </div>
           <span className={styles.sectionMeta}>
-            {prioritized.length} results · priority order
+            {plural(prioritized.length, "{count} result", "{count} results")} ·
+            priority order
           </span>
         </header>
         <div className={styles.tableScroll} tabIndex={0}>

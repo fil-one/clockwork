@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
+import { NOT_RECORDED } from "@clockwork/workflows";
 
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import type * as PortalViewLoader from "./portal-view-loader";
@@ -64,6 +65,26 @@ const overdueInvoice = projection(
     statusLabel: "Open",
     tone: "danger",
     value: "$15,400.00",
+    term: "Due Jul 20, 2026 · 12 days ago",
+    dateLabel: "Jul 20, 2026",
+    context: [{ label: "Due", value: "Jul 20, 2026" }],
+    nextAction: "Read Only",
+  },
+);
+
+const amountlessInvoice = projection(
+  "billing",
+  "invoice-000000000009",
+  1,
+  "2026-07-21T10:00:00.000Z",
+  {
+    authoritative: { status: "open", dueAt: "2026-07-20T00:00:00.000Z" },
+    title: "INV-9F8E7D6C",
+    description: "Due Jul 20, 2026 · 12 days ago",
+    status: "open",
+    statusLabel: "Open",
+    tone: "danger",
+    value: NOT_RECORDED,
     term: "Due Jul 20, 2026 · 12 days ago",
     dateLabel: "Jul 20, 2026",
     context: [{ label: "Due", value: "Jul 20, 2026" }],
@@ -276,6 +297,14 @@ describe("customer dashboard composition", () => {
     });
   });
 
+  it("leaves the placeholder out of an obligation title when no amount is recorded", async () => {
+    serve({ billing: [amountlessInvoice] });
+
+    const projectionResult = await loadCustomerDashboardProjection();
+
+    expect(projectionResult.obligations[0]?.title).toBe("INV-9F8E7D6C");
+  });
+
   it("derives the term and services from the governing order", async () => {
     serve({ orders: [noticeOrder] });
 
@@ -286,7 +315,7 @@ describe("customer dashboard composition", () => {
       rangeLabel: "Jan 1, 2026 – Dec 31, 2026",
       progressPercent: 58,
       progressLabel: "58 percent of the current commercial term elapsed",
-      renewalState: "Not yet recorded",
+      renewalState: "Not recorded",
       noticeLabel: "Opens Aug 15, 2026 · 14 days",
       renewalLabel: "Dec 31, 2026",
       agreementLabel: "No agreement recorded",
@@ -396,7 +425,7 @@ describe("partner dashboard composition", () => {
         id: "quote-000000000003",
         account: "EC-11111111",
         task: "Prepare Artifact",
-        evidence: "Not yet recorded",
+        evidence: "Not recorded",
         due: "Expires Aug 4, 2026 · 3 days remaining",
         href: "/partner/quotes/quote-000000000003",
         adminOnly: false,
@@ -418,7 +447,7 @@ describe("partner dashboard composition", () => {
       label: "No partner agreement term recorded",
       authorityState: "No partner agreement term recorded",
       renewalState: "expired",
-      commercialRoute: "Not yet recorded",
+      commercialRoute: "Not recorded",
       nextDecision: "No partner decision is pending.",
     });
     // TermBar throws unless the window is valid and ends before it is read.

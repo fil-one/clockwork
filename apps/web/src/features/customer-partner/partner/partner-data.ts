@@ -147,7 +147,7 @@ const disputes: readonly PartnerRecord[] = [
     risk: "medium",
     owner: "Mira Patel",
     value: "$3,120 disputed",
-    secondary: "Clockwork reviewing",
+    secondary: "Fil One reviewing",
   },
 ];
 
@@ -284,7 +284,7 @@ const marketplace: readonly PartnerRecord[] = [
   {
     id: "AWS-OFFER-1948",
     name: "Halcyon AWS private offer",
-    context: "Resale · Clockwork seller enrollment · Meridian commercial owner",
+    context: "Resale · Fil One seller enrollment · Meridian commercial owner",
     status: "active",
     risk: "low",
     owner: "Juno Okafor",
@@ -312,7 +312,7 @@ const brand: readonly PartnerRecord[] = [
     risk: "low",
     owner: "Partner admin",
     value: "Domain verified",
-    secondary: "Clockwork legal entity remains disclosed",
+    secondary: "Fil One legal entity remains disclosed",
   },
   {
     id: "DNS-ATLAS",
@@ -333,7 +333,7 @@ const support: readonly PartnerRecord[] = [
     context: "End-client-visible summary · standard priority",
     status: "active",
     risk: "low",
-    owner: "Clockwork support",
+    owner: "Fil One support",
     value: "Updated 28 min ago",
     secondary: "Support system is source",
   },
@@ -374,7 +374,7 @@ export const partnerSurfaces: Readonly<
     columns: ["Opportunity", "Commercial value", "Decision"],
     records: registrations,
     roles: both,
-    gate: "Registration decisions are made by Clockwork channel operations; partner roles can submit evidence and monitor the decision.",
+    gate: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision.",
   },
   disputes: {
     eyebrow: "Evidence and resolution",
@@ -385,7 +385,7 @@ export const partnerSurfaces: Readonly<
     columns: ["Dispute", "Exposure", "Deadline"],
     records: disputes,
     roles: both,
-    gate: "Final dispute decisions are external to the partner desk and remain with Clockwork operations or the billing provider.",
+    gate: "Final dispute decisions are external to the partner desk and remain with Fil One operations or the billing provider.",
   },
   quotes: {
     eyebrow: "Resale commercial workflow",
@@ -451,7 +451,7 @@ export const partnerSurfaces: Readonly<
     columns: ["Offer", "Buyer price", "Provider state"],
     records: marketplace,
     roles: both,
-    gate: "Offer acceptance and payout actions occur in the marketplace provider; Clockwork shows synchronized provider truth.",
+    gate: "Offer acceptance and payout actions occur in the marketplace provider; Fil One shows synchronized provider truth.",
   },
   brand: {
     eyebrow: "Partner presentation",
@@ -462,7 +462,7 @@ export const partnerSurfaces: Readonly<
     columns: ["Experience", "Verification", "Boundary"],
     records: brand,
     roles: admin,
-    gate: "DNS changes happen at your provider. Clockwork verifies the record but does not navigate or submit changes on your behalf.",
+    gate: "DNS changes happen at your provider. Fil One verifies the record but does not navigate or submit changes on your behalf.",
   },
   support: {
     eyebrow: "Partner-visible cases",

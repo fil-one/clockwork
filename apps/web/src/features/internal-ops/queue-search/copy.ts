@@ -11,8 +11,7 @@ export const QUEUE_COPY = {
   staleAction: "Refresh projection",
   savedViewsLabel: "Saved queue views",
   filtersTitle: "Filter queue",
-  filtersDescription:
-    "Technical identifiers are searchable but kept out of the primary workflow.",
+  filtersDescription: "Technical identifiers are searchable.",
   clearAll: "Clear all",
   searchLabel: "Search work",
   searchPlaceholder: "Entity, work item, or reference",
@@ -78,7 +77,7 @@ export const SEARCH_COPY = {
   searching: "Searching available records…",
   scopeTitle: "Search across operational records",
   scopeDescription:
-    "Results are permission-scoped and grouped by type. Technical identifiers are matched, but human-readable titles stay primary.",
+    "Results are grouped by type and limited to records your role can open.",
   scope: [
     "Accounts and end clients",
     "Agreements and documents",

@@ -14,4 +14,5 @@ export * from "./components/states";
 export * from "./components/table";
 export * from "./components/term-bar";
 export * from "./components/toast";
+export * from "./components/tooltip";
 export * from "./components/workflow";

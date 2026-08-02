@@ -4,7 +4,14 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useId, useMemo, useState, useTransition } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   AppShell as StructuralAppShell,
@@ -15,7 +22,6 @@ import {
   ChevronDown,
   CircleHelp,
   CommandPalette,
-  Dialog,
   FileText,
   FlaskConical,
   Handshake,
@@ -24,12 +30,12 @@ import {
   PackageCheck,
   ReceiptText,
   RefreshCw,
-  RotateCcw,
   Search,
   ScrollText,
   Settings,
   SlidersHorizontal,
   StatusBadge,
+  Tooltip,
   Users,
   ChartNoAxesCombined,
   type CommandPaletteItem,
@@ -235,6 +241,29 @@ function ShellUtilities({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profilePopoverId = useId();
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node))
+        setProfileOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setProfileOpen(false);
+      profileTriggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [profileOpen]);
 
   return (
     <nav className="header-actions" aria-label={t("app.nav.secondary")}>
@@ -258,35 +287,47 @@ function ShellUtilities({
           <Button
             variant="secondary"
             className="top-action"
-            aria-label={t("app.command.title")}
-            title={t("app.command.title")}
+            aria-label={t("app.command")}
           >
             <Search aria-hidden="true" size={18} strokeWidth={1.8} />
             <span>{t("app.search")}</span>
             <kbd aria-hidden="true">⌘/Ctrl K</kbd>
+            <span className="sr-only">{t("app.command.shortcut")}</span>
           </Button>
         }
       />
       {!providerBacked ? (
         <StatusBadge tone="warning">{t("app.demo.short")}</StatusBadge>
       ) : null}
-      <Link
-        className="icon-action"
-        href={helpHref}
-        aria-label={helpLabel}
-        title={helpDescription}
+      <Tooltip
+        side="bottom"
+        revealOnTouch={false}
+        trigger={
+          <Link className="icon-action" href={helpHref} aria-label={helpLabel}>
+            <CircleHelp aria-hidden="true" size={19} strokeWidth={1.8} />
+          </Link>
+        }
       >
-        <CircleHelp aria-hidden="true" size={19} strokeWidth={1.8} />
-      </Link>
-      <details className="utility-menu">
-        <summary
+        {helpDescription}
+      </Tooltip>
+      <div className="utility-menu" ref={profileMenuRef}>
+        <button
+          type="button"
           className="avatar"
+          ref={profileTriggerRef}
           aria-label={t("app.profile")}
           title={t("app.profile")}
+          aria-expanded={profileOpen}
+          aria-controls={profilePopoverId}
+          onClick={() => setProfileOpen((open) => !open)}
         >
           {initials || "U"}
-        </summary>
-        <div className="utility-popover">
+        </button>
+        <div
+          className="utility-popover"
+          id={profilePopoverId}
+          hidden={!profileOpen}
+        >
           <strong>{profile.name}</strong>
           <p>{profile.email}</p>
           <form action={signOutCommerceSession}>
@@ -295,7 +336,7 @@ function ShellUtilities({
             </Button>
           </form>
         </div>
-      </details>
+      </div>
     </nav>
   );
 }
@@ -315,8 +356,6 @@ export function AppShell({
   const [hydrated, setHydrated] = useState(false);
   const [online, setOnline] = useState(true);
   const [announcement, setAnnouncement] = useState("");
-  const runtimeEnvironment =
-    process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? "local";
   const commandItems = useMemo(
     () =>
       getCommandItems(audience, roles, {
@@ -341,19 +380,6 @@ export function AppShell({
     ],
     [audience, pathname, roles],
   );
-
-  const resetDemo = () => {
-    if (runtimeEnvironment === "production") {
-      setAnnouncement(t("state.fatal.description"));
-      return;
-    }
-    for (const key of Object.keys(window.localStorage)) {
-      if (key.startsWith("clockwork-demo:"))
-        window.localStorage.removeItem(key);
-    }
-    setAnnouncement(t("app.demo.reset.success"));
-    window.location.assign(pathname);
-  };
 
   useEffect(() => {
     setHydrated(true);
@@ -391,6 +417,7 @@ export function AppShell({
     >
       <StructuralAppShell
         navigation={navigationGroups}
+        skipLabel={t("app.skip")}
         brand={<Wordmark audience={audience} />}
         organization={
           <OrganizationSwitcher session={session} announce={setAnnouncement} />
@@ -406,37 +433,6 @@ export function AppShell({
         banner={banner}
         footer={
           <div className="shell-footer-content">
-            {!session.providerBacked ? (
-              <div className="sidebar-meta">
-                <StatusBadge tone="warning">{t("app.demo")}</StatusBadge>
-                <Dialog
-                  title={t("app.demo.reset.confirm.title")}
-                  description={t("app.demo.reset.confirm.description")}
-                  closeLabel={t("app.demo.reset.confirm.cancel")}
-                  trigger={
-                    <button
-                      type="button"
-                      className="text-action"
-                      disabled={runtimeEnvironment === "production"}
-                    >
-                      <RotateCcw
-                        aria-hidden="true"
-                        size={15}
-                        strokeWidth={1.8}
-                      />
-                      {t("app.demo.reset")}
-                    </button>
-                  }
-                  footer={
-                    <Button variant="danger" size="small" onClick={resetDemo}>
-                      {t("app.demo.reset.confirm.action")}
-                    </Button>
-                  }
-                >
-                  <p>{t("app.demo.reset.confirm.detail")}</p>
-                </Dialog>
-              </div>
-            ) : null}
             <p>{t("app.footer")}</p>
           </div>
         }
@@ -445,6 +441,7 @@ export function AppShell({
         mobileNavigationLabel={t("app.nav.open")}
         mobileNavigationTitle={t("app.nav.title")}
         mobileNavigationDescription={t("app.nav.description")}
+        mobileNavigationCloseLabel={t("app.nav.close")}
         mainId="main-content"
         contentElement="div"
         contentOwnsTarget={false}

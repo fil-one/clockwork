@@ -38,9 +38,9 @@ function FoundationGallery() {
       <Select
         label="Currency"
         options={[
-          { value: "USD", label: "USD — US dollar" },
-          { value: "EUR", label: "EUR — Euro" },
-          { value: "GBP", label: "GBP — Pound sterling" },
+          { value: "USD", label: "USD · US dollar" },
+          { value: "EUR", label: "EUR · Euro" },
+          { value: "GBP", label: "GBP · Pound sterling" },
         ]}
       />
       <Dialog

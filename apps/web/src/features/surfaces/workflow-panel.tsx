@@ -30,7 +30,7 @@ import {
 import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
 import { t } from "@/src/i18n/en";
 
-import type { SurfaceConfig, SurfaceKey } from "./surface-catalog";
+import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
 
 const ids = {
   account: "11111111-1111-4111-8111-111111111111",
@@ -57,7 +57,7 @@ const demoFallbackAllowed = ["development", "test"].includes(
   runtimeEnvironment ?? "",
 );
 
-const titles: Record<NonNullable<SurfaceConfig["workflow"]>, string> = {
+const titles: Record<SurfaceWorkflow, string> = {
   quote: "Create a priced quote",
   agreement: "Accept click-through terms",
   order: "Accept quote and create order",
@@ -123,16 +123,14 @@ function quotePayload(data: FormData) {
  * lives in component state because the confirmation step has to know which
  * branch is about to run before the form is read.
  */
-function defaultDecision(
-  workflow: NonNullable<SurfaceConfig["workflow"]>,
-): string {
+function defaultDecision(workflow: SurfaceWorkflow): string {
   if (workflow === "renewal") return "renew";
   if (workflow === "approval") return "approved";
   return "";
 }
 
 function decisionIsDestructive(
-  workflow: NonNullable<SurfaceConfig["workflow"]>,
+  workflow: SurfaceWorkflow,
   decision: string,
 ): boolean {
   if (workflow === "offboarding") return true;
@@ -142,7 +140,7 @@ function decisionIsDestructive(
 }
 
 function mutationFields(
-  workflow: NonNullable<SurfaceConfig["workflow"]>,
+  workflow: SurfaceWorkflow,
   surface: SurfaceKey,
   activeAgreementTemplate?: ActiveAgreementTemplate,
   onDecisionChange?: (decision: string) => void,
@@ -378,7 +376,7 @@ function mutationFields(
           required
         />
         <p className="form-message">
-          Clockwork opens Stripe&apos;s hosted invoice page. Payment status
+          Fil One opens Stripe&apos;s hosted invoice page. Payment status
           remains pending until a signed Stripe webhook confirms settlement.
         </p>
       </>
@@ -388,10 +386,9 @@ function mutationFields(
     return (
       <>
         <p className="form-message">
-          This creates the same customer quote as self-service. The server—not
-          this form—records the actual staff actor, effective customer actor,
-          target account, and reason from the active time-limited assisted
-          session.
+          This creates the same customer quote as self-service. The active
+          time-limited assisted session supplies the staff actor, effective
+          customer actor, target account, and reason.
         </p>
         {mutationFields("quote", surface, activeAgreementTemplate)}
         <label className="checkbox-field">
@@ -1014,7 +1011,7 @@ export function WorkflowPanel({
   workflow,
   surface,
 }: {
-  workflow: NonNullable<SurfaceConfig["workflow"]>;
+  workflow: SurfaceWorkflow;
   surface: SurfaceKey;
 }) {
   const [pending, setPending] = useState(false);
@@ -1426,9 +1423,7 @@ export function WorkflowPanel({
       setSuccess("CSV export downloaded from source records.");
     } catch (caught) {
       showError(
-        caught instanceof Error
-          ? caught.message
-          : "The export failed. Nothing was changed.",
+        caught instanceof Error ? caught.message : "The export failed.",
       );
     } finally {
       setPending(false);

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Route } from "next";
 
-import { StatusBadge } from "@clockwork/ui";
+import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
+import { plural, t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
@@ -67,16 +67,21 @@ export interface CustomerDashboardProjection {
 
 export function CustomerDashboard({
   projection,
+  greetingName,
   canCreateQuote = true,
 }: {
   projection: CustomerDashboardProjection;
+  /** First name of the signed-in person, from the active route session. */
+  greetingName: string;
   canCreateQuote?: boolean;
 }) {
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
-          <h1>{copy.dashboardTitle}</h1>
+          <h1>
+            {copy.dashboardGreeting}, {greetingName}
+          </h1>
           <p>{copy.dashboardDescription}</p>
         </div>
         {canCreateQuote ? (
@@ -108,9 +113,12 @@ export function CustomerDashboard({
           </p>
         </div>
         {projection.obligations.length === 0 ? (
-          <p className={styles.permissionNote}>
-            {t("dashboard.empty.obligations")}
-          </p>
+          <ApplicationStatePanel
+            state="empty"
+            compact
+            title="No open obligations"
+            description={t("dashboard.empty.obligations")}
+          />
         ) : null}
         <ol className={styles.obligationList}>
           {projection.obligations.map((item) => (
@@ -181,13 +189,20 @@ export function CustomerDashboard({
           <summary>
             <span>{copy.serviceRollup}</span>
             <span className={styles.rollupCount}>
-              {projection.services.length} services
+              {plural(
+                projection.services.length,
+                "{count} service",
+                "{count} services",
+              )}
             </span>
           </summary>
           {projection.services.length === 0 ? (
-            <p className={styles.permissionNote}>
-              {t("dashboard.empty.services")}
-            </p>
+            <ApplicationStatePanel
+              state="empty"
+              compact
+              title="No active service"
+              description={t("dashboard.empty.services")}
+            />
           ) : (
             <ul className={styles.serviceList}>
               {projection.services.map((service) => (
@@ -227,9 +242,12 @@ export function CustomerDashboard({
           <section aria-labelledby="activity-title">
             <h2 id="activity-title">{copy.activityTitle}</h2>
             {projection.activity.length === 0 ? (
-              <p className={styles.permissionNote}>
-                {t("dashboard.empty.activity")}
-              </p>
+              <ApplicationStatePanel
+                state="empty"
+                compact
+                title="No recorded activity"
+                description={t("dashboard.empty.activity")}
+              />
             ) : (
               <ol className={styles.activityList}>
                 {projection.activity.map((item) => (

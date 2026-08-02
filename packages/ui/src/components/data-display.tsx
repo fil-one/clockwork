@@ -1,6 +1,8 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
+import { Tooltip } from "./tooltip";
+
 export type RiskLevel = "none" | "low" | "moderate" | "high" | "critical";
 
 export function RiskIndicator({
@@ -16,15 +18,26 @@ export function RiskIndicator({
   compact?: boolean;
   className?: string;
 }) {
-  return (
+  const chip = (
     <span
       className={`cw-risk cw-risk--${level} ${compact ? "cw-risk--compact" : ""} ${className}`.trim()}
-      title={detail}
+      // A chip carrying detail takes focus so a keyboard reaches the tooltip.
+      // Radix keeps the span a span, so the tab stop has to be set here.
+      {...(detail ? { tabIndex: 0 } : {})}
     >
       <span className="cw-risk__mark" aria-hidden="true" />
       <span>{label}</span>
-      {detail ? <span className="cw-sr-only">. {detail}</span> : null}
     </span>
+  );
+  if (!detail) return chip;
+  // The level and the label carry the signal on their own. `detail` explains
+  // the level: the tooltip reaches hover, keyboard focus, and touch, and the
+  // hidden copy keeps it readable without focusing the chip.
+  return (
+    <>
+      <Tooltip trigger={chip}>{detail}</Tooltip>
+      <span className="cw-sr-only">. {detail}</span>
+    </>
   );
 }
 
@@ -333,7 +346,7 @@ export function CapacityMeter({
           <span
             className="cw-capacity__threshold"
             style={{ left: `${thresholdPercentage}%` }}
-            title={thresholdLabel}
+            aria-hidden="true"
           />
         )}
       </div>

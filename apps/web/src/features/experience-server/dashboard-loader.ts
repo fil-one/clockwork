@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Route } from "next";
 import type { RenewalState } from "@clockwork/ui";
+import { NOT_RECORDED } from "@clockwork/workflows";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 
 import { getCommerceSession } from "@/src/auth/session";
@@ -212,7 +213,6 @@ const demoPartner: PartnerDashboardProjection = {
 };
 
 const DAY_IN_MS = 86_400_000;
-const NOT_RECORDED = "Not yet recorded";
 
 const dayFormat = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -340,9 +340,12 @@ function authoritativeNumber(
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-/** `describeAggregate` writes an em dash where an aggregate has no amount. */
+/**
+ * Drops the placeholder `describeAggregate` writes where an aggregate has no
+ * amount, so an obligation title carries a figure or nothing at all.
+ */
 function displayed(value: string | null): string | null {
-  return value && value !== "—" ? value : null;
+  return value && value !== NOT_RECORDED ? value : null;
 }
 
 type ChannelRecords = ReadonlyMap<

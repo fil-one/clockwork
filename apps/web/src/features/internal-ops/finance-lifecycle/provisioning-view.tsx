@@ -154,7 +154,7 @@ export function ProvisioningView() {
                               policyBasis:
                                 "Provisioning recovery §2.1 · transient + verified idempotency + remaining attempt",
                               downstreamEffect:
-                                "Activation tests run before Clockwork presents the capability as active.",
+                                "Activation tests run before the capability is presented as active.",
                               technicalId: `${record.id} · ${record.idempotencyKey ?? "no key"}`,
                               actorAuthority:
                                 "Internal operator permission is required; server actor and idempotency checks remain authoritative.",

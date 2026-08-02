@@ -65,7 +65,7 @@ describe("renewal review summary", () => {
       merchantOfRecord: "Meridian Channel Group",
     }).join(" ");
     expect(summary).toContain("Halcyon Research Cooperative");
-    expect(summary).toContain("Clockwork transfer price");
+    expect(summary).toContain("Fil One transfer price");
     expect(summary).toContain("Partner resale price");
     expect(summary).toContain("Merchant of record");
   });

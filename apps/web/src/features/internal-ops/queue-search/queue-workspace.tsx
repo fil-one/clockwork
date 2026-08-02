@@ -26,7 +26,7 @@ import {
 } from "./model";
 import { QueueDetail } from "./queue-detail";
 
-const NOT_SUPPLIED = "Not supplied";
+const NOT_RECORDED = "Not recorded";
 
 function SelectFilter({
   label,
@@ -81,7 +81,7 @@ function QueueState({
 
 function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
   const sla = slaFor(item, now);
-  if (!sla || !item.dueAt) return <span>{NOT_SUPPLIED}</span>;
+  if (!sla || !item.dueAt) return <span>{NOT_RECORDED}</span>;
   return (
     <>
       <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
@@ -159,9 +159,9 @@ function QueueTable({
                 </Link>
               </th>
               <td data-label="Owner">
-                <strong>{item.owner ?? "Unassigned"}</strong>
+                <strong>{item.owner ?? NOT_RECORDED}</strong>
                 <span>
-                  {item.backup ? `Backup ${item.backup}` : "Backup needed"}
+                  {item.backup ? `Backup ${item.backup}` : "No backup"}
                 </span>
               </td>
               <td data-label="SLA">
@@ -175,14 +175,14 @@ function QueueTable({
                     {item.risk}
                   </span>
                 ) : (
-                  NOT_SUPPLIED
+                  NOT_RECORDED
                 )}
               </td>
               <td data-label="Status">
-                {item.statusLabel ?? item.status ?? NOT_SUPPLIED}
+                {item.statusLabel ?? item.status ?? NOT_RECORDED}
               </td>
               <td data-label="Age">
-                {item.ageDays === null ? NOT_SUPPLIED : `${item.ageDays}d`}
+                {item.ageDays === null ? NOT_RECORDED : `${item.ageDays}d`}
               </td>
             </tr>
           ))}

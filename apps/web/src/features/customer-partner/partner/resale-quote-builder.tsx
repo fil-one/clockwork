@@ -140,9 +140,9 @@ export function ResaleQuoteBuilder() {
           <p className={styles.eyebrow}>Resale quote</p>
           <h1>Create a partner quote</h1>
           <p>
-            Choose recognizable commercial options. Clockwork submits the
-            existing IDs, calculates transfer pricing, and returns the
-            authoritative draft.
+            Choose recognizable commercial options. Fil One submits the existing
+            IDs, calculates transfer pricing, and returns the authoritative
+            draft.
           </p>
         </div>
         <Link
@@ -433,8 +433,9 @@ export function ResaleQuoteBuilder() {
               {draft.endClientName || "Not selected"}
             </li>
             <li>
-              <strong>Commitment:</strong> {draft.capacity || "—"} TB ·{" "}
-              {draft.termMonths || "—"} months
+              <strong>Commitment:</strong>{" "}
+              {draft.capacity ? `${draft.capacity} TB` : "Not recorded"} ·{" "}
+              {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
             </li>
             <li>
               <strong>{customerPartnerCopy.partner.partnerPrice}:</strong> $
