@@ -570,6 +570,31 @@ export class DatabaseWorkflowExceptionPort {
           metadata: request.metadata,
         },
       });
+      // The provider-operation event above is the dedupe evidence for the
+      // claim; this one is the case itself, which is what the queue reads.
+      await appendAuditAndOutbox(tx, {
+        accountId: exceptionCase.accountId,
+        aggregateType: "exception_case",
+        aggregateId: exceptionCase.id,
+        aggregateVersion: exceptionCase.rowVersion,
+        eventType: "exception_case.opened",
+        actor: workflowActor,
+        requestId: request.requestId,
+        after: {
+          caseId: exceptionCase.id,
+          queue: exceptionCase.queue,
+          objectType: exceptionCase.objectType,
+          objectId: exceptionCase.objectId,
+          ownerId: exceptionCase.ownerUserId,
+          backupId: exceptionCase.backupUserId,
+          escalationOwnerId: exceptionCase.escalationOwnerUserId,
+          ownershipRosterEntryIds: exceptionCase.ownershipRosterEntryIds,
+          ownershipAbsenceEscalated: exceptionCase.ownershipAbsenceEscalated,
+          targetAt: exceptionCase.targetAt.toISOString(),
+          severity: request.severity,
+          code: request.code,
+        },
+      });
       await tx
         .update(providerOperations)
         .set({

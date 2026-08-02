@@ -929,6 +929,7 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
           tx,
           input.effect,
           input.output,
+          { requestId: input.requestId, occurredAt: this.now() },
         );
         const priorEvents = await tx.query.lifecycleDomainEvents.findMany({
           columns: { sequence: true },
@@ -1719,6 +1720,7 @@ async function applyLifecycleSourceTransition(
   transaction: RuntimeTransaction,
   effect: PreparedLifecycleEffect,
   output: unknown,
+  evidence: { requestId: string; occurredAt: Date },
 ): Promise<{
   aggregateVersion: number;
   application: "source_mutation" | "domain_event";
@@ -1734,8 +1736,24 @@ async function applyLifecycleSourceTransition(
           eq(pocs.status, "active"),
         ),
       )
-      .returning({ rowVersion: pocs.rowVersion });
+      .returning({ rowVersion: pocs.rowVersion, accountId: pocs.accountId });
     if (!expired) throw new Error("LIFECYCLE_POC_EXPIRY_CONCURRENT_WRITE");
+    await appendAuditAndOutbox(transaction, {
+      accountId: expired.accountId,
+      aggregateType: "poc",
+      aggregateId: effect.aggregateId,
+      aggregateVersion: expired.rowVersion,
+      eventType: "poc.expired",
+      actor: { kind: "system", id: "lifecycle-runtime" },
+      requestId: evidence.requestId,
+      occurredAt: evidence.occurredAt,
+      after: {
+        pocId: effect.aggregateId,
+        status: "expired",
+        taskId: effect.taskId,
+        transition: effect.transition,
+      },
+    });
     return {
       aggregateVersion: expired.rowVersion,
       application: "source_mutation",

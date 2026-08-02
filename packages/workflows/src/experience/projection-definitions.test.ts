@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  aggregatesWithoutAuthoritativeEvents,
+  aggregateConfiguration,
   createCanonicalPortalProjectionDefinitions,
 } from "./projection-definitions";
 
@@ -9,20 +9,24 @@ const accountId = "10000000-0000-4000-8000-000000000001";
 const partnerAccountId = "20000000-0000-4000-8000-000000000002";
 const quoteId = "60000000-0000-4000-8000-000000000001";
 
-async function projectQuote(
-  data: Readonly<Record<string, unknown>>,
-  topic = "core.quotes.issue",
-) {
+async function projectAggregate(input: {
+  topic: string;
+  aggregateType: string;
+  aggregateId: string;
+  accountId: string | null;
+  data: Readonly<Record<string, unknown>>;
+}) {
   const definition = createCanonicalPortalProjectionDefinitions().find(
-    (candidate) => candidate.topic === topic,
+    (candidate) => candidate.topic === input.topic,
   );
-  if (!definition) throw new Error(`Expected a ${topic} definition`);
+  if (!definition) throw new Error(`Expected a ${input.topic} definition`);
+  expect(definition.aggregateTypes).toEqual([input.aggregateType]);
   return definition.project({
     event: {
       eventId: "70000000-0000-4000-8000-000000000001",
-      eventType: topic,
-      aggregateType: "quote",
-      aggregateId: quoteId,
+      eventType: input.topic,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
       aggregateVersion: 3,
       occurredAt: "2026-07-31T16:00:00.000Z",
       requestId: "projection-definition-test",
@@ -30,15 +34,36 @@ async function projectQuote(
       data: {},
     },
     state: {
-      aggregateType: "quote",
-      aggregateId: quoteId,
-      accountId,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
+      accountId: input.accountId,
       version: 3,
       sourceHash: "a".repeat(64),
       sourceUpdatedAt: "2026-07-31T16:00:00.000Z",
-      data,
+      data: input.data,
     },
   });
+}
+
+function projectQuote(
+  data: Readonly<Record<string, unknown>>,
+  topic = "core.quotes.issue",
+) {
+  return projectAggregate({
+    topic,
+    aggregateType: "quote",
+    aggregateId: quoteId,
+    accountId,
+    data,
+  });
+}
+
+function channelsFor(
+  projections: Awaited<ReturnType<typeof projectAggregate>>,
+): readonly string[] {
+  return projections
+    .map((projection) => `${projection.audience}:${projection.channel}`)
+    .sort();
 }
 
 describe("canonical portal projection definitions", () => {
@@ -49,14 +74,156 @@ describe("canonical portal projection definitions", () => {
     expect(topics).toContain("core.quotes.expire");
     expect(topics).toContain("core.orders.create");
     expect(topics.some((topic) => topic.startsWith("experience."))).toBe(false);
+    for (const definition of definitions)
+      expect(definition.eventTypes).toEqual([definition.topic]);
   });
 
-  it("registers no topic for an aggregate that emits no authoritative event", () => {
-    const topics = createCanonicalPortalProjectionDefinitions().map(
-      ({ topic }) => topic,
+  it("registers at least one authoritative topic for every routed aggregate", () => {
+    const covered = new Set(
+      createCanonicalPortalProjectionDefinitions().flatMap(
+        ({ aggregateTypes }) => aggregateTypes,
+      ),
     );
-    for (const aggregate of aggregatesWithoutAuthoritativeEvents)
-      expect(topics.some((topic) => topic.includes(aggregate))).toBe(false);
+    for (const aggregate of Object.keys(aggregateConfiguration))
+      expect(
+        covered.has(aggregate),
+        `${aggregate} has no authoritative topic`,
+      ).toBe(true);
+  });
+
+  it("leaves satellite-bound and duplicate-guard topics unregistered", () => {
+    const topics = new Set(
+      createCanonicalPortalProjectionDefinitions().map(({ topic }) => topic),
+    );
+    for (const topic of [
+      "order.provisioning_requested",
+      "order.provisioning_confirmed",
+      "termination.deletion_certificate_requested",
+      "agreement.envelope_created",
+      "agreement.envelope_completed",
+      "agreement.pass_through_terms_accepted",
+      "system.exception_roster.assigned",
+      "system.exception_roster.reassigned",
+      "workflow.exception.opened",
+    ])
+      expect(topics.has(topic), `${topic} must stay unregistered`).toBe(false);
+  });
+
+  it("routes a termination to the operator provisioning lane and the account service view", async () => {
+    const projections = await projectAggregate({
+      topic: "termination.approved",
+      aggregateType: "termination",
+      aggregateId: "80000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "ready_for_teardown",
+        teardownStatus: "ready_for_teardown",
+        finalBillingStatus: "settled",
+        effectiveAt: "2026-09-30T00:00:00.000Z",
+      },
+    });
+    expect(channelsFor(projections)).toEqual([
+      "customer:services",
+      "internal:provisioning",
+    ]);
+    for (const projection of projections) {
+      expect(projection.commandResource).toBeNull();
+      expect(projection.payload.allowedActions).toEqual([]);
+      expect(projection.recordKey).toBe(
+        "termination-80000000-0000-4000-8000-000000000001",
+      );
+    }
+  });
+
+  it("keeps an exception case on the internal queue only", async () => {
+    const projections = await projectAggregate({
+      topic: "exception_case.opened",
+      aggregateType: "exception_case",
+      aggregateId: "81000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "open",
+        queue: "billing_exception",
+        objectType: "invoice",
+        targetAt: "2026-08-02T16:00:00.000Z",
+      },
+    });
+    expect(channelsFor(projections)).toEqual(["internal:queues"]);
+    expect(projections[0]?.subjectAccountId).toBe(accountId);
+    expect(projections[0]?.audienceAccountId).toBeNull();
+  });
+
+  it("keeps a provider operation on the internal provisioning lane with no account", async () => {
+    const projections = await projectAggregate({
+      topic: "lifecycle.effect.dead_lettered",
+      aggregateType: "provider_operation",
+      aggregateId: "82000000-0000-4000-8000-000000000001",
+      accountId: null,
+      data: {
+        status: "failed",
+        provider: "lifecycle-provisioning",
+        operation: "provision",
+        attemptCount: 4,
+      },
+    });
+    expect(channelsFor(projections)).toEqual(["internal:provisioning"]);
+    expect(projections[0]?.subjectAccountId).toBeNull();
+  });
+
+  it("routes a decided approval to the approver-gated approvals channel", async () => {
+    const projections = await projectAggregate({
+      topic: "approval.decided",
+      aggregateType: "approval",
+      aggregateId: "83000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "approved",
+        action: "termination_teardown",
+        objectType: "termination",
+        requestedAt: "2026-07-30T16:00:00.000Z",
+        decidedAt: "2026-07-31T16:00:00.000Z",
+      },
+    });
+    expect(channelsFor(projections)).toEqual(["internal:approvals"]);
+    expect(projections[0]?.payload.secondary).toBe("Decided");
+  });
+
+  it("shows a POC and an executed agreement on every audience that holds them", async () => {
+    const poc = await projectAggregate({
+      topic: "poc.expired",
+      aggregateType: "poc",
+      aggregateId: "84000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "expired",
+        partnerAccountId,
+        expiresAt: "2026-07-30T16:00:00.000Z",
+        currency: "USD",
+        costMinor: "125000",
+      },
+    });
+    expect(channelsFor(poc)).toEqual([
+      "customer:pocs",
+      "internal:pocs",
+      "partner:pocs",
+    ]);
+    const agreement = await projectAggregate({
+      topic: "agreement.executed",
+      aggregateType: "agreement",
+      aggregateId: "85000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "active",
+        paper: "ours",
+        executionMode: "counter_signed",
+        effectiveOn: "2026-07-31",
+        renewalType: "expires",
+      },
+    });
+    expect(channelsFor(agreement)).toEqual([
+      "customer:agreements",
+      "internal:agreements",
+    ]);
   });
 
   it("grants the customer only the action that needs no further input", async () => {

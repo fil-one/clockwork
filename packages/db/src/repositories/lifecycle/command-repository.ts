@@ -1992,6 +1992,26 @@ export class DatabaseLifecycleCommandRepository {
         draft.rowVersion,
         "executed",
       );
+      // The envelope event records the provider evidence; the execution event
+      // records the agreement itself, and only the run that inserted it.
+      if (agreement)
+        await appendEvent(transaction, {
+          accountId: agreement.accountId,
+          aggregateType: "agreement",
+          aggregateId: agreement.id,
+          aggregateVersion: agreement.version,
+          eventType: "agreement.executed",
+          context,
+          after: {
+            agreementId: agreement.id,
+            executionMode: agreement.executionMode,
+            envelopeId: envelope.providerEnvelopeId,
+            signedPdfDocumentId,
+            completionCertificateDocumentId,
+            effectiveOn: agreement.effectiveOn,
+            status: agreement.status,
+          },
+        });
       emittedEventType = "agreement.envelope_completed";
       await appendEvent(transaction, {
         accountId: draft.accountId,
@@ -2177,6 +2197,7 @@ export class DatabaseLifecycleCommandRepository {
       payload.status === "succeeded"
         ? "order.provisioning_confirmed"
         : "order.provisioning_dead_lettered";
+    let activatedPocVersion: number | undefined;
     if (payload.status === "succeeded") {
       if (attempt.command.operation === "provision" && attemptRow.orderId) {
         await this.materializePaidOrderEntitlements(transaction, {
@@ -2224,6 +2245,7 @@ export class DatabaseLifecycleCommandRepository {
           .returning();
         if (!activated) throw new Error("VERSION_CONFLICT");
         eventType = "poc.activated";
+        activatedPocVersion = activated.rowVersion;
       }
       if (attempt.command.operation === "teardown")
         eventType = "termination.teardown_confirmed";
@@ -2238,7 +2260,9 @@ export class DatabaseLifecycleCommandRepository {
       attempt.command.operation === "teardown"
         ? attemptRow.id
         : (attemptRow.pocId ?? attemptRow.orderId ?? attemptRow.id);
-    let auditAggregateVersion = updated.rowVersion;
+    // The POC row, not the provisioning attempt, is what `poc.activated` binds
+    // to, so the version has to come from the POC that was just activated.
+    let auditAggregateVersion = activatedPocVersion ?? updated.rowVersion;
     if (
       payload.status === "succeeded" &&
       attempt.command.operation === "teardown" &&
@@ -3989,17 +4013,41 @@ export class DatabaseLifecycleCommandRepository {
         evidenceHash: authenticationEvidenceHash,
       },
     });
-    await transaction.insert(approvals).values({
-      id: approvalId,
+    const [approval] = await transaction
+      .insert(approvals)
+      .values({
+        id: approvalId,
+        accountId: persisted.accountId,
+        action: "termination_teardown",
+        objectType: "termination",
+        objectId: payload.terminationId,
+        requestedBy: persisted.requestedBy,
+        approvedBy: approverId,
+        status: payload.decision,
+        requestedAt: new Date(currentPlan.effectiveAt),
+        decidedAt: new Date(context.occurredAt),
+      })
+      .returning();
+    if (!approval) throw new Error("APPROVAL_INSERT_FAILED");
+    // The row is born decided, so its first version already carries the outcome
+    // the approvals queue reads.
+    await appendEvent(transaction, {
       accountId: persisted.accountId,
-      action: "termination_teardown",
-      objectType: "termination",
-      objectId: payload.terminationId,
-      requestedBy: persisted.requestedBy,
-      approvedBy: approverId,
-      status: payload.decision,
-      requestedAt: new Date(currentPlan.effectiveAt),
-      decidedAt: new Date(context.occurredAt),
+      aggregateType: "approval",
+      aggregateId: approval.id,
+      aggregateVersion: approval.rowVersion,
+      eventType: "approval.decided",
+      context,
+      after: {
+        approvalId: approval.id,
+        action: approval.action,
+        objectType: approval.objectType,
+        objectId: approval.objectId,
+        status: approval.status,
+        requestedAt: approval.requestedAt.toISOString(),
+        decidedAt: approval.decidedAt?.toISOString() ?? null,
+        approverId,
+      },
     });
     let provisioningCommandId: string | undefined;
     const automatedTeardownAuthorized =

@@ -372,22 +372,47 @@ const projectableResources = {
 const reportActions = ["create", "issue", "prepare_artifact"] as const;
 
 /**
- * Aggregates the state loader supports and the portal routes, but that no
- * outbox topic currently emits: `agreement`, `poc`, `exception_case`,
- * `approval`, `provider_operation`, `termination`.
+ * Lifecycle and workflow topics that carry an aggregate the state loader reads.
  *
- * Their write paths append audit rows without an authoritative outbox event, so
- * their channels stay empty until those paths publish one. Registering invented
- * topics here would not populate them; it would only hide the gap.
+ * Every entry is an event type the write path already appends, and the outbox
+ * topic equals it. Topics whose audit row binds to a satellite table (agreement
+ * drafts, signature envelopes, provisioning attempts, roster entries) are
+ * absent on purpose: the loader cannot resolve those ids, so registering them
+ * would dead-letter the delivery instead of populating a channel.
  */
-export const aggregatesWithoutAuthoritativeEvents = [
-  "agreement",
-  "poc",
-  "exception_case",
-  "approval",
-  "provider_operation",
-  "termination",
-] as const satisfies readonly AggregateKey[];
+const lifecycleEventTopics = {
+  agreement: ["agreement.executed"],
+  poc: [
+    "poc.qualification_submitted",
+    "poc.approved",
+    "poc.rejected",
+    "poc.activated",
+    "poc.success_recorded",
+    "poc.converted",
+    "poc.expired",
+  ],
+  termination: [
+    "termination.requested",
+    "termination.approved",
+    "termination.rejected",
+    "termination.teardown_confirmed",
+  ],
+  exception_case: [
+    "exception_case.opened",
+    "exception_case.decided",
+    "exception_case.reassigned",
+    "exception_case.absence_escalated",
+  ],
+  approval: ["approval.decided"],
+  provider_operation: [
+    "lifecycle.provider_effect.succeeded",
+    "lifecycle.provider_effect.retry_scheduled",
+    "lifecycle.provider_effect.dead_lettered",
+    "lifecycle.effect.committed",
+    "lifecycle.effect.retry_scheduled",
+    "lifecycle.effect.dead_lettered",
+  ],
+} as const satisfies Readonly<Partial<Record<AggregateKey, readonly string[]>>>;
 
 function eventDefinitions(): ProjectionDefinition[] {
   const definitions: ProjectionDefinition[] = [];
@@ -412,6 +437,8 @@ function eventDefinitions(): ProjectionDefinition[] {
     for (const action of actions)
       add(`core.${resource}.${action}`, aggregateType);
   }
+  for (const [aggregateType, topics] of Object.entries(lifecycleEventTopics))
+    for (const topic of topics) add(topic, aggregateType);
   return definitions;
 }
 

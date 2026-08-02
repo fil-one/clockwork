@@ -4,7 +4,10 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 import { createDirectMigrationClient } from "@clockwork/db/migration-client";
 
-import { authoritativeQuoteProof } from "./production-proof.setup";
+import {
+  authoritativeExceptionProof,
+  authoritativeQuoteProof,
+} from "./production-proof.setup";
 import { drainProductionExperienceOutbox } from "./production-workflow-proof";
 
 interface ProjectionRecord {
@@ -489,10 +492,12 @@ test("@customer proves authoritative quote completion and the remaining queue co
   page,
 }) => {
   const assertHeaders = expectProductionRequestShape(page);
+  // The seeded quote and exception events plus one materialization
+  // acknowledgement each.
   const initialDrain = await drainProductionExperienceOutbox(
     "release-proof-authoritative-quote-materialize",
   );
-  expect(initialDrain.delivered).toBe(2);
+  expect(initialDrain.delivered).toBe(4);
   const navigation = await page.goto("/dashboard");
   const navigationTraceparent = navigation?.headers()["traceparent"];
   if (!navigationTraceparent)
@@ -920,11 +925,28 @@ test("@internal drives exception and replay-safe recovery with accessibility", a
   page,
 }) => {
   const assertHeaders = expectProductionRequestShape(page);
+  // A no-op when the customer proof already drained the batch, and the same
+  // dispatch path when this project runs on its own.
+  await drainProductionExperienceOutbox("release-proof-exception-materialize");
   await page.goto("/internal/queues");
   await expectProofCookie(context, page.url());
   await expect(
     page.getByRole("heading", { name: "Operational queues" }),
   ).toBeVisible();
+
+  const materializedException = await projection(
+    page,
+    "internal",
+    "queues",
+    authoritativeExceptionProof.recordKey,
+  );
+  expect(materializedException.version).toBe(1);
+  expect(materializedException.data).toMatchObject({
+    kind: "queues",
+    status: "open",
+    allowedActions: [],
+  });
+  expect(materializedException.data.value).toBe("Credit Collections");
 
   const chain = [
     ["queues", "EXC-PROOF-0001", "review_exception"],

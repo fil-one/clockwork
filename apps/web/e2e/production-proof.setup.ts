@@ -138,6 +138,15 @@ export const authoritativeQuoteProof = {
   recordKey: "quote-97000000-0000-4000-8000-000000000001",
 } as const;
 
+export const authoritativeExceptionProof = {
+  caseId: "98000000-0000-4000-8000-000000000001",
+  eventId: "98000000-0000-4000-8000-000000000002",
+  outboxMessageId: "98000000-0000-4000-8000-000000000003",
+  queue: "credit_collections",
+  ownerUserId: "20000000-0000-4000-8000-000000000001",
+  recordKey: "exception_case-98000000-0000-4000-8000-000000000001",
+} as const;
+
 const customerCommercial = (
   kind: "agreements" | "quotes" | "orders" | "billing",
   id: string,
@@ -486,6 +495,71 @@ async function seedAuthoritativeQuoteProof(
   `;
 }
 
+/**
+ * An open exception case with the authoritative event its write path publishes.
+ * Draining the outbox is what puts it on the operator queue, so the projection
+ * the internal proof reads is materialized, never seeded.
+ */
+async function seedAuthoritativeExceptionProof(
+  sql: ReturnType<typeof createDirectMigrationClient>,
+) {
+  const now = new Date();
+  const openedAt = new Date(now.getTime() - 15 * 60_000).toISOString();
+  const targetAt = new Date(now.getTime() + 4 * 60 * 60_000).toISOString();
+  await sql`
+    insert into public.exception_cases (
+      id, account_id, queue, object_type, object_id, owner_user_id,
+      separation_required, target_at, status, created_at, updated_at, row_version
+    ) values (
+      ${authoritativeExceptionProof.caseId}::uuid, ${accounts.customer}::uuid,
+      ${authoritativeExceptionProof.queue}, 'quote',
+      ${authoritativeQuoteProof.quoteId}::uuid,
+      ${authoritativeExceptionProof.ownerUserId}::uuid,
+      true, ${targetAt}::timestamptz, 'open',
+      ${openedAt}::timestamptz, ${openedAt}::timestamptz, 1
+    )
+  `;
+  const payload = {
+    eventId: authoritativeExceptionProof.eventId,
+    eventType: "exception_case.opened",
+    aggregateType: "exception_case",
+    aggregateId: authoritativeExceptionProof.caseId,
+    aggregateVersion: 1,
+    occurredAt: openedAt,
+    requestId: "release-proof-authoritative-exception-open",
+    actor: { kind: "system", id: "clockwork-workflow" },
+    data: {
+      caseId: authoritativeExceptionProof.caseId,
+      queue: authoritativeExceptionProof.queue,
+      objectType: "quote",
+      objectId: authoritativeQuoteProof.quoteId,
+      targetAt,
+    },
+  };
+  await sql`
+    insert into public.audit_events (
+      id, account_id, aggregate_type, aggregate_id, aggregate_version,
+      event_type, event_version, actor, occurred_at, request_id, after, metadata
+    ) values (
+      ${authoritativeExceptionProof.eventId}::uuid, ${accounts.customer}::uuid,
+      'exception_case', ${authoritativeExceptionProof.caseId}::uuid, 1,
+      'exception_case.opened', 1,
+      '{"kind":"system","id":"clockwork-workflow"}'::jsonb,
+      ${openedAt}::timestamptz, 'release-proof-authoritative-exception-open',
+      ${sql.json(payload.data)}, '{"proof":"authoritative"}'::jsonb
+    )
+  `;
+  await sql`
+    insert into public.outbox_messages (
+      id, event_id, topic, payload, available_at
+    ) values (
+      ${authoritativeExceptionProof.outboxMessageId}::uuid,
+      ${authoritativeExceptionProof.eventId}::uuid, 'exception_case.opened',
+      ${sql.json(payload)}, ${openedAt}::timestamptz
+    )
+  `;
+}
+
 async function revokeProofSessions(
   sql: ReturnType<typeof createDirectMigrationClient>,
 ) {
@@ -540,6 +614,7 @@ export default async function productionProofSetup(config: FullConfig) {
     `;
     await seedProofProjections(sql);
     await seedAuthoritativeQuoteProof(sql);
+    await seedAuthoritativeExceptionProof(sql);
     for (const identity of proofIdentities) {
       const nonce = createHash("sha256")
         .update(`${identity.sessionId}:${expiresAt}:${secret}`)

@@ -6,8 +6,11 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../../client";
 import {
+  approvals,
+  auditEvents,
   orders,
   organizations,
+  outboxMessages,
   pocs,
   quotes,
   terminations,
@@ -94,6 +97,27 @@ function userContext(
   };
 }
 
+/** Destructive approvals are internal-staff work; the approvals policy says so. */
+function internalContext(
+  requestId: string,
+  userId: string,
+  accountId: string,
+  idempotencyKey: string,
+) {
+  return {
+    requestId,
+    actor: { kind: "user" as const, id: userId },
+    idempotencyKey,
+    ip: "192.0.2.11",
+    userAgent: "Clockwork lifecycle integration",
+    occurredAt,
+    authorization: {
+      ...authorization(userId, accountId, "owner"),
+      isInternalStaff: true,
+    },
+  };
+}
+
 afterAll(async () => {
   if (createdPocIds.length > 0)
     await withInternalTransaction(db, "lifecycle-poc-cleanup", async (tx) => {
@@ -104,6 +128,59 @@ afterAll(async () => {
     });
   await client.end();
 });
+
+interface AuthoritativeOutboxRow {
+  topic: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  aggregateVersion: number;
+  payloadAggregateVersion: number;
+}
+
+/**
+ * Reads the outbox rows a command published for one aggregate. The portal
+ * materializer resolves each row against the authoritative table, so the
+ * binding asserted here is what decides whether a channel populates.
+ */
+async function authoritativeOutbox(
+  suffix: string,
+  aggregateType: string,
+  aggregateId: string,
+): Promise<readonly AuthoritativeOutboxRow[]> {
+  const rows = await withInternalTransaction(
+    db,
+    `lifecycle-outbox-assert-${suffix}`,
+    (tx) =>
+      tx
+        .select({
+          topic: outboxMessages.topic,
+          payload: outboxMessages.payload,
+          eventType: auditEvents.eventType,
+          aggregateType: auditEvents.aggregateType,
+          aggregateId: auditEvents.aggregateId,
+          aggregateVersion: auditEvents.aggregateVersion,
+        })
+        .from(outboxMessages)
+        .innerJoin(auditEvents, eq(auditEvents.id, outboxMessages.eventId))
+        .where(
+          and(
+            eq(auditEvents.aggregateType, aggregateType),
+            eq(auditEvents.aggregateId, aggregateId),
+          ),
+        ),
+  );
+  return rows.map((row) => ({
+    topic: row.topic,
+    eventType: row.eventType,
+    aggregateType: row.aggregateType,
+    aggregateId: row.aggregateId,
+    aggregateVersion: row.aggregateVersion,
+    payloadAggregateVersion: Number(
+      (row.payload as { aggregateVersion?: unknown }).aggregateVersion,
+    ),
+  }));
+}
 
 async function cloneResaleOrder(suffix: string): Promise<string> {
   return withInternalTransaction(
@@ -300,6 +377,16 @@ describe.concurrent("database lifecycle production repository", () => {
       throw new Error("POC_ORGANIZATION_ID_MISSING");
     createdPocIds.push(created.id);
     createdPocOrganizationIds.push(created.organizationId);
+    expect(await authoritativeOutbox(suffix, "poc", created.id)).toEqual([
+      {
+        topic: "poc.qualification_submitted",
+        eventType: "poc.qualification_submitted",
+        aggregateType: "poc",
+        aggregateId: created.id,
+        aggregateVersion: 1,
+        payloadAggregateVersion: 1,
+      },
+    ]);
   });
 
   it("derives POC partner identity and rejects a forged relationship", async () => {
@@ -491,6 +578,99 @@ describe.concurrent("database lifecycle production repository", () => {
         }),
     );
     expect(persisted).toHaveLength(1);
+    const termination = persisted[0];
+    if (!termination) throw new Error("TERMINATION_FIXTURE_MISSING");
+    expect(
+      await authoritativeOutbox(suffix, "termination", termination.id),
+    ).toEqual([
+      {
+        topic: "termination.requested",
+        eventType: "termination.requested",
+        aggregateType: "termination",
+        aggregateId: termination.id,
+        aggregateVersion: 1,
+        payloadAggregateVersion: 1,
+      },
+    ]);
+  });
+
+  it("publishes the approval and the termination decision as separate authoritative events", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const orderId = await cloneDirectOrder(suffix);
+    const requested = await repository.executeInTransaction({
+      command: "request_termination",
+      payload: {
+        accountId: "10000000-0000-4000-8000-000000000004",
+        orderId,
+        reason: "customer_request" as const,
+        effectiveAt: "2026-08-31T00:00:00.000Z",
+        retrievalDays: 30,
+        partnerAccountId: null,
+      },
+      context: userContext(
+        `lifecycle-decide-offboarding-${suffix}`,
+        "20000000-0000-4000-8000-000000000004",
+        "10000000-0000-4000-8000-000000000004",
+        "owner",
+        `lifecycle-decide-offboarding-request-${suffix}`,
+      ),
+    });
+    const decided = await repository.executeInTransaction({
+      command: "decide_termination",
+      payload: {
+        terminationId: requested.id,
+        decision: "approved" as const,
+        reason: "Retrieval window confirmed with the account team",
+        evidenceDocumentId: "40000000-0000-4000-8000-000000000020",
+      },
+      context: internalContext(
+        `lifecycle-decide-offboarding-decide-${suffix}`,
+        "20000000-0000-4000-8000-000000000001",
+        "10000000-0000-4000-8000-000000000004",
+        `lifecycle-decide-offboarding-decision-${suffix}`,
+      ),
+    });
+    expect(decided).toMatchObject({ eventType: "termination.approved" });
+
+    const terminationEvents = await authoritativeOutbox(
+      suffix,
+      "termination",
+      requested.id,
+    );
+    expect(
+      terminationEvents.map(({ topic, aggregateVersion }) => ({
+        topic,
+        aggregateVersion,
+      })),
+    ).toEqual(
+      expect.arrayContaining([
+        { topic: "termination.requested", aggregateVersion: 1 },
+        { topic: "termination.approved", aggregateVersion: 2 },
+      ]),
+    );
+
+    const approvalRows = await withInternalTransaction(
+      db,
+      `lifecycle-decide-approval-assert-${suffix}`,
+      (tx) =>
+        tx.query.approvals.findMany({
+          where: eq(approvals.objectId, requested.id),
+        }),
+    );
+    expect(approvalRows).toHaveLength(1);
+    const approval = approvalRows[0];
+    if (!approval) throw new Error("APPROVAL_FIXTURE_MISSING");
+    expect(approval.rowVersion).toBe(1);
+    expect(await authoritativeOutbox(suffix, "approval", approval.id)).toEqual([
+      {
+        topic: "approval.decided",
+        eventType: "approval.decided",
+        aggregateType: "approval",
+        aggregateId: approval.id,
+        aggregateVersion: 1,
+        payloadAggregateVersion: 1,
+      },
+    ]);
   });
 
   it("applies a marketplace projection once and ignores delayed delivery", async () => {
