@@ -27,7 +27,7 @@
   max-width: 48rem;
   margin: 0;
   font-size: clamp(1.7rem, 3vw, 2.5rem);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.052em;
   line-height: 0.98;
   text-wrap: balance;
@@ -63,7 +63,7 @@
   padding: 0.62rem 0.88rem;
   font: inherit;
   font-size: 0.78rem;
-  font-weight: 780;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -161,7 +161,7 @@
   gap: 0.35rem;
   color: var(--web-muted);
   font-size: 0.72rem;
-  font-weight: 730;
+  font-weight: 700;
 }
 
 .field input,
@@ -178,7 +178,7 @@
   padding: 0.58rem 0.68rem;
   font: inherit;
   font-size: 0.82rem;
-  font-weight: 520;
+  font-weight: 500;
 }
 
 .field textarea {
@@ -203,7 +203,7 @@
 .fieldHint {
   margin: 0;
   font-size: 0.68rem;
-  font-weight: 520;
+  font-weight: 500;
 }
 
 .tableWrap {
@@ -227,8 +227,9 @@
 
 .table th {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.65rem;
-  font-weight: 820;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -267,7 +268,7 @@
   padding: 0.24rem 0.5rem;
   background: var(--web-canvas);
   font-size: 0.66rem;
-  font-weight: 780;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -276,7 +277,7 @@
 }
 
 .warning {
-  color: #784315;
+  color: var(--cw-warning);
 }
 
 .danger {
@@ -361,8 +362,9 @@
 .summary dt,
 .metaGrid dt {
   color: var(--web-muted);
+  font-family: var(--cw-font-accent);
   font-size: 0.64rem;
-  font-weight: 820;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -395,7 +397,7 @@
   max-width: 100%;
   color: var(--web-accent);
   font-size: 0.72rem;
-  font-weight: 760;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -415,7 +417,7 @@
   min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--cw-font-mono);
 }
 
 .notice,
@@ -501,7 +503,7 @@
   align-items: center;
   gap: 1rem;
   border-left: 4px solid var(--web-warm);
-  box-shadow: 0 0.35rem 1.2rem rgb(18 28 22 / 8%);
+  box-shadow: 0 0.35rem 1.2rem rgb(var(--cw-shadow-color) / 8%);
 }
 
 .assistedState p {
@@ -516,7 +518,7 @@
   margin-left: auto;
   color: var(--web-accent);
   font-size: 0.75rem;
-  font-weight: 780;
+  font-weight: 800;
   white-space: nowrap;
 }
 

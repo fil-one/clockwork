@@ -81,7 +81,7 @@
 .viewLabel {
   color: var(--web-muted);
   font-size: 0.7rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .field input,
@@ -133,7 +133,7 @@
 .clearLink {
   color: var(--web-accent);
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -176,7 +176,7 @@
   color: var(--web-muted);
   padding: 0.35rem 0.55rem;
   font-size: 0.72rem;
-  font-weight: 750;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -243,7 +243,7 @@
 .recordLink {
   color: var(--web-ink);
   font-size: 0.86rem;
-  font-weight: 780;
+  font-weight: 800;
   text-decoration-color: color-mix(in srgb, var(--web-accent) 42%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2rem;
@@ -256,7 +256,7 @@
   margin-top: 0.3rem;
   color: var(--web-muted);
   font-size: 0.7rem;
-  font-weight: 450;
+  font-weight: 500;
 }
 
 .owner,
@@ -265,7 +265,7 @@
 }
 
 .value {
-  font-weight: 720;
+  font-weight: 700;
 }
 
 .cards {
@@ -336,7 +336,7 @@
 .cardMeta dt {
   color: var(--web-muted);
   font-size: 0.65rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .cardMeta dd {
@@ -389,14 +389,14 @@
 .selectedDetails dt {
   color: var(--web-muted);
   font-size: 0.67rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .selectedDetails dd {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
   font-size: 0.82rem;
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .technical {
@@ -408,7 +408,7 @@
 
 .technical summary {
   color: var(--web-accent);
-  font-weight: 750;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -439,7 +439,7 @@
   padding: 0.45rem 0.65rem;
   text-align: center;
   font-size: 0.74rem;
-  font-weight: 750;
+  font-weight: 700;
   text-decoration: none;
 }
 
