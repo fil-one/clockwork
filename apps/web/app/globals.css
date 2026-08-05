@@ -543,6 +543,12 @@ input {
   gap: 1rem;
   width: min(34rem, 100%);
 }
+.access-form {
+  display: grid;
+  justify-items: start;
+  gap: 1.25rem;
+  width: 100%;
+}
 @media (min-width: 48rem) and (max-width: 63.999rem) {
   .cw-shell__brand .wordmark {
     width: 100%;

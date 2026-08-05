@@ -31,7 +31,11 @@ export default async function Page({
         <p className="eyebrow">{t("demo.access.eyebrow")}</p>
         <h1>{t("demo.access.title")}</h1>
         <p>{t("demo.access.description")}</p>
-        <form action={demoAccessSubmitRoute} method="post">
+        <form
+          className="access-form"
+          action={demoAccessSubmitRoute}
+          method="post"
+        >
           <input
             type="hidden"
             name="next"
