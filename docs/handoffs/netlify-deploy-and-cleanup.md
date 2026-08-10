@@ -26,7 +26,7 @@ three times today and the deployed site still serves the previous build.
 
 - GitHub has recorded the pushes to `main`: `2026-08-02T14:11:49Z`, `14:24:53Z`,
   `14:35:27Z`.
-- `gh api repos/jameskurz-filecoin/clockwork/hooks` returns `[]`. The repository
+- `gh api repos/fil-one/clockwork/hooks` returns `[]`. The repository
   has no webhooks at all, so nothing is notifying Netlify on push.
 - `https://commerce-demo.netlify.app/demo/access` still serves
   `<html lang="en">` with no class attribute. The current `main` renders
@@ -37,7 +37,7 @@ three times today and the deployed site still serves the previous build.
 **What to check, in the Netlify UI, in this order.**
 
 1. Site configuration → Build & deploy → Continuous deployment. Confirm the site
-   is still linked to `jameskurz-filecoin/clockwork` and that the production
+   is still linked to `fil-one/clockwork` and that the production
    branch is `main`.
 2. The same page → Build settings. Confirm builds are not stopped. A site whose
    builds were paused shows "Builds are stopped" and silently ignores pushes.

@@ -5,7 +5,7 @@ quotes, POCs, orders, provisioning, invoicing, payment, renewals, and
 offboarding — for direct customers, channel partners, and the back office that
 oversees both.**
 
-[![CI](https://github.com/jameskurz-filecoin/clockwork/actions/workflows/ci.yml/badge.svg)](https://github.com/jameskurz-filecoin/clockwork/actions/workflows/ci.yml)
+[![CI](https://github.com/fil-one/clockwork/actions/workflows/ci.yml/badge.svg)](https://github.com/fil-one/clockwork/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/node-24.x-339933?logo=node.js&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-10.x-F69220?logo=pnpm&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
