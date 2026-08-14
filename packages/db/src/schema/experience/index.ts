@@ -409,7 +409,9 @@ export const experienceEsignReturnCorrelations = pgTable(
     agreementDraftId: uuid("agreement_draft_id")
       .notNull()
       .references(() => lifecycleAgreementDrafts.id),
-    accountId: uuid("account_id").references(() => accounts.id),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
     signerUserId: uuid("signer_user_id")
       .notNull()
       .references(() => commerceUsers.id),

@@ -520,6 +520,10 @@ export const amendmentFinancialTerms = pgTable(
       "core_amendment_period_check",
       sql`${table.periodEndsOn} >= ${table.periodStartsOn}`,
     ),
+    check(
+      "core_amendment_financial_terms_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -762,6 +766,10 @@ export const invoiceEndClientAllocations = pgTable(
     check(
       "core_invoice_allocation_amounts_check",
       sql`${table.subtotalMinor} >= 0 and ${table.taxMinor} >= 0 and ${table.totalMinor} = ${table.subtotalMinor} + ${table.taxMinor}`,
+    ),
+    check(
+      "core_invoice_end_client_allocations_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
@@ -1042,6 +1050,10 @@ export const commissionStatements = pgTable(
       "core_commission_statement_status_check",
       sql`${table.status} in ('draft','issued','approved','exported','paid','void')`,
     ),
+    check(
+      "core_commission_statements_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -1190,6 +1202,10 @@ export const stripeAdjustmentOperations = pgTable(
       "core_stripe_adjustment_amount_check",
       sql`${table.amountMinor} > 0 and ${table.amountMinor} <= ${table.individualCapMinor} and ${table.individualCapMinor} <= ${table.aggregateCapMinor}`,
     ),
+    check(
+      "core_stripe_adjustment_operations_source_currency_check",
+      sql`${table.sourceCurrency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -1237,6 +1253,10 @@ export const marketplaceEvents = pgTable(
       "core_marketplace_payload_hash_check",
       sql`${table.payloadHash} ~ '^[a-f0-9]{64}$'`,
     ),
+    check(
+      "core_marketplace_events_currency_check",
+      sql`${table.currency} is null or ${table.currency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -1265,6 +1285,10 @@ export const marketplaceFinancialEntries = pgTable(
     check(
       "core_marketplace_entry_type_check",
       sql`${table.entryType} in ('order','entitlement','metering','fee','invoice','settlement','refund','tax')`,
+    ),
+    check(
+      "core_marketplace_financial_entries_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
@@ -1304,6 +1328,10 @@ export const marketplaceReconciliations = pgTable(
       table.currency,
     ),
     index("core_marketplace_reconciliation_queue_idx").on(table.status),
+    check(
+      "core_marketplace_reconciliations_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -1334,6 +1362,10 @@ export const accountingExports = pgTable(
     check(
       "core_accounting_export_type_check",
       sql`${table.exportType} in ('ar_issuance','payout_summary','deferred_revenue','commission_bill','tax_liability','cost_summary')`,
+    ),
+    check(
+      "core_accounting_exports_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
@@ -1414,6 +1446,10 @@ export const threeWayTieOuts = pgTable(
     check(
       "core_three_way_tie_out_math_check",
       sql`${table.stripeVarianceMinor} = ${table.platformRevenueMinor} - ${table.stripeRevenueMinor} and ${table.qboVarianceMinor} = ${table.platformRevenueMinor} - ${table.qboRevenueMinor}`,
+    ),
+    check(
+      "core_three_way_tie_outs_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );

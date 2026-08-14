@@ -192,6 +192,14 @@ export const memberships = pgTable(
       table.userId,
     ),
     index("memberships_user_idx").on(table.userId),
+    check(
+      "memberships_approval_limit_nonnegative_check",
+      sql`${table.approvalLimitMinor} is null or ${table.approvalLimitMinor} >= 0`,
+    ),
+    check(
+      "memberships_approval_limit_currency_check",
+      sql`${table.approvalLimitCurrency} is null or ${table.approvalLimitCurrency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -311,23 +319,36 @@ export const agreements = pgTable(
   ],
 );
 
-export const keyTerms = pgTable("key_terms", {
-  id: id(),
-  agreementId: uuid("agreement_id")
-    .notNull()
-    .unique()
-    .references(() => agreements.id),
-  slaCreditSchedule: jsonb("sla_credit_schedule").notNull().default({}),
-  liabilityCapMinor: bigint("liability_cap_minor", { mode: "bigint" }),
-  liabilityCapCurrency: text("liability_cap_currency"),
-  breachNoticeHours: integer("breach_notice_hours").notNull(),
-  renewalPriceProtectionBps: integer("renewal_price_protection_bps"),
-  auditRights: text("audit_rights").notNull(),
-  retentionLiabilityRule: text("retention_liability_rule").notNull(),
-  customTerms: jsonb("custom_terms").notNull().default({}),
-  createdAt: createdAt(),
-  version: integer("version").notNull().default(1),
-});
+export const keyTerms = pgTable(
+  "key_terms",
+  {
+    id: id(),
+    agreementId: uuid("agreement_id")
+      .notNull()
+      .unique()
+      .references(() => agreements.id),
+    slaCreditSchedule: jsonb("sla_credit_schedule").notNull().default({}),
+    liabilityCapMinor: bigint("liability_cap_minor", { mode: "bigint" }),
+    liabilityCapCurrency: text("liability_cap_currency"),
+    breachNoticeHours: integer("breach_notice_hours").notNull(),
+    renewalPriceProtectionBps: integer("renewal_price_protection_bps"),
+    auditRights: text("audit_rights").notNull(),
+    retentionLiabilityRule: text("retention_liability_rule").notNull(),
+    customTerms: jsonb("custom_terms").notNull().default({}),
+    createdAt: createdAt(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [
+    check(
+      "key_terms_liability_cap_nonnegative_check",
+      sql`${table.liabilityCapMinor} is null or ${table.liabilityCapMinor} >= 0`,
+    ),
+    check(
+      "key_terms_liability_cap_currency_check",
+      sql`${table.liabilityCapCurrency} is null or ${table.liabilityCapCurrency} in ('USD','EUR','GBP')`,
+    ),
+  ],
+);
 
 export const priceBooks = pgTable(
   "price_books",
@@ -357,6 +378,10 @@ export const priceBooks = pgTable(
     check(
       "price_books_status_check",
       sql`${table.status} in ('draft','active','retired')`,
+    ),
+    check(
+      "price_books_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
@@ -399,6 +424,10 @@ export const rateCards = pgTable(
     check(
       "rate_card_price_check",
       sql`${table.unitPriceMinor} >= 0 and ${table.overageRateMinor} >= 0`,
+    ),
+    check(
+      "rate_cards_floor_price_nonnegative_check",
+      sql`${table.floorPriceMinor} is null or ${table.floorPriceMinor} >= 0`,
     ),
   ],
 );
@@ -452,7 +481,16 @@ export const quotes = pgTable(
       table.status,
       table.createdAt,
     ),
+    index("quotes_account_page_idx").on(table.accountId, table.id),
     check("quotes_total_nonnegative_check", sql`${table.totalMinor} >= 0`),
+    check(
+      "quotes_partner_resale_total_nonnegative_check",
+      sql`${table.partnerResaleTotalMinor} is null or ${table.partnerResaleTotalMinor} >= 0`,
+    ),
+    check(
+      "quotes_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
   ],
 );
 
@@ -477,9 +515,14 @@ export const quoteLines = pgTable(
     version: integer("version").notNull().default(1),
   },
   (table) => [
+    index("quote_lines_quote_idx").on(table.quoteId),
     check(
       "quote_lines_values_check",
       sql`${table.quantity} >= 0 and ${table.termMonths} > 0 and ${table.unitPriceMinor} >= 0 and ${table.overageRateMinor} >= 0 and ${table.discountBps} between 0 and 10000`,
+    ),
+    check(
+      "quote_lines_line_total_nonnegative_check",
+      sql`${table.lineTotalMinor} >= 0`,
     ),
   ],
 );
@@ -542,6 +585,8 @@ export const pocs = pgTable(
           true
         ) = false`,
     ),
+    check("pocs_currency_check", sql`${table.currency} in ('USD','EUR','GBP')`),
+    check("pocs_cost_nonnegative_check", sql`${table.costMinor} >= 0`),
   ],
 );
 
@@ -594,6 +639,7 @@ export const orders = pgTable(
       table.partnerAccountId,
       table.serviceEndsOn,
     ),
+    index("orders_account_page_idx").on(table.accountId, table.id),
     check(
       "orders_term_check",
       sql`${table.serviceEndsOn} is null or ${table.serviceEndsOn} >= ${table.serviceStartsOn}`,
@@ -610,23 +656,33 @@ export const orders = pgTable(
   ],
 );
 
-export const orderLines = pgTable("order_lines", {
-  id: id(),
-  orderId: uuid("order_id")
-    .notNull()
-    .references(() => orders.id),
-  quoteLineId: uuid("quote_line_id")
-    .notNull()
-    .unique()
-    .references(() => quoteLines.id),
-  sku: text("sku").notNull(),
-  quantity: numeric("quantity", { precision: 38, scale: 18 }).notNull(),
-  unitPriceMinor: minor("unit_price_minor"),
-  overageRateMinor: minor("overage_rate_minor"),
-  supersededByAmendmentId: uuid("superseded_by_amendment_id"),
-  createdAt: createdAt(),
-  version: integer("version").notNull().default(1),
-});
+export const orderLines = pgTable(
+  "order_lines",
+  {
+    id: id(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id),
+    quoteLineId: uuid("quote_line_id")
+      .notNull()
+      .unique()
+      .references(() => quoteLines.id),
+    sku: text("sku").notNull(),
+    quantity: numeric("quantity", { precision: 38, scale: 18 }).notNull(),
+    unitPriceMinor: minor("unit_price_minor"),
+    overageRateMinor: minor("overage_rate_minor"),
+    supersededByAmendmentId: uuid("superseded_by_amendment_id"),
+    createdAt: createdAt(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [
+    index("order_lines_order_idx").on(table.orderId),
+    check(
+      "order_lines_price_nonnegative_check",
+      sql`${table.unitPriceMinor} >= 0 and ${table.overageRateMinor} >= 0`,
+    ),
+  ],
+);
 
 export const amendments = pgTable(
   "amendments",
@@ -746,6 +802,7 @@ export const entitlements = pgTable(
       table.status,
       table.maximumRetentionAt,
     ),
+    index("entitlements_order_idx").on(table.orderId),
     check(
       "entitlements_status_check",
       sql`${table.status} in ('pending','active','suspended_write','terminated')`,
@@ -848,6 +905,7 @@ export const invoices = pgTable(
       table.dueAt,
     ),
     index("invoices_order_idx").on(table.orderId),
+    index("invoices_account_page_idx").on(table.accountId, table.id),
     check(
       "invoices_status_check",
       sql`${table.status} in ('draft','open','paid','void','uncollectible')`,
@@ -861,6 +919,11 @@ export const invoices = pgTable(
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
     check("invoices_amount_paid_check", sql`${table.amountPaidMinor} >= 0`),
+    check(
+      "invoices_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check("invoices_amount_nonnegative_check", sql`${table.amountMinor} >= 0`),
   ],
 );
 
@@ -888,6 +951,7 @@ export const payments = pgTable(
     rowVersion: rowVersion(),
   },
   (table) => [
+    index("payments_invoice_idx").on(table.invoiceId),
     check(
       "payments_status_check",
       sql`${table.status} in ('pending','succeeded','failed','refunded')`,
@@ -896,6 +960,11 @@ export const payments = pgTable(
       "payments_stripe_watermark_check",
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
+    check(
+      "payments_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check("payments_amount_nonnegative_check", sql`${table.amountMinor} >= 0`),
   ],
 );
 export const creditNotes = pgTable(
@@ -932,6 +1001,14 @@ export const creditNotes = pgTable(
       "credit_notes_stripe_watermark_check",
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
+    check(
+      "credit_notes_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check(
+      "credit_notes_amount_nonnegative_check",
+      sql`${table.amountMinor} >= 0`,
+    ),
   ],
 );
 export const refunds = pgTable(
@@ -965,6 +1042,11 @@ export const refunds = pgTable(
       "refunds_stripe_watermark_check",
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
+    check(
+      "refunds_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check("refunds_amount_nonnegative_check", sql`${table.amountMinor} >= 0`),
   ],
 );
 export const disputeCases = pgTable(
@@ -993,6 +1075,14 @@ export const disputeCases = pgTable(
     check(
       "dispute_cases_status_check",
       sql`${table.status} in ('needs_response','under_review','won','lost')`,
+    ),
+    check(
+      "dispute_cases_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
+    ),
+    check(
+      "dispute_cases_amount_nonnegative_check",
+      sql`${table.amountMinor} >= 0`,
     ),
   ],
 );
@@ -1106,6 +1196,10 @@ export const dealRegistrations = pgTable(
       table.status,
       table.createdAt,
     ),
+    index("deal_registrations_partner_page_idx").on(
+      table.partnerAccountId,
+      table.id,
+    ),
     uniqueIndex("deal_registration_active_unique")
       .on(table.partnerAccountId, table.endClientAccountId)
       .where(sql`${table.status} in ('registered','approved','disputed')`),
@@ -1182,6 +1276,10 @@ export const commissionAccruals = pgTable(
       table.period,
       table.status,
     ),
+    index("commission_accruals_partner_page_idx").on(
+      table.partnerAccountId,
+      table.id,
+    ),
     check(
       "commission_accruals_status_check",
       sql`${table.status} in ('accrued','stated','paid')`,
@@ -1197,6 +1295,12 @@ export const commissionAccruals = pgTable(
     check(
       "commission_accruals_sign_check",
       sql`(${table.sourceType} = 'payment' and ${table.adjustmentSourceId} is null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} = 'credit_note_void' and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} >= 0 and ${table.amountMinor} >= 0 and ${table.holdbackMinor} >= 0) or (${table.sourceType} in ('credit_note','refund','dispute') and ${table.adjustmentSourceId} is not null and ${table.netCollectedRevenueMinor} <= 0 and ${table.amountMinor} <= 0 and ${table.holdbackMinor} <= 0)`,
+    ),
+    // Currency only. The three money columns stay under the directional rule
+    // above: an adjustment accrual is negative by design.
+    check(
+      "commission_accruals_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
@@ -1305,6 +1409,12 @@ export const costRecords = pgTable(
       table.entitlementId,
       table.period,
       table.source,
+    ),
+    // Only the currency. `amountMinor` is left signed: a cost record is
+    // subtracted from booked revenue, so a negative row reads as a rebate.
+    check(
+      "cost_records_currency_check",
+      sql`${table.currency} in ('USD','EUR','GBP')`,
     ),
   ],
 );
