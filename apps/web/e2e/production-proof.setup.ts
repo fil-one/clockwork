@@ -170,6 +170,41 @@ const customerCommercial = (
   allowedActions,
 });
 
+/**
+ * The partner desk is composed from the per-record `portfolio` and `quotes`
+ * channels, not from the seeded partner `dashboard` row, so these payloads have
+ * to satisfy the same presentation contract the materializer emits. `context`
+ * is the array form the dashboard reads as the commercial boundary list;
+ * `/partner/portfolio` joins the same entries into its one-line summary.
+ */
+const partnerCommercial = (
+  channel: "portfolio" | "quotes",
+  recordKey: string,
+  action: string,
+) => ({
+  id: recordKey,
+  kind: channel,
+  title: "Authorized named account",
+  name: "Authorized named account",
+  description: `${recordKey} · production release proof`,
+  status: "open",
+  statusLabel: "Open",
+  tone: "warning",
+  risk: "medium",
+  owner: "Partner desk",
+  value: "Confidential",
+  valueLabel: "Transfer price",
+  secondary: "Record-bound resale authority",
+  dateLabel: "Updated Jul 31",
+  term: "Bound to the current partner term",
+  nextAction: action.replaceAll("_", " "),
+  context: [
+    { label: "Transfer price", value: "Partner confidential" },
+    { label: "Merchant of record", value: "Authorized partner" },
+  ],
+  allowedActions: [action],
+});
+
 const proofProjections = [
   {
     id: "91000000-0000-4000-8000-000000000001",
@@ -309,17 +344,7 @@ const proofProjections = [
     channel,
     recordKey,
     commandResource: `experience:partner:${channel}`,
-    payload: {
-      id: recordKey,
-      name: "Authorized named account",
-      context: "Session-scoped partner record",
-      status: "open",
-      risk: "medium",
-      owner: "Partner desk",
-      value: "Confidential",
-      secondary: "Record-bound resale authority",
-      allowedActions: [action],
-    },
+    payload: partnerCommercial(channel, recordKey, action),
   })),
   ...(
     [
@@ -337,19 +362,96 @@ const proofProjections = [
     commandResource: `experience:internal:${channel}`,
     payload: {
       id: recordKey,
+      kind: channel,
       title: `${channel} release record`,
+      name: `${channel} release record`,
+      description: `${recordKey} · production release proof`,
       status: "ready",
       statusLabel: "Ready for review",
+      tone: "warning",
+      risk: "medium",
       owner: "Authorized operator",
       nextAction: action.replaceAll("_", " "),
+      // Array form, like every materialized payload. No `authoritative` block:
+      // these records carry no queue or subject aggregate, and inventing one
+      // would put an unrecorded entity on the operator row.
+      context: [{ label: "Record", value: recordKey }],
       allowedActions: [action],
     },
   })),
 ] as const;
 
+/**
+ * The channels each audience's dashboard composes itself from. A record on one
+ * of these is read through the dashboard record contract, which rejects the
+ * whole surface with `DASHBOARD_PROJECTION_INVALID` when one field is missing.
+ * Kept in step with `customerChannels` and `partnerChannels` in
+ * `src/features/experience-server/dashboard-loader.ts`.
+ */
+const dashboardChannels: Readonly<Record<string, readonly string[]>> = {
+  customer: ["billing", "quotes", "orders", "agreements"],
+  partner: ["portfolio", "quotes", "orders", "agreements"],
+};
+
+const dashboardTones = ["neutral", "success", "warning", "danger"] as const;
+
+/**
+ * A missing field here costs the whole authorization proof: the desk renders
+ * the error boundary, the first `toBeVisible` fails, and the cross-audience
+ * reads the test exists to prove never execute. So the fixture is checked
+ * against the same contract at seed time, where the failure names the record.
+ */
+function dashboardContractIssues(
+  payload: Readonly<Record<string, unknown>>,
+): readonly string[] {
+  const issues: string[] = [];
+  const present = (field: string) => {
+    const value = payload[field];
+    if (typeof value !== "string" || !value) issues.push(field);
+  };
+  for (const field of ["title", "description", "status", "statusLabel"])
+    present(field);
+  if (!dashboardTones.some((candidate) => candidate === payload.tone))
+    issues.push("tone");
+  const context = payload.context;
+  if (
+    context !== undefined &&
+    context !== null &&
+    (!Array.isArray(context) ||
+      context.some(
+        (entry) =>
+          !entry ||
+          typeof entry !== "object" ||
+          Array.isArray(entry) ||
+          typeof (entry as Record<string, unknown>).label !== "string" ||
+          typeof (entry as Record<string, unknown>).value !== "string",
+      ))
+  )
+    issues.push("context");
+  return issues;
+}
+
+function assertSeededDashboardContract() {
+  const failures = proofProjections.flatMap((projection) => {
+    const channels = dashboardChannels[projection.audience] ?? [];
+    if (!channels.includes(projection.channel)) return [];
+    const issues = dashboardContractIssues(projection.payload);
+    return issues.length === 0
+      ? []
+      : [
+          `${projection.audience}/${projection.channel}/${projection.recordKey}: ${issues.join(", ")}`,
+        ];
+  });
+  if (failures.length > 0)
+    throw new Error(
+      `Release-proof fixture does not satisfy the dashboard record contract:\n${failures.join("\n")}`,
+    );
+}
+
 async function seedProofProjections(
   sql: ReturnType<typeof createDirectMigrationClient>,
 ) {
+  assertSeededDashboardContract();
   for (const projection of proofProjections) {
     const payload = JSON.stringify(projection.payload);
     const sourceHash = createHash("sha256").update(payload).digest("hex");

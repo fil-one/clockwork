@@ -275,7 +275,24 @@ insert into invoices (id, order_id, account_id, stripe_invoice_id, currency, amo
 ('90000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004',null,'USD',180000,'PO-DIRECT-007','draft','2026-08-31T16:00:00Z');
 -- A paid invoice is settled in full. The overdue invoice keeps its full
 -- remainder: its only payment is the one under dispute.
+--
+-- Guarded on the column, because the populated-upgrade drill replays this seed
+-- against 001230 and `amount_paid_minor` only arrives in 001340. Unguarded, the
+-- whole reset aborts on SQLSTATE 42703 and the drill cannot run at all.
+do $invoice_settlement$
+begin
+if to_regclass('public.invoices') is not null and exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public'
+    and table_name = 'invoices'
+    and column_name = 'amount_paid_minor'
+) then
+execute $seed_sql$
 update invoices set amount_paid_minor = amount_minor where status = 'paid';
+$seed_sql$;
+end if;
+end
+$invoice_settlement$;
 
 do $invoice_snapshots$
 begin

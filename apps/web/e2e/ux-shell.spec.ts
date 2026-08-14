@@ -202,6 +202,29 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
   });
 }
 
+/**
+ * The drawer closes inside the navigation click handler, so the portal unmounts
+ * the link the click came from while the route transition is still in flight.
+ * P0-34 reported that as the drawer navigating nowhere. One link is a weak
+ * witness for a race, so every destination is walked: each has to land on its
+ * own href, close the drawer, and hand focus back to the trigger.
+ */
+test("every mobile drawer destination commits its route", async ({ page }) => {
+  test.setTimeout(120_000);
+  const viewport = viewports[4];
+  for (const destination of customerDestinations) {
+    await openDashboard(page, viewport);
+    const { drawer, trigger } = await openNavigation(page);
+    const link = drawer.getByRole("link", { name: destination, exact: true });
+    const href = await link.getAttribute("href");
+    expect(href, `${destination} must carry a destination`).toBeTruthy();
+    await link.click();
+    await page.waitForURL((url) => url.pathname === href);
+    await expect(drawer).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+});
+
 test("partner admin can reach every partner destination from the 320px drawer", async ({
   page,
 }) => {

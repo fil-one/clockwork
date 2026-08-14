@@ -23,7 +23,7 @@
     "scan:secrets": "secretlint \"**/*\" --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore",
     "audit:dependencies": "pnpm audit --audit-level=high",
     "test": "turbo run test:unit test:integration",
-    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs scripts/benchmark-release.test.mjs",
+    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs scripts/benchmark-release.test.mjs scripts/dependency-advisories.test.mjs",
     "test:integration": "turbo run test:integration",
     "test:db": "pnpm db:test",
     "test:db:populated-upgrade": "node scripts/qualify-populated-upgrade.mjs",
@@ -72,6 +72,12 @@
     "typescript-eslint": "8.65.0"
   },
   "pnpm": {
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-w3rx-r6r6-pgpr",
+        "GHSA-5p2g-fcmc-qvqq"
+      ]
+    },
     "overrides": {
       "@esbuild-kit/core-utils@3.3.2>esbuild": "0.25.12",
       "@trigger.dev/core@4.5.9>@opentelemetry/api-logs": "0.221.0",
@@ -87,6 +93,8 @@
       "@trigger.dev/core@4.5.9>@opentelemetry/sdk-trace-node": "2.10.0",
       "brace-expansion": "5.0.9",
       "engine.io@<6.6.7": "6.6.7",
+      "js-yaml@<4.3.1": "4.3.1",
+      "nanoid@<3.3.18": "3.3.18",
       "postcss@<8.5.17": "8.5.25",
       "sharp@<0.35.0": "0.35.0",
       "ws@<8.21.0": "8.21.0"
