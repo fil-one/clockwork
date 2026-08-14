@@ -39,13 +39,24 @@ function dispatchQuery(source: DeadLetterSource, id: string) {
         on run.idempotency_key = 'outbox:' || message.id::text
       where run.id = ${id}::uuid
     `;
+  // `audit_aggregate_version_unique` leads on aggregate_type, so leaving it
+  // unbound made this scan the whole audit log during the one incident that
+  // reads it. The scope the attempt was raised under names the aggregate:
+  // `lifecycle_provisioning_scope_check` guarantees exactly one of order_id and
+  // poc_id is set -- `(poc_id is not null and order_id is null and operation =
+  // 'sandbox') or (order_id is not null and poc_id is null and operation <>
+  // 'sandbox')` -- which is what makes this case expression and the coalesce()
+  // below agree, and what the emitter writes as `pocId ? 'poc' : 'order'`. A
+  // literal 'order' would be wrong: a sandbox attempt would find nothing.
   return sql`
     select message.id::text as outbox_message_id,
            message.topic,
            message.payload
     from public.lifecycle_provisioning_attempts attempt
     join public.audit_events event
-      on event.aggregate_id = coalesce(attempt.order_id, attempt.poc_id)
+      on event.aggregate_type
+           = case when attempt.order_id is not null then 'order' else 'poc' end
+     and event.aggregate_id = coalesce(attempt.order_id, attempt.poc_id)
      and event.event_type = 'order.provisioning_requested'
     join public.outbox_messages message on message.event_id = event.id
     where attempt.id = ${id}::uuid

@@ -79,12 +79,15 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "workspace-unit",
     "release-artifact-unit",
     "release-benchmark-unit",
+    "dependency-advisory-unit",
+    "schema-drift-unit",
     "demo-reset",
     "demo-reset-production-refusal",
   ]),
   integration: Object.freeze([
     "drizzle-check",
     "database-lint",
+    "schema-drift-applied",
     "populated-upgrade-and-pgtap",
     "workspace-integration",
   ]),
@@ -159,6 +162,8 @@ export function expectedReleaseCommands(name, serial) {
       ]),
       ["node", "--test", "scripts/release-artifacts.test.mjs"],
       ["node", "--test", "scripts/benchmark-release.test.mjs"],
+      ["node", "--test", "scripts/dependency-advisories.test.mjs"],
+      ["node", "--test", "scripts/check-schema-drift.test.mjs"],
       ["pnpm", "exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
       ["node", "scripts/verify-demo-reset-safety.mjs"],
     ],
@@ -178,6 +183,9 @@ export function expectedReleaseCommands(name, serial) {
         "--fail-on",
         "warning",
       ],
+      // Runs against the freshly reset database this shard already owns; it is
+      // the only shard with an applied schema to compare the model against.
+      ["pnpm", "check:schema-drift"],
       ["pnpm", "test:db:populated-upgrade"],
       turboCommand("test:integration", serial, [
         "--allowOnly=false",

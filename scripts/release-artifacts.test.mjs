@@ -447,7 +447,7 @@ test("accepts a complete passing release summary with one source identity", () =
   );
 });
 
-test("executes every declared assertion as its own release command", () => {
+test("executes every declared assertion as its own release command", async () => {
   for (const suite of RELEASE_SUITE_NAMES) {
     const assertions = RELEASE_SUITE_ASSERTIONS[suite];
     assert.equal(
@@ -461,14 +461,27 @@ test("executes every declared assertion as its own release command", () => {
       `${suite} declares a duplicate assertion name`,
     );
   }
+  // `pnpm test:unit` and the release `unit` shard are two separate lists of the
+  // same node --test files, and nothing used to hold them together: a test file
+  // added to the package script alone would never run in CI, which is how the
+  // dependency-advisory and schema-drift suites were nearly lost. Derive one
+  // from the other instead of restating it.
+  const manifest = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  const scriptedNodeTests = (
+    manifest.scripts["test:unit"].match(/scripts\/\S+\.test\.mjs/g) ?? []
+  ).map((file) => ["node", "--test", file]);
+  assert.ok(
+    scriptedNodeTests.length > 0,
+    "pnpm test:unit no longer names any node --test file; the parse is stale",
+  );
   assert.deepEqual(
     expectedReleaseCommands("unit", false).filter(
       (command) => command[0] === "node" && command[1] === "--test",
     ),
-    [
-      ["node", "--test", "scripts/release-artifacts.test.mjs"],
-      ["node", "--test", "scripts/benchmark-release.test.mjs"],
-    ],
+    scriptedNodeTests,
+    "the release unit shard and pnpm test:unit must run the same node --test files",
   );
   assert.ok(RELEASE_SUITE_ASSERTIONS.unit.includes("release-benchmark-unit"));
 });
