@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
 import { ProblemError } from "@clockwork/contracts";
-import { authorizationActor } from "@clockwork/domain";
+import { authorizationActor, unscopedInternalOnly } from "@clockwork/domain";
 import {
   assertExternalGateTransition,
   evaluateExternalGate,
@@ -741,7 +741,7 @@ export function registerExternalGateRoutes(
   administration: ExternalGateAdministrationServices = {},
 ): void {
   app.openapi(listRoute, async (context) => {
-    requirePermission(context, "system:operate");
+    requirePermission(context, "system:operate", unscopedInternalOnly);
     const request = context.get("requestContext");
     if (!service) unavailable(request.requestId);
     try {
@@ -761,7 +761,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(updateRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     if (!service) unavailable(request.requestId);
@@ -783,7 +787,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(activationTestRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     if (!service) unavailable(request.requestId);
@@ -839,7 +847,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(emergencyStateRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     if (!service) unavailable(request.requestId);
@@ -861,7 +873,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(activationTaskRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     if (!service) unavailable(request.requestId);
@@ -902,7 +918,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(exceptionRosterRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     const roster = administration.exceptionRoster;
@@ -930,7 +950,11 @@ export function registerExternalGateRoutes(
     }
   });
   app.openapi(exceptionCaseReassignmentRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     const roster = administration.exceptionRoster;

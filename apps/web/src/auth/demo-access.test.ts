@@ -114,8 +114,35 @@ describe("demo access routing", () => {
 
   it("follows same-site paths only", () => {
     expect(safeDemoReturnPath("/partner/portfolio")).toBe("/partner/portfolio");
+    expect(safeDemoReturnPath("/dashboard?tab=a&b=c%20d")).toBe(
+      "/dashboard?tab=a&b=c%20d",
+    );
+    expect(safeDemoReturnPath("/quotes/1#terms")).toBe("/quotes/1#terms");
     expect(safeDemoReturnPath("//evil.test/steal")).toBe("/");
     expect(safeDemoReturnPath("https://evil.test")).toBe("/");
+    expect(safeDemoReturnPath("evil.test")).toBe("/");
+    expect(safeDemoReturnPath("")).toBe("/");
     expect(safeDemoReturnPath(null)).toBe("/");
+    expect(safeDemoReturnPath(undefined)).toBe("/");
+  });
+
+  it("rejects every separator a browser normalises to an origin", () => {
+    // A relative Location is resolved with WHATWG rules: a backslash is a path
+    // separator, and tab, LF and CR are stripped before parsing. Asserting the
+    // resolved origin states the property the gate actually needs -- the visitor
+    // who just typed the shared demo password never leaves this site.
+    const origin = "https://demo.clockwork.test";
+    for (const value of [
+      "/\\evil.test/steal",
+      "/\\/evil.test",
+      "/\t/evil.test",
+      "/\n/evil.test",
+      "/\r/evil.test",
+      "//evil.test/steal",
+      "/\\\\evil.test",
+    ]) {
+      expect(safeDemoReturnPath(value)).toBe("/");
+      expect(new URL(safeDemoReturnPath(value), origin).origin).toBe(origin);
+    }
   });
 });

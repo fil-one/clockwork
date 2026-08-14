@@ -150,8 +150,19 @@ export function isDemoAccessExemptPath(pathname: string): boolean {
   );
 }
 
+/**
+ * The shape a same-site return path is allowed to have: one leading slash, a
+ * first character that is neither a slash nor a backslash, and nothing after it
+ * outside the RFC 3986 path, query and fragment characters. Naming what is
+ * permitted rather than what is forbidden is deliberate -- a blocklist of `//`
+ * misses every other separator a browser normalises (`\`, and tab, LF or CR,
+ * which are stripped before the URL is parsed), and each of those resolves a
+ * relative `location` to a foreign origin.
+ */
+const sameSitePath = /^\/(?![/\\])[A-Za-z0-9\-._~!$&'()*+,;=:@%/?#[\]]*$/u;
+
 /** Only a same-site path is ever followed after the gate opens. */
 export function safeDemoReturnPath(value: string | null | undefined): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  if (typeof value !== "string" || !sameSitePath.test(value)) return "/";
   return value;
 }

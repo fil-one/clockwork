@@ -31,7 +31,11 @@ import {
   type AssistedSessionView,
 } from "@/src/features/internal-ops/assisted-session/repository";
 import { resolveWorkosIdentity } from "@clockwork/db";
-import { checkRecentAuth, withAuth } from "@workos-inc/authkit-nextjs";
+import {
+  checkRecentAuth,
+  getTokenClaims,
+  withAuth,
+} from "@workos-inc/authkit-nextjs";
 import { cookies, headers } from "next/headers";
 
 import { getServiceDatabase } from "@/src/db/service";
@@ -112,6 +116,51 @@ function assertPrivilegedMfa(
     throw new Error(
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
+}
+
+/**
+ * Whether THIS session presented a second factor. The organization allow-list
+ * answers whether a factor policy is configured, and the identity's enrolment
+ * flag answers whether the user could present a factor; neither is evidence
+ * that one was presented, so the assurance claim on the access token decides
+ * and the list is only allowed to narrow it further.
+ *
+ * The installed AuthKit (4.3.1) types no assurance claim -- `AccessToken`
+ * carries sub, sid, org_id, role(s), permissions, entitlements and feature
+ * flags and nothing else -- so the claim is read the way AuthKit reads its own
+ * undeclared `auth_time` for `checkRecentAuth`: through `getTokenClaims`. Which
+ * claim carries it and which values count is a property of the WorkOS
+ * environment, so both are configuration; anything unrecognised, absent or
+ * misshapen is not a second factor.
+ */
+async function sessionAssuranceVerified(
+  accessToken: string | undefined,
+): Promise<boolean> {
+  const claimName = process.env.WORKOS_MFA_ASSURANCE_CLAIM?.trim() || "amr";
+  const accepted = (
+    process.env.WORKOS_MFA_ASSURANCE_VALUES ?? "mfa,mca,totp,otp"
+  )
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (!accessToken || accepted.length === 0) return false;
+  // `getTokenClaims` decodes without verifying the signature, which is only
+  // safe because this token comes from the sealed session cookie `withAuth`
+  // has already validated -- never from a request-supplied token.
+  const claims = await getTokenClaims<Record<string, unknown>>(
+    accessToken,
+  ).catch(() => undefined);
+  const presented = claims?.[claimName];
+  const values = Array.isArray(presented)
+    ? presented
+    : typeof presented === "string"
+      ? [presented]
+      : [];
+  return values.some(
+    (value) =>
+      typeof value === "string" &&
+      accepted.includes(value.trim().toLowerCase()),
+  );
 }
 
 function cookieValue(header: string | null, name: string): string | undefined {
@@ -416,9 +465,14 @@ export async function getCommerceSession(): Promise<CommerceSession> {
         ({ workosOrganizationId }) => workosOrganizationId,
       )
     : [session.organizationId];
-  const mfaVerified = assuranceOrganizations.some((organizationId) =>
-    policyOrganizations.includes(organizationId),
-  );
+  // Assurance first, policy second: an organization added to the variable
+  // before its factor policy exists, or one whose policy is later relaxed,
+  // cannot make a single-factor session read as verified.
+  const mfaVerified =
+    (await sessionAssuranceVerified(session.accessToken)) &&
+    assuranceOrganizations.some((organizationId) =>
+      policyOrganizations.includes(organizationId),
+    );
   assertPrivilegedMfa(normalizedRoles, mfaVerified);
   const recentAuthentication = await checkRecentAuth({ maxAge: 300 });
   const accountIds = activeAssistedSession

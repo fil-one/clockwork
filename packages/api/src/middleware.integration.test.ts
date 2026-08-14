@@ -1,4 +1,4 @@
-import { ProblemError } from "@clockwork/contracts";
+import { ids, ProblemError } from "@clockwork/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 
@@ -197,6 +197,23 @@ describe("idempotency middleware", () => {
     let executions = 0;
     const app = problemResponseApp();
     app.use("*", requestContextMiddleware);
+    // Replay is a property of an identified principal: an anonymous caller is
+    // never handed a recorded body. See middleware/idempotency.test.ts for the
+    // unauthenticated cases.
+    app.use("*", async (context, next) => {
+      context.set("requestContext", {
+        ...context.get("requestContext"),
+        authorization: {
+          userId: ids.user.parse("30000000-0000-4000-8000-000000000009"),
+          accountIds: [],
+          roles: ["owner"],
+          isInternalStaff: false,
+          mfaVerified: true,
+          recentAuthenticationVerified: true,
+        },
+      });
+      await next();
+    });
     app.use("*", idempotencyMiddleware(store));
     app.post("/mutate", (context) => {
       executions += 1;

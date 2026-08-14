@@ -12,6 +12,7 @@ import {
 import {
   authorizationActor,
   authorize,
+  unscopedInternalOnly,
   type AuthorizationContext,
 } from "@clockwork/domain";
 
@@ -725,7 +726,7 @@ export class DatabaseSystemRecoveryCommandExecutor {
         retryable: false,
       };
     try {
-      authorize(authorization, "system:operate");
+      authorize(authorization, "system:operate", unscopedInternalOnly);
     } catch {
       return {
         ok: false,

@@ -708,6 +708,17 @@ export class DatabaseLifecycleCommandRepository {
       };
     if (!readCommand(input.command) && !input.context.idempotencyKey)
       throw new Error("LIFECYCLE_IDEMPOTENCY_KEY_REQUIRED");
+    // Migration start reaches out to the legacy source system before any row
+    // policy can intervene, so deny a non-staff caller before a transaction is
+    // opened rather than letting the staff test below merely pick a different
+    // one. Scoped to this command on purpose: other staffServiceCommand entries
+    // (open_exception, decide_exception) are deliberately account-scoped tenant
+    // flows and must keep falling through.
+    if (
+      input.command === "start_migration" &&
+      !requireAuthorization(input.context).isInternalStaff
+    )
+      throw new Error("MIGRATION_INTERNAL_STAFF_REQUIRED");
     if (providerCommand(input.command)) {
       if (input.context.actor.kind !== "provider")
         throw new Error("PROVIDER_ACTOR_REQUIRED");
@@ -4516,8 +4527,13 @@ export class DatabaseLifecycleCommandRepository {
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
   ) {
+    // Asserted again here, unconditionally ahead of `sourcePort.load` below:
+    // the command router and the route both deny a non-staff caller, and this
+    // is the layer that guarantees no outbound request reaches the legacy
+    // source on a caller the row policy would have rejected afterwards.
+    if (!requireRecentAuthentication(context).isInternalStaff)
+      throw new Error("MIGRATION_INTERNAL_STAFF_REQUIRED");
     const payload = startMigrationPayloadSchema.parse(raw);
-    requireRecentAuthentication(context);
     if (payload.resumeRunId) {
       const existing = await transaction.query.lifecycleMigrationRuns.findFirst(
         {

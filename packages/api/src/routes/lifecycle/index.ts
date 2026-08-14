@@ -8,7 +8,12 @@ import {
   MarketplaceEventPayloadSchema,
   ProblemError,
 } from "@clockwork/contracts";
-import { authorizationActor } from "@clockwork/domain";
+import {
+  authorizationActor,
+  unscopedBecause,
+  unscopedInternalOnly,
+  unscopedInternalStaff,
+} from "@clockwork/domain";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
@@ -1205,7 +1210,7 @@ export function registerLifecycleRoutes(
   });
 
   app.openapi(agreementTemplateRoute, async (context) => {
-    requirePermission(context, "agreement:approve");
+    requirePermission(context, "agreement:approve", unscopedInternalOnly);
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     return context.json(
@@ -1224,7 +1229,15 @@ export function registerLifecycleRoutes(
         { title: "Agreement template evidence is not configured", status: 503 },
         503,
       );
-    const authorization = requirePermission(context, "agreement:read");
+    // The published template catalogue has no account column: the rows this
+    // returns are approved, effective, jurisdiction-keyed legal text that every
+    // tenant executes against, so there is no account to name. The decision
+    // says that out loud rather than arriving here with a missing argument.
+    const authorization = requirePermission(
+      context,
+      "agreement:read",
+      unscopedBecause("global-agreement-template-catalog"),
+    );
     const request = context.get("requestContext");
     const query = context.req.valid("query");
     return context.json(
@@ -1630,7 +1643,7 @@ export function registerLifecycleRoutes(
   });
 
   app.openapi(provisioningRecoveryRoute, async (context) => {
-    requirePermission(context, "system:operate");
+    requirePermission(context, "system:operate", unscopedInternalOnly);
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     return context.json(
@@ -1684,7 +1697,11 @@ export function registerLifecycleRoutes(
     requirePermission(
       context,
       "report:read",
-      query.accountId ? ids.account.parse(query.accountId) : undefined,
+      query.accountId
+        ? ids.account.parse(query.accountId)
+        : unscopedBecause(
+            "renewal-command-center-restricted-to-session-accounts",
+          ),
     );
     const request = context.get("requestContext");
     return context.json(
@@ -1770,7 +1787,7 @@ export function registerLifecycleRoutes(
   });
 
   app.openapi(terminationApprovalRoute, async (context) => {
-    requirePermission(context, "destructive:approve");
+    requirePermission(context, "destructive:approve", unscopedInternalOnly);
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     return context.json(
@@ -1796,7 +1813,9 @@ export function registerLifecycleRoutes(
     const authorization = requirePermission(
       context,
       queuePermission[scope.queue],
-      scope.accountId ? ids.account.parse(scope.accountId) : undefined,
+      scope.accountId
+        ? ids.account.parse(scope.accountId)
+        : unscopedInternalStaff,
     );
     if (!scope.accountId && !authorization.isInternalStaff)
       throw new ProblemError({
@@ -1840,7 +1859,9 @@ export function registerLifecycleRoutes(
     const authorization = requirePermission(
       context,
       queuePermission[body.queue],
-      body.accountId ? ids.account.parse(body.accountId) : undefined,
+      body.accountId
+        ? ids.account.parse(body.accountId)
+        : unscopedInternalStaff,
     );
     if (!body.accountId && !authorization.isInternalStaff)
       throw new ProblemError({
@@ -1878,9 +1899,26 @@ export function registerLifecycleRoutes(
   });
 
   app.openapi(migrationRoute, async (context) => {
-    requirePermission(context, "destructive:request");
-    requireRecentAuthentication(context);
     const request = context.get("requestContext");
+    const authorization = requirePermission(
+      context,
+      "migration:execute",
+      unscopedInternalOnly,
+    );
+    requireRecentAuthentication(context);
+    // `migration:execute` is granted to internal_operator alone, but the staff
+    // assertion stays explicit: this route drives an authenticated request into
+    // the legacy source system, and the finding here was that every layer
+    // assumed a different layer had already checked.
+    if (!authorization.isInternalStaff)
+      throw new ProblemError({
+        type: "https://clockwork.test/problems/authorization",
+        title: "Internal staff required",
+        status: 403,
+        code: "INTERNAL_STAFF_REQUIRED",
+        requestId: request.requestId,
+        retryable: false,
+      });
     return context.json(
       await serviceOrThrow(dependencies, request).startMigration(
         context.req.valid("json"),
@@ -1891,7 +1929,7 @@ export function registerLifecycleRoutes(
   });
 
   app.openapi(migrationMatchDecisionRoute, async (context) => {
-    requirePermission(context, "destructive:approve");
+    requirePermission(context, "destructive:approve", unscopedInternalOnly);
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     return context.json(

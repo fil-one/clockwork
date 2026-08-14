@@ -1,6 +1,11 @@
 import type { Permission, WebhookVerifier } from "@clockwork/contracts";
 import { ids, ProblemError } from "@clockwork/contracts";
-import { authorizationActor } from "@clockwork/domain";
+import {
+  authorizationActor,
+  unscopedBecause,
+  unscopedInternalOnly,
+  unscopedInternalStaff,
+} from "@clockwork/domain";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
@@ -582,8 +587,13 @@ export function registerCoreRoutes(
       partnerAuthorizationAccount?.success
         ? ids.account.parse(partnerAuthorizationAccount.data)
         : partnerActor && resource === "orders"
-          ? undefined
-          : accountId,
+          ? unscopedBecause(
+              "partner-order-acceptance-derives-account-from-issued-quote",
+            )
+          : // `accountId` is only absent for internal staff -- the guard above
+            // already refused a tenant with no account on the body -- and the
+            // control re-checks that rather than trusting the guard.
+            (accountId ?? unscopedInternalStaff),
     );
     if (recentAuthenticationActions.has(`${resource}:${body.action}`))
       requireRecentAuthentication(context);
@@ -617,7 +627,9 @@ export function registerCoreRoutes(
     const authorization = requirePermission(
       context,
       readPermissionByResource[resource],
-      query.accountId ? ids.account.parse(query.accountId) : undefined,
+      query.accountId
+        ? ids.account.parse(query.accountId)
+        : unscopedInternalStaff,
     );
     if (!authorization.isInternalStaff && !query.accountId)
       throw new ProblemError({
@@ -645,7 +657,11 @@ export function registerCoreRoutes(
   });
 
   app.openapi(replayRoute, async (context) => {
-    const authorization = requirePermission(context, "system:operate");
+    const authorization = requirePermission(
+      context,
+      "system:operate",
+      unscopedInternalOnly,
+    );
     requireRecentAuthentication(context);
     const params = context.req.valid("param");
     try {
@@ -668,7 +684,9 @@ export function registerCoreRoutes(
     const authorization = requirePermission(
       context,
       "report:read",
-      query.accountId ? ids.account.parse(query.accountId) : undefined,
+      query.accountId
+        ? ids.account.parse(query.accountId)
+        : unscopedInternalStaff,
     );
     if (!authorization.isInternalStaff && !query.accountId)
       throw new ProblemError({
@@ -830,7 +848,12 @@ export function registerCoreRoutes(
     const authorization = requirePermission(
       context,
       permission,
-      query.accountId ? ids.account.parse(query.accountId) : undefined,
+      // Only `agreement_template` reaches here without an account filter --
+      // the guard above refuses every other kind -- and that artifact is the
+      // published catalogue document, which carries no account.
+      query.accountId
+        ? ids.account.parse(query.accountId)
+        : unscopedBecause("global-agreement-template-catalog"),
     );
     const artifact = await adapter.read({
       artifactKind: params.kind,
