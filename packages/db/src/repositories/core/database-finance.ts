@@ -65,8 +65,6 @@ import {
   refunds,
   reportExports,
   usageEvents,
-  webhookEvents,
-  workflowRuns,
 } from "../../schema";
 import {
   accountCommercialProfiles,
@@ -203,6 +201,36 @@ export class DatabaseCoreError extends Error {
     message: string,
   ) {
     super(message);
+  }
+}
+
+/**
+ * Identifier a webhook replay would have to enqueue under, one per provider.
+ * Exported so the test that guards the refusal below and any future task
+ * registration derive the string from the same place.
+ */
+export function webhookReplayTaskIdentifier(provider: string): string {
+  return `webhook-replay:${provider}`;
+}
+
+/**
+ * Raised when an operator asks for a webhook replay. No durable task is
+ * registered under the identifier a replay would enqueue, so the command
+ * refuses instead of reporting a success that nothing acts on.
+ *
+ * It is a DatabaseCoreError so that every consumer already treats it as a
+ * failure: the API surface renders INVALID_STATE as a non-retryable 422 whose
+ * detail names the missing identifier, and the operator server action reports
+ * `ok: false`. When the task is registered, delete this and restore the
+ * enqueue -- the accompanying test fails until you do.
+ */
+export class WebhookReplayTaskNotRegisteredError extends DatabaseCoreError {
+  public constructor(public readonly taskIdentifier: string) {
+    super(
+      "INVALID_STATE",
+      `Webhook replay is unavailable: no durable task is registered under "${taskIdentifier}", so a replay would clear the processed marker on the inbox row and enqueue nothing. The inbox row was left untouched. Register the task in @clockwork/workflows before enabling this command`,
+    );
+    this.name = "WebhookReplayTaskNotRegisteredError";
   }
 }
 
@@ -1645,8 +1673,16 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     // connection alone and there is no ownership for a row policy to check.
     // Finance authority, the two-authority record, and the pricing guardrails
     // carry the authorization instead, every one of them before any write.
+    // The internal branch therefore runs on the service pool. `database` is the
+    // tenant-facing runtime pool: it authenticates as clockwork_runtime, which
+    // is not a member of clockwork_service, so opening an internal transaction
+    // on it raises SQLSTATE 42501 rather than escalating.
     return input.resource === "commitments" || input.resource === "price_books"
-      ? withInternalTransaction(this.options.database, input.requestId, run)
+      ? withInternalTransaction(
+          this.options.pricingDatabase,
+          input.requestId,
+          run,
+        )
       : withAuthorizedTransaction(
           this.options.database,
           authorization(input),
@@ -5350,74 +5386,23 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     actor: Actor;
     requestId: string;
   }): Promise<{ replayed: boolean; workflowRunId: string }> {
-    return withInternalTransaction(
-      this.options.pricingDatabase,
-      input.requestId,
-      async (transaction) => {
-        const event = await transaction.query.webhookEvents.findFirst({
-          where: and(
-            eq(webhookEvents.provider, input.provider),
-            eq(webhookEvents.providerEventId, input.eventId),
-          ),
-        });
-        if (!event)
-          throw new CoreServiceError(
-            "NOT_FOUND",
-            "Verified provider event was not found",
-          );
-        const taskIdentifier = `webhook-replay:${input.provider}`;
-        const prior = await transaction.query.workflowRuns.findFirst({
-          where: and(
-            eq(workflowRuns.taskIdentifier, taskIdentifier),
-            eq(workflowRuns.idempotencyKey, event.id),
-          ),
-        });
-        if (prior && (prior.status === "pending" || prior.status === "running"))
-          return { replayed: false, workflowRunId: prior.id };
-        await transaction
-          .update(webhookEvents)
-          .set({
-            processedAt: null,
-            processingError: null,
-            lockedUntil: new Date(),
-          })
-          .where(eq(webhookEvents.id, event.id));
-        const replayInput = {
-          provider: input.provider,
-          providerEventId: input.eventId,
-          webhookEventId: event.id,
-          requestedBy: input.actor,
-          requestId: input.requestId,
-        };
-        if (prior) {
-          const [run] = await transaction
-            .update(workflowRuns)
-            .set({
-              status: "pending",
-              input: replayInput,
-              output: null,
-              lastError: null,
-              updatedAt: new Date(),
-            })
-            .where(eq(workflowRuns.id, prior.id))
-            .returning({ id: workflowRuns.id });
-          if (!run) throw new Error("Replay workflow update returned no row");
-          return { replayed: true, workflowRunId: run.id };
-        }
-        const [run] = await transaction
-          .insert(workflowRuns)
-          .values({
-            taskIdentifier,
-            idempotencyKey: event.id,
-            aggregateType: "webhook_event",
-            aggregateId: event.id,
-            status: "pending",
-            input: replayInput,
-          })
-          .returning({ id: workflowRuns.id });
-        if (!run) throw new Error("Replay workflow insert returned no row");
-        return { replayed: true, workflowRunId: run.id };
-      },
+    // FAIL CLOSED. A replay is only a replay if something re-processes the
+    // stored bytes. No durable task is registered under this identifier --
+    // packages/workflows/src/trigger/discovery.ts imports thirteen production
+    // task modules and none declares it, and the only readers of workflow_runs
+    // filter on identifiers that exclude it. Enqueuing the row anyway reported
+    // success while nothing ran, and clearing processed_at/processing_error on
+    // the inbox row destroyed the dedupe guard, so a provider redelivery of the
+    // same event was claimed instead of rejected and the projection re-entered.
+    //
+    // The repair is to register the task in @clockwork/workflows and then
+    // restore the enqueue here. Until that exists the command refuses and
+    // touches nothing: the refusal is raised before any transaction is opened,
+    // so the inbox row is not mutated on this path.
+    return Promise.reject(
+      new WebhookReplayTaskNotRegisteredError(
+        webhookReplayTaskIdentifier(input.provider),
+      ),
     );
   }
 }

@@ -38,6 +38,12 @@ export const permissions = [
   "impersonation:assume",
   "destructive:request",
   "destructive:approve",
+  // `destructive:request` means "a party to this account may ask for a
+  // destructive thing to be done to their own account", and every other route
+  // holding it is account-scoped. Starting a migration is a platform operation
+  // against a third-party legacy system with no account scope at all, so it
+  // gets its own permission rather than borrowing a tenant one.
+  "migration:execute",
 ] as const;
 
 export const PermissionSchema = z.enum(permissions);
@@ -123,6 +129,7 @@ export const rolePermissions = {
     "system:operate",
     "impersonation:assume",
     "destructive:request",
+    "migration:execute",
   ],
   finance_approver: [
     "account:read",

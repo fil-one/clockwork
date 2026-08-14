@@ -31,6 +31,7 @@ import {
   HttpMigrationSnapshotSource,
   MarketplaceWebhookVerifier,
   NormalizedStripeFinancialWebhookVerifier,
+  ProviderScopedWebhookVerifier,
   ProvisioningWebhookVerifier,
   S3ImmutableArtifactReader,
   SupportWebhookVerifier,
@@ -112,11 +113,30 @@ const esignSigningOrigins = configuredEnvironment("ESIGN_SIGNING_ORIGINS")
 const provisioningWebhookSecret = configuredEnvironment(
   "PROVISIONING_WEBHOOK_SECRET",
 );
-const marketplaceWebhookSecret = configuredEnvironment(
-  "MARKETPLACE_WEBHOOK_SECRET",
+// Every marketplace and every support provider signs with its own secret. A
+// single shared key would let any one integration sign for another provider's
+// resources, so a provider without its own configured secret is not wired up at
+// all and its deliveries are denied rather than falling back to a shared key.
+const marketplaceWebhookSecrets = new Map(
+  (["aws", "azure", "google"] as const).flatMap((marketplace) => {
+    const secret = configuredEnvironment(
+      `MARKETPLACE_WEBHOOK_SECRET_${marketplace.toUpperCase()}`,
+    );
+    return secret ? [[marketplace, secret] as const] : [];
+  }),
 );
-const supportProvider = configuredEnvironment("SUPPORT_PROVIDER");
-const supportWebhookSecret = configuredEnvironment("SUPPORT_WEBHOOK_SECRET");
+const supportWebhookSecrets = new Map(
+  (configuredEnvironment("SUPPORT_PROVIDERS")?.split(",") ?? []).flatMap(
+    (entry) => {
+      const provider = entry.trim();
+      if (!provider) return [];
+      const secret = configuredEnvironment(
+        `SUPPORT_WEBHOOK_SECRET_${provider.toUpperCase().replaceAll("-", "_")}`,
+      );
+      return secret ? [[provider, secret] as const] : [];
+    },
+  ),
+);
 const migrationSourceBaseUrl = configuredEnvironment(
   "MIGRATION_SOURCE_BASE_URL",
 );
@@ -382,14 +402,22 @@ const provisioningWebhook =
 const marketplaceWebhook =
   serviceDatabase &&
   webhookDeduplicator &&
-  marketplaceWebhookSecret &&
+  marketplaceWebhookSecrets.size > 0 &&
   externalGateGuard
     ? {
         verifier: new GateCheckedWebhookVerifier(
-          new MarketplaceWebhookVerifier(
-            marketplaceWebhookSecret,
-            new DatabaseMarketplaceWebhookBindingStore(
-              new DatabaseProviderResourceBindingStore(serviceDatabase),
+          new ProviderScopedWebhookVerifier(
+            "marketplace",
+            new Map(
+              [...marketplaceWebhookSecrets].map(([marketplace, secret]) => [
+                marketplace,
+                new MarketplaceWebhookVerifier(
+                  secret,
+                  new DatabaseMarketplaceWebhookBindingStore(
+                    new DatabaseProviderResourceBindingStore(serviceDatabase),
+                  ),
+                ),
+              ]),
             ),
           ),
           externalGateGuard,
@@ -401,16 +429,23 @@ const marketplaceWebhook =
 const supportWebhook =
   serviceDatabase &&
   webhookDeduplicator &&
-  supportProvider &&
-  supportWebhookSecret &&
+  supportWebhookSecrets.size > 0 &&
   externalGateGuard
     ? {
         verifier: new GateCheckedWebhookVerifier(
-          new SupportWebhookVerifier(
-            supportProvider,
-            supportWebhookSecret,
-            new DatabaseSupportWebhookBindingStore(
-              new DatabaseProviderResourceBindingStore(serviceDatabase),
+          new ProviderScopedWebhookVerifier(
+            "provider",
+            new Map(
+              [...supportWebhookSecrets].map(([provider, secret]) => [
+                provider,
+                new SupportWebhookVerifier(
+                  provider,
+                  secret,
+                  new DatabaseSupportWebhookBindingStore(
+                    new DatabaseProviderResourceBindingStore(serviceDatabase),
+                  ),
+                ),
+              ]),
             ),
           ),
           externalGateGuard,

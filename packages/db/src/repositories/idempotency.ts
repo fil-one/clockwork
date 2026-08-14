@@ -112,3 +112,35 @@ export async function completeIdempotencyKey(
   if (updated.length !== 1)
     throw new Error("Stale idempotency lease cannot complete a response");
 }
+
+/**
+ * Abandon a claim without recording an outcome, so the same key and the same
+ * request bytes are immediately retryable. The row is kept rather than deleted:
+ * it is what makes a *different* body under the same key still conflict, so
+ * releasing cannot be used to launder a changed payload. Expiring the lock is
+ * enough because `claimIdempotencyKey` already re-claims a row whose lock has
+ * lapsed.
+ */
+export async function releaseIdempotencyKey(
+  transaction: RuntimeTransaction,
+  identity: {
+    scope: string;
+    key: string;
+    requestHash: string;
+    lockToken: string;
+  },
+  now: Date = new Date(),
+): Promise<void> {
+  await transaction
+    .update(idempotencyRecords)
+    .set({ lockedUntil: new Date(now.getTime() - 1000) })
+    .where(
+      and(
+        eq(idempotencyRecords.scope, identity.scope),
+        eq(idempotencyRecords.key, identity.key),
+        eq(idempotencyRecords.requestHash, identity.requestHash),
+        eq(idempotencyRecords.lockToken, identity.lockToken),
+        isNull(idempotencyRecords.completedAt),
+      ),
+    );
+}

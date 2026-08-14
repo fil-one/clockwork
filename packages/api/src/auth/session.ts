@@ -26,12 +26,47 @@ export interface SessionResolver {
   resolve(request: Request): Promise<SessionClaims | null>;
 }
 
+const localSessionEnvironments = ["development", "test"] as const;
+
+const productionEnvironmentKeys = [
+  "VERCEL_ENV",
+  "CLOCKWORK_ENV",
+  "DEPLOYMENT_ENVIRONMENT",
+  "ENVIRONMENT",
+] as const;
+
+/**
+ * NODE_ENV is read as an allow-list of runtimes a header-synthesised identity
+ * may exist in, not as a blocklist of the single value "production": unset,
+ * "staging" and "preview" now read as somewhere real. The public runtime marker
+ * and the deployment-environment markers a host may set instead are two further
+ * independent signals, matching how the web app decides its demo affordance.
+ * `@clockwork/testing` owns the same key list but is not a dependency of this
+ * package, so the keys are named here.
+ */
+function localSessionEnvironmentEnabled(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return (
+    (localSessionEnvironments as readonly string[]).includes(
+      environment.NODE_ENV?.trim().toLowerCase() ?? "",
+    ) &&
+    environment.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV?.trim().toLowerCase() !==
+      "production" &&
+    !productionEnvironmentKeys.some(
+      (key) => environment[key]?.trim().toLowerCase() === "production",
+    )
+  );
+}
+
 export class LocalSessionResolver implements SessionResolver {
   public resolve(request: Request): Promise<SessionClaims | null> {
-    if (process.env.NODE_ENV === "production") return Promise.resolve(null);
-    const persona =
-      request.headers.get("x-clockwork-persona") ?? "internal_operator";
-    const parsedRole = RoleSchema.safeParse(persona);
+    if (!localSessionEnvironmentEnabled()) return Promise.resolve(null);
+    // An absent persona header is as unknown as an unparseable one, so both
+    // resolve to the least privileged role rather than to an internal operator.
+    const parsedRole = RoleSchema.safeParse(
+      request.headers.get("x-clockwork-persona"),
+    );
     const role = parsedRole.success ? parsedRole.data : "member";
     const internal =
       role.startsWith("internal_") ||

@@ -5,6 +5,7 @@ import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state"
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
   checkRecentAuth: vi.fn(),
+  getTokenClaims: vi.fn(),
   listAuthorizedMemberships: vi.fn(),
   listAuthorizedMembershipsForUser: vi.fn(),
   resolveAssistedSession: vi.fn(),
@@ -16,6 +17,7 @@ const authMocks = vi.hoisted(() => ({
 
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   checkRecentAuth: authMocks.checkRecentAuth,
+  getTokenClaims: authMocks.getTokenClaims,
   withAuth: authMocks.withAuth,
 }));
 
@@ -90,6 +92,7 @@ function workosSession(email = "owner@customer.example") {
     sessionId: fixture.sessionId,
     organizationId: fixture.workosOrganizationId,
     user: { id: fixture.workosUserId, email },
+    accessToken: "access-token-deterministic-001",
   };
 }
 
@@ -145,6 +148,7 @@ describe("WorkOS commerce session mapping", () => {
     authMocks.resolveWorkosIdentity.mockResolvedValue(commerceIdentity());
     authMocks.listAuthorizedMemberships.mockResolvedValue([membership()]);
     authMocks.checkRecentAuth.mockResolvedValue({ isStale: false });
+    authMocks.getTokenClaims.mockResolvedValue({ amr: ["pwd", "mfa"] });
   });
 
   afterEach(() => {
@@ -389,6 +393,80 @@ describe("WorkOS commerce session mapping", () => {
     await expect(getCommerceSession()).rejects.toThrow(
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
+  });
+
+  it("reads the second factor from the session token, not the organization list", async () => {
+    const session = await getCommerceSession();
+
+    expect(authMocks.getTokenClaims).toHaveBeenCalledWith(
+      "access-token-deterministic-001",
+    );
+    expect(session.mfaVerified).toBe(true);
+  });
+
+  it.each([
+    ["the claim is absent", {}],
+    ["the claim is null", { amr: null }],
+    ["the claim is a number", { amr: 2 }],
+    ["the claim is an object", { amr: { mfa: true } }],
+    ["the claim is an empty list", { amr: [] }],
+    ["only a first factor was presented", { amr: ["pwd"] }],
+    ["the claim holds non-string members", { amr: [{ method: "mfa" }] }],
+  ])(
+    "denies a privileged role when %s, however the organization is configured",
+    async (_case, claims) => {
+      // The organization is in WORKOS_MFA_POLICY_ORGANIZATION_IDS throughout,
+      // which is exactly the state that used to authorize a single-factor
+      // session for every owner, admin and approver in it.
+      authMocks.getTokenClaims.mockResolvedValue(claims);
+
+      await expect(getCommerceSession()).rejects.toThrow(
+        "Privileged commerce roles require an MFA-policy-enforced session",
+      );
+    },
+  );
+
+  it("denies a privileged role when the assurance claim cannot be read", async () => {
+    authMocks.getTokenClaims.mockRejectedValue(new Error("malformed token"));
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+  });
+
+  it("reads the assurance claim and its accepted values from configuration", async () => {
+    vi.stubEnv("WORKOS_MFA_ASSURANCE_CLAIM", "acr");
+    vi.stubEnv("WORKOS_MFA_ASSURANCE_VALUES", "urn:workos:mfa");
+    authMocks.getTokenClaims.mockResolvedValue({
+      amr: ["mfa"],
+      acr: "urn:workos:mfa",
+    });
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      mfaVerified: true,
+    });
+
+    authMocks.getTokenClaims.mockResolvedValue({ amr: ["mfa"] });
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+  });
+
+  it("keeps a non-privileged role signed in without claiming a second factor", async () => {
+    vi.stubEnv("WORKOS_MFA_POLICY_ORGANIZATION_IDS", "org_other");
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "member" }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      membership({ role: "member" }),
+    ]);
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      roles: ["member"],
+      mfaVerified: false,
+    });
   });
 
   it("requires an explicitly selected organization", async () => {
