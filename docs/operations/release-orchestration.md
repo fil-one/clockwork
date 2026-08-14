@@ -5,14 +5,14 @@ only from a clean committed repository candidate
 
 ## Shards and budgets
 
-The release contract has six shards: `static`, `unit`, `integration`, `build`,
-`ui`, and `proof`. `pnpm release:parallel` runs them concurrently;
+The release contract has seven shards: `static`, `unit`, `integration`, `build`,
+`ui`, `demo`, and `proof`. `pnpm release:parallel` runs them concurrently;
 `pnpm release:serial` runs the identical commands in order; `pnpm release:debug`
 is the one-worker readable reproduction path. The 45-minute local and 30-minute
 CI clocks begin before disposable worktrees, dependency installation, database
 startup, migration, and seeding.
 
-CI assigns ports 32000–32005 explicitly. Each local shard receives a detached
+CI assigns ports 32000–32006 explicitly. Each local shard receives a detached
 worktree, unique app port, database schema name, queue namespace, fixture
 namespace, fixed clock, storage root, artifact root, and Next.js output
 directory. Integration and proof each start a different Supabase project with a

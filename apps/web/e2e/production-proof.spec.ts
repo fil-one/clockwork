@@ -999,10 +999,31 @@ test("@internal drives exception and replay-safe recovery with accessibility", a
     body: { code: "ASSISTED_SESSION_REQUIRED" },
   });
 
-  await page.goto("/internal/provisioning");
-  await expect(page.getByText("PRV-PROOF-0001")).toBeVisible();
+  /*
+   * `/internal/provisioning` renders `lifecycle-data`, an in-repo fixture: it
+   * never calls `loadPortalRecords`, and no other surface reads the internal
+   * `provisioning` channel either, so PRV-PROOF-0001 could not appear there
+   * whatever the projection said. The durability this test exists to prove is
+   * asserted where an operator surface really does read the projection the
+   * chain just mutated — the queue workspace — and the recovery record itself
+   * is re-read through the API after the reload. Giving `provisioning` a
+   * projection-backed surface is a product change; see the backlog.
+   */
+  await page.goto("/internal/queues");
+  const recoveredQueueRow = page
+    .getByRole("row")
+    .filter({ hasText: "EXC-PROOF-0001" })
+    .first();
+  await expect(recoveredQueueRow).toBeVisible();
   await page.reload();
-  await expect(page.getByText("PRV-PROOF-0001")).toBeVisible();
+  await expect(recoveredQueueRow).toBeVisible();
+  const durableRecovery = await projection(
+    page,
+    "internal",
+    "provisioning",
+    "PRV-PROOF-0001",
+  );
+  expect(durableRecovery.id).toBe(recovery.id);
   await expectAxeClean(page);
   const durable = await expectDurableActions(
     "20000000-0000-4000-8000-000000000001",

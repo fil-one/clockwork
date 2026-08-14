@@ -242,9 +242,12 @@ pnpm verify:ui         # Storybook component tests and Playwright e2e
 pnpm verify            # all four, in order
 ```
 
-CI runs the same work as five parallel shards — `static`, `unit`, `integration`,
-`build`, and `ui` (the UI shard on macOS) — on every pull request and every push
-to `main`.
+CI runs the same work as seven parallel shards — `static`, `unit`,
+`integration`, `build`, `ui`, `demo`, and `proof` — on every pull request and
+every push to `main`. The `ui` and `demo` shards run on macOS, because both
+compare against the reviewed screenshot baselines. The shard list is the same
+list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
+`scripts/release-artifacts.test.mjs` fails if the workflow drifts from it.
 
 Testing is deterministic by construction: the clock is fixed at
 `2026-07-31T16:00:00Z`, demo identifiers and `.test` domains are stable, and

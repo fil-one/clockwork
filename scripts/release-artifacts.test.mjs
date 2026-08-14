@@ -1033,3 +1033,93 @@ test("rejects cleanup roots that could delete retained artifacts or the source w
     }).some((issue) => issue.includes("current run or shard")),
   );
 });
+
+/**
+ * The workflow matrix and `RELEASE_SUITE_NAMES` had drifted apart — the matrix
+ * was missing `demo`, so the join gate could never see the seventh summary it
+ * requires and the release gate failed with every shard green. Nothing read the
+ * workflow, so nothing caught it. These tests read it.
+ *
+ * The parse is a regex over the checked-in text rather than a YAML library on
+ * purpose: every script in `scripts/` imports `node:` builtins only, and no
+ * YAML parser is a direct dependency of this workspace. The shard-count
+ * assertion below is what keeps a reformat from making the parse vacuous.
+ */
+const checkedInWorkflow = await readFile(
+  new URL("../.github/workflows/ci.yml", import.meta.url),
+  "utf8",
+);
+const workflowShards = [
+  ...checkedInWorkflow.matchAll(
+    /-\s+shard:\s*(\S+)\s*\n\s*port:\s*(\d+)\s*\n\s*runner:\s*(\S+)/g,
+  ),
+].map(([, shard, port, runner]) => ({
+  shard,
+  port: Number.parseInt(port, 10),
+  runner,
+}));
+
+test("runs every release suite as its own CI shard, in order", () => {
+  assert.ok(
+    workflowShards.length > 0,
+    "parsed no shards out of .github/workflows/ci.yml",
+  );
+  assert.deepEqual(
+    workflowShards.map((entry) => entry.shard),
+    [...RELEASE_SUITE_NAMES],
+  );
+});
+
+test("gives every CI shard its own application port", () => {
+  const ports = workflowShards.map((entry) => entry.port);
+  assert.equal(new Set(ports).size, workflowShards.length);
+  for (const { shard, port } of workflowShards)
+    assert.ok(
+      Number.isInteger(port) && port >= 1024 && port <= 65_535,
+      `${shard} port ${port} is outside the safe unprivileged range`,
+    );
+  // Each shard runs one suite at index 0, so its port base is its only port.
+  // Reusing the orchestrator's own allocator keeps the check honest.
+  for (const { shard, port } of workflowShards)
+    assert.deepEqual(
+      releasePortAllocationIssues({
+        suiteNames: [shard],
+        portBase: port,
+        providerFakePortBase: 34_000,
+        databasePortBase: 56_000,
+      }),
+      [],
+    );
+});
+
+test("pins the CI shards to the macOS runner that owns the screenshot baselines", () => {
+  // `apps/web/playwright.config.ts` throws for either visual shard off Darwin.
+  const visual = new Set(["ui", "demo"]);
+  for (const { shard, runner } of workflowShards)
+    if (visual.has(shard)) assert.match(runner, /^macos-/);
+});
+
+test("raises the CI heap ceiling above the measured type-aware lint peak", () => {
+  // The static shard peaks at 3.66 GiB linting the whole workspace program,
+  // which aborts (SIGABRT, exit 134) against Node's default ~4 GiB old space
+  // on a runner with less headroom than a developer machine. Measured, not
+  // assumed: `NODE_OPTIONS=--max-old-space-size=3072 pnpm exec eslint .`
+  // reproduces the abort here.
+  const ceiling = checkedInWorkflow.match(/--max-old-space-size=(\d+)/);
+  assert.ok(ceiling, "the workflow sets no NODE_OPTIONS heap ceiling");
+  assert.ok(
+    Number.parseInt(ceiling[1], 10) >= 4096,
+    `heap ceiling ${ceiling[1]} MB is under the measured lint peak`,
+  );
+});
+
+test("pulls the database shard images from the mirrored registry", () => {
+  // The Supabase CLI defaults to public.ecr.aws, whose anonymous pull rate is
+  // shared across runners and answers "toomanyrequests: Rate exceeded". The
+  // ghcr.io mirror serves byte-identical manifests without a credential, so no
+  // repository secret is involved.
+  assert.match(
+    checkedInWorkflow,
+    /SUPABASE_INTERNAL_IMAGE_REGISTRY:\s*ghcr\.io/,
+  );
+});

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -111,6 +111,49 @@ describe("shell overlay dismissal", () => {
         screen.queryByRole("dialog", { name: "Navigation" }),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  /**
+   * The drawer closes inside the same click handler that starts the route
+   * transition, which unmounts the portal — and the link — while the
+   * transition is in flight. P0-34 reported that as the drawer navigating
+   * nowhere, so the order is pinned here: every drawer link hands its href to
+   * the router, and only then does the drawer close.
+   */
+  it("routes from every drawer link before the drawer closes", async () => {
+    const user = userEvent.setup();
+    renderShell();
+
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    const openDrawer = async () => {
+      await user.click(trigger);
+      return screen.findByRole("dialog", { name: "Navigation" });
+    };
+    const closed = () =>
+      waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", { name: "Navigation" }),
+        ).not.toBeInTheDocument(),
+      );
+
+    // The pathname is fixed for this render, so the destination order does not
+    // move between openings and an index is a stable handle on each link.
+    const hrefs = within(await openDrawer())
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("href") ?? "");
+    expect(hrefs.length).toBeGreaterThan(1);
+    await user.keyboard("{Escape}");
+    await closed();
+
+    for (const [index, href] of hrefs.entries()) {
+      const drawer = await openDrawer();
+      const link = within(drawer).getAllByRole("link")[index];
+      expect(link, `drawer link ${index} disappeared`).toBeDefined();
+      push.mockClear();
+      await user.click(link as HTMLElement);
+      expect(push).toHaveBeenCalledWith(href);
+      await closed();
+    }
   });
 
   it("closes the profile popover on Escape and returns focus to the trigger", async () => {

@@ -43,8 +43,8 @@ catalogs:
       specifier: 4.9.0
       version: 4.9.0
     hono:
-      specifier: 4.12.33
-      version: 4.12.33
+      specifier: 4.12.34
+      version: 4.12.34
     msw:
       specifier: 2.15.0
       version: 2.15.0
@@ -88,6 +88,8 @@ overrides:
   '@trigger.dev/core@4.5.9>@opentelemetry/sdk-trace-node': 2.10.0
   brace-expansion: 5.0.9
   engine.io@<6.6.7: 6.6.7
+  js-yaml@<4.3.1: 4.3.1
+  nanoid@<3.3.18: 3.3.18
   postcss@<8.5.17: 8.5.25
   sharp@<0.35.0: 0.35.0
   ws@<8.21.0: 8.21.0
@@ -199,7 +201,7 @@ importers:
         version: 0.45.2(@opentelemetry/api@1.9.1)(postgres@3.4.9)
       hono:
         specifier: 'catalog:'
-        version: 4.12.33
+        version: 4.12.34
       msw:
         specifier: 'catalog:'
         version: 2.15.0(@types/node@24.13.3)(typescript@5.9.3)
@@ -299,10 +301,10 @@ importers:
         version: link:../workflows
       '@hono/zod-openapi':
         specifier: 'catalog:'
-        version: 1.5.1(hono@4.12.33)(zod@4.4.3)
+        version: 1.5.1(hono@4.12.34)(zod@4.4.3)
       hono:
         specifier: 'catalog:'
-        version: 4.12.33
+        version: 4.12.34
       openapi-fetch:
         specifier: 0.17.0
         version: 0.17.0
@@ -4179,8 +4181,8 @@ packages:
   headers-polyfill@5.0.1:
     resolution: {integrity: sha512-1TJ6Fih/b8h5TIcv+1+Hw0PDQWJTKDKzFZzcKOiW1wJza3XoAQlkCuXLbymPYB8+ZQyw8mHvdw560e8zVFIWyA==}
 
-  hono@4.12.33:
-    resolution: {integrity: sha512-+SwvkaiJtxsiPjhy9LivY/1m7UsNqCJetM1BrZl9A5DkQhlbHQDU730mMiDPWjnoCYOM8Chf3WrCJw27kNTPFQ==}
+  hono@4.12.34:
+    resolution: {integrity: sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@9.0.3:
@@ -4448,10 +4450,6 @@ packages:
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
-
-  js-yaml@4.3.0:
-    resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
-    hasBin: true
 
   js-yaml@4.3.1:
     resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
@@ -4823,13 +4821,8 @@ packages:
     resolution: {integrity: sha512-dkEJPVvun4FryqBmZ5KhDo0K9iDXAwn08tMLDinNdRBNPcYEDiWYysLcc6k3mjTMlbP9KyylvRpd4wFtwrT9rw==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  nanoid@3.3.16:
-    resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@3.3.8:
-    resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
+  nanoid@3.3.18:
+    resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -6779,17 +6772,17 @@ snapshots:
 
   '@google-cloud/precise-date@4.0.0': {}
 
-  '@hono/zod-openapi@1.5.1(hono@4.12.33)(zod@4.4.3)':
+  '@hono/zod-openapi@1.5.1(hono@4.12.34)(zod@4.4.3)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.5.0(zod@4.4.3)
-      '@hono/zod-validator': 0.9.0(hono@4.12.33)(zod@4.4.3)
-      hono: 4.12.33
+      '@hono/zod-validator': 0.9.0(hono@4.12.34)(zod@4.4.3)
+      hono: 4.12.34
       openapi3-ts: 4.6.1
       zod: 4.4.3
 
-  '@hono/zod-validator@0.9.0(hono@4.12.33)(zod@4.4.3)':
+  '@hono/zod-validator@0.9.0(hono@4.12.34)(zod@4.4.3)':
     dependencies:
-      hono: 4.12.33
+      hono: 4.12.34
       zod: 4.4.3
 
   '@humanfs/core@0.19.2':
@@ -7764,7 +7757,7 @@ snapshots:
       colorette: 1.4.0
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
       js-levenshtein: 1.1.6
-      js-yaml: 4.3.0
+      js-yaml: 4.3.1
       minimatch: 5.1.9(patch_hash=31689c25c5cf29abb68023ff2294ec246877be59c81ee40749ca888a5a0dca45)
       pluralize: 8.0.0
       yaml-ast-parser: 0.0.43
@@ -8286,7 +8279,7 @@ snapshots:
       execa: 8.0.1
       humanize-duration: 3.34.0
       jose: 5.10.0
-      nanoid: 3.3.8
+      nanoid: 3.3.18
       prom-client: 15.1.3
       socket.io: 4.7.4
       socket.io-client: 4.7.5
@@ -9710,7 +9703,7 @@ snapshots:
       '@types/set-cookie-parser': 2.4.10
       set-cookie-parser: 3.1.2
 
-  hono@4.12.33: {}
+  hono@4.12.34: {}
 
   hosted-git-info@9.0.3:
     dependencies:
@@ -9958,10 +9951,6 @@ snapshots:
   js-md5@0.8.3: {}
 
   js-tokens@4.0.0: {}
-
-  js-yaml@4.3.0:
-    dependencies:
-      argparse: 2.0.1
 
   js-yaml@4.3.1:
     dependencies:
@@ -10269,9 +10258,7 @@ snapshots:
 
   mute-stream@3.0.0: {}
 
-  nanoid@3.3.16: {}
-
-  nanoid@3.3.8: {}
+  nanoid@3.3.18: {}
 
   napi-postinstall@0.3.4: {}
 
@@ -10545,7 +10532,7 @@ snapshots:
 
   postcss@8.5.25:
     dependencies:
-      nanoid: 3.3.16
+      nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
 

@@ -20,6 +20,25 @@ const ACCOUNT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "20000000-0000-4000-8000-000000000002";
 const AUDIT_EVENT_ID = "91390000-0000-4000-8000-000000000006";
 const OUTBOX_MESSAGE_ID = "91390000-0000-4000-8000-000000000007";
+// Measured on this migration against PRE_UPGRADE_VERSION: 001300 takes ACCESS
+// EXCLUSIVE on every relation it rewrites, including the hot commerce tables,
+// and never sets lock_timeout. Asserting the footprint keeps a later migration
+// from widening it silently.
+const LOCKED_COMMERCE_TABLES = [
+  "accounts",
+  "audit_events",
+  "invoices",
+  "orders",
+  "outbox_messages",
+  "payments",
+  "quotes",
+];
+const ACCESS_EXCLUSIVE_RELATIONS = 140;
+// pg_prove exits 0 when it finds nothing to run, so the drill floors what the
+// canonical suite must actually execute. Floors, not equalities, so adding a
+// pgTAP test does not fail the drill.
+const CANONICAL_PGTAP_FILES = 22;
+const CANONICAL_PGTAP_TESTS = 488;
 const migrationPath = path.resolve(
   "supabase/migrations/001300_release_integrity.sql",
 );
@@ -62,27 +81,27 @@ function reset(version) {
   process.stderr.write(result.stderr);
 }
 
-function psql(sql, { expectFailure = false, singleTransaction = false } = {}) {
-  const psqlArguments = [
-    "exec",
-    "-i",
-    DATABASE_CONTAINER,
-    "psql",
-    "-X",
-    "-A",
-    "-t",
-    "-q",
-  ];
-  if (singleTransaction) psqlArguments.push("-1");
-  psqlArguments.push(
-    "-U",
-    "postgres",
-    "-d",
-    "postgres",
-    "-v",
-    "ON_ERROR_STOP=1",
+function psql(sql, { expectFailure = false } = {}) {
+  const result = run(
+    "docker",
+    [
+      "exec",
+      "-i",
+      DATABASE_CONTAINER,
+      "psql",
+      "-X",
+      "-A",
+      "-t",
+      "-q",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+    ],
+    { input: sql },
   );
-  const result = run("docker", psqlArguments, { input: sql });
   if (!expectFailure && result.status !== 0) {
     throw new Error(
       `psql failed with exit ${result.status}\n${result.stdout ?? ""}${result.stderr ?? ""}`,
@@ -169,8 +188,41 @@ commit;
 `);
 }
 
+// A backend sees its own locks, so the footprint is read from inside the
+// migration's own transaction: no second session, no sleep, nothing to race.
+// psql -1 cannot do this because the transaction ends with the input, so the
+// transaction is opened explicitly instead and psql still rolls it back on a
+// failed statement under ON_ERROR_STOP.
+const lockFootprintSql = `
+select jsonb_build_object(
+  'lockTimeout', current_setting('lock_timeout'),
+  'accessExclusiveRelations', count(distinct held.relation) filter (
+    where held.mode = 'AccessExclusiveLock'
+  ),
+  'accessExclusiveCommerceTables', coalesce(
+    jsonb_agg(distinct locked.relname order by locked.relname) filter (
+      where held.mode = 'AccessExclusiveLock'
+        and locked.relname = any (array[${LOCKED_COMMERCE_TABLES.map((table) => `'${table}'`).join(", ")}])
+    ), '[]'::jsonb
+  )
+)
+from pg_locks held
+join pg_class locked on locked.oid = held.relation
+where held.pid = pg_backend_pid() and held.locktype = 'relation';
+`;
+
 function applyMigration({ expectFailure = false } = {}) {
-  return psql(migrationSql, { expectFailure, singleTransaction: true });
+  const result = psql(
+    `begin;\n${migrationSql}\n${lockFootprintSql}\ncommit;\n`,
+    {
+      expectFailure,
+    },
+  );
+  if (result.status !== 0) return { result };
+  const emitted = result.stdout
+    .split("\n")
+    .filter((line) => line.trim() !== "");
+  return { result, locks: JSON.parse(emitted.at(-1)) };
 }
 
 function queryJson(sql) {
@@ -178,6 +230,76 @@ function queryJson(sql) {
   const output = result.stdout.trim();
   assert.notEqual(output, "", "qualification query returned no rows");
   return JSON.parse(output);
+}
+
+// The drill only proves anything if the seed actually replayed against
+// PRE_UPGRADE_VERSION and stopped there. amount_paid_minor arrives in
+// 001340_invoice_partial_payments.sql, four migrations later, so its absence
+// names the schema under test out loud instead of trusting the reset.
+function assertPreUpgradeSchema() {
+  const state = queryJson(`
+select jsonb_build_object(
+  'appliedVersion', (select max(version) from supabase_migrations.schema_migrations),
+  'releaseMigrationRecorded', exists (
+    select 1 from supabase_migrations.schema_migrations where version = '001300'
+  ),
+  'partialPaymentColumnExists', exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'invoices'
+      and column_name = 'amount_paid_minor'
+  ),
+  'seededAccountCount', (select count(*) from public.accounts),
+  'seededInvoiceCount', (select count(*) from public.invoices)
+);
+`);
+  assert.deepEqual(
+    {
+      appliedVersion: state.appliedVersion,
+      releaseMigrationRecorded: state.releaseMigrationRecorded,
+      partialPaymentColumnExists: state.partialPaymentColumnExists,
+    },
+    {
+      appliedVersion: PRE_UPGRADE_VERSION,
+      releaseMigrationRecorded: false,
+      partialPaymentColumnExists: false,
+    },
+  );
+  assert.ok(
+    state.seededAccountCount > 0 && state.seededInvoiceCount > 0,
+    `populated upgrade needs a seeded database, saw ${JSON.stringify(state)}`,
+  );
+}
+
+// P0-39 claims this upgrade is safe on a populated database; elapsed wall-clock
+// on a seven-row fixture does not say that. Record what the transaction holds
+// so a widened blast radius has to be a deliberate edit here.
+function assertUpgradeLockFootprint(locks) {
+  assert.deepEqual(locks, {
+    lockTimeout: "0",
+    accessExclusiveRelations: ACCESS_EXCLUSIVE_RELATIONS,
+    accessExclusiveCommerceTables: LOCKED_COMMERCE_TABLES,
+  });
+}
+
+// pg_prove reports NOTESTS and exits 0 on an empty or unmounted tests
+// directory, which would otherwise be accepted as a passing stage.
+function assertCanonicalPgTap(output) {
+  const counts = output.match(/Files=(\d+),\s*Tests=(\d+)/);
+  assert.ok(counts, `pg_prove printed no Files=/Tests= summary\n${output}`);
+  const outcome = output.match(/^Result:\s*(\w+)/m);
+  assert.ok(outcome, `pg_prove printed no Result line\n${output}`);
+  assert.equal(outcome[1], "PASS", "canonical pgTAP suite did not report PASS");
+  const files = Number(counts[1]);
+  const tests = Number(counts[2]);
+  assert.ok(
+    files >= CANONICAL_PGTAP_FILES,
+    `canonical pgTAP ran ${files} files, expected at least ${CANONICAL_PGTAP_FILES}`,
+  );
+  assert.ok(
+    tests >= CANONICAL_PGTAP_TESTS,
+    `canonical pgTAP ran ${tests} assertions, expected at least ${CANONICAL_PGTAP_TESTS}`,
+  );
+  return { files, tests };
 }
 
 function assertMatchedUpgrade() {
@@ -399,16 +521,22 @@ try {
   databaseVerified = true;
 
   reset(PRE_UPGRADE_VERSION);
+  assertPreUpgradeSchema();
   loadLegacyFixture("2026-07-31 16:00:00.123+00");
-  applyMigration();
+  const { locks } = applyMigration();
+  assertUpgradeLockFootprint(locks);
   assertMatchedUpgrade();
   process.stdout.write(
     "P0-39 same-millisecond populated upgrade: passed (.123456 source vs .123 projection)\n",
   );
+  process.stdout.write(
+    `P0-39 upgrade lock footprint: ACCESS EXCLUSIVE on ${locks.accessExclusiveRelations} relations including ${locks.accessExclusiveCommerceTables.join(", ")}, lock_timeout=${locks.lockTimeout}\n`,
+  );
 
   reset(PRE_UPGRADE_VERSION);
+  assertPreUpgradeSchema();
   loadLegacyFixture("2026-07-31 16:00:00.124+00");
-  const failedMigration = applyMigration({ expectFailure: true });
+  const { result: failedMigration } = applyMigration({ expectFailure: true });
   assert.notEqual(
     failedMigration.status,
     0,
@@ -449,7 +577,10 @@ if (!qualificationError) {
       : requireSuccess("pnpm", ["db:test"]);
     process.stdout.write(pgTap.stdout);
     process.stderr.write(pgTap.stderr);
-    process.stdout.write("Canonical zero-reset pgTAP: passed\n");
+    const suite = assertCanonicalPgTap(`${pgTap.stdout}${pgTap.stderr}`);
+    process.stdout.write(
+      `Canonical zero-reset pgTAP: passed (${suite.files} files, ${suite.tests} assertions)\n`,
+    );
   } catch (error) {
     qualificationError = error;
   } finally {
