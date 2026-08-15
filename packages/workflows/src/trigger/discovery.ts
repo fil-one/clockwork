@@ -2,7 +2,11 @@ import { activateTriggerWorkerRuntime } from "../runtime/trigger-worker-bootstra
 
 export type TriggerTaskImporter = () => Promise<unknown>;
 
-const productionTaskImporters: readonly TriggerTaskImporter[] = [
+/**
+ * Exported so a test can drive the same modules production discovers rather
+ * than a second copy of the list.
+ */
+export const productionTaskImporters: readonly TriggerTaskImporter[] = [
   () => import("../core/tasks"),
   () => import("../core/scheduled-tasks"),
   () => import("../agreements/tasks"),

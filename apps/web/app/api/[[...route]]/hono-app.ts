@@ -14,6 +14,8 @@ import {
   DatabaseLifecycleCommandRepository,
   DatabasePersistedWorkflowExceptionRouting,
   DatabaseLifecycleAuthorizationScopeResolver,
+  DatabaseNotificationDeliveryRepository,
+  DatabaseNotificationPreferenceRepository,
   DatabaseMarketplaceWebhookBindingStore,
   DatabaseProviderResourceBindingStore,
   DatabaseProvisioningExpectationLookup,
@@ -237,6 +239,22 @@ const workosWebhook =
 const lifecycleAuthorizationScopes = serviceDatabase
   ? new DatabaseLifecycleAuthorizationScopeResolver(serviceDatabase)
   : undefined;
+// §18 lists `/notifications`. The read runs on the tenant pool so
+// `notification_delivery_read` is the account boundary.
+const notificationDeliveries =
+  runtimeDatabase && authorizationSecret
+    ? new DatabaseNotificationDeliveryRepository({
+        database: runtimeDatabase,
+        authorizationSecret,
+      })
+    : undefined;
+const notificationPreferences =
+  runtimeDatabase && authorizationSecret
+    ? new DatabaseNotificationPreferenceRepository({
+        database: runtimeDatabase,
+        authorizationSecret,
+      })
+    : undefined;
 // No tax engine, no Core finance surface. An absent EXT-TAX-01 provider used to
 // mean every invoice was written net; it now means the commands that would have
 // written one are not composed.
@@ -476,6 +494,8 @@ const api = createApiApp({
       }
     : {}),
   ...(lifecycleAuthorizationScopes ||
+  notificationDeliveries ||
+  notificationPreferences ||
   lifecycleService ||
   registrationBootstrap ||
   partnerDomainOwnership ||
@@ -491,6 +511,8 @@ const api = createApiApp({
             ? { authorizationScopes: lifecycleAuthorizationScopes }
             : {}),
           ...(lifecycleService ? { service: lifecycleService } : {}),
+          ...(notificationDeliveries ? { notificationDeliveries } : {}),
+          ...(notificationPreferences ? { notificationPreferences } : {}),
           ...(registrationBootstrap ? { registrationBootstrap } : {}),
           ...(partnerDomainOwnership ? { partnerDomainOwnership } : {}),
           ...(activeAgreementTemplates ? { activeAgreementTemplates } : {}),

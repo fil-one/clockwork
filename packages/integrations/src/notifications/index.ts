@@ -230,6 +230,105 @@ export function resolveBrand(
   };
 }
 
+/**
+ * What the platform knows about one recipient at delivery time. The lifecycle
+ * planner passes only `{template, recipients, data}` through `NotificationPort`,
+ * so the brand a message is sent under has to be resolved from the address
+ * itself rather than carried on the effect.
+ */
+export interface NotificationRecipientContext {
+  accountId: string;
+  audience: NotificationAudience;
+  communicationOwner: LifecycleNotification["communicationOwner"];
+  brandingPolicy?: TenantBrandingPolicy;
+}
+
+export interface NotificationTenantDirectory {
+  resolve(recipient: string): Promise<NotificationRecipientContext | undefined>;
+}
+
+/**
+ * End-client projections keyed by the templates the platform actually sends.
+ *
+ * `endClientPayloadAllowList` below is keyed by `LifecycleNotification`'s
+ * template union, and nothing in production ever produces one of those names --
+ * the alert planner emits `renewals.term_end.v1` and its siblings. That
+ * mismatch is why the redaction had no effect on a real message. These entries
+ * are the delivered names, and they are read on the delivery path rather than
+ * compared against another list.
+ *
+ * A template with no entry falls back to the narrower generic allow-list, so an
+ * unregistered template cannot leak a commercial field to an end client and no
+ * send is refused for want of an entry.
+ */
+export const deliveredEndClientProjections: Readonly<
+  Record<string, readonly string[]>
+> = Object.freeze({
+  "renewals.term_end.v1": ["subjectId", "window", "boundaryAt"],
+  "renewals.notice_window.v1": ["subjectId", "window", "boundaryAt"],
+  "pocs.milestone.v1": ["subjectId", "window", "boundaryAt"],
+  "quotes.expiry.v1": ["subjectId", "window", "boundaryAt"],
+});
+
+export function projectDeliveredEndClientData(
+  template: string,
+  data: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const allowed =
+    deliveredEndClientProjections[template] ?? genericEndClientAllowList;
+  return Object.freeze(pickAllowed(data, new Set(allowed)));
+}
+
+/**
+ * Applies white-label branding and end-client redaction to every message the
+ * production composition sends.
+ *
+ * `CoreNotificationAdapter` hard-codes the first-party sender, so a partner
+ * reselling under its own brand had its end client emailed by Fil One. This
+ * decorator sits between that adapter and the provider client: it resolves the
+ * recipient, replaces the brand with `resolveBrand`'s answer for that tenant,
+ * and narrows the payload for an end client.
+ *
+ * It refuses no recipient and narrows no payload except an end client's. An
+ * address the directory cannot place keeps the brand the caller chose, which is
+ * the behaviour that shipped, so the only recipients whose message changes are
+ * the ones the defect was about.
+ *
+ * A directory that cannot answer at all does propagate: the lifecycle effect
+ * fails and retries rather than falling back to the first-party sender, because
+ * an unknown tenant is exactly the case that must not be assumed first-party.
+ */
+export class TenantBrandedNotificationClient implements NotificationProviderClient {
+  public constructor(
+    private readonly inner: NotificationProviderClient,
+    private readonly directory: () => NotificationTenantDirectory | undefined,
+  ) {}
+
+  public async send(input: {
+    template: string;
+    recipient: string;
+    data: Readonly<Record<string, unknown>>;
+    brand: ResolvedBrand;
+    idempotencyKey: string;
+  }): Promise<{ messageId: string }> {
+    const directory = this.directory();
+    // The directory is bound when the worker composes against its runtime
+    // handle. Sending before that would silently fall back to the first-party
+    // sender, which is the defect this class exists to close.
+    if (!directory) throw new Error("NOTIFICATION_TENANT_DIRECTORY_UNBOUND");
+    const context = await directory.resolve(input.recipient);
+    if (!context) return this.inner.send(input);
+    return this.inner.send({
+      ...input,
+      brand: resolveBrand(context.brandingPolicy, context.communicationOwner),
+      data:
+        context.audience === "end_client"
+          ? projectDeliveredEndClientData(input.template, input.data)
+          : input.data,
+    });
+  }
+}
+
 type NotificationTemplate = LifecycleNotification["template"];
 
 const endClientPayloadAllowList: Readonly<

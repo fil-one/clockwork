@@ -270,7 +270,7 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    report: "revenue_forecast" | "capacity_planning" | "renewal_churn_exposure" | "partner_performance" | "funnel_cycle_time" | "margin_poc_cost" | "three_way_tie_out" | "weekly_scorecard";
+                    report: "revenue_forecast" | "capacity_planning" | "renewal_churn_exposure" | "partner_performance" | "funnel_cycle_time" | "margin_poc_cost" | "arr_mrr" | "billing_collections" | "commission_settlement" | "three_way_tie_out" | "weekly_scorecard";
                 };
                 cookie?: never;
             };
@@ -499,6 +499,206 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    accountId: string;
+                    alertKind?: string;
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stable cursor page of notification delivery evidence */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                accountId: string;
+                                channel: string;
+                                alertKind: string;
+                                subjectType: string;
+                                /** Format: uuid */
+                                subjectId: string;
+                                template: string;
+                                recipients: string[];
+                                status: string;
+                                providerMessageId: string | null;
+                                failureCode: string | null;
+                                /** Format: date-time */
+                                requestedAt: string;
+                                /** Format: date-time */
+                                deliveredAt: string | null;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+                /** @description Account or role scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification delivery adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    accountId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notification preferences this account has set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                /** Format: uuid */
+                                accountId: string;
+                                alertKind: string;
+                                channel: string;
+                                enabled: boolean;
+                                rowVersion: number;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Account or role scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification preference adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    "idempotency-key": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        accountId: string;
+                        alertKind: string;
+                        /** @default email */
+                        channel?: string;
+                        enabled: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Stored notification preference */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            accountId: string;
+                            alertKind: string;
+                            channel: string;
+                            enabled: boolean;
+                            rowVersion: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Account or role scope denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The alert kind is a contractual or collections notice and cannot be switched off */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Notification preference adapter is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;

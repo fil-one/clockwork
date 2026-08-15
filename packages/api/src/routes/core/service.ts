@@ -1,4 +1,9 @@
-import { uuidV7, type Actor } from "@clockwork/contracts";
+import {
+  coreReportNames,
+  uuidV7,
+  type Actor,
+  type CoreReportName,
+} from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { redactPartnerQuoteData } from "@clockwork/domain/core";
 
@@ -22,17 +27,12 @@ export const coreResourceNames = [
 ] as const;
 export type CoreResourceName = (typeof coreResourceNames)[number];
 
-export const coreReportNames = [
-  "revenue_forecast",
-  "capacity_planning",
-  "renewal_churn_exposure",
-  "partner_performance",
-  "funnel_cycle_time",
-  "margin_poc_cost",
-  "three_way_tie_out",
-  "weekly_scorecard",
-] as const;
-export type CoreReportName = (typeof coreReportNames)[number];
+// The §17 catalogue, re-exported rather than restated. It used to be a second
+// list here, and it had drifted from the one in @clockwork/contracts in both
+// directions: this one carried `weekly_scorecard` that one did not have, and
+// spelled four reports differently. See the comment on `coreReportNames` there.
+export { coreReportNames };
+export type { CoreReportName };
 
 export interface CoreRecord {
   id: string;

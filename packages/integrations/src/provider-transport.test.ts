@@ -3,6 +3,11 @@ import { z } from "zod";
 
 import { FetchJsonProviderTransport } from "./provider-transport";
 import type { ProviderTransportError } from "./provider-transport";
+import {
+  ClockworkTelemetry,
+  InMemoryTelemetrySink,
+} from "./telemetry/telemetry";
+import { RuntimeBoundaryInstrumentation } from "./telemetry/instrumentation";
 
 describe("FetchJsonProviderTransport", () => {
   it("rejects insecure remote endpoints and embedded credentials", () => {
@@ -139,5 +144,106 @@ describe("FetchJsonProviderTransport", () => {
         retryAfterMs: 2_000,
       }),
     );
+  });
+
+  it("keeps the original throw as the cause of every transport failure", async () => {
+    const network = new TypeError("ECONNRESET reading provider.example");
+    async function failure(fetcher: typeof fetch, response: z.ZodType) {
+      const transport = new FetchJsonProviderTransport({
+        baseUrl: "https://provider.example/",
+        bearerToken: "secret-token",
+        provider: "example",
+        fetch: fetcher,
+      });
+      return transport
+        .request({
+          operation: "objects.create",
+          path: "/v1/objects",
+          body: {},
+          response,
+        })
+        .then(
+          () => new Error("Expected the transport to reject"),
+          (thrown: unknown) => thrown as Error,
+        );
+    }
+    const schema = z.object({ id: z.string() });
+
+    const networkFailure = await failure(
+      vi.fn<typeof fetch>().mockRejectedValue(network),
+      schema,
+    );
+    expect(networkFailure).toMatchObject({ code: "PROVIDER_NETWORK_ERROR" });
+    expect(networkFailure.cause).toBe(network);
+
+    const malformed = await failure(
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response("<html>gateway</html>", { status: 200 }),
+        ),
+      schema,
+    );
+    expect(malformed).toMatchObject({ code: "PROVIDER_RESPONSE_INVALID" });
+    expect(malformed.cause).toBeInstanceOf(SyntaxError);
+
+    const offSchema = await failure(
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ id: 7 }), { status: 200 }),
+        ),
+      schema,
+    );
+    expect(offSchema).toMatchObject({
+      code: "PROVIDER_RESPONSE_SCHEMA_INVALID",
+    });
+    expect(offSchema.cause).toBeInstanceOf(z.ZodError);
+  });
+
+  /**
+   * The obvious way the cause fix goes wrong: telemetry reads the error the
+   * transport throws. It takes `name` and `code` and nothing else, so a cause
+   * carrying a provider host, body or credential cannot reach a span.
+   */
+  it("does not let a cause reach the telemetry span", async () => {
+    const sink = new InMemoryTelemetrySink();
+    const instrumentation = new RuntimeBoundaryInstrumentation(
+      new ClockworkTelemetry(sink),
+    );
+    const transport = new FetchJsonProviderTransport({
+      baseUrl: "https://provider.example/",
+      bearerToken: "secret-token",
+      provider: "example",
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(
+          new TypeError("connect ECONNREFUSED tenant-secret@10.0.0.5:443"),
+        ),
+    });
+
+    await expect(
+      instrumentation.provider({
+        name: "provider.request",
+        correlation: { requestId: "provider-cause-1" },
+        operation: () =>
+          transport.request({
+            operation: "objects.create",
+            path: "/v1/objects",
+            body: {},
+            response: z.object({ id: z.string() }),
+          }),
+      }),
+    ).rejects.toThrow("example request failed");
+
+    const span = sink.spans.at(-1);
+    expect(span?.attributes).toMatchObject({
+      "error.type": "ProviderTransportError",
+      "error.code": "PROVIDER_NETWORK_ERROR",
+    });
+    const serialized = JSON.stringify(sink.spans);
+    expect(serialized).not.toContain("ECONNREFUSED");
+    expect(serialized).not.toContain("tenant-secret");
+    expect(serialized).not.toContain("10.0.0.5");
   });
 });

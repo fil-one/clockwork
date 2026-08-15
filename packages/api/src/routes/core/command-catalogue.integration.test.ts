@@ -66,21 +66,21 @@ import {
  * `database-finance.ts` fails this file loudly instead of quietly making it
  * vacuous.
  *
- * Two honest gaps, named rather than papered over:
+ * One honest gap, named rather than papered over. There were two: `accounts`
+ * had no missing-verb refusal at all, because `mutateAccount` branched on
+ * `create` and then stopped and every other verb -- including one that did not
+ * exist -- reached the same shared three-key patch. It now branches per verb
+ * and refuses an unknown one, so the behavioural check below covers it like the
+ * other fifteen and `resourcesWithNoMissingVerbRefusal` is empty. The list
+ * stays, and the two lists must still partition `coreResourceNames`, so a
+ * resource cannot rejoin it silently.
  *
- * 1. `accounts` has no missing-verb refusal at all: `mutateAccount` branches on
- *    `create` and then stops, so an unknown verb reaches the same shared patch
- *    every other verb reaches. There is nothing to compare against, so the
- *    behavioural check is vacuous for that one resource. It is listed by name
- *    in `resourcesWithNoMissingVerbRefusal` with that reason, and the two lists
- *    must partition `coreResourceNames`, so a new resource cannot join it
- *    silently.
+ * The remaining gap:
  *
- * 2. `exercisedVerbs` is written out per resource rather than read from the
+ * 1. `exercisedVerbs` is written out per resource rather than read from the
  *    catalogue, and it plus `unexercisableVerbs` must partition the catalogue
  *    exactly. That is what stops a verb being added to the catalogue and slid
- *    past this file -- particularly on `accounts`, where gap 1 means invoking
- *    an invented verb proves nothing. Every name in `exercisedVerbs` is
+ *    past this file. Every name in `exercisedVerbs` is
  *    actually invoked below; it is a list of work done, not a list of claims.
  *    `unexercisableVerbs` is empty today and every entry it could gain needs a
  *    written reason of its own.
@@ -152,7 +152,7 @@ const commissionPeriod = "2026-Q3";
  * Rows a probe needs to get past the record lookup that precedes the verb
  * branch. Everything here is created for this run and never mutated by the
  * probe: every advertised verb fails before it writes, and the probes that do
- * reach a write -- the `accounts` patch, `approve` and `reject` on a deal
+ * reach a write -- the `accounts` verbs, `approve` and `reject` on a deal
  * registration -- are refused at the audit event by the roles in `mutation`,
  * which rolls their transaction back.
  */
@@ -400,8 +400,8 @@ async function seedCommissionSource(): Promise<void> {
  *
  * `accounts` is probed against a real, in-scope account because against a
  * missing record every verb is "not found" before any branch, which would say
- * nothing about the code. Against a real record its six verbs reach the shared
- * patch, and the write is rolled back at the audit event.
+ * nothing about the code. Against a real record its six verbs reach their own
+ * branches, and whatever they write is rolled back at the audit event.
  */
 const subjectByResource: Partial<Record<CoreResourceName, string>> = {
   accounts: fixture.accountId,
@@ -467,7 +467,7 @@ const missingVerbRefusal: Record<
   CoreResourceName,
   ((action: string) => string) | null
 > = {
-  accounts: null,
+  accounts: () => "INVALID_STATE: Unsupported account command",
   procurement_profiles: (action) =>
     `INVALID_STATE: Procurement profiles do not implement the ${action} command`,
   price_books: () => "INVALID_STATE: Unsupported price book action",
@@ -497,16 +497,14 @@ const missingVerbRefusal: Record<
 /**
  * Resources that give no missing-verb refusal, by name, with the reason.
  *
- * For these the behavioural check below is vacuous and says so. Their verbs are
- * still held to `exercisedVerbs`, which is what stops a verb being added to one
- * of them unnoticed.
+ * Empty, and that is a measurement: every resource now answers a verb no branch
+ * implements distinguishably, `accounts` included. An entry here makes the
+ * behavioural check below vacuous for that resource, so it needs a reason, and
+ * the partition assertion is what stops one appearing quietly.
  */
 const resourcesWithNoMissingVerbRefusal: Readonly<
   Partial<Record<CoreResourceName, string>>
-> = {
-  accounts:
-    "mutateAccount branches on create and then stops: every other verb, including one that does not exist, reaches the same shared three-key patch, so the repository has no answer that means 'no such verb'. Per-verb branches in mutateAccount would give it one and would fail this entry on the way in.",
-};
+> = {};
 
 /**
  * The advertised verbs this file invokes, written out per resource.
@@ -593,7 +591,7 @@ function mutation(resource: CoreResourceName, action: string) {
     ],
     // `finance_approver` is load-bearing and deliberate: it narrows what this
     // actor may append to `audit_events` to the finance aggregates, so the
-    // probes that do reach a write -- the `accounts` patch, `approve` and
+    // probes that do reach a write -- the `accounts` verbs, `approve` and
     // `reject` on a deal registration -- are refused at the audit event and
     // roll back. The probe measures how far execution got, and writes nothing.
     // `internal_operator` is what gets `reports:create` past the operator

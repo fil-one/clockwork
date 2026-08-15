@@ -22,6 +22,7 @@ import {
   requireRecentAuthentication,
 } from "../../auth/authorize";
 import type { ApiVariables, RequestContext } from "../../context";
+import { registerNotificationRoutes } from "./notifications";
 import { verifyAndClaimWebhook } from "../../webhooks";
 import type {
   LifecycleAuthorizationScopeResolver,
@@ -32,6 +33,7 @@ import type {
 } from "./types";
 
 export * from "./events";
+export * from "./notifications";
 export * from "./service";
 export * from "./types";
 
@@ -1052,6 +1054,14 @@ export function registerLifecycleRoutes(
   app: OpenAPIHono<{ Variables: ApiVariables }>,
   dependencies: LifecycleRouteDependencies = {},
 ): void {
+  registerNotificationRoutes(app, {
+    ...(dependencies.notificationDeliveries
+      ? { deliveries: dependencies.notificationDeliveries }
+      : {}),
+    ...(dependencies.notificationPreferences
+      ? { preferences: dependencies.notificationPreferences }
+      : {}),
+  });
   app.openapi(statusRoute, (context) => {
     const details = {
       service: dependencies.service

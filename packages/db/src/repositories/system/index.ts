@@ -1,4 +1,5 @@
 export * from "./capabilities";
+export * from "./crm-projection";
 export * from "./dead-letter";
 export * from "./dead-letter-dispatch";
 export * from "./external-gates";

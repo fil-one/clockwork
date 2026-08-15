@@ -17,10 +17,16 @@ export function workflowIdempotencyKey(input: WorkflowInvocation): string {
   return `workflow:${createHash("sha256").update(canonical).digest("hex")}`;
 }
 
+/**
+ * Trigger computes and sleeps these delays itself, so the jitter is a flag here
+ * rather than an injected source: nothing in this repository derives a time
+ * from this object and no test can pin one. Without it every run failed by the
+ * same provider outage wakes in the same millisecond and re-forms the herd.
+ */
 export const durableRetryPolicy = {
   maxAttempts: 8,
   factor: 2,
   minTimeoutInMs: 1_000,
   maxTimeoutInMs: 300_000,
-  randomize: false,
+  randomize: true,
 } as const;

@@ -3,6 +3,9 @@ export * from "./partner-domains";
 export * from "./accepted-order-provisioning";
 export * from "./command-repository";
 export * from "./deletion-certificates";
+export * from "./notification-branding";
+export * from "./notification-deliveries";
+export * from "./notification-preferences";
 export * from "./schemas";
 
 import { DatabaseLifecycleAuthorizationScopeResolver } from "./authorization-scopes";

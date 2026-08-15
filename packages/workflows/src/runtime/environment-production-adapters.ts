@@ -2,10 +2,19 @@ import { z } from "zod";
 import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 
 import {
+  DatabaseCrmAccountRecordStore,
+  DatabaseExternalGateService,
+  DatabaseNotificationTenantDirectory,
+  type RuntimeDatabase,
+} from "@clockwork/db";
+import {
   type ClockworkTelemetry,
+  createCrmProjectionOutboxHandlers,
   FetchJsonProviderTransport,
+  GuardedProviderJsonTransport,
   HttpAccountingExportSink,
   HttpCoreEvidenceStorageAdapter,
+  HttpCrmProviderClient,
   HttpLifecycleEvidenceStorageAdapter,
   HttpLifecycleScreeningAdapter,
   HttpLifecycleSignatureAdapter,
@@ -15,14 +24,23 @@ import {
   HttpTaxAdapter,
   HttpUsageProviderClient,
   HttpWorkosMfaPolicyEnforcer,
+  OutboundCrmProjectionAdapter,
+  PersistedProviderGateStateStore,
+  ProviderRuntime,
   StripeFinanceGateway,
+  TenantBrandedNotificationClient,
   TelemetryProviderJsonTransport,
   WorkosSdkOrganizationClient,
+  type NotificationProviderClient,
+  type NotificationTenantDirectory,
   type ProviderJsonTransport,
   type RuntimeBoundaryInstrumentation,
 } from "@clockwork/integrations";
 
-import type { TriggerWorkerEnvironmentSource } from "./trigger-worker-bootstrap";
+import type {
+  ProductionWorkflowAdapterFactory,
+  TriggerWorkerEnvironmentSource,
+} from "./trigger-worker-bootstrap";
 import type {
   CommercialArtifactParty,
   CommercialArtifactRenderer,
@@ -279,6 +297,20 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
+  // The slot P0-44 found missing. The projection port, its adapter and its fake
+  // existed and nothing constructed them, so §15's one-way outbound sync had no
+  // runtime caller at all. `required` throws naming EXT-PROVIDER-01 when the
+  // endpoint or credential is absent, so a worker with no approved CRM does not
+  // boot rather than booting with a silently dead projection.
+  const crmTransport = transport(
+    source,
+    "CRM_PROVIDER",
+    "crm",
+    "EXT-PROVIDER-01",
+    allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
+  );
   const signatureTransport = transport(
     source,
     "SIGNATURE_PROVIDER",
@@ -334,12 +366,15 @@ export function createEnvironmentWorkflowAdapterFactory(
   const issuer = party(
     json(source, "PLATFORM_ISSUER_JSON", "EXT-LEGAL-01", PartySchema),
   );
+  const notifications = createRuntimeBoundNotificationClient(
+    notificationTransport,
+  );
   const renderers = documentRenderers(documentRendererTransport);
   const evidence = {
     core: new HttpCoreEvidenceStorageAdapter(evidenceTransport),
     lifecycle: new HttpLifecycleEvidenceStorageAdapter(evidenceTransport),
   };
-  return createProductionWorkflowAdapterFactory({
+  const factory = createProductionWorkflowAdapterFactory({
     authorizationSecret: required(
       source,
       "AUTHORIZATION_CONTEXT_SECRET",
@@ -359,9 +394,7 @@ export function createEnvironmentWorkflowAdapterFactory(
       },
       notifications: {
         mode: "live",
-        value: {
-          client: new HttpNotificationProviderClient(notificationTransport),
-        },
+        value: { client: notifications.client },
         activationTest: activationTest("notifications"),
       },
       usage: {
@@ -429,4 +462,101 @@ export function createEnvironmentWorkflowAdapterFactory(
       renderer: renderers.commercial,
     },
   });
+  return withRuntimeBoundAdapters(factory, crmTransport, notifications.bind);
+}
+
+/**
+ * The delivery client the production composition hands to
+ * `CoreNotificationAdapter`, which hard-codes the first-party sender: a partner
+ * reselling under its own brand had its end client emailed by Fil One.
+ *
+ * The tenant directory reads persisted state, so it cannot exist until the
+ * worker has its runtime handle. Until `bind` supplies one the client refuses to
+ * send rather than falling back to the first-party sender -- an unresolvable
+ * tenant is exactly the case that must not be assumed first-party.
+ */
+export function createRuntimeBoundNotificationClient(
+  transport: ProviderJsonTransport,
+): {
+  client: NotificationProviderClient;
+  bind: (db: RuntimeDatabase) => void;
+} {
+  let directory: NotificationTenantDirectory | undefined;
+  return {
+    client: new TenantBrandedNotificationClient(
+      new HttpNotificationProviderClient(transport),
+      () => directory,
+    ),
+    bind: (db) => {
+      directory = new DatabaseNotificationTenantDirectory(db);
+    },
+  };
+}
+
+/**
+ * Completes the composition with the two adapters that need the runtime
+ * database handle, which only exists once the factory is asked to create: the
+ * notification tenant directory that decides which brand a message is sent
+ * under, and the outbound CRM consumer (§15).
+ *
+ * The CRM consumer is added here rather than through `outboxHandlers` because
+ * both the account binding and the persisted gate check need that same handle.
+ *
+ * The transport is wrapped in `GuardedProviderJsonTransport`, so the upsert is
+ * denied from persisted `EXT-ACC-01`/`EXT-PROVIDER-01` state before any network
+ * work: a configured endpoint is not an activation signal, and until the CRM
+ * provider gate is active the whole path is present and inert.
+ *
+ * A topic another handler already owns is chained rather than rejected, which
+ * is the composition the factory itself performs across its required handler
+ * groups -- `core.invoices.create` already carries both the invoice dispatch
+ * handler and the portal projection materializer.
+ */
+export function withRuntimeBoundAdapters(
+  factory: ProductionWorkflowAdapterFactory,
+  crmTransport: ProviderJsonTransport,
+  bindRuntime: (db: RuntimeDatabase) => void = () => {},
+): ProductionWorkflowAdapterFactory {
+  return {
+    async create(input) {
+      bindRuntime(input.db);
+      const bundle = await factory.create(input);
+      const handlers = new Map(bundle.outboxHandlers);
+      const runtime = new ProviderRuntime(
+        new PersistedProviderGateStateStore(
+          new DatabaseExternalGateService(input.db),
+        ),
+      );
+      const guarded = new GuardedProviderJsonTransport(
+        crmTransport,
+        runtime,
+        (request) => ({
+          environment: input.environment.runtimeEnvironment,
+          mode: "live",
+          boundary: "provider_effect",
+          requestId: `crm-projection:${request.idempotencyKey ?? request.operation}`,
+          effectId: request.idempotencyKey ?? request.operation,
+        }),
+      );
+      const crm = createCrmProjectionOutboxHandlers({
+        projection: new OutboundCrmProjectionAdapter(
+          new HttpCrmProviderClient(guarded),
+        ),
+        accounts: new DatabaseCrmAccountRecordStore(input.db),
+      });
+      for (const [topic, handler] of crm) {
+        const existing = handlers.get(topic);
+        handlers.set(
+          topic,
+          existing
+            ? async (delivery) => {
+                await existing(delivery);
+                await handler(delivery);
+              }
+            : handler,
+        );
+      }
+      return { ...bundle, outboxHandlers: handlers };
+    },
+  };
 }

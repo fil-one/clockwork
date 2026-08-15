@@ -95,6 +95,7 @@ const termAlertSpec = {
 function plannerDatabase(
   order: Record<string, unknown>,
   contacts: readonly { accountId: string; email: string }[],
+  disabledAlertAccounts: readonly { accountId: string }[] = [],
 ) {
   return {
     transaction: (operation: (transaction: unknown) => Promise<unknown>) =>
@@ -103,6 +104,9 @@ function plannerDatabase(
         query: {
           orders: { findMany: () => Promise.resolve([order]) },
           accountContacts: { findMany: () => Promise.resolve(contacts) },
+          notificationPreferences: {
+            findMany: () => Promise.resolve(disabledAlertAccounts),
+          },
         },
       }),
   } as never;
@@ -187,6 +191,27 @@ describe("scheduled lifecycle effect identity", () => {
         expectedAggregateVersion: 1,
         scheduled: true,
         requestId: "test:no-contacts",
+      }),
+    ).toEqual([]);
+  });
+
+  // A preferences table the planner never reads would be a setting that does
+  // nothing. Suppression is applied where recipients are resolved, so the effect
+  // is never planned rather than planned and then dropped at delivery.
+  it("plans nothing when the account has switched the advisory alert off", async () => {
+    const store = new DatabaseAuthoritativeLifecycleTaskStore(
+      plannerDatabase(dueOrder, contacts, [
+        { accountId: "10000000-0000-4000-8000-000000000001" },
+      ]),
+      () => new Date("2026-08-01T09:00:00Z"),
+    );
+    expect(
+      await store.prepare({
+        spec: termAlertSpec,
+        aggregateId: "10000000-0000-5000-8000-000000000014",
+        expectedAggregateVersion: 1,
+        scheduled: true,
+        requestId: "test:preference-off",
       }),
     ).toEqual([]);
   });

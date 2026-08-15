@@ -12,6 +12,7 @@ import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import {
   accounts,
   notificationDeliveries,
+  notificationPreferences,
   pocs,
   providerOperations,
 } from "../../schema";
@@ -1276,6 +1277,9 @@ async function lifecycleAlertRecipients(
       eq(accountContacts.active, true),
     ),
   });
+  const suppressed = await suppressedAlertAccounts(transaction, taskId, [
+    ...byAccount.keys(),
+  ]);
   const emails = new Map<string, string[]>();
   for (const contact of contacts) {
     const bucket = emails.get(contact.accountId);
@@ -1283,10 +1287,40 @@ async function lifecycleAlertRecipients(
     else emails.set(contact.accountId, [contact.email]);
   }
   for (const [accountId, aggregateIds] of byAccount) {
+    if (suppressed.has(accountId)) continue;
     const addresses = [...new Set(emails.get(accountId) ?? [])].sort();
     for (const aggregateId of aggregateIds) result.set(aggregateId, addresses);
   }
   return result;
+}
+
+/**
+ * Accounts that have switched this alert off. Absence of a row means on, so an
+ * account that has never opened the setting keeps every alert it gets today.
+ *
+ * The alert kind comes from `lifecycleAlertSubjects`, the same map the delivery
+ * record is written from, so a task cannot be suppressed under one name and
+ * recorded under another. `renewal_notice_window` reaches this function and can
+ * never match: `notification_preference_alert_kind_check` refuses to store a row
+ * for it, so the contractual notice has nothing to opt out of.
+ */
+async function suppressedAlertAccounts(
+  transaction: RuntimeTransaction,
+  taskId: string,
+  accountIds: readonly string[],
+): Promise<ReadonlySet<string>> {
+  const alertKind = lifecycleAlertSubjects[taskId]?.alertKind;
+  if (!alertKind || accountIds.length === 0) return new Set<string>();
+  const rows = await transaction.query.notificationPreferences.findMany({
+    columns: { accountId: true },
+    where: and(
+      inArray(notificationPreferences.accountId, [...accountIds]),
+      eq(notificationPreferences.alertKind, alertKind),
+      eq(notificationPreferences.channel, "email"),
+      eq(notificationPreferences.enabled, false),
+    ),
+  });
+  return new Set(rows.map((row) => row.accountId));
 }
 
 function withLifecycleProviderInput(

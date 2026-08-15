@@ -1,7 +1,15 @@
 import { IdempotencyKeySchema } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
-import { FakeLifecycleNotificationAdapter } from "./index";
+import {
+  FakeLifecycleNotificationAdapter,
+  TenantBrandedNotificationClient,
+  type NotificationProviderClient,
+  type NotificationRecipientContext,
+  type NotificationTenantDirectory,
+  type ResolvedBrand,
+  type TenantBrandingPolicy,
+} from "./index";
 
 describe("lifecycle notification provider contract", () => {
   it("routes branded end-client invitations without partner commercial data", async () => {
@@ -106,5 +114,159 @@ describe("lifecycle notification provider contract", () => {
       ok: false,
       code: "END_CLIENT_TEMPLATE_FORBIDDEN",
     });
+  });
+});
+
+/**
+ * The delivery boundary the production composition actually uses.
+ *
+ * `LifecycleNotificationAdapter` above has no importer outside this file:
+ * production composes `CoreNotificationAdapter`, which hard-codes the
+ * first-party brand and never redacts. These cover the decorator that closes
+ * that, against the template names production really sends.
+ */
+describe("tenant-branded notification delivery", () => {
+  const partnerPolicy: TenantBrandingPolicy = {
+    policyId: "policy-1",
+    displayName: "Redwood Channel Group",
+    primaryColor: "#123456",
+    customDomain: "redwood.test",
+    customDomainVerified: true,
+  };
+
+  function client(
+    contexts: Readonly<Record<string, NotificationRecipientContext>>,
+  ) {
+    const sent: {
+      recipient: string;
+      brand: ResolvedBrand;
+      data: Readonly<Record<string, unknown>>;
+    }[] = [];
+    const inner: NotificationProviderClient = {
+      send(input) {
+        sent.push({
+          recipient: input.recipient,
+          brand: input.brand,
+          data: input.data,
+        });
+        return Promise.resolve({ messageId: `msg_${sent.length}` });
+      },
+    };
+    const directory: NotificationTenantDirectory = {
+      resolve: (recipient) => Promise.resolve(contexts[recipient]),
+    };
+    return {
+      sent,
+      branded: new TenantBrandedNotificationClient(inner, () => directory),
+    };
+  }
+
+  const firstParty: ResolvedBrand = {
+    kind: "fil_one",
+    displayName: "Fil One",
+    fromDomain: "notifications.fil.one",
+  };
+
+  function message(recipient: string) {
+    return {
+      template: "renewals.term_end.v1",
+      recipient,
+      data: {
+        subjectId: "8f2c0d3e-0000-4000-8000-00000000000a",
+        window: "service_end",
+        boundaryAt: "2027-01-01T00:00:00.000Z",
+        transferPriceMinor: 125_000,
+      },
+      brand: firstParty,
+      idempotencyKey: "notifications:branding:contract:0001",
+    };
+  }
+
+  it("sends a resold end client under the partner brand, not ours", async () => {
+    const { sent, branded } = client({
+      "client@juniper.test": {
+        accountId: "end-client-account",
+        audience: "end_client",
+        communicationOwner: "partner",
+        brandingPolicy: partnerPolicy,
+      },
+    });
+    await branded.send(message("client@juniper.test"));
+    expect(sent[0]?.brand).toMatchObject({
+      kind: "partner",
+      displayName: "Redwood Channel Group",
+      fromDomain: "redwood.test",
+    });
+  });
+
+  it("redacts commercial data from the payload an end client receives", async () => {
+    const { sent, branded } = client({
+      "client@juniper.test": {
+        accountId: "end-client-account",
+        audience: "end_client",
+        communicationOwner: "partner",
+        brandingPolicy: partnerPolicy,
+      },
+    });
+    await branded.send(message("client@juniper.test"));
+    expect(sent[0]?.data).toEqual({
+      subjectId: "8f2c0d3e-0000-4000-8000-00000000000a",
+      window: "service_end",
+      boundaryAt: "2027-01-01T00:00:00.000Z",
+    });
+    expect(sent[0]?.data).not.toHaveProperty("transferPriceMinor");
+  });
+
+  it("falls back to the neutral sender when a partner-owned tenant has no verified branding", async () => {
+    const { sent, branded } = client({
+      "client@juniper.test": {
+        accountId: "end-client-account",
+        audience: "end_client",
+        communicationOwner: "partner",
+      },
+    });
+    await branded.send(message("client@juniper.test"));
+    expect(sent[0]?.brand.kind).toBe("safe_default");
+    expect(sent[0]?.brand.displayName).not.toBe("Fil One");
+  });
+
+  it("leaves a direct customer on the first-party sender with its payload intact", async () => {
+    const { sent, branded } = client({
+      "billing@northstar.test": {
+        accountId: "direct-account",
+        audience: "customer",
+        communicationOwner: "fil_one",
+      },
+    });
+    await branded.send(message("billing@northstar.test"));
+    expect(sent[0]?.brand.kind).toBe("fil_one");
+    expect(sent[0]?.data).toHaveProperty("transferPriceMinor");
+  });
+
+  it("narrows an unregistered template for an end client rather than leaking it", async () => {
+    const { sent, branded } = client({
+      "client@juniper.test": {
+        accountId: "end-client-account",
+        audience: "end_client",
+        communicationOwner: "partner",
+        brandingPolicy: partnerPolicy,
+      },
+    });
+    await branded.send({
+      ...message("client@juniper.test"),
+      template: "collections.final_notice.v1",
+      data: { organizationName: "Juniper", outstandingMinor: 900_000 },
+    });
+    expect(sent[0]?.data).toEqual({ organizationName: "Juniper" });
+  });
+
+  it("refuses to deliver before the runtime directory is bound", async () => {
+    const inner: NotificationProviderClient = {
+      send: () => Promise.resolve({ messageId: "msg_unreachable" }),
+    };
+    const unbound = new TenantBrandedNotificationClient(inner, () => undefined);
+    await expect(unbound.send(message("client@juniper.test"))).rejects.toThrow(
+      "NOTIFICATION_TENANT_DIRECTORY_UNBOUND",
+    );
   });
 });

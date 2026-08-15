@@ -57,7 +57,11 @@ import type {
 } from "../offboarding/deletion-certificate-handler";
 import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 import { createProductionExperienceOutboxHandlers } from "../experience";
-import { createLifecycleTaskOutboxHandlers } from "../system/lifecycle-task-dispatch";
+import {
+  createLifecycleTaskOutboxHandlers,
+  TriggerLifecycleTaskSubmitter,
+  type LifecycleTaskSubmissionPort,
+} from "../system/lifecycle-task-dispatch";
 import type {
   ProductionWorkflowAdapterBundle,
   ProductionWorkflowAdapterFactory,
@@ -183,6 +187,12 @@ export interface ProductionWorkflowProviderFactoryOptions {
   providers: ProductionWorkflowProviderSelections;
   authorizationSecret: string;
   coreTaskSubmitter: CoreWorkflowTaskSubmitter;
+  /**
+   * Where the ten event-driven lifecycle tasks are submitted. Defaults to the
+   * durable queue; a test supplies a recorder. Nothing here may execute the
+   * effect inline -- the only caller is the outbox dispatcher's cron.
+   */
+  lifecycleTaskSubmitter?: LifecycleTaskSubmissionPort;
   exceptionRouting?: WorkflowExceptionRouting;
   outboxHandlers?: ReadonlyMap<string, OutboxTopicHandler>;
   deletionCertificates?: {
@@ -237,8 +247,13 @@ async function validateSelection(
   let result: ExternalGateActivationTestResult;
   try {
     result = await selection.activationTest();
-  } catch {
-    throw new Error(`WORKFLOW_PROVIDER_ACTIVATION_TEST_FAILED:${name}`);
+  } catch (error) {
+    // The probe's own failure is the only description of why the provider is
+    // not live; discarding it leaves an operator a provider name and nothing
+    // to act on.
+    throw new Error(`WORKFLOW_PROVIDER_ACTIVATION_TEST_FAILED:${name}`, {
+      cause: error,
+    });
   }
   if (
     result.status !== "passed" ||
@@ -248,8 +263,10 @@ async function validateSelection(
     throw new Error(`WORKFLOW_PROVIDER_ACTIVATION_TEST_FAILED:${name}`);
   try {
     sanitizeActivationEvidenceReference(result.evidenceReference);
-  } catch {
-    throw new Error(`WORKFLOW_PROVIDER_ACTIVATION_EVIDENCE_INVALID:${name}`);
+  } catch (error) {
+    throw new Error(`WORKFLOW_PROVIDER_ACTIVATION_EVIDENCE_INVALID:${name}`, {
+      cause: error,
+    });
   }
 }
 
@@ -427,7 +444,9 @@ export function createProductionWorkflowAdapterFactory(
       const outboxHandlers = new Map(options.outboxHandlers);
       const configuredTopics = new Set(outboxHandlers.keys());
       const requiredHandlers = [
-        createLifecycleTaskOutboxHandlers(),
+        createLifecycleTaskOutboxHandlers(
+          options.lifecycleTaskSubmitter ?? new TriggerLifecycleTaskSubmitter(),
+        ),
         createCoreWorkflowOutboxHandlers({
           db,
           authorizationSecret: options.authorizationSecret,

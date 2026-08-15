@@ -1,6 +1,10 @@
 import type { Actor, WebhookVerifier } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
+import type {
+  NotificationDeliveryService,
+  NotificationPreferenceService,
+} from "./notifications";
 import type { WebhookDeduplicator } from "../../webhooks";
 
 export interface LifecycleOperationContext {
@@ -208,6 +212,10 @@ export interface LifecycleRouteService {
 
 export interface LifecycleRouteDependencies {
   service?: LifecycleRouteService;
+  /** Read side of the §18 `/notifications` operation over the delivery record. */
+  notificationDeliveries?: NotificationDeliveryService;
+  /** Account surface for the advisory-alert preferences 001400 stores. */
+  notificationPreferences?: NotificationPreferenceService;
   authorizationScopes?: LifecycleAuthorizationScopeResolver;
   registrationBootstrap?: RegistrationBootstrapVerifier;
   partnerDomainOwnership?: PartnerDomainOwnershipVerifier;

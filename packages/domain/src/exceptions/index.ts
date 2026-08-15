@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-export const exceptionQueues = [
+/**
+ * The ten queues spec §16 tabulates. §16 is the source of truth for this half:
+ * every row there has a named owner, a distinct backup and a response target,
+ * and the last three were missing from every declaration in the tree (P0-43).
+ */
+export const specExceptionQueues = [
   "pricing",
   "legal",
   "credit_collections",
@@ -8,12 +13,70 @@ export const exceptionQueues = [
   "disputes",
   "deal_registration_disputes",
   "poc_qualification",
+  "provisioning_recovery",
+  "migration_review",
+  "offboarding_destructive",
+] as const;
+
+/**
+ * Queues §16 does not tabulate that the platform nonetheless raises. Each one
+ * is named here because a live write path produces it, not because a list
+ * somewhere else mentioned it; deleting one silently breaks that path.
+ *
+ *   order_acceptance_review  supabase/migrations/001000_commercial_database_integrity.sql
+ *                            inserts it from `core_evaluate_order_acceptance`, and a
+ *                            partial unique index and a constraint trigger both
+ *                            match on the literal.
+ *   billing_operations       invoice issuance, AR posting and metered overage
+ *                            provider failures, plus exemption-certificate expiry
+ *                            (packages/workflows/src/core/engine.ts).
+ *   commissions              settlement binding failures, negative payable carry
+ *                            forward and commission-bill posting failures.
+ *   reconciliation           usage-variance, three-way tie-out variance and source
+ *                            usage retrieval failures.
+ *   reporting                report query, column selection and export storage
+ *                            failures.
+ *   workflow_operations      idempotency payload mismatch and a command disabled by
+ *                            the persisted capability register.
+ */
+export const operationalExceptionQueues = [
+  "order_acceptance_review",
+  "billing_operations",
+  "commissions",
+  "reconciliation",
+  "reporting",
+  "workflow_operations",
+] as const;
+
+/**
+ * The one exception-queue vocabulary. Four declarations of it disagreed before
+ * P0-43; every consumer imports this one, and migration 001395 makes the
+ * database refuse anything outside it on both `exception_cases.queue` and
+ * `system_exception_roster.queue`.
+ */
+export const exceptionQueues = [
+  ...specExceptionQueues,
+  ...operationalExceptionQueues,
 ] as const;
 export type ExceptionQueue = (typeof exceptionQueues)[number];
 
-export function assertExceptionRoutingQueue(value: string): string {
+const exceptionQueueSet: ReadonlySet<string> = new Set(exceptionQueues);
+
+export function isExceptionQueue(value: string): value is ExceptionQueue {
+  return exceptionQueueSet.has(value);
+}
+
+/**
+ * Shape alone used to be the whole check, so a roster could be created for a
+ * queue nothing raises (`provider_recovery` for §16's `provisioning_recovery`)
+ * and the real queue then had no eligible primary at the moment an exception
+ * needed one. Membership is checked here and again by the database.
+ */
+export function assertExceptionRoutingQueue(value: string): ExceptionQueue {
   if (!/^[a-z][a-z0-9_]{1,63}$/.test(value))
     throw new Error("EXCEPTION_ROUTING_QUEUE_INVALID");
+  if (!isExceptionQueue(value))
+    throw new Error(`EXCEPTION_ROUTING_QUEUE_UNKNOWN:${value}`);
   return value;
 }
 

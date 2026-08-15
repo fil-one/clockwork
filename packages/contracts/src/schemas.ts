@@ -726,18 +726,49 @@ export const CostRecordSchema = z
     ...immutableRecord,
   })
   .strict();
+/**
+ * The reporting layer, spec §17.
+ *
+ * One list, because there were three and they disagreed: this schema named
+ * seven reports (`capacity`, `renewal_churn`, `funnel_cycle`, `margin_poc`),
+ * the API named eight under different keys (`capacity_planning`,
+ * `renewal_churn_exposure`, ...), and a queued export wrote the API's key into
+ * a `report_exports.report` column this schema would then have refused to
+ * parse. Three of the ten §17 reports -- ARR/MRR, billing and collections, and
+ * commission and settlement -- were in none of them.
+ *
+ * A catalogue is a declaration, so this one is bound to behaviour rather than
+ * to another declaration. Two bindings, both compile-time or executed:
+ *
+ *   * `report()` in @clockwork/db keys a total `Record<CoreReportName, ...>` of
+ *     views off it, so a name added here does not compile until it names a
+ *     relation.
+ *   * `core-reports.integration.test.ts` reads every name in it from a real
+ *     database, so a name that compiles but has no readable view fails.
+ *
+ * `weekly_scorecard` is the eleventh entry and is not one of the §17 ten: it is
+ * the scorecard the section's closing paragraph says "reads these directly",
+ * and it has shipped as a view since 000100.
+ */
+export const coreReportNames = [
+  "revenue_forecast",
+  "capacity_planning",
+  "renewal_churn_exposure",
+  "partner_performance",
+  "funnel_cycle_time",
+  "margin_poc_cost",
+  "arr_mrr",
+  "billing_collections",
+  "commission_settlement",
+  "three_way_tie_out",
+  "weekly_scorecard",
+] as const;
+export type CoreReportName = (typeof coreReportNames)[number];
+
 export const ReportExportSchema = z
   .object({
     id: ids.reportExport,
-    report: z.enum([
-      "revenue_forecast",
-      "capacity",
-      "renewal_churn",
-      "partner_performance",
-      "funnel_cycle",
-      "margin_poc",
-      "three_way_tie_out",
-    ]),
+    report: z.enum(coreReportNames),
     requestedBy: ids.user,
     parameters: z.record(z.string(), z.unknown()),
     documentId: ids.document.nullable(),
