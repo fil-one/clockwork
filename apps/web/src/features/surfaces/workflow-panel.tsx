@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
 import {
@@ -13,7 +19,6 @@ import {
 } from "@clockwork/ui";
 
 import {
-  CommerceApiError,
   convertPoc,
   createInvoicePaymentSession,
   decideException,
@@ -39,30 +44,43 @@ import { t } from "@/src/i18n/en";
 
 import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
 
-const ids = {
-  account: "11111111-1111-4111-8111-111111111111",
-  partner: "22222222-2222-4222-8222-222222222222",
-  endClient: "33333333-3333-4333-8333-333333333333",
-  priceBook: "44444444-4444-4444-8444-444444444444",
-  template: "55555555-5555-4555-8555-555555555555",
-  user: "66666666-6666-4666-8666-666666666666",
-  owner: "77777777-7777-4777-8777-777777777777",
-  quote: "88888888-8888-4888-8888-888888888888",
-  agreement: "99999999-9999-4999-8999-999999999999",
-  document: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-  orderLine: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-  order: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-  poc: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
-  invoice: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-  payment: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef",
-  organization: "ffffffff-ffff-4fff-8fff-ffffffffffff",
-} as const;
-
-const runtimeEnvironment =
-  process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? process.env.NODE_ENV;
-const demoFallbackAllowed = ["development", "test"].includes(
-  runtimeEnvironment ?? "",
-);
+/**
+ * Identifiers the route has already resolved for the record on screen.
+ *
+ * None of these is a value a reader can be expected to produce: each is the
+ * persisted identity of a record they opened, and none of them is printed
+ * anywhere a customer, partner or operator can read it. Where a route supplies
+ * one, the panel carries it read-only so the reader can see what the action
+ * binds to.
+ *
+ * Every key here is read by a `mutationFields` branch. A key nothing reads is
+ * a declaration standing in for an implementation, so it does not belong. The
+ * same test applies from the other side: `rowVersion` used to sit in this
+ * interface and was removed, because it is not a record identity at all. It is
+ * an optimistic-concurrency token compared against the *core aggregate's*
+ * `row_version` (`database-finance.ts`, `input.expectedVersion !==
+ * prior.rowVersion`), which is a different counter from the
+ * `experience_projections.row_version` a route can reach. The version has to
+ * arrive on the same authoritative read that supplies the values being edited,
+ * and no surface performs that read yet, so nothing here could have populated
+ * it honestly.
+ */
+export interface WorkflowRecordContext {
+  accountId?: string;
+  organizationId?: string;
+  partnerAccountId?: string;
+  endClientAccountId?: string;
+  userId?: string;
+  supportOwnerId?: string;
+  priceBookId?: string;
+  quoteId?: string;
+  agreementId?: string;
+  orderId?: string;
+  pocId?: string;
+  invoiceId?: string;
+  paymentId?: string;
+  caseId?: string;
+}
 
 const titles: Record<SurfaceWorkflow, string> = {
   quote: "Create a priced quote",
@@ -99,8 +117,130 @@ async function sha256(text: string): Promise<string> {
   ).join("");
 }
 
-function demoValue(key: keyof typeof ids): string {
-  return demoFallbackAllowed ? ids[key] : "";
+const resolvedHelp = "Taken from the record you opened.";
+
+interface RecordIdentifierProps {
+  label: string;
+  name: string;
+  resolved: string | undefined;
+  required?: boolean;
+  help?: string;
+  optionalLabel?: string;
+}
+
+/**
+ * The single test for "this surface cannot bind the action".
+ *
+ * Both the field and the panel read it, so the panel's refusal can never
+ * disagree with what the form renders. There is no second per-workflow table of
+ * required identifiers to keep in step -- the `required` flag on the field is
+ * the only statement of the requirement.
+ */
+function unresolvedRequirement(
+  props: RecordIdentifierProps,
+): { label: string; name: string } | null {
+  return props.required && !props.resolved
+    ? { label: props.label, name: props.name }
+    : null;
+}
+
+/**
+ * A record identifier field.
+ *
+ * Read-only once the route resolves it. Where the route resolves nothing there
+ * are two different situations and they get two different answers:
+ *
+ * - an identifier the command can be built without stays an ordinary editable
+ *   field, because it is genuinely optional on this surface (a paid quote on a
+ *   POC that is not being converted, say);
+ * - an identifier the command cannot be built without renders inert. It used to
+ *   render as an empty, editable, `required` box, which is how
+ *   `/partner/portfolio/[id]`, `/partner/brand` and `/internal/queues/[id]`
+ *   shipped a renewal, a domain registration and an approval whose Submit
+ *   silently posted nothing: `checkValidity()` was false and the handler
+ *   returned before it reached the network. Asking a reader to type an
+ *   identifier they cannot see is not an input path, it is a dead end wearing
+ *   one, so the panel says so instead.
+ */
+function RecordIdentifier(props: RecordIdentifierProps): ReactNode {
+  const {
+    label,
+    name,
+    resolved,
+    required = false,
+    help,
+    optionalLabel,
+  } = props;
+  if (resolved)
+    return (
+      <Input
+        label={label}
+        name={name}
+        value={resolved}
+        readOnly
+        required={required}
+        help={help ? `${help} ${resolvedHelp}` : resolvedHelp}
+      />
+    );
+  if (unresolvedRequirement(props))
+    return (
+      <Input
+        label={label}
+        name={name}
+        value=""
+        readOnly
+        disabled
+        error={`This surface does not record the ${label.toLowerCase()}, and it is not a reference anyone can be asked to type.`}
+      />
+    );
+  return (
+    <Input
+      label={label}
+      name={name}
+      {...(help ? { help } : {})}
+      {...(optionalLabel ? { optionalLabel } : {})}
+    />
+  );
+}
+
+/**
+ * Which required identifiers a built form is missing.
+ *
+ * The fields are read as elements rather than reported by the component while
+ * it renders, because a child component's body does not run until after its
+ * parent has returned -- a collector filled during `RecordIdentifier`'s render
+ * is always one paint too late to disable the submit control. `createElement`
+ * has already run by the time `mutationFields` returns, so the props are here
+ * to be read, and they are the same props the field itself branches on.
+ */
+function unresolvedIdentifiers(
+  node: ReactNode,
+): readonly { label: string; name: string }[] {
+  const missing: { label: string; name: string }[] = [];
+  const visit = (value: ReactNode): void => {
+    if (Array.isArray(value)) {
+      for (const child of value as ReactNode[]) visit(child);
+      return;
+    }
+    if (!isValidElement(value)) return;
+    if (value.type === RecordIdentifier) {
+      const gap = unresolvedRequirement(value.props as RecordIdentifierProps);
+      if (gap) missing.push(gap);
+      return;
+    }
+    visit((value.props as { children?: ReactNode }).children);
+  };
+  visit(node);
+  return missing;
+}
+
+function unbindableMessage(identifiers: readonly { label: string }[]): string {
+  const labels = identifiers.map(({ label }) => label.toLowerCase());
+  const named =
+    labels.length === 1
+      ? labels[0]
+      : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
+  return `This action binds to the ${named}, which the record on this surface does not carry. Nothing can be submitted from here, and nothing was sent.`;
 }
 
 function quotePayload(data: FormData) {
@@ -146,19 +286,26 @@ function decisionIsDestructive(
   return false;
 }
 
-function mutationFields(
-  workflow: SurfaceWorkflow,
-  surface: SurfaceKey,
-  activeAgreementTemplate?: ActiveAgreementTemplate,
-  onDecisionChange?: (decision: string) => void,
-): ReactNode {
+function mutationFields({
+  workflow,
+  surface,
+  context,
+  activeAgreementTemplate,
+  onDecisionChange,
+}: {
+  workflow: SurfaceWorkflow;
+  surface: SurfaceKey;
+  context: WorkflowRecordContext;
+  activeAgreementTemplate?: ActiveAgreementTemplate | undefined;
+  onDecisionChange?: ((decision: string) => void) | undefined;
+}): ReactNode {
   if (workflow === "agreement")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
         <Input
@@ -207,25 +354,25 @@ function mutationFields(
   if (workflow === "quote")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={
+          resolved={
             surface === "partnerQuotes"
-              ? demoValue("endClient")
-              : demoValue("account")
+              ? context.endClientAccountId
+              : context.accountId
           }
-          help={
-            surface === "partnerQuotes"
-              ? "The end-client legal entity receiving and using the service."
-              : undefined
-          }
+          {...(surface === "partnerQuotes"
+            ? {
+                help: "The end-client legal entity receiving and using the service.",
+              }
+            : {})}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Price book ID"
           name="priceBookId"
-          defaultValue={demoValue("priceBook")}
+          resolved={context.priceBookId}
           required
         />
         <Select
@@ -240,18 +387,20 @@ function mutationFields(
             { value: "marketplace", label: "Marketplace" },
           ]}
         />
-        <Input
+        <RecordIdentifier
           label="End-client account ID"
           name="endClientAccountId"
-          defaultValue={
-            surface === "partnerQuotes" ? demoValue("endClient") : ""
+          resolved={
+            surface === "partnerQuotes" ? context.endClientAccountId : undefined
           }
           optionalLabel="Optional"
         />
-        <Input
+        <RecordIdentifier
           label="Partner account ID"
           name="partnerAccountId"
-          defaultValue={surface === "partnerQuotes" ? demoValue("partner") : ""}
+          resolved={
+            surface === "partnerQuotes" ? context.partnerAccountId : undefined
+          }
           optionalLabel="Optional"
         />
         <Input
@@ -299,28 +448,28 @@ function mutationFields(
   if (workflow === "order")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Accepted quote ID"
           name="quoteId"
-          defaultValue={demoValue("quote")}
+          resolved={context.quoteId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Executed agreement ID"
           name="agreementId"
-          defaultValue={demoValue("agreement")}
+          resolved={context.agreementId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Signer user ID"
           name="signerUserId"
-          defaultValue={demoValue("user")}
+          resolved={context.userId}
           required
         />
         <Input
@@ -342,21 +491,14 @@ function mutationFields(
         <Input
           label="Purchase order document ID"
           name="poDocumentId"
-          defaultValue={demoValue("document")}
           optionalLabel="Optional"
         />
         <Input
           label="Order form document ID"
           name="orderFormDocumentId"
-          defaultValue={demoValue("document")}
           required
         />
-        <Input
-          label="Order line ID"
-          name="orderLineId"
-          defaultValue={demoValue("orderLine")}
-          required
-        />
+        <Input label="Order line ID" name="orderLineId" required />
         <Input
           label="Service starts on"
           name="serviceStartsOn"
@@ -370,16 +512,16 @@ function mutationFields(
   if (workflow === "payment")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Open invoice ID"
           name="invoiceId"
-          defaultValue={demoValue("invoice")}
+          resolved={context.invoiceId}
           required
         />
         <p className="form-message">
@@ -397,7 +539,12 @@ function mutationFields(
           time-limited assisted session supplies the staff actor, effective
           customer actor, target account, and reason.
         </p>
-        {mutationFields("quote", surface, activeAgreementTemplate)}
+        {mutationFields({
+          workflow: "quote",
+          surface,
+          context,
+          activeAgreementTemplate,
+        })}
         <label className="checkbox-field">
           <input type="checkbox" name="assistedSessionConfirmed" required />
           <span>
@@ -420,37 +567,39 @@ function mutationFields(
             { value: "convert", label: "Convert without moving data" },
           ]}
         />
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={
+          resolved={
             surface === "sandboxes"
-              ? demoValue("endClient")
-              : demoValue("account")
+              ? context.endClientAccountId
+              : context.accountId
           }
           required
         />
-        <Input
+        <RecordIdentifier
           label="Partner account ID"
           name="partnerAccountId"
-          defaultValue={surface === "sandboxes" ? demoValue("partner") : ""}
+          resolved={
+            surface === "sandboxes" ? context.partnerAccountId : undefined
+          }
           optionalLabel="Optional"
         />
-        <Input
+        <RecordIdentifier
           label="POC ID"
           name="pocId"
-          defaultValue={demoValue("poc")}
+          resolved={context.pocId}
           help="Required only for conversion."
         />
-        <Input
+        <RecordIdentifier
           label="Buyer user ID"
           name="buyerUserId"
-          defaultValue={demoValue("user")}
+          resolved={context.userId}
         />
-        <Input
+        <RecordIdentifier
           label="Support owner ID"
           name="supportOwnerId"
-          defaultValue={demoValue("owner")}
+          resolved={context.supportOwnerId}
         />
         <Input
           label="Workload"
@@ -496,16 +645,16 @@ function mutationFields(
           type="datetime-local"
           defaultValue="2026-08-31T17:00"
         />
-        <Input
+        <RecordIdentifier
           label="Paid quote ID"
           name="quoteId"
-          defaultValue={demoValue("quote")}
+          resolved={context.quoteId}
           help="Required only for conversion."
         />
-        <Input
+        <RecordIdentifier
           label="Paid order ID"
           name="orderId"
-          defaultValue={demoValue("order")}
+          resolved={context.orderId}
           help="Required only for conversion."
         />
       </>
@@ -526,16 +675,16 @@ function mutationFields(
             { value: "decline", label: "Decline renewal" },
           ]}
         />
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Order ID"
           name="orderId"
-          defaultValue={demoValue("order")}
+          resolved={context.orderId}
           required
         />
         <Input
@@ -559,7 +708,7 @@ function mutationFields(
         <Input
           label="Decline evidence document ID"
           name="evidenceDocumentId"
-          defaultValue={demoValue("document")}
+          help="Required only when declining. The server records this document as the decline's authority evidence."
         />
         <label className="checkbox-field">
           <input type="checkbox" name="authority" required />
@@ -571,16 +720,16 @@ function mutationFields(
   if (workflow === "offboarding")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Order ID"
           name="orderId"
-          defaultValue={demoValue("order")}
+          resolved={context.orderId}
           required
         />
         <Select
@@ -620,16 +769,16 @@ function mutationFields(
   if (workflow === "registration")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Partner account ID"
           name="partnerAccountId"
-          defaultValue={demoValue("partner")}
+          resolved={context.partnerAccountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="End-client account ID"
           name="endClientAccountId"
-          defaultValue={demoValue("endClient")}
+          resolved={context.endClientAccountId}
           required
         />
         <Input
@@ -658,32 +807,28 @@ function mutationFields(
   if (workflow === "brand")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Partner account ID"
           name="accountId"
-          defaultValue={demoValue("partner")}
+          resolved={context.partnerAccountId}
           required
         />
-        <Input
-          label="Custom domain"
-          name="domain"
-          defaultValue={demoFallbackAllowed ? "commerce.meridian.example" : ""}
-          required
-        />
+        {/*
+         * These three are the partner's own answers -- a domain they control,
+         * the token their DNS provider issued, the name they trade under -- so
+         * they are the only fields on this form a reader can be asked for. They
+         * used to be pre-filled with a fixture partner's domain, token and name
+         * whenever the runtime environment was development or test, which meant
+         * the form nobody verified was the one production ships and the form
+         * everybody verified was one no partner ever sees.
+         */}
+        <Input label="Custom domain" name="domain" required />
         <Input
           label="DNS verification token"
           name="verificationToken"
-          defaultValue={
-            demoFallbackAllowed ? "clockwork-demo-verification" : ""
-          }
           required
         />
-        <Input
-          label="Brand name"
-          name="brandName"
-          defaultValue={demoFallbackAllowed ? "Meridian Channel Group" : ""}
-          required
-        />
+        <Input label="Brand name" name="brandName" required />
         <Input
           label="Logo URL"
           name="logoUrl"
@@ -712,10 +857,10 @@ function mutationFields(
   if (workflow === "approval")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Exception case ID"
           name="caseId"
-          defaultValue={demoValue("poc")}
+          resolved={context.caseId}
           required
         />
         <Select
@@ -737,7 +882,6 @@ function mutationFields(
         <Input
           label="Evidence document ID"
           name="evidenceDocumentId"
-          defaultValue={demoValue("document")}
           required
         />
       </>
@@ -757,22 +901,22 @@ function mutationFields(
             { value: "record_dispute", label: "Record Stripe dispute" },
           ]}
         />
-        <Input
+        <RecordIdentifier
           label="Billing account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Invoice ID"
           name="invoiceId"
-          defaultValue={demoValue("invoice")}
+          resolved={context.invoiceId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Payment ID"
           name="paymentId"
-          defaultValue={demoValue("payment")}
+          resolved={context.paymentId}
           optionalLabel="Required for refunds and disputes"
         />
         <Select
@@ -813,12 +957,25 @@ function mutationFields(
   if (workflow === "account")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
+        {/*
+         * The one field on this form that is not a record identity and not the
+         * reader's answer either. `expectedVersion` is compared against the
+         * account aggregate's own `row_version`, which arrives with an
+         * authoritative read of the account -- the same read that would supply
+         * the current legal name and billing contact this form leaves blank.
+         * No surface performs that read, so there is no version to carry and
+         * `WorkflowRecordContext` deliberately has no key for one: a route
+         * could only offer the projection row's version, which is a different
+         * counter and would be a wrong number under a right name. Until the
+         * read exists this stays a visible, labelled guess that the server
+         * rejects when it is stale, which is the failure the reader can act on.
+         */}
         <Input
           label="Current row version"
           name="rowVersion"
@@ -826,6 +983,7 @@ function mutationFields(
           min="1"
           defaultValue="1"
           required
+          help="No surface reads the account's current row version yet, so this is a guess the server will reject if the account has moved on."
         />
         <Input label="Legal name" name="legalName" required />
         <Input
@@ -851,16 +1009,16 @@ function mutationFields(
   if (workflow === "invite")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Organization ID"
           name="organizationId"
-          defaultValue={demoValue("organization")}
+          resolved={context.organizationId}
           required
         />
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
         <Input label="Invitee email" name="email" type="email" required />
@@ -887,10 +1045,10 @@ function mutationFields(
   if (workflow === "procurement")
     return (
       <>
-        <Input
+        <RecordIdentifier
           label="Account ID"
           name="accountId"
-          defaultValue={demoValue("account")}
+          resolved={context.accountId}
           required
         />
         <Input label="AP contact name" name="apName" required />
@@ -997,7 +1155,12 @@ function mutationFields(
   return null;
 }
 
-function reportFields() {
+/**
+ * A report is scoped to one account or to none. Where the route opened an
+ * account, that is the account the report is about, so it is carried rather
+ * than typed; a route that opened nothing leaves the filter free.
+ */
+function reportFields(context: WorkflowRecordContext) {
   return (
     <>
       <Select
@@ -1009,7 +1172,12 @@ function reportFields() {
           label: report.replaceAll("_", " "),
         }))}
       />
-      <Input label="Account ID" name="accountId" optionalLabel="Optional" />
+      <RecordIdentifier
+        label="Account ID"
+        name="accountId"
+        resolved={context.accountId}
+        optionalLabel="Optional"
+      />
     </>
   );
 }
@@ -1017,9 +1185,22 @@ function reportFields() {
 export function WorkflowPanel({
   workflow,
   surface,
+  context,
 }: {
   workflow: SurfaceWorkflow;
   surface: SurfaceKey;
+  /**
+   * Identifiers the mounting route has already resolved.
+   *
+   * Required, and deliberately not defaulted. It was optional, and an optional
+   * prop is a declaration that nothing enforces: five routes passed one, four
+   * did not, and the four that did not rendered forms whose Submit posted
+   * nothing. Making it required moves that from something a reviewer has to
+   * notice to something the build refuses -- every current and future mount
+   * either states what it resolved or does not compile. A surface that binds no
+   * record identity at all says so with an explicit `{}`.
+   */
+  context: WorkflowRecordContext;
 }) {
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");
@@ -1039,6 +1220,24 @@ export function WorkflowPanel({
   const [confirmations, setConfirmations] = useState(0);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  /**
+   * The fields are built before the rest of the panel so their own `required`
+   * flags can answer whether this surface can bind the action at all, without
+   * a second list of per-workflow identifiers that could disagree with them.
+   */
+  const fields =
+    workflow === "reports"
+      ? reportFields(context)
+      : mutationFields({
+          workflow,
+          surface,
+          context,
+          activeAgreementTemplate,
+          onDecisionChange: setDecision,
+        });
+  const missingIdentifiers = unresolvedIdentifiers(fields);
+  const unbindable = missingIdentifiers.length > 0;
 
   useEffect(() => {
     if (workflow !== "agreement") return;
@@ -1079,6 +1278,12 @@ export function WorkflowPanel({
     setSuccess("");
     setReportResult(null);
     setProviderAction(null);
+    // The submit control is already disabled in this state; the guard is here
+    // because the destructive path re-enters through `requestSubmit`.
+    if (unbindable) {
+      showError(unbindableMessage(missingIdentifiers));
+      return;
+    }
     if (!form.checkValidity()) {
       form.reportValidity();
       form.querySelector<HTMLElement>(":invalid")?.focus();
@@ -1387,20 +1592,27 @@ export function WorkflowPanel({
             : "Request accepted. The server record is now the source of truth.",
       );
     } catch (caught) {
-      if (
-        caught instanceof CommerceApiError &&
-        caught.code === "unavailable" &&
-        demoFallbackAllowed
-      ) {
-        setSuccess(
-          "Development simulation accepted. No production record was created.",
-        );
-      } else
-        showError(
-          caught instanceof Error
-            ? caught.message
-            : "The request failed. Nothing was changed.",
-        );
+      /*
+       * An `unavailable` command used to be reported as "Development
+       * simulation accepted. No production record was created." whenever the
+       * runtime environment was development or test. That is a success message
+       * for a request that failed, on a surface that posts real commands, and
+       * it is removed rather than inherited.
+       *
+       * Three reasons, in order of weight. It made every local and CI drive of
+       * this panel unable to tell a working command from an unreachable API,
+       * which is exactly the confusion this work-stream keeps finding. Its
+       * gate read `NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ?? NODE_ENV`, a public
+       * value inlined at build time, so one mis-set build variable turns a
+       * failed production command into a green tick. And a reader has no way
+       * to know the sentence is about the environment rather than the record.
+       * A failed command now says it failed, in development as in production.
+       */
+      showError(
+        caught instanceof Error
+          ? caught.message
+          : "The request failed. Nothing was changed.",
+      );
     } finally {
       setPending(false);
     }
@@ -1443,7 +1655,9 @@ export function WorkflowPanel({
       type={destructive ? "button" : "submit"}
       {...(destructive ? { variant: "danger" as const } : {})}
       disabled={
-        pending || (workflow === "agreement" && !activeAgreementTemplate)
+        pending ||
+        unbindable ||
+        (workflow === "agreement" && !activeAgreementTemplate)
       }
     >
       {workflow === "reports"
@@ -1472,14 +1686,12 @@ export function WorkflowPanel({
         }}
         noValidate
       >
-        {workflow === "reports"
-          ? reportFields()
-          : mutationFields(
-              workflow,
-              surface,
-              activeAgreementTemplate,
-              setDecision,
-            )}
+        {fields}
+        {unbindable ? (
+          <p className="form-message form-message--error">
+            {unbindableMessage(missingIdentifiers)}
+          </p>
+        ) : null}
         {agreementTemplateLoading ? (
           <p className="form-message" role="status">
             Loading the active counsel-approved CSA text…

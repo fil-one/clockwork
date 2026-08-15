@@ -6,6 +6,10 @@ import {
   SurfacePermissionGate,
 } from "@/src/features/shell/permission-gate";
 import { loadCustomerCollectionRecords } from "@/src/features/experience-server/portal-view-loader";
+import {
+  getRouteIdentity,
+  getRouteSession,
+} from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
 export default async function Page({
@@ -13,7 +17,17 @@ export default async function Page({
 }: {
   searchParams: Promise<RawCollectionSearchParams>;
 }) {
-  const projection = await loadCustomerCollectionRecords("users");
+  const [identity, session, projection] = await Promise.all([
+    getRouteIdentity("customer"),
+    getRouteSession("customer"),
+    loadCustomerCollectionRecords("users"),
+  ]);
+  // An invitation is addressed to the organization that owns the acting
+  // account. `RouteIdentity` names the organization but not its identifier, so
+  // the membership behind it supplies the one the invite endpoint is keyed on.
+  const organizationId = session.memberships.find(
+    (membership) => membership.accountId === identity.accountId,
+  )?.organizationId;
   return (
     <SurfacePermissionGate
       audience="customer"
@@ -25,7 +39,14 @@ export default async function Page({
             audience="customer"
             requiredPermission="account:write"
           >
-            <WorkflowPanel workflow="invite" surface="users" />
+            <WorkflowPanel
+              context={{
+                accountId: identity.accountId,
+                ...(organizationId ? { organizationId } : {}),
+              }}
+              workflow="invite"
+              surface="users"
+            />
           </SurfaceActionGate>
         }
         config={{ ...customerCollections.users, records: projection.records }}

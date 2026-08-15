@@ -8,7 +8,25 @@ import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navig
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 
-export function PaymentHandoff() {
+/**
+ * The invoice this handoff is for. Every value comes from the record the route
+ * loaded: the amount and due date the reader is asked to confirm have to be the
+ * ones the payment session is opened against, or the confirmation means
+ * nothing.
+ */
+export interface PayableInvoice {
+  accountId: string;
+  invoiceId: string;
+  amountLabel: string;
+  dueLabel: string;
+}
+
+export function PaymentHandoff({
+  accountId,
+  invoiceId,
+  amountLabel,
+  dueLabel,
+}: PayableInvoice) {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [providerUrl, setProviderUrl] = useState("");
@@ -25,10 +43,7 @@ export function PaymentHandoff() {
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       const session = await createInvoicePaymentSession(
-        {
-          accountId: "11111111-1111-4111-8111-111111111111",
-          invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-        },
+        { accountId, invoiceId },
         { idempotencyKey: idempotencyKeyRef.current },
       );
       setProviderUrl(trustedStripePaymentUrl(session.url));
@@ -52,7 +67,7 @@ export function PaymentHandoff() {
       <dl>
         <div>
           <dt>{customerPartnerCopy.commercial.invoiceTruth}</dt>
-          <dd>$15,400.00</dd>
+          <dd>{amountLabel}</dd>
         </div>
         <div>
           <dt>{customerPartnerCopy.commercial.paymentTruth}</dt>
@@ -60,7 +75,7 @@ export function PaymentHandoff() {
         </div>
         <div>
           <dt>Payment due</dt>
-          <dd>Aug 8, 2026</dd>
+          <dd>{dueLabel}</dd>
         </div>
       </dl>
       <p className={styles.notice}>

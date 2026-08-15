@@ -2,7 +2,11 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Breadcrumbs } from "@clockwork/ui";
+import {
+  ApplicationStatePanel,
+  Breadcrumbs,
+  buttonClassName,
+} from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
@@ -10,6 +14,7 @@ import type { CommercialRecord } from "./model";
 import { PaymentHandoff } from "./payment-handoff";
 import { validQuoteActions, type QuoteStatus } from "./workflow-model";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
+import { t } from "@/src/i18n/en";
 
 function detailLabel(record: CommercialRecord) {
   if (record.kind === "agreements") return "Agreement detail";
@@ -110,13 +115,109 @@ function DetailActions({
   );
 }
 
+/**
+ * One rendering for every unreadable record.
+ *
+ * `loadCommercialRecord` resolves to `null` for a record that does not exist
+ * and for one that belongs to another account, because the projection query
+ * and its row-level policy cannot tell those apart either. This panel is
+ * therefore written to carry no information about which of the two happened:
+ * no requested identifier, no status word, no channel. Anything that varied
+ * between the two cases would let a reader enumerate another tenant's
+ * references by watching this page.
+ */
+function UnreadableRecord() {
+  return (
+    <main className={styles.main} id="main-content">
+      <div className={styles.state} data-state="record-not-found">
+        <ApplicationStatePanel
+          state="empty"
+          title={t("state.notFound.title")}
+          description={t("state.notFound.description")}
+          action={
+            <Link
+              className={buttonClassName({ variant: "secondary" })}
+              href="/dashboard"
+            >
+              {t("action.returnHome")}
+            </Link>
+          }
+        />
+      </div>
+    </main>
+  );
+}
+
+/**
+ * The payment handoff for an open invoice, bound to the invoice on screen.
+ *
+ * The panel states an amount and a due date and then opens a payment session;
+ * those three have to come from one record or the reader confirms one invoice
+ * and pays another. So it renders only when this record supplies its own
+ * persisted identity and the route supplies the acting account.
+ *
+ * The refused set is exactly: an open invoice the reader may pay whose
+ * projection carries no `aggregateId`, or one opened by a route that passes no
+ * `accountId`. Neither happens for an invoice loaded through
+ * `loadCommercialRecord`, which copies a non-null `aggregateId` off every
+ * projection row, from a route that resolves the reader's account. A reader
+ * without payment rights still gets the existing explanation, and a paid or
+ * non-billing record is unaffected.
+ */
+function payableInvoice(
+  record: CommercialRecord,
+  accountId: string | undefined,
+  canMutate: boolean,
+): ReactNode {
+  if (record.kind !== "billing" || record.status !== "open") return null;
+  if (!canMutate)
+    return (
+      <section className={`${styles.panel} ${styles.section}`}>
+        <h2>Payment access</h2>
+        <p className={styles.description}>
+          An account owner or billing role can prepare the secure payment
+          handoff.
+        </p>
+      </section>
+    );
+  if (!accountId || !record.aggregateId)
+    return (
+      <section className={`${styles.panel} ${styles.section}`} role="alert">
+        <h2>Payment unavailable</h2>
+        <p className={styles.description}>
+          This invoice cannot be paid from here until its persisted identity and
+          your acting account both resolve. Nothing was charged.
+        </p>
+      </section>
+    );
+  return (
+    <PaymentHandoff
+      accountId={accountId}
+      amountLabel={record.value}
+      dueLabel={record.dateLabel}
+      invoiceId={record.aggregateId}
+    />
+  );
+}
+
 export function CommercialRecordDetail({
-  id,
+  accountId,
   canMutate = false,
   record,
   actions,
 }: {
+  /**
+   * The requested reference. Retained for the route's own use; deliberately
+   * not rendered, so the unreadable-record state reads the same for a
+   * reference that does not exist and one that belongs elsewhere.
+   */
   id: string;
+  /**
+   * The account the route resolved for the reader. A payment session is opened
+   * against an account and an invoice; only the route knows which account the
+   * reader is acting for, so the surface is handed it rather than naming one.
+   */
+  accountId?: string;
   canMutate?: boolean;
   record: CommercialRecord | null;
   /**
@@ -125,22 +226,7 @@ export function CommercialRecordDetail({
    */
   actions?: ReactNode;
 }) {
-  if (!record) {
-    return (
-      <main className={styles.main} id="main-content">
-        <section className={styles.state} role="alert">
-          <h1>Record not found</h1>
-          <p>
-            The requested commercial record is unavailable or outside your
-            account. Requested reference: {id}.
-          </p>
-          <Link className={styles.secondary} href="/dashboard">
-            Return to dashboard
-          </Link>
-        </section>
-      </main>
-    );
-  }
+  if (!record) return <UnreadableRecord />;
   const backHref = (
     record.kind === "services" ? "/services" : `/${record.kind}`
   ) as Route;
@@ -265,19 +351,7 @@ export function CommercialRecordDetail({
 
         <div className={styles.stack}>
           {actions}
-          {record.kind === "billing" &&
-          record.status === "open" &&
-          canMutate ? (
-            <PaymentHandoff />
-          ) : record.kind === "billing" && record.status === "open" ? (
-            <section className={`${styles.panel} ${styles.section}`}>
-              <h2>Payment access</h2>
-              <p className={styles.description}>
-                An account owner or billing role can prepare the secure payment
-                handoff.
-              </p>
-            </section>
-          ) : null}
+          {payableInvoice(record, accountId, canMutate)}
           <section
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="audit-title"

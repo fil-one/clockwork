@@ -4,6 +4,7 @@ import {
   SurfacePermissionGate,
 } from "@/src/features/shell/permission-gate";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
+import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
 export default async function Page({
@@ -12,16 +13,33 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const record = await loadCommercialRecord("orders", id);
+  const [identity, record] = await Promise.all([
+    getRouteIdentity("customer"),
+    loadCommercialRecord("orders", id),
+  ]);
   return (
     <SurfacePermissionGate audience="customer" requiredPermission="order:read">
       <CommercialRecordDetail
+        accountId={identity.accountId}
         actions={
           <SurfaceActionGate
             audience="customer"
             requiredPermission="order:write"
           >
-            <WorkflowPanel workflow="renewal" surface="services" />
+            {/*
+             * The renewal decision is about this order and this account. Both
+             * are already resolved above, and neither is a reference a customer
+             * could type: the order's persisted identifier appears nowhere they
+             * can read it.
+             */}
+            <WorkflowPanel
+              context={{
+                accountId: identity.accountId,
+                ...(record?.aggregateId ? { orderId: record.aggregateId } : {}),
+              }}
+              workflow="renewal"
+              surface="services"
+            />
           </SurfaceActionGate>
         }
         id={id}

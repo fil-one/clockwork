@@ -12,7 +12,17 @@ export default async function Page() {
           audience="internal"
           requiredPermission="agreement:approve"
         >
-          <WorkflowPanel workflow="agreementAdmin" surface="agreementAdmin" />
+          {/*
+           * Publishing a template creates a record rather than acting on one:
+           * the type, version, jurisdiction, canonical document and approved
+           * text are all counsel's answers, and there is no record identity for
+           * the route to resolve. The empty context is the statement of that.
+           */}
+          <WorkflowPanel
+            context={{}}
+            workflow="agreementAdmin"
+            surface="agreementAdmin"
+          />
         </SurfaceActionGate>
       }
     />

@@ -6,6 +6,7 @@ import {
   SurfacePermissionGate,
 } from "@/src/features/shell/permission-gate";
 import { loadCustomerCollectionRecords } from "@/src/features/experience-server/portal-view-loader";
+import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
 export default async function Page({
@@ -13,7 +14,10 @@ export default async function Page({
 }: {
   searchParams: Promise<RawCollectionSearchParams>;
 }) {
-  const projection = await loadCustomerCollectionRecords("procurement");
+  const [identity, projection] = await Promise.all([
+    getRouteIdentity("customer"),
+    loadCustomerCollectionRecords("procurement"),
+  ]);
   return (
     <SurfacePermissionGate
       audience="customer"
@@ -25,7 +29,11 @@ export default async function Page({
             audience="customer"
             requiredPermission="account:write"
           >
-            <WorkflowPanel workflow="procurement" surface="procurement" />
+            <WorkflowPanel
+              context={{ accountId: identity.accountId }}
+              workflow="procurement"
+              surface="procurement"
+            />
           </SurfaceActionGate>
         }
         config={{
