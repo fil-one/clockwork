@@ -1,10 +1,29 @@
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
+import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+/**
+ * Renewal work is read from the internal `orders` channel. No aggregate routes
+ * to an internal `renewals` channel, so reading `renewals` here would return an
+ * empty page forever.
+ *
+ * The gate stays `report:read` rather than becoming `order:read` even though
+ * the rows are orders now. `order:read` is not held by `finance_approver`, who
+ * could open this surface before, and narrowing a read that nobody asked to
+ * narrow would take the page away from the role that plans renewals. Row
+ * visibility is enforced by the projection read itself, not by this gate.
+ */
+export default async function Page() {
+  const workspace = await loadRenewalsWorkspace();
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
-      <RenewalsView />
+      <RenewalsView
+        windows={workspace.items}
+        provenance={workspace.provenance}
+        invoiceProvenance={workspace.invoiceProvenance}
+      />
     </SurfacePermissionGate>
   );
 }

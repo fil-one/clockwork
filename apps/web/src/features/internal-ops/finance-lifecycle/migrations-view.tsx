@@ -6,7 +6,7 @@ import { Button, Input, StatusBadge } from "@clockwork/ui";
 
 import { lifecycleCopy } from "./copy";
 import {
-  migrations,
+  illustrativeMigrations,
   type MigrationCandidate,
   type MigrationRecord,
 } from "./lifecycle-data";
@@ -203,10 +203,10 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
 }
 
 export function MigrationsView() {
-  const ambiguousCount = migrations.filter(
+  const ambiguousCount = illustrativeMigrations.filter(
     (record) => record.candidates.length > 1,
   ).length;
-  const newAccountReviews = migrations.filter(
+  const newAccountReviews = illustrativeMigrations.filter(
     (record) => record.candidates.length === 0,
   ).length;
 
@@ -214,17 +214,24 @@ export function MigrationsView() {
     <FinancePageFrame
       title={lifecycleCopy.migrations.title}
       description={lifecycleCopy.migrations.description}
-      freshness={lifecycleCopy.migrations.freshness}
-      source={lifecycleCopy.migrations.source}
+      provenance={{
+        kind: "unwired",
+        detail: lifecycleCopy.migrations.unwired,
+      }}
     >
+      <div className={styles.warningNotice} role="alert">
+        <strong>{lifecycleCopy.migrations.illustrativeTitle}</strong>
+        <span>{lifecycleCopy.migrations.illustrativeBody}</span>
+      </div>
+
       <section
         className={styles.summaryGrid}
         aria-label="Migration matching state"
       >
         <article className={styles.summaryCard}>
-          <p>Records awaiting review</p>
-          <strong>{migrations.length}</strong>
-          <span>Human evidence confirmation required</span>
+          <p>Example records</p>
+          <strong>{illustrativeMigrations.length}</strong>
+          <span>Checked-in examples, not source records</span>
         </article>
         <article className={styles.summaryCard}>
           <p>Ambiguous matches</p>
@@ -251,7 +258,7 @@ export function MigrationsView() {
         aria-label="Migration candidates"
         className={styles.migrationGrid}
       >
-        {migrations.map((record) => (
+        {illustrativeMigrations.map((record) => (
           <MigrationCard key={record.id} record={record} />
         ))}
       </section>

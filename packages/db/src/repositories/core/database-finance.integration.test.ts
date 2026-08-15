@@ -3915,3 +3915,214 @@ describe("database core renewal price protection (open, unenforced)", () => {
     });
   });
 });
+
+/**
+ * The partner quote-creation write, end to end, under row-level security.
+ *
+ * This is the gap that let a partner quote stay broken while the suite stayed
+ * green. The only success-path partner-quote coverage ran against
+ * `MemoryCoreFinanceService`, which has no Postgres and therefore no RLS and no
+ * `RETURNING`, and every `DatabaseCoreFinanceRepository` partner-quote case
+ * here is a rejection that returns before the insert. So nothing executed the
+ * one statement that failed: `insert into quotes ... returning`, which Postgres
+ * evaluates against the SELECT policies, and `quotes_read`
+ * (001000_commercial_database_integrity.sql:192) admits a partner only through
+ * `core_quote_is_visible`, a `security definer` function that re-queries
+ * `public.quotes` by id and cannot see a row the current statement is still
+ * inserting. SQLSTATE 42501, "new row violates row-level security policy for
+ * table \"quotes\"".
+ *
+ * `DatabaseCoreFinanceService` is a translate-only wrapper over
+ * `DatabaseCoreFinanceRepository` (packages/api/src/runtime/
+ * database-core-finance-service.ts) -- it constructs the repository, forwards
+ * `mutate` unchanged and only re-labels `DatabaseCoreError`. Driving the
+ * repository here drives every statement the service executes, in the package
+ * that owns the SQL.
+ *
+ * The direct-customer case runs beside it deliberately: the customer arm of
+ * `quotes_read` is inline and evaluates against the new row, so it always
+ * succeeded, and it is the path a fix could silently break.
+ */
+describe("database core quote persistence under row-level security", () => {
+  const distributorAccountId = "10000000-0000-4000-8000-000000000005";
+  const distributorUserId = "20000000-0000-4000-8000-000000000005";
+  const endClientAccountId = "10000000-0000-4000-8000-000000000004";
+  const seededUsdPriceBookId = "60000000-0000-4000-8000-000000000001";
+
+  const line = () => ({
+    lineId: crypto.randomUUID(),
+    sku: "LOCKED-STORAGE-TB",
+    region: "us-east-2",
+    quantity: "1",
+    termMonths: 12,
+  });
+
+  it("writes and reads back a partner-priced quote for a partner caller", async () => {
+    const id = crypto.randomUUID();
+    const created = await repository.mutate({
+      resource: "quotes",
+      id,
+      accountId: endClientAccountId,
+      action: "create",
+      payload: {
+        priceBookId: seededUsdPriceBookId,
+        seriesId: crypto.randomUUID(),
+        route: "distributor",
+        endClientAccountId,
+        partnerAccountId: distributorAccountId,
+        partnerTier: "distributor",
+        partnerResaleTotal: { currency: "USD", minor: "180000" },
+        lines: [line()],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: distributorUserId },
+      authorization: {
+        userId: ids.user.parse(distributorUserId),
+        accountIds: [ids.account.parse(distributorAccountId)],
+        roles: ["partner_admin"],
+        isInternalStaff: false,
+        mfaVerified: true,
+        recentAuthenticationVerified: true,
+      },
+      requestId: `rls-partner-quote-${id}`,
+      idempotencyKey: `rls-partner-quote-${id}`,
+      occurredAt,
+    });
+    expect(created.record.data).toMatchObject({
+      status: "draft",
+      accountId: endClientAccountId,
+      partnerAccountId: distributorAccountId,
+    });
+    // The command is not the deliverable; the row is. A `returning` that never
+    // ran would still let the command report a record it assembled in memory.
+    await withInternalTransaction(
+      db,
+      `rls-partner-quote-assert-${id}`,
+      async (tx) => {
+        const [persisted, profile, lines] = await Promise.all([
+          tx.query.quotes.findFirst({ where: eq(quotes.id, id) }),
+          tx.query.quoteCommercialProfiles.findFirst({
+            where: eq(quoteCommercialProfiles.quoteId, id),
+          }),
+          tx.select().from(quoteLines).where(eq(quoteLines.quoteId, id)),
+        ]);
+        expect(persisted).toMatchObject({
+          id,
+          status: "draft",
+          accountId: endClientAccountId,
+          partnerAccountId: distributorAccountId,
+          currency: "USD",
+        });
+        expect(profile).toMatchObject({
+          channelShape: "distributor",
+          merchantOfRecord: "partner",
+          billingAccountId: distributorAccountId,
+        });
+        expect(lines).toHaveLength(1);
+      },
+    );
+  });
+
+  it("writes and reads back a direct customer quote for an owner caller", async () => {
+    const id = crypto.randomUUID();
+    const created = await repository.mutate({
+      resource: "quotes",
+      id,
+      accountId,
+      action: "create",
+      payload: {
+        priceBookId: seededUsdPriceBookId,
+        seriesId: crypto.randomUUID(),
+        route: "direct",
+        lines: [line()],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: `rls-direct-quote-${id}`,
+      idempotencyKey: `rls-direct-quote-${id}`,
+      occurredAt,
+    });
+    expect(created.record.data).toMatchObject({ status: "draft", accountId });
+    await withInternalTransaction(
+      db,
+      `rls-direct-quote-assert-${id}`,
+      async (tx) => {
+        const [persisted, profile, lines] = await Promise.all([
+          tx.query.quotes.findFirst({ where: eq(quotes.id, id) }),
+          tx.query.quoteCommercialProfiles.findFirst({
+            where: eq(quoteCommercialProfiles.quoteId, id),
+          }),
+          tx.select().from(quoteLines).where(eq(quoteLines.quoteId, id)),
+        ]);
+        expect(persisted).toMatchObject({
+          id,
+          status: "draft",
+          accountId,
+          partnerAccountId: null,
+          currency: "USD",
+        });
+        expect(profile).toMatchObject({
+          channelShape: "direct",
+          merchantOfRecord: "fil_one",
+          billingAccountId: accountId,
+        });
+        expect(lines).toHaveLength(1);
+      },
+    );
+  });
+});
+
+/**
+ * The other half of the EXT-TAX-01 gate: what it must NOT refuse.
+ *
+ * The gate was briefly a composition precondition -- no tax provider, no
+ * `DatabaseCoreFinanceService` at all -- which refused every command in the
+ * lane, on every surface, with "Core-finance route dependencies are not
+ * configured". Quote creation writes no `tax_minor` and never calls the port;
+ * refusing it protected nobody from anything.
+ *
+ * `undeterminedTaxRepository` is the closest fixture there is to a deployment
+ * with no engine wired: it refuses every jurisdiction the seeded channels
+ * invoice in. The refusals it produces on `orders:create` and `invoices:create`
+ * are asserted above; this is the complement, and the two together are the
+ * refused set.
+ */
+describe("core finance commands that never ask the tax port", () => {
+  it("prices and persists a quote with no tax determination available", async () => {
+    const id = crypto.randomUUID();
+    const created = await undeterminedTaxRepository.mutate({
+      resource: "quotes",
+      id,
+      accountId,
+      action: "create",
+      payload: {
+        priceBookId: "60000000-0000-4000-8000-000000000001",
+        seriesId: crypto.randomUUID(),
+        route: "direct",
+        lines: [
+          {
+            lineId: crypto.randomUUID(),
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: `no-tax-quote-${id}`,
+      idempotencyKey: `no-tax-quote-${id}`,
+      occurredAt,
+    });
+    expect(created.record.data).toMatchObject({ status: "draft", accountId });
+    const persisted = await withInternalTransaction(
+      db,
+      `no-tax-quote-assert-${id}`,
+      async (tx) => tx.query.quotes.findFirst({ where: eq(quotes.id, id) }),
+    );
+    expect(persisted).toMatchObject({ id, status: "draft" });
+  });
+});

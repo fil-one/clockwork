@@ -57,12 +57,46 @@ function oneOf<T extends string>(
   return match;
 }
 
+/**
+ * Where a commercial record's detail page lives. Both halves are load-bearing;
+ * neither holds on its own.
+ *
+ * `Route<T>` alone is not a guard. `RouteImpl<T>` in `.next/types/link.d.ts` is
+ * `StaticRoutes | SearchOrHash | WithProtocol | `${StaticRoutes}${SearchOrHash}`
+ * | (T extends `${DynamicRoutes<infer _>}${Suffix}` ? T : never)`, and the
+ * first four members never mention `T`. `Route<anything>` therefore admits
+ * every static route the app declares, every string containing a colon, and
+ * every string opening with `?` or `#`. Annotated with `Route<...>` and nothing
+ * else, the body that shipped the defect --
+ * `return channel === "services" ? "/services" : ...` -- recompiles with zero
+ * errors, because `/services` is a static route. That is measured, not
+ * reasoned: restoring that body under the bare alias exits `tsc` 0.
+ *
+ * The `& `/${CollectionKind}/${string}`` half is what rejects it, because a
+ * collection path has no second segment. Together the two halves hold:
+ *
+ * 1. the value is a record path beneath a channel, so answering with the
+ *    collection path is a build error (`TS2322: Type '"/services"' is not
+ *    assignable to type 'CommercialRecordRoute'`);
+ * 2. every `CollectionKind` has an `[id]` page. Add a kind without one, or
+ *    delete an `[id]` page a kind still links to, and `RouteImpl`'s conditional
+ *    branch yields `never` for that kind, so the template the body builds stops
+ *    being assignable.
+ *
+ * What it does not hold: that the *record key* is what gets interpolated, or
+ * that the key is encoded. `/${kind}/index` satisfies this type. Those two are
+ * held per kind by `portal-view-loader.test.ts`, which is where the defect that
+ * started this -- `services` linking rows to the page the reader was already on
+ * -- is caught if the type is ever loosened again.
+ */
+export type CommercialRecordRoute = Route<`/${CollectionKind}/${string}`> &
+  `/${CollectionKind}/${string}`;
+
 export function recordRoute(
   channel: CollectionKind,
   recordKey: string,
-): string {
-  const encoded = encodeURIComponent(recordKey);
-  return channel === "services" ? "/services" : `/${channel}/${encoded}`;
+): CommercialRecordRoute {
+  return `/${channel}/${encodeURIComponent(recordKey)}`;
 }
 
 /**
@@ -244,6 +278,45 @@ export async function loadCommercialRecord(
   return commercialRecord(record, kind);
 }
 
+/**
+ * Partner surfaces that mount a record detail page.
+ *
+ * A type predicate rather than an inline `includes`, because `includes` does
+ * not narrow: the previous `["portfolio", "quotes"].includes(surface)` left
+ * `surface` as the whole `PartnerSurfaceKey` union, which is why the href it
+ * guarded needed an `as Route` cast, and why a surface with no `[id]` route
+ * could have been added to that list without anything failing.
+ */
+const partnerDetailSurfaces = ["portfolio", "quotes"] as const;
+type PartnerDetailSurface = (typeof partnerDetailSurfaces)[number];
+
+function mountsPartnerDetail(
+  surface: PartnerSurfaceKey,
+): surface is PartnerDetailSurface {
+  return (partnerDetailSurfaces as readonly PartnerSurfaceKey[]).includes(
+    surface,
+  );
+}
+
+/**
+ * The annotated local is the check: it resolves to a dynamic-segment route
+ * only while `/partner/portfolio/[id]` and `/partner/quotes/[id]` both exist.
+ *
+ * The widening on the return is the one cast left in this file, and it is
+ * downstream of that check rather than in place of it. It is here only because
+ * `PartnerRecord.href` is declared as the bare `Route`, which by construction
+ * cannot express a dynamic segment; narrowing that field to
+ * `Route<`/partner/${PartnerDetailSurface}/${string}`>` removes the cast, and
+ * that file belongs to another lane.
+ */
+function partnerDetailRoute(
+  surface: PartnerDetailSurface,
+  recordKey: string,
+): Route {
+  const href: Route<`/partner/${PartnerDetailSurface}/${string}`> = `/partner/${surface}/${encodeURIComponent(recordKey)}`;
+  return href as Route;
+}
+
 function partnerRecord(
   record: ProjectionRecord,
   surface: PartnerSurfaceKey,
@@ -273,10 +346,8 @@ function partnerRecord(
     owner: text(data, "owner"),
     value: text(data, "value"),
     secondary: text(data, "secondary"),
-    ...(["portfolio", "quotes"].includes(surface)
-      ? {
-          href: `/partner/${surface}/${encodeURIComponent(record.recordKey)}` as Route,
-        }
+    ...(mountsPartnerDetail(surface)
+      ? { href: partnerDetailRoute(surface, record.recordKey) }
       : {}),
     recordVersion: record.version,
     projectionId: record.id,

@@ -5166,28 +5166,40 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     const draft =
       revised?.revision ??
       createQuoteDraft({ ...draftInput, seriesId: command.seriesId });
-    const [row] = await transaction
-      .insert(quotes)
-      .values({
-        id: draft.id,
-        accountId: draft.accountId,
-        endClientAccountId: draft.endClientAccountId,
-        partnerAccountId: draft.partnerAccountId,
-        priceBookId: draft.priceBook.id,
-        seriesId: draft.seriesId,
-        previousRevisionId: draft.previousRevisionId,
-        revision: draft.revision,
-        status: draft.status,
-        currency: draft.total.currency,
-        totalMinor: BigInt(draft.total.minor),
-        marginFloorResult: draft.marginResult,
-        expiresAt: new Date(draft.expiresAt),
-        createdBy: draft.createdBy,
-        partnerResaleTotalMinor: draft.partnerResaleTotal
-          ? BigInt(draft.partnerResaleTotal.minor)
-          : undefined,
-      })
-      .returning();
+    await transaction.insert(quotes).values({
+      id: draft.id,
+      accountId: draft.accountId,
+      endClientAccountId: draft.endClientAccountId,
+      partnerAccountId: draft.partnerAccountId,
+      priceBookId: draft.priceBook.id,
+      seriesId: draft.seriesId,
+      previousRevisionId: draft.previousRevisionId,
+      revision: draft.revision,
+      status: draft.status,
+      currency: draft.total.currency,
+      totalMinor: BigInt(draft.total.minor),
+      marginFloorResult: draft.marginResult,
+      expiresAt: new Date(draft.expiresAt),
+      createdBy: draft.createdBy,
+      partnerResaleTotalMinor: draft.partnerResaleTotal
+        ? BigInt(draft.partnerResaleTotal.minor)
+        : undefined,
+    });
+    // Deliberately not `insert ... returning`. Postgres applies the SELECT
+    // policies to a `returning` list, and `quotes_read`
+    // (001000_commercial_database_integrity.sql:192) admits a partner only
+    // through `core_quote_is_visible`, which re-queries `public.quotes` by id.
+    // Inside the inserting statement's own snapshot that row does not exist
+    // yet, so the function answers false and the write fails with SQLSTATE
+    // 42501 even though all four insert policies passed -- and the inline
+    // fallback arm of `quotes_read` excludes partner-priced rows on purpose, so
+    // it cannot rescue a resale or distributor quote either. The next statement
+    // sees the transaction's own insert and reads it back under the same
+    // policy. `audit-outbox.ts` avoids `returning` on `outbox_messages` for the
+    // same reason.
+    const row = await transaction.query.quotes.findFirst({
+      where: eq(quotes.id, draft.id),
+    });
     if (!row) throw new Error("Quote insert returned no row");
     const mor = merchantOfRecord(command.route);
     await transaction.insert(quoteCommercialProfiles).values({

@@ -62,8 +62,6 @@ export const recoveryCopy = {
     title: "Stopped work",
     description:
       "Dispatch, provisioning, and workflow tasks that ran out of attempts. Each one needs a retry or an abandonment before it moves.",
-    freshnessRead: "Read at page load",
-    freshnessUnavailable: "No read completed for this request",
   },
   summary: {
     label: "Stopped work by engine",

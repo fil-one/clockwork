@@ -59,7 +59,16 @@ Environment variables), scoped to builds, functions, and runtime:
 `CLOCKWORK_EXPERIENCE_ADAPTER`, `CLOCKWORK_EVIDENCE_ADAPTER`,
 `CLOCKWORK_DEMO_ACCESS_PASSWORD`, `CLOCKWORK_DEMO_STATE_STORE`,
 `NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV`, `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS`,
-`CLOCKWORK_CANONICAL_ORIGIN`, `CLOCKWORK_ENV`, `OTEL_SDK_DISABLED`.
+`CLOCKWORK_CANONICAL_ORIGIN`, `CLOCKWORK_ENV`, `OTEL_SDK_DISABLED`,
+`TAX_PROVIDER_BASE_URL`, `TAX_PROVIDER_TOKEN`.
+
+The last two are `EXT-TAX-01` and are unset on the demo, deliberately. Unset
+means the tax port refuses every determination, so the two Core finance commands
+that ask it for one — `orders:create` (quote acceptance) and `invoices:create` —
+refuse rather than issuing a document with a zero in `tax_minor`. Every other
+Core finance command, quote creation included, is unaffected: they never call
+the port. Set both together when a real engine exists; setting one without the
+other is the same as setting neither.
 
 None of these belong in a committed file or a local `.env`. The demo access
 password in particular must stay out of `.env`, because `next dev` would load it

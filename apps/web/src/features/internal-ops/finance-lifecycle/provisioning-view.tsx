@@ -1,196 +1,138 @@
-import { Button, StatusBadge, Table } from "@clockwork/ui";
+import Link from "next/link";
+
+import { StatusBadge, Table } from "@clockwork/ui";
+
+import { plural } from "@/src/i18n/en";
 
 import { lifecycleCopy } from "./copy";
-import { provisioning, type FailureClass } from "./lifecycle-data";
-import { assessRetry } from "./lifecycle-logic";
+import {
+  summarizeProvisioningWork,
+  type ProvisioningWork,
+} from "./provisioning-projection";
 import { FinancePageFrame } from "./page-frame";
-import { ReviewAction } from "./review-action";
+import type { SurfaceProvenance } from "./provenance";
 import styles from "./finance-lifecycle.module.css";
 
-function failureTone(failure: FailureClass): "neutral" | "warning" | "danger" {
-  if (failure === "Permanent") return "danger";
-  if (failure === "Transient") return "warning";
+const copy = lifecycleCopy.provisioning;
+
+function riskTone(
+  work: ProvisioningWork,
+): "neutral" | "warning" | "danger" | "success" {
+  if (work.risk === "high") return "danger";
+  if (work.risk === "medium") return "warning";
+  if (work.status === "complete") return "success";
   return "neutral";
 }
 
-export function ProvisioningView() {
-  const safeRetries = provisioning.filter(
-    (record) => assessRetry(record).allowed,
-  );
-  const permanent = provisioning.filter(
-    (record) => record.failureClass === "Permanent",
-  );
-  const idempotencyBlocked = provisioning.filter(
-    (record) => record.idempotencyState === "Missing",
-  );
+export function ProvisioningView({
+  work,
+  provenance,
+}: {
+  work: readonly ProvisioningWork[];
+  provenance: SurfaceProvenance;
+}) {
+  const summary = summarizeProvisioningWork(work);
 
   return (
     <FinancePageFrame
-      title={lifecycleCopy.provisioning.title}
-      description={lifecycleCopy.provisioning.description}
-      freshness={lifecycleCopy.provisioning.freshness}
-      source={lifecycleCopy.provisioning.source}
+      title={copy.title}
+      description={copy.description}
+      provenance={provenance}
     >
       <section
         className={styles.summaryGrid}
-        aria-label="Provisioning recovery state"
+        aria-label="Provisioning work by kind"
       >
         <article className={styles.summaryCard}>
-          <p>Safe retry candidates</p>
-          <strong>{safeRetries.length}</strong>
-          <span>
-            Transient with verified idempotency and attempts remaining
-          </span>
+          <p>{copy.providerOperations}</p>
+          <strong>{summary.providerOperations}</strong>
+          <span>Provider calls the platform is driving to completion</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>Permanent failures</p>
-          <strong>{permanent.length}</strong>
-          <span>Escalation required; automatic retry prohibited</span>
+          <p>{copy.terminations}</p>
+          <strong>{summary.terminations}</strong>
+          <span>Services ending, with their teardown and final billing</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>Missing idempotency evidence</p>
-          <strong>{idempotencyBlocked.length}</strong>
-          <span>
-            Retry blocked until duplicate-resource safety is established
-          </span>
+          <p>{copy.highRisk}</p>
+          <strong>{summary.highRisk}</strong>
+          <span>Records the projection already marks high risk</span>
         </article>
       </section>
 
       <div className={styles.warningNotice} role="note">
-        <strong>Retry safety is mandatory.</strong>
-        <span>
-          A transient label alone is not permission to retry. The orchestrator
-          must also verify idempotency and attempt limits; provider activation
-          tests remain authoritative.
-        </span>
+        <strong>{copy.retryTitle}</strong>
+        <span>{copy.retryBody}</span>
+        <Link href="/internal/recovery">{copy.recoveryLink}</Link>
       </div>
+
+      {summary.unclassified > 0 ? (
+        <div className={styles.notice} role="note">
+          <strong>{copy.unclassified(summary.unclassified)}</strong>
+        </div>
+      ) : null}
 
       <section className={styles.section} aria-labelledby="recovery-table">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="recovery-table">Recovery work</h2>
-            <p>
-              Failure class, attempts, retry evidence, owner, and escalation.
-            </p>
+            <h2 id="recovery-table">{copy.tableHeading}</h2>
+            <p>{copy.description}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {provisioning.length} operations · live provider state
+            {plural(work.length, "{count} record", "{count} records")}
           </span>
         </header>
-        <Table
-          className={styles.dsTable ?? ""}
-          caption="Provisioning operations with retry-safety decisions"
-          captionHidden
-          density="compact"
-          headers={[
-            "Account / capability",
-            "Provider",
-            "Failure class",
-            "Attempts",
-            "Idempotency",
-            "Owner / escalation",
-            "Permitted action",
-          ]}
-          numericColumns={[3]}
-          rowKeys={provisioning.map((record) => record.id)}
-          rows={provisioning.map((record) => {
-            const assessment = assessRetry(record);
-            const canEscalate = record.failureClass === "Permanent";
-            return [
+        {work.length === 0 ? (
+          <p className={styles.empty}>{copy.empty}</p>
+        ) : (
+          <Table
+            className={styles.dsTable ?? ""}
+            caption={copy.caption}
+            captionHidden
+            density="compact"
+            headers={[
+              "Record",
+              "Kind",
+              "Provider",
+              copy.attemptsLabel,
+              "Status",
+              "Next action",
+            ]}
+            numericColumns={[3]}
+            rowKeys={work.map((item) => item.id)}
+            rows={work.map((item) => [
               <div className={styles.primaryCell}>
-                <strong>{record.account}</strong>
-                <span>{record.capability}</span>
-                <span className={styles.secondary}>{record.id}</span>
-              </div>,
-              record.provider,
-              <>
-                <StatusBadge tone={failureTone(record.failureClass)}>
-                  {record.failureClass}
-                </StatusBadge>
-                <div className={styles.secondary}>{record.lastAttempt}</div>
-              </>,
-              <strong>
-                {record.attempts} / {record.maxAttempts}
-              </strong>,
-              <div className={styles.primaryCell}>
-                <strong>{record.idempotencyState}</strong>
+                <strong>{item.title}</strong>
+                <span className={styles.secondary}>{item.reference}</span>
                 <details className={styles.disclosure}>
-                  <summary>Retry evidence</summary>
-                  <p>{record.evidence}</p>
-                  {record.idempotencyKey ? (
-                    <p className={styles.id}>{record.idempotencyKey}</p>
-                  ) : (
-                    <p>No idempotency key is available.</p>
-                  )}
+                  <summary>Technical evidence</summary>
+                  <p className={styles.id}>{item.aggregateId}</p>
+                  {item.evidence.map((entry) => (
+                    <p key={`${entry.label}-${entry.value}`}>
+                      {entry.label}: {entry.value}
+                    </p>
+                  ))}
                 </details>
               </div>,
-              <div className={styles.primaryCell}>
-                <strong>{record.owner}</strong>
-                <span>{record.escalation}</span>
-              </div>,
-              <div className={styles.actionStack}>
-                {assessment.allowed ? (
-                  <ReviewAction
-                    triggerLabel="Review safe retry"
-                    confirmLabel="Complete retry review"
-                    summary={{
-                      action: "Stage safe provisioning retry",
-                      entity: `${record.account} · ${record.capability}`,
-                      impact: `A new provider attempt would be issued (${record.attempts + 1} of ${record.maxAttempts}).`,
-                      evidence: assessment.reason,
-                      policyBasis:
-                        "Provisioning recovery §2.1 · transient + verified idempotency + remaining attempt",
-                      downstreamEffect:
-                        "Activation tests run before the capability is presented as active.",
-                      technicalId: `${record.id} · ${record.idempotencyKey ?? "no key"}`,
-                      actorAuthority:
-                        "Internal operator permission is required; server actor and idempotency checks remain authoritative.",
-                    }}
-                  />
-                ) : canEscalate ? (
-                  <ReviewAction
-                    triggerLabel="Review escalation"
-                    confirmLabel="Complete escalation review"
-                    summary={{
-                      action: "Escalate permanent provider failure",
-                      entity: `${record.account} · ${record.capability}`,
-                      impact:
-                        "Provider and policy owners receive the blocked capability; no retry is sent.",
-                      evidence: record.evidence,
-                      policyBasis:
-                        "Provisioning recovery §2.4 · permanent failures prohibit retry",
-                      downstreamEffect:
-                        "Capability remains unavailable until an activation test succeeds.",
-                      technicalId: record.id,
-                      actorAuthority:
-                        "Internal operator may route evidence; provider and legal gates remain separate.",
-                    }}
-                  />
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    disabled
-                    title={assessment.reason}
-                  >
-                    {assessment.label}
-                  </Button>
-                )}
-                <span
-                  className={
-                    assessment.allowed
-                      ? styles.safe
-                      : record.failureClass === "Waiting"
-                        ? styles.waiting
-                        : styles.blocked
-                  }
-                >
-                  {assessment.reason}
-                </span>
-              </div>,
-            ];
-          })}
-        />
+              item.kindLabel,
+              item.provider ?? "Not recorded",
+              item.attemptCount === null ? (
+                copy.noAttempts
+              ) : (
+                <strong>{item.attemptCount}</strong>
+              ),
+              <>
+                <StatusBadge tone={riskTone(item)}>
+                  {item.statusLabel}
+                </StatusBadge>
+                <div className={styles.secondary}>
+                  {item.nextAttemptLabel ?? item.description ?? ""}
+                </div>
+              </>,
+              item.nextAction ?? "Not recorded",
+            ])}
+          />
+        )}
       </section>
     </FinancePageFrame>
   );

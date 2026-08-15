@@ -44,8 +44,11 @@ export function RecoveryView({
     <FinancePageFrame
       title={page.title}
       description={page.description}
-      freshness={readable ? page.freshnessRead : page.freshnessUnavailable}
-      source={source}
+      provenance={
+        readable
+          ? { kind: "read", source, readAt: now.toISOString() }
+          : { kind: "unreadable", source }
+      }
     >
       <section className={styles.summaryGrid} aria-label={summary.label}>
         <article className={styles.summaryCard}>
