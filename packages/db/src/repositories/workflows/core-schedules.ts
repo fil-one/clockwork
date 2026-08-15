@@ -12,6 +12,8 @@ import {
   sql,
 } from "drizzle-orm";
 
+import type { TaxPort } from "@clockwork/contracts";
+
 import {
   assessExemptionCertificate,
   certificateRowStatus,
@@ -311,10 +313,12 @@ export class DatabaseCoreScheduledDispatchStore {
   public constructor(
     private readonly db: RuntimeDatabase,
     authorizationSecret: string,
+    tax: TaxPort,
   ) {
     this.eventDispatch = new DatabaseCoreWorkflowDispatchStore(
       db,
       authorizationSecret,
+      tax,
     );
   }
 

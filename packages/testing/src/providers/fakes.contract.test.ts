@@ -75,6 +75,7 @@ describe("all fake provider ports", () => {
       }),
       providers.tax.calculate({
         accountId,
+        jurisdiction: "US",
         lines: [{ taxCode: "txcd_demo", amount: money }],
       }),
       providers.evidence.putImmutable({

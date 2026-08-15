@@ -3,8 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, like, or } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IdempotencyKeySchema, ids } from "@clockwork/contracts";
-import type { AuthorizationContext } from "@clockwork/domain";
+import { IdempotencyKeySchema } from "@clockwork/contracts";
 
 import { createRuntimeDatabase, type RuntimeTransaction } from "../../client";
 import {
@@ -13,12 +12,12 @@ import {
   orders,
   outboxMessages,
   payments,
+  quotes,
   webhookEvents,
 } from "../../schema";
 import { collectionActions, collectionCases } from "../../schema/core/finance";
 import { providerProjectionCheckpoints } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
-import { DatabaseCoreFinanceRepository } from "../core/database-finance";
 import { DatabaseCoreWorkflowRecordPort } from "../workflows/core";
 import {
   DatabaseStripeFinancialProjection,
@@ -28,12 +27,8 @@ import {
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable";
-const authorizationSecret =
-  process.env.AUTHORIZATION_CONTEXT_SECRET ??
-  "clockwork-local-auth-context-secret-change-me";
 const prefix = "integration-stripe-partial-payment-";
 const accountId = "10000000-0000-4000-8000-000000000001";
-const userId = "20000000-0000-4000-8000-000000000002";
 const collectionsOwnerId = "20000000-0000-4000-8000-000000000001";
 const orderId = "80000000-0000-4000-8000-000000000001";
 const customerId = `cus_demo_${accountId.replaceAll("-", "")}`;
@@ -44,21 +39,8 @@ const { client, db } = createRuntimeDatabase({
   role: "clockwork_service",
   ssl: false,
 });
-const finance = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-});
 const workflowRecords = new DatabaseCoreWorkflowRecordPort(db);
 const projection = new DatabaseStripeFinancialProjection(db);
-const authorization: AuthorizationContext = {
-  userId: ids.user.parse(userId),
-  accountIds: [ids.account.parse(accountId)],
-  roles: ["owner"],
-  isInternalStaff: false,
-  mfaVerified: true,
-  recentAuthenticationVerified: true,
-};
 
 function internal<T>(
   requestId: string,
@@ -140,29 +122,39 @@ afterAll(async () => {
 
 async function createIssuedInvoice(suffix: string) {
   const invoiceId = randomUUID();
-  const draft = await finance.mutate({
-    resource: "invoices",
-    id: invoiceId,
-    accountId,
-    action: "create",
-    payload: { orderId, dueAt: "2031-02-01T00:00:00.000Z" },
-    actor: { kind: "user", id: userId },
-    authorization,
-    requestId: `${prefix}draft-${suffix}`,
-    idempotencyKey: `${prefix}draft-${suffix}`,
-    occurredAt: "2031-01-01T00:00:00.000Z",
-  });
+  // Five cases need five independent invoices, and `invoices: create` now
+  // derives one identifier per order, so the fixture writes the row itself
+  // rather than billing the shared order five times through the writer. What
+  // it writes is still the order's own commercial truth, which is all the
+  // projection trigger (000920, rewritten at 001390) will accept.
   const truth = await internal(
     `${prefix}truth-${suffix}`,
     async (transaction) => {
-      const [invoice, order] = await Promise.all([
-        transaction.query.invoices.findFirst({
-          where: eq(invoices.id, invoiceId),
-        }),
-        transaction.query.orders.findFirst({ where: eq(orders.id, orderId) }),
-      ]);
-      if (!invoice || !order)
+      const order = await transaction.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+      });
+      const quote = order
+        ? await transaction.query.quotes.findFirst({
+            where: eq(quotes.id, order.quoteId),
+          })
+        : undefined;
+      if (!order || !quote)
         throw new Error("Issued-invoice fixture is missing");
+      const [invoice] = await transaction
+        .insert(invoices)
+        .values({
+          id: invoiceId,
+          orderId: order.id,
+          accountId: order.invoicingAccountId,
+          stripeInvoiceId: null,
+          currency: quote.currency,
+          amountMinor: quote.totalMinor,
+          poNumber: order.poNumber,
+          status: "draft",
+          dueAt: new Date("2031-02-01T00:00:00.000Z"),
+        })
+        .returning();
+      if (!invoice) throw new Error("Issued-invoice fixture is missing");
       return { invoice, order };
     },
   );
@@ -170,7 +162,7 @@ async function createIssuedInvoice(suffix: string) {
   await workflowRecords.record({
     invocationKey: IdempotencyKeySchema.parse(`${prefix}issue-${suffix}`),
     aggregateId: invoiceId,
-    aggregateVersion: draft.record.rowVersion,
+    aggregateVersion: truth.invoice.rowVersion,
     requestId: `${prefix}issue-${suffix}`,
     occurredAt: "2031-01-01T00:01:00.000Z",
     record: {
@@ -423,36 +415,47 @@ describe("Stripe partial payment projection", () => {
     });
   });
 
+  /**
+   * A stale restatement of the invoice's running total must not lower the
+   * settled amount.
+   *
+   * The two events deliberately carry the SAME payment intent, because that is
+   * what "an earlier event arrives late" means for one settlement: Stripe is
+   * restating the same intent's effect on the invoice, not reporting a second
+   * payment. The fixture previously derived the intent id from the event
+   * suffix, so the two events named DIFFERENT intents and the test quietly
+   * asserted that a distinct intent's money produces no payments row — which is
+   * the invoice-category money loss fixed alongside this. Distinct intents are
+   * covered by the installment cases in stripe-category-ordering.
+   */
   it("holds the settled amount when an earlier event arrives late", async () => {
     const suffix = randomUUID();
     const invoice = await createIssuedInvoice(suffix);
-    await projection.apply(
-      await verifiedEvent(
-        invoiceEvent(
-          invoice,
-          `${suffix}-current`,
-          {
-            due: invoice.amountMinor,
-            paid: invoice.amountMinor,
-            remaining: 0n,
-          },
-          "2031-01-04T00:00:00.000Z",
-        ),
-      ),
+    const settlement = invoiceEvent(
+      invoice,
+      `${suffix}-settlement`,
+      {
+        due: invoice.amountMinor,
+        paid: invoice.amountMinor,
+        remaining: 0n,
+      },
+      "2031-01-04T00:00:00.000Z",
     );
+    await projection.apply(await verifiedEvent(settlement));
     await projection.apply(
-      await verifiedEvent(
-        invoiceEvent(
-          invoice,
-          `${suffix}-late`,
-          {
-            due: invoice.amountMinor,
-            paid: 60_000n,
-            remaining: invoice.amountMinor - 60_000n,
-          },
-          "2031-01-03T00:00:00.000Z",
-        ),
-      ),
+      await verifiedEvent({
+        ...settlement,
+        eventId: `${settlement.eventId}-late`,
+        occurredAt: "2031-01-03T00:00:00.000Z",
+        // `amount` is the intent's own money and never changes for one intent —
+        // projectBoundPayment refuses a conflicting restatement. What is stale
+        // here is the invoice-level running total the event carries.
+        amountPaid: { currency: invoice.currency, minor: "60000" },
+        amountRemaining: {
+          currency: invoice.currency,
+          minor: (invoice.amountMinor - 60_000n).toString(),
+        },
+      }),
     );
 
     const state = await readInvoice(invoice, `late-${suffix}`);

@@ -13,6 +13,7 @@ import {
   IssueInvoiceInputSchema,
   SettleCommissionsInputSchema,
 } from "./schemas";
+import type { TaxPort } from "@clockwork/contracts";
 
 const EventEnvelopeSchema = z
   .object({
@@ -227,12 +228,14 @@ function handlers(input: {
 export function createCoreWorkflowOutboxHandlers(input: {
   db: RuntimeDatabase;
   authorizationSecret: string;
+  tax: TaxPort;
   submit: CoreWorkflowTaskSubmitter;
 }): ReadonlyMap<string, OutboxTopicHandler> {
   return handlers({
     store: new DatabaseCoreWorkflowDispatchStore(
       input.db,
       input.authorizationSecret,
+      input.tax,
     ),
     submitter: input.submit,
   });

@@ -28,6 +28,7 @@ import {
   DatabaseQboVendorMappingResolver,
 } from "./commissions";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -55,6 +56,7 @@ const finance = new DatabaseCoreFinanceRepository({
   database: db,
   pricingDatabase: db,
   authorizationSecret,
+  tax: new FixtureTaxPort(),
 });
 const statements = new DatabaseCommissionStatementRepository(db);
 const qboVendorMappings = new DatabaseQboVendorMappingResolver(db);

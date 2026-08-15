@@ -25,7 +25,6 @@ import {
   prorateMoney,
   projectStripeTruth,
   reconcileCommitmentToSource,
-  toCsv,
   threeWayTieOut,
   validatePartnerHierarchy,
 } from ".";
@@ -1016,11 +1015,9 @@ describe("commissions, webhook projection, and exports", () => {
     expect(result.ignoredOutOfOrder).toEqual(["evt-1"]);
   });
 
-  it("prevents spreadsheet formula injection in CSV exports", () => {
-    expect(toCsv([{ account: '=HYPERLINK("bad")', amount: "10" }])).toContain(
-      "'=HYPERLINK",
-    );
-  });
+  // CSV formula safety is asserted over the bytes callers actually receive:
+  // the HTTP download in packages/api/src/routes/core/core.integration.test.ts
+  // and the workflow export in packages/workflows/src/core/csv.test.ts.
 
   it("labels partner margin modeled until every source cost is realized", () => {
     const performance = partnerPerformance([

@@ -108,6 +108,12 @@ export const productionWorkflowExternalInputs = [
     input:
       "signed registrations, exemption rules, invoice entities, QBO mappings, revenue recognition, and credit policy",
   },
+  {
+    component: "tax_engine",
+    gate: "EXT-TAX-01",
+    input:
+      "selected tax determination endpoint and scoped credentials (TAX_PROVIDER_BASE_URL, TAX_PROVIDER_TOKEN)",
+  },
 ] as const;
 
 export const productionWorkflowInternalCompositionGaps = [] as const;

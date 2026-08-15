@@ -12,6 +12,7 @@ import {
   DatabaseCoreScheduleOccurrenceStore,
   DatabaseCoreScheduledDispatchStore,
 } from "./core-schedules";
+import { FixtureTaxPort } from "../core/tax-fixture";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -113,6 +114,7 @@ describe.sequential("dunning sweep against outstanding amounts", () => {
     db,
     process.env.AUTHORIZATION_CONTEXT_SECRET ??
       "clockwork-local-auth-context-secret-change-me",
+    new FixtureTaxPort(),
   );
   const invoiceId = randomUUID();
   const suffix = invoiceId.replaceAll("-", "").slice(0, 12);

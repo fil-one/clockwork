@@ -3,8 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, like, or } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IdempotencyKeySchema, ids } from "@clockwork/contracts";
-import type { AuthorizationContext } from "@clockwork/domain";
+import { IdempotencyKeySchema } from "@clockwork/contracts";
 
 import { createRuntimeDatabase, type RuntimeTransaction } from "../../client";
 import {
@@ -14,11 +13,11 @@ import {
   outboxMessages,
   payments,
   providerOperations,
+  quotes,
   webhookEvents,
 } from "../../schema";
 import { providerProjectionCheckpoints } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
-import { DatabaseCoreFinanceRepository } from "../core/database-finance";
 import { DatabaseCoreWorkflowRecordPort } from "../workflows/core";
 import {
   DatabaseStripeFinancialProjection,
@@ -28,12 +27,8 @@ import {
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable";
-const authorizationSecret =
-  process.env.AUTHORIZATION_CONTEXT_SECRET ??
-  "clockwork-local-auth-context-secret-change-me";
 const prefix = "integration-stripe-payment-binding-";
 const accountId = "10000000-0000-4000-8000-000000000001";
-const userId = "20000000-0000-4000-8000-000000000002";
 const orderId = "80000000-0000-4000-8000-000000000001";
 const customerId = `cus_demo_${accountId.replaceAll("-", "")}`;
 
@@ -43,21 +38,8 @@ const { client, db } = createRuntimeDatabase({
   role: "clockwork_service",
   ssl: false,
 });
-const finance = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-});
 const workflowRecords = new DatabaseCoreWorkflowRecordPort(db);
 const projection = new DatabaseStripeFinancialProjection(db);
-const authorization: AuthorizationContext = {
-  userId: ids.user.parse(userId),
-  accountIds: [ids.account.parse(accountId)],
-  roles: ["owner"],
-  isInternalStaff: false,
-  mfaVerified: true,
-  recentAuthenticationVerified: true,
-};
 
 function internal<T>(
   requestId: string,
@@ -131,29 +113,39 @@ afterAll(async () => {
 
 async function createIssuedInvoice(suffix: string) {
   const invoiceId = randomUUID();
-  const draft = await finance.mutate({
-    resource: "invoices",
-    id: invoiceId,
-    accountId,
-    action: "create",
-    payload: { orderId, dueAt: "2031-02-01T00:00:00.000Z" },
-    actor: { kind: "user", id: userId },
-    authorization,
-    requestId: `${prefix}draft-${suffix}`,
-    idempotencyKey: `${prefix}draft-${suffix}`,
-    occurredAt: "2031-01-01T00:00:00.000Z",
-  });
+  // Each case needs its own invoice, and `invoices: create` now derives one
+  // identifier per order, so the fixture writes the row itself rather than
+  // billing the shared order once per case through the writer. What it writes
+  // is still the order's own commercial truth, which is all the projection
+  // trigger (000920, rewritten at 001390) will accept.
   const truth = await internal(
     `${prefix}truth-${suffix}`,
     async (transaction) => {
-      const [invoice, order] = await Promise.all([
-        transaction.query.invoices.findFirst({
-          where: eq(invoices.id, invoiceId),
-        }),
-        transaction.query.orders.findFirst({ where: eq(orders.id, orderId) }),
-      ]);
-      if (!invoice || !order)
+      const order = await transaction.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+      });
+      const quote = order
+        ? await transaction.query.quotes.findFirst({
+            where: eq(quotes.id, order.quoteId),
+          })
+        : undefined;
+      if (!order || !quote)
         throw new Error("Issued-invoice fixture is missing");
+      const [invoice] = await transaction
+        .insert(invoices)
+        .values({
+          id: invoiceId,
+          orderId: order.id,
+          accountId: order.invoicingAccountId,
+          stripeInvoiceId: null,
+          currency: quote.currency,
+          amountMinor: quote.totalMinor,
+          poNumber: order.poNumber,
+          status: "draft",
+          dueAt: new Date("2031-02-01T00:00:00.000Z"),
+        })
+        .returning();
+      if (!invoice) throw new Error("Issued-invoice fixture is missing");
       return { invoice, order };
     },
   );
@@ -161,7 +153,7 @@ async function createIssuedInvoice(suffix: string) {
   await workflowRecords.record({
     invocationKey: IdempotencyKeySchema.parse(`${prefix}issue-${suffix}`),
     aggregateId: invoiceId,
-    aggregateVersion: draft.record.rowVersion,
+    aggregateVersion: truth.invoice.rowVersion,
     requestId: `${prefix}issue-${suffix}`,
     occurredAt: "2031-01-01T00:01:00.000Z",
     record: {

@@ -11,6 +11,7 @@ import { approvals, priceBooks, rateCards } from "../../schema";
 import { priceBookActivationEvents } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -36,6 +37,7 @@ const repository = new DatabaseCoreFinanceRepository({
   database: db,
   pricingDatabase: db,
   authorizationSecret,
+  tax: new FixtureTaxPort(),
 });
 
 const finance = (userId: string): AuthorizationContext => ({

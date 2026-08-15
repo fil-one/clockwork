@@ -339,7 +339,35 @@ export function threeWayTieOut(input: {
   };
 }
 
-function csvCell(value: unknown): string {
+/**
+ * Code points a spreadsheet discards before deciding whether a cell is a
+ * formula, so a value may not begin with the lead-in to be evaluated as one.
+ * JavaScript's `\s` already covers TAB, LF, VT, FF, CR, space, NBSP (U+00A0),
+ * U+1680, the U+2000-U+200A block, U+2028, U+2029, U+202F, U+205F, U+3000 and
+ * U+FEFF; the rest of the class adds the zero-width code points `\s` omits.
+ */
+const CSV_STRIPPED_LEAD = /^[\s\u180E\u200B-\u200D\u2060]+/;
+
+/**
+ * Lead-ins Excel, LibreOffice Calc and Google Sheets evaluate. TAB (U+0009) and
+ * CR (U+000D) are lead-ins in their own right, not only padding before `=+-@`.
+ */
+const CSV_FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+/**
+ * A signed decimal or exponent literal is a numeric constant in every
+ * spreadsheet, never a formula. It is deliberately left unescaped: quoting it
+ * would import every negative delta, credit and clawback as text, which drops
+ * those rows out of the reader's own column totals without any visible error.
+ */
+const CSV_NUMERIC_LITERAL = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+/**
+ * Neutralises one cell for spreadsheet import and quotes it per RFC 4180.
+ * Both the workflow report export and the CSV download render through this, so
+ * a value neutralised in one is neutralised in the other.
+ */
+export function csvCell(value: unknown): string {
   const raw =
     value === null || value === undefined
       ? ""
@@ -350,19 +378,41 @@ function csvCell(value: unknown): string {
             typeof value === "bigint"
           ? `${value}`
           : (JSON.stringify(value) ?? "");
-  const safe = /^[=+@-]/.test(raw) ? `'${raw}` : raw;
-  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  const evaluated = raw.replace(CSV_STRIPPED_LEAD, "");
+  const safe =
+    (CSV_FORMULA_LEAD.test(raw) || CSV_FORMULA_LEAD.test(evaluated)) &&
+    !CSV_NUMERIC_LITERAL.test(evaluated)
+      ? `'${raw}`
+      : raw;
+  // Surrounding whitespace is quoted as well so lenient parsers that trim
+  // unquoted fields still hand back the persisted value unchanged.
+  return /[",\r\n]/.test(safe) || /^\s|\s$/.test(safe)
+    ? `"${safe.replace(/"/g, '""')}"`
+    : safe;
 }
 
-export function toCsv(rows: readonly Record<string, unknown>[]): string {
-  if (rows.length === 0) return "";
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  return [
+/** Column order discovered across the rows, first seen first. */
+export function csvColumns(
+  rows: readonly Readonly<Record<string, unknown>>[],
+): string[] {
+  return [...new Set(rows.flatMap((row) => Object.keys(row)))];
+}
+
+/**
+ * The single CSV writer. The leading BOM is what makes Excel read the bytes as
+ * UTF-8 rather than the local code page.
+ */
+export function toCsv(
+  rows: readonly Readonly<Record<string, unknown>>[],
+  columns: readonly string[],
+): string {
+  const lines = [
     columns.map(csvCell).join(","),
     ...rows.map((row) =>
       columns.map((column) => csvCell(row[column])).join(","),
     ),
-  ].join("\r\n");
+  ];
+  return `\uFEFF${lines.join("\r\n")}\r\n`;
 }
 
 export function weeklyScorecard(input: {

@@ -6,6 +6,7 @@ import { uuidV7 } from "@clockwork/contracts";
 import { createRuntimeDatabase } from "../../client";
 import { withInternalTransaction } from "../../transaction";
 import { DatabaseAuthoritativePortalCommandExecutor } from "./authoritative-command";
+import { FixtureTaxPort } from "../core/tax-fixture";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -30,6 +31,7 @@ const runtime = createRuntimeDatabase({
 const executor = new DatabaseAuthoritativePortalCommandExecutor({
   database: runtime.db,
   authorizationSecret,
+  tax: new FixtureTaxPort(),
   now: () => now,
 });
 

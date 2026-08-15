@@ -11,6 +11,7 @@ import {
   type StripeFinancialProjectionEvent,
 } from "../system/providers";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 import { DatabasePersistedStripeAdjustmentStore } from "./stripe-adjustments";
 
 const databaseUrl =
@@ -29,6 +30,7 @@ const repository = new DatabaseCoreFinanceRepository({
   database: db,
   pricingDatabase: db,
   authorizationSecret,
+  tax: new FixtureTaxPort(),
 });
 const stripeAdjustments = new DatabasePersistedStripeAdjustmentStore(db);
 const stripeProjection = new DatabaseStripeFinancialProjection(db);

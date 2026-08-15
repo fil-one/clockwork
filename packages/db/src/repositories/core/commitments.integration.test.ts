@@ -21,6 +21,7 @@ import {
   ingestUsageEvents,
   replayCommitmentLedger,
 } from "./commitments";
+import { FixtureTaxPort } from "./tax-fixture";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -287,6 +288,7 @@ describe.sequential("commitment ledger write path", () => {
       db,
       process.env.AUTHORIZATION_CONTEXT_SECRET ??
         "clockwork-local-auth-context-secret-change-me",
+      new FixtureTaxPort(),
     );
     const dispatches = await builder.buildDueDispatches({
       scheduleId: "core.schedule.sync-overage.v1",

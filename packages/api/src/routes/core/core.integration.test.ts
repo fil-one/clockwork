@@ -1,4 +1,5 @@
 import type { WebhookVerifier } from "@clockwork/contracts";
+import { renderCsv } from "@clockwork/workflows/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createApiApp } from "../../app";
@@ -12,6 +13,89 @@ import {
 const csrf = "core-finance-csrf-token-00000000000001";
 const accountOne = "10000000-0000-4000-8000-000000000001";
 const accountTwo = "10000000-0000-4000-8000-000000000002";
+
+/**
+ * Persisted values that must reach the download inert. A spreadsheet discards
+ * invisible leading code points before it decides a cell is a formula, and it
+ * treats a leading TAB or CR as a lead-in in its own right.
+ */
+const NEUTRALISED = {
+  csv_bare_equals: '=HYPERLINK("https://evil.test","click")',
+  csv_bare_at: "@SUM(A1:A9)",
+  csv_space_equals: " =1+1",
+  csv_spaces_at: "   @SUM(A1)",
+  csv_tab_equals: "\t=1+1",
+  csv_carriage_return_equals: "\r=1+1",
+  csv_tab_only: "\tordinary text",
+  csv_carriage_return_only: "\rordinary text",
+  csv_nbsp_plus: "\u00A0+1+1",
+  csv_en_space_minus: "\u2002-2+3+cmd|' /C calc'!A0",
+  csv_ideographic_space_equals: "\u3000=1+1",
+  csv_line_separator_equals: "\u2028=1+1",
+  csv_narrow_nbsp_equals: "\u202F=1+1",
+  csv_zero_width_space_equals: "\u200B=1+1",
+  csv_word_joiner_equals: "\u2060=1+1",
+  csv_mixed_invisible_equals: " \t\u00A0\u200B=1+1",
+  csv_minus_expression: "-2+3+cmd|' /C calc'!A0",
+} as const;
+
+/** Persisted values the download must hand back byte for byte. */
+const VERBATIM = {
+  csv_negative_minor: "-12000",
+  csv_negative_decimal: "-0.5",
+  csv_signed_positive: "+12000",
+  csv_negative_exponent: "-1.5e-3",
+  csv_delimiter: "Example, LLC",
+  csv_quote: 'say "hi"',
+  csv_newline: "line one\nline two",
+  csv_crlf: "line one\r\nline two",
+  csv_quote_and_delimiter: '"quoted", then',
+  csv_leading_space_text: "  padded",
+  csv_trailing_space_text: "padded  ",
+} as const;
+
+/** RFC 4180 reader over the response body, header row mapped to the one data row. */
+function csvRow(document: string): Record<string, string> {
+  const text = document.startsWith("\uFEFF") ? document.slice(1) : document;
+  const records: string[][] = [];
+  let record: string[] = [];
+  let field = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text.charAt(index);
+    if (quoted) {
+      if (character !== '"') field += character;
+      else if (text.charAt(index + 1) === '"') {
+        field += '"';
+        index += 1;
+      } else quoted = false;
+      continue;
+    }
+    if (character === '"' && field === "") quoted = true;
+    else if (character === ",") {
+      record.push(field);
+      field = "";
+    } else if (character === "\r" && text.charAt(index + 1) === "\n") {
+      record.push(field);
+      records.push(record);
+      record = [];
+      field = "";
+      index += 1;
+    } else field += character;
+  }
+  if (field !== "" || record.length > 0) {
+    record.push(field);
+    records.push(record);
+  }
+  const [header, values] = records;
+  if (!header || !values || records.length !== 2)
+    throw new Error(
+      `Expected a header and one data row, got ${records.length}`,
+    );
+  return Object.fromEntries(
+    header.map((column, index) => [column, values[index] ?? ""]),
+  );
+}
 
 function mutationHeaders(input: {
   key: string;
@@ -364,6 +448,54 @@ describe("core-finance API", () => {
     await expect(internal.json()).resolves.toMatchObject({
       items: [{ id: reportId }],
     });
+  });
+
+  it("neutralises every spreadsheet formula lead-in in the CSV download, keeps signed amounts numeric, and round-trips quoting", async () => {
+    configureCoreRouteDependencies({ service: new MemoryCoreFinanceService() });
+    const app = createApiApp();
+    const created = await app.request("/v1/core/commands/reports", {
+      method: "POST",
+      headers: mutationHeaders({ key: "report-csv-injection-0001" }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-0000000000c5",
+        accountId: accountOne,
+        action: "create",
+        payload: { report: "revenue_forecast", ...NEUTRALISED, ...VERBATIM },
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const download = await app.request(
+      `/v1/core/reports/revenue_forecast?accountId=${accountOne}&format=csv`,
+      { headers: mutationHeaders({ key: "report-csv-download-0001" }) },
+    );
+    expect(download.status).toBe(200);
+    expect(download.headers.get("content-type")).toBe(
+      "text/csv; charset=utf-8",
+    );
+    const body = await download.text();
+    const cells = csvRow(body);
+
+    // Every lead-in a spreadsheet evaluates, including the ones it only
+    // evaluates after discarding invisible padding, arrives inert.
+    for (const [column, persisted] of Object.entries(NEUTRALISED))
+      expect(cells[column]).toBe(`'${persisted}`);
+
+    // A signed amount is a numeric constant, not a formula: quoting it would
+    // land it in the sheet as text and silently drop it from the reader's
+    // totals. Delimiters, quotes and newlines survive the round trip.
+    for (const [column, persisted] of Object.entries(VERBATIM))
+      expect(cells[column]).toBe(persisted);
+
+    // The download and the workflow report export are the same writer, so a
+    // value neutralised in one can never pass through the other.
+    const exported = csvRow(
+      new TextDecoder().decode(
+        renderCsv([{ ...NEUTRALISED, ...VERBATIM }]).bytes,
+      ),
+    );
+    for (const column of Object.keys({ ...NEUTRALISED, ...VERBATIM }))
+      expect(cells[column]).toBe(exported[column]);
   });
 
   it("verifies untouched Stripe bytes before claim and deduplicates delivery", async () => {

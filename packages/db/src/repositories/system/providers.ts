@@ -7,6 +7,7 @@ import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import {
   accounts,
   agreementTemplates,
+  auditEvents,
   creditNotes,
   disputeCases,
   documents,
@@ -678,7 +679,18 @@ export interface StripeFinancialProjectionEvent {
   status?: string;
 }
 
-/** Transactional Stripe projection with an out-of-order fail-closed watermark. */
+/**
+ * Transactional Stripe projection. Stripe states no delivery order and stamps
+ * `created` to the second, so nothing here may treat "arrived behind something
+ * newer" as "already accounted for": every verified event is projected exactly
+ * once and the reducers join rather than overwrite, which makes arrival order
+ * immaterial to the money. An event that genuinely cannot be reconciled raises;
+ * one that carries nothing the row does not already hold — a restated phase,
+ * behind or beside the sibling that got there first — is recorded as subsumed.
+ * Anything carrying money of its own is applied whatever its arrival order.
+ * Every verified event therefore leaves a row or an audit row: `apply()`
+ * returning void acks the inbox, so nothing may be discarded in silence.
+ */
 export class DatabaseStripeFinancialProjection {
   public constructor(private readonly database: RuntimeDatabase) {}
 
@@ -688,8 +700,8 @@ export class DatabaseStripeFinancialProjection {
       `stripe-projection:${event.eventId}`,
       async (transaction) => {
         await assertVerifiedStripeInboxEvent(transaction, event);
-        const current = await claimProjectionCheckpoint(transaction, event);
-        if (!current) return;
+        if (await alreadyProjected(transaction, event)) return;
+        await recordProjectionCheckpoint(transaction, event);
         switch (event.category) {
           case "invoice":
             await projectInvoice(transaction, event);
@@ -763,14 +775,45 @@ async function assertVerifiedStripeInboxEvent(
     );
 }
 
-async function claimProjectionCheckpoint(
+/**
+ * One Stripe event is projected at most once. Idempotency is keyed per event,
+ * not per aggregate: the checkpoint below holds a single identifier for a
+ * stream that delivers many, so it can never say whether THIS event has landed.
+ * The projection request ID is unique per provider event, so the append-only
+ * trail the projection wrote is the authoritative record of what has.
+ */
+async function alreadyProjected(
   transaction: RuntimeTransaction,
   event: StripeFinancialProjectionEvent,
 ): Promise<boolean> {
+  const projected = await transaction.query.auditEvents.findFirst({
+    where: eq(auditEvents.requestId, projectionRequestId(event)),
+    columns: { id: true },
+  });
+  return Boolean(projected);
+}
+
+function projectionRequestId(event: StripeFinancialProjectionEvent): string {
+  return `stripe:${event.eventId}`;
+}
+
+/**
+ * How far each aggregate's stream has advanced, for operators reading the lag.
+ * It is deliberately not a gate. A monotonically-advancing watermark can only
+ * answer "is this the newest event", and Stripe guarantees no delivery order,
+ * so the answer "no" means "this one arrived late" — never "this one has
+ * already been accounted for". Dropping on that answer discards money nobody
+ * will report again; the replay guard above answers the question the watermark
+ * cannot, per event rather than per aggregate.
+ */
+async function recordProjectionCheckpoint(
+  transaction: RuntimeTransaction,
+  event: StripeFinancialProjectionEvent,
+): Promise<void> {
   const occurredAt = new Date(event.occurredAt);
   if (!Number.isFinite(occurredAt.valueOf()))
     throw new Error("Stripe event occurredAt is invalid");
-  const rows = await transaction
+  await transaction
     .insert(providerProjectionCheckpoints)
     .values({
       provider: "stripe",
@@ -788,12 +831,8 @@ async function claimProjectionCheckpoint(
         occurredAt,
         updatedAt: new Date(),
       },
-      setWhere: sql`${providerProjectionCheckpoints.occurredAt} < ${occurredAt.toISOString()}::timestamptz
-        or (${providerProjectionCheckpoints.occurredAt} = ${occurredAt.toISOString()}::timestamptz
-          and ${providerProjectionCheckpoints.providerEventId} < ${event.eventId})`,
-    })
-    .returning({ id: providerProjectionCheckpoints.id });
-  return rows.length === 1;
+      setWhere: sql`${providerProjectionCheckpoints.occurredAt} < ${occurredAt.toISOString()}::timestamptz`,
+    });
 }
 
 async function projectInvoice(
@@ -807,12 +846,28 @@ async function projectInvoice(
   });
   if (!before) throw new Error("Stripe invoice is not linked to an order");
   await assertStripeInvoiceIdentity(transaction, event, before);
-  if (!isNewerFinancialEvent(event, before)) return;
+  // An invoice event states the invoice's running `amount_paid`, so a strictly
+  // older one restating a total the row has already passed is genuinely
+  // subsumed — unlike a payment event, where each intent is separate money.
+  // But it is subsumed because the money is already accounted for, not because
+  // it arrived late, and the two are not the same event set: an
+  // `invoice.payment_succeeded` naming an intent and stating no totals is
+  // accounted for by nothing but the payments sum, and dropping it leaves that
+  // sum with a hole no one will ever report again.
+  if (
+    isSubsumedFinancialEvent(event, before) &&
+    !statesUnaccountedSettlement(event, before)
+  )
+    return appendSubsumedProjection(transaction, event);
   if (event.amount) assertInvoiceCurrency(event.amount, before);
   assertInvoiceTotals(event, before);
   const proposed = invoiceStatus(event.eventType, event.status, before.status);
   const status = monotonicInvoiceStatus(before.status, proposed);
-  if (event.paymentIntentId || status === "paid")
+  // An event claiming settlement must name the intent that settled it. The
+  // claim is this event's own, not the status it inherits from the row: a
+  // late-delivered `invoice.updated` landing on an already-paid invoice is
+  // reporting an earlier phase and owes no intent.
+  if (event.paymentIntentId || proposed === "paid")
     await projectBoundPayment(transaction, event, before);
   const settled = await settledInvoiceMinor(transaction, event, before);
   const amountPaidMinor = maximumMinor(
@@ -827,9 +882,7 @@ async function projectInvoice(
       ...(status === "paid" && !before.paidAt
         ? { paidAt: new Date(event.occurredAt) }
         : {}),
-      stripeLastOccurredAt: new Date(event.occurredAt),
-      stripeLastEventId: event.eventId,
-      updatedAt: new Date(event.occurredAt),
+      ...stripeOrderingColumns(event, before),
     })
     .where(
       and(
@@ -874,7 +927,10 @@ async function projectPayment(
   await assertStripeInvoiceIdentity(transaction, event, invoice);
   const payment = await projectBoundPayment(transaction, event, invoice);
   if (payment.status !== "succeeded") return;
-  if (!isNewerFinancialEvent(event, invoice)) return;
+  // The invoice side is a join, not an assignment: `settledInvoiceMinor` reads
+  // every succeeded payment on the invoice, so a late intent contributes its
+  // own money and the total it produces is the same whichever order the
+  // siblings arrived in.
   const amountPaidMinor = maximumMinor(
     invoice.amountPaidMinor,
     await settledInvoiceMinor(transaction, event, invoice),
@@ -895,9 +951,7 @@ async function projectPayment(
         status === "paid"
           ? (invoice.paidAt ?? new Date(event.occurredAt))
           : invoice.paidAt,
-      stripeLastOccurredAt: new Date(event.occurredAt),
-      stripeLastEventId: event.eventId,
-      updatedAt: new Date(event.occurredAt),
+      ...stripeOrderingColumns(event, invoice),
     })
     .where(
       and(
@@ -990,6 +1044,55 @@ function maximumMinor(left: bigint, right: bigint): bigint {
 }
 
 /**
+ * Whether a late invoice event still carries settlement the row has not
+ * accounted for. The answer is read off the event's own fields, never off its
+ * arrival order, and the four shapes below are the whole input space:
+ *
+ * - It states `amount_paid`. That is the invoice's entire settlement position
+ *   as of that moment, so if `amount_paid_minor` already holds at least as
+ *   much, every intent behind the event is inside the number the row shows the
+ *   customer: the invoice is not collectable for it and nobody is chased.
+ * - It states `amount_paid` greater than the row holds. Money the row has never
+ *   seen, so it applies.
+ * - It states no totals and names an intent whose money it carries. Then this
+ *   event accounts for that intent and nothing else ever will, so it applies
+ *   whatever its arrival order. An intent's own `amount` is not comparable with
+ *   the invoice's running total, and comparing the two is what let a 60,000
+ *   second installment look "already accounted for" behind a 120,000 first one
+ *   and vanish. Applying late is safe rather than double-booking:
+ *   `projectBoundPayment` keys on the intent so the same intent is one row, and
+ *   the invoice side is a max-join over the payments it can see.
+ * - It states neither a total nor an amount to book. There is nothing this
+ *   reducer could write for it.
+ *
+ * Every shape that was answered with a note before is still answered with one;
+ * the third is the only one that changed, and it changed from a note to a row.
+ */
+function statesUnaccountedSettlement(
+  event: StripeFinancialProjectionEvent,
+  invoice: StripeBoundInvoice,
+): boolean {
+  // The per-intent branch is tested FIRST, and that ordering is the whole fix.
+  // normalizeStripeFinancialEvent attaches invoiceTotals to every invoice-category
+  // event, and every Stripe Invoice carries amount_paid, so a total-first branch
+  // answers every real event of this category and the per-intent branch below it
+  // is unreachable in production. That is how a 60,000 second installment
+  // arriving behind a 120,000 first one looked "already accounted for" against
+  // the invoice-level running total and vanished, leaving the invoice `open` and
+  // collectable with the money received and no payments row naming it.
+  //
+  // Whether a PER-INTENT row should exist is not answerable from an
+  // INVOICE-LEVEL total, so it is no longer asked that way. Booking late is safe
+  // rather than double-booking: projectBoundPayment keys on the intent, so the
+  // same intent is one row however often it arrives, which makes this branch
+  // commutative under reordering.
+  if (event.paymentIntentId && event.amount) return true;
+  if (event.amountPaid)
+    return BigInt(event.amountPaid.minor) > invoice.amountPaidMinor;
+  return false;
+}
+
+/**
  * Provider truth wins because `amount_paid` also carries money settled outside
  * the platform. Events without invoice totals fall back to the payments already
  * projected from signed events.
@@ -1060,22 +1163,126 @@ async function syncCollectionCase(
   });
 }
 
+interface StripeOrderedRow {
+  stripeLastOccurredAt: Date | null;
+  stripeLastEventId: string | null;
+}
+
+/**
+ * Whether this event is the newest one the row has seen. It answers only
+ * whether the row's ordering columns may advance, never whether the event may
+ * be applied: `occurredAt` has one-second resolution and no delivery order, so
+ * a same-second sibling is not newer and is not stale either.
+ */
 function isNewerFinancialEvent(
   event: StripeFinancialProjectionEvent,
-  row: {
-    stripeLastOccurredAt: Date | null;
-    stripeLastEventId: string | null;
-  },
+  row: StripeOrderedRow,
 ): boolean {
   if (!row.stripeLastOccurredAt || !row.stripeLastEventId) return true;
-  const occurredAt = new Date(event.occurredAt);
-  const prior = row.stripeLastOccurredAt;
+  return new Date(event.occurredAt) > row.stripeLastOccurredAt;
+}
+
+/**
+ * A row already carries an event Stripe stamped strictly later. Only an event
+ * with nothing of its own to contribute may be answered with this: the row's
+ * newer event has already stated the phase, so re-running an older one would
+ * invent a conflict rather than settle one. Money-bearing joins ignore it,
+ * because a late payment is still a payment — which is why the invoice reducer
+ * consults it only for events that name no payment intent.
+ */
+function isSubsumedFinancialEvent(
+  event: StripeFinancialProjectionEvent,
+  row: StripeOrderedRow,
+): boolean {
+  if (!row.stripeLastOccurredAt || !row.stripeLastEventId) return false;
   return (
-    occurredAt > prior ||
-    (occurredAt.valueOf() === prior.valueOf() &&
-      event.eventId > row.stripeLastEventId)
+    new Date(event.occurredAt).valueOf() < row.stripeLastOccurredAt.valueOf()
   );
 }
+
+/**
+ * How far along its lifecycle each status sits, for the two rows that hold one
+ * provider status and no money of their own. The ranks are the persisted
+ * transition rules: a credit note runs approved -> pending -> issued -> void,
+ * a refund approved -> pending -> succeeded, and the two ways each can end sit
+ * at the same rank because neither follows the other.
+ */
+const CREDIT_NOTE_STATUS_RANK: Readonly<Record<string, number>> = {
+  approved: 0,
+  pending: 1,
+  issued: 2,
+  failed: 3,
+  void: 3,
+};
+const REFUND_STATUS_RANK: Readonly<Record<string, number>> = {
+  approved: 0,
+  pending: 1,
+  succeeded: 2,
+  failed: 2,
+};
+
+/**
+ * The status a single-status row should hold after this event. Stripe stamps
+ * `created` to the second and delivers in no order, so an event proposing an
+ * earlier phase than the row already holds is that phase restated behind its
+ * sibling — the row keeps what it has. Only two different ends of the same
+ * lifecycle contradict each other, and those stop here rather than letting
+ * arrival order decide. Ranking rather than listing terminal states is what
+ * keeps "you arrived second" out of the set of things treated as a conflict.
+ */
+function joinedProviderStatus(
+  current: string,
+  proposed: string,
+  ranks: Readonly<Record<string, number>>,
+  subject: string,
+): string {
+  if (current === proposed) return current;
+  const currentRank = ranks[current];
+  const proposedRank = ranks[proposed];
+  if (currentRank === undefined || proposedRank === undefined)
+    throw new Error(`Stripe ${subject} status is unsupported`);
+  if (proposedRank < currentRank) return current;
+  if (proposedRank === currentRank)
+    throw new Error(`Stripe ${subject} terminal status conflicted`);
+  return proposed;
+}
+
+/**
+ * The ordering columns a row should carry after this event. A late arrival
+ * writes none of them, so `stripeLastOccurredAt` stays the high-water mark and
+ * `updatedAt` never walks backwards — the event still applies, it just does not
+ * get to claim it is the latest word.
+ */
+function stripeWatermarkColumns(
+  event: StripeFinancialProjectionEvent,
+  row: StripeOrderedRow,
+): { stripeLastOccurredAt?: Date; stripeLastEventId?: string } {
+  if (!isNewerFinancialEvent(event, row)) return {};
+  return {
+    stripeLastOccurredAt: new Date(event.occurredAt),
+    stripeLastEventId: event.eventId,
+  };
+}
+
+/** The watermark plus the `updated_at` the tables that carry one expect. */
+function stripeOrderingColumns(
+  event: StripeFinancialProjectionEvent,
+  row: StripeOrderedRow,
+): {
+  stripeLastOccurredAt?: Date;
+  stripeLastEventId?: string;
+  updatedAt?: Date;
+} {
+  const watermark = stripeWatermarkColumns(event, row);
+  return watermark.stripeLastEventId
+    ? { ...watermark, updatedAt: new Date(event.occurredAt) }
+    : watermark;
+}
+
+const UNSEEN_STRIPE_ROW: StripeOrderedRow = {
+  stripeLastOccurredAt: null,
+  stripeLastEventId: null,
+};
 
 async function projectBoundPayment(
   transaction: RuntimeTransaction,
@@ -1100,7 +1307,10 @@ async function projectBoundPayment(
     throw new Error(
       "Stripe payment invoice, order, amount, or currency mismatch",
     );
-  if (before && !isNewerFinancialEvent(event, before)) return before;
+  // `monotonicPaymentStatus` is a join on pending < failed < succeeded <
+  // refunded, so a late event for this intent can only restate a rank the row
+  // has already passed. Applying it is a no-op on the status and the audit row
+  // it leaves is the record that the event landed.
   const priorStatus = before?.status ?? "pending";
   const status = monotonicPaymentStatus(
     priorStatus,
@@ -1116,9 +1326,7 @@ async function projectBoundPayment(
     status,
     receivedAt:
       status === "succeeded" ? (before?.receivedAt ?? occurredAt) : null,
-    stripeLastOccurredAt: occurredAt,
-    stripeLastEventId: event.eventId,
-    updatedAt: occurredAt,
+    ...stripeOrderingColumns(event, before ?? UNSEEN_STRIPE_ROW),
   };
   const [after] = before
     ? await transaction
@@ -1179,8 +1387,9 @@ async function projectCreditNote(
     BigInt(event.amount.minor) !== before.amountMinor
   )
     throw new Error("Stripe credit-note source or money binding mismatched");
-  if (!isNewerFinancialEvent(event, before)) return;
-  const status =
+  if (isSubsumedFinancialEvent(event, before))
+    return appendSubsumedProjection(transaction, event);
+  const proposed =
     event.eventType === "credit_note.voided" || event.status === "void"
       ? "void"
       : event.status === "issued"
@@ -1188,21 +1397,25 @@ async function projectCreditNote(
         : event.status === "draft"
           ? "pending"
           : undefined;
-  if (!status) throw new Error("Stripe credit-note status is unsupported");
-  if (
-    (before.status === "issued" ||
-      before.status === "failed" ||
-      before.status === "void") &&
-    before.status !== status &&
-    !(before.status === "issued" && status === "void")
-  )
-    throw new Error("Stripe credit-note terminal status conflicted");
+  if (!proposed) throw new Error("Stripe credit-note status is unsupported");
+  const status = joinedProviderStatus(
+    before.status,
+    proposed,
+    CREDIT_NOTE_STATUS_RANK,
+    "credit-note",
+  );
+  const watermark = stripeWatermarkColumns(event, before);
+  // Neither the phase nor the watermark moves, so there is no row to write. The
+  // persisted projection rule refuses an update that advances neither, and a
+  // raise here would dead-letter a verified event forever for the crime of
+  // sharing a second with the sibling that got there first. It is recorded.
+  if (status === before.status && !watermark.stripeLastEventId)
+    return appendSubsumedProjection(transaction, event);
   const [after] = await transaction
     .update(creditNotes)
     .set({
       status,
-      stripeLastOccurredAt: new Date(event.occurredAt),
-      stripeLastEventId: event.eventId,
+      ...watermark,
       version: sql`${creditNotes.version} + 1`,
     })
     .where(
@@ -1243,8 +1456,9 @@ async function projectRefund(
     BigInt(event.amount.minor) !== before.amountMinor
   )
     throw new Error("Stripe refund source or money binding mismatched");
-  if (!isNewerFinancialEvent(event, before)) return;
-  const status =
+  if (isSubsumedFinancialEvent(event, before))
+    return appendSubsumedProjection(transaction, event);
+  const proposed =
     event.eventType === "refund.created"
       ? before.status
       : event.eventType === "refund.updated" &&
@@ -1256,18 +1470,23 @@ async function projectRefund(
               (event.status === "failed" || event.status === "canceled")
             ? "failed"
             : undefined;
-  if (!status) throw new Error("Stripe refund status is unsupported");
-  if (
-    (before.status === "succeeded" || before.status === "failed") &&
-    before.status !== status
-  )
-    throw new Error("Stripe refund terminal status conflicted");
+  if (!proposed) throw new Error("Stripe refund status is unsupported");
+  const status = joinedProviderStatus(
+    before.status,
+    proposed,
+    REFUND_STATUS_RANK,
+    "refund",
+  );
+  const watermark = stripeWatermarkColumns(event, before);
+  // As above: an event that moves neither the phase nor the watermark has
+  // nothing to write, and must be recorded rather than dead-lettered.
+  if (status === before.status && !watermark.stripeLastEventId)
+    return appendSubsumedProjection(transaction, event);
   const [after] = await transaction
     .update(refunds)
     .set({
       status,
-      stripeLastOccurredAt: new Date(event.occurredAt),
-      stripeLastEventId: event.eventId,
+      ...watermark,
       version: sql`${refunds.version} + 1`,
     })
     .where(and(eq(refunds.id, before.id), eq(refunds.version, before.version)))
@@ -1345,16 +1564,34 @@ async function appendFinancialProjection(
     aggregateVersion: input.version,
     eventType: `provider.stripe.${event.eventType}`,
     actor: { kind: "provider", id: "stripe" },
-    requestId: `stripe:${event.eventId}`,
+    requestId: projectionRequestId(event),
     before: input.before,
     after: { ...input.after, providerEventId: event.eventId },
     occurredAt: new Date(event.occurredAt),
   });
 }
 
+/**
+ * A verified event with no column left to move: its row already holds the phase
+ * it proposes, or a later one, and it is not the newest event the row has seen.
+ * There is nothing to write and nothing in conflict. It is still a delivered
+ * money event, so it is recorded rather than acked into nothing.
+ */
+function appendSubsumedProjection(
+  transaction: RuntimeTransaction,
+  event: StripeFinancialProjectionEvent,
+): Promise<void> {
+  return appendWebhookProjection(
+    transaction,
+    event,
+    "subsumed_by_newer_provider_event",
+  );
+}
+
 async function appendWebhookProjection(
   transaction: RuntimeTransaction,
   event: StripeFinancialProjectionEvent,
+  disposition = "verified_no_financial_projection",
 ) {
   const webhook = await transaction.query.webhookEvents.findFirst({
     where: and(
@@ -1369,11 +1606,11 @@ async function appendWebhookProjection(
     aggregateVersion: webhook.attemptCount,
     eventType: `provider.stripe.${event.eventType}`,
     actor: { kind: "provider", id: "stripe" },
-    requestId: `stripe:${event.eventId}`,
+    requestId: projectionRequestId(event),
     after: {
       providerEventId: event.eventId,
       category: event.category,
-      disposition: "verified_no_financial_projection",
+      disposition,
     },
     occurredAt: new Date(event.occurredAt),
   });
@@ -1723,15 +1960,45 @@ function isPaymentStatus(
   return ["pending", "succeeded", "failed", "refunded"].includes(value);
 }
 
+/**
+ * Stripe's dispute vocabulary is `warning_needs_response`,
+ * `warning_under_review`, `warning_closed`, `needs_response`, `under_review`,
+ * `won` and `lost`, and only `won` and `lost` are outcomes: once a dispute
+ * closes on one of them it does not reopen. Deliveries are unordered, so a
+ * later-delivered phase event restates where the dispute has been, never where
+ * it now is, and must not pull a closed one back into the evidence queue. Two
+ * closures that disagree are a real contradiction and stop here rather than
+ * letting arrival order decide who owns the money.
+ */
 function disputeStatus(
   eventType: string,
   providerStatus: string | undefined,
   current: string,
 ): "needs_response" | "under_review" | "won" | "lost" {
-  if (eventType.endsWith(".closed"))
-    return providerStatus === "won" ? "won" : "lost";
+  const proposed = proposedDisputeStatus(eventType, providerStatus, current);
+  if (!isDisputeStatus(current) || current === proposed) return proposed;
+  if (!isDisputeOutcome(current)) return proposed;
+  if (!isDisputeOutcome(proposed) || !eventType.endsWith(".closed"))
+    return current;
+  throw new Error("Stripe dispute outcome conflicted");
+}
+
+function proposedDisputeStatus(
+  eventType: string,
+  providerStatus: string | undefined,
+  current: string,
+): "needs_response" | "under_review" | "won" | "lost" {
+  // Only a closure states an outcome, and only for the two statuses that are
+  // one. `warning_closed` ends an inquiry without deciding anything, and funds
+  // move out when a dispute opens rather than when it is lost, so neither may
+  // record a loss the provider has not declared.
+  if (
+    eventType.endsWith(".closed") &&
+    providerStatus !== undefined &&
+    isDisputeOutcome(providerStatus)
+  )
+    return providerStatus;
   if (eventType.endsWith(".funds_reinstated")) return "won";
-  if (eventType.endsWith(".funds_withdrawn")) return "lost";
   if (
     providerStatus === "warning_needs_response" ||
     providerStatus === "needs_response"
@@ -1739,6 +2006,10 @@ function disputeStatus(
     return "needs_response";
   if (isDisputeStatus(current)) return current;
   return "under_review";
+}
+
+function isDisputeOutcome(value: string): value is "won" | "lost" {
+  return value === "won" || value === "lost";
 }
 
 function isDisputeStatus(

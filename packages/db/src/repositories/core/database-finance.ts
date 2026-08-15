@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   ids,
@@ -7,14 +7,21 @@ import {
   uuidV7,
   type Actor,
   type EntityName,
+  type TaxPort,
+  type TaxTreatment,
 } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import {
   accrueCommission,
   acceptOrder,
   activatePriceBook,
+  amendOrderState,
+  applyAmendment,
   approveQuoteException,
+  assessExemptionCertificates,
   createAmendment,
+  divideRound,
+  prorationFraction,
   createQuoteDraft,
   creditAmount,
   dunningDecision,
@@ -27,12 +34,16 @@ import {
   priceQuote,
   registerDeal,
   redactPartnerQuoteData,
+  reviseQuote,
   validateCommitmentContract,
   validatePriceBook,
 } from "@clockwork/domain/core";
 import type {
   AccountCommercialRecord,
   AcceptedOrder,
+  AmendmentDelta,
+  AmendmentDeltaSet,
+  CommercialAmendment,
   DealRegistration,
   GoverningAgreement,
   PriceBook,
@@ -43,6 +54,7 @@ import type {
 import {
   accounts,
   agreements,
+  amendmentLines,
   amendments,
   approvals,
   commerceUsers,
@@ -68,6 +80,8 @@ import {
 } from "../../schema";
 import {
   accountCommercialProfiles,
+  amendmentFinancialTerms,
+  amendmentLineSupersessions,
   billingPolicies,
   collectionActions,
   collectionCases,
@@ -240,6 +254,133 @@ type CoreMutation = DatabaseCoreMutation;
 type CoreMutationResult = DatabaseCoreMutationResult;
 type CoreListInput = DatabaseCoreListInput;
 const CoreServiceError = DatabaseCoreError;
+
+/**
+ * The commands this repository branches on, by resource.
+ *
+ * Two surfaces advertise commands to callers -- the portal action list in
+ * `projection-definitions` and the API command catalogue in the core service --
+ * and both are held to this table by `command-catalogue.test.ts`. A verb they
+ * offer and this repository does not implement reaches an operator as an
+ * unsupported-transition error on the button they were told to press, which is
+ * how a draft quote came to show "Price" as its headline action.
+ *
+ * `mutateInTransaction` refuses anything absent from it before a branch runs,
+ * so this is the command surface rather than a description of one.
+ */
+export const databaseCoreCommands = {
+  // `update` and the four settings verbs share one patch branch today; they
+  // resolve, which is all this table claims. What each of them ought to write
+  // separately is not settled here -- and unlike `mutateProcurement`, which
+  // now branches on the verb, `mutateAccount` still answers all five with the
+  // same three optional keys, so a role, a contact, payment terms and a credit
+  // limit are audited under their own event and never written.
+  accounts: [
+    "create",
+    "update",
+    "add_role",
+    "add_contact",
+    "set_payment_terms",
+    "set_partner_credit",
+  ],
+  procurement_profiles: [
+    "create",
+    "update",
+    "add_certificate",
+    "record_supplier_document",
+  ],
+  price_books: [
+    "create",
+    "add_rate",
+    "request_activation",
+    "activate",
+    "retire",
+  ],
+  // `accept` is absent because acceptance is the order command: `orders:create`
+  // moves the quote to accepted inside the transaction that binds the signatory
+  // attestation, so a standalone verb would accept a quote with no order behind
+  // it. `price` is absent because pricing is not a transition -- `priceQuote`
+  // runs inside `create` and the row is inserted already priced.
+  quotes: [
+    "create",
+    "prepare_artifact",
+    "issue",
+    "expire",
+    "approve_exception",
+    "reject_exception",
+    "revise",
+  ],
+  orders: ["prepare_artifact", "create"],
+  // `accept` and `apply` are absent for the same reason: the amendment create
+  // command carries the acceptance evidence and applies the money in one
+  // transaction.
+  amendments: ["prepare_artifact", "create"],
+  commitments: [
+    "create",
+    "record_usage",
+    "correct_usage",
+    "amend_allowance",
+    "renew",
+    "reconcile",
+  ],
+  // Invoice status mirrors Stripe (§10: webhooks are the source of payment
+  // truth, no manual entry). `issue` runs through
+  // `core.billing.issue-invoice.v1`, which requires the row to still be a draft
+  // with no provider invoice; `open`, `pay`, `void` and `mark_uncollectible`
+  // arrive from the verified webhook through `monotonicInvoiceStatus`. A local
+  // write of any of them would both strand the real issuance and make the
+  // projection refuse the provider's later truth. `consolidate` is absent
+  // because end-client allocations are derived when the partner draft is
+  // written, not asked for afterwards.
+  invoices: ["create", "evaluate_dunning"],
+  credit_notes: ["issue"],
+  refunds: ["submit"],
+  disputes: ["create"],
+  deal_registrations: ["create", "approve", "reject", "extend", "convert"],
+  commissions: ["accrue", "clawback"],
+  accounting_exports: [],
+  marketplace_reconciliations: [],
+  reports: ["create"],
+} as const satisfies Readonly<Record<CoreResourceName, readonly string[]>>;
+
+/**
+ * Commands the API catalogue still advertises that this repository refuses
+ * because a workflow or a provider owns the transition. They are listed here so
+ * the deferral is a recorded decision next to the code that refuses it, and so
+ * the catalogue test can tell a deferral from a gap.
+ *
+ * No resource the portal can reach may appear here: the portal offers a verb as
+ * a button, and a button that cannot run is the defect this table exists to
+ * prevent. The catalogue test enforces that.
+ */
+export const workflowOwnedCoreCommands = {
+  deal_registrations: ["expire", "dispute", "decide_dispute"],
+  commissions: ["state", "settle"],
+  accounting_exports: ["create", "generate", "post", "reconcile"],
+  marketplace_reconciliations: ["create", "ingest", "reconcile", "replay"],
+  reports: ["generate", "complete", "fail"],
+} as const satisfies Readonly<
+  Partial<Record<CoreResourceName, readonly string[]>>
+>;
+
+/**
+ * Why a resource refuses the verbs it does not implement. The guard uses it so
+ * a caller is told which boundary owns the transition rather than only that
+ * this one does not.
+ */
+const unimplementedCommandReason: Partial<Record<CoreResourceName, string>> = {
+  // Order state is advanced only by the accepted-order transaction,
+  // authenticated provider confirmations, or the lifecycle offboarding
+  // commands. A generic state verb here would let an ordinary order:write
+  // caller bypass those boundaries.
+  orders:
+    "Order state changes require provider confirmation or lifecycle offboarding",
+  amendments:
+    "Amendment acceptance and application use the immutable create command",
+  invoices:
+    "Invoice issuance is workflow-owned and provider status advances only from the verified Stripe webhook",
+  commissions: "Statement and settlement run through the commission workflow",
+};
 
 interface CoreFinanceService {
   mutate(input: DatabaseCoreMutation): Promise<DatabaseCoreMutationResult>;
@@ -460,6 +601,11 @@ const QuoteCreateCommandSchema = z.object({
   partnerResaleTotal: MoneySchema.optional(),
   expiresAt: z.iso.datetime(),
   whiteLabel: QuoteSnapshotSchema.shape.whiteLabel,
+  // Nothing here says whether the quote continues service the customer already
+  // buys, and nothing should until renewal price protection has a call site
+  // that can resolve the governing paper. An optional `renewalOfOrderId` was
+  // tried and rejected: a protection that only binds the callers who volunteer
+  // it binds nobody.
 });
 const OrderLineSnapshotSchema = z.object({
   id: z.string().min(1),
@@ -608,6 +754,191 @@ const DisputeCreateCommandSchema = z
   })
   .strict();
 const DunningCommandSchema = z.object({}).strict();
+
+const ProcurementPortalStatusSchema = z.enum([
+  "not_required",
+  "not_started",
+  "in_progress",
+  "complete",
+  "blocked",
+]);
+/**
+ * One entry of `procurement_profiles.exemptions`, in the shape
+ * `readProcurementExemptions` reads and the daily expiry sweep
+ * (`core-schedules.ts`) upserts `core_procurement_certificates` from. That
+ * reader skips an entry it cannot parse rather than guessing at it, so an
+ * unreadable entry is a certificate that silently does not exist: it is
+ * refused here instead of written and dropped later.
+ */
+const ProcurementExemptionSchema = z
+  .object({
+    jurisdiction: z.string().trim().min(1).max(80),
+    certificateDocumentId: z.uuid(),
+    expiresOn: z.iso.date().nullable().default(null),
+  })
+  .strict();
+/** One entry of `procurement_profiles.supplier_documents`. */
+const ProcurementDocumentSchema = z
+  .object({
+    kind: z.enum(["w9", "w8", "coi", "bank_verification", "other"]),
+    documentId: z.uuid(),
+    furnishedAt: z.iso.datetime({ offset: true }).optional(),
+  })
+  .strict();
+/** `create` is the only command that writes a whole profile. */
+const ProcurementCreateCommandSchema = z
+  .object({
+    accountId: z.uuid().optional(),
+    poRequired: z.boolean().default(false),
+    supplierPortalStatus: ProcurementPortalStatusSchema.default("not_required"),
+    exemptions: z.array(ProcurementExemptionSchema).default([]),
+    supplierDocuments: z.array(ProcurementDocumentSchema).default([]),
+  })
+  .strict();
+/**
+ * `update` patches the keys it names. An absent key is not an instruction to
+ * empty the column: a caller changing the purchase-order policy does not carry
+ * the exemption certificates with it, and before P0-60 that omission deleted
+ * them.
+ */
+const ProcurementUpdateCommandSchema = z
+  .object({
+    accountId: z.uuid().optional(),
+    poRequired: z.boolean().optional(),
+    supplierPortalStatus: ProcurementPortalStatusSchema.optional(),
+    exemptions: z.array(ProcurementExemptionSchema).optional(),
+    supplierDocuments: z.array(ProcurementDocumentSchema).optional(),
+  })
+  .strict();
+const ProcurementCertificateCommandSchema = z
+  .object({
+    accountId: z.uuid().optional(),
+    certificate: ProcurementExemptionSchema,
+  })
+  .strict();
+const ProcurementDocumentCommandSchema = z
+  .object({
+    accountId: z.uuid().optional(),
+    document: ProcurementDocumentSchema,
+  })
+  .strict();
+
+type ProcurementExemptionEntry = z.infer<typeof ProcurementExemptionSchema>;
+type ProcurementDocumentEntry = z.infer<typeof ProcurementDocumentSchema>;
+
+/**
+ * Supersession compares jurisdictions folded: "us-ca" and "US-CA" are one
+ * jurisdiction holding one certificate, not two. The caller's text is what is
+ * stored -- the column has no vocabulary to normalize to -- so
+ * `core_procurement_cert_identity_unique` (001350), which compares the stored
+ * text exactly, still reads a re-typed jurisdiction as a second certificate.
+ */
+function exemptionJurisdictionKey(jurisdiction: string): string {
+  return jurisdiction.trim().toUpperCase();
+}
+
+/**
+ * Adds one certificate to a profile's exemptions.
+ *
+ * The sweep identifies a certificate by its jurisdiction and document, so
+ * furnishing the same document again refreshes that entry in place rather than
+ * recording the certificate twice. A different document for a jurisdiction
+ * already on file supersedes it: the profile answers which certificate covers
+ * a jurisdiction, and a superseded document left in the array is swept every
+ * morning and chased for a replacement that has already arrived. Nothing else
+ * retires an entry, so this is the only place that supersession can happen.
+ */
+function appendExemptionCertificate(
+  existing: readonly ProcurementExemptionEntry[],
+  added: ProcurementExemptionEntry,
+): ProcurementExemptionEntry[] {
+  const key = exemptionJurisdictionKey(added.jurisdiction);
+  const supersededAt = existing.findIndex(
+    (entry) => exemptionJurisdictionKey(entry.jurisdiction) === key,
+  );
+  if (supersededAt === -1) return [...existing, added];
+  return existing.flatMap((entry, position) =>
+    position === supersededAt
+      ? [added]
+      : exemptionJurisdictionKey(entry.jurisdiction) === key
+        ? []
+        : [entry],
+  );
+}
+
+/**
+ * Records one furnished supplier document.
+ *
+ * A document is identified by itself: furnishing the same document again
+ * refreshes when it was furnished. A second document of the same kind is kept
+ * rather than superseding the first, because a furnished document is evidence
+ * on file and nothing sweeps these for replacement -- unlike an exemption
+ * certificate, where two live entries for one jurisdiction are two answers to
+ * the same question.
+ */
+function appendSupplierDocument(
+  existing: readonly ProcurementDocumentEntry[],
+  added: ProcurementDocumentEntry,
+): ProcurementDocumentEntry[] {
+  const replacedAt = existing.findIndex(
+    (entry) => entry.documentId === added.documentId,
+  );
+  if (replacedAt === -1) return [...existing, added];
+  return existing.map((entry, position) =>
+    position === replacedAt ? added : entry,
+  );
+}
+
+/**
+ * A document the caller does not date was furnished by the command that
+ * carries it. Persisted entries are never restamped, so a document already on
+ * file keeps the date it arrived with.
+ */
+function furnishedDocument(
+  document: ProcurementDocumentEntry,
+  occurredAt: string,
+): ProcurementDocumentEntry {
+  return { ...document, furnishedAt: document.furnishedAt ?? occurredAt };
+}
+
+/** The identity the expiry sweep upserts a durable certificate row on. */
+function exemptionCertificateKey(entry: ProcurementExemptionEntry): string {
+  return `${exemptionJurisdictionKey(entry.jurisdiction)}:${entry.certificateDocumentId}`;
+}
+
+/**
+ * The rule the sweep applies, applied to the certificates a command
+ * introduces: a certificate that has already lapsed is not evidence of an
+ * exemption, and filing one would raise a collection chase the morning after
+ * it was accepted. Certificates already on file are not re-judged here -- a
+ * profile is amended around a lapsed certificate, not held hostage by it.
+ */
+function assertCertificatesNotLapsed(
+  added: readonly ProcurementExemptionEntry[],
+  asOfDate: string,
+): void {
+  const lapsed = assessExemptionCertificates(added, asOfDate).find(
+    (assessment) => assessment.status === "expired",
+  );
+  if (lapsed)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Exemption certificate for ${lapsed.jurisdiction} expired on ${lapsed.expiresOn ?? "an unknown date"} and cannot be recorded`,
+    );
+}
+
+function procurementCommand<Schema extends z.ZodType>(
+  schema: Schema,
+  input: CoreMutation,
+): z.infer<Schema> {
+  const parsed = schema.safeParse(input.payload);
+  if (!parsed.success)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Procurement ${input.action} payload is invalid`,
+    );
+  return parsed.data;
+}
 
 /** Signed price content arrives under EXT-COMMERCIAL-01; this carries it. */
 const RateCardCommandSchema = z
@@ -947,10 +1278,733 @@ async function persistedAcceptedOrder(
   });
 }
 
+/**
+ * The order as it stands NOW: the immutable accepted-order snapshot with every
+ * amendment already accepted for it folded back on.
+ *
+ * `persistedAcceptedOrder` reads `core_order_line_snapshots`, which is immutable
+ * and correctly so — it is the priced evidence the customer signed — and
+ * therefore states the order as ORDERED, not as amended. Judging a new amendment
+ * against it compares it to the original order rather than to the current one,
+ * so a run of downgrades each sees the original quantity and none of them ever
+ * runs out of it. Four further -1 amendments on one line drove committed
+ * quantity and revenue negative without limit.
+ *
+ * The full-period figures come from `amendment_lines`, which is where the writer
+ * puts the unprorated contractual delta precisely so it can be re-read without
+ * dividing anything back out. `core_amendment_line_supersessions` carries the
+ * PRORATED delta and is the wrong source for a line total. The fold itself is
+ * `amendOrderState`, which sums the signed deltas addressed to each line onto
+ * that line's ordered figures.
+ *
+ * The rows are read UNORDERED and are deliberately not sorted. The fold is a
+ * sum of signed values, so no ordering changes its result; the only thing an
+ * ordering can change is which intermediate values a step-by-step check would
+ * visit, and those are not states this order was ever in. A previous round
+ * sorted by `(effective_on, id)` and floored quantity at every step, which
+ * refused any order that had accepted an amendment backdated behind an earlier
+ * one — a refusal raised while computing the BASELINE, so it did not refuse one
+ * amendment, it refused every future amendment for that order. `amendOrderState`
+ * carries the reasoning; the only thing this reader has to get right is not
+ * imposing a sequence the data does not have.
+ *
+ * The order's service window is deliberately NOT folded. A term extension's
+ * `resulting_service_ends_on` is not written back to `orders.service_ends_on` by
+ * any writer, and 001390 requires an amendment's financial terms to span exactly
+ * `orders.service_ends_on`; carrying a longer window here would make the next
+ * amendment's own terms unwritable. The window this returns is the one the
+ * database will check against.
+ *
+ * THE INGREDIENTS OF THE FOLD ARE RETURNED ALONGSIDE ITS RESULT, and that is
+ * the whole reason this returns a record rather than an order.
+ *
+ * `current` is the order as it stands, which is what a new amendment is drafted
+ * and priced against. It is NOT a sound base to fold a second time, because
+ * folding is not idempotent in the one place it matters: `amendOrderState`
+ * counts the revenue of lines an amendment ADDED but cannot return them — an
+ * added line has no `order_lines` row and no later amendment can address one —
+ * so `current` states the order's own lines and drops the added revenue. Fold
+ * `current` again and that revenue is gone from the total the floor judges. An
+ * order that swapped a line out for a more valuable replacement is comfortably
+ * in the black and reads as deeply negative, and every subsequent amendment,
+ * down to a term extension moving no money at all, is refused.
+ *
+ * So the caller gets `ordered` and `persisted` too and folds ONCE, over the
+ * immutable snapshot with the persisted amendments and the new one together.
+ * Same per-line sums, because addition is associative; correct committed
+ * revenue, because the added lines are in scope for the only pass that judges
+ * it. The composition gap is removed rather than compensated for.
+ */
+interface AmendableOrderState {
+  /** The order as it stands now, for drafting and pricing a new amendment. */
+  readonly current: AcceptedOrder;
+  /** The immutable accepted-order snapshot: the order as ORDERED. */
+  readonly ordered: AcceptedOrder;
+  /** Every amendment already accepted for this order, deliberately unordered. */
+  readonly persisted: readonly AmendmentDeltaSet[];
+}
+
+async function currentAmendedOrder(
+  transaction: RuntimeTransaction,
+  orderId: string,
+): Promise<AmendableOrderState> {
+  const ordered = await persistedAcceptedOrder(transaction, orderId);
+  const accepted = await transaction
+    .select({
+      id: amendments.id,
+      effectiveOn: amendments.effectiveOn,
+      orderLineId: amendmentLines.orderLineId,
+      sku: amendmentLines.sku,
+      quantityDelta: amendmentLines.quantityDelta,
+      priceDeltaMinor: amendmentLines.priceDeltaMinor,
+    })
+    .from(amendments)
+    .innerJoin(amendmentLines, eq(amendmentLines.amendmentId, amendments.id))
+    .where(eq(amendments.orderId, orderId));
+  if (accepted.length === 0)
+    return { current: ordered, ordered, persisted: [] };
+  const currency = ordered.lines[0]?.unitPrice.currency;
+  if (!currency)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Accepted order snapshots are incomplete",
+    );
+  const grouped = new Map<
+    string,
+    { id: string; effectiveOn: string; deltas: AmendmentDelta[] }
+  >();
+  for (const row of accepted) {
+    const set = grouped.get(row.id) ?? {
+      id: row.id,
+      effectiveOn: row.effectiveOn,
+      deltas: [],
+    };
+    set.deltas.push({
+      sku: row.sku,
+      quantityDelta: row.quantityDelta,
+      fullPeriodPriceDelta: MoneySchema.parse({
+        currency,
+        minor: row.priceDeltaMinor.toString(),
+      }),
+      ...(row.orderLineId ? { orderLineId: row.orderLineId } : {}),
+    });
+    grouped.set(row.id, set);
+  }
+  const persisted = [...grouped.values()];
+  try {
+    return { current: amendOrderState(ordered, persisted), ordered, persisted };
+  } catch (error) {
+    // Only reachable when the SUM of the persisted deltas leaves the order at a
+    // negative committed quantity or a negative committed revenue. Every
+    // acceptance checks that same folded state for itself before it writes, so
+    // no sequence of amendments accepted through this path can land here; a row
+    // that does was written around the writer. The order's current state is
+    // therefore not something to judge a new amendment against, and this fails
+    // rather than falling back to the snapshot and billing off it.
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Order's persisted amendment deltas do not sum onto its lines: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Persists everything an accepted amendment moves. `createAmendment` has
+ * already derived the quantity, full-period and prorated deltas; this writes
+ * them where the readers look for them: `amendment_lines` for the contractual
+ * delta lines, `core_amendment_financial_terms` for the proration those deltas
+ * were billed at and the forecast they move, and one
+ * `core_amendment_line_supersessions` row per replaced order line for the
+ * invoice derivation. It belongs to the transaction that writes the header —
+ * an order that carries the header and none of the money bills an amount
+ * nobody signed.
+ *
+ * `amendment_lines.price_delta_minor` holds the FULL-PERIOD delta and the
+ * supersession holds the PRORATED one. Division loses information, so the
+ * unprorated figure is stored once and the billable figure is recoverable from
+ * it through the billable fraction on the financial terms.
+ */
+async function persistAmendmentMoney(
+  transaction: RuntimeTransaction,
+  input: {
+    amendment: CommercialAmendment;
+    order: AcceptedOrder;
+    contractualTimeZone: string;
+    billingMonths: number;
+  },
+): Promise<void> {
+  const { amendment, order } = input;
+  const periodEndsOn = order.serviceEndsOn;
+  const currency = order.lines[0]?.unitPrice.currency;
+  if (!periodEndsOn || !currency)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Amendment money requires a terminated order with priced lines",
+    );
+  const fraction = prorationFraction({
+    method: amendment.prorationMethod,
+    effectiveOn: amendment.effectiveOn,
+    periodStartsOn: order.serviceStartsOn,
+    periodEndsOn,
+  });
+  // billable_numerator and billable_denominator are integer columns; a day or
+  // month count that does not fit is a corrupt term, not a rounding problem.
+  if (
+    fraction.numerator > BigInt(Number.MAX_SAFE_INTEGER) ||
+    fraction.denominator > BigInt(Number.MAX_SAFE_INTEGER)
+  )
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Amendment proration period is out of range",
+    );
+  const fullPeriodDeltaMinor = amendment.deltas.reduce(
+    (total, delta) => total + BigInt(delta.fullPeriodPriceDelta.minor),
+    0n,
+  );
+  const forecastDeltaMinor = amendment.deltas.reduce(
+    (total, delta) => total + BigInt(delta.proratedPriceDelta.minor),
+    0n,
+  );
+
+  if (amendment.deltas.length > 0)
+    await transaction.insert(amendmentLines).values(
+      amendment.deltas.map((delta) => ({
+        amendmentId: amendment.id,
+        ...(delta.orderLineId ? { orderLineId: delta.orderLineId } : {}),
+        sku: delta.sku,
+        quantityDelta: delta.quantityDelta,
+        priceDeltaMinor: BigInt(delta.fullPeriodPriceDelta.minor),
+      })),
+    );
+
+  await transaction.insert(amendmentFinancialTerms).values({
+    amendmentId: amendment.id,
+    contractualTimeZone: input.contractualTimeZone,
+    prorationConvention: fraction.convention,
+    periodStartsOn: order.serviceStartsOn,
+    periodEndsOn,
+    billableNumerator: Number(fraction.numerator),
+    billableDenominator: Number(fraction.denominator),
+    currency,
+    forecastDeltaMinor,
+    // core_revenue_forecast (000900:307) adds this to every forecast month at
+    // or after the effective month, so it is the run-rate change: the
+    // full-period delta over the same billing months the base total is spread
+    // across.
+    monthlyDeltaMinor: divideRound(
+      fullPeriodDeltaMinor,
+      BigInt(input.billingMonths),
+    ),
+  });
+
+  if (amendment.supersededLineIds.length === 0) return;
+  // The line is marked before the supersession is written: 001390 holds a
+  // supersession to an order line that already names its amendment, so the
+  // mark is a precondition of the money row rather than a follow-up to it.
+  await transaction
+    .update(orderLines)
+    .set({ supersededByAmendmentId: amendment.id })
+    .where(
+      and(
+        eq(orderLines.orderId, amendment.orderId),
+        inArray(orderLines.id, [...amendment.supersededLineIds]),
+      ),
+    );
+  // The replacement each superseded line resolves to is the domain's answer,
+  // not a second one assembled here.
+  const amended = applyAmendment(order, amendment);
+  const replacements = new Map(amended.lines.map((line) => [line.id, line]));
+  await transaction.insert(amendmentLineSupersessions).values(
+    amendment.supersededLineIds.map((orderLineId) => {
+      const delta = amendment.deltas.find(
+        (candidate) => candidate.orderLineId === orderLineId,
+      );
+      const replacement = replacements.get(`${amendment.id}:${orderLineId}`);
+      if (!delta || !replacement)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Amendment supersedes an order line it carries no delta for",
+        );
+      return {
+        amendmentId: amendment.id,
+        supersededOrderLineId: orderLineId,
+        replacementSnapshot: replacement,
+        effectiveOn: amendment.effectiveOn,
+        netQuantityDelta: delta.quantityDelta,
+        netRevenueDeltaMinor: BigInt(delta.proratedPriceDelta.minor),
+      };
+    }),
+  );
+}
+
+/**
+ * The net revenue every amendment already accepted for this order adds to the
+ * invoice that covers its service window, signed.
+ *
+ * Effective dating: these writers issue the one term invoice for an order and
+ * bill its whole contracted period, so the invoiced period is the order's
+ * service window and `createAmendment` has already refused any effective date
+ * outside it. What is left open is the moment: an amendment accepted after an
+ * invoice was written does not rewrite an issued financial fact. So an invoice
+ * carries exactly the amendments persisted for its order when it is written,
+ * and the domain's own net — the prorated delta `netForecast` sums and the
+ * amendment document's `netChange` — is the amount.
+ *
+ * OPEN, and deliberately not decided here: the difference is DETECTED and not
+ * settled. The customer is still billed the old amount and nothing moves the
+ * gap. A post-invoice downgrade owes a credit note; a post-invoice upgrade owes
+ * a supplementary invoice. `credit_notes` exists and no writer issues one for
+ * this case, and `invoices` cannot express a second bill for one order at all.
+ * That is a commercial policy nobody has stated, so it is named rather than
+ * invented; 001393 records the same thing beside the constraint that makes the
+ * issued row stable.
+ *
+ * What detects it is `core_invoice_amendment_drift` (001394):
+ * `unbilled_amendment_delta_minor` is this same sum less the immutable
+ * `invoices.amendment_delta_minor` the row was written with, which is exactly
+ * the amendment value accepted after the bill went out and is zero when nothing
+ * has moved.
+ *
+ * It is NOT `deriveInvoice`'s `varianceMinor` / `INVOICE_TOTAL_VARIANCE`, which
+ * this comment used to claim. That comparison was already saturated before any
+ * amendment landed — it put a net derived total against a gross invoiced one,
+ * measured at -202830 on the taxed fixture while the amendment it was supposed
+ * to reveal was worth -9148 — and a second basis mismatch in it is still
+ * unfixed. 001394 records both. Nothing should read that note as an amendment
+ * signal.
+ *
+ * The sum is over `core_amendment_financial_terms.forecast_delta_minor`, which
+ * 001393 requires the invoice's stored `amendment_delta_minor` to equal at the
+ * moment it is inserted, so the writer and the constraint can never reach
+ * different totals — and requires the AMOUNT to agree with that stored figure
+ * for the rest of the row's life, so a later amendment cannot make an issued
+ * invoice fail its own constraint and block every settlement write against it.
+ *
+ * An amendment carrying no financial terms adds nothing, because there is no
+ * fraction to price its delta lines through and therefore no billable figure to
+ * add — `amendment_lines` alone states a full-period delta, not an amount owed.
+ * No code path can produce that row: `mutateAmendment` writes the terms in the
+ * transaction that writes the header. What it cannot add and will not ignore is
+ * the half-persisted case, a supersession the derivation bills from with no
+ * terms behind it; that is a corrupt order and it fails rather than bills.
+ *
+ * The forecast delta covers every delta line, including one that adds a SKU
+ * rather than replacing a line. `deriveInvoice` can only attribute the ones
+ * that supersede a line, because `core_amendment_line_supersessions` is the
+ * only amendment row its input carries, so an added line bills correctly and
+ * shows up as a derivation variance until the derivation input grows a channel
+ * for it. Billing it is not optional; naming it in the derivation is the gap.
+ */
+export async function acceptedAmendmentDeltaMinor(
+  transaction: RuntimeTransaction,
+  order: { id: string; serviceStartsOn: string; serviceEndsOn: string | null },
+  currency: string,
+): Promise<bigint> {
+  const rows = await transaction
+    .select({
+      id: amendments.id,
+      effectiveOn: amendments.effectiveOn,
+      currency: amendmentFinancialTerms.currency,
+      forecastDeltaMinor: amendmentFinancialTerms.forecastDeltaMinor,
+    })
+    .from(amendments)
+    .leftJoin(
+      amendmentFinancialTerms,
+      eq(amendmentFinancialTerms.amendmentId, amendments.id),
+    )
+    .where(eq(amendments.orderId, order.id));
+  if (rows.length === 0) return 0n;
+  const unpriced = rows
+    .filter((row) => row.forecastDeltaMinor === null)
+    .map((row) => row.id);
+  if (unpriced.length > 0) {
+    const orphaned =
+      await transaction.query.amendmentLineSupersessions.findMany({
+        where: inArray(amendmentLineSupersessions.amendmentId, unpriced),
+        columns: { id: true },
+      });
+    if (orphaned.length > 0)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Order carries a supersession with no persisted amendment financial terms",
+      );
+  }
+  return rows.reduce((total, row) => {
+    if (row.forecastDeltaMinor === null || row.currency === null) return total;
+    if (row.currency !== currency)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Amendment currency does not match the invoiced order",
+      );
+    if (
+      !order.serviceEndsOn ||
+      row.effectiveOn < order.serviceStartsOn ||
+      row.effectiveOn > order.serviceEndsOn
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Amendment takes effect outside the invoiced service period",
+      );
+    return total + row.forecastDeltaMinor;
+  }, 0n);
+}
+
+/** One invoice's row of `core_invoice_amendment_drift` (001394). */
+export interface InvoiceAmendmentDrift {
+  /** The net amendment delta the invoice was written with. Frozen and immutable. */
+  billedAmendmentDeltaMinor: bigint;
+  /** The net amendment delta accepted for the order right now. */
+  acceptedAmendmentDeltaMinor: bigint;
+  /**
+   * The signed difference, and exactly the amendment value accepted after the
+   * bill went out. Zero when nothing has moved. Negative owes the customer a
+   * credit note; positive owes a supplementary invoice; neither writer exists.
+   */
+  unbilledAmendmentDeltaMinor: bigint;
+}
+
+/**
+ * Whether an amendment landed after this invoice was written, and for how much.
+ *
+ * The two figures it differences are both exact and both already at rest: the
+ * immutable `invoices.amendment_delta_minor` 001393 froze onto the row, and the
+ * live sum of `core_amendment_financial_terms.forecast_delta_minor` the 001393
+ * insert check required it to equal at that moment. Nothing is inferred, no tax
+ * enters it, and it reads zero — not "small" — while the bill and the order
+ * agree.
+ *
+ * Read it, and not `deriveInvoice`'s `INVOICE_TOTAL_VARIANCE`, for this
+ * question. 001394 records what is wrong with that note and why fixing the rest
+ * of it is a separate decision.
+ *
+ * A reader, not a control. Nothing here refuses a write.
+ */
+export async function invoiceAmendmentDrift(
+  transaction: RuntimeTransaction,
+  invoiceId: string,
+): Promise<InvoiceAmendmentDrift> {
+  const rows = await transaction.execute<{
+    billed_amendment_delta_minor: string | number | bigint;
+    accepted_amendment_delta_minor: string | number | bigint;
+    unbilled_amendment_delta_minor: string | number | bigint;
+  }>(sql`
+    select billed_amendment_delta_minor,
+           accepted_amendment_delta_minor,
+           unbilled_amendment_delta_minor
+      from public.core_invoice_amendment_drift
+     where invoice_id = ${invoiceId}::uuid
+  `);
+  const row = rows[0];
+  if (!row) throw new CoreServiceError("NOT_FOUND", "Invoice was not found");
+  return {
+    billedAmendmentDeltaMinor: BigInt(row.billed_amendment_delta_minor),
+    acceptedAmendmentDeltaMinor: BigInt(row.accepted_amendment_delta_minor),
+    unbilledAmendmentDeltaMinor: BigInt(row.unbilled_amendment_delta_minor),
+  };
+}
+
+/**
+ * The identity of an order's invoice is the order. `invoices` carries no
+ * billing period, no sequence and no parent invoice, and the projection trigger
+ * (000920:65, rewritten at 001390) requires every row on an order to state the
+ * same account, currency, PO and amount — the quote total plus the order's
+ * accepted amendments. A second row is therefore not a second period or a
+ * partial bill, which the table cannot express; it is the same bill twice.
+ * Everything that moves money after the invoice exists moves it against the row
+ * that exists: partial settlement in `amount_paid_minor` (001340), overage in
+ * `invoice_adjustments`, a reduction in `credit_notes`, and `consolidateInvoices`
+ * folds several orders into one invoice rather than one order into several.
+ *
+ * Deriving the identifier is what holds that, not a lookup before the insert.
+ * The two writers — this repository and `ensureInvoiceDraftForProvisionedOrder`
+ * — run in separate READ COMMITTED transactions where neither sees the other's
+ * uncommitted insert, so a caller-supplied identifier still admits two invoices
+ * however carefully each writer looks first. A derived one makes `invoices_pkey`
+ * the row both writers contend for.
+ *
+ * A unique index on `order_id` was the alternative. It says something stronger
+ * than the defect: it also forbids ever re-billing an order whose only invoice
+ * was voided, which the `void` status admits and no writer does today. This
+ * fix closes the duplicate without deciding that question, and it closes it for
+ * the workflow writer too, which the index would not have — the workflow was
+ * already deriving this identifier and the disagreement was the defect.
+ */
+export function initialInvoiceId(orderId: string): string {
+  const bytes = Buffer.from(
+    createHash("sha256")
+      .update("initial-invoice")
+      .update("\0")
+      .update(orderId)
+      .digest(),
+  ).subarray(0, 16);
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x50;
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * What the tax provider answered about one billable net, resolved before the
+ * command's transaction opens. A provider call inside the write transaction
+ * would hold the order's and the invoice's row locks across the network, so the
+ * determination is fetched first and re-checked against the net the transaction
+ * actually computes; a determination that no longer describes the amount being
+ * billed is refused rather than applied to a different number.
+ *
+ * The platform decides none of this. Which jurisdictions charge, at what rate,
+ * which registrations admit reverse charge and which supplies are exempt are
+ * `EXT-TAX-01` inputs, and until that gate is satisfied the only implementation
+ * of the port is a repository fixture. What is repository work — the column, the
+ * call, the arithmetic and the refusal — is here; the rates are not, and are not
+ * defaulted to zero anywhere on this path.
+ */
+export interface TaxDetermination {
+  currency: string;
+  netMinor: bigint;
+  taxMinor: bigint;
+  treatment: TaxTreatment;
+}
+
+/**
+ * The taxable composition of a quote, as its priced lines and their rate-card
+ * tax codes. `order_lines` carries neither a line total nor a tax code, so the
+ * quote is the only place both exist together, and it is the same evidence the
+ * invoice's amount is derived from.
+ *
+ * `soleTaxCode` is absent when the lines disagree. An amendment delta is a
+ * single amount against the whole order and there is no rule here for splitting
+ * it across codes, so a mixed-code order with an amendment is refused at the
+ * caller instead of being taxed at whichever code happened to sort first.
+ */
+async function taxableQuoteLines(
+  transaction: RuntimeTransaction,
+  quoteId: string,
+  currency: string,
+): Promise<{
+  lines: readonly {
+    taxCode: string;
+    amount: { currency: string; minor: string };
+  }[];
+  netMinor: bigint;
+  soleTaxCode?: string;
+}> {
+  const rows = await transaction
+    .select({
+      taxCode: rateCards.stripeTaxCode,
+      lineTotalMinor: quoteLines.lineTotalMinor,
+    })
+    .from(quoteLines)
+    .innerJoin(rateCards, eq(rateCards.id, quoteLines.rateCardId))
+    .where(eq(quoteLines.quoteId, quoteId));
+  if (rows.length === 0)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Quote carries no priced lines to determine tax against",
+    );
+  const codes = new Set(rows.map((row) => row.taxCode));
+  const sole = codes.size === 1 ? [...codes][0] : undefined;
+  return {
+    lines: rows.map((row) => ({
+      taxCode: row.taxCode,
+      amount: { currency, minor: row.lineTotalMinor.toString() },
+    })),
+    netMinor: rows.reduce((total, row) => total + row.lineTotalMinor, 0n),
+    ...(sole ? { soleTaxCode: sole } : {}),
+  };
+}
+
+/** What a determination is made against, before any provider has answered. */
+interface TaxBasis {
+  accountId: string;
+  jurisdiction: string;
+  currency: string;
+  netMinor: bigint;
+  lines: readonly {
+    taxCode: string;
+    amount: { currency: string; minor: string };
+  }[];
+}
+
+async function quoteTaxBasis(
+  transaction: RuntimeTransaction,
+  quote: {
+    accountId: string;
+    jurisdiction: string;
+    quoteId: string;
+    currency: string;
+    totalMinor: bigint;
+  },
+): Promise<TaxBasis> {
+  const composition = await taxableQuoteLines(
+    transaction,
+    quote.quoteId,
+    quote.currency,
+  );
+  if (composition.netMinor !== quote.totalMinor)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Quote line totals do not sum to the quote total",
+    );
+  return {
+    accountId: quote.accountId,
+    jurisdiction: quote.jurisdiction,
+    currency: quote.currency,
+    netMinor: composition.netMinor,
+    lines: composition.lines,
+  };
+}
+
+/**
+ * The taxable basis of an order's one invoice: its accepted quote's lines plus
+ * the signed net delta of every amendment accepted on it, in the jurisdiction
+ * of the account that is invoiced rather than the account that is served.
+ */
+async function orderTaxBasis(
+  transaction: RuntimeTransaction,
+  orderId: string,
+): Promise<TaxBasis> {
+  const order = await transaction.query.orders.findFirst({
+    where: eq(orders.id, orderId),
+  });
+  if (!order)
+    throw new CoreServiceError("NOT_FOUND", "Billable order was not found");
+  const [quote, invoicedAccount] = await Promise.all([
+    transaction.query.quotes.findFirst({
+      where: and(eq(quotes.id, order.quoteId), eq(quotes.status, "accepted")),
+    }),
+    transaction.query.accounts.findFirst({
+      where: eq(accounts.id, order.invoicingAccountId),
+      columns: { id: true, country: true },
+    }),
+  ]);
+  if (!quote || !invoicedAccount)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Invoice drafts require an immutable accepted order and quote",
+    );
+  const basis = await quoteTaxBasis(transaction, {
+    accountId: invoicedAccount.id,
+    jurisdiction: invoicedAccount.country,
+    quoteId: quote.id,
+    currency: quote.currency,
+    totalMinor: quote.totalMinor,
+  });
+  // Amendments move the amount owed, so they move the amount taxed. The delta
+  // is one signed figure for the whole order; attributing it needs a tax code,
+  // and the only defensible one is the code the order already bills every line
+  // under.
+  const amendmentDeltaMinor = await acceptedAmendmentDeltaMinor(
+    transaction,
+    order,
+    quote.currency,
+  );
+  if (amendmentDeltaMinor === 0n) return basis;
+  const composition = await taxableQuoteLines(
+    transaction,
+    quote.id,
+    quote.currency,
+  );
+  if (!composition.soleTaxCode)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Amended order carries mixed tax codes; the amendment delta cannot be attributed to one",
+    );
+  return {
+    ...basis,
+    netMinor: basis.netMinor + amendmentDeltaMinor,
+    lines: [
+      ...basis.lines,
+      {
+        taxCode: composition.soleTaxCode,
+        amount: {
+          currency: quote.currency,
+          minor: amendmentDeltaMinor.toString(),
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * Asks the provider and refuses anything it cannot use. A provider failure is a
+ * refusal, never a zero: `ok: false` is the provider saying it does not know,
+ * and billing zero because a network call failed is exactly the wrong number
+ * this path exists to prevent.
+ */
+async function determineTax(
+  tax: TaxPort,
+  basis: TaxBasis,
+): Promise<TaxDetermination> {
+  const calculated = await tax.calculate({
+    accountId: ids.account.parse(basis.accountId),
+    jurisdiction: basis.jurisdiction,
+    lines: basis.lines.map((line) => ({
+      taxCode: line.taxCode,
+      amount: MoneySchema.parse(line.amount),
+    })),
+  });
+  if (!calculated.ok)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Tax could not be determined for jurisdiction ${basis.jurisdiction} (EXT-TAX-01): ${calculated.code}`,
+    );
+  if (calculated.value.tax.currency !== basis.currency)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Tax was determined in a currency the order does not bill in",
+    );
+  const taxMinor = BigInt(calculated.value.tax.minor);
+  // Mirrors invoices_tax_amount_check. A provider that charges against a
+  // reverse-charged or exempt supply is answering inconsistently, and the
+  // command fails here with a message that names the inconsistency rather than
+  // surfacing a raw constraint violation from the insert.
+  if (calculated.value.treatment !== "standard" && taxMinor !== 0n)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Tax was charged against a reverse-charged or exempt supply",
+    );
+  return {
+    currency: basis.currency,
+    netMinor: basis.netMinor,
+    taxMinor,
+    treatment: calculated.value.treatment,
+  };
+}
+
+/**
+ * The determination for an order's invoice, for a caller that is not running a
+ * Core command — `ensureInvoiceDraftForProvisionedOrder` is the other writer of
+ * the same row and must reach the same figure by the same rule. The reads run
+ * in their own short transaction and the provider is called outside it, so no
+ * write transaction ever holds a row lock across the network; the caller
+ * re-checks `netMinor` against the net it computes for itself.
+ */
+export async function orderTaxDetermination(input: {
+  database: RuntimeDatabase;
+  tax: TaxPort;
+  requestId: string;
+  orderId: string;
+}): Promise<TaxDetermination> {
+  const basis = await withInternalTransaction(
+    input.database,
+    input.requestId,
+    (transaction) => orderTaxBasis(transaction, input.orderId),
+  );
+  return determineTax(input.tax, basis);
+}
+
 export interface DatabaseCoreFinanceRepositoryOptions {
   database: RuntimeDatabase;
   pricingDatabase: RuntimeDatabase;
   authorizationSecret: string;
+  /**
+   * Required, not optional. An optional tax source is a source that is absent
+   * in production and silently zero everywhere else, which is the defect. A
+   * composition that cannot name one cannot build this repository, and the
+   * production composition can only name one once `EXT-TAX-01` supplies the
+   * endpoint and credential it needs.
+   */
+  tax: TaxPort;
   now?: () => Date;
 }
 
@@ -1655,6 +2709,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       this.loadOrderAcceptanceContext(input),
       this.loadCommissionContext(input),
     ]);
+    // Sequenced after the acceptance context rather than beside it: which
+    // account is invoiced — and therefore whose jurisdiction the determination
+    // is made in — is the resale/distributor answer that context already
+    // resolved, and re-deriving it here would be a second place for it to
+    // disagree.
+    const taxDetermination = await this.loadTaxDetermination(
+      input,
+      orderAcceptanceContext,
+    );
     const run = (transaction: RuntimeTransaction) =>
       this.mutateIdempotently(
         transaction,
@@ -1664,6 +2727,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         quoteCommercialContext,
         orderAcceptanceContext,
         commissionContext,
+        taxDetermination,
       );
     // The commitment ledger, its periods, and its corrections are deliberately
     // not writable by the tenant runtime role. Metering runs on the service
@@ -1699,6 +2763,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     quoteCommercialContext?: QuoteCommercialContext,
     orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
+    taxDetermination?: TaxDetermination,
   ): Promise<{ result: CoreMutationResult; replayed: boolean }> {
     const key = z.string().min(16).max(255).parse(input.idempotencyKey);
     const ownerUserId = input.authorization.userId;
@@ -1754,6 +2819,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       quoteCommercialContext,
       orderAcceptanceContext,
       commissionContext,
+      taxDetermination,
     );
     const [completed] = await transaction
       .update(lifecycleIdempotencyRecords)
@@ -2089,6 +3155,67 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     );
   }
 
+  /**
+   * Obtains the tax determination for the two commands that decide what a
+   * customer owes: accepting a quote and drafting the invoice for it.
+   *
+   * Acceptance is gated as well as invoicing on purpose. Accepting an order the
+   * platform cannot determine tax for produces a commitment it can only bill
+   * net, and `EXT-TAX-01` is explicit that the correct behaviour until an
+   * approved engine exists is to refuse the acceptance rather than to issue a
+   * zero-tax invoice against it. Nothing is stored at acceptance — `quotes` and
+   * `orders` carry no tax column and a determination made months before the
+   * bill would be stale anyway; the acceptance call proves a determination is
+   * obtainable, and the invoice call is the one whose answer is persisted.
+   */
+  private async loadTaxDetermination(
+    input: CoreMutation,
+    orderAcceptanceContext?: OrderAcceptanceContext,
+  ): Promise<TaxDetermination | undefined> {
+    const accepting = input.resource === "orders" && input.action === "create";
+    const invoicing =
+      input.resource === "invoices" && input.action === "create";
+    if (!accepting && !invoicing) return undefined;
+    const orderId = invoicing
+      ? string(input.payload.orderId, "orderId")
+      : undefined;
+    const basis = await withInternalTransaction(
+      this.options.pricingDatabase,
+      input.requestId,
+      (transaction) => {
+        if (orderId) return orderTaxBasis(transaction, orderId);
+        if (!orderAcceptanceContext)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Authoritative order acceptance context is unavailable",
+          );
+        const { quote, snapshot, buyer, partner } = orderAcceptanceContext;
+        // The merchant of record bills the partner on a resale or distributor
+        // route, so the jurisdiction that matters is the partner's. This is the
+        // same branch loadOrderAcceptanceContext takes for billingAccountId; it
+        // is read from the context rather than recomputed so the two cannot
+        // drift.
+        const invoiced =
+          snapshot.route === "resale" || snapshot.route === "distributor"
+            ? partner
+            : buyer;
+        if (!invoiced)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Invoiced party is unresolved for the accepted route",
+          );
+        return quoteTaxBasis(transaction, {
+          accountId: invoiced.id,
+          jurisdiction: invoiced.country,
+          quoteId: quote.id,
+          currency: quote.currency,
+          totalMinor: quote.totalMinor,
+        });
+      },
+    );
+    return determineTax(this.options.tax, basis);
+  }
+
   private async loadOrderAcceptanceContext(
     input: CoreMutation,
   ): Promise<OrderAcceptanceContext | undefined> {
@@ -2295,7 +3422,12 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   private async loadQuoteCommercialContext(
     input: CoreMutation,
   ): Promise<QuoteCommercialContext | undefined> {
-    if (input.resource !== "quotes" || input.action !== "create")
+    // A revision is priced and screened exactly as a new quote is, so it needs
+    // the same persisted commercial truth behind it.
+    if (
+      input.resource !== "quotes" ||
+      (input.action !== "create" && input.action !== "revise")
+    )
       return undefined;
     if (!input.accountId)
       throw new CoreServiceError("INVALID_STATE", "Quote account is required");
@@ -2395,7 +3527,22 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     quoteCommercialContext?: QuoteCommercialContext,
     orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
+    taxDetermination?: TaxDetermination,
   ): Promise<CoreMutationResult> {
+    const implemented: readonly string[] = databaseCoreCommands[input.resource];
+    if (!implemented.includes(input.action)) {
+      const deferred: readonly string[] =
+        workflowOwnedCoreCommands[
+          input.resource as keyof typeof workflowOwnedCoreCommands
+        ] ?? [];
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        unimplementedCommandReason[input.resource] ??
+          (deferred.includes(input.action)
+            ? `${input.resource}:${input.action} is owned by its workflow or provider boundary`
+            : `${input.resource} does not implement the ${input.action} command`),
+      );
+    }
     switch (input.resource) {
       case "accounts":
         return this.mutateAccount(transaction, input);
@@ -2411,13 +3558,18 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           quoteCommercialContext,
         );
       case "orders":
-        return this.mutateOrder(transaction, input, orderAcceptanceContext);
+        return this.mutateOrder(
+          transaction,
+          input,
+          orderAcceptanceContext,
+          taxDetermination,
+        );
       case "amendments":
         return this.mutateAmendment(transaction, input);
       case "commitments":
         return this.mutateCommitment(transaction, input);
       case "invoices":
-        return this.mutateInvoice(transaction, input);
+        return this.mutateInvoice(transaction, input, taxDetermination);
       case "credit_notes":
         return this.mutateCreditNote(transaction, input);
       case "refunds":
@@ -2616,6 +3768,16 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     );
   }
 
+  /**
+   * Procurement is a record that accumulates. Certificates and furnished
+   * documents arrive one at a time under their own verbs, and the tax position
+   * and purchase-order policy they establish outlive the command that adds the
+   * next one -- so every command here writes only what it names. Building a
+   * whole value set from the payload and defaulting the absent keys is P0-60:
+   * one `add_certificate` erased every validated certificate, reset
+   * `poRequired` to false, and emptied the furnished documents, and the next
+   * invoice was issued against a profile nobody had edited.
+   */
   private async mutateProcurement(
     transaction: RuntimeTransaction,
     input: CoreMutation,
@@ -2625,42 +3787,189 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     const prior = await transaction.query.procurementProfiles.findFirst({
       where: eq(procurementProfiles.accountId, accountId),
     });
-    if (input.action === "create" && prior)
-      throw new CoreServiceError(
-        "DUPLICATE",
-        "Procurement profile already exists",
+    const asOfDate = input.occurredAt.slice(0, 10);
+    if (input.action === "create") {
+      if (prior)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "Procurement profile already exists",
+        );
+      const command = procurementCommand(ProcurementCreateCommandSchema, input);
+      // Folded through the same rules the single-entry verbs use, so a profile
+      // cannot be created holding two live certificates for one jurisdiction.
+      const exemptions = command.exemptions.reduce<ProcurementExemptionEntry[]>(
+        appendExemptionCertificate,
+        [],
       );
-    const values = {
-      poRequired: Boolean(input.payload.poRequired),
-      exemptions: Array.isArray(input.payload.exemptions)
-        ? input.payload.exemptions
-        : [],
-      supplierPortalStatus:
-        optionalString(
-          input.payload.supplierPortalStatus,
-          "supplierPortalStatus",
-        ) ?? "not_required",
-      supplierDocuments: Array.isArray(input.payload.supplierDocuments)
-        ? input.payload.supplierDocuments
-        : [],
-    };
-    const [row] = prior
-      ? await transaction
-          .update(procurementProfiles)
-          .set({ ...values, updatedAt: this.now() })
-          .where(eq(procurementProfiles.id, prior.id))
-          .returning()
-      : await transaction
-          .insert(procurementProfiles)
-          .values({ id: input.id, accountId, ...values })
-          .returning();
-    if (!row) throw new Error("Procurement mutation returned no row");
+      assertCertificatesNotLapsed(exemptions, asOfDate);
+      const [row] = await transaction
+        .insert(procurementProfiles)
+        .values({
+          id: input.id,
+          accountId,
+          poRequired: command.poRequired,
+          supplierPortalStatus: command.supplierPortalStatus,
+          exemptions,
+          supplierDocuments: command.supplierDocuments
+            .map((document) => furnishedDocument(document, input.occurredAt))
+            .reduce<ProcurementDocumentEntry[]>(appendSupplierDocument, []),
+        })
+        .returning();
+      if (!row) throw new Error("Procurement profile insert returned no row");
+      return audited(
+        transaction,
+        input,
+        coreRecord("procurement_profiles", row, accountId),
+      );
+    }
+    if (!prior)
+      throw new CoreServiceError(
+        "NOT_FOUND",
+        "Procurement profile was not found",
+      );
+    if (
+      input.expectedVersion !== undefined &&
+      input.expectedVersion !== prior.rowVersion
+    )
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Procurement profile changed since it was read",
+      );
+    // Appending to a set requires reading it. An entry that cannot be read
+    // cannot be preserved or superseded, so the command fails rather than
+    // rewriting the column around it.
+    const persisted = z
+      .object({
+        exemptions: z.array(ProcurementExemptionSchema),
+        supplierDocuments: z.array(ProcurementDocumentSchema),
+      })
+      .safeParse(prior);
+    if (!persisted.success)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Persisted procurement profile cannot be read and must be corrected before it is amended",
+      );
+    const values = this.procurementPatch(input, persisted.data, asOfDate);
+    if (Object.keys(values).length === 0)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Procurement command carries no change",
+      );
+    const [row] = await transaction
+      .update(procurementProfiles)
+      .set({ ...values, updatedAt: this.now() })
+      .where(
+        and(
+          eq(procurementProfiles.id, prior.id),
+          eq(procurementProfiles.rowVersion, prior.rowVersion),
+        ),
+      )
+      .returning();
+    // Two callers adding a certificate at once each read the array they are
+    // appending to; without this guard the later write would carry the earlier
+    // caller's certificate away with it.
+    if (!row)
+      throw new CoreServiceError(
+        "VERSION_CONFLICT",
+        "Procurement profile changed since it was read",
+      );
     return audited(
       transaction,
       input,
       coreRecord("procurement_profiles", row, accountId),
       prior,
     );
+  }
+
+  /** Only the keys the command names; an absent key is not an empty value. */
+  private procurementPatch(
+    input: CoreMutation,
+    persisted: {
+      exemptions: ProcurementExemptionEntry[];
+      supplierDocuments: ProcurementDocumentEntry[];
+    },
+    asOfDate: string,
+  ): {
+    poRequired?: boolean;
+    supplierPortalStatus?: string;
+    exemptions?: ProcurementExemptionEntry[];
+    supplierDocuments?: ProcurementDocumentEntry[];
+  } {
+    switch (input.action) {
+      case "update": {
+        const command = procurementCommand(
+          ProcurementUpdateCommandSchema,
+          input,
+        );
+        const exemptions = command.exemptions?.reduce<
+          ProcurementExemptionEntry[]
+        >(appendExemptionCertificate, []);
+        if (exemptions) {
+          // A replacement set may keep certificates that lapsed while they were
+          // on file; only the ones it introduces are held to the expiry rule.
+          const onFile = new Set(
+            persisted.exemptions.map(exemptionCertificateKey),
+          );
+          assertCertificatesNotLapsed(
+            exemptions.filter(
+              (entry) => !onFile.has(exemptionCertificateKey(entry)),
+            ),
+            asOfDate,
+          );
+        }
+        return {
+          ...(command.poRequired === undefined
+            ? {}
+            : { poRequired: command.poRequired }),
+          ...(command.supplierPortalStatus === undefined
+            ? {}
+            : { supplierPortalStatus: command.supplierPortalStatus }),
+          ...(exemptions ? { exemptions } : {}),
+          ...(command.supplierDocuments
+            ? {
+                supplierDocuments: command.supplierDocuments
+                  .map((document) =>
+                    furnishedDocument(document, input.occurredAt),
+                  )
+                  .reduce<ProcurementDocumentEntry[]>(
+                    appendSupplierDocument,
+                    [],
+                  ),
+              }
+            : {}),
+        };
+      }
+      case "add_certificate": {
+        const command = procurementCommand(
+          ProcurementCertificateCommandSchema,
+          input,
+        );
+        assertCertificatesNotLapsed([command.certificate], asOfDate);
+        return {
+          exemptions: appendExemptionCertificate(
+            persisted.exemptions,
+            command.certificate,
+          ),
+        };
+      }
+      case "record_supplier_document": {
+        const command = procurementCommand(
+          ProcurementDocumentCommandSchema,
+          input,
+        );
+        return {
+          supplierDocuments: appendSupplierDocument(
+            persisted.supplierDocuments,
+            furnishedDocument(command.document, input.occurredAt),
+          ),
+        };
+      }
+      default:
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          `Procurement profiles do not implement the ${input.action} command`,
+        );
+    }
   }
 
   private async mutatePriceBook(
@@ -3164,6 +4473,204 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       );
   }
 
+  /**
+   * Prices a draft against the confidential book and writes the three rows that
+   * have to agree about it: the quote, the commercial profile the partner
+   * economics live on, and the priced lines.
+   *
+   * Creation and revision share it so a revision cannot drift from what
+   * creation persists. Both take every money column from this one `priceQuote`
+   * result -- a revision re-prices its own lines rather than copying the prior
+   * quote's totals, which is the only way a changed quantity can be believed.
+   */
+  private async persistQuoteDraft(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    context: {
+      quoteId: string;
+      accountId: string;
+      command: z.output<typeof QuoteCreateCommandSchema>;
+      book: PriceBook;
+      commercialContext?: QuoteCommercialContext;
+      /** The quote being revised; absent for the first revision of a series. */
+      previous?: QuoteSnapshot;
+    },
+  ): Promise<{
+    row: typeof quotes.$inferSelect;
+    draft: QuoteSnapshot;
+    /** The prior quote as the revision leaves it: superseded when it was issued. */
+    superseded?: QuoteSnapshot;
+  }> {
+    const { command, book } = context;
+    const requestLines = command.lines.map((line) => ({
+      sku: line.sku,
+      region: line.region,
+      quantity: line.quantity,
+      termMonths: line.termMonths,
+      ...(line.lineId ? { lineId: line.lineId } : {}),
+      ...(line.discountBps === undefined
+        ? {}
+        : { discountBps: line.discountBps }),
+    }));
+    const whiteLabel = whiteLabelMetadata(command.whiteLabel);
+    const authoritativePartnerTier =
+      command.route === "resale" || command.route === "distributor"
+        ? context.commercialContext?.partner?.partner?.transferTier
+        : undefined;
+    const priced = priceQuote({
+      book,
+      lines: requestLines,
+      route: command.route,
+      ...(authoritativePartnerTier
+        ? { partnerTier: authoritativePartnerTier }
+        : {}),
+      ...(command.partnerResaleTotal
+        ? { partnerResaleTotal: command.partnerResaleTotal }
+        : {}),
+      quotedAt: input.occurredAt,
+    });
+    // P1 renewal price protection is deliberately NOT enforced here. The rule
+    // exists and is tested (`assertRenewalPriceProtection`,
+    // packages/domain/src/agreements), but no call site can yet resolve which
+    // agreement governs a renewal quote — see the adoption note on the rule.
+    // Two adoptions have been attempted here and both refused legitimate
+    // quotes; the protection stays open rather than half-enforced.
+    const draftInput = {
+      id: context.quoteId,
+      accountId: context.accountId,
+      ...(command.endClientAccountId
+        ? { endClientAccountId: command.endClientAccountId }
+        : {}),
+      ...(command.partnerAccountId
+        ? { partnerAccountId: command.partnerAccountId }
+        : {}),
+      priceBook: { id: book.id, version: book.version },
+      route: command.route,
+      lines: priced.lines,
+      total: priced.total,
+      ...(command.partnerResaleTotal
+        ? { partnerResaleTotal: command.partnerResaleTotal }
+        : {}),
+      marginResult: priced.marginResult,
+      exceptionReasons: priced.exceptionReasons,
+      expiresAt: command.expiresAt,
+      createdBy: input.authorization.userId,
+      createdAt: input.occurredAt,
+      ...(whiteLabel ? { whiteLabel } : {}),
+    };
+    // `reviseQuote` owns the chain: it carries the series forward, numbers the
+    // revision, links it to its parent, and returns the parent as the
+    // supersession leaves it. `validate_quote_revision_chain` (000001:959)
+    // rejects any numbering that disagrees.
+    const revised = context.previous
+      ? reviseQuote(context.previous, draftInput)
+      : undefined;
+    const draft =
+      revised?.revision ??
+      createQuoteDraft({ ...draftInput, seriesId: command.seriesId });
+    const [row] = await transaction
+      .insert(quotes)
+      .values({
+        id: draft.id,
+        accountId: draft.accountId,
+        endClientAccountId: draft.endClientAccountId,
+        partnerAccountId: draft.partnerAccountId,
+        priceBookId: draft.priceBook.id,
+        seriesId: draft.seriesId,
+        previousRevisionId: draft.previousRevisionId,
+        revision: draft.revision,
+        status: draft.status,
+        currency: draft.total.currency,
+        totalMinor: BigInt(draft.total.minor),
+        marginFloorResult: draft.marginResult,
+        expiresAt: new Date(draft.expiresAt),
+        createdBy: draft.createdBy,
+        partnerResaleTotalMinor: draft.partnerResaleTotal
+          ? BigInt(draft.partnerResaleTotal.minor)
+          : undefined,
+      })
+      .returning();
+    if (!row) throw new Error("Quote insert returned no row");
+    const mor = merchantOfRecord(command.route);
+    await transaction.insert(quoteCommercialProfiles).values({
+      quoteId: row.id,
+      channelShape: command.route,
+      merchantOfRecord: mor,
+      pricingAuthority:
+        command.route === "resale" || command.route === "distributor"
+          ? "partner"
+          : command.route === "marketplace"
+            ? "marketplace"
+            : "fil_one",
+      billingAccountId:
+        mor === "partner"
+          ? string(command.partnerAccountId, "partnerAccountId")
+          : context.accountId,
+      ...(command.route === "distributor" && command.partnerAccountId
+        ? { distributorAccountId: command.partnerAccountId }
+        : {}),
+      ...(command.marketplaceProvider
+        ? { marketplaceProvider: command.marketplaceProvider }
+        : {}),
+      transferTotalMinor:
+        mor === "partner" ? BigInt(priced.total.minor) : undefined,
+      partnerResaleTotalMinor: command.partnerResaleTotal
+        ? BigInt(command.partnerResaleTotal.minor)
+        : undefined,
+      whiteLabelMetadata: whiteLabel ?? {},
+      pricingInputs: {
+        request: {
+          ...command,
+          ...(authoritativePartnerTier
+            ? { partnerTier: authoritativePartnerTier }
+            : {}),
+        },
+        ...(context.commercialContext?.registration
+          ? { dealRegistrationId: context.commercialContext.registration.id }
+          : {}),
+        exceptionReasons: priced.exceptionReasons,
+        marginImpact: priced.marginImpact,
+        guardrailBreaches: priced.guardrailBreaches,
+        lineGuardrails: Object.fromEntries(
+          priced.lines.flatMap((line) =>
+            line.discountCeilingBps === undefined || !line.marginImpact
+              ? []
+              : [
+                  [
+                    line.id,
+                    {
+                      discountCeilingBps: line.discountCeilingBps,
+                      marginImpact: line.marginImpact,
+                    },
+                  ],
+                ],
+          ),
+        ),
+        ...(whiteLabel ? { whiteLabel } : {}),
+      },
+      pricingCalculatedAt: new Date(input.occurredAt),
+    });
+    await transaction.insert(quoteLines).values(
+      draft.lines.map((line) => ({
+        id: line.id,
+        quoteId: draft.id,
+        rateCardId: line.rateCardId,
+        sku: line.sku,
+        quantity: line.quantity,
+        termMonths: line.termMonths,
+        unitPriceMinor: BigInt(line.unitPrice.minor),
+        overageRateMinor: BigInt(line.overageRate.minor),
+        discountBps: line.discountBps,
+        lineTotalMinor: BigInt(line.lineTotal.minor),
+      })),
+    );
+    return {
+      row,
+      draft,
+      ...(revised ? { superseded: revised.prior } : {}),
+    };
+  }
+
   private async mutateQuote(
     transaction: RuntimeTransaction,
     input: CoreMutation,
@@ -3207,153 +4714,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         book,
         commercialContext,
       );
-      const requestLines = command.lines.map((line) => ({
-        sku: line.sku,
-        region: line.region,
-        quantity: line.quantity,
-        termMonths: line.termMonths,
-        ...(line.lineId ? { lineId: line.lineId } : {}),
-        ...(line.discountBps === undefined
-          ? {}
-          : { discountBps: line.discountBps }),
-      }));
-      const whiteLabel = whiteLabelMetadata(command.whiteLabel);
-      const authoritativePartnerTier =
-        command.route === "resale" || command.route === "distributor"
-          ? commercialContext?.partner?.partner?.transferTier
-          : undefined;
-      const priced = priceQuote({
-        book,
-        lines: requestLines,
-        route: command.route,
-        ...(authoritativePartnerTier
-          ? { partnerTier: authoritativePartnerTier }
-          : {}),
-        ...(command.partnerResaleTotal
-          ? { partnerResaleTotal: command.partnerResaleTotal }
-          : {}),
-        quotedAt: input.occurredAt,
-      });
-      const draft = createQuoteDraft({
-        id: input.id,
-        seriesId: command.seriesId,
+      const { row } = await this.persistQuoteDraft(transaction, input, {
+        quoteId: input.id,
         accountId: input.accountId,
-        ...(command.endClientAccountId
-          ? { endClientAccountId: command.endClientAccountId }
-          : {}),
-        ...(command.partnerAccountId
-          ? { partnerAccountId: command.partnerAccountId }
-          : {}),
-        priceBook: { id: book.id, version: book.version },
-        route: command.route,
-        lines: priced.lines,
-        total: priced.total,
-        ...(command.partnerResaleTotal
-          ? { partnerResaleTotal: command.partnerResaleTotal }
-          : {}),
-        marginResult: priced.marginResult,
-        exceptionReasons: priced.exceptionReasons,
-        expiresAt: command.expiresAt,
-        createdBy: input.authorization.userId,
-        createdAt: input.occurredAt,
-        ...(whiteLabel ? { whiteLabel } : {}),
+        command,
+        book,
+        ...(commercialContext ? { commercialContext } : {}),
       });
-      const [row] = await transaction
-        .insert(quotes)
-        .values({
-          id: draft.id,
-          accountId: draft.accountId,
-          endClientAccountId: draft.endClientAccountId,
-          partnerAccountId: draft.partnerAccountId,
-          priceBookId: draft.priceBook.id,
-          seriesId: draft.seriesId,
-          previousRevisionId: draft.previousRevisionId,
-          revision: draft.revision,
-          status: draft.status,
-          currency: draft.total.currency,
-          totalMinor: BigInt(draft.total.minor),
-          marginFloorResult: draft.marginResult,
-          expiresAt: new Date(draft.expiresAt),
-          createdBy: draft.createdBy,
-          partnerResaleTotalMinor: draft.partnerResaleTotal
-            ? BigInt(draft.partnerResaleTotal.minor)
-            : undefined,
-        })
-        .returning();
-      if (!row) throw new Error("Quote insert returned no row");
-      const mor = merchantOfRecord(command.route);
-      await transaction.insert(quoteCommercialProfiles).values({
-        quoteId: row.id,
-        channelShape: command.route,
-        merchantOfRecord: mor,
-        pricingAuthority:
-          command.route === "resale" || command.route === "distributor"
-            ? "partner"
-            : command.route === "marketplace"
-              ? "marketplace"
-              : "fil_one",
-        billingAccountId:
-          mor === "partner"
-            ? string(command.partnerAccountId, "partnerAccountId")
-            : input.accountId,
-        ...(command.route === "distributor" && command.partnerAccountId
-          ? { distributorAccountId: command.partnerAccountId }
-          : {}),
-        ...(command.marketplaceProvider
-          ? { marketplaceProvider: command.marketplaceProvider }
-          : {}),
-        transferTotalMinor:
-          mor === "partner" ? BigInt(priced.total.minor) : undefined,
-        partnerResaleTotalMinor: command.partnerResaleTotal
-          ? BigInt(command.partnerResaleTotal.minor)
-          : undefined,
-        whiteLabelMetadata: whiteLabel ?? {},
-        pricingInputs: {
-          request: {
-            ...command,
-            ...(authoritativePartnerTier
-              ? { partnerTier: authoritativePartnerTier }
-              : {}),
-          },
-          ...(commercialContext?.registration
-            ? { dealRegistrationId: commercialContext.registration.id }
-            : {}),
-          exceptionReasons: priced.exceptionReasons,
-          marginImpact: priced.marginImpact,
-          guardrailBreaches: priced.guardrailBreaches,
-          lineGuardrails: Object.fromEntries(
-            priced.lines.flatMap((line) =>
-              line.discountCeilingBps === undefined || !line.marginImpact
-                ? []
-                : [
-                    [
-                      line.id,
-                      {
-                        discountCeilingBps: line.discountCeilingBps,
-                        marginImpact: line.marginImpact,
-                      },
-                    ],
-                  ],
-            ),
-          ),
-          ...(whiteLabel ? { whiteLabel } : {}),
-        },
-        pricingCalculatedAt: new Date(input.occurredAt),
-      });
-      await transaction.insert(quoteLines).values(
-        draft.lines.map((line) => ({
-          id: line.id,
-          quoteId: draft.id,
-          rateCardId: line.rateCardId,
-          sku: line.sku,
-          quantity: line.quantity,
-          termMonths: line.termMonths,
-          unitPriceMinor: BigInt(line.unitPrice.minor),
-          overageRateMinor: BigInt(line.overageRate.minor),
-          discountBps: line.discountBps,
-          lineTotalMinor: BigInt(line.lineTotal.minor),
-        })),
-      );
       return audited(
         transaction,
         input,
@@ -3405,6 +4772,100 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         occurredAt: input.occurredAt,
       });
       return artifactRequestResult(input, { ...prior, id: prior.id }, prepared);
+    }
+    if (input.action === "revise") {
+      if (!input.accountId || input.accountId !== prior.accountId)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A revision stays on the account its series was quoted for",
+        );
+      // Same rule the domain applies, stated here so an operator revising the
+      // wrong quote gets a 422 rather than a thrown invariant.
+      if (
+        snapshot.status !== "issued" &&
+        snapshot.status !== "expired" &&
+        snapshot.status !== "rejected"
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Only an issued or terminal quote can be revised",
+        );
+      const command = QuoteCreateCommandSchema.parse(input.payload);
+      const revisionId = z
+        .uuid()
+        .parse(string(input.payload.revisionId, "revisionId"));
+      if (revisionId === prior.id)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A revision needs its own identifier",
+        );
+      // The revision is priced on the book the series was quoted on. Moving a
+      // series to another book would reprice it against rates the customer
+      // never saw, so a new book is a new quote.
+      if (confidentialPriceBook.id !== command.priceBookId)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A revision keeps the price book its series was quoted on",
+        );
+      if (command.seriesId !== prior.seriesId)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A revision stays in its own quote series",
+        );
+      if (
+        (command.route === "marketplace") !==
+        Boolean(command.marketplaceProvider)
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Marketplace quotes must bind exactly one marketplace provider",
+        );
+      this.assertQuoteCommercialContext(
+        input,
+        command,
+        confidentialPriceBook,
+        commercialContext,
+      );
+      const { row, superseded } = await this.persistQuoteDraft(
+        transaction,
+        input,
+        {
+          quoteId: revisionId,
+          accountId: input.accountId,
+          command,
+          book: confidentialPriceBook,
+          ...(commercialContext ? { commercialContext } : {}),
+          previous: snapshot,
+        },
+      );
+      // Only an issued parent is superseded; an expired or rejected one is
+      // already terminal and `protect_issued_quote` (000001:1287) has no
+      // transition out of it.
+      if (superseded && superseded.status !== snapshot.status) {
+        const [supersededRow] = await transaction
+          .update(quotes)
+          .set({ status: superseded.status, updatedAt: this.now() })
+          .where(
+            and(
+              eq(quotes.id, prior.id),
+              eq(quotes.rowVersion, prior.rowVersion),
+            ),
+          )
+          .returning();
+        if (!supersededRow)
+          throw new CoreServiceError(
+            "VERSION_CONFLICT",
+            "Quote version is stale",
+          );
+      }
+      // The audit aggregate is the revision, so the event carries the quote a
+      // reader would go on to act on; `before` is the parent as it stood.
+      return audited(
+        transaction,
+        input,
+        coreRecord("quotes", row, row.accountId),
+        prior,
+      );
     }
     let quoteIssuance:
       | {
@@ -3531,12 +4992,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
     acceptanceContext?: OrderAcceptanceContext,
+    taxDetermination?: TaxDetermination,
   ) {
     if (input.action === "create" || input.action === "prepare_artifact") {
       if (!acceptanceContext)
         throw new CoreServiceError(
           "INVALID_STATE",
           "Authoritative order acceptance context is unavailable",
+        );
+      // prepare_artifact renders an unaccepted order form and commits the
+      // customer to nothing, so it is deliberately not gated. Acceptance is.
+      if (input.action === "create" && !taxDetermination)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Order acceptance requires a tax determination (EXT-TAX-01)",
         );
       const preparingArtifact = input.action === "prepare_artifact";
       const command = preparingArtifact
@@ -3576,6 +5045,18 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         snapshot.status !== "issued"
       )
         throw new CoreServiceError("INVALID_STATE", "Quote is not issuable");
+      // The determination was made outside this transaction. If the quote it
+      // was made against is not the quote being accepted here, it proves
+      // nothing about this acceptance.
+      if (
+        taxDetermination &&
+        (taxDetermination.currency !== persistedQuote.currency ||
+          taxDetermination.netMinor !== persistedQuote.totalMinor)
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Tax determination does not describe the quote being accepted",
+        );
       if (
         !preparingArtifact &&
         (Date.parse(command.acceptedAt) !== Date.parse(input.occurredAt) ||
@@ -3819,10 +5300,11 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "payload.amendment is invalid",
       );
     const parsed = amendmentInput.data;
-    const persistedOrder = await persistedAcceptedOrder(
-      transaction,
-      parsed.order.id,
-    );
+    // The order as amended, not as ordered. Validating against the immutable
+    // snapshot compared every amendment to the original order, so sequential
+    // downgrades never ran out of quantity.
+    const orderState = await currentAmendedOrder(transaction, parsed.order.id);
+    const persistedOrder = orderState.current;
     if (
       persistedOrder.id !== parsed.order.id ||
       persistedOrder.accountId !== input.accountId
@@ -3855,6 +5337,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "INVALID_STATE",
         "Amendment identity mismatch",
       );
+    // What this amendment would leave the order committed to. `createAmendment`
+    // decides whether the document is well formed; this decides whether the
+    // order can carry it. Both floors are domain refusals rather than constraint
+    // violations, and both are checked before the artifact is bound so a
+    // refused amendment leaves nothing behind.
+    //
+    // ONE fold, over the immutable snapshot with the persisted amendments and
+    // this one together. Folding `orderState.current` — which is itself already
+    // a fold — instead would judge a total the added lines had dropped out of:
+    // `amendOrderState` counts an added line's revenue but cannot return the
+    // line, so a second fold over its result re-derives committed revenue from
+    // the order's own lines alone. An order that had swapped a line out for a
+    // more valuable replacement then read as negative and refused every
+    // subsequent amendment, a zero-delta term extension included.
+    try {
+      amendOrderState(orderState.ordered, [...orderState.persisted, amendment]);
+    } catch (error) {
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
     const parent = await transaction.query.orders.findFirst({
       where: eq(orders.id, amendment.orderId),
     });
@@ -3927,6 +5431,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       })
       .returning();
     if (!row) throw new Error("Amendment insert returned no row");
+    const [commercialProfile, quotedLines] = await Promise.all([
+      transaction.query.orderCommercialProfiles.findFirst({
+        where: eq(orderCommercialProfiles.orderId, parent.id),
+      }),
+      transaction.query.quoteLines.findMany({
+        where: eq(quoteLines.quoteId, parent.quoteId),
+        columns: { termMonths: true },
+      }),
+    ]);
+    if (!commercialProfile || quotedLines.length === 0)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "Accepted order snapshots are incomplete",
+      );
+    await persistAmendmentMoney(transaction, {
+      amendment,
+      order: persistedOrder,
+      contractualTimeZone: commercialProfile.contractualTimeZone,
+      // core_revenue_forecast spreads the order total across exactly these
+      // months (000900:270), so the run-rate delta uses the same denominator.
+      billingMonths: Math.max(1, ...quotedLines.map((line) => line.termMonths)),
+    });
     await transaction
       .update(orders)
       .set({ status: "amended", updatedAt: this.now() })
@@ -4450,6 +5976,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   private async mutateInvoice(
     transaction: RuntimeTransaction,
     input: CoreMutation,
+    taxDetermination?: TaxDetermination,
   ) {
     if (input.action === "create") {
       const payload = input.payload;
@@ -4466,21 +5993,89 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "INVALID_STATE",
           "Invoice drafts require an immutable accepted order and quote",
         );
+      // The quote total is what was ordered; the invoice bills what is owed.
+      // A downgrade's delta is negative, and one large enough to invert the
+      // invoice is a credit note rather than a bill, so it fails here instead
+      // of being clamped into the non-negative amount constraint.
+      const amendmentDeltaMinor = await acceptedAmendmentDeltaMinor(
+        transaction,
+        order,
+        acceptedQuote.currency,
+      );
+      const netMinor = acceptedQuote.totalMinor + amendmentDeltaMinor;
+      if (netMinor < 0n)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Amended order owes a credit rather than an invoice",
+        );
+      // A tax figure is not optional and is not defaulted. The determination is
+      // re-checked against the net this transaction computed, because it was
+      // fetched before the transaction opened and an amendment accepted in
+      // between would have moved the amount underneath it. Billing the old tax
+      // on the new net, or the new net with no tax, are both wrong numbers that
+      // would persist; failing is not.
+      if (!taxDetermination)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Invoice drafts require a tax determination (EXT-TAX-01)",
+        );
+      if (
+        taxDetermination.currency !== acceptedQuote.currency ||
+        taxDetermination.netMinor !== netMinor
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Tax determination does not describe the amount being invoiced",
+        );
+      const amountMinor = netMinor + taxDetermination.taxMinor;
+      // `input.id` is deliberately not the invoice identifier: it is the
+      // caller's, and two callers hold two of them for the one bill this order
+      // owes. `initialInvoiceId` is the same identifier the provisioning draft
+      // writer derives, so a second create — from this route, from that
+      // workflow, or from both at once — collides on the primary key instead of
+      // billing the quote total again.
+      const invoiceId = initialInvoiceId(order.id);
       const [row] = await transaction
         .insert(invoices)
         .values({
-          id: input.id,
+          id: invoiceId,
           orderId: order.id,
           accountId: order.invoicingAccountId,
           stripeInvoiceId: null,
           currency: acceptedQuote.currency,
-          amountMinor: acceptedQuote.totalMinor,
+          amountMinor,
+          // The delta this bill carries, stored beside the amount it moved
+          // (001393). The invoice is checked against the stored figure for the
+          // rest of its life, so an amendment accepted after this row exists
+          // cannot make the row fail its own constraint and block settlement.
+          amendmentDeltaMinor,
+          taxMinor: taxDetermination.taxMinor,
+          taxTreatment: taxDetermination.treatment,
           poNumber: order.poNumber,
           status: "draft",
           dueAt: payload.dueAt ? date(payload.dueAt, "dueAt") : undefined,
         })
+        .onConflictDoNothing()
         .returning();
-      if (!row) throw new Error("Invoice insert returned no row");
+      if (!row) {
+        // The conflicting row is read after the insert, so it is the committed
+        // one whichever writer landed it. A create that arrives second is
+        // refused rather than answered with the existing invoice: its due date
+        // is not the persisted one, and returning a record the caller did not
+        // ask for reads as success.
+        const existing = await transaction.query.invoices.findFirst({
+          where: eq(invoices.id, invoiceId),
+        });
+        if (!existing || existing.orderId !== order.id)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Invoice identifier for this order is held by another record",
+          );
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "Order has already been invoiced",
+        );
+      }
       return audited(
         transaction,
         input,

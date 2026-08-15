@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyEnvelopeEvent,
+  applyRenewalPriceProtection,
   approveAgreementTemplate,
   assertCanonicalLegalText,
+  assertRenewalPriceProtection,
   captureClickAcceptance,
   createAgreementTemplate,
   createCounterSignatureEnvelope,
@@ -12,6 +14,7 @@ import {
   createOurPaperAgreement,
   decideExecutionRequirement,
   evaluateAgreementTerm,
+  evaluateRenewalPriceProtection,
   executeClickThroughAgreement,
   executeCounterSignedAgreement,
   hashEvidence,
@@ -20,6 +23,7 @@ import {
   supersedeAgreement,
   transitionNegotiation,
   type AgreementTemplate,
+  type AgreementTerm,
   type ImmutableEvidenceObject,
   type KeyTerms,
 } from ".";
@@ -569,5 +573,210 @@ describe("supersession, term clocks and survival", () => {
     expect(
       evaluateAgreementTerm(prior, "2028-08-01", false).activeSurvivalClauses,
     ).toEqual(["data_protection"]);
+  });
+});
+
+describe("renewal price protection", () => {
+  function executedAgreement(input?: {
+    id?: string;
+    keyTerms?: KeyTerms;
+    term?: AgreementTerm;
+  }) {
+    const template = approvedTemplate();
+    const id = input?.id ?? "agreement-price-protected";
+    const draft = createOurPaperAgreement({
+      id,
+      accountId: "account-northstar",
+      legalEntityName: "Northstar Archive Ltd",
+      template,
+      term: input?.term ?? term,
+      createdAt: now,
+    });
+    return executeClickThroughAgreement(
+      draft,
+      clickEvidenceFor(template, id),
+      input?.keyTerms ?? keyTerms,
+    );
+  }
+
+  const usd = (minor: string) => ({ currency: "USD" as const, minor });
+  // Inside the notice window of the term that is being renewed.
+  const pricedOn = "2027-06-15";
+
+  it("caps an uplift at the negotiated percentage and states the overcharge", () => {
+    const agreement = executedAgreement();
+    const decision = applyRenewalPriceProtection({
+      agreement,
+      pricedOn,
+      priorUnitPrice: usd("100000"),
+      proposedUnitPrice: usd("110000"),
+    });
+    expect(decision).toMatchObject({
+      withinProtection: false,
+      exceededByMinor: "5000",
+      enforcedUnitPrice: usd("105000"),
+      protection: {
+        binding: true,
+        reason: "protected",
+        basisPoints: 500,
+        maximumUnitPrice: usd("105000"),
+      },
+    });
+    expect(
+      applyRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: usd("105000"),
+      }),
+    ).toMatchObject({ withinProtection: true, exceededByMinor: "0" });
+    expect(() =>
+      assertRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: usd("105001"),
+      }),
+    ).toThrow("RENEWAL_PRICE_PROTECTION_EXCEEDED");
+  });
+
+  it("truncates a fractional uplift rather than charging above the ceiling", () => {
+    // 999 * 5% is 1048.95: the customer agreed to 1048, not to 1049.
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement: executedAgreement(),
+        pricedOn,
+        priorUnitPrice: usd("999"),
+      }).maximumUnitPrice,
+    ).toEqual(usd("1048"));
+  });
+
+  it("freezes the price when the protection is zero basis points", () => {
+    const agreement = executedAgreement({
+      keyTerms: { ...keyTerms, renewalPriceProtectionBasisPoints: 0 },
+    });
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toMatchObject({ binding: true, maximumUnitPrice: usd("100000") });
+    expect(
+      applyRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: usd("100001"),
+      }),
+    ).toMatchObject({
+      withinProtection: false,
+      exceededByMinor: "1",
+      enforcedUnitPrice: usd("100000"),
+    });
+  });
+
+  it("never lifts a renewal that lowers the price to the ceiling", () => {
+    expect(
+      applyRenewalPriceProtection({
+        agreement: executedAgreement(),
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: usd("90000"),
+      }),
+    ).toMatchObject({
+      withinProtection: true,
+      enforcedUnitPrice: usd("90000"),
+      exceededByMinor: "0",
+    });
+  });
+
+  it("leaves an unprotected renewal alone", () => {
+    const agreement = executedAgreement({
+      keyTerms: { ...keyTerms, renewalPriceProtectionBasisPoints: null },
+    });
+    expect(
+      applyRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: usd("400000"),
+      }),
+    ).toMatchObject({
+      withinProtection: true,
+      enforcedUnitPrice: usd("400000"),
+      protection: {
+        binding: false,
+        reason: "not_negotiated",
+        maximumUnitPrice: null,
+      },
+    });
+  });
+
+  it("lapses with the agreement but rolls with an auto-renewal", () => {
+    const expiring = executedAgreement({
+      id: "agreement-price-protected-expiring",
+      term: { ...term, renewalType: "expires", renewalMonths: null },
+    });
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement: expiring,
+        pricedOn: "2027-08-15",
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toMatchObject({
+      binding: false,
+      reason: "agreement_not_in_force",
+      maximumUnitPrice: null,
+    });
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement: expiring,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toMatchObject({ binding: true, maximumUnitPrice: usd("105000") });
+
+    // An auto-renewing agreement is still in force in the term it renews into.
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement: executedAgreement(),
+        pricedOn: "2027-08-15",
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toMatchObject({ binding: true, maximumUnitPrice: usd("105000") });
+    expect(
+      evaluateRenewalPriceProtection({
+        agreement: { ...executedAgreement(), terminatedOn: "2027-03-01" },
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toMatchObject({ binding: false, reason: "agreement_not_in_force" });
+  });
+
+  it("refuses a ceiling it cannot derive", () => {
+    const agreement = executedAgreement();
+    expect(() =>
+      evaluateRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("-100000"),
+      }),
+    ).toThrow("RENEWAL_PRICE_PROTECTION_BASIS_NOT_PRICEABLE");
+    expect(() =>
+      applyRenewalPriceProtection({
+        agreement,
+        pricedOn,
+        priorUnitPrice: usd("100000"),
+        proposedUnitPrice: { currency: "EUR", minor: "100000" },
+      }),
+    ).toThrow("RENEWAL_PRICE_CURRENCY_MISMATCH");
+    expect(() =>
+      evaluateRenewalPriceProtection({
+        agreement,
+        pricedOn: "2027-06-31",
+        priorUnitPrice: usd("100000"),
+      }),
+    ).toThrow("RENEWAL_PRICE_DATE_INVALID");
   });
 });

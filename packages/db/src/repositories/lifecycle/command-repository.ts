@@ -19,6 +19,7 @@ import {
   uuidV7,
   type Actor,
   type EntityName,
+  type TaxPort,
 } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import {
@@ -105,6 +106,7 @@ import {
   terminations,
 } from "../../schema";
 import {
+  accountTaxIdentifiers,
   marketplaceEvents,
   orderCommercialProfiles,
   orderLineSnapshots,
@@ -249,6 +251,22 @@ export interface DatabaseLifecycleCommandRepositoryOptions {
   policies: DatabaseLifecyclePolicies;
   exceptionRouting?: LifecycleExceptionRoutingPort;
   migrationSource?: LifecycleMigrationSourcePort;
+  /**
+   * Verifies tax identifiers entered at registration. Optional only because a
+   * registration that supplies none needs no verifier; a registration that
+   * supplies one and has no verifier is refused rather than persisting an
+   * unverified identifier, which is what P0-45 recorded. `EXT-TAX-01` supplies
+   * the production one.
+   */
+  tax?: TaxPort;
+}
+
+/** One registration tax identifier the provider has answered for. */
+interface VerifiedTaxIdentifier {
+  jurisdiction: string;
+  value: string;
+  normalized: string;
+  reverseChargeEligible: boolean;
 }
 
 export interface DatabaseLifecycleCommandInput {
@@ -728,12 +746,21 @@ export class DatabaseLifecycleCommandRepository {
         (transaction) => this.executeClaimed(transaction, input),
       );
     }
-    if (input.command === "register")
+    if (input.command === "register") {
+      // P0-45: a tax identifier typed at registration was persisted verbatim
+      // into accounts.tax_ids and never checked against anything. It is now
+      // verified before the transaction opens — the provider is a network call
+      // and must not run inside the write — and the verified result, including
+      // whether the registration admits reverse charge, is carried into the
+      // command so `register` writes evidence rather than user input.
+      const verifiedTaxIdentifiers = await this.verifyRegistrationTaxIds(input);
       return withInternalTransaction(
         this.serviceDatabase,
         input.context.requestId,
-        (transaction) => this.executeClaimed(transaction, input),
+        (transaction) =>
+          this.executeClaimed(transaction, input, verifiedTaxIdentifiers),
       );
+    }
     if (
       staffServiceCommand(input.command) &&
       requireAuthorization(input.context).isInternalStaff
@@ -768,8 +795,10 @@ export class DatabaseLifecycleCommandRepository {
   private async executeClaimed(
     transaction: RuntimeTransaction,
     input: DatabaseLifecycleCommandInput,
+    verifiedTaxIdentifiers?: readonly VerifiedTaxIdentifier[],
   ): Promise<DatabaseLifecycleCommandResult> {
-    if (readCommand(input.command)) return this.dispatch(transaction, input);
+    if (readCommand(input.command))
+      return this.dispatch(transaction, input, verifiedTaxIdentifiers);
     const key = input.context.idempotencyKey;
     if (!key) throw new Error("LIFECYCLE_IDEMPOTENCY_KEY_REQUIRED");
     const requestHash = hashJson({
@@ -798,7 +827,11 @@ export class DatabaseLifecycleCommandRepository {
       throw new Error("IDEMPOTENCY_REQUEST_IN_PROGRESS");
     if (claimed.kind === "replay")
       return LifecycleResultSchema.parse(claimed.response.body);
-    const response = await this.dispatch(transaction, input);
+    const response = await this.dispatch(
+      transaction,
+      input,
+      verifiedTaxIdentifiers,
+    );
     if (input.context.actor.kind === "user" && input.command !== "register")
       await this.completeUserIdempotency(
         transaction,
@@ -821,10 +854,16 @@ export class DatabaseLifecycleCommandRepository {
   private dispatch(
     transaction: RuntimeTransaction,
     input: DatabaseLifecycleCommandInput,
+    verifiedTaxIdentifiers?: readonly VerifiedTaxIdentifier[],
   ): Promise<DatabaseLifecycleCommandResult> {
     switch (input.command) {
       case "register":
-        return this.register(transaction, input.payload, input.context);
+        return this.register(
+          transaction,
+          input.payload,
+          input.context,
+          verifiedTaxIdentifiers ?? [],
+        );
       case "invite_member":
         return this.inviteMember(transaction, input.payload, input.context);
       case "switch_account":
@@ -952,10 +991,52 @@ export class DatabaseLifecycleCommandRepository {
     }
   }
 
+  /**
+   * Verifies every tax identifier a registration carries, before any write.
+   *
+   * A registration with none is untouched: there is nothing to verify and no
+   * reason to require a provider. A registration that carries one and has no
+   * provider is refused — persisting an unverified identifier is precisely the
+   * defect, and an account created now and verified "later" is an account whose
+   * reverse-charge treatment nobody ever decided.
+   */
+  private async verifyRegistrationTaxIds(
+    input: DatabaseLifecycleCommandInput,
+  ): Promise<readonly VerifiedTaxIdentifier[]> {
+    const payload = registrationPayloadSchema.parse(input.payload);
+    if (payload.taxIds.length === 0) return [];
+    const { tax } = this.options;
+    if (!tax)
+      throw new Error("REGISTRATION_TAX_VERIFIER_UNAVAILABLE:EXT-TAX-01");
+    const verified: VerifiedTaxIdentifier[] = [];
+    for (const taxId of payload.taxIds) {
+      const result = await tax.validateTaxId({
+        country: taxId.jurisdiction,
+        value: taxId.value,
+      });
+      if (!result.ok)
+        throw new Error(
+          `REGISTRATION_TAX_IDENTIFIER_UNVERIFIABLE:${taxId.jurisdiction}`,
+        );
+      if (!result.value.valid)
+        throw new Error(
+          `REGISTRATION_TAX_IDENTIFIER_INVALID:${taxId.jurisdiction}`,
+        );
+      verified.push({
+        jurisdiction: taxId.jurisdiction,
+        value: taxId.value,
+        normalized: result.value.normalized,
+        reverseChargeEligible: result.value.reverseChargeEligible,
+      });
+    }
+    return verified;
+  }
+
   private async register(
     transaction: RuntimeTransaction,
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
+    verifiedTaxIdentifiers: readonly VerifiedTaxIdentifier[],
   ) {
     const payload = registrationPayloadSchema.parse(raw);
     const registration = registerLegalEntity({
@@ -991,7 +1072,16 @@ export class DatabaseLifecycleCommandRepository {
         legalName: registration.legalName,
         relationshipRoles: [...registration.relationshipRoles],
         registeredAddress: payload.registeredAddress,
-        taxIds: payload.taxIds,
+        // What the provider verified, not what the registrant typed. `verified`
+        // is the flag `identityIsVerified` (packages/domain/src/identity) has
+        // always read and nothing has ever set.
+        taxIds: verifiedTaxIdentifiers.map((taxId) => ({
+          jurisdiction: taxId.jurisdiction,
+          value: taxId.value,
+          normalized: taxId.normalized,
+          verified: true,
+          reverseChargeEligible: taxId.reverseChargeEligible,
+        })),
         billingContact: payload.billingContact,
         apContact: payload.apContact ?? {},
         invoiceDeliveryEmail: payload.invoiceDeliveryEmail,
@@ -1002,6 +1092,26 @@ export class DatabaseLifecycleCommandRepository {
       })
       .returning();
     if (!account) throw new Error("ACCOUNT_INSERT_FAILED");
+    // core_account_tax_identifiers has existed since 000100 with nothing
+    // writing it, which is why reverse_charge_eligible had exactly one hit in
+    // the tree: a Drizzle column. `register` runs on the service connection, so
+    // app_is_internal() holds and the identifier row is written by the one path
+    // that has provider evidence for it. The unique (jurisdiction, type,
+    // normalized_value) index makes a second account claiming the same
+    // registration a conflict rather than a duplicate.
+    if (verifiedTaxIdentifiers.length > 0)
+      await transaction.insert(accountTaxIdentifiers).values(
+        verifiedTaxIdentifiers.map((taxId) => ({
+          accountId: account.id,
+          jurisdiction: taxId.jurisdiction,
+          type: "vat",
+          normalizedValue: taxId.normalized,
+          validationStatus: "valid",
+          verificationReference: `registration:${context.requestId}`,
+          reverseChargeEligible: taxId.reverseChargeEligible,
+          validatedAt: now,
+        })),
+      );
     const [organization] = await transaction
       .insert(organizations)
       .values({

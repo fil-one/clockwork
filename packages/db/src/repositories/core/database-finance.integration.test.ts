@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { ids, MoneySchema } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
@@ -11,16 +11,27 @@ import { z } from "zod";
 
 import { createRuntimeDatabase } from "../../client";
 import {
+  accounts,
+  agreements,
+  amendmentLines,
+  amendments,
   auditEvents,
   entitlements,
+  invoices,
+  keyTerms,
+  orderLines,
   orders,
   organizations,
   outboxMessages,
+  procurementProfiles,
   quoteLines,
   quotes,
 } from "../../schema";
 import {
   accountCommercialProfiles,
+  amendmentFinancialTerms,
+  amendmentLineSupersessions,
+  billingPolicies,
   dealRegistrationExclusions,
   orderCommercialProfiles,
   orderLineSnapshots,
@@ -34,14 +45,22 @@ import {
   withInternalTransaction,
 } from "../../transaction";
 import { DatabaseLifecycleCommandRepository } from "../lifecycle/command-repository";
+import { DatabaseCoreWorkflowDispatchStore } from "../workflows/core-dispatch";
 import { quoteArtifactDefinition } from "./artifact-definitions";
 import {
   assertCommercialArtifactBinding,
   CommercialArtifactRequestSchema,
   DatabaseCommercialArtifactStore,
 } from "./commercial-artifacts";
-import { DatabaseCoreFinanceRepository } from "./database-finance";
+import {
+  DatabaseCoreError,
+  DatabaseCoreFinanceRepository,
+  initialInvoiceId,
+  invoiceAmendmentDrift,
+} from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 import { coreSnapshotHash } from "./finance";
+import { loadInvoiceDerivation } from "./invoice-derivation";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -72,6 +91,34 @@ const repository = new DatabaseCoreFinanceRepository({
   database: db,
   pricingDatabase: db,
   authorizationSecret,
+  tax: new FixtureTaxPort(),
+});
+// Three engines, three answers, none of them a rule this repository ships. The
+// rates and the jurisdiction lists live in the fixture; EXT-TAX-01 owns the
+// real ones, and until it lands the only thing production can compose is an
+// HTTP adapter it has no endpoint for.
+const taxedRepository = new DatabaseCoreFinanceRepository({
+  database: db,
+  pricingDatabase: db,
+  authorizationSecret,
+  tax: new FixtureTaxPort({ rateBasisPoints: { txcd_demo: 2_000 } }),
+});
+const reverseChargedRepository = new DatabaseCoreFinanceRepository({
+  database: db,
+  pricingDatabase: db,
+  authorizationSecret,
+  tax: new FixtureTaxPort({
+    rateBasisPoints: { txcd_demo: 2_000 },
+    reverseChargeJurisdictions: ["ES"],
+  }),
+});
+const undeterminedTaxRepository = new DatabaseCoreFinanceRepository({
+  database: db,
+  pricingDatabase: db,
+  authorizationSecret,
+  // Every jurisdiction the seeded channels invoice in, so the probe below is
+  // the same refusal whichever party the route makes merchant of record.
+  tax: new FixtureTaxPort({ unavailableJurisdictions: ["US", "ES", "GB"] }),
 });
 const artifactStore = new DatabaseCommercialArtifactStore(db);
 const lifecycleRepository = new DatabaseLifecycleCommandRepository({
@@ -598,6 +645,35 @@ describe("database core direct-owner artifact chain", () => {
         prepared,
         `channel-order-${suffix}`,
       );
+      // EXT-TAX-01's stated behaviour until an approved engine exists: refuse
+      // the acceptance rather than accept an order that can only ever be
+      // invoiced net. prepare_artifact above is deliberately not gated — it
+      // renders an unsigned order form and commits the customer to nothing.
+      const refusedAcceptance = await undeterminedTaxRepository
+        .mutate({
+          resource: "orders",
+          id: orderId,
+          accountId: "10000000-0000-4000-8000-000000000004",
+          action: "create",
+          payload: { ...orderCommand, orderFormDocumentId: orderDocumentId },
+          actor: { kind: "user", id: channel.signerUserId },
+          authorization: channelAuthorization,
+          requestId: `channel-order-accept-no-tax-${suffix}`,
+          idempotencyKey: testKey(`channel-order-accept-no-tax-${suffix}`),
+          occurredAt: "2026-08-01T00:00:00.000Z",
+        })
+        .catch((error: unknown) => error);
+      expect(refusedAcceptance).toBeInstanceOf(DatabaseCoreError);
+      expect(refusedAcceptance).toMatchObject({ code: "INVALID_STATE" });
+      expect((refusedAcceptance as Error).message).toContain("EXT-TAX-01");
+      const unaccepted = await withInternalTransaction(
+        db,
+        `channel-order-unaccepted-${suffix}`,
+        async (tx) =>
+          tx.query.orders.findFirst({ where: eq(orders.id, orderId) }),
+      );
+      expect(unaccepted).toBeUndefined();
+
       const accepted = await repository.mutate({
         resource: "orders",
         id: orderId,
@@ -653,6 +729,39 @@ describe("database core direct-owner artifact chain", () => {
           }
         },
       );
+
+      // The merchant of record bills the partner on a resale route, so the
+      // jurisdiction the determination is made in is Blue Harbor's (ES), not
+      // the end client's (US). A reverse-charged supply is billed net and says
+      // so: `reverse_charge_eligible` had exactly one hit in the tree before
+      // this work — a Drizzle column nothing read and nothing wrote — and no
+      // code determined EU or UK treatment at all.
+      if (channel.channel === "resale") {
+        const reverseCharged = await reverseChargedRepository.mutate({
+          resource: "invoices",
+          id: crypto.randomUUID(),
+          accountId: channel.invoicingAccountId,
+          action: "create",
+          payload: { orderId, dueAt: "2026-10-01T00:00:00.000Z" },
+          actor: { kind: "user", id: channel.signerUserId },
+          // The acceptance role signs orders; invoices are written under the
+          // partner's billing role, which is what invoices' insert policy
+          // admits.
+          authorization: { ...channelAuthorization, roles: ["billing"] },
+          requestId: `channel-order-reverse-charge-${suffix}`,
+          idempotencyKey: testKey(`channel-order-reverse-charge-${suffix}`),
+          occurredAt: "2026-08-01T01:00:00.000Z",
+        });
+        // The same fixture rates txcd_demo at 2000 bps. It is not applied here,
+        // and that is the point: the treatment decides, not the rate table.
+        expect(reverseCharged.record.data).toMatchObject({
+          orderId,
+          currency: "EUR",
+          amountMinor: "168000",
+          taxMinor: "0",
+          taxTreatment: "reverse_charge",
+        });
+      }
     }
   });
 
@@ -1170,6 +1279,51 @@ describe("database core direct-owner artifact chain", () => {
       },
     );
 
+    // The provisioning-draft writer is the other writer of this invoice row and
+    // fails closed on the same input. It used to reach the insert with a
+    // literal zero in every tax column; now the order is provisioned, eligible
+    // and still unbilled when no determination can be had.
+    //
+    // The seeded policy for this account requires a PO and this order carries
+    // none, which the writer checks first — deliberately, so an ineligible
+    // order fails with the reason it is ineligible rather than with a tax error
+    // about an invoice it was never going to write. The requirement is lifted
+    // for the probe and put back immediately.
+    const restoreRequirePo = async (requirePo: boolean) =>
+      withInternalTransaction(
+        db,
+        `core-owner-draft-no-tax-policy-${runId}-${String(requirePo)}`,
+        async (tx) => {
+          await tx
+            .update(billingPolicies)
+            .set({ requirePo })
+            .where(eq(billingPolicies.accountId, accountId));
+        },
+      );
+    await restoreRequirePo(false);
+    await expect(
+      new DatabaseCoreWorkflowDispatchStore(
+        db,
+        authorizationSecret,
+        new FixtureTaxPort({ unavailableJurisdictions: ["US"] }),
+      ).ensureInvoiceDraftForProvisionedOrder({
+        orderId,
+        requestId: `core-owner-draft-no-tax-${runId}`,
+        occurredAt: "2026-08-15T12:00:00.000Z",
+      }),
+    ).rejects.toThrow("EXT-TAX-01");
+    await restoreRequirePo(true);
+    const undraftedInvoices = await withInternalTransaction(
+      db,
+      `core-owner-draft-no-tax-count-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(eq(invoices.orderId, orderId)),
+    );
+    expect(undraftedInvoices).toEqual([]);
+
     const amendmentId = crypto.randomUUID();
     const amendmentCommand = {
       id: amendmentId,
@@ -1229,6 +1383,587 @@ describe("database core direct-owner artifact chain", () => {
       documentId: amendmentDocumentId,
     });
 
+    // The amendment is worth money, so the money has to be at rest. One more
+    // unit for the whole term is a 10000 minor full-period delta taken daily
+    // from 2026-09-01: 333 of the term's 364 days remain, so 10000 x 333 / 364
+    // = 9148.35..., which rounds to 9148 minor billable, and the run-rate moves
+    // by 10000 / 12 = 833 a month.
+    const amendmentMoney = await withInternalTransaction(
+      db,
+      `core-owner-amendment-money-${runId}`,
+      async (tx) => {
+        const [deltaLines, terms, supersessions, line, persistedQuote] =
+          await Promise.all([
+            tx.query.amendmentLines.findMany({
+              where: eq(amendmentLines.amendmentId, amendmentId),
+            }),
+            tx.query.amendmentFinancialTerms.findFirst({
+              where: eq(amendmentFinancialTerms.amendmentId, amendmentId),
+            }),
+            tx.query.amendmentLineSupersessions.findMany({
+              where: eq(amendmentLineSupersessions.amendmentId, amendmentId),
+            }),
+            tx.query.orderLines.findFirst({
+              where: eq(orderLines.id, orderLineId),
+            }),
+            tx.query.quotes.findFirst({ where: eq(quotes.id, quoteId) }),
+          ]);
+        return { deltaLines, terms, supersessions, line, persistedQuote };
+      },
+    );
+    expect(amendmentMoney.deltaLines).toHaveLength(1);
+    expect(amendmentMoney.deltaLines[0]).toMatchObject({
+      orderLineId,
+      sku: "LOCKED-STORAGE-TB",
+      quantityDelta: "1.000000000000000000",
+      // The unprorated contractual delta. The prorated one lives on the
+      // supersession; storing only the quotient would lose this.
+      priceDeltaMinor: 10_000n,
+    });
+    expect(amendmentMoney.terms).toMatchObject({
+      prorationConvention: "actual_actual",
+      periodStartsOn: "2026-08-01",
+      periodEndsOn: "2027-07-31",
+      billableNumerator: 333,
+      billableDenominator: 364,
+      currency: "USD",
+      forecastDeltaMinor: 9_148n,
+      monthlyDeltaMinor: 833n,
+    });
+    expect(amendmentMoney.supersessions).toHaveLength(1);
+    expect(amendmentMoney.supersessions[0]).toMatchObject({
+      supersededOrderLineId: orderLineId,
+      effectiveOn: "2026-09-01",
+      netQuantityDelta: "1.000000000000000000",
+      netRevenueDeltaMinor: 9_148n,
+    });
+    expect(amendmentMoney.line?.supersededByAmendmentId).toBe(amendmentId);
+
+    // The provisioning-time draft writer bills the same truth. It cannot
+    // render an amended amount into the immutable document snapshot 001300
+    // binds to the quoted lines, so it refuses rather than bills the quote
+    // total past the amendment. Reached by returning the order to `active`,
+    // the one status that path accepts, which is a transition the order state
+    // machine already allows.
+    const dispatchStore = new DatabaseCoreWorkflowDispatchStore(
+      db,
+      authorizationSecret,
+      new FixtureTaxPort(),
+    );
+    await withInternalTransaction(
+      db,
+      `core-owner-amended-active-${runId}`,
+      async (tx) => {
+        await tx
+          .update(orders)
+          .set({ status: "active" })
+          .where(eq(orders.id, orderId));
+      },
+    );
+    await expect(
+      dispatchStore.ensureInvoiceDraftForProvisionedOrder({
+        orderId,
+        requestId: `core-owner-amended-draft-${runId}`,
+        occurredAt: "2026-08-16T12:00:00.000Z",
+      }),
+    ).rejects.toThrow("PROVISIONED_ORDER_AMENDED_BEFORE_INVOICE");
+    await withInternalTransaction(
+      db,
+      `core-owner-amended-restore-${runId}`,
+      async (tx) => {
+        await tx
+          .update(orders)
+          .set({ status: "amended" })
+          .where(eq(orders.id, orderId));
+      },
+    );
+
+    const quoteTotalMinor = amendmentMoney.persistedQuote?.totalMinor;
+    const unitPriceMinor = amendmentMoney.line?.unitPriceMinor;
+    if (quoteTotalMinor === undefined || unitPriceMinor === undefined)
+      throw new Error("amended order fixture is missing its priced truth");
+    const amendedInvoiceId = crypto.randomUUID();
+
+    // P0-61. A provider that cannot answer is a refusal, not a zero: billing
+    // net because a tax call failed is the under-invoice the whole path exists
+    // to prevent, and nothing about it is visible on the invoice afterwards.
+    const refusedInvoice = await undeterminedTaxRepository
+      .mutate({
+        resource: "invoices",
+        id: crypto.randomUUID(),
+        accountId,
+        action: "create",
+        payload: { orderId, dueAt: "2026-10-15T00:00:00.000Z" },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: "core-owner-amended-invoice-no-determination",
+        idempotencyKey: testKey("core-owner-amended-invoice-no-determination"),
+        occurredAt: "2026-08-16T15:00:00.000Z",
+      })
+      .catch((error: unknown) => error);
+    expect(refusedInvoice).toBeInstanceOf(DatabaseCoreError);
+    expect(refusedInvoice).toMatchObject({ code: "INVALID_STATE" });
+    expect((refusedInvoice as Error).message).toContain("EXT-TAX-01");
+    const stillUnbilled = await withInternalTransaction(
+      db,
+      `core-owner-amended-unbilled-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(eq(invoices.orderId, orderId)),
+    );
+    expect(stillUnbilled).toEqual([]);
+
+    const amendedInvoice = await taxedRepository.mutate({
+      resource: "invoices",
+      id: amendedInvoiceId,
+      accountId,
+      action: "create",
+      payload: {
+        orderId,
+        dueAt: "2026-10-15T00:00:00.000Z",
+        // Everything below is the caller's and none of it is the invoice's:
+        // an invoice states the order's persisted truth, so the writer takes
+        // the provider identifier, currency, amount and PO from the order and
+        // its accepted quote instead.
+        stripeInvoiceId: "in_untrusted",
+        currency: "EUR",
+        amountMinor: "1",
+        poNumber: "PO-UNTRUSTED",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-owner-amended-invoice",
+      idempotencyKey: testKey("core-owner-amended-invoice"),
+      occurredAt: "2026-08-16T16:00:00.000Z",
+    });
+    // An invoice written after the amendment bills the amendment. Before this,
+    // the customer signed the upgrade and was billed the untouched quote.
+    //
+    // And it bills the tax on both. The fixture rates txcd_demo at 2000 bps, so
+    // the quoted 180000 carries 36000 and the amended 9148 carries 1830 (1829.6
+    // rounded away from zero), for 37830 on a net of 189148 and an amount owed
+    // of 226978. Before this, all three tax_minor columns took a literal zero
+    // and the customer in a tax-bearing jurisdiction was billed net.
+    expect(amendedInvoice.record.data).toMatchObject({
+      orderId,
+      accountId,
+      stripeInvoiceId: null,
+      currency: amendmentMoney.persistedQuote?.currency,
+      amountMinor: (quoteTotalMinor + 9_148n + 37_830n).toString(),
+      taxMinor: "37830",
+      taxTreatment: "standard",
+      poNumber: null,
+      status: "draft",
+    });
+    expect(quoteTotalMinor).toBe(180_000n);
+    // The invoice is identified by the order it bills, not by the identifier
+    // the caller posted, and it is the identifier the provisioning-draft writer
+    // derives for the same order.
+    const persistedInvoiceId = amendedInvoice.record.id;
+    expect(persistedInvoiceId).toBe(initialInvoiceId(orderId));
+    expect(persistedInvoiceId).not.toBe(amendedInvoiceId);
+
+    // A second create with its own identifier and its own idempotency key is
+    // the double bill: same order, same accepted quote, same amount, nothing
+    // in the payload marking it as a second period because the table has no
+    // way to say so. It is refused, and the order still owes one invoice.
+    await expect(
+      repository.mutate({
+        resource: "invoices",
+        id: crypto.randomUUID(),
+        accountId,
+        action: "create",
+        payload: { orderId, dueAt: "2026-11-15T00:00:00.000Z" },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: "core-owner-amended-invoice-repeat",
+        idempotencyKey: testKey("core-owner-amended-invoice-repeat"),
+        occurredAt: "2026-08-16T17:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "DUPLICATE" });
+    const billedOnce = await withInternalTransaction(
+      db,
+      `core-owner-amended-invoice-count-${runId}`,
+      async (tx) =>
+        tx
+          .select({
+            id: invoices.id,
+            amountMinor: invoices.amountMinor,
+            taxMinor: invoices.taxMinor,
+            taxTreatment: invoices.taxTreatment,
+          })
+          .from(invoices)
+          .where(eq(invoices.orderId, orderId)),
+    );
+    expect(billedOnce).toEqual([
+      {
+        id: persistedInvoiceId,
+        amountMinor: quoteTotalMinor + 9_148n + 37_830n,
+        taxMinor: 37_830n,
+        taxTreatment: "standard",
+      },
+    ]);
+
+    const derivation = await withInternalTransaction(
+      db,
+      `core-owner-amended-derivation-${runId}`,
+      async (tx) => loadInvoiceDerivation(tx, persistedInvoiceId),
+    );
+    // The derivation view no longer reads an amended order as unamended: the
+    // supersession is in the line, named, and carried into its amount.
+    expect(derivation.lines[0]?.superseded).toBe(true);
+    expect(derivation.lines[0]?.amountMinor).toBe(
+      (unitPriceMinor + 9_148n).toString(),
+    );
+    expect(
+      derivation.lines.flatMap((line) =>
+        line.steps.flatMap((step) => step.notes.map((note) => note.code)),
+      ),
+    ).toContain("LINE_SUPERSEDED");
+
+    // P0-49, residual A. The BEFORE reading of both candidate signals, taken
+    // while the invoice bills exactly the amendments accepted for its order.
+    // Whatever is claimed to reveal a post-invoice amendment has to be read
+    // here too, or the claim is untestable.
+    //
+    // The drift view (001394) reads zero, because the invoice's frozen
+    // `amendment_delta_minor` is the accepted sum.
+    const driftBefore = await withInternalTransaction(
+      db,
+      `core-owner-drift-before-${runId}`,
+      async (tx) => invoiceAmendmentDrift(tx, persistedInvoiceId),
+    );
+    expect(driftBefore).toEqual({
+      billedAmendmentDeltaMinor: 9_148n,
+      acceptedAmendmentDeltaMinor: 9_148n,
+      unbilledAmendmentDeltaMinor: 0n,
+    });
+    // `deriveInvoice`'s variance does NOT read zero here, and that is the point.
+    // The net-against-gross half of it is fixed — the 37830 of tax on this
+    // invoice is no longer counted as a discrepancy — but the derived total is
+    // still one month of line revenue (15000) where the invoice bills twelve
+    // (180000), so the note fires on an invoice nothing has drifted on. It is
+    // recorded exactly, so that the AFTER reading below can be compared against
+    // it rather than merely observed to be non-zero.
+    expect(derivation.invoicedTotalMinor).toBe(
+      (quoteTotalMinor + 9_148n + 37_830n).toString(),
+    );
+    expect(derivation.invoicedTaxMinor).toBe("37830");
+    expect(derivation.invoicedNetTotalMinor).toBe(
+      (quoteTotalMinor + 9_148n).toString(),
+    );
+    expect(derivation.derivedTotalMinor).toBe(
+      (unitPriceMinor + 9_148n).toString(),
+    );
+    expect(derivation.varianceMinor).toBe("-165000");
+    expect(derivation.notes.map((entry) => entry.code)).toContain(
+      "INVOICE_TOTAL_VARIANCE",
+    );
+
+    // A downgrade is the same machinery with the sign the other way. Nothing
+    // on the write path clamps it.
+    const downgradeId = crypto.randomUUID();
+    const downgradeCommand = {
+      id: downgradeId,
+      order: { id: orderId },
+      effectiveOn: "2026-09-01",
+      kind: "downgrade" as const,
+      prorationMethod: "daily" as const,
+      deltas: [
+        {
+          orderLineId,
+          sku: "LOCKED-STORAGE-TB",
+          quantityDelta: "-1",
+          fullPeriodPriceDelta: { currency: "USD", minor: "-10000" },
+        },
+      ],
+      acceptedAt: "2026-08-17T16:00:00.000Z",
+    };
+    const downgradeArtifactRequest = await repository.mutate({
+      resource: "amendments",
+      id: downgradeId,
+      accountId,
+      action: "prepare_artifact",
+      payload: {
+        amendment: downgradeCommand,
+        retainUntil: "2033-08-17T16:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-owner-downgrade-artifact",
+      idempotencyKey: testKey("core-owner-downgrade-artifact"),
+      occurredAt: "2026-08-17T16:00:00.000Z",
+    });
+    const downgradeDocumentId = await persistTestArtifact(
+      downgradeArtifactRequest,
+      "downgrade",
+    );
+    await repository.mutate({
+      resource: "amendments",
+      id: downgradeId,
+      accountId,
+      action: "create",
+      payload: {
+        amendment: { ...downgradeCommand, documentId: downgradeDocumentId },
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-owner-downgrade-accept",
+      idempotencyKey: testKey("core-owner-downgrade-accept"),
+      occurredAt: "2026-08-17T16:00:00.000Z",
+    });
+    const downgradeMoney = await withInternalTransaction(
+      db,
+      `core-owner-downgrade-money-${runId}`,
+      async (tx) => {
+        const [deltaLines, terms, supersessions] = await Promise.all([
+          tx.query.amendmentLines.findMany({
+            where: eq(amendmentLines.amendmentId, downgradeId),
+          }),
+          tx.query.amendmentFinancialTerms.findFirst({
+            where: eq(amendmentFinancialTerms.amendmentId, downgradeId),
+          }),
+          tx.query.amendmentLineSupersessions.findMany({
+            where: eq(amendmentLineSupersessions.amendmentId, downgradeId),
+          }),
+        ]);
+        return { deltaLines, terms, supersessions };
+      },
+    );
+    expect(downgradeMoney.deltaLines[0]).toMatchObject({
+      quantityDelta: "-1.000000000000000000",
+      priceDeltaMinor: -10_000n,
+    });
+    expect(downgradeMoney.terms).toMatchObject({
+      forecastDeltaMinor: -9_148n,
+      monthlyDeltaMinor: -833n,
+    });
+    expect(downgradeMoney.supersessions[0]).toMatchObject({
+      netQuantityDelta: "-1.000000000000000000",
+      netRevenueDeltaMinor: -9_148n,
+    });
+
+    // P0-49, defect 1. The downgrade above was accepted AFTER this order was
+    // invoiced. 001390 replaced the projection trigger's stable amount
+    // identity with one that sums a set which keeps growing, and the trigger
+    // is BEFORE INSERT OR UPDATE, so from the moment that downgrade landed
+    // every UPDATE of the invoice row was rejected with "invoice must derive
+    // account, currency, amount, and PO from its accepted order and quote".
+    // The blocked writers are the money writers: invoice issuance
+    // (workflows/core.ts) and the verified Stripe settlement projection
+    // (system/providers.ts). A customer pays, the payment can never be
+    // recorded, amount_remaining_minor stays at the full amount forever and a
+    // paid invoice goes to dunning and collections.
+    //
+    // Both updates below are exactly what those two writers set. No existing
+    // test reaches this state, which is why the suite stayed green.
+    const settledAfterAmendment = await withInternalTransaction(
+      db,
+      `core-owner-post-amendment-settlement-${runId}`,
+      async (tx) => {
+        const [issued] = await tx
+          .update(invoices)
+          .set({
+            stripeInvoiceId: `in_post_amendment_${runId}`,
+            status: "open",
+            updatedAt: new Date("2026-08-18T09:00:00.000Z"),
+          })
+          .where(eq(invoices.id, persistedInvoiceId))
+          .returning();
+        const [paid] = await tx
+          .update(invoices)
+          .set({
+            amountPaidMinor: 50_000n,
+            stripeLastOccurredAt: new Date("2026-08-18T10:00:00.000Z"),
+            stripeLastEventId: `evt_post_amendment_${runId}`,
+            updatedAt: new Date("2026-08-18T10:00:00.000Z"),
+          })
+          .where(eq(invoices.id, persistedInvoiceId))
+          .returning();
+        return { issued, paid };
+      },
+    );
+    expect(settledAfterAmendment.issued?.status).toBe("open");
+    expect(settledAfterAmendment.paid?.amountPaidMinor).toBe(50_000n);
+    // The invoice keeps the amount it was issued at. A later amendment does not
+    // rewrite an issued financial fact.
+    expect(settledAfterAmendment.paid?.amountMinor).toBe(
+      quoteTotalMinor + 9_148n + 37_830n,
+    );
+    expect(settledAfterAmendment.paid?.amountRemainingMinor).toBe(
+      quoteTotalMinor + 9_148n + 37_830n - 50_000n,
+    );
+
+    // P0-49, residual A. The AFTER reading of the same two signals.
+    //
+    // The previous version of this block asserted only that the derivation
+    // variance was `not.toBe("0")` and that INVOICE_TOTAL_VARIANCE was present.
+    // Both of those were already true BEFORE the downgrade above was accepted —
+    // measured at -202830 against a downgrade worth -9148 — so the test passed
+    // identically with the post-invoice amendment deleted and proved nothing at
+    // all. Every assertion here is a delta against the reading taken before the
+    // amendment, which is the only form that can fail if the amendment is
+    // removed.
+    const driftAfter = await withInternalTransaction(
+      db,
+      `core-owner-drift-after-${runId}`,
+      async (tx) => invoiceAmendmentDrift(tx, persistedInvoiceId),
+    );
+    // This is the signal. The bill still says what it said; the order has since
+    // accepted -9148 that no invoice carries, and the view says so exactly.
+    expect(driftAfter).toEqual({
+      billedAmendmentDeltaMinor: 9_148n,
+      acceptedAmendmentDeltaMinor: 0n,
+      unbilledAmendmentDeltaMinor: -9_148n,
+    });
+    expect(
+      driftAfter.unbilledAmendmentDeltaMinor -
+        driftBefore.unbilledAmendmentDeltaMinor,
+    ).toBe(-9_148n);
+    // What settles it is a credit note, and no writer issues one: 001394 and
+    // `acceptedAmendmentDeltaMinor` both name the remedy as open. It is open
+    // and detected, which is the difference this fix makes.
+    const creditNotesForInvoice = await withInternalTransaction(
+      db,
+      `core-owner-credit-note-count-${runId}`,
+      async (tx) =>
+        tx.execute<{ total: string }>(
+          sql`select count(*)::text as total from public.credit_notes
+              where invoice_id = ${persistedInvoiceId}::uuid`,
+        ),
+    );
+    expect(creditNotesForInvoice[0]?.total).toBe("0");
+
+    // And the derivation variance moves by the same 9148 — but it does NOT
+    // reach zero, and it was not zero to begin with. It is reported here as the
+    // measured artefact it is, not as the amendment signal: the derived total
+    // is one month of line revenue where the invoice bills twelve, so this
+    // number stays saturated whatever amendments do. 001394 records why nothing
+    // should read it as a detection.
+    const varianceDerivation = await withInternalTransaction(
+      db,
+      `core-owner-post-amendment-variance-${runId}`,
+      async (tx) => loadInvoiceDerivation(tx, persistedInvoiceId),
+    );
+    expect(varianceDerivation.varianceMinor).toBe("-174148");
+    expect(
+      BigInt(varianceDerivation.varianceMinor) -
+        BigInt(derivation.varianceMinor),
+    ).toBe(-9_148n);
+    expect(varianceDerivation.notes.map((entry) => entry.code)).toContain(
+      "INVOICE_TOTAL_VARIANCE",
+    );
+
+    // P0-49, defect 2. `persistedAcceptedOrder` built the amendment baseline
+    // from `core_order_line_snapshots`, which is immutable and never reflects a
+    // prior amendment, so every amendment was validated against the ORIGINAL
+    // order. Sequential downgrades therefore never ran out of quantity: four
+    // more -1 amendments drove committed quantity and revenue negative without
+    // limit. The baseline is now the order's current amended state.
+    //
+    // State here: ordered 1, upgraded +1, downgraded -1, so the current
+    // committed quantity is 1 and the current committed line total is 180000.
+    const acceptAmendment = async (input: {
+      label: string;
+      quantityDelta: string;
+      fullPeriodPriceDeltaMinor: string;
+      kind?: "upgrade" | "downgrade";
+      effectiveOn?: string;
+    }) => {
+      const id = crypto.randomUUID();
+      const command = {
+        id,
+        order: { id: orderId },
+        effectiveOn: input.effectiveOn ?? "2026-09-01",
+        kind: input.kind ?? ("downgrade" as const),
+        prorationMethod: "daily" as const,
+        deltas: [
+          {
+            orderLineId,
+            sku: "LOCKED-STORAGE-TB",
+            quantityDelta: input.quantityDelta,
+            fullPeriodPriceDelta: {
+              currency: "USD",
+              minor: input.fullPeriodPriceDeltaMinor,
+            },
+          },
+        ],
+        acceptedAt: "2026-08-19T16:00:00.000Z",
+      };
+      const prepared = await repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "prepare_artifact",
+        payload: {
+          amendment: command,
+          retainUntil: "2033-08-19T16:00:00.000Z",
+        },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: `core-owner-${input.label}-artifact`,
+        idempotencyKey: testKey(`core-owner-${input.label}-artifact`),
+        occurredAt: "2026-08-19T16:00:00.000Z",
+      });
+      const documentId = await persistTestArtifact(prepared, input.label);
+      return repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "create",
+        payload: { amendment: { ...command, documentId } },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: `core-owner-${input.label}-accept`,
+        idempotencyKey: testKey(`core-owner-${input.label}-accept`),
+        occurredAt: "2026-08-19T16:00:00.000Z",
+      });
+    };
+
+    // Revenue first: quantity 1 -> 0 is legitimate, but a full-period credit
+    // larger than the line ever cost takes the order's committed revenue below
+    // zero. That is a credit note, not an amendment, and `mutateInvoice`
+    // already refuses to bill it; refusing it here stops it being persisted at
+    // all. A clean domain error, not a constraint violation.
+    const revenueRefusal = await acceptAmendment({
+      label: "downgrade-revenue-floor",
+      quantityDelta: "-1",
+      fullPeriodPriceDeltaMinor: "-1000000",
+    }).catch((error: unknown) => error);
+    expect(revenueRefusal).toBeInstanceOf(DatabaseCoreError);
+    expect(revenueRefusal).toMatchObject({ code: "INVALID_STATE" });
+    expect((revenueRefusal as Error).message).toContain("committed revenue");
+
+    // 1 -> 0 is the last downgrade this line can carry.
+    await acceptAmendment({
+      label: "downgrade-to-zero",
+      quantityDelta: "-1",
+      fullPeriodPriceDeltaMinor: "-10000",
+    });
+    const quantityRefusal = await acceptAmendment({
+      label: "downgrade-below-zero",
+      quantityDelta: "-1",
+      fullPeriodPriceDeltaMinor: "-10000",
+    }).catch((error: unknown) => error);
+    expect(quantityRefusal).toBeInstanceOf(DatabaseCoreError);
+    expect(quantityRefusal).toMatchObject({ code: "INVALID_STATE" });
+    expect((quantityRefusal as Error).message).toContain("quantity negative");
+
+    // Nothing from either refusal reached rest.
+    const persistedDowngrades = await withInternalTransaction(
+      db,
+      `core-owner-downgrade-floor-count-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: amendments.id })
+          .from(amendments)
+          .where(eq(amendments.orderId, orderId)),
+    );
+    // upgrade, downgrade, downgrade-to-zero.
+    expect(persistedDowngrades).toHaveLength(3);
+
     await withInternalTransaction(
       db,
       "channel-provisioning-scope",
@@ -1268,6 +2003,709 @@ describe("database core direct-owner artifact chain", () => {
         }
       },
     );
+  });
+
+  it("accepts a backdated amendment without bricking the order", async () => {
+    // P0-49, defect 2, round 3. The baseline fold was right to read the order's
+    // CURRENT amended state; it was wrong to sort the persisted amendments by
+    // `(effective_on, id)` and apply the per-line quantity floor at every step
+    // of that replay.
+    //
+    // Two things are wrong with judging the replay step by step. The sort is
+    // not the order the amendments were ACCEPTED in — `amendments.id` is the
+    // caller's uuid, so for same-date amendments the tiebreaker is effectively
+    // random — and the intermediate states it walks through were never states
+    // the order was in and were never validated by anything. The sequence below
+    // is three amendments each of which is legitimate against the state that
+    // existed when it was accepted, and under the step-by-step floor the THIRD
+    // one is refused for a corruption that does not exist. Every amendment
+    // after it is refused too, because they all fail in the baseline fold
+    // before anything else runs: the order is permanently unamendable.
+    //
+    // `createAmendment` requires only that `effectiveOn` fall inside the order
+    // term, so amendment 2 — backdated behind amendment 1 — is an ordinary
+    // commercial act, not an exotic one.
+    const replayQuoteId = crypto.randomUUID();
+    const replayQuoteSeriesId = crypto.randomUUID();
+    const replayQuoteLineId = crypto.randomUUID();
+    const replayOrderId = crypto.randomUUID();
+    const replayOrderLineId = crypto.randomUUID();
+    const label = (value: string) => `replay-${value}`;
+
+    await repository.mutate({
+      resource: "quotes",
+      id: replayQuoteId,
+      accountId,
+      action: "create",
+      payload: {
+        priceBookId: "60000000-0000-4000-8000-000000000001",
+        seriesId: replayQuoteSeriesId,
+        route: "direct",
+        lines: [
+          {
+            lineId: replayQuoteLineId,
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-create"),
+      idempotencyKey: testKey(label("quote-create")),
+      occurredAt,
+    });
+    const replayQuoteArtifact = await repository.mutate({
+      resource: "quotes",
+      id: replayQuoteId,
+      accountId,
+      action: "prepare_artifact",
+      expectedVersion: 1,
+      payload: {
+        audience: "end_client",
+        issuedAt: occurredAt,
+        retainUntil: "2033-07-31T16:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-artifact"),
+      idempotencyKey: testKey(label("quote-artifact")),
+      occurredAt,
+    });
+    const replayQuoteDocumentId = await persistTestArtifact(
+      replayQuoteArtifact,
+      label("quote"),
+    );
+    await repository.mutate({
+      resource: "quotes",
+      id: replayQuoteId,
+      accountId,
+      action: "issue",
+      expectedVersion: 1,
+      payload: {
+        artifactIssuedAt: occurredAt,
+        renderedDocumentId: replayQuoteDocumentId,
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-issue"),
+      idempotencyKey: testKey(label("quote-issue")),
+      occurredAt,
+    });
+
+    const replayOrderCommand = {
+      quoteId: replayQuoteId,
+      signerUserId: userId,
+      authorityTitle: "Chief Demo Officer",
+      authorityAttested: true as const,
+      serviceStartsOn: "2026-08-01",
+      serviceEndsOn: "2027-07-31",
+      noticeOn: "2027-06-01",
+      acceptedAt: "2026-08-01T00:00:00.000Z",
+      orderLineIds: [replayOrderLineId],
+    };
+    const replayOrderArtifact = await repository.mutate({
+      resource: "orders",
+      id: replayOrderId,
+      accountId,
+      action: "prepare_artifact",
+      payload: {
+        ...replayOrderCommand,
+        retainUntil: "2033-08-01T00:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("order-artifact"),
+      idempotencyKey: testKey(label("order-artifact")),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    const replayOrderDocumentId = await persistTestArtifact(
+      replayOrderArtifact,
+      label("order"),
+    );
+    await withInternalTransaction(
+      db,
+      `core-replay-credit-fixture-${runId}`,
+      async (tx) => {
+        await tx
+          .update(accountCommercialProfiles)
+          .set({
+            creditStatus: "approved",
+            approvedCreditLimitMinor: 5_000_000n,
+            currentExposureMinor: 0n,
+            newServiceBlocked: false,
+            blockReason: null,
+          })
+          .where(eq(accountCommercialProfiles.accountId, accountId));
+      },
+    );
+    await repository.mutate({
+      resource: "orders",
+      id: replayOrderId,
+      accountId,
+      action: "create",
+      payload: {
+        ...replayOrderCommand,
+        orderFormDocumentId: replayOrderDocumentId,
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("order-accept"),
+      idempotencyKey: testKey(label("order-accept")),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+
+    // An order is amendable once it is live. The provisioning round trip is
+    // exercised by the test above; here it is just the state the amendment
+    // path requires.
+    const orderedLine = await withInternalTransaction(
+      db,
+      `core-replay-ordered-${runId}`,
+      async (tx) => {
+        for (const status of ["provisioning", "active"] as const)
+          await tx
+            .update(orders)
+            .set({ status })
+            .where(eq(orders.id, replayOrderId));
+        return tx.query.orderLines.findFirst({
+          where: eq(orderLines.id, replayOrderLineId),
+        });
+      },
+    );
+    expect(orderedLine).toMatchObject({
+      quantity: "1.000000000000000000",
+      unitPriceMinor: 15_000n,
+    });
+
+    const amend = async (input: {
+      label: string;
+      kind: "upgrade" | "downgrade";
+      effectiveOn: string;
+      quantityDelta: string;
+      fullPeriodPriceDeltaMinor: string;
+    }) => {
+      const id = crypto.randomUUID();
+      const command = {
+        id,
+        order: { id: replayOrderId },
+        effectiveOn: input.effectiveOn,
+        kind: input.kind,
+        prorationMethod: "daily" as const,
+        deltas: [
+          {
+            orderLineId: replayOrderLineId,
+            sku: "LOCKED-STORAGE-TB",
+            quantityDelta: input.quantityDelta,
+            fullPeriodPriceDelta: {
+              currency: "USD",
+              minor: input.fullPeriodPriceDeltaMinor,
+            },
+          },
+        ],
+        acceptedAt: "2026-08-20T16:00:00.000Z",
+      };
+      const prepared = await repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "prepare_artifact",
+        payload: {
+          amendment: command,
+          retainUntil: "2033-08-20T16:00:00.000Z",
+        },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: label(`${input.label}-artifact`),
+        idempotencyKey: testKey(label(`${input.label}-artifact`)),
+        occurredAt: "2026-08-20T16:00:00.000Z",
+      });
+      const documentId = await persistTestArtifact(prepared, input.label);
+      await repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "create",
+        payload: { amendment: { ...command, documentId } },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: label(`${input.label}-accept`),
+        idempotencyKey: testKey(label(`${input.label}-accept`)),
+        occurredAt: "2026-08-20T16:00:00.000Z",
+      });
+      return id;
+    };
+
+    // 1. Forward-dated upgrade. Committed quantity 1 -> 3, line total 200000.
+    await amend({
+      label: "forward-upgrade",
+      kind: "upgrade",
+      effectiveOn: "2027-01-01",
+      quantityDelta: "2",
+      fullPeriodPriceDeltaMinor: "20000",
+    });
+    // 2. Backdated downgrade, effective BEFORE the upgrade above and accepted
+    //    after it. Committed quantity 3 -> 1, line total 200000 -> 180000.
+    //    Legitimate against the state that existed when it was accepted.
+    await amend({
+      label: "backdated-downgrade",
+      kind: "downgrade",
+      effectiveOn: "2026-08-15",
+      quantityDelta: "-2",
+      fullPeriodPriceDeltaMinor: "-20000",
+    });
+    // 3. This is the one the step-by-step replay refused. Sorted by effective
+    //    date the backdated -2 folds FIRST, against the immutable snapshot
+    //    quantity of 1, reaches -1 and throws — reporting a corruption of a
+    //    perfectly consistent history and locking the order out of every
+    //    future amendment. Committed quantity 1 -> 2, line total 190000.
+    await amend({
+      label: "later-upgrade",
+      kind: "upgrade",
+      effectiveOn: "2027-02-01",
+      quantityDelta: "1",
+      fullPeriodPriceDeltaMinor: "10000",
+    });
+
+    const foldedAfterThree = await withInternalTransaction(
+      db,
+      `core-replay-folded-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: amendments.id })
+          .from(amendments)
+          .where(eq(amendments.orderId, replayOrderId)),
+    );
+    expect(foldedAfterThree).toHaveLength(3);
+
+    // The order-level revenue floor is unchanged. Committed quantity is 2 and
+    // the committed line total is 190000, so dropping one unit is fine and
+    // crediting a million minor against it is not: that is a credit note, not
+    // an amendment.
+    const belowRevenue = await amend({
+      label: "revenue-floor",
+      kind: "downgrade",
+      effectiveOn: "2027-01-15",
+      quantityDelta: "-1",
+      fullPeriodPriceDeltaMinor: "-1000000",
+    }).catch((error: unknown) => error);
+    expect(belowRevenue).toBeInstanceOf(DatabaseCoreError);
+    expect(belowRevenue).toMatchObject({ code: "INVALID_STATE" });
+    expect((belowRevenue as Error).message).toContain("committed revenue");
+
+    // The closest legitimate input to the new refusal boundary: a further
+    // backdated downgrade that lands the committed quantity exactly ON zero.
+    // It is admitted, which is the proof that the fold reached 2 and that the
+    // floor is on the final state rather than on any ordering of the replay.
+    await amend({
+      label: "downgrade-to-zero",
+      kind: "downgrade",
+      effectiveOn: "2026-12-01",
+      quantityDelta: "-2",
+      fullPeriodPriceDeltaMinor: "-20000",
+    });
+
+    // And one unit past it is still refused, so nothing was widened.
+    const belowZero = await amend({
+      label: "downgrade-below-zero",
+      kind: "downgrade",
+      effectiveOn: "2026-12-15",
+      quantityDelta: "-1",
+      fullPeriodPriceDeltaMinor: "-10000",
+    }).catch((error: unknown) => error);
+    expect(belowZero).toBeInstanceOf(DatabaseCoreError);
+    expect(belowZero).toMatchObject({ code: "INVALID_STATE" });
+    expect((belowZero as Error).message).toContain("quantity negative");
+
+    const persisted = await withInternalTransaction(
+      db,
+      `core-replay-persisted-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: amendments.id })
+          .from(amendments)
+          .where(eq(amendments.orderId, replayOrderId)),
+    );
+    // Four accepted, two refused, and neither refusal left a row behind.
+    expect(persisted).toHaveLength(4);
+  });
+
+  it("keeps amending an order after a line swap adds a replacement line", async () => {
+    // P0-49, defect 2, round 4. The baseline fold and the acceptance check used
+    // to be TWO folds composed, and the composition lost the revenue of every
+    // line an amendment ADDED.
+    //
+    // `amendOrderState` counts an added line's revenue in the order-level floor
+    // — it has to, or a downgrade the added revenue plainly covers is refused —
+    // but it returns only the order's OWN lines, because an added line has no
+    // `order_lines` row and no later amendment can address one. So the added
+    // revenue exists inside one call and is gone from the `AcceptedOrder` that
+    // call hands back. `mutateAmendment` then folded a SECOND time over that
+    // return value and re-derived committed revenue from the order lines alone.
+    //
+    // A line swap is the ordinary shape that exposes it: supersede the original
+    // line for its book value plus a negotiated credit, and add a replacement
+    // line worth more than both. Committed revenue afterwards is plainly
+    // positive, and the swap is admitted BECAUSE the added line is counted.
+    // Under the two-fold composition every follow-on amendment then saw only
+    // the original line, sitting at the negotiated credit alone, and was
+    // refused for a negative committed revenue the order does not have —
+    // including a term extension moving no money at all. The order was bricked
+    // by an amendment the same control had just accepted.
+    //
+    // The fix is one fold: the immutable snapshot with the persisted amendments
+    // AND the new one folded together, so added revenue is in scope for the
+    // decision that needs it. This test is the branch the unit suite never
+    // reached, because the defect lives in the delta that omits `orderLineId`.
+    const swapQuoteId = crypto.randomUUID();
+    const swapQuoteSeriesId = crypto.randomUUID();
+    const swapQuoteLineId = crypto.randomUUID();
+    const swapOrderId = crypto.randomUUID();
+    const swapOrderLineId = crypto.randomUUID();
+    const label = (value: string) => `swap-${value}`;
+
+    await repository.mutate({
+      resource: "quotes",
+      id: swapQuoteId,
+      accountId,
+      action: "create",
+      payload: {
+        priceBookId: "60000000-0000-4000-8000-000000000001",
+        seriesId: swapQuoteSeriesId,
+        route: "direct",
+        lines: [
+          {
+            lineId: swapQuoteLineId,
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-create"),
+      idempotencyKey: testKey(label("quote-create")),
+      occurredAt,
+    });
+    const swapQuoteArtifact = await repository.mutate({
+      resource: "quotes",
+      id: swapQuoteId,
+      accountId,
+      action: "prepare_artifact",
+      expectedVersion: 1,
+      payload: {
+        audience: "end_client",
+        issuedAt: occurredAt,
+        retainUntil: "2033-07-31T16:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-artifact"),
+      idempotencyKey: testKey(label("quote-artifact")),
+      occurredAt,
+    });
+    const swapQuoteDocumentId = await persistTestArtifact(
+      swapQuoteArtifact,
+      label("quote"),
+    );
+    await repository.mutate({
+      resource: "quotes",
+      id: swapQuoteId,
+      accountId,
+      action: "issue",
+      expectedVersion: 1,
+      payload: {
+        artifactIssuedAt: occurredAt,
+        renderedDocumentId: swapQuoteDocumentId,
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("quote-issue"),
+      idempotencyKey: testKey(label("quote-issue")),
+      occurredAt,
+    });
+
+    const swapOrderCommand = {
+      quoteId: swapQuoteId,
+      signerUserId: userId,
+      authorityTitle: "Chief Demo Officer",
+      authorityAttested: true as const,
+      serviceStartsOn: "2026-08-01",
+      serviceEndsOn: "2027-07-31",
+      noticeOn: "2027-06-01",
+      acceptedAt: "2026-08-01T00:00:00.000Z",
+      orderLineIds: [swapOrderLineId],
+    };
+    const swapOrderArtifact = await repository.mutate({
+      resource: "orders",
+      id: swapOrderId,
+      accountId,
+      action: "prepare_artifact",
+      payload: {
+        ...swapOrderCommand,
+        retainUntil: "2033-08-01T00:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("order-artifact"),
+      idempotencyKey: testKey(label("order-artifact")),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    const swapOrderDocumentId = await persistTestArtifact(
+      swapOrderArtifact,
+      label("order"),
+    );
+    await withInternalTransaction(
+      db,
+      `core-swap-credit-fixture-${runId}`,
+      async (tx) => {
+        await tx
+          .update(accountCommercialProfiles)
+          .set({
+            creditStatus: "approved",
+            approvedCreditLimitMinor: 5_000_000n,
+            currentExposureMinor: 0n,
+            newServiceBlocked: false,
+            blockReason: null,
+          })
+          .where(eq(accountCommercialProfiles.accountId, accountId));
+      },
+    );
+    await repository.mutate({
+      resource: "orders",
+      id: swapOrderId,
+      accountId,
+      action: "create",
+      payload: {
+        ...swapOrderCommand,
+        orderFormDocumentId: swapOrderDocumentId,
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: label("order-accept"),
+      idempotencyKey: testKey(label("order-accept")),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    const swapOrderedLine = await withInternalTransaction(
+      db,
+      `core-swap-ordered-${runId}`,
+      async (tx) => {
+        for (const status of ["provisioning", "active"] as const)
+          await tx
+            .update(orders)
+            .set({ status })
+            .where(eq(orders.id, swapOrderId));
+        return tx.query.orderLines.findFirst({
+          where: eq(orderLines.id, swapOrderLineId),
+        });
+      },
+    );
+    // Ordered: 1 unit at 15000 a month for 12 months, so the committed line
+    // total is 180000 and the order's committed revenue is 180000.
+    expect(swapOrderedLine).toMatchObject({
+      quantity: "1.000000000000000000",
+      unitPriceMinor: 15_000n,
+    });
+
+    const amendSwap = async (input: {
+      label: string;
+      kind: "upgrade" | "downgrade" | "term_extension" | "mixed";
+      effectiveOn: string;
+      deltas: {
+        orderLineId?: string;
+        quantityDelta: string;
+        fullPeriodPriceDeltaMinor: string;
+      }[];
+      newServiceEndsOn?: string;
+    }) => {
+      const id = crypto.randomUUID();
+      const command = {
+        id,
+        order: { id: swapOrderId },
+        effectiveOn: input.effectiveOn,
+        kind: input.kind,
+        prorationMethod: "daily" as const,
+        deltas: input.deltas.map((delta) => ({
+          ...(delta.orderLineId ? { orderLineId: delta.orderLineId } : {}),
+          sku: "LOCKED-STORAGE-TB",
+          quantityDelta: delta.quantityDelta,
+          fullPeriodPriceDelta: {
+            currency: "USD",
+            minor: delta.fullPeriodPriceDeltaMinor,
+          },
+        })),
+        ...(input.newServiceEndsOn
+          ? { newServiceEndsOn: input.newServiceEndsOn }
+          : {}),
+        acceptedAt: "2026-08-21T16:00:00.000Z",
+      };
+      const prepared = await repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "prepare_artifact",
+        payload: {
+          amendment: command,
+          retainUntil: "2033-08-21T16:00:00.000Z",
+        },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: label(`${input.label}-artifact`),
+        idempotencyKey: testKey(label(`${input.label}-artifact`)),
+        occurredAt: "2026-08-21T16:00:00.000Z",
+      });
+      const documentId = await persistTestArtifact(
+        prepared,
+        label(input.label),
+      );
+      await repository.mutate({
+        resource: "amendments",
+        id,
+        accountId,
+        action: "create",
+        payload: { amendment: { ...command, documentId } },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: label(`${input.label}-accept`),
+        idempotencyKey: testKey(label(`${input.label}-accept`)),
+        occurredAt: "2026-08-21T16:00:00.000Z",
+      });
+      return id;
+    };
+
+    // 1. The swap. The original line goes away for its 180000 book value plus a
+    //    negotiated 20000 credit, and a replacement line worth 250000 is added
+    //    with no `orderLineId` because it has no `order_lines` row to name.
+    //    Committed revenue afterwards is (180000 - 200000) + 250000 = 230000.
+    await amendSwap({
+      label: "line-swap",
+      kind: "mixed",
+      effectiveOn: "2026-09-01",
+      deltas: [
+        {
+          orderLineId: swapOrderLineId,
+          quantityDelta: "-1",
+          fullPeriodPriceDeltaMinor: "-200000",
+        },
+        { quantityDelta: "1", fullPeriodPriceDeltaMinor: "250000" },
+      ],
+    });
+
+    // 2. An ordinary upgrade of the surviving original line, one more unit at
+    //    list. Under the two-fold composition this was refused for "committed
+    //    revenue negative": the second fold saw the original line at -20000 and
+    //    the 250000 the same order is committed to was nowhere in scope.
+    //    Committed revenue: (-20000 + 15000) + 250000 = 245000.
+    await amendSwap({
+      label: "post-swap-upgrade",
+      kind: "upgrade",
+      effectiveOn: "2026-10-01",
+      deltas: [
+        {
+          orderLineId: swapOrderLineId,
+          quantityDelta: "1",
+          fullPeriodPriceDeltaMinor: "15000",
+        },
+      ],
+    });
+
+    // 3. A term extension carrying no deltas at all. It moves no money, so no
+    //    money control has anything to say about it, and it was refused too.
+    await amendSwap({
+      label: "post-swap-term-extension",
+      kind: "term_extension",
+      effectiveOn: "2026-11-01",
+      deltas: [],
+      newServiceEndsOn: "2027-09-30",
+    });
+
+    // 4. A downgrade of the ADDED capacity: the customer hands back the
+    //    replacement line's unit for a 180000 credit, keeping the 70000 of it
+    //    already consumed. Committed revenue: -5000 + (250000 - 180000) =
+    //    65000. Also refused before, for the same reason.
+    //
+    //    The credit is smaller than the 250000 the line was added at, and
+    //    deliberately: the order still carries the 20000 negotiated credit on
+    //    the superseded line, so unwinding the addition in full would leave
+    //    committed revenue at -20000 and the ORDER-LEVEL revenue floor refuses
+    //    that. It should — an order that owes the customer money is a credit
+    //    note, and that floor is not what this test changes.
+    await amendSwap({
+      label: "post-swap-added-downgrade",
+      kind: "downgrade",
+      effectiveOn: "2027-01-01",
+      deltas: [{ quantityDelta: "-1", fullPeriodPriceDeltaMinor: "-180000" }],
+    });
+
+    const swapAmendments = await withInternalTransaction(
+      db,
+      `core-swap-persisted-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: amendments.id })
+          .from(amendments)
+          .where(eq(amendments.orderId, swapOrderId)),
+    );
+    expect(swapAmendments).toHaveLength(4);
+
+    // The floor still bites on the state the order is actually in. Committed
+    // revenue is 65000, so a 100000 credit against the original line takes the
+    // order below zero and is refused — one fold, judged on the real total,
+    // added revenue included.
+    const swapRevenueRefusal = await amendSwap({
+      label: "post-swap-revenue-floor",
+      kind: "downgrade",
+      effectiveOn: "2027-02-01",
+      deltas: [
+        {
+          orderLineId: swapOrderLineId,
+          quantityDelta: "-1",
+          fullPeriodPriceDeltaMinor: "-100000",
+        },
+      ],
+    }).catch((error: unknown) => error);
+    expect(swapRevenueRefusal).toBeInstanceOf(DatabaseCoreError);
+    expect(swapRevenueRefusal).toMatchObject({ code: "INVALID_STATE" });
+    expect((swapRevenueRefusal as Error).message).toContain(
+      "committed revenue",
+    );
+
+    // And the per-line quantity floor is unchanged: the original line is at 1
+    // unit after the swap and the upgrade, so two more off it is refused.
+    const swapQuantityRefusal = await amendSwap({
+      label: "post-swap-quantity-floor",
+      kind: "downgrade",
+      effectiveOn: "2027-03-01",
+      deltas: [
+        {
+          orderLineId: swapOrderLineId,
+          quantityDelta: "-2",
+          fullPeriodPriceDeltaMinor: "-15000",
+        },
+      ],
+    }).catch((error: unknown) => error);
+    expect(swapQuantityRefusal).toBeInstanceOf(DatabaseCoreError);
+    expect(swapQuantityRefusal).toMatchObject({ code: "INVALID_STATE" });
+    expect((swapQuantityRefusal as Error).message).toContain(
+      "quantity negative",
+    );
+
+    const swapAmendmentsAfterRefusals = await withInternalTransaction(
+      db,
+      `core-swap-persisted-after-${runId}`,
+      async (tx) =>
+        tx
+          .select({ id: amendments.id })
+          .from(amendments)
+          .where(eq(amendments.orderId, swapOrderId)),
+    );
+    // Four accepted, two refused, and neither refusal left a row behind.
+    expect(swapAmendmentsAfterRefusals).toHaveLength(4);
   });
 
   it("meters an accepted order through the commitment ledger and trues it up", async () => {
@@ -1537,5 +2975,943 @@ describe("database core direct-owner artifact chain", () => {
         ).toBe(true);
       },
     );
+  });
+});
+
+describe("database core quote revision", () => {
+  const seriesId = crypto.randomUUID();
+  const originalId = crypto.randomUUID();
+  const originalLineId = crypto.randomUUID();
+  const revisionId = crypto.randomUUID();
+  const revisionLineId = crypto.randomUUID();
+  const priceBookId = "60000000-0000-4000-8000-000000000001";
+  const quoteLine = (lineId: string, quantity: string) => ({
+    lineId,
+    sku: "LOCKED-STORAGE-TB",
+    region: "us-east-2",
+    quantity,
+    termMonths: 12,
+  });
+
+  it("reprices a revision from the price book and supersedes the issued parent", async () => {
+    const created = await repository.mutate({
+      resource: "quotes",
+      id: originalId,
+      accountId,
+      action: "create",
+      payload: {
+        priceBookId,
+        seriesId,
+        route: "direct",
+        lines: [quoteLine(originalLineId, "1")],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-quote-revision-create",
+      idempotencyKey: testKey("core-quote-revision-create"),
+      occurredAt,
+    });
+    const artifactRequest = await repository.mutate({
+      resource: "quotes",
+      id: originalId,
+      accountId,
+      action: "prepare_artifact",
+      expectedVersion: 1,
+      payload: {
+        audience: "end_client",
+        issuedAt: occurredAt,
+        retainUntil: "2033-07-31T16:00:00.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-quote-revision-artifact",
+      idempotencyKey: testKey("core-quote-revision-artifact"),
+      occurredAt,
+    });
+    const documentId = await persistTestArtifact(
+      artifactRequest,
+      "quote-revision",
+    );
+    const issued = await repository.mutate({
+      resource: "quotes",
+      id: originalId,
+      accountId,
+      action: "issue",
+      expectedVersion: 1,
+      payload: { artifactIssuedAt: occurredAt, renderedDocumentId: documentId },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-quote-revision-issue",
+      idempotencyKey: testKey("core-quote-revision-issue"),
+      occurredAt,
+    });
+    expect(issued.record.data.status).toBe("issued");
+
+    // Refused while the parent is still revisable, so each rejection is the
+    // rule under test rather than the status guard.
+    const refusal = {
+      resource: "quotes" as const,
+      id: originalId,
+      accountId,
+      action: "revise",
+      expectedVersion: issued.record.rowVersion,
+      actor: { kind: "user" as const, id: userId },
+      authorization,
+      occurredAt: "2026-07-31T16:45:00.000Z",
+    };
+    const refusedPayload = {
+      revisionId: crypto.randomUUID(),
+      priceBookId,
+      seriesId,
+      route: "direct",
+      lines: [quoteLine(crypto.randomUUID(), "2")],
+      expiresAt: "2026-12-31T23:59:59.000Z",
+    };
+    await expect(
+      repository.mutate({
+        ...refusal,
+        payload: { ...refusedPayload, seriesId: crypto.randomUUID() },
+        requestId: "core-quote-revision-series",
+        idempotencyKey: testKey("core-quote-revision-series"),
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await expect(
+      repository.mutate({
+        ...refusal,
+        payload: { ...refusedPayload, revisionId: originalId },
+        requestId: "core-quote-revision-identity",
+        idempotencyKey: testKey("core-quote-revision-identity"),
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await expect(
+      repository.mutate({
+        ...refusal,
+        payload: {
+          ...refusedPayload,
+          priceBookId: "60000000-0000-4000-8000-000000000002",
+        },
+        requestId: "core-quote-revision-book",
+        idempotencyKey: testKey("core-quote-revision-book"),
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+
+    const revised = await repository.mutate({
+      resource: "quotes",
+      id: originalId,
+      accountId,
+      action: "revise",
+      expectedVersion: issued.record.rowVersion,
+      payload: {
+        revisionId,
+        priceBookId,
+        seriesId,
+        route: "direct",
+        lines: [quoteLine(revisionLineId, "3")],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization,
+      requestId: "core-quote-revision-revise",
+      idempotencyKey: testKey("core-quote-revision-revise"),
+      occurredAt: "2026-07-31T17:00:00.000Z",
+    });
+
+    // The revision is the record the caller goes on to act on, and it is a
+    // fresh draft rather than a copy of the issued parent.
+    expect(revised.record.id).toBe(revisionId);
+    expect(revised.record.data.status).toBe("draft");
+    expect(revised.record.data.revision).toBe(2);
+    expect(revised.record.data.seriesId).toBe(seriesId);
+    expect(revised.record.data.previousRevisionId).toBe(originalId);
+
+    const originalTotal = BigInt(
+      z.string().parse(created.record.data.totalMinor),
+    );
+    const revisedTotal = BigInt(
+      z.string().parse(revised.record.data.totalMinor),
+    );
+    // Three of the one line the parent priced: the revision re-prices against
+    // the confidential book instead of carrying the parent's total forward.
+    expect(revisedTotal).toBe(originalTotal * 3n);
+
+    await withInternalTransaction(
+      db,
+      "core-quote-revision-read",
+      async (tx) => {
+        const parent = await tx.query.quotes.findFirst({
+          where: eq(quotes.id, originalId),
+        });
+        expect(parent?.status).toBe("superseded");
+        const revision = await tx.query.quotes.findFirst({
+          where: eq(quotes.id, revisionId),
+        });
+        expect(revision?.revision).toBe(2);
+        expect(revision?.previousRevisionId).toBe(originalId);
+        expect(revision?.totalMinor).toBe(revisedTotal);
+        expect(revision?.currency).toBe(parent?.currency);
+        const lines = await tx.query.quoteLines.findMany({
+          where: eq(quoteLines.quoteId, revisionId),
+        });
+        expect(lines).toHaveLength(1);
+        expect(Number(lines[0]?.quantity)).toBe(3);
+        expect(lines[0]?.lineTotalMinor).toBe(revisedTotal);
+        const profile = await tx.query.quoteCommercialProfiles.findFirst({
+          where: eq(quoteCommercialProfiles.quoteId, revisionId),
+        });
+        expect(profile?.merchantOfRecord).toBe("fil_one");
+        const event = await tx.query.auditEvents.findFirst({
+          where: eq(auditEvents.id, revised.auditEventId),
+        });
+        expect(event?.eventType).toBe("core.quotes.revise");
+        expect(event?.aggregateId).toBe(revisionId);
+      },
+    );
+  });
+
+  it("refuses a second revision of a superseded parent", async () => {
+    // `protect_issued_quote` (000001:1287) has no transition out of superseded,
+    // so a second revision of the same parent would branch the series.
+    const parent = await withInternalTransaction(
+      db,
+      "core-quote-revision-parent-version",
+      async (tx) =>
+        tx.query.quotes.findFirst({ where: eq(quotes.id, originalId) }),
+    );
+    const parentVersion = z.number().parse(parent?.rowVersion);
+    await expect(
+      repository.mutate({
+        resource: "quotes",
+        id: originalId,
+        accountId,
+        action: "revise",
+        expectedVersion: parentVersion,
+        payload: {
+          revisionId: crypto.randomUUID(),
+          priceBookId,
+          seriesId,
+          route: "direct",
+          lines: [quoteLine(crypto.randomUUID(), "2")],
+          expiresAt: "2026-12-31T23:59:59.000Z",
+        },
+        actor: { kind: "user", id: userId },
+        authorization,
+        requestId: "core-quote-revision-superseded",
+        idempotencyKey: testKey("core-quote-revision-superseded"),
+        occurredAt: "2026-07-31T17:30:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+  });
+});
+
+describe("database core procurement profile", () => {
+  // Internal operations is the one seeded account with no orders behind it, so
+  // a profile that requires a purchase order here cannot change what any other
+  // suite's order acceptance decides.
+  const procurementAccountId = "10000000-0000-4000-8000-000000000009";
+  const operatorUserId = "20000000-0000-4000-8000-000000000001";
+  const procurementAuthorization: AuthorizationContext = {
+    userId: ids.user.parse(operatorUserId),
+    accountIds: [ids.account.parse(procurementAccountId)],
+    roles: ["internal_operator"],
+    isInternalStaff: true,
+    mfaVerified: true,
+    recentAuthenticationVerified: true,
+  };
+  const profileId = crypto.randomUUID();
+  const massachusettsCertificateId = crypto.randomUUID();
+  const newYorkCertificateId = crypto.randomUUID();
+  const newYorkReplacementId = crypto.randomUUID();
+  const taxFormDocumentId = crypto.randomUUID();
+  const insuranceDocumentId = crypto.randomUUID();
+
+  function procurementCommand(input: {
+    action: string;
+    payload: Record<string, unknown>;
+    label: string;
+    occurredAt?: string;
+    expectedVersion?: number;
+  }) {
+    return {
+      resource: "procurement_profiles" as const,
+      id: profileId,
+      accountId: procurementAccountId,
+      action: input.action,
+      ...(input.expectedVersion === undefined
+        ? {}
+        : { expectedVersion: input.expectedVersion }),
+      payload: input.payload,
+      actor: { kind: "user" as const, id: operatorUserId },
+      authorization: procurementAuthorization,
+      requestId: `core-procurement-${input.label}`,
+      idempotencyKey: testKey(`core-procurement-${input.label}`),
+      occurredAt: input.occurredAt ?? "2026-08-01T09:00:00.000Z",
+    };
+  }
+
+  function persistedProfile() {
+    return withInternalTransaction(db, `core-procurement-read-${runId}`, (tx) =>
+      tx.query.procurementProfiles.findFirst({
+        where: eq(procurementProfiles.accountId, procurementAccountId),
+      }),
+    );
+  }
+
+  it("refuses a certificate for an account that has no profile", async () => {
+    // `procurement_profiles.account_id` is unique, so the row this suite writes
+    // is the only one the account can have; this file does not reset the
+    // database between runs.
+    await withInternalTransaction(db, `core-procurement-clean-${runId}`, (tx) =>
+      tx
+        .delete(procurementProfiles)
+        .where(eq(procurementProfiles.accountId, procurementAccountId)),
+    );
+    await expect(
+      repository.mutate(
+        procurementCommand({
+          action: "add_certificate",
+          label: "absent-profile",
+          payload: {
+            certificate: {
+              jurisdiction: "US-MA",
+              certificateDocumentId: massachusettsCertificateId,
+              expiresOn: "2027-12-31",
+            },
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await persistedProfile()).toBeUndefined();
+  });
+
+  it("adds a certificate without erasing the profile it lands in", async () => {
+    const created = await repository.mutate(
+      procurementCommand({
+        action: "create",
+        label: "create",
+        payload: {
+          poRequired: true,
+          supplierPortalStatus: "in_progress",
+          exemptions: [
+            {
+              jurisdiction: "US-MA",
+              certificateDocumentId: massachusettsCertificateId,
+              expiresOn: "2027-12-31",
+            },
+          ],
+          supplierDocuments: [{ kind: "w9", documentId: taxFormDocumentId }],
+        },
+      }),
+    );
+    expect(created.record.id).toBe(profileId);
+
+    const added = await repository.mutate(
+      procurementCommand({
+        action: "add_certificate",
+        label: "add-new-york",
+        payload: {
+          certificate: {
+            jurisdiction: "US-NY",
+            certificateDocumentId: newYorkCertificateId,
+            expiresOn: "2028-06-30",
+          },
+        },
+      }),
+    );
+
+    // The certificate command names one certificate. Everything it does not
+    // name -- the certificate already validated, the purchase-order policy, the
+    // supplier portal state and the furnished W-9 -- survives it.
+    expect(added.record.data.exemptions).toEqual([
+      {
+        jurisdiction: "US-MA",
+        certificateDocumentId: massachusettsCertificateId,
+        expiresOn: "2027-12-31",
+      },
+      {
+        jurisdiction: "US-NY",
+        certificateDocumentId: newYorkCertificateId,
+        expiresOn: "2028-06-30",
+      },
+    ]);
+    expect(added.record.data.poRequired).toBe(true);
+    expect(added.record.data.supplierPortalStatus).toBe("in_progress");
+    expect(added.record.data.supplierDocuments).toEqual([
+      {
+        kind: "w9",
+        documentId: taxFormDocumentId,
+        furnishedAt: "2026-08-01T09:00:00.000Z",
+      },
+    ]);
+
+    const row = await persistedProfile();
+    expect(row?.poRequired).toBe(true);
+    expect(
+      z.array(z.object({ jurisdiction: z.string() })).parse(row?.exemptions),
+    ).toHaveLength(2);
+  });
+
+  it("supersedes the certificate on file for the same jurisdiction", async () => {
+    const superseding = await repository.mutate(
+      procurementCommand({
+        action: "add_certificate",
+        label: "supersede-new-york",
+        payload: {
+          certificate: {
+            jurisdiction: "us-ny",
+            certificateDocumentId: newYorkReplacementId,
+            expiresOn: "2029-06-30",
+          },
+        },
+      }),
+    );
+    // The expiry sweep chases every certificate in this array for a
+    // replacement, so the document the replacement supersedes must leave it --
+    // and a jurisdiction typed in another case is the same jurisdiction.
+    expect(superseding.record.data.exemptions).toEqual([
+      {
+        jurisdiction: "US-MA",
+        certificateDocumentId: massachusettsCertificateId,
+        expiresOn: "2027-12-31",
+      },
+      {
+        jurisdiction: "us-ny",
+        certificateDocumentId: newYorkReplacementId,
+        expiresOn: "2029-06-30",
+      },
+    ]);
+
+    const repeated = await repository.mutate(
+      procurementCommand({
+        action: "add_certificate",
+        label: "repeat-new-york",
+        payload: {
+          certificate: {
+            jurisdiction: "us-ny",
+            certificateDocumentId: newYorkReplacementId,
+            expiresOn: "2029-12-31",
+          },
+        },
+      }),
+    );
+    // The same document furnished again is the same certificate with a
+    // corrected expiry, not a second one.
+    expect(repeated.record.data.exemptions).toEqual([
+      {
+        jurisdiction: "US-MA",
+        certificateDocumentId: massachusettsCertificateId,
+        expiresOn: "2027-12-31",
+      },
+      {
+        jurisdiction: "us-ny",
+        certificateDocumentId: newYorkReplacementId,
+        expiresOn: "2029-12-31",
+      },
+    ]);
+  });
+
+  it("records a furnished document beside the certificates", async () => {
+    const recorded = await repository.mutate(
+      procurementCommand({
+        action: "record_supplier_document",
+        label: "record-coi",
+        occurredAt: "2026-08-02T09:00:00.000Z",
+        payload: {
+          document: { kind: "coi", documentId: insuranceDocumentId },
+        },
+      }),
+    );
+    expect(recorded.record.data.supplierDocuments).toEqual([
+      {
+        kind: "w9",
+        documentId: taxFormDocumentId,
+        furnishedAt: "2026-08-01T09:00:00.000Z",
+      },
+      {
+        kind: "coi",
+        documentId: insuranceDocumentId,
+        furnishedAt: "2026-08-02T09:00:00.000Z",
+      },
+    ]);
+    expect(recorded.record.data.exemptions).toHaveLength(2);
+    expect(recorded.record.data.poRequired).toBe(true);
+  });
+
+  it("patches only the keys an update names", async () => {
+    const updated = await repository.mutate(
+      procurementCommand({
+        action: "update",
+        label: "update-po-policy",
+        payload: { poRequired: false },
+      }),
+    );
+    expect(updated.record.data.poRequired).toBe(false);
+    // An absent key is not an instruction to empty the column.
+    expect(updated.record.data.exemptions).toHaveLength(2);
+    expect(updated.record.data.supplierDocuments).toHaveLength(2);
+    expect(updated.record.data.supplierPortalStatus).toBe("in_progress");
+  });
+
+  it("refuses a lapsed certificate and an unreadable one, and writes neither", async () => {
+    const before = await persistedProfile();
+    await expect(
+      repository.mutate(
+        procurementCommand({
+          action: "add_certificate",
+          label: "lapsed",
+          payload: {
+            certificate: {
+              jurisdiction: "US-CA",
+              certificateDocumentId: crypto.randomUUID(),
+              expiresOn: "2026-07-31",
+            },
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    await expect(
+      repository.mutate(
+        procurementCommand({
+          action: "add_certificate",
+          label: "unreadable",
+          payload: {
+            // `readProcurementExemptions` skips an entry with no document, so
+            // this would be persisted as a certificate and then swept as if it
+            // had never been filed.
+            certificate: { jurisdiction: "US-CA", expiresOn: "2028-01-31" },
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+    const after = await persistedProfile();
+    expect(after?.rowVersion).toBe(before?.rowVersion);
+    expect(after?.exemptions).toEqual(before?.exemptions);
+  });
+
+  it("refuses an append that raced another writer", async () => {
+    const row = await persistedProfile();
+    await expect(
+      repository.mutate(
+        procurementCommand({
+          action: "add_certificate",
+          label: "stale-version",
+          expectedVersion: z.number().parse(row?.rowVersion) - 1,
+          payload: {
+            certificate: {
+              jurisdiction: "US-CA",
+              certificateDocumentId: crypto.randomUUID(),
+              expiresOn: "2028-01-31",
+            },
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+  });
+});
+
+/**
+ * P1 renewal price protection is OPEN, and these pin the state it is open in.
+ *
+ * The rule is implemented and unit-tested in `packages/domain/src/agreements`
+ * (`assertRenewalPriceProtection`). It is NOT adopted by the quote path, and
+ * the adoption note on the rule says exactly what has to be settled before it
+ * can be. These are characterization tests: they record that an uplift past a
+ * negotiated ceiling is currently accepted, so that whoever adopts the rule has
+ * to come here and change them on purpose rather than discover the gap.
+ *
+ * Two adoptions were attempted and both refused legitimate quotes. The second
+ * one is the reason the first test below exists: it refused a renewal whose own
+ * signed paper carries no protection at all.
+ *
+ * Every scenario gets its own account, so a second run against the same
+ * database cannot resolve the first run's papers.
+ *
+ * The prior price is made lower than the book by quoting the prior order at an
+ * approved pricing exception, which is how a discount is legitimately reached.
+ * The renewal then prices at list, 15000 against a prior 12000, which is a 2500
+ * bps uplift: above the 500 bps protection the fixture negotiates.
+ */
+describe("database core renewal price protection (open, unenforced)", () => {
+  const priceBookId = "60000000-0000-4000-8000-000000000001";
+  const listUnitPriceMinor = 15_000n;
+  const priorUnitPriceMinor = 12_000n;
+  const termMonths = 12n;
+  const pricedAt = "2026-08-20T16:00:00.000Z";
+
+  interface RenewalAccount {
+    accountId: string;
+    authorization: AuthorizationContext;
+  }
+
+  const seedAccount = async (label: string): Promise<RenewalAccount> => {
+    const id = crypto.randomUUID();
+    await withInternalTransaction(
+      db,
+      `renewal-account-${label}-${runId}`,
+      async (tx) => {
+        await tx.insert(accounts).values({
+          id,
+          legalName: `Renewal ${label} ${runId}`,
+          relationshipRoles: ["direct_client"],
+          registeredAddress: {
+            line1: "1 Fiction Way",
+            city: "Boston",
+            postalCode: "02108",
+            country: "US",
+          },
+          billingContact: {
+            name: "Dana Direct",
+            email: `billing-${label}-${runId}@renewal.test`,
+          },
+          apContact: {
+            name: "Alex AP",
+            email: `ap-${label}-${runId}@renewal.test`,
+          },
+          invoiceDeliveryEmail: `ap-${label}-${runId}@renewal.test`,
+          domain: `${label}-${runId}.renewal.test`,
+          country: "US",
+          currency: "USD",
+          screeningStatus: "clear",
+        });
+      },
+    );
+    return {
+      accountId: id,
+      authorization: {
+        ...authorization,
+        accountIds: [ids.account.parse(id)],
+      },
+    };
+  };
+
+  const seedAgreement = async (input: {
+    account: RenewalAccount;
+    effectiveOn: string;
+    label: string;
+    protectionBps: number | null;
+    keyTerms: boolean;
+  }): Promise<string> => {
+    const id = crypto.randomUUID();
+    await withInternalTransaction(
+      db,
+      `renewal-agreement-${input.label}-${runId}`,
+      async (tx) => {
+        await tx.insert(agreements).values({
+          id,
+          accountId: input.account.accountId,
+          templateId: "50000000-0000-4000-8000-000000000001",
+          paper: "ours",
+          executionMode: "click_through",
+          executedDocumentId: "40000000-0000-4000-8000-000000000002",
+          negotiationStatus: "standard",
+          effectiveOn: input.effectiveOn,
+          termMonths: 12,
+          renewalType: "auto_renew",
+          noticeDays: 60,
+          status: "active",
+          signerUserId: userId,
+          authorityTitle: "Chief Demo Officer",
+          authorityAttested: true,
+          acceptedIp: "192.0.2.1",
+          acceptedUserAgent: "Clockwork renewal protection fixture",
+          textHash: "b".repeat(64),
+        });
+        // `key_terms` is immutable, so each protection value needs its own
+        // agreement. That is also how it works commercially: renegotiating the
+        // protection is a new agreement, not an edit.
+        if (input.keyTerms)
+          await tx.insert(keyTerms).values({
+            agreementId: id,
+            breachNoticeHours: 72,
+            renewalPriceProtectionBps: input.protectionBps,
+            auditRights: "Annual evidence review",
+            retentionLiabilityRule: "liable_through_retention",
+          });
+      },
+    );
+    return id;
+  };
+
+  /**
+   * An accepted order priced below list through an approved pricing exception,
+   * which is what makes it renewable at a price the protection can bite on.
+   */
+  const acceptDiscountedOrder = async (input: {
+    account: RenewalAccount;
+    label: string;
+    // Order acceptance derives the governing agreement from the account rather
+    // than taking it from the caller, so the fixture asserts which one it got.
+    // Without that, an agreement landing between the seed and the acceptance
+    // would silently bind a different protection and the refusal below would
+    // read as "the rule does not fire" instead of "the fixture drifted".
+    expectedAgreementId: string;
+    /** Defaults to a term already running on the pricing date. */
+    service?: { startsOn: string; endsOn: string; noticeOn: string };
+  }): Promise<string> => {
+    const { label } = input;
+    const service = input.service ?? {
+      startsOn: "2026-08-01",
+      endsOn: "2027-07-31",
+      noticeOn: "2027-06-01",
+    };
+    const quote = crypto.randomUUID();
+    const series = crypto.randomUUID();
+    const line = crypto.randomUUID();
+    const order = crypto.randomUUID();
+    const orderLine = crypto.randomUUID();
+    const context = {
+      accountId: input.account.accountId,
+      actor: { kind: "user" as const, id: userId },
+      authorization: input.account.authorization,
+    };
+    await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quote,
+      action: "create",
+      payload: {
+        priceBookId,
+        seriesId: series,
+        route: "direct",
+        lines: [
+          {
+            lineId: line,
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+            // 15000 -> 12000. Above the 10000 floor, above the unconfigured
+            // matrix ceiling, so it needs an exception approval.
+            discountBps: 2_000,
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      requestId: `renewal-prior-quote-${label}`,
+      idempotencyKey: testKey(`renewal-prior-quote-${label}`),
+      occurredAt,
+    });
+    await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quote,
+      action: "approve_exception",
+      expectedVersion: 1,
+      payload: { reason: "Renewal protection fixture prices below the matrix" },
+      requestId: `renewal-prior-approve-${label}`,
+      idempotencyKey: testKey(`renewal-prior-approve-${label}`),
+      occurredAt,
+    });
+    const quoteArtifact = await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quote,
+      action: "prepare_artifact",
+      expectedVersion: 2,
+      payload: {
+        audience: "end_client",
+        issuedAt: occurredAt,
+        retainUntil: "2033-07-31T16:00:00.000Z",
+      },
+      requestId: `renewal-prior-quote-artifact-${label}`,
+      idempotencyKey: testKey(`renewal-prior-quote-artifact-${label}`),
+      occurredAt,
+    });
+    const quoteDocumentId = await persistTestArtifact(
+      quoteArtifact,
+      `renewal-prior-quote-${label}`,
+    );
+    await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quote,
+      action: "issue",
+      expectedVersion: 2,
+      payload: {
+        artifactIssuedAt: occurredAt,
+        renderedDocumentId: quoteDocumentId,
+      },
+      requestId: `renewal-prior-issue-${label}`,
+      idempotencyKey: testKey(`renewal-prior-issue-${label}`),
+      occurredAt,
+    });
+    const orderCommand = {
+      quoteId: quote,
+      signerUserId: userId,
+      authorityTitle: "Chief Demo Officer",
+      authorityAttested: true as const,
+      serviceStartsOn: service.startsOn,
+      serviceEndsOn: service.endsOn,
+      noticeOn: service.noticeOn,
+      acceptedAt: "2026-08-01T00:00:00.000Z",
+      orderLineIds: [orderLine],
+    };
+    const orderArtifact = await repository.mutate({
+      ...context,
+      resource: "orders",
+      id: order,
+      action: "prepare_artifact",
+      payload: { ...orderCommand, retainUntil: "2033-08-01T00:00:00.000Z" },
+      requestId: `renewal-prior-order-artifact-${label}`,
+      idempotencyKey: testKey(`renewal-prior-order-artifact-${label}`),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    const orderDocumentId = await persistTestArtifact(
+      orderArtifact,
+      `renewal-prior-order-${label}`,
+    );
+    await repository.mutate({
+      ...context,
+      resource: "orders",
+      id: order,
+      action: "create",
+      payload: { ...orderCommand, orderFormDocumentId: orderDocumentId },
+      requestId: `renewal-prior-order-${label}`,
+      idempotencyKey: testKey(`renewal-prior-order-${label}`),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    const persisted = await withInternalTransaction(
+      db,
+      `renewal-prior-snapshot-${label}-${runId}`,
+      async (tx) => {
+        const [snapshot, row] = await Promise.all([
+          tx.query.orderLineSnapshots.findFirst({
+            where: eq(orderLineSnapshots.orderLineId, orderLine),
+          }),
+          tx.query.orders.findFirst({ where: eq(orders.id, order) }),
+        ]);
+        return { snapshot, row };
+      },
+    );
+    expect(
+      z
+        .object({ unitPrice: z.object({ minor: z.string() }) })
+        .parse(persisted.snapshot?.snapshot).unitPrice.minor,
+    ).toBe(priorUnitPriceMinor.toString());
+    expect(persisted.row?.agreementId).toBe(input.expectedAgreementId);
+    return order;
+  };
+
+  /**
+   * An ordinary quote. It says nothing about renewing anything, because
+   * production says nothing about renewing anything: that is exactly the
+   * omission the protection now survives.
+   */
+  const quoteFor = (input: {
+    account: RenewalAccount;
+    label: string;
+    discountBps?: number;
+  }) =>
+    repository.mutate({
+      resource: "quotes",
+      id: crypto.randomUUID(),
+      accountId: input.account.accountId,
+      action: "create",
+      payload: {
+        priceBookId,
+        seriesId: crypto.randomUUID(),
+        route: "direct",
+        lines: [
+          {
+            lineId: crypto.randomUUID(),
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+            ...(input.discountBps === undefined
+              ? {}
+              : { discountBps: input.discountBps }),
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      actor: { kind: "user", id: userId },
+      authorization: input.account.authorization,
+      requestId: `renewal-quote-${input.label}`,
+      idempotencyKey: testKey(`renewal-quote-${input.label}`),
+      occurredAt: pricedAt,
+    });
+
+  /**
+   * The write the second adoption attempt blocked, and the reason this lane
+   * reverted rather than narrowed the control again.
+   *
+   * The account's protected paper is superseded by one both parties signed that
+   * takes effect on 1 September and states NO price protection. The renewal
+   * order starts service on 1 September, and order acceptance resolves the
+   * governing paper on `serviceStartsOn` (`agreementOn`), so the order this
+   * quote becomes binds to the successor -- which protects nothing. The quote
+   * priced on 20 August was nevertheless refused with "No governing agreement is
+   * in force", because the pricing-side resolver looked for a paper in force on
+   * the QUOTE date and found the gap between the two papers.
+   *
+   * That is the whole blocker in one fixture: a quote has no fixed
+   * `serviceStartsOn`, so it cannot resolve its paper the way the order will.
+   */
+  it("prices a renewal whose signed successor paper carries no protection", async () => {
+    const account = await seedAccount("successor");
+    const original = await seedAgreement({
+      account,
+      effectiveOn: "2026-03-01",
+      label: "successor-original",
+      protectionBps: 500,
+      keyTerms: true,
+    });
+    await acceptDiscountedOrder({
+      account,
+      label: "successor",
+      expectedAgreementId: original,
+    });
+    const successor = await seedAgreement({
+      account,
+      effectiveOn: "2026-09-01",
+      label: "successor-paper",
+      protectionBps: null,
+      keyTerms: true,
+    });
+    await withInternalTransaction(
+      db,
+      `renewal-successor-${runId}`,
+      async (tx) => {
+        await tx
+          .update(agreements)
+          .set({ supersededById: successor })
+          .where(eq(agreements.id, original));
+      },
+    );
+    const renewed = await quoteFor({ account, label: "successor-renewal" });
+    expect(renewed.record.data).toMatchObject({
+      status: "draft",
+      totalMinor: (listUnitPriceMinor * termMonths).toString(),
+    });
+  });
+
+  /**
+   * OPEN FINDING, recorded deliberately. 500 bps over a prior 12000 is a
+   * ceiling of 12600, and this quotes the same SKU and region at list, 15000.
+   * The quote path does not consult the protection, so it is written.
+   *
+   * When the rule is adopted this test must start failing. Change it then --
+   * do not weaken it now.
+   */
+  it("does not yet cap a renewal that exceeds the negotiated ceiling", async () => {
+    const account = await seedAccount("uncapped");
+    const agreement = await seedAgreement({
+      account,
+      effectiveOn: "2026-03-01",
+      label: "uncapped",
+      protectionBps: 500,
+      keyTerms: true,
+    });
+    await acceptDiscountedOrder({
+      account,
+      label: "uncapped",
+      expectedAgreementId: agreement,
+    });
+    const uplifted = await quoteFor({ account, label: "uncapped-uplift" });
+    expect(uplifted.record.data).toMatchObject({
+      status: "draft",
+      totalMinor: (listUnitPriceMinor * termMonths).toString(),
+    });
   });
 });

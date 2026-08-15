@@ -128,21 +128,71 @@ export class FakeScreeningAdapter implements ScreeningPort {
   }
 }
 
+/**
+ * Repository fixture standing in for an approved tax engine. Every figure here
+ * is test data: the fixture carries the rates and the jurisdiction lists so no
+ * rate and no country rule is written into shipped code, and a run with no
+ * fixture states a zero-rate `standard` determination rather than inventing
+ * one. A pass here is never an `EXT-TAX-01` activation pass.
+ */
+export interface FakeTaxFixture {
+  /** Basis points by tax code. An absent code is zero-rated, not refused. */
+  readonly rateBasisPoints?: Readonly<Record<string, number>>;
+  readonly reverseChargeJurisdictions?: readonly string[];
+  readonly exemptJurisdictions?: readonly string[];
+  /** Identifier prefixes the fixture treats as reverse-charge registrations. */
+  readonly reverseChargeIdentifierPrefixes?: readonly string[];
+}
+
 export class FakeTaxAdapter implements TaxPort {
-  public constructor(private readonly kernel: FakeProviderKernel) {}
+  public constructor(
+    private readonly kernel: FakeProviderKernel,
+    private readonly fixture: FakeTaxFixture = {},
+  ) {}
   public validateTaxId(input: Parameters<TaxPort["validateTaxId"]>[0]) {
-    return this.kernel.execute("tax.validateTaxId", input, () => ({
-      valid: input.value.length >= 5,
-      normalized: input.value.replace(/\s/g, "").toUpperCase(),
-    }));
+    return this.kernel.execute("tax.validateTaxId", input, () => {
+      const normalized = input.value.replace(/\s/g, "").toUpperCase();
+      return {
+        valid: input.value.length >= 5,
+        normalized,
+        reverseChargeEligible: (
+          this.fixture.reverseChargeIdentifierPrefixes ?? []
+        ).some((prefix) => normalized.startsWith(prefix.toUpperCase())),
+      };
+    });
   }
   public calculate(input: Parameters<TaxPort["calculate"]>[0]) {
-    return this.kernel.execute("tax.calculate", input, () => ({
-      tax: MoneySchema.parse({
-        currency: input.lines[0]?.amount.currency ?? "USD",
-        minor: "0",
-      }),
-    }));
+    return this.kernel.execute("tax.calculate", input, () => {
+      const jurisdiction = input.jurisdiction.toUpperCase();
+      const treatment = (
+        this.fixture.reverseChargeJurisdictions ?? []
+      ).includes(jurisdiction)
+        ? ("reverse_charge" as const)
+        : (this.fixture.exemptJurisdictions ?? []).includes(jurisdiction)
+          ? ("exempt" as const)
+          : ("standard" as const);
+      // Only a standard supply carries an amount. Half away from zero keeps a
+      // credit line's negative tax the mirror of the charge it reverses.
+      const minor =
+        treatment === "standard"
+          ? input.lines.reduce((total, line) => {
+              const rate = BigInt(
+                this.fixture.rateBasisPoints?.[line.taxCode] ?? 0,
+              );
+              const product = BigInt(line.amount.minor) * rate;
+              const magnitude = product < 0n ? -product : product;
+              const rounded = (magnitude + 5_000n) / 10_000n;
+              return total + (product < 0n ? -rounded : rounded);
+            }, 0n)
+          : 0n;
+      return {
+        tax: MoneySchema.parse({
+          currency: input.lines[0]?.amount.currency ?? "USD",
+          minor: minor.toString(),
+        }),
+        treatment,
+      };
+    });
   }
 }
 

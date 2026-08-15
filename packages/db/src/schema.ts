@@ -886,6 +886,15 @@ export const invoices = pgTable(
     amountRemainingMinor: minor("amount_remaining_minor").generatedAlwaysAs(
       sql`greatest(amount_minor - amount_paid_minor, 0::bigint)`,
     ),
+    // amount_minor is the amount owed and is therefore gross; the net billed
+    // against the quote and its amendments is amount_minor - tax_minor.
+    taxMinor: minor("tax_minor").default(sql`0`),
+    // The net amendment delta this invoice billed, as at the moment it was
+    // written (001393). Signed. Stored rather than re-summed so the projection
+    // trigger's amount identity cannot drift as later amendments land and brick
+    // the row against every settlement write.
+    amendmentDeltaMinor: minor("amendment_delta_minor").default(sql`0`),
+    taxTreatment: text("tax_treatment").notNull().default("not_determined"),
     poNumber: text("po_number"),
     status: text("status").notNull(),
     dueAt: timestamp("due_at", { withTimezone: true }),
@@ -919,6 +928,14 @@ export const invoices = pgTable(
       sql`(${table.stripeLastOccurredAt} is null) = (${table.stripeLastEventId} is null)`,
     ),
     check("invoices_amount_paid_check", sql`${table.amountPaidMinor} >= 0`),
+    check(
+      "invoices_tax_treatment_check",
+      sql`${table.taxTreatment} in ('not_determined','standard','reverse_charge','exempt')`,
+    ),
+    check(
+      "invoices_tax_amount_check",
+      sql`${table.taxTreatment} = 'standard' or ${table.taxMinor} = 0`,
+    ),
     check(
       "invoices_currency_check",
       sql`${table.currency} in ('USD','EUR','GBP')`,

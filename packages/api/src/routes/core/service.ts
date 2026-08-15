@@ -92,7 +92,42 @@ export interface CoreFinanceService {
   }): Promise<{ replayed: boolean; workflowRunId: string }>;
 }
 
-const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
+/**
+ * The commands this API accepts, by resource.
+ *
+ * Every verb here must reach a branch that can do something. That is not a
+ * claim this table can make about itself, and it is not one another table can
+ * make for it: P0-59 first shipped as three hand-maintained lists agreeing with
+ * each other, which a verb invented in all three satisfied while nothing
+ * implemented it. `command-catalogue.integration.test.ts` binds this table to
+ * the running repository instead: it invokes every verb here against a real
+ * database and requires the answer to be anything other than that resource's
+ * refusal of a verb no branch implements. A validation error, a not-found, a
+ * version conflict and a success all pass, because all of them prove a branch
+ * ran. Only "this resource has no branch for that verb" fails.
+ *
+ * That file also requires every verb here to be invoked by name or listed as
+ * unexercisable with a reason, and the two lists to partition this table
+ * exactly, so a verb added here without either fails the suite. That is what
+ * covers `accounts`, whose repository code answers an unknown verb the same way
+ * it answers `update` -- see the note on that resource in the test.
+ *
+ * Adding a resource to `coreResourceNames` without classifying it there fails
+ * the suite too.
+ *
+ * Advertising a verb nothing implements is how the portal came to offer "Price"
+ * on a draft quote and answer the click with an unsupported-transition error.
+ *
+ * Deferral is not implementation. `workflowOwnedCoreCommands` records verbs the
+ * repository refuses because a workflow owns the transition; those workflows
+ * write their rows directly and take no command, so a caller who sends one gets
+ * an error every time. They are therefore absent here rather than advertised,
+ * with the reason recorded per resource below.
+ */
+export const coreCommandCatalogue: Record<
+  CoreResourceName,
+  ReadonlySet<string>
+> = {
   accounts: new Set([
     "create",
     "update",
@@ -114,15 +149,17 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "activate",
     "retire",
   ]),
+  // `price` is not a transition: a quote is inserted already priced against the
+  // confidential book. `accept` is the order command -- `orders:create` moves
+  // the quote to accepted inside the transaction that records the signatory
+  // attestation.
   quotes: new Set([
     "create",
-    "price",
     "approve_exception",
     "reject_exception",
     "prepare_artifact",
     "issue",
     "expire",
-    "accept",
     "revise",
   ]),
   // Order state is advanced only by the accepted-order transaction,
@@ -130,7 +167,9 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
   // commands. Keeping generic state verbs here would let an ordinary
   // order:write caller bypass those boundaries.
   orders: new Set(["prepare_artifact", "create"]),
-  amendments: new Set(["prepare_artifact", "create", "accept", "apply"]),
+  // Acceptance and application are the immutable create command: it carries the
+  // acceptance evidence and writes the amendment money in one transaction.
+  amendments: new Set(["prepare_artifact", "create"]),
   commitments: new Set([
     "create",
     "record_usage",
@@ -139,38 +178,51 @@ const actionsByResource: Record<CoreResourceName, ReadonlySet<string>> = {
     "renew",
     "reconcile",
   ]),
-  invoices: new Set([
-    "create",
-    "issue",
-    "open",
-    "pay",
-    "void",
-    "mark_uncollectible",
-    "consolidate",
-    "evaluate_dunning",
-  ]),
+  // Invoice status is Stripe's (§10: webhooks are the source of payment truth,
+  // no manual entry). Issuance runs through core.billing.issue-invoice.v1,
+  // which needs the row to still be a draft with no provider invoice, and
+  // open/pay/void/mark_uncollectible arrive on the verified webhook. Local
+  // writes of any of them would stop the real issuance and then make the
+  // projection refuse the provider's own later truth. End-client allocations
+  // are derived when the partner draft is written, so nothing consolidates
+  // afterwards.
+  invoices: new Set(["create", "evaluate_dunning"]),
   credit_notes: new Set(["issue"]),
   refunds: new Set(["submit"]),
   disputes: new Set(["create"]),
+  // `expire` is absent because registration expiry is automatic (§ deal
+  // registration: "automatic expiry, explicit extensions, and a dispute
+  // path"): protection lapses when `protection_ends_at` passes, and an operator
+  // verb would imply someone must press it. `dispute` and `decide_dispute` are
+  // absent because the dispute path is unbuilt -- `core_deal_registration_
+  // disputes` exists and no code reads or writes it, and the 3-business-day
+  // escalation the spec gives it has no owner in code. Extension stays: it is
+  // the one registration decision an operator really does take.
   deal_registrations: new Set([
     "create",
     "approve",
     "reject",
-    "expire",
     "extend",
-    "dispute",
-    "decide_dispute",
     "convert",
   ]),
-  commissions: new Set(["accrue", "clawback", "state", "settle"]),
-  accounting_exports: new Set(["create", "generate", "post", "reconcile"]),
-  marketplace_reconciliations: new Set([
-    "create",
-    "ingest",
-    "reconcile",
-    "replay",
-  ]),
-  reports: new Set(["create", "generate", "complete", "fail"]),
+  // Accrual and clawback are ours -- they are the money. `state` is absent
+  // because the commission statement workflow composes statements and writes
+  // `commission_statements` itself, and `settle` because payment execution is
+  // manual at launch (§ commissions: "Payment execution is manual at launch;
+  // the statement nets clawbacks"), so there is nothing for an API verb to do.
+  commissions: new Set(["accrue", "clawback"]),
+  // The QBO export pipeline owns these rows end to end; the repository
+  // implements no accounting-export command at all, so every verb here was an
+  // error with a spec reference attached. Reads stay available.
+  accounting_exports: new Set([]),
+  // Marketplace statements are ingested and reconciled by their own workflow
+  // against the provider's file. As above, the repository implements none of
+  // it, so nothing may be advertised. Reads stay available.
+  marketplace_reconciliations: new Set([]),
+  // `create` queues an export. Generation, completion and failure are the
+  // scheduled runner's: it claims `report_exports` rows in `pending` and
+  // advances them itself, so no caller ever sends those verbs.
+  reports: new Set(["create"]),
 };
 
 export class CoreServiceError extends Error {
@@ -214,7 +266,7 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
   private readonly replays = new Map<string, string>();
 
   public mutate(input: CoreMutation): Promise<CoreMutationResult> {
-    if (!actionsByResource[input.resource].has(input.action))
+    if (!coreCommandCatalogue[input.resource].has(input.action))
       throw new CoreServiceError(
         "INVALID_STATE",
         `Action ${input.action} is not valid for ${input.resource}`,

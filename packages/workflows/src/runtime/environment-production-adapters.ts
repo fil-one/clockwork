@@ -12,6 +12,7 @@ import {
   HttpNotificationProviderClient,
   HttpProviderActivationTestClient,
   HttpProvisioningAdapter,
+  HttpTaxAdapter,
   HttpUsageProviderClient,
   HttpWorkosMfaPolicyEnforcer,
   StripeFinanceGateway,
@@ -296,6 +297,19 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
+  // The slot P0-61 found missing. `required` throws a
+  // WorkflowEnvironmentAdapterConfigurationError naming EXT-TAX-01 when the
+  // endpoint or credential is absent, so a worker with no approved tax engine
+  // does not boot rather than booting and billing every customer net.
+  const taxTransport = transport(
+    source,
+    "TAX_PROVIDER",
+    "tax",
+    "EXT-TAX-01",
+    allowInsecureLocalhost,
+    instrumentation,
+    telemetry,
+  );
   const documentRendererTransport = transport(
     source,
     "DOCUMENT_RENDERER_PROVIDER",
@@ -398,6 +412,11 @@ export function createEnvironmentWorkflowAdapterFactory(
           ),
         },
         activationTest: activationTest("signature"),
+      },
+      tax: {
+        mode: "live",
+        value: { provider: new HttpTaxAdapter(taxTransport) },
+        activationTest: activationTest("tax"),
       },
     },
     deletionCertificates: {

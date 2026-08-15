@@ -19,6 +19,7 @@ import {
   FakeProvisioningAdapter,
   FakeScreeningAdapter,
   FakeSignatureAdapter,
+  FakeTaxAdapter,
 } from "@clockwork/integrations/fakes";
 
 import { lifecycleWorkflowRegistry } from "../lifecycle";
@@ -145,6 +146,11 @@ function selections(): ProductionWorkflowProviderSelections {
       mode: "simulator",
       value: { provider: new FakeSignatureAdapter(kernel) },
       activationTest: activationTest("signature"),
+    },
+    tax: {
+      mode: "simulator",
+      value: { provider: new FakeTaxAdapter(kernel) },
+      activationTest: activationTest("tax"),
     },
   };
 }

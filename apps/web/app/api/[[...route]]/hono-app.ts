@@ -66,6 +66,7 @@ import {
   ProductionStripeWebhookProjection,
   ProductionVerifiedPartnerOriginResolver,
 } from "@/src/providers/composition";
+import { configuredTaxProvider } from "@/src/providers/tax";
 import {
   databaseTransactionTelemetry,
   instrumentProviderTransport,
@@ -236,12 +237,17 @@ const workosWebhook =
 const lifecycleAuthorizationScopes = serviceDatabase
   ? new DatabaseLifecycleAuthorizationScopeResolver(serviceDatabase)
   : undefined;
+// No tax engine, no Core finance surface. An absent EXT-TAX-01 provider used to
+// mean every invoice was written net; it now means the commands that would have
+// written one are not composed.
+const taxProvider = configuredTaxProvider();
 const coreService =
-  runtimeDatabase && serviceDatabase && authorizationSecret
+  runtimeDatabase && serviceDatabase && authorizationSecret && taxProvider
     ? new DatabaseCoreFinanceService({
         database: runtimeDatabase,
         pricingDatabase: serviceDatabase,
         authorizationSecret,
+        tax: taxProvider,
       })
     : undefined;
 const webhookDeduplicator = serviceDatabase

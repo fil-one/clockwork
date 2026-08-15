@@ -110,6 +110,18 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
               {amount(derivation.invoicedTotalMinor, derivation.currency)}
             </dd>
           </div>
+          {/*
+            The invoiced figure is the amount owed and is gross of tax (001392).
+            Every source row below it is pre-tax, so the difference is taken
+            against the net and the net has to be on screen — otherwise the two
+            numbers being subtracted are not the two numbers shown.
+          */}
+          <div>
+            <dt>Invoiced net of tax</dt>
+            <dd>
+              {amount(derivation.invoicedNetTotalMinor, derivation.currency)}
+            </dd>
+          </div>
           <div>
             <dt>From source rows</dt>
             <dd>{amount(derivation.derivedTotalMinor, derivation.currency)}</dd>

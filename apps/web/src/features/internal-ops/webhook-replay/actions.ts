@@ -12,6 +12,7 @@ import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
 } from "@/src/db/service";
+import { requiredTaxProvider } from "@/src/providers/tax";
 
 export interface WebhookReplayOutcome {
   ok: boolean;
@@ -79,10 +80,14 @@ export async function replayWebhookEvent(
   if (!permitted) return { ok: false, code: "WEBHOOK_REPLAY_FORBIDDEN" };
 
   try {
+    // Replay moves no money and determines no tax, but the repository it runs
+    // on will not exist without an EXT-TAX-01 engine. A throw here lands in the
+    // catch below as WEBHOOK_REPLAY_FAILED rather than leaking the reason.
     const result = await new DatabaseCoreFinanceService({
       database,
       pricingDatabase,
       authorizationSecret,
+      tax: requiredTaxProvider(),
     }).replay({
       provider,
       eventId: providerEventId,

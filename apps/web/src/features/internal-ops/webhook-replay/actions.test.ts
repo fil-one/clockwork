@@ -51,6 +51,8 @@ function form(overrides: Record<string, string> = {}): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.AUTHORIZATION_CONTEXT_SECRET = "x".repeat(48);
+  process.env.TAX_PROVIDER_BASE_URL = "https://tax.example/";
+  process.env.TAX_PROVIDER_TOKEN = "tax-token";
   mocks.getOptionalRuntimeDatabase.mockReturnValue({});
   mocks.getOptionalServiceDatabase.mockReturnValue({});
   mocks.requireRecentAuthentication.mockResolvedValue(undefined);
@@ -144,6 +146,19 @@ describe("webhook replay action", () => {
       ok: false,
       code: "WEBHOOK_REPLAY_EVENT_NOT_FOUND",
     });
+  });
+
+  // The finance repository cannot be constructed without an EXT-TAX-01 engine,
+  // and replay runs on it. Nothing composed a tax provider before this change,
+  // so this case had nothing to assert.
+  it("refuses when no tax provider is configured", async () => {
+    delete process.env.TAX_PROVIDER_BASE_URL;
+
+    expect(await replayWebhookEvent(form())).toEqual({
+      ok: false,
+      code: "WEBHOOK_REPLAY_FAILED",
+    });
+    expect(mocks.replay).not.toHaveBeenCalled();
   });
 
   it("keeps provider and database detail out of a generic failure", async () => {

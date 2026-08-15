@@ -12,6 +12,7 @@ import {
   createProductionExperienceOutboxHandlers,
   DurableOutboxDispatcher,
 } from "@clockwork/workflows";
+import { requiredTaxProvider } from "@/src/providers/tax";
 
 const telemetry = new ClockworkTelemetry(
   new OtlpHttpTelemetrySink({
@@ -57,6 +58,7 @@ export async function drainProductionExperienceOutbox(workerId: string) {
       createProductionExperienceOutboxHandlers({
         database: runtime.db,
         authorizationSecret,
+        tax: requiredTaxProvider(),
         clock,
       }),
       instrumentation,

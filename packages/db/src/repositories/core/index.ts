@@ -5,6 +5,7 @@ export * from "./finance";
 export * from "./invoice-derivation";
 export * from "./price-book-administration";
 export * from "./stripe-adjustments";
+export * from "./tax-fixture";
 
 import { DatabaseCoreFinanceRepository } from "./database-finance";
 import { DatabaseCommissionStatementRepository } from "./commissions";
