@@ -1,14 +1,12 @@
+import { toCsv } from "@clockwork/domain/core";
+
 import type { ReportRow } from "./ports";
 
-function safeCell(value: string): string {
-  const protectedValue = /^(?:[=+\-@]|\s+[=+\-@])/.test(value)
-    ? `'${value}`
-    : value;
-  return /[",\r\n]/.test(protectedValue)
-    ? `"${protectedValue.replace(/"/g, '""')}"`
-    : protectedValue;
-}
-
+/**
+ * Column selection and validation for the report export. Cell neutralisation
+ * and quoting belong to the single writer in the domain so this export and the
+ * CSV download can never drift apart on what counts as a formula.
+ */
 export function renderCsv(
   rows: readonly ReportRow[],
   requestedColumns?: readonly string[],
@@ -29,21 +27,8 @@ export function renderCsv(
       throw new Error("Requested report column is not present in the result");
   }
 
-  const lines = [
-    columns.map(safeCell).join(","),
-    ...rows.map((row) =>
-      columns
-        .map((column) => {
-          const value = row[column];
-          return safeCell(
-            value === null || value === undefined ? "" : String(value),
-          );
-        })
-        .join(","),
-    ),
-  ];
   return {
-    bytes: new TextEncoder().encode(`\uFEFF${lines.join("\r\n")}\r\n`),
+    bytes: new TextEncoder().encode(toCsv(rows, columns)),
     columns,
   };
 }

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { ids } from "@clockwork/contracts";
+import { ids, type TaxPort } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -33,8 +33,11 @@ import {
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 import {
+  acceptedAmendmentDeltaMinor,
   DatabaseCoreError,
   DatabaseCoreFinanceRepository,
+  initialInvoiceId,
+  orderTaxDetermination,
 } from "../core/database-finance";
 
 export type PersistedCommissionSourceType =
@@ -147,15 +150,17 @@ export class DatabaseCoreWorkflowDispatchStore {
   public constructor(
     private readonly database: RuntimeDatabase,
     authorizationSecret: string,
+    private readonly tax: TaxPort,
   ) {
     this.finance = new DatabaseCoreFinanceRepository({
       database,
       pricingDatabase: database,
       authorizationSecret,
+      tax,
     });
   }
 
-  public ensureInvoiceDraftForProvisionedOrder(input: {
+  public async ensureInvoiceDraftForProvisionedOrder(input: {
     orderId: string;
     requestId: string;
     occurredAt: string;
@@ -163,6 +168,21 @@ export class DatabaseCoreWorkflowDispatchStore {
     const occurredAt = new Date(input.occurredAt);
     if (!Number.isFinite(occurredAt.valueOf()))
       throw new Error("PROVISIONING_EVENT_TIME_INVALID");
+    // Both writers of this row reach the same tax figure by the same rule, and
+    // the provider is called before the write transaction opens so no invoice
+    // row is held locked across the network. Its failure is carried rather than
+    // thrown: an order that is not invoice-eligible must still fail with the
+    // reason it is not eligible, not with a tax error about an order this
+    // writer was never going to bill.
+    const determination = await orderTaxDetermination({
+      database: this.database,
+      tax: this.tax,
+      requestId: input.requestId,
+      orderId: input.orderId,
+    }).then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
     return withInternalTransaction(
       this.database,
       input.requestId,
@@ -212,6 +232,25 @@ export class DatabaseCoreWorkflowDispatchStore {
         ]);
         if (!quote || !policy)
           throw new Error("PROVISIONED_ORDER_BILLING_TRUTH_INCOMPLETE");
+        // What the order owes, not what it quoted. This draft runs at
+        // provisioning, before any amendment exists, so the delta is normally
+        // zero. When it is not, the draft cannot be written here at all: the
+        // immutable document snapshot below is bound by 001300 to the quoted
+        // order-line snapshots — its subtotal must equal their sum, its total
+        // must equal the invoice amount, and the only slack between them is a
+        // tax line constrained non-negative. An amended amount is therefore
+        // representable only as tax, and a downgrade not at all. Refusing beats
+        // billing the quote total and losing the amendment, or filing an
+        // upgrade the customer signed as tax it never owed. It is checked
+        // before the entitlement and PO preconditions because it is a
+        // commercial fact about the order, not a gap in its provisioning.
+        const amendmentDeltaMinor = await acceptedAmendmentDeltaMinor(
+          transaction,
+          order,
+          quote.currency,
+        );
+        if (amendmentDeltaMinor !== 0n)
+          throw new Error("PROVISIONED_ORDER_AMENDED_BEFORE_INVOICE");
         if (
           lines.length === 0 ||
           activeEntitlements.length !== lines.length ||
@@ -223,6 +262,13 @@ export class DatabaseCoreWorkflowDispatchStore {
           throw new Error("PROVISIONED_ORDER_ENTITLEMENTS_INCOMPLETE");
         if (policy.requirePo && !order.poNumber)
           throw new Error("PROVISIONED_ORDER_REQUIRED_PO_MISSING");
+        if (!determination.ok) throw determination.error;
+        if (
+          determination.value.currency !== quote.currency ||
+          determination.value.netMinor !==
+            quote.totalMinor + amendmentDeltaMinor
+        )
+          throw new Error("PROVISIONED_ORDER_TAX_DETERMINATION_STALE");
 
         const persistedLineSnapshots =
           await transaction.query.orderLineSnapshots.findMany({
@@ -249,7 +295,10 @@ export class DatabaseCoreWorkflowDispatchStore {
         )
           throw new Error("PROVISIONED_ORDER_INVOICE_LINE_TOTAL_MISMATCH");
 
-        const invoiceId = deterministicUuid("initial-invoice", order.id);
+        // One definition, imported, rather than the same derivation written
+        // twice: the core writer collides with this row on the primary key
+        // only while both sides derive the identifier identically.
+        const invoiceId = initialInvoiceId(order.id);
         const dueAt = addDays(occurredAt, policy.termsDays ?? 0);
         const [invoice] = await transaction
           .insert(invoices)
@@ -259,7 +308,18 @@ export class DatabaseCoreWorkflowDispatchStore {
             accountId: order.invoicingAccountId,
             stripeInvoiceId: null,
             currency: quote.currency,
-            amountMinor: quote.totalMinor,
+            amountMinor:
+              quote.totalMinor +
+              amendmentDeltaMinor +
+              determination.value.taxMinor,
+            // Refused above unless it is zero, and written rather than defaulted
+            // so this writer and the core writer state the same thing about the
+            // same row (001393). The projection trigger checks the stored figure
+            // against the live sum at insert, so a zero written here while an
+            // amendment exists is refused rather than persisted.
+            amendmentDeltaMinor,
+            taxMinor: determination.value.taxMinor,
+            taxTreatment: determination.value.treatment,
             poNumber: order.poNumber,
             status: "draft",
             dueAt,
@@ -296,8 +356,8 @@ export class DatabaseCoreWorkflowDispatchStore {
           quoteId: quote.id,
           currency: quote.currency,
           lineItems: documentLines,
-          subtotalMinor: invoice.amountMinor.toString(),
-          taxMinor: "0",
+          subtotalMinor: (invoice.amountMinor - invoice.taxMinor).toString(),
+          taxMinor: invoice.taxMinor.toString(),
           totalMinor: invoice.amountMinor.toString(),
           sourceVersion: `quote:${quote.id}:r${quote.revision}`,
         };
@@ -307,8 +367,8 @@ export class DatabaseCoreWorkflowDispatchStore {
           quoteId: quote.id,
           currency: quote.currency,
           lineItems: documentLines,
-          subtotalMinor: invoice.amountMinor,
-          taxMinor: 0n,
+          subtotalMinor: invoice.amountMinor - invoice.taxMinor,
+          taxMinor: invoice.taxMinor,
           totalMinor: invoice.amountMinor,
           sourceHash: createHash("sha256")
             .update(canonicalJson(snapshotSource))
@@ -325,8 +385,8 @@ export class DatabaseCoreWorkflowDispatchStore {
             orderId: order.id,
             endClientAccountId: order.accountId,
             currency: invoice.currency,
-            subtotalMinor: invoice.amountMinor,
-            taxMinor: 0n,
+            subtotalMinor: invoice.amountMinor - invoice.taxMinor,
+            taxMinor: invoice.taxMinor,
             totalMinor: invoice.amountMinor,
             stripeInvoiceLineIds: [],
           });

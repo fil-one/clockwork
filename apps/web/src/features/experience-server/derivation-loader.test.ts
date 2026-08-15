@@ -62,6 +62,8 @@ function derivation(accountId: string): InvoiceDerivation {
     lines: [],
     derivedTotalMinor: "0",
     invoicedTotalMinor: "0",
+    invoicedTaxMinor: "0",
+    invoicedNetTotalMinor: "0",
     varianceMinor: "0",
     notes: [],
   };

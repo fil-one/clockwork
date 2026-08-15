@@ -27,6 +27,8 @@ const completeEnvironment = {
   ]),
   EVIDENCE_PROVIDER_BASE_URL: "https://evidence.example/",
   EVIDENCE_PROVIDER_TOKEN: "evidence-token",
+  TAX_PROVIDER_BASE_URL: "https://tax.example/",
+  TAX_PROVIDER_TOKEN: "tax-token",
   DOCUMENT_RENDERER_PROVIDER_BASE_URL: "https://documents.example/",
   DOCUMENT_RENDERER_PROVIDER_TOKEN: "document-renderer-token",
   WORKOS_MFA_PROVIDER_BASE_URL: "https://workos-policy.example/",
@@ -88,6 +90,28 @@ describe("environment production workflow adapters", () => {
       throw new Error("Expected environment configuration failure");
     expect(failure.missing).toEqual(["EVIDENCE_PROVIDER_TOKEN"]);
     expect(failure.externalGates).toEqual(["EXT-ACC-01"]);
+  });
+
+  // P0-61: the composition had no tax slot at all, so there was nothing for an
+  // absent tax engine to fail on and every invoice was written net. It now
+  // fails closed on the exact absent input and names the gate that supplies it.
+  it("fails closed on the tax provider under EXT-TAX-01", () => {
+    let failure: unknown;
+    try {
+      createEnvironmentWorkflowAdapterFactory({
+        ...completeEnvironment,
+        TAX_PROVIDER_BASE_URL: undefined,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(
+      WorkflowEnvironmentAdapterConfigurationError,
+    );
+    if (!(failure instanceof WorkflowEnvironmentAdapterConfigurationError))
+      throw new Error("Expected environment configuration failure");
+    expect(failure.missing).toEqual(["TAX_PROVIDER_BASE_URL"]);
+    expect(failure.externalGates).toEqual(["EXT-TAX-01"]);
   });
 
   it("never enables provider simulators in production discovery", () => {

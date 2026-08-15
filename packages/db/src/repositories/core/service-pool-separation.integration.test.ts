@@ -10,6 +10,7 @@ import { createRuntimeDatabase } from "../../client";
 import { priceBooks } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 
 /**
  * Every other test in this package builds the repository with
@@ -93,6 +94,7 @@ beforeAll(async () => {
     database: runtimePool.db,
     pricingDatabase: servicePool.db,
     authorizationSecret,
+    tax: new FixtureTaxPort(),
   });
 });
 

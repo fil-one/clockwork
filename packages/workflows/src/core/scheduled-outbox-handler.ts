@@ -19,6 +19,7 @@ import {
   SyncOverageInputSchema,
   ThreeWayReconciliationInputSchema,
 } from "./schemas";
+import type { TaxPort } from "@clockwork/contracts";
 
 const ScheduleEnvelopeSchema = z
   .object({
@@ -86,12 +87,14 @@ function scheduledHandler(input: {
 export function createCoreScheduledOutboxHandler(input: {
   db: RuntimeDatabase;
   authorizationSecret: string;
+  tax: TaxPort;
   submit: CoreWorkflowTaskSubmitter;
 }): OutboxTopicHandler {
   return scheduledHandler({
     store: new DatabaseCoreScheduledDispatchStore(
       input.db,
       input.authorizationSecret,
+      input.tax,
     ),
     submitter: input.submit,
   });

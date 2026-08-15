@@ -23,7 +23,19 @@ export interface DerivationInvoice {
   orderId: string;
   accountId: string;
   currency: string;
+  /** The amount owed. Gross of tax since 001392: the net is this less `taxMinor`. */
   amountMinor: string;
+  /**
+   * Tax included in `amountMinor`, signed, from `invoices.tax_minor`.
+   *
+   * Nothing in this module derives tax: it is a determination the merchant of
+   * record's provider made, not a figure that falls out of the quote, the order
+   * lines or the commitment ledger. It is carried only so the derived total,
+   * which is necessarily net, is compared against a net. Optional because a
+   * caller assembling this from a row written before 001392 has no column to
+   * read; absent means zero, which is what that column defaults to.
+   */
+  taxMinor?: string;
   status: string;
   issuedAt: string | null;
 }
@@ -190,7 +202,12 @@ export interface InvoiceDerivation {
   status: string;
   lines: readonly InvoiceDerivationLine[];
   derivedTotalMinor: string;
+  /** Gross: the amount owed, tax included. */
   invoicedTotalMinor: string;
+  /** Tax inside `invoicedTotalMinor`. Not derived here; reported so the subtraction is visible. */
+  invoicedTaxMinor: string;
+  /** `invoicedTotalMinor` less `invoicedTaxMinor`, and the figure `varianceMinor` is measured against. */
+  invoicedNetTotalMinor: string;
   varianceMinor: string;
   notes: readonly DerivationNote[];
 }
@@ -211,7 +228,8 @@ const noteMessages: Readonly<Record<DerivationNoteCode, string>> = {
     "No commitment period covers this line, so overage uses the order line rate",
   COMMITMENT_OVERAGE_VARIANCE:
     "Recorded overage differs from consumption above the adjusted allowance",
-  INVOICE_TOTAL_VARIANCE: "Line amounts do not sum to the invoiced total",
+  INVOICE_TOTAL_VARIANCE:
+    "Line amounts do not sum to the invoiced total net of tax",
 };
 
 function note(
@@ -572,7 +590,15 @@ export function deriveInvoice(
     0n,
   );
   const invoicedTotal = minor(input.invoice.amountMinor);
-  const variance = derivedTotal - invoicedTotal;
+  // 001392 made `invoices.amount_minor` the GROSS amount owed and put the tax
+  // it contains in `tax_minor`; the net is the difference. Every figure summed
+  // above is net — an order line, a supersession and an overage are all
+  // pre-tax — so comparing the sum against the gross reported a variance equal
+  // to the tax on every taxed invoice, whether or not anything had actually
+  // drifted. The comparison is net against net.
+  const invoicedTaxMinor = minor(input.invoice.taxMinor ?? "0");
+  const invoicedNetTotal = invoicedTotal - invoicedTaxMinor;
+  const variance = derivedTotal - invoicedNetTotal;
   const lineNotes = lines.flatMap((line) =>
     line.steps.flatMap((step) => step.notes),
   );
@@ -588,6 +614,8 @@ export function deriveInvoice(
     lines,
     derivedTotalMinor: derivedTotal.toString(),
     invoicedTotalMinor: invoicedTotal.toString(),
+    invoicedTaxMinor: invoicedTaxMinor.toString(),
+    invoicedNetTotalMinor: invoicedNetTotal.toString(),
     varianceMinor: variance.toString(),
     notes:
       variance === 0n

@@ -3,8 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, like } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { IdempotencyKeySchema, ids } from "@clockwork/contracts";
-import type { AuthorizationContext } from "@clockwork/domain";
+import { IdempotencyKeySchema } from "@clockwork/contracts";
 
 import { createRuntimeDatabase, type RuntimeTransaction } from "../../client";
 import {
@@ -16,18 +15,13 @@ import {
   quotes,
 } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
-import { DatabaseCoreFinanceRepository } from "../core/database-finance";
 import { DatabaseCoreWorkflowRecordPort } from "./core";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable";
-const authorizationSecret =
-  process.env.AUTHORIZATION_CONTEXT_SECRET ??
-  "clockwork-local-auth-context-secret-change-me";
 const prefix = "integration-invoice-workflow-";
 const accountId = "10000000-0000-4000-8000-000000000001";
-const userId = "20000000-0000-4000-8000-000000000002";
 const orderId = "80000000-0000-4000-8000-000000000001";
 
 const { client, db } = createRuntimeDatabase({
@@ -36,20 +30,7 @@ const { client, db } = createRuntimeDatabase({
   role: "clockwork_service",
   ssl: false,
 });
-const finance = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-});
 const records = new DatabaseCoreWorkflowRecordPort(db);
-const authorization: AuthorizationContext = {
-  userId: ids.user.parse(userId),
-  accountIds: [ids.account.parse(accountId)],
-  roles: ["owner"],
-  isInternalStaff: false,
-  mfaVerified: true,
-  recentAuthenticationVerified: true,
-};
 
 function internal<T>(
   requestId: string,
@@ -58,6 +39,11 @@ function internal<T>(
   return withInternalTransaction(db, requestId, operation);
 }
 
+// Rows written straight into `invoices` carry no audit event of their own, and
+// the case that rolls its projection back never writes one either, so the
+// fixture remembers them rather than leaving them on the shared order.
+const insertedInvoiceIds: string[] = [];
+
 async function cleanup(): Promise<void> {
   await internal(`${prefix}cleanup`, async (transaction) => {
     const events = await transaction
@@ -65,7 +51,12 @@ async function cleanup(): Promise<void> {
       .from(auditEvents)
       .where(like(auditEvents.requestId, `${prefix}%`));
     const eventIds = events.map((event) => event.id);
-    const invoiceIds = [...new Set(events.map((event) => event.aggregateId))];
+    const invoiceIds = [
+      ...new Set([
+        ...events.map((event) => event.aggregateId),
+        ...insertedInvoiceIds,
+      ]),
+    ];
     if (eventIds.length)
       await transaction
         .delete(outboxMessages)
@@ -90,25 +81,39 @@ afterAll(async () => {
   await client.end();
 });
 
-async function createDraft(invoiceId: string, suffix: string) {
-  return finance.mutate({
-    resource: "invoices",
-    id: invoiceId,
-    accountId,
-    action: "create",
-    payload: {
-      orderId,
-      stripeInvoiceId: `in_untrusted_${suffix}`,
-      currency: "EUR",
-      amountMinor: "1",
-      poNumber: "PO-UNTRUSTED",
-      dueAt: "2031-02-01T00:00:00.000Z",
-    },
-    actor: { kind: "user", id: userId },
-    authorization,
-    requestId: `${prefix}draft-${suffix}`,
-    idempotencyKey: `${prefix}draft-${suffix}`,
-    occurredAt: "2031-01-01T00:00:00.000Z",
+// The cases here only need an invoice to project onto, and one order now has
+// one invoice identifier, so they write the row rather than billing the shared
+// order once per case through `invoices: create`. The row still states the
+// order's own commercial truth, which is all the projection trigger (000920,
+// rewritten at 001390) will accept. What that writer derives from the order is
+// covered where a fresh order exists to derive it from:
+// `database-finance.integration.test.ts`.
+async function insertDraft(invoiceId: string, suffix: string): Promise<void> {
+  await internal(`${prefix}insert-${suffix}`, async (transaction) => {
+    const order = await transaction.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+    });
+    const quote = order
+      ? await transaction.query.quotes.findFirst({
+          where: and(
+            eq(quotes.id, order.quoteId),
+            eq(quotes.status, "accepted"),
+          ),
+        })
+      : undefined;
+    if (!order || !quote) throw new Error("Accepted order fixture is missing");
+    insertedInvoiceIds.push(invoiceId);
+    await transaction.insert(invoices).values({
+      id: invoiceId,
+      orderId: order.id,
+      accountId: order.invoicingAccountId,
+      stripeInvoiceId: null,
+      currency: quote.currency,
+      amountMinor: quote.totalMinor,
+      poNumber: order.poNumber,
+      status: "draft",
+      dueAt: new Date("2031-02-01T00:00:00.000Z"),
+    });
   });
 }
 
@@ -169,43 +174,10 @@ async function issueRecord(invoiceId: string, suffix: string) {
 
 // Cases own independent invoice IDs and only read the shared accepted order.
 describe.concurrent("invoice-workflow projection", () => {
-  it("derives a provider-null draft from persisted order and quote truth", async () => {
-    const invoiceId = randomUUID();
-    const suffix = randomUUID();
-    const created = await createDraft(invoiceId, suffix);
-    const expected = await internal(
-      `${prefix}derive-${suffix}`,
-      async (transaction) => {
-        const order = await transaction.query.orders.findFirst({
-          where: eq(orders.id, orderId),
-        });
-        if (!order) throw new Error("Accepted order fixture is missing");
-        const quote = await transaction.query.quotes.findFirst({
-          where: and(
-            eq(quotes.id, order.quoteId),
-            eq(quotes.status, "accepted"),
-          ),
-        });
-        if (!quote) throw new Error("Accepted quote fixture is missing");
-        return { order, quote };
-      },
-    );
-    expect(created.record.data).toMatchObject({
-      id: invoiceId,
-      orderId,
-      accountId: expected.order.invoicingAccountId,
-      stripeInvoiceId: null,
-      currency: expected.quote.currency,
-      amountMinor: expected.quote.totalMinor.toString(),
-      poNumber: expected.order.poNumber,
-      status: "draft",
-    });
-  });
-
   it("atomically binds provider and accounting IDs with invoice audit/outbox", async () => {
     const invoiceId = randomUUID();
     const suffix = randomUUID();
-    await createDraft(invoiceId, suffix);
+    await insertDraft(invoiceId, suffix);
     const issued = await issueRecord(invoiceId, suffix);
     await expect(records.record(issued.input)).resolves.toEqual({});
     await expect(records.record(issued.input)).resolves.toEqual({
@@ -261,7 +233,7 @@ describe.concurrent("invoice-workflow projection", () => {
   it("rolls back the workflow claim when caller money differs from local truth", async () => {
     const invoiceId = randomUUID();
     const suffix = randomUUID();
-    await createDraft(invoiceId, suffix);
+    await insertDraft(invoiceId, suffix);
     const issued = await issueRecord(invoiceId, suffix);
     await expect(
       records.record({

@@ -6,6 +6,7 @@ import {
   unscopedInternalOnly,
   unscopedInternalStaff,
 } from "@clockwork/domain";
+import { csvColumns, toCsv } from "@clockwork/domain/core";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
@@ -435,21 +436,12 @@ function dependencies(
   throw new Error("Core-finance route dependencies are not configured");
 }
 
-function csvCell(value: unknown): string {
-  const raw =
-    value === undefined || value === null
-      ? ""
-      : typeof value === "string"
-        ? value
-        : typeof value === "number" ||
-            typeof value === "boolean" ||
-            typeof value === "bigint"
-          ? `${value}`
-          : (JSON.stringify(value) ?? "");
-  const safe = /^[=+@-]/.test(raw) ? `'${raw}` : raw;
-  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
+/**
+ * The download a caller actually receives. It renders through the same writer
+ * as the workflow report export, so neither escapes a formula the other lets
+ * through. Column order stays as discovered rather than sorted because the
+ * record identity columns lead the download.
+ */
 function reportCsv(
   records: readonly {
     id: string;
@@ -463,15 +455,7 @@ function reportCsv(
     ...record.data,
   }));
   if (rows.length === 0) return "";
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
-  return [
-    columns.map(csvCell).join(","),
-    ...rows.map((row) =>
-      columns
-        .map((column) => csvCell(row[column as keyof typeof row]))
-        .join(","),
-    ),
-  ].join("\r\n");
+  return toCsv(rows, csvColumns(rows));
 }
 
 function serviceProblem(

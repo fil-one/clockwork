@@ -188,6 +188,9 @@ export async function loadInvoiceDerivation(
       accountId: invoice.accountId,
       currency: invoice.currency,
       amountMinor: invoice.amountMinor.toString(),
+      // Gross since 001392. The lines this derivation sums are all net, so the
+      // tax has to travel with the amount or the variance is just the tax.
+      taxMinor: invoice.taxMinor.toString(),
       status: invoice.status,
       issuedAt: instant(invoice.createdAt),
     },

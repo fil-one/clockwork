@@ -8,6 +8,7 @@ import {
   type Actor,
   type Permission,
   type Role,
+  type TaxPort,
 } from "@clockwork/contracts";
 import {
   authorizationActor,
@@ -201,6 +202,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
   public constructor(input: {
     database: RuntimeDatabase;
     authorizationSecret: string;
+    tax: TaxPort;
     now?: () => Date;
   }) {
     this.states = new DatabaseAuthoritativeStateLoader(input.database);
@@ -208,6 +210,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
       database: input.database,
       pricingDatabase: input.database,
       authorizationSecret: input.authorizationSecret,
+      tax: input.tax,
       ...(input.now ? { now: input.now } : {}),
     });
     this.database = input.database;

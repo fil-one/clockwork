@@ -8,6 +8,7 @@ import {
   DatabaseCoreFinanceRepository,
   type DatabaseCoreMutation,
 } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 
 /**
  * Two pools that are genuinely distinguishable.
@@ -81,6 +82,7 @@ function repository() {
       database: runtime.db,
       pricingDatabase: pricing.db,
       authorizationSecret,
+      tax: new FixtureTaxPort(),
     }),
   };
 }

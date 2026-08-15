@@ -371,6 +371,53 @@ describe("invoice derivation", () => {
     expect(derivation.notes[0]?.orderLineId).toBeNull();
   });
 
+  it("measures the variance against the net, not the tax-inclusive amount", () => {
+    // 001392 made `invoices.amount_minor` the amount OWED, so it became gross
+    // once tax applied. Every figure this module sums — the order line, the
+    // amendment supersession, the metered overage — is pre-tax, so comparing
+    // the sum against the gross reported the tax itself as a discrepancy on
+    // every taxed invoice. INVOICE_TOTAL_VARIANCE was raised permanently and
+    // therefore said nothing, and "is it non-zero" stopped being a question
+    // with an answer. Same lines, same money, correctly billed with 20% tax.
+    const input = baseInput();
+    const derivation = deriveInvoice({
+      ...input,
+      invoice: { ...input.invoice, amountMinor: "216000", taxMinor: "36000" },
+    });
+
+    expect(derivation.invoicedTotalMinor).toBe("216000");
+    expect(derivation.invoicedTaxMinor).toBe("36000");
+    expect(derivation.invoicedNetTotalMinor).toBe("180000");
+    expect(derivation.derivedTotalMinor).toBe("180000");
+    expect(derivation.varianceMinor).toBe("0");
+    expect(codes(derivation)).toEqual([]);
+  });
+
+  it("still names a real variance on a taxed invoice", () => {
+    // The other half of the same fix: removing the tax from the comparison must
+    // not remove the comparison. 5000 short of the net is still 5000 short.
+    const input = baseInput();
+    const derivation = deriveInvoice({
+      ...input,
+      invoice: { ...input.invoice, amountMinor: "211000", taxMinor: "36000" },
+    });
+
+    expect(derivation.invoicedNetTotalMinor).toBe("175000");
+    expect(derivation.varianceMinor).toBe("5000");
+    expect(codes(derivation)).toEqual(["INVOICE_TOTAL_VARIANCE"]);
+  });
+
+  it("treats an invoice with no tax figure as billing no tax", () => {
+    // A row written before 001392 has no column to read. Absent is zero, which
+    // is the column's default, so the pre-tax behaviour is unchanged.
+    const input = baseInput();
+    const derivation = deriveInvoice(input);
+
+    expect(derivation.invoicedTaxMinor).toBe("0");
+    expect(derivation.invoicedNetTotalMinor).toBe("180000");
+    expect(derivation.varianceMinor).toBe("0");
+  });
+
   it("derives every line of a multi-line order independently", () => {
     const input = baseInput();
     const line = input.orderLines[0];

@@ -10,6 +10,7 @@ import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 import { createPortalActionOutboxHandlers } from "./portal-action-handler";
 import { createCanonicalPortalProjectionDefinitions } from "./projection-definitions";
 import { createProjectionMaterializerOutboxHandlers } from "./projection-materializer";
+import type { TaxPort } from "@clockwork/contracts";
 
 export const experienceEvidenceAcknowledgementTopics = [
   "experience.projection_action.applied",
@@ -40,6 +41,7 @@ function addHandlers(
 export function createProductionExperienceOutboxHandlers(input: {
   database: RuntimeDatabase;
   authorizationSecret: string;
+  tax: TaxPort;
   clock?: () => Date;
   leaseMs?: number;
 }): ReadonlyMap<string, OutboxTopicHandler> {
@@ -54,6 +56,7 @@ export function createProductionExperienceOutboxHandlers(input: {
       commands: new DatabaseAuthoritativePortalCommandExecutor({
         database: input.database,
         authorizationSecret: input.authorizationSecret,
+        tax: input.tax,
         ...(input.clock ? { now: input.clock } : {}),
       }),
       ...(input.clock ? { clock: input.clock } : {}),

@@ -127,15 +127,35 @@ export interface ScreeningPort {
   >;
 }
 
+/**
+ * How the merchant of record treats a billable amount. The platform never
+ * decides this: which jurisdictions charge, which admit reverse charge, and
+ * which exempt a registered buyer are `EXT-TAX-01` inputs, so the determination
+ * is a provider answer and this union is only the vocabulary it answers in.
+ * `standard` is the sole value that admits a non-zero amount; a reverse-charged
+ * or exempt supply is billed net by definition rather than at a zero rate.
+ */
+export type TaxTreatment = "standard" | "reverse_charge" | "exempt";
+
 export interface TaxPort {
-  validateTaxId(input: {
-    country: string;
-    value: string;
-  }): Promise<ProviderResult<{ valid: boolean; normalized: string }>>;
+  validateTaxId(input: { country: string; value: string }): Promise<
+    ProviderResult<{
+      valid: boolean;
+      normalized: string;
+      /**
+       * Whether this identifier lets the supply be reverse charged. Derived
+       * from the registration the provider verified, never from the country
+       * code the registrant typed.
+       */
+      reverseChargeEligible: boolean;
+    }>
+  >;
   calculate(input: {
     accountId: AccountId;
+    /** Country of the account being invoiced — the merchant-of-record side. */
+    jurisdiction: string;
     lines: readonly { taxCode: string; amount: Money }[];
-  }): Promise<ProviderResult<{ tax: Money }>>;
+  }): Promise<ProviderResult<{ tax: Money; treatment: TaxTreatment }>>;
 }
 
 export interface EvidenceStoragePort {

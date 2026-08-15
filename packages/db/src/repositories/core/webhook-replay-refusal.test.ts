@@ -11,6 +11,7 @@ import {
   WebhookReplayTaskNotRegisteredError,
   webhookReplayTaskIdentifier,
 } from "./database-finance";
+import { FixtureTaxPort } from "./tax-fixture";
 
 const authorizationSecret = "webhook-replay-secret-at-least-32-bytes-long";
 
@@ -35,6 +36,7 @@ describe("operator webhook replay refuses while no task is registered", () => {
       database: runtime.db,
       pricingDatabase: pricing.db,
       authorizationSecret,
+      tax: new FixtureTaxPort(),
     });
 
     const error: unknown = await repository
@@ -67,6 +69,7 @@ describe("operator webhook replay refuses while no task is registered", () => {
       database: runtime.db,
       pricingDatabase: pricing.db,
       authorizationSecret,
+      tax: new FixtureTaxPort(),
     });
 
     await expect(

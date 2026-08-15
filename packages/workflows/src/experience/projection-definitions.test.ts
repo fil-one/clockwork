@@ -316,6 +316,57 @@ describe("canonical portal projection definitions", () => {
     expect(Array.isArray(payload.context)).toBe(true);
   });
 
+  it("offers a draft quote only the transition the repository implements", async () => {
+    const projections = await projectQuote(
+      { status: "draft", totalMinor: "12500", currency: "USD" },
+      "core.quotes.create",
+    );
+    const internal = projections.find(
+      (projection) => projection.audience === "internal",
+    );
+    // `price` used to lead this list, so the headline action on every draft
+    // quote was a command no branch implements. Revision needs a whole quote
+    // configuration and belongs to the builder, not a button.
+    expect(internal?.payload.allowedActions).toEqual(["issue"]);
+  });
+
+  it("offers an open invoice only the action that does not write provider truth", async () => {
+    const projections = await projectAggregate({
+      topic: "core.invoices.evaluate_dunning",
+      aggregateType: "invoice",
+      aggregateId: "83000000-0000-4000-8000-000000000001",
+      accountId,
+      data: {
+        status: "open",
+        amountMinor: "12500",
+        currency: "USD",
+        dueAt: "2026-09-30T00:00:00.000Z",
+      },
+    });
+    const internal = projections.find(
+      (projection) => projection.audience === "internal",
+    );
+    // Void and mark-uncollectible are Stripe's, and a local write of either
+    // would make the projection refuse the provider's later truth.
+    expect(internal?.payload.allowedActions).toEqual(["evaluate_dunning"]);
+  });
+
+  it("offers a draft amendment nothing but its artifact", async () => {
+    const projections = await projectAggregate({
+      topic: "core.amendments.create",
+      aggregateType: "amendment",
+      aggregateId: "84000000-0000-4000-8000-000000000001",
+      accountId,
+      data: { status: "draft", kind: "upgrade", effectiveOn: "2026-09-01" },
+    });
+    const internal = projections.find(
+      (projection) => projection.audience === "internal",
+    );
+    // `apply` is the create command: it writes the amendment money in the same
+    // transaction that records the acceptance.
+    expect(internal?.payload.allowedActions).toEqual(["prepare_artifact"]);
+  });
+
   it("binds the payload kind to the channel each audience reads", async () => {
     const projections = await projectQuote({
       status: "issued",

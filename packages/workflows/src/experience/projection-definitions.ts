@@ -111,6 +111,33 @@ const aggregateConfiguration = {
 
 type AggregateKey = keyof typeof aggregateConfiguration;
 
+/**
+ * What the portal may offer, per resource the command executor can reach.
+ *
+ * This is the same set the core repository implements for these five
+ * resources -- `databaseCoreCommands` in `@clockwork/db/core` -- and
+ * `command-catalogue.test.ts` in `@clockwork/api` holds the two lists equal. A
+ * verb offered here that no branch implements renders as a button whose click
+ * returns an unsupported-transition error, which is what `price` on a draft
+ * quote and `void` on an open invoice used to do.
+ *
+ * Equality with that list is drift protection, not proof: agreeing lists once
+ * admitted a verb invented in all of them. Whether a verb offered here reaches
+ * a branch that can do anything is settled by
+ * `command-catalogue.integration.test.ts`, which invokes it against the running
+ * repository and fails only if the repository answers that no branch
+ * implements it. Every verb below is invoked there by name.
+ *
+ * One weakness in that binding is worth knowing about here, because it is these
+ * five verbs: `mutateAccount` branches on `create` and then stops, so `update`,
+ * `add_role`, `add_contact`, `set_payment_terms` and `set_partner_credit` all
+ * reach the same shared three-key patch. They do reach a branch, so they pass
+ * honestly -- but a role, a contact, payment terms and a credit limit are
+ * audited under their own event and never written, and no test here can see
+ * that. `actionsFor` offers none of the five as a button, so no operator can
+ * click one; if that changes, per-verb branches in `mutateAccount` are what has
+ * to come first.
+ */
 const actionsByResource = {
   accounts: [
     "create",
@@ -122,28 +149,21 @@ const actionsByResource = {
   ],
   quotes: [
     "create",
-    "price",
     "approve_exception",
     "reject_exception",
     "prepare_artifact",
     "issue",
     "expire",
-    "accept",
     "revise",
   ],
   orders: ["prepare_artifact", "create"],
-  amendments: ["prepare_artifact", "create", "accept", "apply"],
-  invoices: [
-    "create",
-    "issue",
-    "open",
-    "pay",
-    "void",
-    "mark_uncollectible",
-    "consolidate",
-    "evaluate_dunning",
-  ],
+  amendments: ["prepare_artifact", "create"],
+  invoices: ["create", "evaluate_dunning"],
 } as const;
+
+/** Exported so the catalogue test can bind this list to the two others. */
+export const portalCommandActions: Readonly<Record<string, readonly string[]>> =
+  actionsByResource;
 
 type ResourceKey = keyof typeof actionsByResource;
 
@@ -185,20 +205,25 @@ function actionsFor(
       : [];
   switch (aggregateType) {
     case "quote":
-      if (current === "draft") return ["price", "issue", "revise"];
+      // Revision is absent for the same reason creation is: it needs a whole
+      // quote configuration, so it belongs to the builder rather than a button.
+      if (current === "draft") return ["issue"];
       if (current === "issued") return ["expire", "prepare_artifact"];
       if (current === "pending_exception")
         return ["approve_exception", "reject_exception"];
       return [];
     case "invoice":
-      if (current === "draft") return ["issue"];
-      if (["open", "issued"].includes(current))
-        return ["void", "mark_uncollectible", "evaluate_dunning"];
+      // Issuance is the billing workflow's, and void, uncollectible and paid
+      // arrive on the Stripe webhook (§10). Dunning evaluation is ours: it
+      // writes a collection case, never the invoice.
+      if (["open", "issued"].includes(current)) return ["evaluate_dunning"];
       return [];
     case "order":
       return ["prepare_artifact"];
+    // Acceptance and application are the amendment create command, which
+    // carries the acceptance evidence the portal cannot collect on a click.
     case "amendment":
-      return current === "draft" ? ["apply", "prepare_artifact"] : [];
+      return current === "draft" ? ["prepare_artifact"] : [];
     default:
       return [];
   }

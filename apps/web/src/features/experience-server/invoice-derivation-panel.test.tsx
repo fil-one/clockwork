@@ -17,6 +17,8 @@ function derivation(
     status: "open",
     derivedTotalMinor: "180000",
     invoicedTotalMinor: "180000",
+    invoicedTaxMinor: "0",
+    invoicedNetTotalMinor: "180000",
     varianceMinor: "0",
     notes: [],
     lines: [
@@ -81,8 +83,12 @@ describe("invoice derivation panel", () => {
 
     expect(screen.getByText("Invoiced")).toBeDefined();
     expect(screen.getByText("From source rows")).toBeDefined();
-    // Invoiced total, total from rows, the line amount, and its closing step.
-    expect(screen.getAllByText("$1,800.00")).toHaveLength(4);
+    // The invoiced amount is gross of tax and the source rows are all net, so
+    // the net the difference is actually taken against is shown too.
+    expect(screen.getByText("Invoiced net of tax")).toBeDefined();
+    // Invoiced total, its net, total from rows, the line amount, and its
+    // closing step. This fixture bills no tax, so the first two are equal.
+    expect(screen.getAllByText("$1,800.00")).toHaveLength(5);
     expect(screen.getByText("$0.00")).toBeDefined();
   });
 

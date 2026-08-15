@@ -89,6 +89,7 @@ export interface TemplateInput {
 
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const minorUnitPattern = /^-?(0|[1-9]\d*)$/;
 const semanticVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const instantWithOffsetPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -291,12 +292,14 @@ export function retireAgreementTemplate(
   });
 }
 
+export interface AgreementMoney {
+  readonly currency: "USD" | "EUR" | "GBP";
+  readonly minor: string;
+}
+
 export interface KeyTerms {
   readonly slaCreditSchedule: Readonly<Record<string, string>>;
-  readonly liabilityCap: {
-    readonly currency: "USD" | "EUR" | "GBP";
-    readonly minor: string;
-  } | null;
+  readonly liabilityCap: AgreementMoney | null;
   readonly breachNoticeHours: number;
   readonly renewalPriceProtectionBasisPoints: number | null;
   readonly auditRights: string;
@@ -331,7 +334,7 @@ function copyKeyTerms(keyTerms: KeyTerms): KeyTerms {
   invariant(keyTerms.auditRights.trim().length > 0, "AUDIT_RIGHTS_REQUIRED");
   if (keyTerms.liabilityCap) {
     invariant(
-      /^-?(0|[1-9]\d*)$/.test(keyTerms.liabilityCap.minor),
+      minorUnitPattern.test(keyTerms.liabilityCap.minor),
       "LIABILITY_CAP_INVALID",
     );
   }
@@ -1152,6 +1155,280 @@ export function evaluateAgreementTerm(
           .map((rule) => rule.customClause ?? rule.clause)
       : [];
   return deepFreeze({ status, noticeOpensOn, activeSurvivalClauses });
+}
+
+/**
+ * RENEWAL PRICE PROTECTION (P1) -- IMPLEMENTED HERE, NOT YET ADOPTED ANYWHERE.
+ *
+ * The three functions below are the rule. They are unit-tested in
+ * `agreements.test.ts` and believed correct for what they cover: the uplift
+ * truncates in the customer's favour, 0 bps is an absolute freeze, a
+ * price-lowering renewal passes through untouched, a null protection means the
+ * proposal stands, and a lapsed or superseded paper reports
+ * `agreement_not_in_force` rather than refusing.
+ *
+ * They reach a consumer as `@clockwork/domain/lifecycle`, which re-exports this
+ * module whole.
+ *
+ * Nothing calls them in production. That is the open part of P1, and it is open
+ * on purpose. Two adoptions were attempted and both were reverted because each
+ * refused legitimate quotes. Read this before attempting a third.
+ *
+ * ---------------------------------------------------------------------------
+ * WHICH CALL SITE MUST ADOPT IT
+ *
+ * `persistQuoteDraft` in
+ * `packages/db/src/repositories/core/database-finance.ts`, immediately after
+ * the `priceQuote` call and before the quote row is inserted. That is the only
+ * point both `quotes:create` and `quotes:revise` pass through, so it is the
+ * only place a protection cannot be routed around. The marker comment sits
+ * there.
+ *
+ * The rule needs two inputs at that point and only one of them is resolvable
+ * today:
+ *
+ *   1. the prior unit price the customer already pays -- available, from the
+ *      account's accepted `core_order_line_snapshots`, though see (C) below;
+ *   2. the agreement whose `renewalPriceProtectionBasisPoints` binds the term
+ *      being quoted -- NOT resolvable. This is the blocker.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY IT CANNOT BE ADOPTED TODAY
+ *
+ * (A) A quote has no service start, so it cannot resolve its governing paper
+ *     the way the order will.
+ *
+ *     Order acceptance resolves the binding paper in `agreementOn` (same file,
+ *     inside the `orders:create` branch) with the predicate
+ *
+ *         accountId = :account
+ *         AND status = 'active'
+ *         AND effective_on <= :command.serviceStartsOn
+ *         AND superseded_by_id IS NULL
+ *
+ *     -- on `serviceStartsOn`, which arrives with the ORDER command.
+ *     `QuoteCreateCommandSchema` carries `expiresAt` and a per-line
+ *     `termMonths` and no service window at all; the window is first fixed at
+ *     acceptance. So a quote-time resolver has to pick a different date, and
+ *     every substitute tried so far answers a different question than the one
+ *     the order will answer:
+ *
+ *       * `occurredAt` (the quote date) refuses an account whose protected
+ *         paper has been superseded by a signed successor that has not taken
+ *         effect yet. Nothing is in force on the quote date, so the resolver
+ *         fails closed -- but the renewal order starts service inside the
+ *         successor's term and will bind to it, and the successor may carry no
+ *         price protection at all. That is a signed, valid, unprotected renewal
+ *         being refused. Reproduced by "prices a renewal whose signed successor
+ *         paper carries no protection" in
+ *         `packages/db/src/repositories/core/database-finance.integration.test.ts`.
+ *       * Widening the resolver (dropping the `status` filter, or falling back
+ *         to the earliest forthcoming paper) removes that refusal but makes the
+ *         quote-time answer diverge from the order-time answer in the other
+ *         direction: the quote gets judged against a ceiling the order will not
+ *         be bound by. A reverted docstring asserted "a quote and the order it
+ *         becomes cannot be governed by two different papers". That sentence is
+ *         false as the code stands, and asserting it is what produced the
+ *         refusal above.
+ *
+ * (B) The rule is total; the resolver was not. Note that
+ *     `evaluateRenewalPriceProtection` already has a defined answer for a paper
+ *     that has lapsed, terminated or been superseded -- `binding: false`,
+ *     `reason: "agreement_not_in_force"`. It never needs a caller to fail
+ *     closed on a missing agreement. Both failed adoptions failed in the
+ *     resolver above the rule, on the state "which paper is this", not on the
+ *     rule's own judgement.
+ *
+ * (C) Which prior price is the protected one is also unsettled. The reverted
+ *     adoption took the maximum accepted unit price across the whole account
+ *     for a (sku, region) pair. Whether the protected basis is per order, per
+ *     (sku, region), or per commitment -- and whether a terminated or
+ *     superseded line still counts -- is a commercial question with no written
+ *     answer. Amendments move quantity and line total but not unit price, so
+ *     the snapshot is a fair source; two live orders at two prices are still
+ *     two answers.
+ *
+ * (D) A ceiling stated against a prior price in another currency needs an FX
+ *     rate no repository on this path holds. The rule refuses the mismatch
+ *     (`RENEWAL_PRICE_CURRENCY_MISMATCH`); the adopter must decide whether a
+ *     cross-currency renewal is unprotected or unquotable.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT WOULD HAVE TO BE SETTLED FIRST
+ *
+ *   1. Pick ONE of these two, and write it down before writing code:
+ *
+ *      (i)  Give the quote a service window. Add an intended `serviceStartsOn`
+ *           to `QuoteCreateCommandSchema`, persist it on the quote, and require
+ *           the order's `serviceStartsOn` to equal it at acceptance (refuse the
+ *           order otherwise). Then quote-time and order-time resolution run the
+ *           same predicate over the same date and (A) disappears -- the
+ *           "one paper" claim becomes enforced rather than assumed. This is a
+ *           schema and contract change, not a repository change.
+ *
+ *      (ii) Adopt at ORDER ACCEPTANCE instead, in the `orders:create` branch,
+ *           where `serviceStartsOn` exists and `agreementOn` has already
+ *           resolved the one paper the order binds to. Nothing has to be
+ *           invented; the cost is that the breach is caught after the customer
+ *           has seen the quote, so it wants an operator-visible refusal reason.
+ *           This is the cheaper route and it is total today.
+ *
+ *   2. Settle (C) in the specification, not in the repository.
+ *   3. Decide (D).
+ *   4. Before shipping, state the COMPLETE set of inputs the adopted control
+ *      refuses. The rule's own refused set is exactly one commercial case --
+ *      proposed unit price strictly above the ceiling
+ *      (`RENEWAL_PRICE_PROTECTION_EXCEEDED`) -- plus malformed money and
+ *      malformed dates. If the adopted control's refused set is larger than
+ *      that, the extra refusals are coming from the resolver, and that is
+ *      precisely where the last two attempts went wrong.
+ *
+ * The open state is pinned by "database core renewal price protection (open,
+ * unenforced)" in `database-finance.integration.test.ts`. Those tests assert
+ * that an uplift past a negotiated ceiling is currently accepted. Adopting the
+ * rule must make them fail; change them deliberately at that point.
+ */
+export interface RenewalPriceProtection {
+  readonly binding: boolean;
+  readonly basisPoints: number | null;
+  readonly reason: "protected" | "not_negotiated" | "agreement_not_in_force";
+  readonly priorUnitPrice: AgreementMoney;
+  readonly maximumUnitPrice: AgreementMoney | null;
+}
+
+export interface RenewalPriceDecision {
+  readonly protection: RenewalPriceProtection;
+  readonly proposedUnitPrice: AgreementMoney;
+  readonly enforcedUnitPrice: AgreementMoney;
+  readonly exceededByMinor: string;
+  readonly withinProtection: boolean;
+}
+
+interface RenewalPriceInput {
+  readonly agreement: ExecutedAgreement;
+  readonly pricedOn: string;
+  readonly priorUnitPrice: AgreementMoney;
+}
+
+/**
+ * Price protection is a term of the agreement, so it binds only while the
+ * agreement does. An auto-renewing agreement rolls into the very term being
+ * priced, so a stated end date already behind us does not lapse it; a
+ * terminated or superseded agreement protects nothing.
+ */
+function renewalProtectionInForce(
+  agreement: ExecutedAgreement,
+  pricedOn: string,
+): boolean {
+  const { status } = evaluateAgreementTerm(agreement, pricedOn, false);
+  return (
+    status === "active" ||
+    status === "in_notice" ||
+    (status === "expired" && agreement.term.renewalType === "auto_renew")
+  );
+}
+
+function unitPriceMinor(price: AgreementMoney, code: string): bigint {
+  invariant(minorUnitPattern.test(price.minor), code);
+  return BigInt(price.minor);
+}
+
+/**
+ * The highest unit price a renewal may carry under the negotiated protection,
+ * expressed against the price the customer pays today. The cap is a percentage
+ * of that price in basis points: zero freezes it, and the uplift truncates so a
+ * fraction of a minor unit is never charged above the agreed ceiling.
+ */
+export function evaluateRenewalPriceProtection(
+  input: RenewalPriceInput,
+): RenewalPriceProtection {
+  assertLocalDate(input.pricedOn, "RENEWAL_PRICE_DATE_INVALID");
+  const prior = unitPriceMinor(
+    input.priorUnitPrice,
+    "RENEWAL_PRIOR_PRICE_INVALID",
+  );
+  const priorUnitPrice = { ...input.priorUnitPrice };
+  const basisPoints =
+    input.agreement.keyTerms.renewalPriceProtectionBasisPoints;
+  if (basisPoints === null)
+    return deepFreeze({
+      binding: false,
+      basisPoints: null,
+      reason: "not_negotiated" as const,
+      priorUnitPrice,
+      maximumUnitPrice: null,
+    });
+  invariant(
+    Number.isInteger(basisPoints) && basisPoints >= 0 && basisPoints <= 10_000,
+    "RENEWAL_PRICE_PROTECTION_INVALID",
+  );
+  if (!renewalProtectionInForce(input.agreement, input.pricedOn))
+    return deepFreeze({
+      binding: false,
+      basisPoints,
+      reason: "agreement_not_in_force" as const,
+      priorUnitPrice,
+      maximumUnitPrice: null,
+    });
+  // An uplift ceiling stated as a percentage of a credit has no agreed
+  // meaning, and guessing one would either overcharge or give money away.
+  invariant(prior >= 0n, "RENEWAL_PRICE_PROTECTION_BASIS_NOT_PRICEABLE");
+  return deepFreeze({
+    binding: true,
+    basisPoints,
+    reason: "protected" as const,
+    priorUnitPrice,
+    maximumUnitPrice: {
+      currency: priorUnitPrice.currency,
+      minor: (prior + (prior * BigInt(basisPoints)) / 10_000n).toString(),
+    },
+  });
+}
+
+/**
+ * Holds a proposed renewal price to the protection. The ceiling is a cap and
+ * never a floor: a renewal that lowers or holds the price is left exactly as
+ * proposed, and one that breaks the cap comes back at the ceiling with the
+ * overcharge stated so the breach is visible rather than absorbed.
+ */
+export function applyRenewalPriceProtection(
+  input: RenewalPriceInput & { readonly proposedUnitPrice: AgreementMoney },
+): RenewalPriceDecision {
+  invariant(
+    input.proposedUnitPrice.currency === input.priorUnitPrice.currency,
+    "RENEWAL_PRICE_CURRENCY_MISMATCH",
+  );
+  const proposed = unitPriceMinor(
+    input.proposedUnitPrice,
+    "RENEWAL_PROPOSED_PRICE_INVALID",
+  );
+  const protection = evaluateRenewalPriceProtection(input);
+  const proposedUnitPrice = { ...input.proposedUnitPrice };
+  const ceiling = protection.maximumUnitPrice;
+  const exceededBy =
+    ceiling && proposed > BigInt(ceiling.minor)
+      ? proposed - BigInt(ceiling.minor)
+      : 0n;
+  return deepFreeze({
+    protection,
+    proposedUnitPrice,
+    enforcedUnitPrice:
+      exceededBy > 0n && ceiling ? { ...ceiling } : proposedUnitPrice,
+    exceededByMinor: exceededBy.toString(),
+    withinProtection: exceededBy === 0n,
+  });
+}
+
+/**
+ * The fail-closed variant for a renewal no human prices or approves. Billing an
+ * uplift the customer never agreed to is worse than refusing to bill.
+ */
+export function assertRenewalPriceProtection(
+  input: RenewalPriceInput & { readonly proposedUnitPrice: AgreementMoney },
+): RenewalPriceDecision {
+  const decision = applyRenewalPriceProtection(input);
+  invariant(decision.withinProtection, "RENEWAL_PRICE_PROTECTION_EXCEEDED");
+  return decision;
 }
 
 export function supersedeAgreement(

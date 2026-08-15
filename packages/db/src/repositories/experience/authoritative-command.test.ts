@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { RuntimeDatabase } from "../../client";
 import { DatabaseAuthoritativePortalCommandExecutor } from "./authoritative-command";
+import { FixtureTaxPort } from "../core/tax-fixture";
 
 const aggregateId = "91000000-0000-4000-8000-000000000003";
 const actorId = "20000000-0000-4000-8000-000000000001";
@@ -12,6 +13,7 @@ function executor() {
     database: {} as RuntimeDatabase,
     authorizationSecret:
       "release-proof-authorization-secret-000000000000000000000000",
+    tax: new FixtureTaxPort(),
     now: () => new Date("2026-08-01T12:00:00.000Z"),
   });
 }

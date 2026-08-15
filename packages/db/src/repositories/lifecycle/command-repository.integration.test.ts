@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../../client";
 import {
+  accounts,
   approvals,
   auditEvents,
   orders,
@@ -16,6 +17,7 @@ import {
   terminations,
 } from "../../schema";
 import {
+  accountTaxIdentifiers,
   orderCommercialProfiles,
   quoteCommercialProfiles,
 } from "../../schema/core/finance";
@@ -24,6 +26,7 @@ import {
   lifecycleRenewalActions,
 } from "../../schema/lifecycle/platform";
 import { withInternalTransaction } from "../../transaction";
+import { FixtureTaxPort } from "../core/tax-fixture";
 import { DatabaseLifecycleCommandRepository } from "./command-repository";
 
 const databaseUrl =
@@ -746,5 +749,157 @@ describe.concurrent("database lifecycle production repository", () => {
       status: "stale",
       lastAppliedSequence: sequence,
     });
+  });
+});
+
+describe("lifecycle registration tax identifiers", () => {
+  // P0-45: `TaxPort.validateTaxId` had exactly two hits in the tree — the port
+  // declaration and the deterministic fake — so an identifier typed at
+  // registration was persisted verbatim, and `reverse_charge_eligible` had one
+  // hit, a Drizzle column nothing read or wrote.
+  //
+  // Every value the fixture answers with is test data. Which registrations are
+  // real and which admit reverse charge is EXT-TAX-01.
+  const registration = (
+    suffix: string,
+    taxIds: readonly { jurisdiction: string; value: string }[],
+  ) => ({
+    command: "register" as const,
+    payload: {
+      legalName: `Fixture Registrant ${suffix}`,
+      country: "GB",
+      registeredAddress: {
+        line1: "1 Archive Way",
+        city: "London",
+        postalCode: "EC1A 1AA",
+        country: "GB",
+      },
+      relationshipRoles: ["direct_client"],
+      businessDomain: `tax-${suffix}.registrant.test`,
+      registrantEmail: `owner@tax-${suffix}.registrant.test`,
+      taxIds,
+      billingContact: {
+        name: "Ada Buyer",
+        email: `owner@tax-${suffix}.registrant.test`,
+      },
+      apContact: null,
+      invoiceDeliveryEmail: `invoices@tax-${suffix}.registrant.test`,
+      workosUserId: `workos-tax-${suffix}`,
+      domainVerifiedAt: occurredAt,
+    },
+    context: {
+      requestId: `lifecycle-registration-tax-${suffix}`,
+      actor: { kind: "user" as const, id: `workos-tax-${suffix}` },
+      idempotencyKey: `lifecycle:register:tax:${suffix}`,
+      ip: null,
+      userAgent: null,
+      occurredAt,
+      authorization: null,
+    },
+  });
+
+  const persistedAccount = (domain: string) =>
+    withInternalTransaction(db, `tax-registrant-read-${domain}`, async (tx) =>
+      tx.query.accounts.findFirst({ where: eq(accounts.domain, domain) }),
+    );
+
+  it("refuses a registration whose identifier nothing can verify", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    await expect(
+      repository.executeInTransaction(
+        registration(suffix, [{ jurisdiction: "GB", value: "GB123456789" }]),
+      ),
+    ).rejects.toThrow("REGISTRATION_TAX_VERIFIER_UNAVAILABLE:EXT-TAX-01");
+    // The account is not created and verified "later": an account whose
+    // reverse-charge treatment nobody decided is the defect, not a to-do.
+    expect(
+      await persistedAccount(`tax-${suffix}.registrant.test`),
+    ).toBeUndefined();
+  });
+
+  it("registers with no identifier and no verifier", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const result = await repository.executeInTransaction(
+      registration(suffix, []),
+    );
+    expect(result).toMatchObject({ status: "screening_review" });
+    const account = await persistedAccount(`tax-${suffix}.registrant.test`);
+    expect(account?.taxIds).toEqual([]);
+  });
+
+  it("refuses an identifier the provider rejects", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const verifying = new DatabaseLifecycleCommandRepository({
+      database: db,
+      serviceDatabase: db,
+      authorizationSecret,
+      policies: {
+        clickThroughThresholdMinor: "1000000",
+        migrationFeatureEnabled: false,
+        automatedTeardownEnabled: false,
+        exceptionQueues: queuePolicies,
+      },
+      // The fixture calls anything under five characters invalid. It is a
+      // fixture rule, and the point is that a rule is consulted at all.
+      tax: new FixtureTaxPort(),
+    });
+    await expect(
+      verifying.executeInTransaction(
+        registration(suffix, [{ jurisdiction: "GB", value: "GB1" }]),
+      ),
+    ).rejects.toThrow("REGISTRATION_TAX_IDENTIFIER_INVALID:GB");
+    expect(
+      await persistedAccount(`tax-${suffix}.registrant.test`),
+    ).toBeUndefined();
+  });
+
+  it("persists the provider's answer, including reverse-charge eligibility", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const verifying = new DatabaseLifecycleCommandRepository({
+      database: db,
+      serviceDatabase: db,
+      authorizationSecret,
+      policies: {
+        clickThroughThresholdMinor: "1000000",
+        migrationFeatureEnabled: false,
+        automatedTeardownEnabled: false,
+        exceptionQueues: queuePolicies,
+      },
+      tax: new FixtureTaxPort({ reverseChargeIdentifierPrefixes: ["GB"] }),
+    });
+    const identifier = `GB ${suffix}`;
+    const result = await verifying.executeInTransaction(
+      registration(suffix, [{ jurisdiction: "GB", value: identifier }]),
+    );
+    expect(result).toMatchObject({ status: "screening_review" });
+    const account = await persistedAccount(`tax-${suffix}.registrant.test`);
+    if (!account) throw new Error("registrant account was not persisted");
+    // `verified` is the flag identityIsVerified has always read and nothing
+    // ever set, and the normalized form is the provider's, not the typist's.
+    expect(account.taxIds).toEqual([
+      {
+        jurisdiction: "GB",
+        value: identifier,
+        normalized: `GB${suffix.toUpperCase()}`,
+        verified: true,
+        reverseChargeEligible: true,
+      },
+    ]);
+    const persisted = await withInternalTransaction(
+      db,
+      `tax-registrant-identifier-${suffix}`,
+      async (tx) =>
+        tx.query.accountTaxIdentifiers.findMany({
+          where: eq(accountTaxIdentifiers.accountId, account.id),
+        }),
+    );
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]).toMatchObject({
+      jurisdiction: "GB",
+      normalizedValue: `GB${suffix.toUpperCase()}`,
+      validationStatus: "valid",
+      reverseChargeEligible: true,
+    });
+    expect(persisted[0]?.validatedAt).not.toBeNull();
   });
 });

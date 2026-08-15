@@ -2,6 +2,7 @@ import type {
   BillingPort,
   EvidenceStoragePort as CoreEvidenceStoragePort,
   ProvisioningPort,
+  TaxPort,
 } from "@clockwork/contracts";
 import {
   DatabaseAuthoritativeLifecycleTaskStore,
@@ -169,6 +170,13 @@ export interface ProductionWorkflowProviderSelections {
   signature: SelectedProvider<{
     provider: LifecycleEffectProviderPorts["signature"];
   }>;
+  /**
+   * The tax engine every invoice writer determines against. It is a first-class
+   * selection rather than an optional extra because an absent tax source is a
+   * zero-tax invoice, and `EXT-TAX-01` is explicit that acceptance is refused
+   * until an approved engine exists.
+   */
+  tax: SelectedProvider<{ provider: TaxPort }>;
 }
 
 export interface ProductionWorkflowProviderFactoryOptions {
@@ -213,6 +221,7 @@ const providerGate = {
   provisioning: "EXT-PROVISION-01",
   screening: "EXT-PROVIDER-01",
   signature: "EXT-LEGAL-01",
+  tax: "EXT-TAX-01",
 } as const satisfies Readonly<
   Record<keyof ProductionWorkflowProviderSelections, ExternalGateKey>
 >;
@@ -289,6 +298,7 @@ export function createProductionWorkflowAdapterFactory(
         ["provisioning", options.providers.provisioning],
         ["screening", options.providers.screening],
         ["signature", options.providers.signature],
+        ["tax", options.providers.tax],
       ];
       let gateActivationExecutor:
         ProductionWorkflowAdapterBundle["gateActivationExecutor"] | undefined;
@@ -421,6 +431,7 @@ export function createProductionWorkflowAdapterFactory(
         createCoreWorkflowOutboxHandlers({
           db,
           authorizationSecret: options.authorizationSecret,
+          tax: providers.tax.value.provider,
           submit: options.coreTaskSubmitter,
         }),
         createStripeAdjustmentOutboxHandlers({
@@ -430,6 +441,7 @@ export function createProductionWorkflowAdapterFactory(
         createProductionExperienceOutboxHandlers({
           database: db,
           authorizationSecret: options.authorizationSecret,
+          tax: providers.tax.value.provider,
           ...(options.leaseMs ? { leaseMs: options.leaseMs } : {}),
           ...(options.clock ? { clock: options.clock } : {}),
         }),
@@ -442,6 +454,7 @@ export function createProductionWorkflowAdapterFactory(
         createCoreScheduledOutboxHandler({
           db,
           authorizationSecret: options.authorizationSecret,
+          tax: providers.tax.value.provider,
           submit: options.coreTaskSubmitter,
         }),
       );
