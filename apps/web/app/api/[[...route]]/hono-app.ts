@@ -68,7 +68,7 @@ import {
   ProductionStripeWebhookProjection,
   ProductionVerifiedPartnerOriginResolver,
 } from "@/src/providers/composition";
-import { configuredTaxProvider } from "@/src/providers/tax";
+import { composedTaxProvider } from "@/src/providers/tax";
 import {
   databaseTransactionTelemetry,
   instrumentProviderTransport,
@@ -255,12 +255,18 @@ const notificationPreferences =
         authorizationSecret,
       })
     : undefined;
-// No tax engine, no Core finance surface. An absent EXT-TAX-01 provider used to
-// mean every invoice was written net; it now means the commands that would have
-// written one are not composed.
-const taxProvider = configuredTaxProvider();
+// The tax gate belongs on the commands that can write a `tax_minor`, not on
+// the composition of the lane that contains them. An absent EXT-TAX-01 provider
+// once meant every invoice was written net (P0-61); making it a composition
+// precondition instead meant every /v1/core/commands/* write on every surface
+// answered 500 "Core-finance route dependencies are not configured" -- quote
+// creation included, which never calls the tax port. `composedTaxProvider`
+// keeps the refusal and puts it back where the risk is: `orders:create` (quote
+// acceptance) and `invoices:create` refuse, because those are the only two
+// commands that ask the port for a determination.
+const taxProvider = composedTaxProvider();
 const coreService =
-  runtimeDatabase && serviceDatabase && authorizationSecret && taxProvider
+  runtimeDatabase && serviceDatabase && authorizationSecret
     ? new DatabaseCoreFinanceService({
         database: runtimeDatabase,
         pricingDatabase: serviceDatabase,

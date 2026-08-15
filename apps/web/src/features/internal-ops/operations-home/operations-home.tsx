@@ -1,11 +1,7 @@
 import Link from "next/link";
 
-import {
-  actionSignals,
-  internalOpsCopy,
-  monitoringSignals,
-  type OperationalSignal,
-} from "../copy";
+import { internalOpsCopy } from "../copy";
+import type { OperationsHomeData, OperationalSignal } from "./server-loader";
 import styles from "./operations-home.module.css";
 
 function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
@@ -16,10 +12,10 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
         <strong className={styles.signalValue}>{signal.value}</strong>
       </th>
       <td>{signal.detail}</td>
-      <td>{signal.truth ?? "Unclassified"}</td>
-      <td>{signal.owner}</td>
+      <td>{signal.channel}</td>
       <td>
-        <time dateTime={signal.observedAt}>{signal.freshness}</time>
+        <time dateTime={signal.generatedAt}>{signal.generatedAt}</time>
+        {signal.stale ? ` · ${internalOpsCopy.home.staleSuffix}` : ""}
       </td>
       <td>
         <Link href={signal.href}>
@@ -31,42 +27,27 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   ));
 }
 
-function SignalTable({
-  label,
-  signals,
-}: {
-  label: string;
-  signals: readonly OperationalSignal[];
-}) {
-  return (
-    <div
-      className={styles.tableRegion}
-      role="region"
-      aria-label={label}
-      tabIndex={0}
-    >
-      <table className={styles.signalTable}>
-        <thead>
-          <tr>
-            <th scope="col">Signal</th>
-            <th scope="col">Consequence</th>
-            <th scope="col">Truth source</th>
-            <th scope="col">Owner</th>
-            <th scope="col">Freshness</th>
-            <th scope="col">
-              <span className="sr-only">Action</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <SignalRows signals={signals} />
-        </tbody>
-      </table>
-    </div>
-  );
-}
+/**
+ * Where "Open my queue" goes.
+ *
+ * The label names the operator's own work, so the link states the saved view
+ * that holds it. `/internal/queues` on its own opens `DEFAULT_FILTERS.view`,
+ * which is `all` -- every operator's work, not this one's -- and a label that
+ * says "my queue" over that destination is the same defect as a freshness
+ * string with no read behind it. `QueueWorkspace` parses all four parameters
+ * out of `useSearchParams`, so the destination arrives on the assigned view
+ * rather than resetting to the default.
+ *
+ * `sort` is `sla-risk-age`, not the `priority` the earlier link carried:
+ * `sortQueueItems` has no `priority` branch and no filter control offers one,
+ * so that value fell through to this same ordering while leaving the sort
+ * control matching no option and reading "All". The link now names the
+ * ordering the page actually applies.
+ */
+const MY_QUEUE_HREF =
+  "/internal/queues?view=assigned-to-me&sort=sla-risk-age&page=1&pageSize=25" as const;
 
-export function OperationsHome() {
+export function OperationsHome({ data }: { data: OperationsHomeData }) {
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
@@ -75,60 +56,16 @@ export function OperationsHome() {
           <p>{internalOpsCopy.home.description}</p>
         </div>
         <p className={styles.freshness} role="status">
-          {internalOpsCopy.home.refreshed}
+          {internalOpsCopy.home.generated}{" "}
+          <time dateTime={data.generatedAt}>{data.generatedAt}</time>
         </p>
       </header>
 
-      <section aria-labelledby="recommended-actions-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <h2 id="recommended-actions-title">
-              {internalOpsCopy.home.actionHeading}
-            </h2>
-            <p>{internalOpsCopy.home.actionDescription}</p>
-          </div>
-          <Link
-            className={styles.primaryLink}
-            href="/internal/queues?view=assigned-to-me&sort=priority&page=1&pageSize=25"
-          >
-            Open my queue
-          </Link>
-        </div>
-        <ol className={styles.recommendations}>
-          <li>
-            <span className={styles.rank}>1</span>
-            <div>
-              <strong>Recover two customer activations before 14:00 ET</strong>
-              <p>
-                Retries are idempotent and classified transient; confirm
-                evidence first.
-              </p>
-            </div>
-            <Link href="/internal/provisioning">Review 2 retries</Link>
-          </li>
-          <li>
-            <span className={styles.rank}>2</span>
-            <div>
-              <strong>Assign backups to four breached cases</strong>
-              <p>High-risk queue work is within 24 minutes of escalation.</p>
-            </div>
-            <Link href="/internal/queues?view=awaiting-backup&sort=priority&page=1&pageSize=25">
-              Assign owners
-            </Link>
-          </li>
-          <li>
-            <span className={styles.rank}>3</span>
-            <div>
-              <strong>Resolve disputed invoice ownership</strong>
-              <p>
-                $74,200 is overdue and cannot advance until the dispute owner
-                responds.
-              </p>
-            </div>
-            <Link href="/internal/collections">Open collections</Link>
-          </li>
-        </ol>
-      </section>
+      {data.staleChannels.length > 0 ? (
+        <p className={styles.freshness} role="alert">
+          {internalOpsCopy.home.stale(data.staleChannels.join(", "))}
+        </p>
+      ) : null}
 
       <section aria-labelledby="action-health-title">
         <div className={styles.sectionHeading}>
@@ -136,31 +73,35 @@ export function OperationsHome() {
             <h2 id="action-health-title">
               {internalOpsCopy.home.healthHeading}
             </h2>
-            <p>
-              Severity, consequence, source, owner, and age remain comparable in
-              one row.
-            </p>
+            <p>{internalOpsCopy.home.healthDescription}</p>
           </div>
+          <Link className={styles.primaryLink} href={MY_QUEUE_HREF}>
+            {internalOpsCopy.home.openQueue}
+          </Link>
         </div>
-        <SignalTable
-          label="Work requiring action table"
-          signals={actionSignals}
-        />
-      </section>
-
-      <section aria-labelledby="monitoring-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <h2 id="monitoring-title">
-              {internalOpsCopy.home.monitoringHeading}
-            </h2>
-            <p>{internalOpsCopy.home.monitoringDescription}</p>
-          </div>
+        <div
+          className={styles.tableRegion}
+          role="region"
+          aria-label={internalOpsCopy.home.tableLabel}
+          tabIndex={0}
+        >
+          <table className={styles.signalTable}>
+            <thead>
+              <tr>
+                <th scope="col">Signal</th>
+                <th scope="col">What the read found</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Projection generated</th>
+                <th scope="col">
+                  <span className="sr-only">Action</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <SignalRows signals={data.signals} />
+            </tbody>
+          </table>
         </div>
-        <SignalTable
-          label="Monitoring signals table"
-          signals={monitoringSignals}
-        />
       </section>
     </main>
   );

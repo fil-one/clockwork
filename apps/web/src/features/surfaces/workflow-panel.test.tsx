@@ -1,8 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { surfaceWorkflows } from "./surface-catalog";
 import { WorkflowPanel } from "./workflow-panel";
 
 const csrfToken = "12345678901234567890123456789012";
@@ -15,12 +15,14 @@ const csrfToken = "12345678901234567890123456789012";
 const routeContext = {
   accountId: "10000000-0000-4000-8000-000000000001",
   organizationId: "30000000-0000-4000-8000-000000000001",
-  priceBookId: "40000000-0000-4000-8000-000000000007",
   orderId: "50000000-0000-4000-8000-000000000008",
-  invoiceId: "50000000-0000-4000-8000-000000000014",
   userId: "20000000-0000-4000-8000-000000000002",
   quoteId: "50000000-0000-4000-8000-000000000004",
-  agreementId: "50000000-0000-4000-8000-000000000001",
+  supportOwnerId: "20000000-0000-4000-8000-000000000005",
+  partnerAccountId: "10000000-0000-4000-8000-000000000002",
+  endClientAccountId: "10000000-0000-4000-8000-000000000004",
+  pocId: "60000000-0000-4000-8000-000000000001",
+  caseId: "70000000-0000-4000-8000-000000000001",
 } as const;
 
 function response(status = 200) {
@@ -55,58 +57,67 @@ afterEach(() => {
 });
 
 describe("generated-client commerce workflows", () => {
-  it("validates the quote locally and restores focus to the invalid field", async () => {
-    const user = userEvent.setup();
-    render(
-      <WorkflowPanel
-        context={{
-          accountId: routeContext.accountId,
-          priceBookId: routeContext.priceBookId,
-        }}
-        workflow="quote"
-        surface="quoteBuilder"
-      />,
-    );
-    const capacity = screen.getByLabelText("Committed capacity");
-    await user.clear(capacity);
-    await user.type(capacity, "4");
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("at least 10 TB");
-    expect(capacity).toHaveFocus();
+  /**
+   * Eight workflows left this panel for purpose-built, record-bound surfaces:
+   * quote (`/quotes/new`, `/partner/quotes/new`), agreement
+   * (`/agreements/execute`), order (`/orders/accept`), offboarding
+   * (`/account/offboarding`), payment (`PaymentHandoff` on `/billing/[id]`),
+   * pricebook (`/internal/price-books`), assisted (`startAssistedSession`,
+   * after which the operator works the customer surfaces) and collections
+   * (`CorrectionDialog` and `ProjectionActionButtons` on
+   * `/internal/collections`). Registration left for `/partner/registrations`,
+   * and `admin` was never an implementation at all. None may come back here: a
+   * second form for a write that already has an owner is a second set of rules
+   * for the same record.
+   *
+   * `collections` is the one that had to be removed rather than merely moved.
+   * Its credit-note and refund payloads were rejected outright by the
+   * `.strict()` command schemas -- wrong key names and two unrecognized keys
+   * each -- so leaving the branch mounted anywhere would have shipped two
+   * controls that fail at the boundary every time.
+   */
+  it("keeps no branch for a workflow a record-bound surface owns", () => {
+    const superseded = [
+      "quote",
+      "agreement",
+      "order",
+      "offboarding",
+      "payment",
+      "pricebook",
+      "assisted",
+      "registration",
+      "collections",
+      "admin",
+    ];
+    for (const workflow of superseded)
+      expect(surfaceWorkflows as readonly string[]).not.toContain(workflow);
   });
 
-  it("submits a direct quote through the generated command with CSRF and idempotency", async () => {
-    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(
-      <WorkflowPanel
-        context={{
-          accountId: routeContext.accountId,
-          priceBookId: routeContext.priceBookId,
-        }}
-        workflow="quote"
-        surface="quoteBuilder"
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(
-      await screen.findByText(/server record is now the source of truth/i),
-    ).toHaveAttribute("role", "status");
-
-    expect(fetchMock).toHaveBeenCalledOnce();
-    const firstCall = fetchMock.mock.calls.at(0);
-    expect(firstCall).toBeDefined();
-    if (!firstCall) throw new Error("Quote request was not captured.");
-    const request = firstCall[0] as Request;
-    expect(request.url).toContain("/api/v1/core/commands/quotes");
-    expect(request.headers.get("x-csrf-token")).toBe(csrfToken);
-    expect(request.headers.get("idempotency-key")).toBeTruthy();
-    await expect(request.clone().json()).resolves.toMatchObject({
-      action: "create",
-      payload: { route: "direct" },
-    });
+  /**
+   * `admin` was a `SurfaceWorkflow` with a title, no fields, and no command.
+   * The panel rendered an empty form and its Submit announced "the server
+   * record is now the source of truth" having posted nothing. Every member of
+   * the inventory has to render an actual control, so a title-only member
+   * fails here rather than in front of a reader.
+   */
+  it("renders a real form for every workflow in the inventory", () => {
+    for (const workflow of surfaceWorkflows) {
+      const { unmount } = render(
+        <WorkflowPanel
+          context={routeContext}
+          workflow={workflow}
+          surface="dashboard"
+        />,
+      );
+      expect(
+        screen.getByRole("heading", { level: 2 }).textContent,
+      ).toBeTruthy();
+      expect(
+        document.querySelectorAll("form input, form select, form textarea")
+          .length,
+      ).toBeGreaterThan(0);
+      unmount();
+    }
   });
 
   it("surfaces a concurrent-write conflict and moves focus to recovery guidance", async () => {
@@ -119,178 +130,18 @@ describe("generated-client commerce workflows", () => {
       <WorkflowPanel
         context={{
           accountId: routeContext.accountId,
-          priceBookId: routeContext.priceBookId,
+          orderId: routeContext.orderId,
         }}
-        workflow="quote"
-        surface="quoteBuilder"
+        workflow="renewal"
+        surface="services"
       />,
     );
 
+    await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("changed while you were working");
     await waitFor(() => expect(alert).toHaveFocus());
-  });
-
-  it("creates a Stripe-hosted invoice payment session without claiming payment", async () => {
-    const fetchMock = vi.fn<typeof fetch>(async () =>
-      Promise.resolve(
-        new Response(
-          JSON.stringify({
-            provider: "stripe",
-            sessionId: "in_demo",
-            invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-            url: "https://invoice.stripe.com/i/acct_demo/in_demo",
-            status: "requires_customer_action",
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(
-      <WorkflowPanel
-        context={{
-          accountId: routeContext.accountId,
-          invoiceId: routeContext.invoiceId,
-        }}
-        workflow="payment"
-        surface="billing"
-      />,
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Open secure payment" }),
-    );
-    expect(
-      await screen.findByText(/Invoice status changes only after Stripe/i),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("link", { name: "Continue to secure Stripe payment" }),
-    ).toHaveAttribute("href", "https://invoice.stripe.com/i/acct_demo/in_demo");
-    const firstCall = fetchMock.mock.calls.at(0);
-    expect(firstCall).toBeDefined();
-    if (!firstCall) throw new Error("Payment request was not captured.");
-    const request = firstCall[0] as Request;
-    expect(request.url).toContain("/api/v1/core/payment-sessions");
-    await expect(request.clone().json()).resolves.toEqual({
-      accountId: routeContext.accountId,
-      invoiceId: routeContext.invoiceId,
-    });
-  });
-
-  it("executes assisted quote creation through the same command contract", async () => {
-    let capturedBody: Record<string, unknown> | undefined;
-    const fetchMock = vi.fn<typeof fetch>(async (input) => {
-      capturedBody = (await (input as Request).clone().json()) as Record<
-        string,
-        unknown
-      >;
-      return response();
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(
-      <WorkflowPanel
-        context={{
-          accountId: routeContext.accountId,
-          priceBookId: routeContext.priceBookId,
-        }}
-        workflow="assisted"
-        surface="assisted"
-      />,
-    );
-
-    expect(
-      screen.getByText(/assisted session supplies the staff actor/i),
-    ).toBeVisible();
-    await user.click(
-      screen.getByRole("checkbox", { name: /active assisted session/i }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Create assisted quote" }),
-    );
-    expect(
-      await screen.findByText(/server record is now the source of truth/i),
-    ).toBeVisible();
-    const firstCall = fetchMock.mock.calls.at(0);
-    expect(firstCall).toBeDefined();
-    if (!firstCall) throw new Error("Assisted request was not captured.");
-    const request = firstCall[0] as Request;
-    expect(request.url).toContain("/api/v1/core/commands/quotes");
-    expect(capturedBody).toMatchObject({
-      accountId: routeContext.accountId,
-      action: "create",
-      payload: { route: "direct" },
-    });
-    expect(capturedBody).not.toHaveProperty("actor");
-    expect(capturedBody).not.toHaveProperty("assistedActionReason");
-  });
-
-  it("loads immutable active agreement text before click-through acceptance", async () => {
-    const exactText = "Cloud Service Agreement\nVersion 1.0.0\n";
-    const exactTextHash = createHash("sha256")
-      .update(exactText, "utf8")
-      .digest("hex");
-    let acceptanceBody: Record<string, unknown> | undefined;
-    const fetchMock = vi.fn<typeof fetch>(async (input) => {
-      const request = input as Request;
-      if (request.method === "GET")
-        return new Response(
-          JSON.stringify({
-            id: "55555555-5555-4555-8555-555555555555",
-            type: "csa",
-            semanticVersion: "1.0.0",
-            jurisdiction: "US",
-            effectiveOn: "2026-01-01",
-            canonicalDocumentId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-            exactText,
-            exactTextHash,
-            executionMode: "click_through",
-          }),
-          { headers: { "content-type": "application/json" } },
-        );
-      acceptanceBody = (await request.clone().json()) as Record<
-        string,
-        unknown
-      >;
-      return new Response(
-        JSON.stringify({ id: "agreement-1", status: "executed" }),
-        { headers: { "content-type": "application/json" } },
-      );
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(
-      <WorkflowPanel
-        context={{ accountId: routeContext.accountId }}
-        workflow="agreement"
-        surface="agreementExecution"
-      />,
-    );
-
-    expect(await screen.findByLabelText("Exact agreement text")).toHaveValue(
-      exactText,
-    );
-    expect(screen.getByLabelText("Exact agreement text")).toHaveAttribute(
-      "readonly",
-    );
-    expect(screen.getByLabelText("Approved text SHA-256")).toHaveValue(
-      exactTextHash,
-    );
-    await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(
-      await screen.findByText(/server record is now the source of truth/i),
-    ).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(acceptanceBody).toMatchObject({
-      templateId: "55555555-5555-4555-8555-555555555555",
-      templateVersion: "1.0.0",
-      exactText,
-      exactTextHash,
-      authorityAttested: true,
-    });
   });
 
   it("renews an order in one submission and confirms a decline first", async () => {

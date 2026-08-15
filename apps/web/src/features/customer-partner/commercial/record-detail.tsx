@@ -48,46 +48,67 @@ function artifactChain(record: CommercialRecord) {
 /**
  * The forward step for a record.
  *
- * Every link carries the originating record so the destination opens against
- * it. Without that reference these land on an unfiltered collection and the
- * record the reader came from is lost.
+ * Four of these five destinations resolve a record out of a projection
+ * channel, and every one of them selects on the projection's `recordKey`:
+ * `/orders/accept?quote=` and `/quotes/new?revises=` against `quotes`,
+ * `/quotes/new?poc=` against `pocs`, `/agreements/execute?agreement=` against
+ * `agreements`, and `/account/offboarding?service=` against `services`. So the
+ * reference each link carries is `recordKey`, taken from the route that
+ * resolved this record rather than from the record body: a materialized
+ * payload's `id` is the aggregate UUID -- the same value as `aggregateId` --
+ * and neither of those selects anything at any of the four. Without a
+ * reference the destination selects whatever it defaults to, and the record
+ * the reader came from is lost.
+ *
+ * `/amendments` is the fifth and is not one of them. The customer collection
+ * behind it reads only its own list controls -- `q`, `status`, `risk`,
+ * `owner`, `sort`, `view`, `page`, `pageSize` -- so the `?order=` this link
+ * used to carry named the order to nothing that could read it. It is a
+ * collection link and is written as one; binding it needs a filter on that
+ * collection, which does not exist yet.
+ *
+ * `Route` is declared, not asserted. Each destination below is a route in the
+ * tree, optionally followed by a query string, which `Route` accepts only when
+ * the path before the `?` is a route the tree actually contains. The `as Route`
+ * casts these links used to carry suppressed exactly that check.
  */
 function nextStep(
   record: CommercialRecord,
+  recordKey: string,
 ): { href: Route; label: string } | null {
-  const reference = encodeURIComponent(record.aggregateId ?? record.id);
+  const reference = encodeURIComponent(recordKey);
   if (record.kind === "quotes") {
     const actions = validQuoteActions(record.status as QuoteStatus);
     if (actions.includes("create_order"))
       return {
-        href: `/orders/accept?quote=${reference}` as Route,
+        href: `/orders/accept?quote=${reference}`,
         label: "Review resulting order",
       };
     if (actions.includes("edit"))
       return {
-        href: `/quotes/new?revises=${reference}` as Route,
+        href: `/quotes/new?revises=${reference}`,
         label: "Create revised draft",
       };
     return null;
   }
   if (record.kind === "pocs")
     return {
-      href: `/quotes/new?poc=${reference}` as Route,
+      href: `/quotes/new?poc=${reference}`,
       label: "Convert to a quote",
     };
   if (record.kind === "orders")
     return {
-      href: `/amendments?order=${reference}` as Route,
+      href: "/amendments",
       label: "Request an amendment",
     };
   if (record.kind === "agreements")
     return {
-      href: `/agreements/execute?agreement=${reference}` as Route,
+      href: `/agreements/execute?agreement=${reference}`,
       label: "Execute a new agreement",
     };
   if (record.kind === "services")
     return {
-      href: `/account/offboarding?service=${reference}` as Route,
+      href: `/account/offboarding?service=${reference}`,
       label: "Request offboarding",
     };
   return null;
@@ -95,12 +116,14 @@ function nextStep(
 
 function DetailActions({
   record,
+  recordKey,
   canMutate,
 }: {
   record: CommercialRecord;
+  recordKey: string;
   canMutate: boolean;
 }) {
-  const step = nextStep(record);
+  const step = nextStep(record, recordKey);
   if (!step) return null;
   if (!canMutate)
     return (
@@ -201,15 +224,21 @@ function payableInvoice(
 }
 
 export function CommercialRecordDetail({
+  id,
   accountId,
   canMutate = false,
   record,
   actions,
 }: {
   /**
-   * The requested reference. Retained for the route's own use; deliberately
-   * not rendered, so the unreadable-record state reads the same for a
-   * reference that does not exist and one that belongs elsewhere.
+   * The requested reference: the projection `recordKey` the route resolved
+   * this record by. It is what the forward step carries to its destination,
+   * because that is the identifier every destination channel selects on.
+   *
+   * It is still never rendered as text, and never at all unless a record was
+   * read: the unreadable-record state returns above any use of it, so that
+   * state reads the same for a reference that does not exist and one that
+   * belongs to another account.
    */
   id: string;
   /**
@@ -227,9 +256,10 @@ export function CommercialRecordDetail({
   actions?: ReactNode;
 }) {
   if (!record) return <UnreadableRecord />;
-  const backHref = (
-    record.kind === "services" ? "/services" : `/${record.kind}`
-  ) as Route;
+  // Every `CollectionKind` is also the collection's own path segment, so this
+  // is checked rather than asserted. The `services` special case this replaces
+  // produced the identical string and only read as though something differed.
+  const backHref: Route = `/${record.kind}`;
   const summary = commercialSummary(record);
   const chain = artifactChain(record);
   return (
@@ -261,13 +291,11 @@ export function CommercialRecordDetail({
           <span className={`${styles.badge} ${styles[record.tone]}`}>
             {record.statusLabel}
           </span>
-          <DetailActions canMutate={canMutate} record={record} />
+          <DetailActions canMutate={canMutate} record={record} recordKey={id} />
           {record.kind === "agreements" && record.aggregateId ? (
             <Link
               className={styles.primary}
-              href={
-                `/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}` as Route
-              }
+              href={`/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}`}
             >
               Sign this agreement
             </Link>

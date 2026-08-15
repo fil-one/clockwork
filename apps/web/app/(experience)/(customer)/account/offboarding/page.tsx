@@ -11,6 +11,8 @@ import { loadPortalRecords } from "@/src/features/experience-server/portal-view-
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
+import { requestedOrderAggregateId } from "./select-service";
+
 const closedStatuses = ["completed", "cancelled", "canceled", "terminated"];
 
 function text(
@@ -32,18 +34,29 @@ function offboardableService(record: ProjectionRecord): OffboardableService {
   };
 }
 
+/**
+ * The list is the customer's open orders, which is what the offboarding
+ * command is scoped to. The second read is the `services` channel and happens
+ * only when a `?service=` reference has to be resolved against it; with no
+ * parameter this surface still makes exactly one projection read.
+ */
 async function OffboardingSurface({ params }: { params: RawSearchParams }) {
   const requested = firstSearchParam(params, "service");
-  const [identity, orders] = await Promise.all([
+  const [identity, orders, services] = await Promise.all([
     getRouteIdentity("customer"),
     loadPortalRecords("customer", "orders"),
+    requested
+      ? loadPortalRecords("customer", "services")
+      : Promise.resolve(null),
   ]);
   const open = orders.records.filter(
     (record) => !closedStatuses.includes(text(record.data, "status") ?? ""),
   );
-  const selected = requested
-    ? open.find((record) => record.recordKey === requested)?.aggregateId
-    : undefined;
+  const selected = requestedOrderAggregateId(
+    requested,
+    open,
+    services?.records ?? [],
+  );
   return (
     <OffboardingWorkflow
       account={{ id: identity.accountId, name: identity.accountName }}

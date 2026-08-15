@@ -1,45 +1,26 @@
 "use client";
 
-import {
-  isValidElement,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { isValidElement, useRef, useState, type ReactNode } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
-import {
-  Button,
-  buttonClassName,
-  Dialog,
-  Input,
-  Select,
-  Textarea,
-} from "@clockwork/ui";
+import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
 
 import {
   convertPoc,
-  createInvoicePaymentSession,
   decideException,
   declineRenewal,
   downloadReportCsv,
-  executeClickAgreement,
-  getActiveAgreementTemplate,
   inviteOrganizationMember,
   publishAgreementTemplate,
   readReport,
   registerPartnerDomain,
   reportNames,
-  requestOffboarding,
   requestPoc,
   requestRenewal,
   sendCoreCommand,
   updateProcurementProfile,
-  type ActiveAgreementTemplate,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
 import { t } from "@/src/i18n/en";
 
 import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
@@ -54,8 +35,16 @@ import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
  * binds to.
  *
  * Every key here is read by a `mutationFields` branch. A key nothing reads is
- * a declaration standing in for an implementation, so it does not belong. The
- * same test applies from the other side: `rowVersion` used to sit in this
+ * a declaration standing in for an implementation, so it does not belong.
+ * `priceBookId` and `agreementId` left with the `quote` and `order` branches
+ * that were their only readers: the two record-bound surfaces that took those
+ * writes over resolve a price book from an offer and an agreement from the
+ * account's own executed agreements, so neither identifier is a route's to hand
+ * this panel any more. `invoiceId` and `paymentId` left with the `collections`
+ * branch for the same reason -- no route ever set them, and
+ * `/internal/collections` now binds a correction to the invoice row the
+ * operator clicked. The same test applies from the other side: `rowVersion`
+ * used to sit in this
  * interface and was removed, because it is not a record identity at all. It is
  * an optimistic-concurrency token compared against the *core aggregate's*
  * `row_version` (`database-finance.ts`, `input.expectedVersion !==
@@ -72,36 +61,22 @@ export interface WorkflowRecordContext {
   endClientAccountId?: string;
   userId?: string;
   supportOwnerId?: string;
-  priceBookId?: string;
   quoteId?: string;
-  agreementId?: string;
   orderId?: string;
   pocId?: string;
-  invoiceId?: string;
-  paymentId?: string;
   caseId?: string;
 }
 
 const titles: Record<SurfaceWorkflow, string> = {
-  quote: "Create a priced quote",
-  agreement: "Accept click-through terms",
-  order: "Accept quote and create order",
   poc: "Request or convert a proof of concept",
   renewal: "Renew or decline renewal",
-  offboarding: "Request controlled offboarding",
-  registration: "Register an end-client deal",
   reports: "Run a traceable report",
-  payment: "Invoice payment",
   account: "Account update",
   invite: "Invite an organization member",
   procurement: "Update procurement readiness",
-  pricebook: "Create or activate a price book",
   agreementAdmin: "Publish an approved agreement template",
   brand: "Brand and custom domain",
-  assisted: "Assisted action",
   approval: "Administrative approval",
-  collections: "Collections and financial corrections",
-  admin: "Administration",
 };
 
 function value(data: FormData, name: string): string {
@@ -243,28 +218,6 @@ function unbindableMessage(identifiers: readonly { label: string }[]): string {
   return `This action binds to the ${named}, which the record on this surface does not carry. Nothing can be submitted from here, and nothing was sent.`;
 }
 
-function quotePayload(data: FormData) {
-  const partnerAccountId = value(data, "partnerAccountId");
-  const endClientAccountId = value(data, "endClientAccountId");
-  return {
-    priceBookId: value(data, "priceBookId"),
-    seriesId: uuidV7(),
-    route: value(data, "route"),
-    ...(endClientAccountId ? { endClientAccountId } : {}),
-    ...(partnerAccountId ? { partnerAccountId } : {}),
-    lines: [
-      {
-        lineId: uuidV7(),
-        sku: value(data, "sku"),
-        region: value(data, "region"),
-        quantity: value(data, "capacity"),
-        termMonths: Number(value(data, "termMonths")),
-      },
-    ],
-    expiresAt: new Date(value(data, "expiresAt")).toISOString(),
-  };
-}
-
 /**
  * Workflows whose submitted decision closes a commercial path. The selection
  * lives in component state because the confirmation step has to know which
@@ -280,7 +233,6 @@ function decisionIsDestructive(
   workflow: SurfaceWorkflow,
   decision: string,
 ): boolean {
-  if (workflow === "offboarding") return true;
   if (workflow === "renewal") return decision === "decline";
   if (workflow === "approval") return decision === "rejected";
   return false;
@@ -290,271 +242,13 @@ function mutationFields({
   workflow,
   surface,
   context,
-  activeAgreementTemplate,
   onDecisionChange,
 }: {
   workflow: SurfaceWorkflow;
   surface: SurfaceKey;
   context: WorkflowRecordContext;
-  activeAgreementTemplate?: ActiveAgreementTemplate | undefined;
   onDecisionChange?: ((decision: string) => void) | undefined;
 }): ReactNode {
-  if (workflow === "agreement")
-    return (
-      <>
-        <RecordIdentifier
-          label="Account ID"
-          name="accountId"
-          resolved={context.accountId}
-          required
-        />
-        <Input
-          label="Agreement template ID"
-          name="templateId"
-          value={activeAgreementTemplate?.id ?? ""}
-          readOnly
-          help="Selected from the active counsel-approved CSA record."
-          required
-        />
-        <Input
-          label="Template version"
-          name="templateVersion"
-          value={activeAgreementTemplate?.semanticVersion ?? ""}
-          readOnly
-          required
-        />
-        <Textarea
-          label="Exact agreement text"
-          name="exactText"
-          value={activeAgreementTemplate?.exactText ?? ""}
-          readOnly
-          help="Read-only exact text. The server verifies this text against the approved SHA-256 hash."
-          required
-        />
-        <Input
-          label="Approved text SHA-256"
-          name="exactTextHash"
-          value={activeAgreementTemplate?.exactTextHash ?? ""}
-          readOnly
-          required
-        />
-        <Input
-          label="Authority title"
-          name="authorityTitle"
-          defaultValue="Chief Operating Officer"
-          required
-        />
-        <label className="checkbox-field">
-          <input type="checkbox" name="authority" required />
-          <span>I am authorized to bind this legal entity</span>
-        </label>
-      </>
-    );
-
-  if (workflow === "quote")
-    return (
-      <>
-        <RecordIdentifier
-          label="Account ID"
-          name="accountId"
-          resolved={
-            surface === "partnerQuotes"
-              ? context.endClientAccountId
-              : context.accountId
-          }
-          {...(surface === "partnerQuotes"
-            ? {
-                help: "The end-client legal entity receiving and using the service.",
-              }
-            : {})}
-          required
-        />
-        <RecordIdentifier
-          label="Price book ID"
-          name="priceBookId"
-          resolved={context.priceBookId}
-          required
-        />
-        <Select
-          label="Commercial route"
-          name="route"
-          defaultValue={surface === "partnerQuotes" ? "resale" : "direct"}
-          options={[
-            { value: "direct", label: "Direct" },
-            { value: "referral", label: "Referral" },
-            { value: "resale", label: "Resale" },
-            { value: "distributor", label: "Distributor / two-tier" },
-            { value: "marketplace", label: "Marketplace" },
-          ]}
-        />
-        <RecordIdentifier
-          label="End-client account ID"
-          name="endClientAccountId"
-          resolved={
-            surface === "partnerQuotes" ? context.endClientAccountId : undefined
-          }
-          optionalLabel="Optional"
-        />
-        <RecordIdentifier
-          label="Partner account ID"
-          name="partnerAccountId"
-          resolved={
-            surface === "partnerQuotes" ? context.partnerAccountId : undefined
-          }
-          optionalLabel="Optional"
-        />
-        <Input
-          label="SKU"
-          name="sku"
-          defaultValue="FIL-ARCHIVE-CAPACITY"
-          required
-        />
-        <Select
-          label="Data region"
-          name="region"
-          defaultValue="us-east"
-          options={[
-            { value: "us-east", label: "US East" },
-            { value: "eu-west", label: "EU West" },
-            { value: "uk-south", label: "UK South" },
-          ]}
-        />
-        <Input
-          label="Committed capacity"
-          name="capacity"
-          inputMode="decimal"
-          defaultValue="120"
-          min="10"
-          required
-        />
-        <Input
-          label="Term months"
-          name="termMonths"
-          type="number"
-          defaultValue="12"
-          min="1"
-          required
-        />
-        <Input
-          label="Quote expires at"
-          name="expiresAt"
-          type="datetime-local"
-          defaultValue="2026-08-31T17:00"
-          required
-        />
-      </>
-    );
-
-  if (workflow === "order")
-    return (
-      <>
-        <RecordIdentifier
-          label="Account ID"
-          name="accountId"
-          resolved={context.accountId}
-          required
-        />
-        <RecordIdentifier
-          label="Accepted quote ID"
-          name="quoteId"
-          resolved={context.quoteId}
-          required
-        />
-        <RecordIdentifier
-          label="Executed agreement ID"
-          name="agreementId"
-          resolved={context.agreementId}
-          required
-        />
-        <RecordIdentifier
-          label="Signer user ID"
-          name="signerUserId"
-          resolved={context.userId}
-          required
-        />
-        <Input
-          label="Authority title"
-          name="authorityTitle"
-          defaultValue="Chief Operating Officer"
-          required
-        />
-        <label className="checkbox-field">
-          <input type="checkbox" name="authority" required />
-          <span>I am authorized to accept this order</span>
-        </label>
-        <Input
-          label="Purchase order number"
-          name="poNumber"
-          defaultValue="PO-2026-0042"
-          optionalLabel="Optional"
-        />
-        <Input
-          label="Purchase order document ID"
-          name="poDocumentId"
-          optionalLabel="Optional"
-        />
-        <Input
-          label="Order form document ID"
-          name="orderFormDocumentId"
-          required
-        />
-        <Input label="Order line ID" name="orderLineId" required />
-        <Input
-          label="Service starts on"
-          name="serviceStartsOn"
-          type="date"
-          defaultValue="2026-08-01"
-          required
-        />
-      </>
-    );
-
-  if (workflow === "payment")
-    return (
-      <>
-        <RecordIdentifier
-          label="Account ID"
-          name="accountId"
-          resolved={context.accountId}
-          required
-        />
-        <RecordIdentifier
-          label="Open invoice ID"
-          name="invoiceId"
-          resolved={context.invoiceId}
-          required
-        />
-        <p className="form-message">
-          Fil One opens Stripe&apos;s hosted invoice page. Payment status
-          remains pending until a signed Stripe webhook confirms settlement.
-        </p>
-      </>
-    );
-
-  if (workflow === "assisted")
-    return (
-      <>
-        <p className="form-message">
-          This creates the same customer quote as self-service. The active
-          time-limited assisted session supplies the staff actor, effective
-          customer actor, target account, and reason.
-        </p>
-        {mutationFields({
-          workflow: "quote",
-          surface,
-          context,
-          activeAgreementTemplate,
-        })}
-        <label className="checkbox-field">
-          <input type="checkbox" name="assistedSessionConfirmed" required />
-          <span>
-            I confirm the active assisted session names the customer request and
-            target account
-          </span>
-        </label>
-      </>
-    );
-
   if (workflow === "poc")
     return (
       <>
@@ -717,93 +411,6 @@ function mutationFields({
       </>
     );
 
-  if (workflow === "offboarding")
-    return (
-      <>
-        <RecordIdentifier
-          label="Account ID"
-          name="accountId"
-          resolved={context.accountId}
-          required
-        />
-        <RecordIdentifier
-          label="Order ID"
-          name="orderId"
-          resolved={context.orderId}
-          required
-        />
-        <Select
-          label="Termination reason"
-          name="reason"
-          defaultValue="customer_request"
-          options={[
-            { value: "customer_request", label: "Customer request" },
-            { value: "non_renewal", label: "Non-renewal" },
-            { value: "partner_request", label: "Partner request" },
-            { value: "partner_default", label: "Partner default" },
-            { value: "material_breach", label: "Material breach" },
-          ]}
-        />
-        <Input
-          label="Effective at"
-          name="effectiveAt"
-          type="datetime-local"
-          defaultValue="2026-12-31T23:59"
-          required
-        />
-        <Input
-          label="Retrieval window days"
-          name="retrievalDays"
-          type="number"
-          defaultValue="30"
-          min="0"
-          required
-        />
-        <p className="form-message">
-          This request enters two-person approval. It does not tear down service
-          immediately.
-        </p>
-      </>
-    );
-
-  if (workflow === "registration")
-    return (
-      <>
-        <RecordIdentifier
-          label="Partner account ID"
-          name="partnerAccountId"
-          resolved={context.partnerAccountId}
-          required
-        />
-        <RecordIdentifier
-          label="End-client account ID"
-          name="endClientAccountId"
-          resolved={context.endClientAccountId}
-          required
-        />
-        <Input
-          label="Workload"
-          name="workload"
-          defaultValue="Immutable archive"
-          required
-        />
-        <Input
-          label="Expected volume"
-          name="expectedVolume"
-          defaultValue="120 TB"
-          required
-        />
-        <Input
-          label="Protection days"
-          name="protectionDays"
-          type="number"
-          defaultValue="90"
-          min="1"
-          required
-        />
-      </>
-    );
-
   if (workflow === "brand")
     return (
       <>
@@ -883,73 +490,6 @@ function mutationFields({
           label="Evidence document ID"
           name="evidenceDocumentId"
           required
-        />
-      </>
-    );
-
-  if (workflow === "collections")
-    return (
-      <>
-        <Select
-          label="Collections action"
-          name="collectionsAction"
-          defaultValue="evaluate_dunning"
-          options={[
-            { value: "evaluate_dunning", label: "Evaluate dunning" },
-            { value: "issue_credit", label: "Issue credit note" },
-            { value: "submit_refund", label: "Submit refund" },
-            { value: "record_dispute", label: "Record Stripe dispute" },
-          ]}
-        />
-        <RecordIdentifier
-          label="Billing account ID"
-          name="accountId"
-          resolved={context.accountId}
-          required
-        />
-        <RecordIdentifier
-          label="Invoice ID"
-          name="invoiceId"
-          resolved={context.invoiceId}
-          required
-        />
-        <RecordIdentifier
-          label="Payment ID"
-          name="paymentId"
-          resolved={context.paymentId}
-          optionalLabel="Required for refunds and disputes"
-        />
-        <Select
-          label="Currency"
-          name="currency"
-          defaultValue="USD"
-          options={[
-            { value: "USD", label: "USD" },
-            { value: "EUR", label: "EUR" },
-            { value: "GBP", label: "GBP" },
-          ]}
-        />
-        <Input
-          label="Amount in minor units"
-          name="amountMinor"
-          inputMode="numeric"
-          optionalLabel="Required for corrections"
-        />
-        <Input
-          label="Stripe object ID"
-          name="providerReference"
-          optionalLabel="Required for corrections"
-        />
-        <Textarea
-          label="Internal reason code"
-          name="reasonCode"
-          optionalLabel="Required for credits and refunds"
-        />
-        <Input
-          label="Dispute evidence due at"
-          name="evidenceDueAt"
-          type="datetime-local"
-          optionalLabel="Required for disputes"
         />
       </>
     );
@@ -1066,47 +606,6 @@ function mutationFields({
       </>
     );
 
-  if (workflow === "pricebook")
-    return (
-      <>
-        <Select
-          label="Action"
-          name="priceBookAction"
-          defaultValue="create"
-          options={[
-            { value: "create", label: "Create draft" },
-            { value: "activate", label: "Activate draft" },
-          ]}
-        />
-        <Input label="Price book ID" name="priceBookId" required />
-        <Input label="Name" name="name" required />
-        <Select
-          label="Currency"
-          name="currency"
-          defaultValue="USD"
-          options={[
-            { value: "USD", label: "USD" },
-            { value: "EUR", label: "EUR" },
-            { value: "GBP", label: "GBP" },
-          ]}
-        />
-        <Input
-          label="Effective from"
-          name="effectiveFrom"
-          type="date"
-          required
-        />
-        <Input
-          label="Version"
-          name="version"
-          type="number"
-          min="1"
-          defaultValue="1"
-          required
-        />
-      </>
-    );
-
   if (workflow === "agreementAdmin")
     return (
       <>
@@ -1206,15 +705,6 @@ export function WorkflowPanel({
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [reportResult, setReportResult] = useState<unknown>(null);
-  const [providerAction, setProviderAction] = useState<{
-    href: string;
-    label: string;
-  } | null>(null);
-  const [activeAgreementTemplate, setActiveAgreementTemplate] =
-    useState<ActiveAgreementTemplate>();
-  const [agreementTemplateLoading, setAgreementTemplateLoading] = useState(
-    workflow === "agreement",
-  );
   const [decision, setDecision] = useState(defaultDecision(workflow));
   /** Bumped on confirmation so the uncontrolled dialog returns to its closed state. */
   const [confirmations, setConfirmations] = useState(0);
@@ -1233,38 +723,10 @@ export function WorkflowPanel({
           workflow,
           surface,
           context,
-          activeAgreementTemplate,
           onDecisionChange: setDecision,
         });
   const missingIdentifiers = unresolvedIdentifiers(fields);
   const unbindable = missingIdentifiers.length > 0;
-
-  useEffect(() => {
-    if (workflow !== "agreement") return;
-    let active = true;
-    setAgreementTemplateLoading(true);
-    getActiveAgreementTemplate({ type: "csa", jurisdiction: "US" })
-      .then((template) => {
-        if (!active) return;
-        setActiveAgreementTemplate(template);
-        setError("");
-      })
-      .catch((caught: unknown) => {
-        if (!active) return;
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "The approved agreement text could not be loaded.",
-        );
-        window.setTimeout(() => errorRef.current?.focus(), 0);
-      })
-      .finally(() => {
-        if (active) setAgreementTemplateLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [workflow]);
 
   const showError = (message: string) => {
     setError(message);
@@ -1277,7 +739,6 @@ export function WorkflowPanel({
     setError("");
     setSuccess("");
     setReportResult(null);
-    setProviderAction(null);
     // The submit control is already disabled in this state; the guard is here
     // because the destructive path re-enters through `requestSubmit`.
     if (unbindable) {
@@ -1290,75 +751,11 @@ export function WorkflowPanel({
       return;
     }
     const data = new FormData(form);
-    if (
-      (workflow === "quote" || workflow === "assisted") &&
-      Number(value(data, "capacity")) < 10
-    ) {
-      setError("Enter a committed capacity of at least 10 TB.");
-      form.querySelector<HTMLInputElement>("[name=capacity]")?.focus();
-      return;
-    }
 
     setPending(true);
     try {
       let result: unknown;
-      if (workflow === "agreement") {
-        if (!activeAgreementTemplate)
-          throw new Error(
-            "The approved agreement text is not loaded. Reload and try again.",
-          );
-        const observedHash = await sha256(activeAgreementTemplate.exactText);
-        if (observedHash !== activeAgreementTemplate.exactTextHash)
-          throw new Error(
-            "The approved agreement text failed its integrity check. Nothing was accepted.",
-          );
-        result = await executeClickAgreement({
-          accountId: value(data, "accountId"),
-          templateId: activeAgreementTemplate.id,
-          templateVersion: activeAgreementTemplate.semanticVersion,
-          exactText: activeAgreementTemplate.exactText,
-          exactTextHash: activeAgreementTemplate.exactTextHash,
-          authorityTitle: value(data, "authorityTitle"),
-        });
-      } else if (workflow === "quote" || workflow === "assisted") {
-        result = await sendCoreCommand({
-          resource: "quotes",
-          id: uuidV7(),
-          accountId: value(data, "accountId"),
-          action: "create",
-          payload: quotePayload(data),
-        });
-      } else if (workflow === "order") {
-        const poNumber = value(data, "poNumber");
-        const poDocumentId = value(data, "poDocumentId");
-        result = await sendCoreCommand({
-          resource: "orders",
-          id: uuidV7(),
-          accountId: value(data, "accountId"),
-          action: "create",
-          payload: {
-            quoteId: value(data, "quoteId"),
-            agreementId: value(data, "agreementId"),
-            signerUserId: value(data, "signerUserId"),
-            authorityTitle: value(data, "authorityTitle"),
-            authorityAttested: true,
-            ...(poNumber ? { poNumber } : {}),
-            ...(poDocumentId ? { poDocumentId } : {}),
-            acceptedAt: new Date().toISOString(),
-            serviceStartsOn: value(data, "serviceStartsOn"),
-            orderFormDocumentId: value(data, "orderFormDocumentId"),
-            orderLineIds: [value(data, "orderLineId")],
-          },
-        });
-      } else if (workflow === "payment") {
-        const session = await createInvoicePaymentSession({
-          accountId: value(data, "accountId"),
-          invoiceId: value(data, "invoiceId"),
-        });
-        const href = trustedStripePaymentUrl(session.url);
-        setProviderAction({ href, label: "Continue to secure Stripe payment" });
-        result = session;
-      } else if (workflow === "poc") {
+      if (workflow === "poc") {
         result =
           value(data, "pocAction") === "convert"
             ? await convertPoc({
@@ -1404,35 +801,6 @@ export function WorkflowPanel({
                 requestedTermMonths:
                   Number(value(data, "requestedTermMonths")) || null,
               });
-      } else if (workflow === "offboarding") {
-        result = await requestOffboarding({
-          accountId: value(data, "accountId"),
-          orderId: value(data, "orderId"),
-          reason: value(data, "reason") as
-            | "customer_request"
-            | "non_renewal"
-            | "partner_request"
-            | "partner_default"
-            | "material_breach",
-          effectiveAt: new Date(value(data, "effectiveAt")).toISOString(),
-          retrievalDays: Number(value(data, "retrievalDays")),
-          partnerAccountId: null,
-        });
-      } else if (workflow === "registration") {
-        result = await sendCoreCommand({
-          resource: "deal_registrations",
-          id: uuidV7(),
-          accountId: value(data, "partnerAccountId"),
-          action: "create",
-          payload: {
-            partnerAccountId: value(data, "partnerAccountId"),
-            endClientAccountId: value(data, "endClientAccountId"),
-            workload: value(data, "workload"),
-            expectedVolume: value(data, "expectedVolume"),
-            protectionDays: Number(value(data, "protectionDays")),
-            houseAccountIds: [],
-          },
-        });
       } else if (workflow === "brand") {
         const logoUrl = value(data, "logoUrl");
         result = await registerPartnerDomain({
@@ -1452,65 +820,6 @@ export function WorkflowPanel({
           reason: value(data, "reason"),
           evidenceDocumentId: value(data, "evidenceDocumentId"),
         });
-      } else if (workflow === "collections") {
-        const action = value(data, "collectionsAction");
-        const accountId = value(data, "accountId");
-        const invoiceId = value(data, "invoiceId");
-        const paymentId = value(data, "paymentId");
-        const providerReference = value(data, "providerReference");
-        const amount = {
-          currency: value(data, "currency"),
-          minor: value(data, "amountMinor"),
-        };
-        result =
-          action === "evaluate_dunning"
-            ? await sendCoreCommand({
-                resource: "invoices",
-                id: invoiceId,
-                accountId,
-                action,
-                payload: {},
-              })
-            : action === "issue_credit"
-              ? await sendCoreCommand({
-                  resource: "credit_notes",
-                  id: uuidV7(),
-                  accountId,
-                  action: "issue",
-                  payload: {
-                    invoiceId,
-                    stripeCreditNoteId: providerReference,
-                    amount,
-                    reasonCode: value(data, "reasonCode"),
-                  },
-                })
-              : action === "submit_refund"
-                ? await sendCoreCommand({
-                    resource: "refunds",
-                    id: uuidV7(),
-                    accountId,
-                    action: "submit",
-                    payload: {
-                      paymentId,
-                      stripeRefundId: providerReference,
-                      amount,
-                      reasonCode: value(data, "reasonCode"),
-                    },
-                  })
-                : await sendCoreCommand({
-                    resource: "disputes",
-                    id: uuidV7(),
-                    accountId,
-                    action: "create",
-                    payload: {
-                      paymentId,
-                      stripeDisputeId: providerReference,
-                      amount,
-                      evidenceDueAt: new Date(
-                        value(data, "evidenceDueAt"),
-                      ).toISOString(),
-                    },
-                  });
       } else if (workflow === "account") {
         result = await sendCoreCommand({
           resource: "accounts",
@@ -1545,22 +854,6 @@ export function WorkflowPanel({
           invoiceDeliveryEmail: value(data, "invoiceDeliveryEmail"),
           poRequired: data.get("poRequired") === "on",
         });
-      } else if (workflow === "pricebook") {
-        const action = value(data, "priceBookAction");
-        result = await sendCoreCommand({
-          resource: "price_books",
-          id: value(data, "priceBookId"),
-          action,
-          payload:
-            action === "create"
-              ? {
-                  name: value(data, "name"),
-                  currency: value(data, "currency"),
-                  effectiveFrom: value(data, "effectiveFrom"),
-                  version: Number(value(data, "version")),
-                }
-              : {},
-        });
       } else if (workflow === "agreementAdmin") {
         const exactText = value(data, "exactText");
         result = await publishAgreementTemplate({
@@ -1583,13 +876,26 @@ export function WorkflowPanel({
             : {}),
         });
         setReportResult(result);
+      } else {
+        /*
+         * Unreachable while this chain and `SurfaceWorkflow` agree, which is
+         * exactly what it is here to keep true. `admin` was a member of that
+         * union with no fields branch and no command branch: the panel rendered
+         * an empty form, Submit fell through every arm, and the success message
+         * below announced "the server record is now the source of truth" having
+         * sent nothing at all. `workflow` narrows to `never` here, so a member
+         * added without a command now fails the build instead of shipping that
+         * again.
+         */
+        const unhandled: never = workflow;
+        throw new Error(
+          `No command is wired for the ${String(unhandled)} workflow, so nothing was sent.`,
+        );
       }
       setSuccess(
         workflow === "reports"
           ? "Report loaded from source records."
-          : workflow === "payment"
-            ? "Secure payment session ready. Invoice status changes only after Stripe confirms payment."
-            : "Request accepted. The server record is now the source of truth.",
+          : "Request accepted. The server record is now the source of truth.",
       );
     } catch (caught) {
       /*
@@ -1654,19 +960,9 @@ export function WorkflowPanel({
     <Button
       type={destructive ? "button" : "submit"}
       {...(destructive ? { variant: "danger" as const } : {})}
-      disabled={
-        pending ||
-        unbindable ||
-        (workflow === "agreement" && !activeAgreementTemplate)
-      }
+      disabled={pending || unbindable}
     >
-      {workflow === "reports"
-        ? "View report"
-        : workflow === "payment"
-          ? "Open secure payment"
-          : workflow === "assisted"
-            ? "Create assisted quote"
-            : "Submit securely"}
+      {workflow === "reports" ? "View report" : "Submit securely"}
     </Button>
   );
 
@@ -1692,11 +988,6 @@ export function WorkflowPanel({
             {unbindableMessage(missingIdentifiers)}
           </p>
         ) : null}
-        {agreementTemplateLoading ? (
-          <p className="form-message" role="status">
-            Loading the active counsel-approved CSA text…
-          </p>
-        ) : null}
         {error ? (
           <p
             ref={errorRef}
@@ -1716,19 +1007,6 @@ export function WorkflowPanel({
         {success ? (
           <p className="form-message form-message--success" role="status">
             {success}
-          </p>
-        ) : null}
-        {providerAction ? (
-          <p className="form-message form-message--success">
-            <a
-              className={buttonClassName({ variant: "primary" })}
-              href={providerAction.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              referrerPolicy="no-referrer"
-            >
-              {providerAction.label}
-            </a>
           </p>
         ) : null}
         {reportResult ? (
@@ -1788,7 +1066,6 @@ export function WorkflowPanel({
               setError("");
               setSuccess("");
               setReportResult(null);
-              setProviderAction(null);
               // The reset restores each select to its default, so the tracked
               // decision has to follow or the confirmation step goes stale.
               setDecision(defaultDecision(workflow));

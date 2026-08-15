@@ -1,63 +1,73 @@
-import { Table } from "@clockwork/ui";
+import { StatusBadge, Table } from "@clockwork/ui";
+
+import { plural } from "@/src/i18n/en";
 
 import { lifecycleCopy } from "./copy";
+import { FinancePageFrame } from "./page-frame";
+import type { SurfaceProvenance } from "./provenance";
 import {
-  renewals,
+  renewalWindowDescriptions,
   renewalWindowLabels,
   renewalWindows,
-  type RenewalRecord,
-} from "./lifecycle-data";
-import { formatMoney, groupRenewals } from "./lifecycle-logic";
-import { FinancePageFrame } from "./page-frame";
+  type RenewalOrder,
+  type RenewalWindow,
+} from "./renewals-projection";
 import styles from "./finance-lifecycle.module.css";
 
-function riskClass(risk: RenewalRecord["risk"]): string {
-  if (risk === "High") return styles.riskHigh ?? "";
-  if (risk === "Medium") return styles.riskMedium ?? "";
+const copy = lifecycleCopy.renewals;
+
+function riskClass(order: RenewalOrder): string {
+  if (order.window === "notice-passed" || order.risk === "high")
+    return styles.riskHigh ?? "";
+  if (order.risk === "medium") return styles.riskMedium ?? "";
   return styles.riskLow ?? "";
 }
 
-export function RenewalsView() {
-  const grouped = groupRenewals(renewals);
+export function RenewalsView({
+  windows,
+  provenance,
+  invoiceProvenance,
+}: {
+  windows: Readonly<Record<RenewalWindow, readonly RenewalOrder[]>>;
+  provenance: SurfaceProvenance;
+  invoiceProvenance: SurfaceProvenance;
+}) {
+  const invoiceSource =
+    invoiceProvenance.kind === "projection"
+      ? `Invoice totals read from the internal collections channel, generated ${invoiceProvenance.generatedAt}.`
+      : "";
 
   return (
     <FinancePageFrame
-      title={lifecycleCopy.renewals.title}
-      description={lifecycleCopy.renewals.description}
-      freshness={lifecycleCopy.renewals.freshness}
-      source={lifecycleCopy.renewals.source}
+      title={copy.title}
+      description={copy.description}
+      provenance={provenance}
     >
-      <section className={styles.summaryGrid} aria-label="Exposure by horizon">
-        {renewalWindows.map((window) => {
-          const records = grouped[window];
-          const exposure = records.reduce(
-            (total, record) => total + record.exposureCents,
-            0,
-          );
-          return (
+      <section
+        className={styles.summaryGrid}
+        aria-label="Orders by notice window"
+      >
+        {renewalWindows
+          .filter((window) => window !== "unscheduled")
+          .map((window) => (
             <article className={styles.summaryCard} key={window}>
               <p>{renewalWindowLabels[window]}</p>
-              <strong>{formatMoney(exposure)}</strong>
-              <span>
-                Exposure estimate · {records.length} account
-                {records.length === 1 ? "" : "s"}
-              </span>
+              <strong>{windows[window].length}</strong>
+              <span>{renewalWindowDescriptions[window]}</span>
             </article>
-          );
-        })}
+          ))}
       </section>
 
       <div className={styles.warningNotice} role="note">
-        <strong>Exposure is planning data.</strong>
-        <span>
-          It is not an invoice, payment, or collected-revenue total. Invoice and
-          collection truth remain labeled on each account.
-        </span>
+        <strong>{copy.noExposureTitle}</strong>
+        <span>{copy.noExposureBody}</span>
+        <span>{invoiceSource}</span>
       </div>
 
       <div>
         {renewalWindows.map((window) => {
-          const records = grouped[window];
+          const orders = windows[window];
+          if (window === "unscheduled" && orders.length === 0) return null;
           return (
             <section
               className={styles.section}
@@ -69,57 +79,71 @@ export function RenewalsView() {
                   <h2 id={`renewal-${window}`}>
                     {renewalWindowLabels[window]}
                   </h2>
-                  <p>
-                    Route, deadline, owner, value, and recommended next action.
-                  </p>
+                  <p>{renewalWindowDescriptions[window]}</p>
                 </div>
                 <span className={styles.sectionMeta}>
-                  {records.length} active · ordered by deadline
+                  {plural(orders.length, "{count} order", "{count} orders")} ·
+                  ordered by notice date
                 </span>
               </header>
               <Table
                 className={styles.dsTable ?? ""}
-                caption={`${renewalWindowLabels[window]} renewal exposure`}
+                caption={`${renewalWindowLabels[window]} orders`}
                 captionHidden
                 density="compact"
                 headers={[
-                  "Account",
+                  "Order",
                   "Route",
-                  "Deadline",
-                  "Owner",
-                  "Value truth",
-                  "Next action",
+                  "Notice",
+                  "Service term",
+                  "Status",
+                  copy.invoicedLabel,
                 ]}
-                rowKeys={records.map((record) => record.id)}
-                rows={records.map((record) => [
+                rowKeys={orders.map((order) => order.id)}
+                rows={orders.map((order) => [
                   <div className={styles.primaryCell}>
-                    <strong>{record.account}</strong>
-                    <span className={riskClass(record.risk)}>
-                      {record.risk} risk
+                    <strong>{order.reference}</strong>
+                    <span className={riskClass(order)}>
+                      {order.risk ? `${order.risk} risk` : "Risk not recorded"}
                     </span>
                     <details className={styles.disclosure}>
                       <summary>Record evidence</summary>
                       <p>
-                        Renewal <span className={styles.id}>{record.id}</span>
-                        <br />
-                        Account ID:{" "}
-                        <span className={styles.id}>{record.accountId}</span>
+                        Order ID:{" "}
+                        <span className={styles.id}>{order.orderId}</span>
                       </p>
+                      {order.evidence.map((entry) => (
+                        <p key={`${entry.label}-${entry.value}`}>
+                          {entry.label}: {entry.value}
+                        </p>
+                      ))}
                     </details>
                   </div>,
-                  record.route,
-                  <strong>{record.deadlineLabel}</strong>,
-                  record.owner,
+                  order.route ?? copy.routeUnrecorded,
+                  <strong>{order.noticeLabel}</strong>,
+                  order.serviceTerm,
+                  <StatusBadge
+                    tone={
+                      order.window === "notice-passed" ? "danger" : "neutral"
+                    }
+                  >
+                    {order.statusLabel}
+                  </StatusBadge>,
                   <div className={styles.truthStack}>
-                    <strong>
-                      {formatMoney(record.exposureCents)} estimated exposure
-                    </strong>
-                    <span>Invoice truth: {record.invoiceTruth}</span>
-                    <span>Collection truth: {record.collectedTruth}</span>
+                    <strong>{order.invoicedToDate ?? copy.noInvoices}</strong>
+                    {order.invoiceCount > 0 ? (
+                      <span>
+                        {plural(
+                          order.invoiceCount,
+                          "{count} invoice",
+                          "{count} invoices",
+                        )}{" "}
+                        · invoice truth, not a forecast
+                      </span>
+                    ) : null}
                   </div>,
-                  record.nextAction,
                 ])}
-                emptyState="No renewals fall in this window."
+                emptyState={copy.empty}
               />
             </section>
           );

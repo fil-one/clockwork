@@ -20,7 +20,9 @@ import {
   loadCommercialRecord,
   loadCustomerCollectionRecords,
   loadPartnerRecords,
+  recordRoute,
 } from "./portal-view-loader";
+import { collectionKinds } from "@/src/features/customer-partner/commercial/model";
 
 const accountId = "10000000-0000-4000-8000-000000000001";
 
@@ -359,4 +361,34 @@ describe("commercial record detail reads", () => {
       ).rejects.toThrow(raised.message);
     },
   );
+});
+
+/**
+ * `recordRoute` used to return `string`, and for `services` it returned the
+ * collection path rather than a record path, so every row on the
+ * live-entitlements surface linked to the page the reader was already on.
+ *
+ * `CommercialRecordRoute` now rejects that body at compile time -- its own doc
+ * comment states exactly which half does what, and why `Route<...>` alone did
+ * not. These assertions hold the part the type cannot: that the value carries
+ * the *record key*, per kind, and that the key is percent-encoded so it cannot
+ * open a second path segment. `/${kind}/index` satisfies the type and fails
+ * here.
+ */
+describe("commercial record routes", () => {
+  it.each(collectionKinds)(
+    "addresses a %s record, not its collection",
+    (kind) => {
+      const href = recordRoute(kind, "REC-0001");
+
+      expect(href).toBe(`/${kind}/REC-0001`);
+      expect(href).not.toBe(`/${kind}`);
+    },
+  );
+
+  it("escapes a reference so it cannot open a second path segment", () => {
+    expect(recordRoute("services", "svc/../orders/ORD-1")).toBe(
+      "/services/svc%2F..%2Forders%2FORD-1",
+    );
+  });
 });
