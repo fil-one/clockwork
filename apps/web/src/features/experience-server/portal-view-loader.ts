@@ -13,11 +13,13 @@ import type {
   PartnerRecord,
   PartnerSurfaceKey,
 } from "@/src/features/customer-partner/partner/partner-data";
+import { runtimeTelemetry } from "@/src/telemetry/runtime";
 
 import {
   ExperienceProblem,
   type ExperienceAudience,
   type ProjectionChannel,
+  type ProjectionOrder,
   type ProjectionRecord,
 } from "./model";
 import {
@@ -31,6 +33,12 @@ export interface PortalRecords<T> {
   stale: boolean;
   recordCount: number;
   pagesRead: number;
+  /**
+   * Set when the channel held more than this read returned. A surface that
+   * builds facets, totals or "the one active record" from `records` is looking
+   * at a prefix, not the set, and has to say so.
+   */
+  truncated: boolean;
 }
 
 function text(data: Readonly<Record<string, unknown>>, key: string): string {
@@ -140,7 +148,70 @@ function portalAccountId(
   );
 }
 
-/** Read every bounded server page so UI pagination never falls back to fixtures. */
+export const PROJECTION_PAGE_SIZE = 100;
+
+/**
+ * How many pages one full read will walk before it stops and says so.
+ *
+ * `PROJECTION_PAGE_SIZE * MAX_PROJECTION_PAGES` records is the ceiling.
+ */
+export const MAX_PROJECTION_PAGES = 100;
+
+/**
+ * The page-limit ceiling used to `throw`, which turned an account that had
+ * simply grown past ten thousand records in one channel into a route that
+ * could not be opened at all. Refusing a legitimate read is the same class of
+ * defect as returning a wrong one, so the read now stops, reports what it got,
+ * and raises an operational signal instead.
+ *
+ * The span carries an error status because a truncated portal read is an
+ * operational condition an operator has to act on -- the channel needs a
+ * materializer or a narrower surface -- not a user error. `clockwork.boundary`
+ * is `db` so it lands under the existing `runtime-db-pitr` error-ratio alert;
+ * a dedicated rule keyed on `error.code` would page more precisely.
+ *
+ * Telemetry never changes control flow: a sink outage must not turn a
+ * successful partial read into a failed one.
+ */
+function reportTruncatedRead(input: {
+  audience: ExperienceAudience;
+  channel: ProjectionChannel;
+}): void {
+  try {
+    // `TelemetryAttributes` is an allowlist and drops anything else, so the
+    // channel travels in `db.operation.name`. The record count would carry no
+    // information anyway: a truncated read is always exactly
+    // `PROJECTION_PAGE_SIZE * MAX_PROJECTION_PAGES` records.
+    void runtimeTelemetry
+      .startSpan({
+        boundary: "db",
+        name: "projection.read_truncated",
+        attributes: {
+          "clockwork.operation": "projection.read_truncated",
+          "clockwork.outcome": "error",
+          "error.type": "ProjectionReadTruncated",
+          "error.code": "PROJECTION_READ_TRUNCATED",
+          "db.operation.name": `projection_read:${input.audience}:${input.channel}`,
+          "db.system.name": "postgresql",
+        },
+      })
+      .end("error");
+  } catch {
+    // A telemetry failure must not deny the reader the records that were read.
+  }
+}
+
+/**
+ * Read every bounded server page so UI pagination never falls back to
+ * fixtures.
+ *
+ * The full read is load-bearing and deliberate: collection surfaces build
+ * their status and owner facets from the whole set and filter server-side from
+ * URL state, so a lazy per-page read would silently narrow the facets to
+ * whatever page happened to load. Surfaces that want a prefix rather than the
+ * set should call `loadTopPortalRecords`, which asks the server for the
+ * ordering and the limit instead of slicing a full read.
+ */
 export async function loadPortalRecords(
   audience: ExperienceAudience,
   channel: ProjectionChannel,
@@ -152,6 +223,7 @@ export async function loadPortalRecords(
   let cursor: string | undefined;
   let generatedAt = new Date().toISOString();
   let pagesRead = 0;
+  let truncated = false;
   do {
     const page = await source.list(
       projectionInput({
@@ -160,22 +232,68 @@ export async function loadPortalRecords(
         channel,
         requestedAccountId: portalAccountId(audience, session),
         ...(cursor ? { cursor } : {}),
-        limit: 100,
+        limit: PROJECTION_PAGE_SIZE,
       }),
     );
     records.push(...page.items);
     generatedAt = page.generatedAt;
     cursor = page.nextCursor ?? undefined;
     pagesRead += 1;
-    if (pagesRead >= 100 && cursor)
-      throw new Error("Projection pagination exceeded the bounded page limit");
+    if (pagesRead >= MAX_PROJECTION_PAGES && cursor) {
+      truncated = true;
+      cursor = undefined;
+      reportTruncatedRead({ audience, channel });
+    }
   } while (cursor);
   return {
     records,
     generatedAt,
-    stale: records.some((record) => record.stale),
+    // A truncated read is stale by construction: the newest page is present
+    // but the tail is not, so anything derived from the whole set is behind.
+    stale: truncated || records.some((record) => record.stale),
     recordCount: records.length,
     pagesRead,
+    truncated,
+  };
+}
+
+/**
+ * One server page, in the ordering the caller asked for.
+ *
+ * This is the top-N read: `order by` and `limit` go to the database, so a
+ * surface that wants the twenty most recent records reads twenty rows. It is
+ * not a slice of a full read, and it must not be used where the surface needs
+ * the whole set -- facets, totals, and "is there an active one anywhere"
+ * answers are wrong when computed from a prefix, which is why `truncated`
+ * comes back set whenever the channel held more.
+ */
+export async function loadTopPortalRecords(
+  audience: ExperienceAudience,
+  channel: ProjectionChannel,
+  options: { limit: number; orderBy: ProjectionOrder },
+  presetSession?: Awaited<ReturnType<typeof getCommerceSession>>,
+): Promise<PortalRecords<ProjectionRecord>> {
+  if (!Number.isSafeInteger(options.limit) || options.limit < 1)
+    throw new Error("Projection top-N limit must be a positive integer");
+  const session = presetSession ?? (await getCommerceSession());
+  const page = await configuredProjectionSource().list(
+    projectionInput({
+      session,
+      audience,
+      channel,
+      requestedAccountId: portalAccountId(audience, session),
+      limit: Math.min(options.limit, PROJECTION_PAGE_SIZE),
+      orderBy: options.orderBy,
+    }),
+  );
+  const truncated = page.nextCursor !== null;
+  return {
+    records: page.items,
+    generatedAt: page.generatedAt,
+    stale: truncated || page.items.some((record) => record.stale),
+    recordCount: page.items.length,
+    pagesRead: 1,
+    truncated,
   };
 }
 

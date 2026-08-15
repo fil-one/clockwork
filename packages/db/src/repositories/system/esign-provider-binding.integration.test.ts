@@ -8,19 +8,13 @@ import type { AuthorizationContext } from "@clockwork/domain";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
 
 import { createRuntimeDatabase } from "../../client";
-import {
-  auditEvents,
-  documents,
-  outboxMessages,
-  providerOperations,
-} from "../../schema";
+import { auditEvents, documents, outboxMessages } from "../../schema";
 import {
   lifecycleAgreementDrafts,
   lifecycleSignatureEnvelopes,
 } from "../../schema/lifecycle/platform";
 import { providerResourceBindings } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
-import { appendAuditAndOutbox } from "../audit-outbox";
 import { DatabaseLifecycleCommandRepository } from "../lifecycle/command-repository";
 import { DatabaseEsignSigningSessionRepository } from "./providers";
 
@@ -142,20 +136,19 @@ interface CounterSignedFixture {
  * Puts the draft and its envelope in the state a counter-signed agreement holds
  * the moment the signing session calls out to the provider.
  *
- * `upload_customer_paper` is executed for real, so the draft, its version 1 and
- * its `agreement.customer_paper_uploaded` event are the ones production writes.
- * The envelope step reproduces the persistent effects of
- * `DatabaseLifecycleCommandRepository.createSignatureEnvelope`
- * (packages/db/src/repositories/lifecycle/command-repository.ts:1846)
- * statement for statement -- envelope insert, `provider_operations` claim,
- * draft version bump, `agreement.envelope_created` at the bumped version --
- * because that command cannot currently be executed end to end: it is neither a
+ * Both commands are executed for real, so the draft, the envelope, the
+ * `provider_operations` claim, both draft versions and both agreement events
+ * are the ones production writes. This used to reproduce
+ * `createSignatureEnvelope`'s writes statement for statement on the service
+ * pool, because the command could not be executed end to end: it is neither a
  * provider command nor a `staffServiceCommand`, so it runs under
  * `withAuthorizedTransaction` as `clockwork_runtime`, and its
- * `provider_operations` insert is refused by `provider_operations_internal`
- * (`app_is_internal()`) with SQLSTATE 42501. That is a separate defect from
- * P0-51 and is deliberately not worked around here beyond running the same
- * writes on the service pool; the row state produced is identical.
+ * `provider_operations` insert was refused by `provider_operations_internal`
+ * (`app_is_internal()`) with SQLSTATE 42501.
+ * supabase/migrations/001399_provider_operations_tenant_claim.sql gave the
+ * table the tenant append policy its sibling
+ * `lifecycle_provisioning_attempts` already had, so the fixture is now the
+ * command itself and the hand-written copy of it is gone.
  */
 async function counterSignedEnvelope(
   label: string,
@@ -173,78 +166,25 @@ async function counterSignedEnvelope(
     context: ownerContext(`esign-upload-${label}`, `esign-upload-${label}`),
   });
   const draftId = uploaded.id;
-  const placeholder = `esign-${createHash("sha256")
-    .update(`${draftId}:${label}`)
-    .digest("hex")
-    .slice(0, 40)}`;
-  const envelopeId = await withInternalTransaction(
-    db,
-    `esign-envelope-${label}`,
-    async (tx) => {
-      const draft = await tx.query.lifecycleAgreementDrafts.findFirst({
-        where: eq(lifecycleAgreementDrafts.id, draftId),
-      });
-      if (!draft) throw new Error("draft expected");
-      const [envelope] = await tx
-        .insert(lifecycleSignatureEnvelopes)
-        .values({
-          agreementDraftId: draft.id,
-          accountId: ACCOUNT_ID,
-          providerEnvelopeId: placeholder,
-          documentId,
-          signerEmail: SIGNER_EMAIL,
-          signingMode: "redirect",
-          returnUrl: "https://portal.clockwork.test/agreements/return",
-          state: "created",
-          providerEventIds: [],
-        })
-        .returning();
-      if (!envelope) throw new Error("envelope insert expected");
-      await tx.insert(providerOperations).values({
-        provider: "esign",
-        operation: "create_envelope",
-        idempotencyKey: `esign:${placeholder}`,
-        aggregateType: "agreement",
-        aggregateId: draft.id,
-        status: "pending",
-      });
-      const [bumped] = await tx
-        .update(lifecycleAgreementDrafts)
-        .set({ rowVersion: draft.rowVersion + 1 })
-        .where(
-          and(
-            eq(lifecycleAgreementDrafts.id, draft.id),
-            eq(lifecycleAgreementDrafts.rowVersion, draft.rowVersion),
-          ),
-        )
-        .returning({ rowVersion: lifecycleAgreementDrafts.rowVersion });
-      if (!bumped) throw new Error("draft bump expected");
-      await appendAuditAndOutbox(tx, {
-        accountId: ACCOUNT_ID,
-        aggregateType: "agreement",
-        aggregateId: draft.id,
-        aggregateVersion: bumped.rowVersion,
-        eventType: "agreement.envelope_created",
-        topic: "agreement.envelope_created",
-        actor: { kind: "user", id: OWNER_USER_ID },
-        requestId: `esign-envelope-${label}`,
-        after: {
-          envelopeId: envelope.id,
-          providerEnvelopeId: placeholder,
-          agreementId: draft.id,
-          signingMode: envelope.signingMode,
-          signerEmail: envelope.signerEmail,
-        },
-        occurredAt: new Date(occurredAt),
-      });
-      return envelope.id;
+  const created = await repository.executeInTransaction({
+    command: "create_signature_envelope",
+    payload: {
+      accountId: ACCOUNT_ID,
+      agreementId: draftId,
+      documentId,
+      signerEmail: SIGNER_EMAIL,
+      mode: "redirect",
+      returnUrl: "https://portal.clockwork.test/agreements/return",
     },
-  );
+    context: ownerContext(`esign-envelope-${label}`, `esign-envelope-${label}`),
+  });
+  if (typeof created.providerEnvelopeId !== "string")
+    throw new Error("PROVIDER_ENVELOPE_ID_MISSING");
   return {
     draftId,
     documentId,
-    envelopeId,
-    placeholderProviderEnvelopeId: placeholder,
+    envelopeId: created.id,
+    placeholderProviderEnvelopeId: created.providerEnvelopeId,
   };
 }
 

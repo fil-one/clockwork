@@ -10,6 +10,7 @@ export default async function Page() {
   return (
     <CustomerDashboard
       canCreateQuote={canCreateQuote}
+      formatting={{ locale: session.locale, timeZone: session.timeZone }}
       greetingName={
         session.profile.name.split(/\s+/)[0] ?? session.profile.name
       }

@@ -103,7 +103,8 @@
       "Instance 1 baseline JSON blobs remain immutable in Git history and the verified pre-consolidation bundle; the checked-in manifests are the reproducible final consolidated-main inventory used for comparison. Final commit-addressed SHA, non-RC archival tag, all-refs bundle, restore output, and full timing transcript are emitted post-commit in the tag annotation and ignored archive manifest.",
       "The canonical contract distinguishes the generated /v1 Hono contract from its browser-visible /api/v1 Next.js mount.",
       "The canonical contract uses numeric(38,18), aligns Object Lock classes with ADR 0007, and includes all fifteen immutable artifact kinds.",
-      "Human design approval is a future user-entered RC/launch decision, is not claimed, and does not block repository qualification."
+      "Human design approval is a future user-entered RC/launch decision, is not claimed, and does not block repository qualification.",
+      "Evidence citations: every requirement row edited from this point forward must cite `path#symbol` in its implementation and tests columns, where the path exists in the repository and the symbol is declared in that file. Pre-existing prose citations are grandfathered and are converted row by row; `pnpm check:traceability` enforces the grammar and `pnpm check:citation-liveness` reports symbols with no non-test reference outside their defining file."
     ]
   },
   "requirements": [
@@ -1185,16 +1186,34 @@
       "id": "SPEC-06-07",
       "source": "§6 Account & users row",
       "requirement": "Account surface manages legal/tax/AP/procurement/certificates, roles/limits, notifications, offboarding requests and deletion certificates.",
-      "domain": ["accounts", "identity", "terminations"],
-      "api": ["account/procurement/termination operations"],
-      "database": ["account and membership records"],
-      "workflowProvider": ["evidence", "offboarding"],
-      "portalDocument": ["account UI and certificates"],
-      "tests": ["account and offboarding tests"],
+      "domain": [
+        "packages/domain/src/terminations/index.ts#planOffboarding",
+        "packages/domain/src/terminations/index.ts#deletionCertificateData"
+      ],
+      "api": [
+        "packages/api/src/routes/lifecycle/notifications.ts#registerNotificationRoutes",
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001400_notification_preferences.sql#notification_preferences",
+        "packages/db/src/repositories/lifecycle/notification-preferences.ts#DatabaseNotificationPreferenceRepository"
+      ],
+      "workflowProvider": [
+        "packages/workflows/src/offboarding/deletion-certificate-handler.ts#createDeletionCertificateOutboxHandler"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(customer)/account/notifications/page.tsx",
+        "apps/web/app/(experience)/(customer)/account/offboarding/page.tsx"
+      ],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/notification-preferences.integration.test.ts",
+        "supabase/tests/1400_notification_preferences.test.sql",
+        "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
+      ],
       "externalGates": ["EXT-TAX-01", "EXT-TEARDOWN-01"],
-      "backlog": ["P0-46"],
-      "status": "partial",
-      "rationale": "The termination topics publish authoritative outbox events bound to the termination, so the offboarding channel materializes from them. The surface still has no notification preferences to manage because no notification delivery record exists (P0-46)."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The termination topics publish authoritative outbox events bound to the termination, so the offboarding channel materializes from them and the deletion certificate is rendered off the same record. The notification half is no longer missing: 001400 adds `notification_preferences`, the repository reads and upserts one row per alert kind and channel under the table's own vocabulary check, `/v1/notifications/preferences` lists and sets them, and the customer account route renders that surface. Related gate references EXT-TAX-01 and EXT-TEARDOWN-01 identify later production inputs but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-06-08",
@@ -1800,16 +1819,30 @@
       "id": "SPEC-10-02",
       "source": "§10 commitment ledger",
       "requirement": "CommitmentLedger owns period_allowance and term_drawdown and bills contracted quote overage; Stripe thresholds are never authoritative.",
-      "domain": ["core/commitments"],
-      "api": ["commitment commands"],
-      "database": ["commitment ledger"],
-      "workflowProvider": ["overage sync"],
-      "portalDocument": ["usage"],
-      "tests": ["property and contract tests"],
+      "domain": [
+        "packages/domain/src/core/commitments/index.ts#decideCommitmentOverage",
+        "packages/domain/src/core/commitments/index.ts#reconcileCommitmentToSource"
+      ],
+      "api": ["packages/api/src/routes/core/index.ts#registerCoreRoutes"],
+      "database": [
+        "packages/db/src/repositories/core/commitments.ts#applyCommitmentDecision",
+        "packages/db/src/repositories/core/commitments.ts#ingestUsageEvents",
+        "packages/db/src/repositories/core/commitments.ts#replayCommitmentLedger",
+        "supabase/migrations/001320_commitment_ledger_write_path.sql#core_commitment_allowance_adjustments"
+      ],
+      "workflowProvider": [
+        "packages/db/src/repositories/workflows/core-schedules.ts#DatabaseCoreScheduleOccurrenceStore"
+      ],
+      "portalDocument": [],
+      "tests": [
+        "packages/db/src/repositories/core/commitments.integration.test.ts",
+        "supabase/tests/1320_commitment_ledger_write_path.test.sql",
+        "packages/domain/src/core/core-finance.test.ts"
+      ],
       "externalGates": ["EXT-COMMERCIAL-01"],
-      "backlog": ["P0-41"],
-      "status": "partial",
-      "rationale": "Commitment period and correction repositories exist and the overage decision is proven by property tests, but no production caller creates a period, appends a correction, or inserts commitment_ledgers or usage_events, so no commitment is billed from persisted truth. P0-41 covers the missing write path."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The earlier rationale here was stale. Accepting a commitment order writes the ledger and then one `core_commitment_periods` row per contracted period, each with its own audit aggregate; `ingestUsageEvents` writes `usage_events` under the provider dedup index; and `applyCommitmentDecision` appends the overage decision and its corrections to the persisted trail rather than rewriting earlier entries. 001320 adds the correction and allowance-adjustment streams a replay folds, so `replayCommitmentLedger` rebuilds the balance from persisted rows alone and the scheduled overage dispatch bills from that decision rather than from a Stripe threshold. Related gate reference EXT-COMMERCIAL-01 identifies the signed commitment and overage inputs but does not withhold this repository requirement."
     },
     {
       "id": "SPEC-10-03",
@@ -2400,31 +2433,56 @@
       "id": "SPEC-15-01",
       "source": "§15",
       "requirement": "Commerce DB is customer master; registration, quote, order, invoice and payment project one-way to CRM through outbox; CRM edits only sales fields and no commercial data is hand-keyed.",
-      "domain": ["CRM projection policy"],
-      "api": ["commerce writes"],
-      "database": ["outbox", "provider links"],
-      "workflowProvider": ["CRM adapter"],
+      "domain": [
+        "packages/integrations/src/crm/index.ts#mapCommerceEvent",
+        "packages/integrations/src/crm/index.ts#crmProjectionTopics"
+      ],
+      "api": ["packages/api/src/routes/core/index.ts#registerCoreRoutes"],
+      "database": [
+        "packages/db/src/repositories/audit-outbox.ts#appendAuditAndOutbox",
+        "packages/db/src/repositories/system/crm-projection.ts#DatabaseCrmAccountRecordStore"
+      ],
+      "workflowProvider": [
+        "packages/integrations/src/crm/index.ts#createCrmProjectionOutboxHandlers",
+        "packages/workflows/src/runtime/environment-production-adapters.ts#withRuntimeBoundAdapters"
+      ],
       "portalDocument": [],
-      "tests": ["CRM contract tests"],
+      "tests": [
+        "packages/workflows/src/runtime/environment-production-adapters.test.ts",
+        "packages/db/src/repositories/system/crm-projection.integration.test.ts",
+        "packages/integrations/src/crm/crm.contract.test.ts"
+      ],
       "externalGates": ["EXT-PROVIDER-01"],
-      "backlog": ["P0-44"],
-      "status": "partial",
-      "rationale": "The one-way CRM port, adapter, replay behavior, and export fallback exist and are covered by contract tests, and no production composition constructs the adapter and no outbox consumer projects to it, so accounts.crm_record_id is never populated. P0-44 covers the missing runtime path."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`withRuntimeBoundAdapters` composes `OutboundCrmProjectionAdapter` behind the guarded provider transport and registers `createCrmProjectionOutboxHandlers` on every projected commerce topic, chaining behind a handler another group already owns rather than replacing it. The account arm writes `accounts.crm_record_id` through `DatabaseCrmAccountRecordStore`, whose predicate matches only a row whose reference is absent or already identical, so a redelivery is a no-op and a provider answering with a different record raises instead of repointing the account. Sync stays one-way out of the outbox and commerce stays the customer master. Related gate reference EXT-PROVIDER-01 identifies the provider selection and credentials, until which the composed path is present and inert."
     },
     {
       "id": "SPEC-15-02",
       "source": "§15",
       "requirement": "Ship provider-neutral CRM port, production fake, replay controls, and export fallback regardless of provider choice; activate chosen adapter only after contracts pass.",
-      "domain": ["CRM event projection"],
+      "domain": [
+        "packages/integrations/src/crm/index.ts#CrmProjectionPort",
+        "packages/integrations/src/crm/index.ts#mapCommerceEvent"
+      ],
       "api": [],
-      "database": ["outbox"],
-      "workflowProvider": ["CRM port/fake"],
+      "database": [
+        "packages/db/src/repositories/audit-outbox.ts#appendAuditAndOutbox"
+      ],
+      "workflowProvider": [
+        "packages/integrations/src/crm/index.ts#OutboundCrmProjectionAdapter",
+        "packages/workflows/src/runtime/environment-production-adapters.ts#withRuntimeBoundAdapters"
+      ],
       "portalDocument": ["export fallback"],
-      "tests": ["CRM contract tests"],
+      "tests": [
+        "packages/integrations/src/crm/crm.contract.test.ts",
+        "packages/workflows/src/runtime/environment-production-adapters.test.ts",
+        "packages/db/src/repositories/system/crm-projection.integration.test.ts"
+      ],
       "externalGates": ["EXT-PROVIDER-01"],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
+      "rationale": "The provider-neutral port, the deterministic fake with injectable transient and permanent failure, the allow-list mapping and the idempotent replay behaviour all ship independently of provider selection, and this row no longer contradicts the backlog: `withRuntimeBoundAdapters` composes `OutboundCrmProjectionAdapter` onto the outbox, which is what P0-44 recorded as missing. The chosen adapter reaches a network only through `GuardedProviderJsonTransport`, which denies from persisted gate state before any request, so activation still waits on EXT-PROVIDER-01. The `export fallback` locator remains a prose search term: no symbol in this repository is named for it."
     },
     {
       "id": "SPEC-16-Q01",
@@ -2535,61 +2593,129 @@
       "id": "SPEC-16-Q08",
       "source": "§16 provisioning recovery",
       "requirement": "Permanent/dead-letter/stuck provisioning queue is owned by internal operator with deputy and same-day target.",
-      "domain": ["provisioning", "exceptions"],
-      "api": ["provisioning recovery"],
-      "database": ["workflow/exception records"],
-      "workflowProvider": ["stuck recovery"],
-      "portalDocument": ["provisioning recovery"],
-      "tests": ["recovery tests"],
+      "domain": [
+        "packages/domain/src/exceptions/index.ts#specExceptionQueues",
+        "packages/domain/src/exceptions/index.ts#resolveExceptionOwners"
+      ],
+      "api": [
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001395_exception_queue_vocabulary.sql",
+        "packages/db/src/repositories/system/exception-routing.ts#DatabasePersistedWorkflowExceptionRouting"
+      ],
+      "workflowProvider": [
+        "packages/workflows/src/runtime/provider-lifecycle.ts#lifecycleTaskExecutionSpecs"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(internal)/internal/recovery/page.tsx",
+        "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
+      ],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "supabase/tests/1395_exception_queue_vocabulary.test.sql",
+        "packages/domain/src/exceptions/exceptions.test.ts"
+      ],
       "externalGates": ["EXT-PROVISION-01", "EXT-APPROVERS-01"],
-      "backlog": ["P0-43"],
-      "status": "partial",
-      "rationale": "Stuck-provisioning recovery has workflow and API support, and provisioning recovery is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "Stuck-provisioning recovery has workflow and API support, and `provisioning_recovery` is now one of the sixteen queues the single `exceptionQueues` vocabulary declares, so it is roster-ownable: a case raised on it resolves an owner, a distinct backup and an escalation contact, and 001395 makes both `exception_cases.queue` and `system_exception_roster.queue` refuse anything outside that list. Related gate references EXT-PROVISION-01 and EXT-APPROVERS-01 identify the recovery authority and the named people but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-16-Q09",
       "source": "§16 migration review",
       "requirement": "Ambiguous account/product/Stripe/acceptance matching is owned by internal operator with deputy before run.",
-      "domain": ["migrations", "exceptions"],
-      "api": ["migration decisions"],
-      "database": ["migration candidates/reviews"],
-      "workflowProvider": ["migration review wait"],
-      "portalDocument": ["migration review"],
-      "tests": ["migration tests"],
+      "domain": [
+        "packages/domain/src/exceptions/index.ts#specExceptionQueues",
+        "packages/domain/src/exceptions/index.ts#resolveExceptionOwners"
+      ],
+      "api": [
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001395_exception_queue_vocabulary.sql",
+        "packages/db/src/repositories/system/exception-routing.ts#DatabasePersistedWorkflowExceptionRouting"
+      ],
+      "workflowProvider": [
+        "packages/workflows/src/runtime/provider-lifecycle.ts#lifecycleTaskExecutionSpecs"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
+      ],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "supabase/tests/1395_exception_queue_vocabulary.test.sql",
+        "packages/domain/src/exceptions/exceptions.test.ts"
+      ],
       "externalGates": ["EXT-MIGRATION-01", "EXT-APPROVERS-01"],
-      "backlog": ["P0-43"],
-      "status": "partial",
-      "rationale": "Migration match review has workflow and API support, and migration review is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "Migration match review has workflow and API support, and `migration_review` is now one of the sixteen queues the single `exceptionQueues` vocabulary declares, so it is roster-ownable: a case raised on it resolves an owner, a distinct backup and an escalation contact, and 001395 makes both `exception_cases.queue` and `system_exception_roster.queue` refuse anything outside that list. Related gate references EXT-MIGRATION-01 and EXT-APPROVERS-01 identify the source authority and the named people but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-16-Q10",
       "source": "§16 offboarding/destructive",
       "requirement": "Teardown/retained/deletion decisions are owned by named approver with deputy before effective date.",
-      "domain": ["terminations", "exceptions"],
-      "api": ["termination approvals"],
-      "database": ["approval steps"],
-      "workflowProvider": ["offboarding"],
-      "portalDocument": ["offboarding approval"],
-      "tests": ["destructive approval tests"],
+      "domain": [
+        "packages/domain/src/exceptions/index.ts#specExceptionQueues",
+        "packages/domain/src/exceptions/index.ts#resolveExceptionOwners",
+        "packages/domain/src/terminations/index.ts#recordDestructiveApproval"
+      ],
+      "api": [
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001395_exception_queue_vocabulary.sql",
+        "packages/db/src/repositories/system/exception-routing.ts#DatabasePersistedWorkflowExceptionRouting"
+      ],
+      "workflowProvider": [
+        "packages/workflows/src/offboarding/deletion-certificate-handler.ts#createDeletionCertificateOutboxHandler"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
+      ],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "supabase/tests/1395_exception_queue_vocabulary.test.sql",
+        "packages/domain/src/exceptions/exceptions.test.ts"
+      ],
       "externalGates": ["EXT-TEARDOWN-01", "EXT-APPROVERS-01"],
-      "backlog": ["P0-43"],
-      "status": "partial",
-      "rationale": "Termination approval enforces two distinct approvers, and offboarding/destructive is not a queue in the domain exceptionQueues vocabulary, so it has no roster policy, owner, backup, or target. P0-43 covers the missing queue."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`recordDestructiveApproval` refuses the requester and refuses a second approval from the same person, so teardown carries two distinct approvers, and `offboarding_destructive` is now one of the sixteen queues the single `exceptionQueues` vocabulary declares, so the decision is roster-ownable rather than nameless: 001395 makes both `exception_cases.queue` and `system_exception_roster.queue` refuse anything outside that list. Related gate references EXT-TEARDOWN-01 and EXT-APPROVERS-01 identify the written authority and the named people but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-16-11",
       "source": "§16 queue invariants",
       "requirement": "Every queue has owner, distinct backup, SLA, escalation and preserved decision evidence; no self-approval, teardown has two distinct approvers, and queues are DB-backed views not spreadsheets.",
-      "domain": ["exceptions", "approval policy"],
-      "api": ["exception operations"],
-      "database": ["exceptions", "approval_steps"],
-      "workflowProvider": ["escalation"],
-      "portalDocument": ["internal queues"],
-      "tests": ["exception/separation tests"],
+      "domain": [
+        "packages/domain/src/exceptions/index.ts#exceptionQueues",
+        "packages/domain/src/exceptions/index.ts#validateQueuePolicies",
+        "packages/domain/src/exceptions/index.ts#resolveExceptionOwners"
+      ],
+      "api": [
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001395_exception_queue_vocabulary.sql",
+        "packages/db/src/repositories/system/exception-routing.ts#DatabaseExceptionRosterAdminService"
+      ],
+      "workflowProvider": [
+        "packages/workflows/src/exceptions/index.ts#validateQueuePolicies"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
+      ],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "supabase/tests/1395_exception_queue_vocabulary.test.sql",
+        "packages/domain/src/exceptions/exceptions.test.ts",
+        "packages/workflows/src/exceptions/index.test.ts"
+      ],
       "externalGates": ["EXT-APPROVERS-01"],
-      "backlog": ["P0-43"],
-      "status": "partial",
-      "rationale": "Owner, backup, target, escalation, separation, and evidence controls hold for the seven queues the domain vocabulary declares. A second disjoint ExceptionQueue union in the workflows package names six further queues that no roster entry can match, so the invariant does not span every queue the system raises. P0-43 covers the reconciliation."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "There is now one exception-queue vocabulary rather than four. `exceptionQueues` is spec §16's ten queues plus the six this platform actually raises, every consumer imports that one declaration, and 001395 makes the database refuse anything outside it on both `exception_cases.queue` and `system_exception_roster.queue` — so a roster can no longer be created for a queue nothing raises, which was how a real queue ended up with no eligible primary. Owner, distinct backup, target, escalation, separation and preserved decision evidence hold across that whole set, and the queues are database-backed rather than a spreadsheet. Related gate reference EXT-APPROVERS-01 identifies the named people but does not withhold this repository requirement."
     },
     {
       "id": "SPEC-16-12",
@@ -2625,16 +2751,29 @@
       "id": "SPEC-17-R02",
       "source": "§17 capacity planning",
       "requirement": "Trend committed/provisioned capacity by region against actual bytes.",
-      "domain": ["reports"],
-      "api": ["reports"],
-      "database": ["core_capacity_planning"],
-      "workflowProvider": ["usage reconciliation"],
-      "portalDocument": ["capacity report"],
-      "tests": ["report tests"],
+      "domain": [],
+      "api": [
+        "packages/api/src/routes/core/service.ts#CoreFinanceService",
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes"
+      ],
+      "database": [
+        "supabase/migrations/000100_core_finance.sql#core_capacity_planning",
+        "packages/db/src/repositories/core/database-finance.ts#coreReportSources",
+        "packages/db/src/repositories/core/database-finance.ts#readReportView"
+      ],
+      "workflowProvider": [
+        "packages/db/src/repositories/workflows/core-schedules.ts#DatabaseCoreScheduleOccurrenceStore"
+      ],
+      "portalDocument": [],
+      "tests": [
+        "supabase/tests/100_core_finance.test.sql",
+        "supabase/tests/900_integration_security_reports.test.sql",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+      ],
       "externalGates": ["EXT-PROVISION-01"],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate reference EXT-PROVISION-01 identify later production inputs but do not withhold this repository requirement."
+      "rationale": "The report that ships is the security-invoker view `core_capacity_planning`, which trends committed and provisioned entitlement quantity by region and SKU against actual bytes summed from `usage_events`, served through `coreReportSources` and the core report route. This row previously cited `capacityPlanning` in `packages/domain/src/core/reports/index.ts`, which no production path reaches (P0-71); the citations now name the view and the reader. Related gate reference EXT-PROVISION-01 identifies the live usage source but does not withhold this repository requirement."
     },
     {
       "id": "SPEC-17-R03",
@@ -2700,46 +2839,80 @@
       "id": "SPEC-17-R07",
       "source": "§17 ARR/MRR",
       "requirement": "Compute recurring value by MoR basis, separate currencies, and version methodology.",
-      "domain": ["reports"],
-      "api": ["reports"],
-      "database": ["report views"],
+      "domain": ["packages/domain/src/core/reports/index.ts#recurringRevenue"],
+      "api": [
+        "packages/api/src/routes/core/service.ts#CoreFinanceService",
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001396_reporting_layer_completion.sql#core_arr_mrr",
+        "packages/db/src/repositories/core/database-finance.ts#coreReportSources",
+        "packages/db/src/repositories/core/database-finance.ts#readReportView"
+      ],
       "workflowProvider": [],
-      "portalDocument": ["ARR/MRR"],
-      "tests": ["report tests"],
+      "portalDocument": [],
+      "tests": [
+        "supabase/tests/1396_reporting_layer_completion.test.sql",
+        "supabase/tests/1397_report_reach_and_partner_credit.test.sql",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+      ],
       "externalGates": ["EXT-COMMERCIAL-01", "EXT-TAX-01"],
-      "backlog": ["P0-42"],
-      "status": "partial",
-      "rationale": "recurringRevenue supports the forecast, and no ARR/MRR report exists: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`core_arr_mrr` is the ARR/MRR report: one row per committed order per currency at the run rate in force now, projected out of `core_revenue_forecast` so ARR here and the forecast there cannot disagree. It carries `revenue_basis` taken from the forecast rather than restated — gross for direct and referral, transfer price where the partner is merchant of record — and `methodology_version`, which names the rule the two amounts were produced under and changes when that rule does rather than when a number moves. The catalogue entry and API report key exist, and `coreReportSources` totals over the contract's report names, so a name nothing serves does not compile. Related gate references EXT-COMMERCIAL-01 and EXT-TAX-01 identify later production inputs but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-17-R08",
       "source": "§17 billing/collections",
       "requirement": "Report invoice, aging, payment, credit, refund, dispute, dunning owner, partner exposure and cash timing by account/order.",
-      "domain": ["reports", "billing"],
-      "api": ["reports"],
-      "database": ["finance/collections views"],
-      "workflowProvider": ["collections"],
-      "portalDocument": ["collections report"],
-      "tests": ["report tests"],
+      "domain": [],
+      "api": [
+        "packages/api/src/routes/core/service.ts#CoreFinanceService",
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001396_reporting_layer_completion.sql#core_billing_collections",
+        "packages/db/src/repositories/core/database-finance.ts#coreReportSources",
+        "packages/db/src/repositories/core/database-finance.ts#readReportView"
+      ],
+      "workflowProvider": [],
+      "portalDocument": [],
+      "tests": [
+        "supabase/tests/1396_reporting_layer_completion.test.sql",
+        "supabase/tests/1397_report_reach_and_partner_credit.test.sql",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+      ],
       "externalGates": ["EXT-TAX-01"],
-      "backlog": ["P0-42"],
-      "status": "partial",
-      "rationale": "Invoice, aging, payment, credit, refund, dispute, and collection records are persisted, and no billing and collections report reads them: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`core_billing_collections` is one row per invoice carrying issuance, aging, payment, credit, refund, dispute, the dunning owner, the billed account's credit exposure and cash timing, each tied back to the invoice and order it came from. It is tenant-reachable because every relation it reads already has a SELECT policy for the account party, and 1397 compares the tenant read against the internal read rather than assuming they match. Related gate reference EXT-TAX-01 identifies later production inputs but does not withhold this repository requirement."
     },
     {
       "id": "SPEC-17-R09",
       "source": "§17 commission/settlement",
       "requirement": "Report accruals, holdbacks, clawbacks, statements, distributor allocations, marketplace fees and settlement tied to source invoices/payments.",
-      "domain": ["reports", "commissions"],
-      "api": ["reports"],
-      "database": ["commission/marketplace records"],
-      "workflowProvider": ["settlement"],
-      "portalDocument": ["settlement report"],
-      "tests": ["commission/marketplace tests"],
+      "domain": [],
+      "api": [
+        "packages/api/src/routes/core/service.ts#CoreFinanceService",
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes"
+      ],
+      "database": [
+        "supabase/migrations/001396_reporting_layer_completion.sql#core_commission_settlement",
+        "supabase/migrations/001397_report_audience_grants.sql",
+        "packages/db/src/repositories/core/database-finance.ts#coreReportSources",
+        "packages/db/src/repositories/core/database-finance.ts#readReportView"
+      ],
+      "workflowProvider": [],
+      "portalDocument": [],
+      "tests": [
+        "supabase/tests/1396_reporting_layer_completion.test.sql",
+        "supabase/tests/1397_report_reach_and_partner_credit.test.sql",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+      ],
       "externalGates": ["EXT-TAX-01", "EXT-MARKETPLACE-01"],
-      "backlog": ["P0-42"],
-      "status": "partial",
-      "rationale": "Commission accrual, statement, and settlement records are persisted, and no commission and settlement report reads them: there is no report function, no catalog entry, and no API report key. P0-42 covers the missing report."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`core_commission_settlement` is one row per accrual carrying the collected-revenue basis, holdback, clawback, statement, distributor allocation, marketplace fee and settlement-export status, each tied back to the invoice and payment it came from. It is deliberately internal-audience: 1397 measures why a partner read of it would be wrong rather than merely restricted, and the report reaches a caller only through the internal transaction the repository opens. Related gate references EXT-TAX-01 and EXT-MARKETPLACE-01 identify later production inputs but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-17-R10",
@@ -2760,31 +2933,57 @@
       "id": "SPEC-17-11",
       "source": "§17 weekly scorecard",
       "requirement": "Weekly scorecard directly exposes bookings, cycle, renewal, capacity, margin, partner and POC economics.",
-      "domain": ["reports"],
-      "api": ["reports"],
-      "database": ["core_weekly_scorecard"],
-      "workflowProvider": ["reporting"],
-      "portalDocument": ["scorecard"],
-      "tests": ["report tests"],
+      "domain": [],
+      "api": [
+        "packages/api/src/routes/core/service.ts#CoreFinanceService",
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes"
+      ],
+      "database": [
+        "supabase/migrations/000100_core_finance.sql#core_weekly_scorecard",
+        "packages/db/src/repositories/core/database-finance.ts#coreReportSources",
+        "packages/db/src/repositories/core/database-finance.ts#readReportView"
+      ],
+      "workflowProvider": [],
+      "portalDocument": [],
+      "tests": [
+        "supabase/tests/1397_report_reach_and_partner_credit.test.sql",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+      ],
       "externalGates": [],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Repository implementation and direct acceptance tests are complete; no external input remains for this repository requirement."
+      "rationale": "The scorecard that ships is the security-invoker view `core_weekly_scorecard`, one row per price-book currency exposing quotes created and orders accepted this week, current-month committed forecast, renewals inside ninety days, open collection cases and pricing exceptions, active POCs and cumulative POC cost, each with the identifiers of the records it counted in `source_record_ids`. This row previously cited `weeklyScorecard` in `packages/domain/src/core/reports/index.ts`, which no production path reaches (P0-71). Be exact about the proof: the tests cited assert that the view exists, is internal-audience, and returns rows through the catalogue read, not that each figure is arithmetically correct."
     },
     {
       "id": "SPEC-17-12",
       "source": "§17 report contract",
       "requirement": "Every report has cursor API, role/account scope, formula-safe CSV, source traceability and deterministic SQL tests; no BI tool is required at launch.",
-      "domain": ["reports"],
-      "api": ["/v1/core/reports"],
-      "database": ["security-invoker views/RLS"],
-      "workflowProvider": ["report export"],
-      "portalDocument": ["CSV/report UI"],
-      "tests": ["report SQL/core tests"],
+      "domain": [
+        "packages/domain/src/core/reports/index.ts#toCsv",
+        "packages/domain/src/core/reports/index.ts#csvColumns"
+      ],
+      "api": [
+        "packages/api/src/routes/core/index.ts#reportCsv",
+        "packages/api/src/routes/core/service.ts#CoreFinanceService"
+      ],
+      "database": [
+        "packages/db/src/repositories/core/database-finance.ts#readReportView",
+        "supabase/migrations/001397_report_audience_grants.sql"
+      ],
+      "workflowProvider": ["packages/workflows/src/core/csv.ts#renderCsv"],
+      "portalDocument": [
+        "apps/web/app/(experience)/(internal)/internal/reports/page.tsx"
+      ],
+      "tests": [
+        "packages/api/src/routes/core/core.integration.test.ts",
+        "packages/workflows/src/core/csv.test.ts",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
+        "supabase/tests/900_integration_security_reports.test.sql"
+      ],
       "externalGates": [],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Repository implementation and direct acceptance tests are complete; no external input remains for this repository requirement."
+      "rationale": "Every report is paged through one cursor read whose relation and account column are chosen from `coreReportSources` rather than from caller input, is scoped by role and account audience, and carries the identifiers of its source records. The formula-safety claim is no longer vacuous: the download and the workflow report export now neutralise through the single writer `toCsv`, `renderCsv` only selects and validates columns, and the assertion sits on the HTTP response body of `/v1/core/reports/{report}?format=csv` and then compares it cell for cell against the export — the earlier test exercised a writer nothing but that test referenced (P0-64, P0-71). No BI tool is required for any of this."
     },
     {
       "id": "SPEC-18-01",
@@ -3030,16 +3229,32 @@
       "id": "SPEC-18-API-08",
       "source": "§18 API catalog",
       "requirement": "Provide exception, approval, and notification operations.",
-      "domain": ["exceptions"],
-      "api": ["lifecycle exception routes", "core commands"],
-      "database": ["exceptions/approvals/notifications"],
-      "workflowProvider": ["exception/notification tasks"],
-      "portalDocument": ["internal queues"],
-      "tests": ["exception tests"],
+      "domain": ["packages/domain/src/exceptions/index.ts#decideException"],
+      "api": [
+        "packages/api/src/routes/lifecycle/notifications.ts#registerNotificationRoutes",
+        "packages/api/src/routes/lifecycle/index.ts#registerLifecycleRoutes",
+        "packages/api/src/generated/openapi.json"
+      ],
+      "database": [
+        "supabase/migrations/001330_notification_deliveries.sql#notification_deliveries",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.ts#DatabaseNotificationDeliveryRepository",
+        "packages/db/src/repositories/lifecycle/notification-preferences.ts#DatabaseNotificationPreferenceRepository"
+      ],
+      "workflowProvider": [
+        "packages/db/src/repositories/workflows/core.ts#recordDunningNotification"
+      ],
+      "portalDocument": [
+        "apps/web/app/(experience)/(customer)/account/notifications/page.tsx"
+      ],
+      "tests": [
+        "packages/api/src/routes/lifecycle/notifications.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.integration.test.ts",
+        "supabase/tests/1330_notification_deliveries.test.sql"
+      ],
       "externalGates": ["EXT-APPROVERS-01", "EXT-PROVIDER-01"],
-      "backlog": ["P0-46"],
-      "status": "partial",
-      "rationale": "Exception operations and termination approval operations are in the generated contract. No notification operation is, and no table records a notification delivery. P0-46 covers the missing notification surface."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The earlier rationale here was stale. Exception operations and termination approval operations are in the generated contract, and so are the notification operations: `/v1/notifications` pages delivery evidence and `/v1/notifications/preferences` lists and sets a preference, both regenerated into `packages/api/src/generated/openapi.json` rather than hand-edited. 001330 adds `notification_deliveries`, the append-only record of recipient, template, channel, subject and outcome, written inside the same transaction as the workflow record that caused it and deduplicated on the invocation key, so the evidence cannot survive a rolled-back decision or go missing after one. Related gate references EXT-APPROVERS-01 and EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
     },
     {
       "id": "SPEC-18-API-09",
@@ -3598,13 +3813,22 @@
       "domain": [],
       "api": [],
       "database": [],
-      "workflowProvider": ["GitHub Actions"],
+      "workflowProvider": [
+        ".github/workflows/ci.yml",
+        "scripts/release-artifacts.mjs#RELEASE_SUITE_NAMES",
+        "scripts/release-suites.mjs",
+        "scripts/validate-release-join.mjs"
+      ],
       "portalDocument": [],
-      "tests": ["CI scripts"],
-      "externalGates": [],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation and direct acceptance tests are complete; no external input remains for this repository requirement."
+      "tests": [
+        "scripts/release-artifacts.test.mjs",
+        "scripts/dependency-advisories.test.mjs",
+        "scripts/benchmark-release.test.mjs"
+      ],
+      "externalGates": ["EXT-ACC-01"],
+      "backlog": ["P0-48"],
+      "status": "external-gated",
+      "rationale": "The workflow declares format, lint, strict typecheck, boundaries, secret scan, dependency audit, a zero-state database reset, the test suites, generated-artifact drift and the production builds across seven shards, and `scripts/release-artifacts.test.mjs` holds that shard list equal to `RELEASE_SUITE_NAMES` in name and order — a binding proved by restoring the previous workflow into a scratch tree and watching it fail. `scripts/validate-release-join.mjs` refuses any report whose summary count differs from that list, exercised over synthetic per-shard summaries. What is missing is not repository work but the account: no run of this workflow has ever been observed on `main`, because Actions is billing-blocked on the organization and `main` carries no branch protection. EXT-ACC-01 names those inputs. A green run of the local suites is not a green CI run and nothing here should be read as one."
     },
     {
       "id": "SPEC-19-01",
@@ -3640,16 +3864,30 @@
       "id": "SPEC-19-03",
       "source": "§19 tax row",
       "requirement": "Validate tax IDs, apply per-SKU tax codes and Stripe Tax reverse charge/exemptions for US, Spain and UK.",
-      "domain": ["accounts", "billing"],
-      "api": ["account/invoice operations"],
-      "database": ["tax IDs", "exemption certificates", "rate tax codes"],
-      "workflowProvider": ["Stripe Tax"],
-      "portalDocument": ["tax labels/invoices"],
-      "tests": ["tax fixtures"],
+      "domain": [],
+      "api": [
+        "packages/api/src/routes/core/index.ts#registerCoreRoutes",
+        "apps/web/src/providers/tax.ts#composedTaxProvider"
+      ],
+      "database": [
+        "packages/db/src/repositories/lifecycle/command-repository.ts#DatabaseLifecycleCommandRepository",
+        "packages/db/src/repositories/core/database-finance.ts#orderTaxDetermination",
+        "supabase/migrations/001392_invoice_tax.sql"
+      ],
+      "workflowProvider": [
+        "packages/contracts/src/providers.ts#TaxPort",
+        "packages/integrations/src/core/tax/http-tax-adapter.ts#HttpTaxAdapter"
+      ],
+      "portalDocument": [],
+      "tests": [
+        "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "supabase/tests/1392_invoice_tax.test.sql"
+      ],
       "externalGates": ["EXT-TAX-01"],
-      "backlog": ["P0-45"],
-      "status": "partial",
-      "rationale": "Tax identifier, exemption certificate, and per-SKU tax code storage exists, and TaxPort.validateTaxId has no caller outside the fake and no code sets reverse_charge_eligible or determines EU or UK reverse-charge treatment. Those are repository gaps that EXT-TAX-01 does not cover. P0-45 covers them."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "`TaxPort.validateTaxId` now has a production caller: registration verifies every identifier it carries before any write, refuses one it cannot verify rather than persisting it unchecked, and writes the provider's answer — including `reverse_charge_eligible` — onto both the account and `core_account_tax_identifiers`. Per-SKU codes come off `rate_cards.stripe_tax_code` into `orderTaxDetermination`, which calls `TaxPort.calculate` and refuses a non-standard treatment that still carries tax; 001392 gives the invoice its own tax column so a taxed invoice is no longer a hardcoded zero. No rate, country list or exemption rule is written into shipped code: acceptance in a tax-bearing jurisdiction fails closed behind EXT-TAX-01, which is where the registrations and approved treatments belong, rather than issuing a zero-tax invoice."
     },
     {
       "id": "SPEC-19-04",

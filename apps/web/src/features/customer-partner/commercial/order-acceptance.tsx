@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
 
@@ -9,6 +10,11 @@ import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
+import { anyEntered } from "../draft-state";
+import {
+  LeaveDraftControl,
+  useUnsavedChangesWarning,
+} from "../unsaved-changes";
 import styles from "./commercial.module.css";
 import { orderReviewSummary } from "./workflow-model";
 
@@ -21,6 +27,39 @@ const reviewLabels = {
 } as const;
 
 const ARTIFACT_RETENTION_YEARS = 7;
+
+/**
+ * Acceptance is two server commands, and the second one's only precondition --
+ * the rendered order form -- is computed server-side and arrives as a prop.
+ *
+ * The phase, not the presence of a message, is what says whether a further
+ * pass is available. `router.refresh()` re-renders the server component but
+ * deliberately preserves this client component's state, so a control disabled
+ * on `Boolean(message)` stays disabled through the very refresh that is
+ * supposed to release it -- which is how the customer ended up having to leave
+ * the page and re-enter every field.
+ */
+type AcceptancePhase =
+  /** A pass is available: prepare if no order form yet, otherwise create. */
+  | "ready"
+  /** A command is in flight. */
+  | "submitting"
+  /** Prepare succeeded; polling for the order form the create pass binds. */
+  | "awaiting_form"
+  /** Polling gave up. Nothing was created; the recheck affordance is offered. */
+  | "form_stalled"
+  /** The order exists. There is no third pass. */
+  | "created";
+
+/**
+ * The same bounded discipline `awaitReceipt` uses for projection actions:
+ * a fixed number of attempts, success only on the terminal condition, and a
+ * recheck affordance rather than a spinner that never resolves. What is polled
+ * differs -- a server-rendered prop here, an action receipt there -- so the
+ * loop is not shared; the rules are.
+ */
+const ORDER_FORM_POLL_ATTEMPTS = 15;
+const ORDER_FORM_POLL_INTERVAL_MS = 1_000;
 
 export interface AcceptableQuote {
   id: string;
@@ -51,29 +90,81 @@ export function OrderAcceptance({
   quote,
   agreement,
   orderFormDocumentId,
+  partialRead = false,
 }: {
   account: { id: string; name: string };
   signerUserId: string;
   quote: AcceptableQuote | null;
   agreement: GoverningAgreement | null;
   orderFormDocumentId: string | null;
+  /**
+   * Set when a channel read stopped at the page ceiling. The quote this page
+   * selected and the agreement it bound were then chosen from a prefix, and
+   * the reader is the one committing money against them, so the incompleteness
+   * is disclosed rather than absorbed.
+   */
+  partialRead?: boolean;
 }) {
   const [poNumber, setPoNumber] = useState("");
   const [serviceStart, setServiceStart] = useState("");
   const [authorityTitle, setAuthorityTitle] = useState("");
   const [confirmed, setConfirmed] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [phase, setPhase] = useState<AcceptancePhase>("ready");
   const [createdOrderId, setCreatedOrderId] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState<{
     id: string;
     message: string;
   } | null>(null);
-  const idempotencyKeyRef = useRef<string | null>(null);
+  const router = useRouter();
+  /**
+   * One key per pass. The two passes send different actions and different
+   * payloads under the same order identifier, so replaying the prepare key on
+   * the create is precisely the write an idempotency store exists to refuse --
+   * and this one does.
+   */
+  const prepareKeyRef = useRef<string | null>(null);
+  const createKeyRef = useRef<string | null>(null);
   const orderIdRef = useRef<string | null>(null);
   const acceptedAtRef = useRef<string | null>(null);
   const orderLineIdsRef = useRef<readonly string[] | null>(null);
+  /** The prop, readable from inside the poll loop's closure. */
+  const documentIdRef = useRef(orderFormDocumentId);
+  /** Supersedes an in-flight poll when the reader rechecks or resubmits. */
+  const pollRef = useRef(0);
+
+  useEffect(() => {
+    documentIdRef.current = orderFormDocumentId;
+    if (orderFormDocumentId === null) return;
+    setPhase((current) =>
+      current === "awaiting_form" || current === "form_stalled"
+        ? "ready"
+        : current,
+    );
+  }, [orderFormDocumentId]);
+
+  /** Abandons a poll left running when the reader navigates away mid-wait. */
+  useEffect(
+    () => () => {
+      pollRef.current += 1;
+    },
+    [],
+  );
+
+  /**
+   * Armed once a purchase-order number, a service start, or a signing title
+   * has been entered, or the commitment box has been ticked, and the order has
+   * not been created.
+   *
+   * Every field on this form starts empty, so there is no default to exclude.
+   * `createdOrderId` disarms, and it is set from the server's response, so the
+   * prompt never stands between someone and the order they just placed.
+   */
+  const unsaved =
+    (anyEntered(poNumber, serviceStart, authorityTitle) || confirmed) &&
+    !createdOrderId;
+  useUnsavedChangesWarning(unsaved);
+
   const summary = useMemo(
     () =>
       quote
@@ -92,12 +183,48 @@ export function OrderAcceptance({
     [agreement, poNumber, quote, serviceStart],
   );
 
+  /**
+   * An edit to a bound input invalidates whatever was submitted for the old
+   * values, so the next submission is a fresh prepare pass under a fresh order
+   * identifier and fresh keys. Any poll still running is abandoned rather than
+   * left to re-enable a control for inputs that no longer match.
+   *
+   * A submission that has already produced an order is not reset: `created` is
+   * terminal, and there is nothing left to re-key.
+   */
   const resetSubmission = () => {
     setValidationError(null);
-    idempotencyKeyRef.current = null;
+    if (phase === "created") return;
+    pollRef.current += 1;
+    setPhase("ready");
+    prepareKeyRef.current = null;
+    createKeyRef.current = null;
     orderIdRef.current = null;
     acceptedAtRef.current = null;
     orderLineIdsRef.current = null;
+  };
+
+  /**
+   * Bounded polling for the order form. Success is only the terminal
+   * condition -- the identifier actually present -- never "the loop ended".
+   */
+  const awaitOrderForm = async () => {
+    const token = pollRef.current + 1;
+    pollRef.current = token;
+    setPhase("awaiting_form");
+    for (let attempt = 0; attempt < ORDER_FORM_POLL_ATTEMPTS; attempt += 1) {
+      router.refresh();
+      await new Promise((resolve) =>
+        setTimeout(resolve, ORDER_FORM_POLL_INTERVAL_MS),
+      );
+      if (pollRef.current !== token) return;
+      if (documentIdRef.current !== null) {
+        setPhase("ready");
+        return;
+      }
+    }
+    if (pollRef.current !== token) return;
+    setPhase("form_stalled");
   };
 
   const accept = async () => {
@@ -126,14 +253,15 @@ export function OrderAcceptance({
       return;
     }
     setValidationError(null);
-    setPending(true);
-    setMessage("");
+    setPhase("submitting");
     setError("");
+    const creating = orderFormDocumentId !== null;
     try {
-      idempotencyKeyRef.current ??= crypto.randomUUID();
       orderIdRef.current ??= uuidV7();
       acceptedAtRef.current ??= new Date().toISOString();
       orderLineIdsRef.current ??= [uuidV7()];
+      const keyRef = creating ? createKeyRef : prepareKeyRef;
+      keyRef.current ??= crypto.randomUUID();
       const command = {
         quoteId: quote.id,
         signerUserId,
@@ -151,27 +279,44 @@ export function OrderAcceptance({
           accountId: account.id,
           // The order form is bound evidence: acceptance can only be recorded
           // once it exists, so a first pass asks the server to render it.
-          action: orderFormDocumentId ? "create" : "prepare_artifact",
-          payload: orderFormDocumentId
-            ? { ...command, orderFormDocumentId }
-            : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
+          action: creating ? "create" : "prepare_artifact",
+          payload:
+            creating && orderFormDocumentId
+              ? { ...command, orderFormDocumentId }
+              : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
         },
-        { idempotencyKey: idempotencyKeyRef.current },
+        { idempotencyKey: keyRef.current },
       );
-      setCreatedOrderId(orderFormDocumentId ? orderIdRef.current : "");
-      setMessage(
-        orderFormDocumentId
-          ? t("orders.accept.created")
-          : t("orders.accept.prepared"),
-      );
+      if (creating) {
+        setCreatedOrderId(orderIdRef.current);
+        setPhase("created");
+        return;
+      }
+      // The first pass only asked for the document. Bridge to the second one
+      // here rather than making the reader navigate away and re-key the form.
+      await awaitOrderForm();
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : t("orders.accept.failed"),
       );
-    } finally {
-      setPending(false);
+      // A refused command leaves the same pass available. Locking the control
+      // after a failure would be a control blocking legitimate work.
+      setPhase("ready");
     }
   };
+
+  /**
+   * Derived, not stored. A stored message outlives the state it described --
+   * that is how the prepared notice survived to disable the create pass.
+   */
+  const statusMessage =
+    phase === "created"
+      ? t("orders.accept.created")
+      : phase === "awaiting_form"
+        ? t("orders.accept.prepared")
+        : phase === "form_stalled"
+          ? "The order form has not been rendered yet. Nothing has been created and your entries are held here — check again, or come back to this page later to finish."
+          : "";
 
   return (
     <main
@@ -189,10 +334,23 @@ export function OrderAcceptance({
             commitment from an accepted quote.
           </p>
         </div>
-        <Link className={styles.secondary} href="/orders">
-          Return to orders
-        </Link>
+        <LeaveDraftControl
+          armed={unsaved}
+          className={styles.secondary ?? ""}
+          discardClassName={styles.secondary ?? ""}
+          href="/orders"
+          label="Return to orders"
+        />
       </header>
+
+      {partialRead ? (
+        <p className={styles.errorMessage} role="alert">
+          This account holds more commercial records than one page of this
+          workspace can read, so the quote and governing agreement shown here
+          were chosen from the most recently updated records only. Check them
+          against the quote and agreement ledgers before accepting.
+        </p>
+      ) : null}
 
       {quote ? (
         <>
@@ -362,9 +520,9 @@ export function OrderAcceptance({
                 />
                 <span>{customerPartnerCopy.commercial.orderConfirmation}</span>
               </label>
-              {message ? (
+              {statusMessage ? (
                 <p className={styles.successMessage} role="status">
-                  {message}{" "}
+                  {statusMessage}{" "}
                   {createdOrderId ? (
                     <Link href={`/orders/order-${createdOrderId}`}>
                       {t("orders.accept.createdLink")}
@@ -381,12 +539,29 @@ export function OrderAcceptance({
                   {error}
                 </p>
               ) : null}
+              {phase === "form_stalled" ? (
+                <button
+                  className={styles.secondary}
+                  onClick={() => void awaitOrderForm()}
+                  type="button"
+                >
+                  Check for the order form again
+                </button>
+              ) : null}
               <button
                 className={styles.primary}
-                disabled={pending || Boolean(message)}
+                // The condition is "no further pass is available", not "a
+                // message is on screen". `router.refresh()` preserves this
+                // component's state, so a message-keyed disable would survive
+                // the refresh that is meant to release it.
+                disabled={phase !== "ready"}
                 type="submit"
               >
-                {pending ? "Accepting…" : "Accept order and create commitment"}
+                {phase === "submitting"
+                  ? "Accepting…"
+                  : orderFormDocumentId
+                    ? "Create the order and commitment"
+                    : "Accept order and create commitment"}
               </button>
             </aside>
           </form>

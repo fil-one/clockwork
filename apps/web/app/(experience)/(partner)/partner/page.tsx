@@ -1,13 +1,14 @@
 import { PartnerDashboard } from "@/src/features/customer-partner/partner/partner-dashboard";
 import { loadPartnerDashboardProjection } from "@/src/features/experience-server/dashboard-loader";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRouteSession } from "@/src/features/shell/route-session";
 
 export default async function Page() {
-  const roles = await getRouteRoles("partner");
+  const session = await getRouteSession("partner");
   return (
     <PartnerDashboard
+      formatting={{ locale: session.locale, timeZone: session.timeZone }}
       projection={await loadPartnerDashboardProjection()}
-      roles={roles}
+      roles={session.roles}
     />
   );
 }

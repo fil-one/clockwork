@@ -86,9 +86,31 @@ const demoMemberships: Readonly<
   },
 };
 
+/**
+ * How a session with no stated preference is formatted.
+ *
+ * UTC rather than a deployment-local zone, because UTC is the only zone that
+ * reads the same for every person looking at the record, and every surface
+ * that renders a timestamp now names the zone alongside it. The previous
+ * behaviour -- an unlabelled `America/New_York` compiled into each dashboard --
+ * showed a reader in London a New York wall clock with nothing on the page to
+ * say so.
+ *
+ * A provider-backed session has no locale or zone on it yet; when the identity
+ * provider starts carrying them, this is the one place that changes.
+ */
+export const defaultRouteFormatting = {
+  locale: "en-US",
+  timeZone: "UTC",
+} as const;
+
 export interface RouteSession {
   roles: readonly string[];
   profile: CommerceSession["profile"];
+  /** BCP-47 tag the surface formats dates and numbers with. */
+  locale: string;
+  /** IANA zone every rendered timestamp is converted to, and labelled with. */
+  timeZone: string;
   memberships: readonly AuthorizedMembership[];
   selectedAccountId: string;
   effectiveAccountId: string;
@@ -146,6 +168,11 @@ export async function getRouteSession(
       return {
         roles: [persona.role],
         profile: { name: membership.userName, email: membership.userEmail },
+        // The catalog has carried a locale and a zone per persona all along --
+        // `en-GB`/`Europe/London` for the reseller and the distributor,
+        // `America/Los_Angeles` for the end client. Nothing read them.
+        locale: persona.locale,
+        timeZone: persona.timeZone,
         memberships: [membership],
         selectedAccountId: membership.accountId,
         effectiveAccountId: membership.accountId,
@@ -160,6 +187,7 @@ export async function getRouteSession(
     return {
       roles: isCommerceRole(demoRole) ? [demoRole] : demoRoles[audience],
       profile: { name: selected.userName, email: selected.userEmail },
+      ...defaultRouteFormatting,
       memberships: Object.values(demoMemberships),
       selectedAccountId: selected.accountId,
       effectiveAccountId: selected.accountId,
@@ -173,6 +201,7 @@ export async function getRouteSession(
   return {
     roles: session.roles,
     profile: session.profile,
+    ...defaultRouteFormatting,
     memberships: session.memberships,
     selectedAccountId: session.selectedAccountId,
     effectiveAccountId: session.effectiveAccountId ?? session.selectedAccountId,

@@ -520,6 +520,43 @@ export function AppShell({
     return sections.filter((section) => section.items.length > 0);
   }, [audience, pathname, roles]);
 
+  /**
+   * A client transition replaces the content of the page without a document
+   * load, so nothing tells a screen reader user that the route changed: the
+   * framework calls `focus()` on the new segment, but a landmark is not
+   * focusable and the call is a no-op, and no live region carried the
+   * destination. The shell already owns one polite region for connection and
+   * organization messages, so the route name goes through that region rather
+   * than a second one competing with it.
+   *
+   * Focus is deliberately left where it is. Controls here restore focus on
+   * purpose after a navigation -- the mobile drawer hands it back to its
+   * trigger -- and moving it into the content region would take it away from
+   * them. The skip link is the supported way to jump into the content, and it
+   * now moves focus for real.
+   */
+  const destination = useMemo(
+    () =>
+      navigationGroups
+        .flatMap((group) => group.items)
+        .find((item) => item.active)?.label ?? null,
+    [navigationGroups],
+  );
+  const announcedPath = useRef<string | null>(null);
+  useEffect(() => {
+    if (announcedPath.current === null) {
+      // The first render is the document load. The browser announces that.
+      announcedPath.current = pathname;
+      return;
+    }
+    if (announcedPath.current === pathname) return;
+    announcedPath.current = pathname;
+    const heading = document
+      .querySelector("#main-content h1")
+      ?.textContent?.trim();
+    setAnnouncement(`${heading || destination || pathname}. Page loaded.`);
+  }, [destination, pathname]);
+
   useEffect(() => {
     setHydrated(true);
     const update = () => {

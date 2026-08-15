@@ -6,9 +6,27 @@ import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 import { plural, t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
+import { formatSurfaceTimestamp, type SurfaceFormatting } from "../formatting";
 import styles from "./customer-pages.module.css";
 
 const copy = customerPartnerCopy.customer;
+
+/**
+ * Counted from the list it introduces.
+ *
+ * The sentence above the obligations list was the fixed string "Four items need
+ * a decision or follow-up." A reader with two obligations was told there were
+ * four, and had nowhere to look for the missing two.
+ */
+function attentionDescription(count: number, locale: string): string {
+  if (count === 0) return copy.attentionDescriptionNone;
+  return plural(
+    count,
+    copy.attentionDescriptionOne,
+    copy.attentionDescriptionOther,
+    locale,
+  );
+}
 
 /**
  * The badge reports the term's own renewal position. An open notice window is
@@ -69,11 +87,19 @@ export interface CustomerDashboardProjection {
 export function CustomerDashboard({
   projection,
   greetingName,
+  formatting,
   canCreateQuote = true,
 }: {
   projection: CustomerDashboardProjection;
   /** First name of the signed-in person, from the active route session. */
   greetingName: string;
+  /**
+   * Locale and zone of the person reading, from the active route session.
+   * Required rather than defaulted: a default is how the hard-coded
+   * `America/New_York` survived, and a surface that cannot say whose clock it
+   * is showing should not be rendering a clock.
+   */
+  formatting: SurfaceFormatting;
   canCreateQuote?: boolean;
 }) {
   return (
@@ -98,18 +124,19 @@ export function CustomerDashboard({
         <div className={styles.obligationHeading}>
           <div>
             <h2 id="attention-title">{copy.attentionTitle}</h2>
-            <p>{copy.attentionDescription}</p>
+            <p>
+              {attentionDescription(
+                projection.obligations.length,
+                formatting.locale,
+              )}
+            </p>
           </div>
           <p className={styles.asOf}>
             {projection.stale
               ? "Stale account facts from "
               : "Account facts as of "}
             <time dateTime={projection.generatedAt}>
-              {new Intl.DateTimeFormat("en-US", {
-                dateStyle: "medium",
-                timeStyle: "short",
-                timeZone: "America/New_York",
-              }).format(new Date(projection.generatedAt))}
+              {formatSurfaceTimestamp(projection.generatedAt, formatting)}
             </time>
           </p>
         </div>

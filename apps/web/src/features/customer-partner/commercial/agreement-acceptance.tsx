@@ -11,6 +11,11 @@ import {
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
+import { anyEntered } from "../draft-state";
+import {
+  LeaveDraftControl,
+  useUnsavedChangesWarning,
+} from "../unsaved-changes";
 import styles from "./commercial.module.css";
 
 async function sha256(text: string): Promise<string> {
@@ -52,6 +57,17 @@ export function AgreementAcceptance({
   } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
+
+  /**
+   * Armed once the signer has typed their title or ticked the authority
+   * attestation, and the agreement has not been executed.
+   *
+   * The template fetched by the effect below is not the reader's input, so it
+   * never arms the prompt: opening the page and reading the agreement is not
+   * unsaved work. `executed` disarms.
+   */
+  const unsaved = (anyEntered(authorityTitle) || attested) && !executed;
+  useUnsavedChangesWarning(unsaved);
 
   useEffect(() => {
     let active = true;
@@ -136,9 +152,13 @@ export function AgreementAcceptance({
             {t("agreements.execute.binding", { account: account.name })}
           </p>
         </div>
-        <Link className={styles.secondary} href="/agreements">
-          Return to agreements
-        </Link>
+        <LeaveDraftControl
+          armed={unsaved}
+          className={styles.secondary ?? ""}
+          discardClassName={styles.secondary ?? ""}
+          href="/agreements"
+          label="Return to agreements"
+        />
       </header>
 
       {agreement ? (

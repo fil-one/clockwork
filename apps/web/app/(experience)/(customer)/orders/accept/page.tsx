@@ -8,13 +8,30 @@ import {
   type RawSearchParams,
 } from "@/src/features/customer-partner/commercial/url-state";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
-import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
+import {
+  loadPortalRecords,
+  loadTopPortalRecords,
+  type PortalRecords,
+} from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
 type Data = Readonly<Record<string, unknown>>;
 
 const acceptableStatuses = ["issued", "accepted", "open"];
+
+/**
+ * How many agreements the governing-agreement probe asks for.
+ *
+ * The probe is a real server-side top-N -- `order by source_updated_at desc
+ * limit N` -- not a slice of a full read. It is only conclusive when it
+ * answers the question, so a probe that finds no active agreement while more
+ * pages exist still falls back to the full read; the value on screen is
+ * therefore identical to the one the full read produced, at one request
+ * instead of up to a hundred whenever a recently touched active agreement
+ * exists.
+ */
+const AGREEMENT_PROBE_LIMIT = 25;
 
 function text(data: Data, key: string): string | undefined {
   const value = data[key];
@@ -42,17 +59,41 @@ function acceptableQuote(record: ProjectionRecord): AcceptableQuote {
   };
 }
 
+function activeAgreement(
+  records: readonly ProjectionRecord[],
+): ProjectionRecord | undefined {
+  return records.find((record) => text(record.data, "status") === "active");
+}
+
 function governingAgreement(
   records: readonly ProjectionRecord[],
 ): GoverningAgreement | null {
-  const active =
-    records.find((record) => text(record.data, "status") === "active") ??
-    records[0];
+  const active = activeAgreement(records) ?? records[0];
   if (!active) return null;
   return {
     title: text(active.data, "title") ?? active.recordKey,
     version: text(active.data, "version") ?? String(active.version),
   };
+}
+
+/**
+ * The surface needs one agreement, so it asks the server for the newest few
+ * rather than every page of the channel.
+ *
+ * The escalation is the honest part: a prefix cannot prove the *absence* of an
+ * active agreement, so when the probe finds none and the channel held more,
+ * the full read still happens. Facet and workspace surfaces must keep reading
+ * everything; this one never builds a facet.
+ */
+async function loadGoverningAgreement(): Promise<
+  PortalRecords<ProjectionRecord>
+> {
+  const probe = await loadTopPortalRecords("customer", "agreements", {
+    limit: AGREEMENT_PROBE_LIMIT,
+    orderBy: "updated_desc",
+  });
+  if (activeAgreement(probe.records) || !probe.truncated) return probe;
+  return loadPortalRecords("customer", "agreements");
 }
 
 /**
@@ -82,7 +123,7 @@ async function OrderAcceptanceWorkspace({
   const [identity, quotes, agreements, orders] = await Promise.all([
     getRouteIdentity("customer"),
     loadPortalRecords("customer", "quotes"),
-    loadPortalRecords("customer", "agreements"),
+    loadGoverningAgreement(),
     loadPortalRecords("customer", "orders"),
   ]);
   const selected =
@@ -100,12 +141,34 @@ async function OrderAcceptanceWorkspace({
       orderFormDocumentId={
         quote ? preparedOrderForm(orders.records, quote.id) : null
       }
+      // A truncated read is a prefix, not the set: the quote this page
+      // selected and the agreement it bound may both be wrong, and the reader
+      // is the one committing money on them.
+      partialRead={quotes.truncated || agreements.truncated || orders.truncated}
       quote={quote}
       signerUserId={identity.userId}
     />
   );
 }
 
+/**
+ * No `Suspense` element is added here, and that is deliberate.
+ *
+ * `app/(experience)/(customer)/orders/loading.tsx` already declares a boundary
+ * at the `orders` segment, and Next applies a segment's `loading.tsx` to its
+ * nested routes, so this page's three channel reads already stream *below*
+ * `(customer)/layout.tsx` -- navigation, banner and command palette are
+ * flushed before the reads start. Nesting a second boundary inside the page
+ * would only replace one fallback with another mid-stream.
+ *
+ * The routes that genuinely wait on their reads are the customer segments with
+ * no nearer `loading.tsx` -- `dashboard`, `account`, `amendments`,
+ * `marketplace`, `support` -- which fall back to `(experience)/loading.tsx`.
+ * That file sits *above* `(customer)/layout.tsx`, so their shell is inside the
+ * fallback. One `app/(experience)/(customer)/loading.tsx` fixes all of them,
+ * the way `partner/loading.tsx` and `internal/loading.tsx` already do for the
+ * other two audiences.
+ */
 export default async function Page({
   searchParams,
 }: {

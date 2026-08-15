@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
 
@@ -10,6 +10,11 @@ import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
+import { draftIsDirty } from "../draft-state";
+import {
+  LeaveDraftControl,
+  useUnsavedChangesWarning,
+} from "../unsaved-changes";
 import styles from "./commercial.module.css";
 import { SearchableSelector } from "./searchable-selector";
 import {
@@ -195,6 +200,22 @@ export function QuoteBuilder({
   const quoteIdRef = useRef<string | null>(null);
   const quoteInputRef = useRef<ReturnType<typeof quotePayload> | null>(null);
 
+  /**
+   * Armed while, and only while, the reader has changed something away from
+   * the state the form opened in and the server has not accepted it.
+   *
+   * `createdQuoteId` is the disarm: it is set the instant `sendCoreCommand`
+   * returns, so the prompt is gone before anyone can navigate away from a
+   * successful issue. `update()` clears it again, so editing after a
+   * successful create -- which invalidates the created draft's inputs -- re-arms.
+   * A form still holding exactly `emptyQuoteDraft(account.name)`, including its
+   * `us-east` and `direct` defaults, is never armed, so opening the builder and
+   * changing your mind costs nothing.
+   */
+  const pristine = useMemo(() => emptyQuoteDraft(account.name), [account.name]);
+  const unsaved = draftIsDirty(draft, pristine) && !createdQuoteId;
+  useUnsavedChangesWarning(unsaved);
+
   const update = (field: QuoteField, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
@@ -295,9 +316,13 @@ export function QuoteBuilder({
             are resolved to existing server identifiers only when issued.
           </p>
         </div>
-        <Link className={styles.secondary} href="/quotes">
-          Cancel and return
-        </Link>
+        <LeaveDraftControl
+          armed={unsaved}
+          className={styles.secondary ?? ""}
+          discardClassName={styles.secondary ?? ""}
+          href="/quotes"
+          label="Cancel and return"
+        />
       </header>
 
       {origin ? (

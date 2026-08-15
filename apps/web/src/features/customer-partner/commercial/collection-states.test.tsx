@@ -10,6 +10,9 @@ import {
 } from "./collection-page";
 import { recordsFor } from "./model";
 
+const fresh = { generatedAt: "2026-08-14T13:00:00Z", stale: false };
+const formatting = { locale: "en-US", timeZone: "America/New_York" };
+
 describe("commercial collection states", () => {
   it("renders loading and retryable error guidance", () => {
     const { rerender } = render(<CommercialLoadingState />);
@@ -21,11 +24,19 @@ describe("commercial collection states", () => {
 
   it("distinguishes empty collections from filtered no-match results", () => {
     const { rerender } = render(
-      <CommercialCollectionPage kind="quotes" records={[]} searchParams={{}} />,
+      <CommercialCollectionPage
+        formatting={formatting}
+        freshness={fresh}
+        kind="quotes"
+        records={[]}
+        searchParams={{}}
+      />,
     );
     expect(screen.getByText("Nothing here yet")).toBeVisible();
     rerender(
       <CommercialCollectionPage
+        formatting={formatting}
+        freshness={fresh}
         kind="quotes"
         records={recordsFor("quotes")}
         searchParams={{ q: "does-not-exist" }}

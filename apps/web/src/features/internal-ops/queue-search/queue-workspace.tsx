@@ -3,13 +3,15 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import styles from "./queue-search.module.css";
 import { QUEUE_COPY } from "./copy";
 import {
   activeFilterLabels,
+  decodeQueueQuery,
   DEFAULT_FILTERS,
+  encodeQueueQuery,
   filterQueueItems,
   paginateQueueItems,
   parseQueueFilters,
@@ -27,6 +29,13 @@ import {
 import { QueueDetail } from "./queue-detail";
 
 const NOT_RECORDED = "Not recorded";
+
+/**
+ * How long typing has to settle before the filter reaches the URL. Short
+ * enough that a deliberate pause reads as instant, long enough that an
+ * ordinary typing burst is one navigation rather than one per character.
+ */
+const SEARCH_COMMIT_DELAY_MS = 180;
 
 function SelectFilter({
   label,
@@ -113,7 +122,17 @@ function QueueTable({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className={styles.tableScroller}>
+    // The table is wider than the panel on a narrow viewport, so this element
+    // scrolls. A scroll container that holds no focusable element of its own
+    // cannot be scrolled from the keyboard at all, so it takes a tab stop and
+    // an accessible name of its own rather than trapping the rows behind a
+    // pointer gesture.
+    <div
+      className={styles.tableScroller}
+      role="region"
+      aria-label={QUEUE_COPY.tableRegionLabel}
+      tabIndex={0}
+    >
       <table className={styles.table}>
         <caption className={styles.srOnly}>{QUEUE_COPY.resultCaption}</caption>
         <thead>
@@ -214,7 +233,35 @@ export function QueueWorkspace({
     () => parseQueueFilters(new URLSearchParams(searchParams.toString())),
     [searchParams],
   );
-  const [searchDraft, setSearchDraft] = useState(filters.text);
+  /**
+   * What the search field holds, when that is not yet what the URL holds.
+   *
+   * The field used to be state seeded from the URL and reset by an effect on
+   * every URL change, while every keystroke pushed a fresh URL through a
+   * transition. A transition is interruptible and the round trip is not
+   * instant, so a keystroke that landed while an earlier URL was still in
+   * flight was overwritten by the older value the effect replayed: typed
+   * characters disappeared, and the field jumped backwards under anyone typing
+   * at speed -- worst for switch, voice, and screen-reader input, where
+   * recovering from a field that rewrites itself is expensive.
+   *
+   * Now the field is the authority while an edit is outstanding, the URL is the
+   * authority the rest of the time, and the commit is debounced so a burst of
+   * typing costs one navigation rather than one per character.
+   */
+  const [pendingText, setPendingText] = useState<string | null>(null);
+  const searchDraft = pendingText ?? filters.text;
+  /**
+   * The last commit handed to the router, and the URL it was built from.
+   *
+   * Recorded so the debounce can tell "already sent, waiting for the URL" from
+   * "not sent yet". Without it, a filter change that carried the text away is
+   * followed by a second, debounced commit built from the filters the URL still
+   * held, which silently undoes the filter change. It is scoped to the URL it
+   * was sent from so it expires the moment the URL moves, rather than
+   * suppressing a later edit that happens to type the same characters.
+   */
+  const lastCommit = useRef<{ text: string; from: QueueFilters } | null>(null);
   const people = useMemo(() => queueOwnerOptions(items), [items]);
   const typeOptions = useMemo(() => queueTypeOptions(items), [items]);
   const ownerOptions = useMemo(
@@ -243,19 +290,72 @@ export function QueueWorkspace({
       setSelectedId(null);
   }, [filtered, selectedId]);
 
-  useEffect(() => setSearchDraft(filters.text), [filters.text]);
-
-  function update(patch: Partial<QueueFilters>) {
-    const next = { ...filters, ...patch, page: patch.page ?? 1 };
+  function commitFilters(next: QueueFilters) {
+    lastCommit.current = { text: next.text, from: filters };
     const query = serializeQueueFilters(next).toString();
     startTransition(() =>
       router.replace(`${pathname}?${query}` as Route, { scroll: false }),
     );
   }
 
+  function update(patch: Partial<QueueFilters>) {
+    // An outstanding keystroke is part of the operator's intent, so a filter
+    // or a page change carries it into the URL instead of discarding it.
+    const next = {
+      ...filters,
+      text: searchDraft,
+      ...patch,
+      page: patch.page ?? 1,
+    };
+    if (next.text !== filters.text) setPendingText(next.text);
+    commitFilters(next);
+  }
+
+  /**
+   * The URL now says what the field says, so the URL owns the field again.
+   *
+   * The comparison is between encoded queries rather than raw strings because
+   * the URL is a normalizing round trip: it trims, it collapses runs of
+   * whitespace, and it lifts `sla:breached` out of the text and into its own
+   * filter. Comparing raw text would leave the field permanently ahead of a URL
+   * that had in fact absorbed every character, and it would then stop accepting
+   * external changes such as the back button.
+   */
+  const settled =
+    pendingText !== null &&
+    encodeQueueQuery(decodeQueueQuery(pendingText)) ===
+      encodeQueueQuery(filters);
+  useEffect(() => {
+    if (settled) setPendingText(null);
+  }, [settled]);
+
+  /** This exact text was already sent from this exact URL; the URL owes a reply. */
+  const awaitingCommit =
+    lastCommit.current !== null &&
+    lastCommit.current.from === filters &&
+    lastCommit.current.text === pendingText;
+
+  // Commit the outstanding keystrokes once typing pauses. Each further
+  // keystroke restarts the wait, so only the settled value reaches the router
+  // and no in-flight navigation is left to overwrite the field.
+  useEffect(() => {
+    if (pendingText === null || settled || awaitingCommit) return;
+    const timer = setTimeout(
+      () => commitFilters({ ...filters, text: pendingText, page: 1 }),
+      SEARCH_COMMIT_DELAY_MS,
+    );
+    return () => clearTimeout(timer);
+    // `commitFilters` closes over the same `filters` this effect reads, so the
+    // pair stays consistent without adding a per-render identity to the deps.
+  }, [awaitingCommit, filters, pendingText, settled]);
+
   function reset() {
     setSelectedId(null);
-    update(DEFAULT_FILTERS);
+    // Clearing is the one case that must not carry the outstanding keystrokes
+    // forward, and dropping them here also cancels the debounced commit that
+    // would otherwise land after the reset and restore the filters it cleared.
+    setPendingText(null);
+    commitFilters(DEFAULT_FILTERS);
   }
 
   return (
@@ -318,10 +418,7 @@ export function QueueWorkspace({
               type="search"
               value={searchDraft}
               placeholder={QUEUE_COPY.searchPlaceholder}
-              onChange={(event) => {
-                setSearchDraft(event.target.value);
-                update({ text: event.target.value });
-              }}
+              onChange={(event) => setPendingText(event.target.value)}
             />
           </label>
           <SelectFilter

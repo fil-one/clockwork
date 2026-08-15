@@ -30,6 +30,8 @@ globalThis.ResizeObserver ??= class {
 const session: RouteSession = {
   roles: ["internal_operator"],
   profile: { name: "Demo internal operator", email: "operator@filone.test" },
+  locale: "en-US",
+  timeZone: "UTC",
   memberships: [
     {
       userId: "20000000-0000-4000-8000-000000000001",

@@ -375,3 +375,174 @@ describe("render request state compare-and-swap", () => {
     });
   });
 });
+
+/** Collects the literal text of a drizzle `sql` template and its fragments. */
+function statementText(query: unknown): string {
+  if (!query || typeof query !== "object") return "";
+  const chunks = (query as { queryChunks?: readonly unknown[] }).queryChunks;
+  if (!Array.isArray(chunks)) return "";
+  return chunks
+    .map((chunk) => {
+      if (!chunk || typeof chunk !== "object") return "";
+      if ("queryChunks" in chunk) return statementText(chunk);
+      const value = (chunk as { value?: unknown }).value;
+      return Array.isArray(value) ? value.join("") : "";
+    })
+    .join("");
+}
+
+function capturingDatabase(captured: unknown[]): RuntimeDatabase {
+  const transaction = {
+    execute: (query: unknown) => {
+      captured.push(query);
+      return Promise.resolve([]);
+    },
+  };
+  return {
+    transaction: async <T>(
+      operation: (value: typeof transaction) => Promise<T>,
+    ) => operation(transaction),
+  } as unknown as RuntimeDatabase;
+}
+
+/** The authorized transaction runs role and setting statements first. */
+function projectionStatement(captured: readonly unknown[]): string {
+  const match = captured
+    .map((query) => statementText(query).replace(/\s+/g, " "))
+    .find((text) => text.includes("from experience_portal_projections"));
+  if (!match) throw new Error("no projection statement was executed");
+  return match;
+}
+
+function listInput(orderBy?: "updated_desc" | "updated_asc") {
+  return {
+    session,
+    audience: "customer" as const,
+    channel: "quotes" as const,
+    accountId,
+    limit: 25,
+    ...(orderBy ? { orderBy } : {}),
+    now: new Date("2026-08-01T00:00:00.000Z"),
+  };
+}
+
+/**
+ * Top-N is a server capability, so the ordering and the limit have to reach
+ * the statement. The keyset comparison is chosen together with the direction:
+ * `<` under an ascending order returns the page *before* the cursor and pages
+ * backwards for ever, so the pair is asserted, not just the `order by`.
+ *
+ * Neither branch wraps the sort columns in an expression -- the read stays on
+ * the existing `(source_updated_at, id)` index in both directions.
+ */
+describe("projection list ordering", () => {
+  it("defaults to the descending order every existing caller assumed", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await repository.listProjections(listInput());
+
+    const text = projectionStatement(captured);
+    expect(text).toContain("order by source_updated_at desc, id desc");
+    expect(text).toContain("(source_updated_at, id) < (");
+  });
+
+  it("asks the database for the ascending page, with the matching comparison", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await repository.listProjections(listInput("updated_asc"));
+
+    const text = projectionStatement(captured);
+    expect(text).toContain("order by source_updated_at asc, id asc");
+    expect(text).toContain("(source_updated_at, id) > (");
+    expect(text).not.toContain("(source_updated_at, id) < (");
+  });
+
+  it("keeps the sort on the indexed columns rather than an expression", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await repository.listProjections(listInput("updated_asc"));
+
+    expect(projectionStatement(captured)).not.toContain("case when");
+  });
+});
+
+/**
+ * The account predicate decides whether the read uses
+ * `experience_projection_page_idx` at all. Measured on Postgres 17 with 50,000
+ * rows on that index: `is not distinct from $1` plans a `Seq Scan` plus a full
+ * `Sort` for every page, `= $1` plans an `Index Only Scan`, and the ascending
+ * order plans an `Index Only Scan Backward` on the same index.
+ *
+ * The two branches select exactly the rows the single predicate selected, so
+ * nothing here is a scope change -- `assertions` in `authorization.test.ts` and
+ * the `experience_projection_read` policy still hold the tenant boundary. What
+ * is asserted is only that the indexable form is the one emitted.
+ */
+describe("projection account scope", () => {
+  it("uses an indexable equality for a tenant read", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await repository.listProjections(listInput());
+
+    const text = projectionStatement(captured);
+    expect(text).toContain("audience_account_id = ");
+    expect(text).not.toContain("is not distinct from");
+  });
+
+  it("uses a null test for the unscoped internal read", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await repository.listProjections({
+      ...listInput(),
+      audience: "internal",
+      accountId: null,
+    });
+
+    const text = projectionStatement(captured);
+    expect(text).toContain("audience_account_id is null");
+    expect(text).not.toContain("is not distinct from");
+  });
+
+  it("applies the same form to the record detail read", async () => {
+    const captured: unknown[] = [];
+    const repository = new DatabaseExperienceRepository(
+      capturingDatabase(captured),
+      database([]),
+    );
+
+    await expect(
+      repository.findProjection({
+        session,
+        audience: "customer",
+        channel: "quotes",
+        accountId,
+        recordKey: "Q-2026-0001",
+        now: new Date("2026-08-01T00:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "PROJECTION_NOT_FOUND" });
+
+    const text = projectionStatement(captured);
+    expect(text).toContain("audience_account_id = ");
+    expect(text).not.toContain("is not distinct from");
+  });
+});

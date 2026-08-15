@@ -34,6 +34,11 @@ export default async function Page({
       requiredPermission="account:write"
     >
       <CustomerCollection
+        freshness={{
+          generatedAt: projection.generatedAt,
+          stale: projection.stale,
+        }}
+        formatting={{ locale: session.locale, timeZone: session.timeZone }}
         actions={
           <SurfaceActionGate
             audience="customer"
