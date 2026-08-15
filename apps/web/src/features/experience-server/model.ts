@@ -54,6 +54,22 @@ export interface ProjectionPage {
   freshnessSeconds: number;
 }
 
+/**
+ * The orderings a projection list may ask the server for.
+ *
+ * Both are expressible with the keyset cursor this table already pages on --
+ * `(source_updated_at, id)` -- so a top-N read is a real `order by ... limit`
+ * against the existing index rather than a slice of a full read. `record_key`
+ * and payload fields are deliberately absent: the cursor does not encode them,
+ * so offering them would either break pagination or force an offset scan.
+ *
+ * `source_updated_at` is the only time column the projection row carries. A
+ * surface that wants "by due date" needs the materializer to project a due
+ * column first; ordering here cannot invent one.
+ */
+export const projectionOrders = ["updated_desc", "updated_asc"] as const;
+export type ProjectionOrder = (typeof projectionOrders)[number];
+
 export interface ProjectionListInput {
   session: SessionClaims;
   audience: ExperienceAudience;
@@ -61,6 +77,8 @@ export interface ProjectionListInput {
   accountId: string | null;
   cursor?: string;
   limit: number;
+  /** Defaults to `updated_desc`, the ordering every existing caller assumed. */
+  orderBy?: ProjectionOrder;
   now: Date;
 }
 

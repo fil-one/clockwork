@@ -3,4 +3,8 @@ packages/api/src/generated/**
 packages/db/drizzle/meta/**
 pnpm-lock.yaml
 .netlify/**
+# Per-shard Next output roots (CLOCKWORK_NEXT_DIST_DIR) land at
+# apps/web/.next-*, so this needs the leading **/: a mid-pattern slash anchors
+# to the repository root and `.next-*/**` alone would match nothing there.
+**/.next-*/**
 deno.lock

@@ -7,6 +7,11 @@ import { requestOffboarding } from "@/src/features/contracts/commerce-client";
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
+import { draftIsDirty } from "../draft-state";
+import {
+  LeaveDraftControl,
+  useUnsavedChangesWarning,
+} from "../unsaved-changes";
 import styles from "./commercial.module.css";
 
 export interface OffboardableService {
@@ -43,6 +48,28 @@ export function OffboardingWorkflow({
   } | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const selectedService = services.find((service) => service.id === orderId);
+
+  /**
+   * Armed once the request differs from the one the page opened with -- a
+   * different service, a reason other than non-renewal, an effective date, a
+   * retrieval window other than 30 days -- or the confirmation is ticked, and
+   * the request has not been sent.
+   *
+   * `reviewing` is deliberately not part of this. Stepping into the review
+   * panel is navigation inside the form, not an entry, and arming on it would
+   * warn someone who has looked at the summary and typed nothing.
+   */
+  const [pristine] = useState(() => ({
+    orderId: selectedServiceId ?? services[0]?.id ?? "",
+    reason: "non_renewal",
+    effectiveAt: "",
+    retrievalDays: "30",
+  }));
+  const unsaved =
+    (draftIsDirty({ orderId, reason, effectiveAt, retrievalDays }, pristine) ||
+      confirmed) &&
+    !requested;
+  useUnsavedChangesWarning(unsaved);
 
   const submit = async () => {
     if (!selectedService) return;
@@ -108,9 +135,13 @@ export function OffboardingWorkflow({
             immediately.
           </p>
         </div>
-        <Link className={styles.secondary} href="/account">
-          Return to account
-        </Link>
+        <LeaveDraftControl
+          armed={unsaved}
+          className={styles.secondary ?? ""}
+          discardClassName={styles.secondary ?? ""}
+          href="/account"
+          label="Return to account"
+        />
       </header>
 
       {services.length === 0 ? (

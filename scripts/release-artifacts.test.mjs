@@ -17,7 +17,10 @@ import {
   releasePortAllocationIssues,
   releaseStressSummaryIssues,
   releaseSummaryIssues,
+  RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT,
+  RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256,
   RELEASE_FILE_CREDENTIAL_ENVIRONMENT,
+  RELEASE_REQUIRED_RUNTIME_ENVIRONMENT,
   RELEASE_SUITE_ASSERTIONS,
   RELEASE_SUITE_NAMES,
   semanticArtifactInventoryFingerprint,
@@ -189,6 +192,89 @@ test("scrubs the complete checked-in runtime environment contract", async () => 
     checkedInRuntimeVariables.every((variable) =>
       isolated.scrubbedVariables.includes(variable),
     ),
+  );
+});
+
+// Every external provider is reached with a base URL and a bearer token, and
+// both halves have to be scrubbed: a leaked base URL points a release run at a
+// live endpoint even when the token is gone. One pair, EXT-TAX-01's, was
+// absent from the floor while the other ten were on it.
+test("names every documented provider endpoint and credential in the isolation floor", () => {
+  const documentedProviderCredentials = checkedInRuntimeVariables.filter(
+    (variable) => /_PROVIDER_(?:CONTROL_)?(?:BASE_URL|TOKEN)$/.test(variable),
+  );
+  assert.ok(documentedProviderCredentials.includes("TAX_PROVIDER_BASE_URL"));
+  assert.deepEqual(
+    documentedProviderCredentials.filter(
+      (variable) => !RELEASE_REQUIRED_RUNTIME_ENVIRONMENT.includes(variable),
+    ),
+    [],
+  );
+});
+
+// The other direction, and the reason the floor is a subset check rather than
+// a second fingerprint: a name here that `.env.example` does not document can
+// never appear in `documentedRuntimeVariables`, so it would fail every suite
+// of every release for a variable the release has no way to supply.
+test("keeps the isolation floor inside the documented runtime environment", () => {
+  assert.deepEqual(
+    RELEASE_REQUIRED_RUNTIME_ENVIRONMENT.filter(
+      (variable) => !checkedInRuntimeVariables.includes(variable),
+    ),
+    [],
+  );
+  // Adding a name to the floor must not move the documented fingerprint; the
+  // two contracts are independent and conflating them has cost time before.
+  assert.equal(
+    checkedInRuntimeVariablesSha256,
+    RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256,
+  );
+  assert.equal(
+    checkedInRuntimeVariables.length,
+    RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT,
+  );
+});
+
+test("rejects a suite whose documented environment drops the tax credentials", () => {
+  const withoutTax = checkedInRuntimeVariables.filter(
+    (variable) => !variable.startsWith("TAX_PROVIDER_"),
+  );
+  const issues = releaseSummaryIssues(
+    {
+      runId: releaseRunId,
+      mode: "parallel",
+      debug: false,
+      status: "passed",
+      toolchain: { node: "v24.18.1", pnpm: "10.34.5", pnpmNode: "v24.18.1" },
+      durationMs: 1_000,
+      budgetMs: 60_000,
+      withinBudget: true,
+      sourceIdentity,
+      cachePolicy,
+      installationPolicy,
+      results: RELEASE_SUITE_NAMES.map((suite) => {
+        const passing = result(suite);
+        if (suite !== "unit") return passing;
+        return {
+          ...passing,
+          environmentIsolation: {
+            ...passing.environmentIsolation,
+            documentedRuntimeVariableCount: withoutTax.length,
+            documentedRuntimeVariables: withoutTax,
+            documentedRuntimeVariablesSha256: createHash("sha256")
+              .update(JSON.stringify(withoutTax))
+              .digest("hex"),
+          },
+        };
+      }),
+    },
+    { expectedMode: "parallel" },
+  );
+  assert.ok(
+    issues.includes(
+      "unit environment isolation omits required variables: TAX_PROVIDER_BASE_URL, TAX_PROVIDER_TOKEN",
+    ),
+    `expected the tax credentials to be reported as missing, got ${JSON.stringify(issues)}`,
   );
 });
 

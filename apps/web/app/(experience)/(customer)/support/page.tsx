@@ -3,19 +3,28 @@ import { customerCollections } from "@/src/features/customer-partner/customer/cu
 import type { RawCollectionSearchParams } from "@/src/features/customer-partner/customer/collection-state";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { loadCustomerCollectionRecords } from "@/src/features/experience-server/portal-view-loader";
+import { getRouteSession } from "@/src/features/shell/route-session";
 
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<RawCollectionSearchParams>;
 }) {
-  const projection = await loadCustomerCollectionRecords("support");
+  const [session, projection] = await Promise.all([
+    getRouteSession("customer"),
+    loadCustomerCollectionRecords("support"),
+  ]);
   return (
     <SurfacePermissionGate
       audience="customer"
       requiredPermission="account:read"
     >
       <CustomerCollection
+        freshness={{
+          generatedAt: projection.generatedAt,
+          stale: projection.stale,
+        }}
+        formatting={{ locale: session.locale, timeZone: session.timeZone }}
         config={{ ...customerCollections.support, records: projection.records }}
         searchParams={await searchParams}
       />

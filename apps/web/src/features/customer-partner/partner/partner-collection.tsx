@@ -8,6 +8,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ApplicationStatePanel, Button, Table } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import type { SurfaceFormatting } from "@/src/features/customer-partner/formatting";
+import {
+  ProjectionFreshnessNotice,
+  type ProjectionFreshness,
+} from "@/src/features/customer-partner/projection-freshness";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
 import type {
@@ -296,12 +301,18 @@ export function PartnerCollection({
   config,
   roles,
   partnerName,
+  freshness,
+  formatting,
   actions,
 }: {
   surface: PartnerSurfaceKey;
   config: PartnerSurfaceConfig;
   roles: readonly string[];
   partnerName: string;
+  /** The `stale`/`generatedAt` pair the loader returned for this read. */
+  freshness: ProjectionFreshness;
+  /** Locale and zone of the partner reading, from the active route session. */
+  formatting: SurfaceFormatting;
   /**
    * Server-backed action for this surface, supplied by the route so the panel
    * carries the route's own permission gate rather than a second guess at it.
@@ -350,6 +361,10 @@ export function PartnerCollection({
           <p className={styles.eyebrow}>{config.eyebrow}</p>
           <h1>{config.title}</h1>
           <p>{config.description}</p>
+          <ProjectionFreshnessNotice
+            formatting={formatting}
+            freshness={freshness}
+          />
         </div>
         {config.primaryAction && canCreate ? (
           <Link className={styles.buttonLink} href={config.primaryAction.href}>

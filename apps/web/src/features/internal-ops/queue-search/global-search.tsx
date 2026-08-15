@@ -38,6 +38,7 @@ export function GlobalSearch({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
   const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
   const results = useMemo(
     () => searchRecords(query, records),
     [query, records],
@@ -45,10 +46,18 @@ export function GlobalSearch({
   const groups = useMemo(() => groupSearchResults(results), [results]);
 
   useEffect(() => setDraft(query), [query]);
+  /**
+   * A new query means no active result. The ref array is truncated rather than
+   * emptied: React attaches these refs during the commit that precedes this
+   * effect, so discarding the array here threw away the refs for the results
+   * that had just rendered, and the arrow keys moved no focus at all until
+   * some other state change happened to re-attach them. On a freshly loaded
+   * result page that meant the first arrow press did nothing.
+   */
   useEffect(() => {
     setActiveIndex(-1);
-    linkRefs.current = [];
-  }, [query]);
+    linkRefs.current.length = results.length;
+  }, [query, results.length]);
 
   function commit(value: string) {
     const next = new URLSearchParams();
@@ -60,6 +69,19 @@ export function GlobalSearch({
     );
   }
 
+  /**
+   * Results move real focus.
+   *
+   * This handler used to run two mutually exclusive patterns at once: it moved
+   * DOM focus onto the result link and also pointed `aria-activedescendant` at
+   * it from the input. Assistive technology reads one or the other, so the two
+   * disagreed about where the user was, and `aria-activedescendant` was the
+   * wrong half to keep. It describes a virtual cursor inside a combobox whose
+   * options the input owns, and these results are not options: each is a link
+   * inside a grouped list, alongside a status and an expandable reference that
+   * the option role forbids. Real focus is what the pattern calls for when the
+   * results are ordinary interactive content, so real focus is what is left.
+   */
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (
       event.key !== "ArrowDown" &&
@@ -70,6 +92,9 @@ export function GlobalSearch({
       return;
     if (event.key === "Escape") {
       setActiveIndex(-1);
+      // Focus lives on a result, so leaving it there after dismissing the
+      // active result would strand the keyboard away from the field.
+      inputRef.current?.focus();
       return;
     }
     if (event.key === "Enter") {
@@ -102,15 +127,13 @@ export function GlobalSearch({
           <div>
             <input
               id="global-search"
+              ref={inputRef}
               type="search"
               autoComplete="off"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={onKeyDown}
               aria-controls="global-search-results"
-              aria-activedescendant={
-                activeIndex >= 0 ? `search-result-${activeIndex}` : undefined
-              }
               placeholder={SEARCH_COPY.placeholder}
               autoFocus
             />
@@ -201,7 +224,6 @@ export function GlobalSearch({
                     >
                       <div>
                         <Link
-                          id={`search-result-${index}`}
                           ref={(node) => {
                             linkRefs.current[index] = node;
                           }}

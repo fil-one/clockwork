@@ -32,13 +32,36 @@ export const customerPartnerCopy = {
     permissionBody: "Ask an account owner to grant the required access.",
     errorTitle: "Records could not be loaded",
     errorBody: "Try again. Your filters have been preserved.",
+    freshnessCurrent: "Records are current",
+    freshnessReadAt: "Read",
+    freshnessStaleTitle: "These records may be out of date.",
+    freshnessStaleBody:
+      "The projection behind this page has not caught up with its source, so a recent change may be missing. Refresh before acting on anything here.",
+    freshnessAction: "Refresh records",
+    unsavedTitle: "Leave without saving?",
+    unsavedBody:
+      "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",
+    unsavedDiscard: "Discard and leave",
+    unsavedKeep: "Keep editing",
   },
   customer: {
     dashboardGreeting: "Welcome back",
     dashboardDescription:
       "Act on commercial deadlines first, then review account performance.",
     attentionTitle: "Needs attention",
-    attentionDescription: "Four items need a decision or follow-up.",
+    /**
+     * Counted at render from the list underneath, never asserted.
+     *
+     * This read "Four items need a decision or follow-up." above a list whose
+     * length is whatever the projection returned. A reader with two open
+     * obligations was told there were four and had no way to find the other
+     * two; a reader with none was told there were four. `{count}` is
+     * substituted by `plural`, and the empty case is its own sentence because
+     * "0 items need a decision" is not how anyone says it.
+     */
+    attentionDescriptionOne: "{count} item needs a decision or follow-up.",
+    attentionDescriptionOther: "{count} items need a decision or follow-up.",
+    attentionDescriptionNone: "Nothing needs a decision or follow-up.",
     termTitle: "Current commercial term",
     serviceRollup: "Service term rollup",
     metricsTitle: "Decisions at a glance",

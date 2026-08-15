@@ -160,6 +160,37 @@ function nextCursor(row: Row | undefined): string | null {
   ).toString("base64url");
 }
 
+/**
+ * The account predicate, written so the planner can use
+ * `experience_projection_page_idx`.
+ *
+ * `audience_account_id is not distinct from $1::uuid` is not an indexable
+ * equality: the planner cannot push it into the index, so it falls back to a
+ * sequential scan of the table and a full sort for every page. Measured on
+ * Postgres 17 with 50,000 rows on the shipped index:
+ *
+ *   is not distinct from -> Seq Scan on p, then Sort, then Limit
+ *   = $1                 -> Index Only Scan using experience_projection_page_idx
+ *   = $1, order asc      -> Index Only Scan Backward using the same index
+ *
+ * That was the real volume cost on this read, and it is worse than the page
+ * count: the ceiling walked a hundred pages, and every one of them sorted the
+ * whole channel.
+ *
+ * The split is exact, not an approximation. `x is not distinct from null` is
+ * true for exactly the rows `x is null` matches; for a non-null `v`, `x is not
+ * distinct from v` is true for exactly the rows `x = v` matches, because a
+ * null `x` makes the equality unknown and the row is not returned either way.
+ * The two branches therefore select the same rows the single predicate did --
+ * and, being separate statements, the internal audience's `null` case keeps
+ * its own plan instead of sharing one with every tenant read.
+ */
+function accountScope(accountId: string | null) {
+  return accountId === null
+    ? sql`audience_account_id is null`
+    : sql`audience_account_id = ${accountId}::uuid`;
+}
+
 function projectionRecord(row: Row, now: Date): ProjectionRecord {
   const sourceUpdatedAt = dateText(row, "source_updated_at");
   return {
@@ -350,13 +381,36 @@ export class DatabaseExperienceRepository {
       `projection:${uuidV7()}`,
       async (transaction) => {
         const cursor = cursorValue(input.cursor);
+        // Both branches are the same keyset walk over
+        // `(source_updated_at, id)`; only the direction differs, so the
+        // ascending read scans the existing index backwards rather than
+        // sorting, and the default read emits byte-for-byte the statement it
+        // emitted before ordering was selectable.
+        //
+        // The two fragments are chosen together, not independently: the
+        // comparison operator has to flip with the order. Keeping `<` under
+        // `asc` would return the page *before* the cursor and page backwards
+        // for ever.
+        const ascending = (input.orderBy ?? "updated_desc") === "updated_asc";
+        const keyset = ascending
+          ? sql`(source_updated_at, id) > (
+              ${cursor?.updatedAt ?? null}::timestamptz,
+              ${cursor?.id ?? null}::uuid
+            )`
+          : sql`(source_updated_at, id) < (
+              ${cursor?.updatedAt ?? null}::timestamptz,
+              ${cursor?.id ?? null}::uuid
+            )`;
+        const ordering = ascending
+          ? sql`order by source_updated_at asc, id asc`
+          : sql`order by source_updated_at desc, id desc`;
         const rows = await transaction.execute(sql<Row>`
         select id, audience, audience_account_id, channel, record_key,
                aggregate_type, aggregate_id, payload, source_updated_at,
                projected_at, source_aggregate_version
         from experience_portal_projections
         where audience = ${input.audience}
-          and audience_account_id is not distinct from ${input.accountId}::uuid
+          and ${accountScope(input.accountId)}
           and channel = ${input.channel}
           and (
             ${input.audience} <> 'internal'
@@ -365,12 +419,9 @@ export class DatabaseExperienceRepository {
           )
           and (
             ${cursor?.updatedAt ?? null}::timestamptz is null
-            or (source_updated_at, id) < (
-              ${cursor?.updatedAt ?? null}::timestamptz,
-              ${cursor?.id ?? null}::uuid
-            )
+            or ${keyset}
           )
-        order by source_updated_at desc, id desc
+        ${ordering}
         limit ${input.limit + 1}
       `);
         const hasMore = rows.length > input.limit;
@@ -400,7 +451,7 @@ export class DatabaseExperienceRepository {
                projected_at, source_aggregate_version
         from experience_portal_projections
         where audience = ${input.audience}
-          and audience_account_id is not distinct from ${input.accountId}::uuid
+          and ${accountScope(input.accountId)}
           and channel = ${input.channel}
           and (
             ${input.audience} <> 'internal'

@@ -17,6 +17,10 @@ export const QUEUE_COPY = {
   searchPlaceholder: "Entity, work item, or reference",
   resultTableLabel: "Queue results",
   resultCaption: "Operational queue results sorted by SLA, risk, then age",
+  // Names the scroll container itself, which takes a tab stop so the table can
+  // be scrolled from the keyboard. Distinct from `resultTableLabel`, which
+  // names the wider panel that also holds pagination.
+  tableRegionLabel: "Queue results table",
   detailLabel: "Selected queue item details",
   activeFilters: "Active filters",
   noActiveFilters: "No active filters",

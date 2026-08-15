@@ -12,7 +12,7 @@ import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
 } from "@/src/db/service";
-import { requiredTaxProvider } from "@/src/providers/tax";
+import { composedTaxProvider } from "@/src/providers/tax";
 
 export interface WebhookReplayOutcome {
   ok: boolean;
@@ -80,14 +80,27 @@ export async function replayWebhookEvent(
   if (!permitted) return { ok: false, code: "WEBHOOK_REPLAY_FORBIDDEN" };
 
   try {
-    // Replay moves no money and determines no tax, but the repository it runs
-    // on will not exist without an EXT-TAX-01 engine. A throw here lands in the
-    // catch below as WEBHOOK_REPLAY_FAILED rather than leaking the reason.
+    // Replay moves no money and determines no tax. `requiredTaxProvider()`
+    // threw `TAX_PROVIDER_NOT_CONFIGURED:EXT-TAX-01` while the argument list
+    // was still being built, so an unwired EXT-TAX-01 refused every replay --
+    // including ones that could never reach a tax determination. That is the
+    // same defect the API composition carried (P0-61's over-correction).
+    // `composedTaxProvider()` supplies a port that refuses `calculate` and
+    // `validateTaxId` instead of refusing to exist, which keeps the refusal on
+    // the two commands that can write a `tax_minor` and off this one.
+    //
+    // Replay still fails, and deliberately: the repository refuses with
+    // INVALID_STATE because no durable task is registered under
+    // `webhook-replay:<provider>`. That refusal lands in the catch below as
+    // WEBHOOK_REPLAY_FAILED -- a real failure the operator sees, not a silent
+    // success -- and it is the refusal to keep. What changed is only that the
+    // operator now reaches it for the true reason rather than for a missing
+    // tax endpoint the command never needed.
     const result = await new DatabaseCoreFinanceService({
       database,
       pricingDatabase,
       authorizationSecret,
-      tax: requiredTaxProvider(),
+      tax: composedTaxProvider(),
     }).replay({
       provider,
       eventId: providerEventId,

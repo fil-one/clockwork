@@ -10,6 +10,11 @@ import {
 } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
+import type { SurfaceFormatting } from "../formatting";
+import {
+  ProjectionFreshnessNotice,
+  type ProjectionFreshness,
+} from "../projection-freshness";
 import {
   collectionPageSizes,
   collectionRisks,
@@ -228,10 +233,25 @@ function SelectedRecord({
 export function CustomerCollection({
   config,
   searchParams,
+  freshness,
+  formatting,
   actions,
 }: {
   config: CustomerCollectionConfig;
   searchParams: RawCollectionSearchParams;
+  /**
+   * The `stale`/`generatedAt` pair the loader returned for this read.
+   *
+   * Required, not optional. The loader has returned both since it was written
+   * and every route here discarded them, so the rows a customer acted on could
+   * be behind their source with nothing on the page saying so, while an
+   * operator looking at the same projection on `/internal/queues` was told.
+   * Making it required is what stops the next collection surface from
+   * repeating that by omission.
+   */
+  freshness: ProjectionFreshness;
+  /** Locale and zone of the person reading, from the active route session. */
+  formatting: SurfaceFormatting;
   /**
    * Server-backed action for this collection, supplied by the route so the
    * panel carries the route's own permission gate rather than a second guess
@@ -269,6 +289,10 @@ export function CustomerCollection({
           <h1>{config.title}</h1>
           <p className={styles.description}>{config.description}</p>
         </div>
+        <ProjectionFreshnessNotice
+          formatting={formatting}
+          freshness={freshness}
+        />
       </header>
 
       {config.providerNote ? (

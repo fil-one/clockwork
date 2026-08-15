@@ -20,7 +20,11 @@ import {
   loadCommercialRecord,
   loadCustomerCollectionRecords,
   loadPartnerRecords,
+  loadPortalRecords,
+  loadTopPortalRecords,
   recordRoute,
+  MAX_PROJECTION_PAGES,
+  PROJECTION_PAGE_SIZE,
 } from "./portal-view-loader";
 import { collectionKinds } from "@/src/features/customer-partner/commercial/model";
 
@@ -391,4 +395,177 @@ describe("commercial record routes", () => {
       "/services/svc%2F..%2Forders%2FORD-1",
     );
   });
+});
+
+/**
+ * The page ceiling used to `throw`. An account whose channel had grown past
+ * `PROJECTION_PAGE_SIZE * MAX_PROJECTION_PAGES` records could not open the
+ * route at all -- a control refusing a legitimate read, which is the same
+ * class of defect as one that returns a wrong value.
+ *
+ * What is asserted here is the whole replacement contract: the read resolves,
+ * it returns the prefix it managed to read, and it says so twice -- `truncated`
+ * for a surface that can disclose it, `stale` for one that only understands
+ * freshness. Nothing here silently becomes a complete answer.
+ */
+describe("projection reads past the page ceiling", () => {
+  function endlessChannel() {
+    let page = 0;
+    mocks.list.mockImplementation(() => {
+      page += 1;
+      return Promise.resolve({
+        items: [
+          projection({
+            audience: "customer",
+            channel: "quotes",
+            recordKey: `Q-${page}`,
+            data: partnerPayload([]),
+          }),
+        ],
+        nextCursor: `cursor-${page}`,
+        generatedAt: "2026-08-01T00:00:00.000Z",
+        freshnessSeconds: 300,
+      });
+    });
+  }
+
+  it("returns the records it read instead of refusing the read", async () => {
+    endlessChannel();
+
+    const page = await loadPortalRecords("customer", "quotes");
+
+    expect(page.pagesRead).toBe(MAX_PROJECTION_PAGES);
+    expect(page.recordCount).toBe(MAX_PROJECTION_PAGES);
+    expect(page.records).toHaveLength(MAX_PROJECTION_PAGES);
+  });
+
+  it("marks the partial result truncated and stale", async () => {
+    endlessChannel();
+
+    const page = await loadPortalRecords("customer", "quotes");
+
+    expect(page.truncated).toBe(true);
+    expect(page.stale).toBe(true);
+  });
+
+  it("stops asking the server once the ceiling is reached", async () => {
+    endlessChannel();
+
+    await loadPortalRecords("customer", "quotes");
+
+    expect(mocks.list).toHaveBeenCalledTimes(MAX_PROJECTION_PAGES);
+  });
+
+  it("reports a complete read as neither truncated nor stale", async () => {
+    returns([projection({ data: partnerPayload([]) })]);
+
+    const page = await loadPortalRecords("partner", "quotes");
+
+    expect(page.truncated).toBe(false);
+    expect(page.stale).toBe(false);
+    expect(page.pagesRead).toBe(1);
+  });
+});
+
+/**
+ * The top-N read. `order by` and `limit` go to the server, so a surface that
+ * wants the newest twenty-five rows reads twenty-five rows -- it is not a
+ * slice taken after reading everything, which is what the loop above does.
+ *
+ * The refused set is exactly one thing: a `limit` that is not a positive safe
+ * integer. Every audience, every channel, both orderings and every limit from
+ * 1 upwards are accepted; a limit above one server page is clamped to a page
+ * rather than rejected, because asking for more than the server will return in
+ * one page is a legitimate request for "as many as one page holds".
+ */
+describe("top-N projection reads", () => {
+  function onePageOf(count: number, nextCursor: string | null) {
+    mocks.list.mockResolvedValue({
+      items: Array.from({ length: count }, (_unused, index) =>
+        projection({
+          audience: "customer",
+          channel: "agreements",
+          recordKey: `A-${index}`,
+          data: partnerPayload([]),
+        }),
+      ),
+      nextCursor,
+      generatedAt: "2026-08-01T00:00:00.000Z",
+      freshnessSeconds: 300,
+    });
+  }
+
+  it("asks the server for the ordering and the limit, and reads one page", async () => {
+    onePageOf(3, null);
+
+    const page = await loadTopPortalRecords("customer", "agreements", {
+      limit: 25,
+      orderBy: "updated_desc",
+    });
+
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audience: "customer",
+        channel: "agreements",
+        limit: 25,
+        orderBy: "updated_desc",
+      }),
+    );
+    expect(page.pagesRead).toBe(1);
+    expect(page.records).toHaveLength(3);
+  });
+
+  it("passes the ascending ordering through rather than reversing a read", async () => {
+    onePageOf(2, null);
+
+    await loadTopPortalRecords("customer", "agreements", {
+      limit: 5,
+      orderBy: "updated_asc",
+    });
+
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 5, orderBy: "updated_asc" }),
+    );
+  });
+
+  it("says the answer is a prefix when the channel held more", async () => {
+    onePageOf(25, "cursor-1");
+
+    const page = await loadTopPortalRecords("customer", "agreements", {
+      limit: 25,
+      orderBy: "updated_desc",
+    });
+
+    expect(page.truncated).toBe(true);
+    expect(page.stale).toBe(true);
+  });
+
+  it("clamps a limit above one server page rather than refusing it", async () => {
+    onePageOf(1, null);
+
+    await loadTopPortalRecords("customer", "agreements", {
+      limit: PROJECTION_PAGE_SIZE * 4,
+      orderBy: "updated_desc",
+    });
+
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: PROJECTION_PAGE_SIZE }),
+    );
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])(
+    "refuses %s as a limit, the entire refused set",
+    async (limit) => {
+      onePageOf(1, null);
+
+      await expect(
+        loadTopPortalRecords("customer", "agreements", {
+          limit,
+          orderBy: "updated_desc",
+        }),
+      ).rejects.toThrow("Projection top-N limit must be a positive integer");
+      expect(mocks.list).not.toHaveBeenCalled();
+    },
+  );
 });

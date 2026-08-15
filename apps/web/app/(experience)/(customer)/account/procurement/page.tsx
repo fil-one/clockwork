@@ -6,7 +6,10 @@ import {
   SurfacePermissionGate,
 } from "@/src/features/shell/permission-gate";
 import { loadCustomerCollectionRecords } from "@/src/features/experience-server/portal-view-loader";
-import { getRouteIdentity } from "@/src/features/shell/route-session";
+import {
+  getRouteIdentity,
+  getRouteSession,
+} from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
 export default async function Page({
@@ -14,8 +17,9 @@ export default async function Page({
 }: {
   searchParams: Promise<RawCollectionSearchParams>;
 }) {
-  const [identity, projection] = await Promise.all([
+  const [identity, session, projection] = await Promise.all([
     getRouteIdentity("customer"),
+    getRouteSession("customer"),
     loadCustomerCollectionRecords("procurement"),
   ]);
   return (
@@ -24,6 +28,11 @@ export default async function Page({
       requiredPermission="account:write"
     >
       <CustomerCollection
+        freshness={{
+          generatedAt: projection.generatedAt,
+          stale: projection.stale,
+        }}
+        formatting={{ locale: session.locale, timeZone: session.timeZone }}
         actions={
           <SurfaceActionGate
             audience="customer"

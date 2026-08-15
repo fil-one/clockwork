@@ -61,6 +61,13 @@ export async function PartnerCollectionRoute({
       config={{ ...partnerSurfaces[surface], records: projection.records }}
       roles={session.roles}
       partnerName={partnerMembership.accountName}
+      // The loader has always returned these two. This route dropped them and
+      // rendered the rows as current; the reader had no way to know otherwise.
+      freshness={{
+        generatedAt: projection.generatedAt,
+        stale: projection.stale,
+      }}
+      formatting={{ locale: session.locale, timeZone: session.timeZone }}
       {...(actions ? { actions } : {})}
     />
   );

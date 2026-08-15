@@ -7,6 +7,8 @@ import { loadAssistedAccountOptions } from "./account-options";
 const baseSession: RouteSession = {
   roles: ["finance_approver"],
   profile: { name: "Finance reviewer", email: "finance@filone.com" },
+  locale: "en-US",
+  timeZone: "UTC",
   memberships: [],
   selectedAccountId: "10000000-0000-4000-8000-000000000009",
   effectiveAccountId: "10000000-0000-4000-8000-000000000009",

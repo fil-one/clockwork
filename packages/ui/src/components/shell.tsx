@@ -49,6 +49,39 @@ export interface NavigationProps {
   className?: string;
 }
 
+/**
+ * Move real focus to a fragment target.
+ *
+ * Following a fragment link scrolls the target into view and sets the
+ * sequential focus navigation starting point, but it moves focus only when the
+ * target is already focusable. A landmark is not, so the skip link used to move
+ * the viewport while the screen reader cursor and the next Tab both stayed in
+ * the header: the control announced a destination it did not deliver.
+ *
+ * `tabindex` is applied here rather than being rendered onto the landmark, and
+ * is removed again on blur, for two reasons. A permanently focusable landmark
+ * is a target for the App Router's own post-navigation `focus()` call, which
+ * would hand focus to the content region on every client transition and take it
+ * away from controls that legitimately keep it, such as a navigation drawer
+ * trigger restoring focus after the drawer closes. And a page that already
+ * declares its own `tabindex` keeps whatever value it declared.
+ */
+export function focusFragmentTarget(fragment: string): boolean {
+  if (typeof document === "undefined") return false;
+  const id = fragment.startsWith("#") ? fragment.slice(1) : fragment;
+  if (!id) return false;
+  const target = document.getElementById(id);
+  if (!target) return false;
+  if (!target.hasAttribute("tabindex")) {
+    target.setAttribute("tabindex", "-1");
+    target.addEventListener("blur", () => target.removeAttribute("tabindex"), {
+      once: true,
+    });
+  }
+  target.focus();
+  return true;
+}
+
 export function SkipLink({
   href = "#main-content",
   children = "Skip to main content",
@@ -57,7 +90,16 @@ export function SkipLink({
   children?: ReactNode;
 }) {
   return (
-    <a className="cw-skip-link" href={href}>
+    <a
+      className="cw-skip-link"
+      href={href}
+      // The default action is left alone: the browser still owns scrolling and
+      // the address bar fragment. This only adds the focus move the fragment
+      // navigation cannot make on its own.
+      onClick={() => {
+        focusFragmentTarget(href);
+      }}
+    >
       {children}
     </a>
   );

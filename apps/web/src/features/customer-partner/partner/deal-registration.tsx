@@ -7,6 +7,8 @@ import { uuidV7 } from "@clockwork/contracts";
 import { ApplicationStatePanel, Button, buttonClassName } from "@clockwork/ui";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import { draftIsDirty } from "@/src/features/customer-partner/draft-state";
+import { useUnsavedChangesWarning } from "@/src/features/customer-partner/unsaved-changes";
 
 import {
   dealRegistrationPayload,
@@ -116,6 +118,20 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
     idempotencyKey: string;
     registrationId: string;
   } | null>(null);
+
+  /**
+   * Armed once the seller has entered an opportunity that is not on the server.
+   *
+   * The default 90-day protection window is part of the pristine draft, so an
+   * untouched form never warns. `registered` disarms; `update()` clears
+   * `registered`, so editing the opportunity after submitting it re-arms.
+   *
+   * This form has no in-page "cancel" link to guard, so `beforeunload` is the
+   * whole protection here: reload, tab close, and leaving the application.
+   */
+  useUnsavedChangesWarning(
+    draftIsDirty(draft, emptyDealRegistrationDraft()) && !registered,
+  );
 
   function update<K extends keyof DealRegistrationDraft>(
     key: K,

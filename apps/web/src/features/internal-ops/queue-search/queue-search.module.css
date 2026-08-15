@@ -930,54 +930,32 @@
     align-items: start;
     flex-direction: column;
   }
-  .tableScroller {
-    overflow: visible;
-  }
-  .table,
-  .table tbody {
-    display: grid;
-    gap: 0.6rem;
-  }
-  .table thead {
-    display: none;
-  }
-  .table tr {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border: 1px solid var(--web-line);
-    border-radius: var(--cw-radius-sm);
-    overflow: hidden;
-  }
+  /*
+   * The table stays a table at every viewport.
+   *
+   * This block used to rebuild the rows as cards with `display: grid` on the
+   * table, the row group, the rows and the cells, and `display: none` on the
+   * head. A browser derives the `table`, `row`, `columnheader` and `cell` roles
+   * from the computed display value, so that layout deleted the table
+   * semantics the operator brief promises, and hiding the head deleted the
+   * column headers from the accessibility tree along with them: below 48rem a
+   * screen reader was handed an unlabelled pile of text. Nothing in the axe run
+   * catches it, because a table that is no longer a table breaks no table rule.
+   *
+   * The narrow viewport gets tighter type and padding instead. Overflow is
+   * carried by `.tableScroller`, which is a named, keyboard-focusable region,
+   * so the columns that do not fit are reachable without a pointer.
+   */
   .table th,
   .table td {
-    display: grid;
-    grid-template-columns: minmax(4rem, 0.55fr) minmax(0, 1fr);
-    align-items: start;
-    border-bottom: 1px solid var(--web-line);
-    padding: 0.55rem;
+    padding: 0.5rem 0.3rem;
   }
-  .table th {
-    grid-column: 1 / -1;
-    display: block;
+  .table thead th {
+    padding: 0.45rem 0.3rem;
   }
-  .table td::before {
-    color: var(--web-muted);
-    content: attr(data-label);
-    font-family: var(--cw-font-accent);
-    font-size: var(--cw-text-xs);
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .table td > span:not(.sla, .risk),
-  .table td > time {
-    grid-column: 2;
-  }
-  .table td:nth-last-child(-n + 2) {
-    border-bottom: 0;
-  }
-  .selectedRow th:first-child {
-    box-shadow: none;
+  .rowSelect,
+  .mobileTitleLink {
+    min-width: 9.5rem;
   }
   .pagination {
     flex-wrap: wrap;
@@ -1021,15 +999,6 @@
   }
   .searchField {
     grid-column: auto;
-  }
-  .table tr {
-    grid-template-columns: 1fr;
-  }
-  .table td:nth-last-child(-n + 2) {
-    border-bottom: 1px solid var(--web-line);
-  }
-  .table td:last-child {
-    border-bottom: 0;
   }
   .searchForm > div {
     grid-template-columns: 1fr;

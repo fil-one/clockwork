@@ -13,6 +13,27 @@ export const RELEASE_SUITE_NAMES = Object.freeze([
   "proof",
 ]);
 
+/**
+ * The floor of the environment isolation contract, not a fingerprint of it.
+ *
+ * `isolatedReleaseEnvironment` deletes every variable named in `.env.example`
+ * (plus anything matching `SENSITIVE_RELEASE_ENVIRONMENT`) from the inherited
+ * environment before a release suite runs, and records what it deleted. This
+ * list is the verifier's floor over that set: every name here MUST appear in a
+ * suite's `documentedRuntimeVariables`, so a settings-carrying or
+ * credential-carrying variable can never reach a release run from the operator
+ * shell. Membership is asserted by `environmentIsolationIssues` with
+ * `documented.includes`, so the list is a subset check and its order and length
+ * carry no meaning.
+ *
+ * It is a DIFFERENT contract from `RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT`
+ * and `_SHA256`, which pin the whole documented set exactly (97 variables) so
+ * that any edit to `.env.example` has to be acknowledged here. Adding a name to
+ * this list does not move that fingerprint; adding a variable to `.env.example`
+ * does. The two are only related in one direction: a name added here must
+ * already be documented in `.env.example`, or every suite fails isolation
+ * verification for a variable the release could never have supplied.
+ */
 export const RELEASE_REQUIRED_RUNTIME_ENVIRONMENT = Object.freeze([
   "ACCOUNTING_PROVIDER_BASE_URL",
   "ACCOUNTING_PROVIDER_TOKEN",
@@ -41,6 +62,8 @@ export const RELEASE_REQUIRED_RUNTIME_ENVIRONMENT = Object.freeze([
   "SIGNATURE_PROVIDER_TOKEN",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
+  "TAX_PROVIDER_BASE_URL",
+  "TAX_PROVIDER_TOKEN",
   "USAGE_PROVIDER_BASE_URL",
   "USAGE_PROVIDER_TOKEN",
   "WORKFLOW_PROVIDER_CONTROL_BASE_URL",

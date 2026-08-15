@@ -475,6 +475,28 @@ async function appendEvent(
   });
 }
 
+/**
+ * The classification below decides which pool a command opens, and getting it
+ * wrong has twice produced a command that could not run at all.
+ *
+ * `create_signature_envelope` and the approving half of `decide_poc` are the
+ * recorded case. Both are tenant commands -- `POST
+ * /v1/lifecycle/agreements/envelopes` requires `agreement:execute` and the POC
+ * decision requires `poc:manage`, and neither permission is held by any
+ * internal role -- and both claim a row in `provider_operations`, whose only
+ * policy admitted `app_is_internal()`. They are deliberately absent from both
+ * lists here: classifying them as staff commands would divert them to the
+ * service pool only for callers that cannot reach them, and forcing them there
+ * unconditionally would take a customer-initiated write out of row-level
+ * security. The admission belongs in the row policy and now lives there, in
+ * supabase/migrations/001399_provider_operations_tenant_claim.sql, which lets
+ * the tenant connection append a fresh claim for those two provider calls and
+ * nothing else. `pool-routing.test.ts` holds this decision in place.
+ *
+ * A provider command has no user at all: it is an authenticated callback that
+ * derives its scope from persisted records, so there is no authorization
+ * context to run under and the service pool is the only option.
+ */
 function providerCommand(command: LifecycleCommandName): boolean {
   return (
     command === "ingest_signature_event" ||

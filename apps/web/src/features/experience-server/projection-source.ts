@@ -23,6 +23,7 @@ import {
   type ProjectionActionReceipt,
   type ProjectionChannel,
   type ProjectionListInput,
+  type ProjectionOrder,
   type ProjectionPage,
   type ProjectionRecord,
 } from "./model";
@@ -271,13 +272,25 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection cursor is invalid",
       );
     const state = await this.stateStore.read();
-    const matching = demoRecords
+    const selected = demoRecords
       .filter(
         (record) =>
           record.audience === input.audience &&
           record.channel === input.channel,
       )
       .map((record) => applyDemoState(record, state));
+    // Only an explicit `orderBy` sorts. The fixtures' own declaration order is
+    // what the demo tour and its screenshots were built against, and quietly
+    // re-sorting every unordered read to match the database's keyset would
+    // change what the demo shows without any caller asking for it.
+    const matching = input.orderBy
+      ? [...selected].sort((left, right) => {
+          const byKeyset =
+            Date.parse(left.updatedAt) - Date.parse(right.updatedAt) ||
+            left.id.localeCompare(right.id);
+          return input.orderBy === "updated_asc" ? byKeyset : -byKeyset;
+        })
+      : selected;
     const page = matching.slice(offset, offset + input.limit);
     return {
       items: page.map((record) =>
@@ -460,6 +473,7 @@ export function projectionInput(input: {
   requestedAccountId: string | null;
   cursor?: string;
   limit: number;
+  orderBy?: ProjectionOrder;
   now?: Date;
 }): ProjectionListInput {
   const accountId = resolveScopedAccount(
@@ -474,6 +488,7 @@ export function projectionInput(input: {
     accountId,
     ...(input.cursor ? { cursor: input.cursor } : {}),
     limit: input.limit,
+    ...(input.orderBy ? { orderBy: input.orderBy } : {}),
     now: input.now ?? new Date(),
   };
 }

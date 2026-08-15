@@ -1,3 +1,5 @@
+import type { TaxPort } from "@clockwork/contracts";
+import { ids, MoneySchema } from "@clockwork/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -5,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   requireRecentAuthentication: vi.fn(),
   getOptionalRuntimeDatabase: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
+  construct: vi.fn(),
   replay: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -20,11 +23,22 @@ vi.mock("@/src/db/service", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@clockwork/api", () => ({
   DatabaseCoreFinanceService: class {
+    public constructor(options: unknown) {
+      mocks.construct(options);
+    }
+
     public replay = mocks.replay;
   },
 }));
 
 import { replayWebhookEvent } from "./actions";
+
+/** The port the action actually handed the repository, for this call. */
+function composedTaxPort(): TaxPort {
+  expect(mocks.construct).toHaveBeenCalledTimes(1);
+  const options = mocks.construct.mock.calls[0]?.[0] as { tax: TaxPort };
+  return options.tax;
+}
 
 const operator = {
   userId: "20000000-0000-4000-8000-000000000001",
@@ -148,17 +162,78 @@ describe("webhook replay action", () => {
     });
   });
 
-  // The finance repository cannot be constructed without an EXT-TAX-01 engine,
-  // and replay runs on it. Nothing composed a tax provider before this change,
-  // so this case had nothing to assert.
-  it("refuses when no tax provider is configured", async () => {
+  // Replay never asks the tax port anything. Composing the repository with
+  // `requiredTaxProvider()` made an unwired EXT-TAX-01 refuse the command
+  // outright: the throw happened while the argument list was being built, so
+  // the service was never constructed and the replay was never attempted.
+  it("still reaches the replay command when no tax provider is configured", async () => {
     delete process.env.TAX_PROVIDER_BASE_URL;
+    delete process.env.TAX_PROVIDER_TOKEN;
 
-    expect(await replayWebhookEvent(form())).toEqual({
+    const result = await replayWebhookEvent(form());
+
+    expect(mocks.construct).toHaveBeenCalledTimes(1);
+    expect(mocks.replay).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "stripe", eventId: "evt_1" }),
+    );
+    expect(result).toMatchObject({ ok: true, started: true });
+  });
+
+  it("hands the repository a tax port that refuses rather than one that throws", async () => {
+    delete process.env.TAX_PROVIDER_BASE_URL;
+    delete process.env.TAX_PROVIDER_TOKEN;
+
+    await replayWebhookEvent(form());
+    const tax = composedTaxPort();
+
+    // Not a zero-rate stub: the port answers every determination with a
+    // permanent refusal, so the two commands that can write a `tax_minor`
+    // still fail closed while the rest of the lane composes.
+    await expect(
+      tax.calculate({
+        accountId: ids.account.parse("10000000-0000-4000-8000-000000000001"),
+        jurisdiction: "ES",
+        lines: [
+          {
+            taxCode: "txcd_demo",
+            amount: MoneySchema.parse({ currency: "EUR", minor: "168000" }),
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({
       ok: false,
-      code: "WEBHOOK_REPLAY_FAILED",
+      kind: "permanent",
+      code: "TAX_PROVIDER_NOT_CONFIGURED",
     });
-    expect(mocks.replay).not.toHaveBeenCalled();
+    await expect(
+      tax.validateTaxId({ country: "ES", value: "ESA12345674" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      code: "TAX_PROVIDER_NOT_CONFIGURED",
+    });
+  });
+
+  // The repository refuses this command on purpose: no durable task is
+  // registered under `webhook-replay:<provider>`, so a replay would clear the
+  // inbox dedupe marker and enqueue nothing. Composition no longer throwing
+  // must not turn that refusal into a success the operator acts on.
+  it("surfaces the unregistered-task refusal as a failure, not a silent success", async () => {
+    delete process.env.TAX_PROVIDER_BASE_URL;
+    delete process.env.TAX_PROVIDER_TOKEN;
+    mocks.replay.mockRejectedValue(
+      Object.assign(
+        new Error(
+          'Webhook replay is unavailable: no durable task is registered under "webhook-replay:stripe"',
+        ),
+        { code: "INVALID_STATE" },
+      ),
+    );
+
+    const result = await replayWebhookEvent(form());
+
+    expect(result).toEqual({ ok: false, code: "WEBHOOK_REPLAY_FAILED" });
+    expect(result.started).toBeUndefined();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("keeps provider and database detail out of a generic failure", async () => {

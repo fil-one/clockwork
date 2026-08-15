@@ -1,0 +1,21 @@
+.prompt {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid var(--cw-warning);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-warning-soft);
+  padding: 0.75rem 1rem;
+  color: var(--cw-warning-ink);
+  font-size: var(--cw-text-sm);
+}
+
+.prompt p {
+  margin: 0;
+}
+
+.promptActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}

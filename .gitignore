@@ -5,7 +5,7 @@
 .next/
 .netlify/
 deno.lock
-.next-release-*/
+.next-*/
 next-env.d.ts
 .turbo/
 .artifacts/

@@ -8,6 +8,11 @@ import { ApplicationStatePanel, Button, buttonClassName } from "@clockwork/ui";
 import { uuidV7 } from "@clockwork/contracts";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import { draftIsDirty } from "@/src/features/customer-partner/draft-state";
+import {
+  LeaveDraftControl,
+  useUnsavedChangesWarning,
+} from "@/src/features/customer-partner/unsaved-changes";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { t } from "@/src/i18n/en";
 
@@ -112,10 +117,13 @@ export function ResaleQuoteBuilder({
 function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   // Derived from the clock this form was opened against, never from a calendar
-  // date compiled into the bundle.
-  const [draft, setDraft] = useState<ResaleQuoteDraft>(() =>
+  // date compiled into the bundle. One clock read seeds both the editable draft
+  // and the pristine copy the unsaved-work check compares against, so the
+  // derived expiry can never be mistaken for something the seller typed.
+  const [pristine] = useState<ResaleQuoteDraft>(() =>
     emptyResaleQuoteDraft(new Date()),
   );
+  const [draft, setDraft] = useState<ResaleQuoteDraft>(pristine);
   const [errors, setErrors] = useState<QuoteValidation>({});
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -130,6 +138,17 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   } | null>(null);
   const stages = customerPartnerCopy.commercial.quoteStages;
   const partnerPriced = partnerPricedRoute(context.route);
+
+  /**
+   * Armed while the seller has entered something the server has not taken.
+   *
+   * `confirmed` counts: ticking the authority box on stage three is an
+   * assertion, and losing it silently is losing work. `succeeded` disarms, and
+   * `update()` clears `succeeded` on any further edit, so the pair tracks the
+   * submission rather than the visit.
+   */
+  const unsaved = (draftIsDirty(draft, pristine) || confirmed) && !succeeded;
+  useUnsavedChangesWarning(unsaved);
 
   function update<K extends keyof ResaleQuoteDraft>(
     key: K,
@@ -234,12 +253,13 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             draft.
           </p>
         </div>
-        <Link
+        <LeaveDraftControl
+          armed={unsaved}
           className={`${styles.buttonLink} ${styles.buttonSecondary}`}
+          discardClassName={`${styles.buttonLink} ${styles.buttonSecondary}`}
           href="/partner/quotes"
-        >
-          Back to quotes
-        </Link>
+          label="Back to quotes"
+        />
       </header>
 
       <ol className={styles.stages} aria-label="Quote creation stages">

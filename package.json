@@ -21,6 +21,7 @@
     "check:generated": "pnpm generate && git diff --exit-code -- packages/api/src/generated",
     "check:traceability": "node scripts/validate-traceability.mjs",
     "check:schema-drift": "tsx scripts/check-schema-drift.mjs",
+    "check:citation-liveness": "node scripts/check-citation-liveness.mjs",
     "scan:secrets": "secretlint \"**/*\" --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore",
     "audit:dependencies": "pnpm audit --audit-level=high",
     "test": "turbo run test:unit test:integration",

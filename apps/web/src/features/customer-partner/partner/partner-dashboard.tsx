@@ -4,6 +4,10 @@ import type { Route } from "next";
 import { TermBar, type RenewalState } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import {
+  formatSurfaceTimestamp,
+  type SurfaceFormatting,
+} from "@/src/features/customer-partner/formatting";
 
 import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
@@ -39,9 +43,12 @@ export interface PartnerDashboardProjection {
 export function PartnerDashboard({
   projection,
   roles,
+  formatting,
 }: {
   projection: PartnerDashboardProjection;
   roles: readonly string[];
+  /** Locale and zone of the partner reading, from the active route session. */
+  formatting: SurfaceFormatting;
 }) {
   const copy = customerPartnerCopy.partner;
   const isAdmin = currentPartnerRole(roles) === "partner_admin";
@@ -60,11 +67,7 @@ export function PartnerDashboard({
               ? "Stale projection from "
               : "Projection refreshed "}
             <time dateTime={projection.generatedAt}>
-              {new Intl.DateTimeFormat("en-US", {
-                dateStyle: "medium",
-                timeStyle: "short",
-                timeZone: "America/New_York",
-              }).format(new Date(projection.generatedAt))}
+              {formatSurfaceTimestamp(projection.generatedAt, formatting)}
             </time>
           </p>
         </div>
@@ -93,6 +96,11 @@ export function PartnerDashboard({
           end={new Date(projection.agreement.end)}
           now={new Date(projection.agreement.now)}
           renewalState={projection.agreement.renewalState}
+          // The agreement clock decides a notice deadline. Rendered in the
+          // component's `en-US`/UTC defaults it stated one day for a London
+          // partner and another for the same partner's calendar.
+          locale={formatting.locale}
+          timeZone={formatting.timeZone}
         />
         <dl className={styles.authorityFacts}>
           <div>

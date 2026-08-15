@@ -4,6 +4,11 @@ import Link from "next/link";
 import { buttonClassName, Table } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
+import type { SurfaceFormatting } from "../formatting";
+import {
+  ProjectionFreshnessNotice,
+  type ProjectionFreshness,
+} from "../projection-freshness";
 import {
   collectionDefinitions,
   type CollectionDefinition,
@@ -173,11 +178,17 @@ export function CommercialCollectionPage({
   kind,
   searchParams,
   records: allRecords,
+  freshness,
+  formatting,
   canUsePrimaryAction = true,
 }: {
   kind: CollectionKind;
   searchParams: RawSearchParams;
   records: readonly CommercialRecord[];
+  /** The `stale`/`generatedAt` pair the loader returned for this read. */
+  freshness: ProjectionFreshness;
+  /** Locale and zone of the person reading, from the active route session. */
+  formatting: SurfaceFormatting;
   canUsePrimaryAction?: boolean;
 }) {
   const definition = collectionDefinitions[kind];
@@ -201,6 +212,10 @@ export function CommercialCollectionPage({
           <p className={styles.eyebrow}>{definition.eyebrow}</p>
           <h1>{definition.title}</h1>
           <p className={styles.description}>{definition.description}</p>
+          <ProjectionFreshnessNotice
+            formatting={formatting}
+            freshness={freshness}
+          />
         </div>
         {definition.primaryAction && canUsePrimaryAction ? (
           <Link

@@ -1,0 +1,50 @@
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
+  font-weight: 700;
+}
+
+.dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--web-accent);
+}
+
+.staleBanner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--cw-warning);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-warning-soft);
+  padding: 0.75rem 1rem;
+  color: var(--cw-warning-ink);
+  font-size: var(--cw-text-sm);
+}
+
+.staleBanner button {
+  min-height: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 48rem) {
+  .staleBanner {
+    grid-template-columns: 1fr;
+  }
+  .freshness {
+    justify-self: start;
+  }
+}
