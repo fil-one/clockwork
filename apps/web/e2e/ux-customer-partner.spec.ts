@@ -326,9 +326,13 @@ test("billing prepares a safe provider handoff while payment truth stays webhook
   await expect(
     page.getByRole("link", { name: "Continue to secure Stripe payment" }),
   ).toHaveAttribute("href", "https://invoice.stripe.com/i/acct_demo/in_demo");
+  // These used to be 11111111-…-111111111111 and eeeeeeee-…-eeeeeeeeeeee, the
+  // two literals PaymentHandoff posted for every invoice a customer opened
+  // (P0-52). The test asserted the defect, so it changes with the fix: the
+  // session is now opened for the account and the invoice actually on screen.
   expect(payment).toEqual({
-    accountId: "11111111-1111-4111-8111-111111111111",
-    invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    accountId: "10000000-0000-4000-8000-000000000001",
+    invoiceId: "50000000-0000-4000-8000-000000000014",
   });
 });
 
@@ -395,22 +399,56 @@ test("partner collection state survives reload and browser history", async ({
   await expect(search).toHaveValue("Halcyon");
 });
 
-test("partner seller starts resale work only from authorized persisted records", async ({
+/**
+ * This test used to drive the same persona and assert the builder rendered
+ * `Halcyon Research Cooperative` and `Meridian Channel Group`. Both were
+ * fabrications from P0-62: a pre-filled end client and a merchant of record
+ * belonging to no one, shown to whoever signed in. The test asserted the defect
+ * as correct, so it had to change with the fix.
+ *
+ * The persona matters. `partner_seller` is the REFERRAL partner, and a referral
+ * quote is not the partner's to write: Fil One is merchant of record, and
+ * `core_partner_can_append_commercial_audit` admits a partner-written quote
+ * audit only where `merchant_of_record = 'partner'`. Composing the builder here
+ * would compose a submission the database refuses, so the route names the
+ * boundary instead of posting into it.
+ */
+test("a referral partner is told the resale quote is not theirs to write", async ({
   page,
 }) => {
   await usePersona(page, "partner_seller");
   await page.goto("/partner/quotes/new");
   await expect(
+    page.getByRole("heading", {
+      name: "Fil One writes the quote on a referral agreement",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open deal registrations" }),
+  ).toBeVisible();
+  // The builder must not be composed at all, rather than composed and refused
+  // at submit.
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
+  ).toBeHidden();
+});
+
+test("a resale partner sees its own merchant boundary and an empty draft", async ({
+  page,
+}) => {
+  await usePersona(page, "partner_admin");
+  await page.goto("/partner/quotes/new");
+  await expect(
     page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
   ).toBeVisible();
   const summary = page.getByRole("complementary", { name: "Quote summary" });
-  await expect(summary.getByText("Halcyon Research Cooperative")).toBeVisible();
-  await expect(summary.getByText("Meridian Channel Group")).toBeVisible();
-  // Transfer pricing is a server calculation, so the builder refuses to state
-  // one before the draft exists.
-  await expect(
-    summary.getByText("Server-priced after draft creation"),
-  ).toBeVisible();
+  // The merchant of record is resolved from the session, so the fabricated
+  // party must appear nowhere and the acting partner's own name must.
+  await expect(summary.getByText("Meridian Channel Group")).toBeHidden();
+  await expect(summary.getByText(/Merchant of record:/)).toBeVisible();
+  // The draft starts empty: nothing is chosen on the partner's behalf.
+  await expect(summary.getByText("Offer: Not selected")).toBeVisible();
+  await expect(summary.getByText("End client: Not selected")).toBeVisible();
 });
 
 test("partner admin reviews financial boundaries before any renewal request", async ({

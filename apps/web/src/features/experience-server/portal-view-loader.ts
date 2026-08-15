@@ -14,10 +14,11 @@ import type {
   PartnerSurfaceKey,
 } from "@/src/features/customer-partner/partner/partner-data";
 
-import type {
-  ExperienceAudience,
-  ProjectionChannel,
-  ProjectionRecord,
+import {
+  ExperienceProblem,
+  type ExperienceAudience,
+  type ProjectionChannel,
+  type ProjectionRecord,
 } from "./model";
 import {
   configuredProjectionSource,
@@ -191,19 +192,55 @@ export async function loadCommercialRecords(kind: CollectionKind) {
   };
 }
 
+/**
+ * The one failure a record read is allowed to turn into an absence.
+ *
+ * The projection lookup filters on `audience_account_id` and the
+ * `experience_projection_read` row-level policy repeats the same account test,
+ * so a record belonging to another account produces no row -- exactly what a
+ * record that was never written produces. Both surface as
+ * `PROJECTION_NOT_FOUND`, the only 404 either projection source raises from a
+ * detail read. Collapsing them here is what keeps them one outcome: if the two
+ * were told apart anywhere above this line, the difference would be an
+ * enumeration oracle for another tenant's identifiers.
+ *
+ * Nothing else is absence. A 401, 403, 409, 410, 422, 502 or 503, and every
+ * error that is not an `ExperienceProblem` at all -- a malformed payload from
+ * `text()`/`number()`/`oneOf()`, a database failure, a bug -- still throws.
+ */
+function isProjectionAbsent(error: unknown): boolean {
+  return error instanceof ExperienceProblem && error.status === 404;
+}
+
+/**
+ * Resolves to `null` when the record is absent or outside the caller's
+ * account, so the route can render the branded not-found state instead of the
+ * fatal error boundary.
+ *
+ * `commercialRecord` is deliberately outside the `try`: a row that exists but
+ * whose payload does not satisfy the presentation contract is a materializer
+ * defect, and reporting it as "not found" would hide it behind a state the
+ * reader is expected to see.
+ */
 export async function loadCommercialRecord(
   kind: CollectionKind,
   recordKey: string,
-) {
+): Promise<CommercialRecord | null> {
   const session = await getCommerceSession();
-  const record = await configuredProjectionSource().find({
-    session,
-    audience: "customer",
-    channel: kind,
-    accountId: portalAccountId("customer", session),
-    recordKey,
-    now: new Date(),
-  });
+  let record: ProjectionRecord;
+  try {
+    record = await configuredProjectionSource().find({
+      session,
+      audience: "customer",
+      channel: kind,
+      accountId: portalAccountId("customer", session),
+      recordKey,
+      now: new Date(),
+    });
+  } catch (error) {
+    if (isProjectionAbsent(error)) return null;
+    throw error;
+  }
   return commercialRecord(record, kind);
 }
 

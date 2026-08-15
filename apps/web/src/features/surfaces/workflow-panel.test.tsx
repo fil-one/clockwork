@@ -7,6 +7,22 @@ import { WorkflowPanel } from "./workflow-panel";
 
 const csrfToken = "12345678901234567890123456789012";
 
+/**
+ * The identifiers a route resolves. They are deliberately not the seeded
+ * fixture values the panel used to fall back to, so a test only passes when the
+ * panel carries what it was handed.
+ */
+const routeContext = {
+  accountId: "10000000-0000-4000-8000-000000000001",
+  organizationId: "30000000-0000-4000-8000-000000000001",
+  priceBookId: "40000000-0000-4000-8000-000000000007",
+  orderId: "50000000-0000-4000-8000-000000000008",
+  invoiceId: "50000000-0000-4000-8000-000000000014",
+  userId: "20000000-0000-4000-8000-000000000002",
+  quoteId: "50000000-0000-4000-8000-000000000004",
+  agreementId: "50000000-0000-4000-8000-000000000001",
+} as const;
+
 function response(status = 200) {
   return new Response(
     JSON.stringify(
@@ -41,7 +57,16 @@ afterEach(() => {
 describe("generated-client commerce workflows", () => {
   it("validates the quote locally and restores focus to the invalid field", async () => {
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="quote" surface="quoteBuilder" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          priceBookId: routeContext.priceBookId,
+        }}
+        workflow="quote"
+        surface="quoteBuilder"
+      />,
+    );
     const capacity = screen.getByLabelText("Committed capacity");
     await user.clear(capacity);
     await user.type(capacity, "4");
@@ -54,7 +79,16 @@ describe("generated-client commerce workflows", () => {
     const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="quote" surface="quoteBuilder" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          priceBookId: routeContext.priceBookId,
+        }}
+        workflow="quote"
+        surface="quoteBuilder"
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
     expect(
@@ -81,7 +115,16 @@ describe("generated-client commerce workflows", () => {
       vi.fn(() => Promise.resolve(response(409))),
     );
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="quote" surface="quoteBuilder" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          priceBookId: routeContext.priceBookId,
+        }}
+        workflow="quote"
+        surface="quoteBuilder"
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
     const alert = await screen.findByRole("alert");
@@ -106,7 +149,16 @@ describe("generated-client commerce workflows", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="payment" surface="billing" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          invoiceId: routeContext.invoiceId,
+        }}
+        workflow="payment"
+        surface="billing"
+      />,
+    );
     await user.click(
       screen.getByRole("button", { name: "Open secure payment" }),
     );
@@ -122,8 +174,8 @@ describe("generated-client commerce workflows", () => {
     const request = firstCall[0] as Request;
     expect(request.url).toContain("/api/v1/core/payment-sessions");
     await expect(request.clone().json()).resolves.toEqual({
-      accountId: "11111111-1111-4111-8111-111111111111",
-      invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      accountId: routeContext.accountId,
+      invoiceId: routeContext.invoiceId,
     });
   });
 
@@ -138,7 +190,16 @@ describe("generated-client commerce workflows", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="assisted" surface="assisted" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          priceBookId: routeContext.priceBookId,
+        }}
+        workflow="assisted"
+        surface="assisted"
+      />,
+    );
 
     expect(
       screen.getByText(/assisted session supplies the staff actor/i),
@@ -158,7 +219,7 @@ describe("generated-client commerce workflows", () => {
     const request = firstCall[0] as Request;
     expect(request.url).toContain("/api/v1/core/commands/quotes");
     expect(capturedBody).toMatchObject({
-      accountId: "11111111-1111-4111-8111-111111111111",
+      accountId: routeContext.accountId,
       action: "create",
       payload: { route: "direct" },
     });
@@ -200,7 +261,13 @@ describe("generated-client commerce workflows", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="agreement" surface="agreementExecution" />);
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="agreement"
+        surface="agreementExecution"
+      />,
+    );
 
     expect(await screen.findByLabelText("Exact agreement text")).toHaveValue(
       exactText,
@@ -230,7 +297,16 @@ describe("generated-client commerce workflows", () => {
     const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="renewal" surface="services" />);
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          orderId: routeContext.orderId,
+        }}
+        workflow="renewal"
+        surface="services"
+      />,
+    );
 
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
@@ -298,7 +374,7 @@ describe("generated-client commerce workflows", () => {
       () => undefined,
     );
     const user = userEvent.setup();
-    render(<WorkflowPanel workflow="reports" surface="reports" />);
+    render(<WorkflowPanel context={{}} workflow="reports" surface="reports" />);
 
     const report = screen.getByLabelText("Report");
     expect(report.querySelectorAll("option")).toHaveLength(8);
@@ -318,5 +394,289 @@ describe("generated-client commerce workflows", () => {
     expect(secondCall).toBeDefined();
     if (!secondCall) throw new Error("CSV request was not captured.");
     expect((secondCall[0] as Request).url).toContain("format=csv");
+  });
+});
+
+/**
+ * These identifiers are never shown anywhere a customer can read them, so a
+ * self-service form that asks for one is a form nobody outside a seeded
+ * environment can submit. The route already holds them; the panel has to carry
+ * what it is given, and has to keep accepting typed input where no route
+ * supplies anything.
+ */
+describe("route-resolved record identifiers", () => {
+  it("renews the order the route resolved, without asking the reader for it", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          orderId: routeContext.orderId,
+        }}
+        workflow="renewal"
+        surface="services"
+      />,
+    );
+
+    const account = screen.getByLabelText("Account ID");
+    const order = screen.getByLabelText("Order ID");
+    expect(account).toHaveValue(routeContext.accountId);
+    expect(account).toHaveAttribute("readonly");
+    expect(order).toHaveValue(routeContext.orderId);
+    expect(order).toHaveAttribute("readonly");
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(
+      await screen.findByText(/server record is now the source of truth/i),
+    ).toBeVisible();
+
+    const firstCall = fetchMock.mock.calls.at(0);
+    if (!firstCall) throw new Error("Renewal request was not captured.");
+    const request = firstCall[0] as Request;
+    expect(request.url).toContain(`/renewals/${routeContext.orderId}/requests`);
+    await expect(request.clone().json()).resolves.toMatchObject({
+      accountId: routeContext.accountId,
+    });
+  });
+
+  it("invites against the organization and account the route resolved", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ id: "invite-1", status: "pending" }), {
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          organizationId: routeContext.organizationId,
+        }}
+        workflow="invite"
+        surface="users"
+      />,
+    );
+
+    expect(screen.getByLabelText("Organization ID")).toHaveValue(
+      routeContext.organizationId,
+    );
+    expect(screen.getByLabelText("Account ID")).toHaveValue(
+      routeContext.accountId,
+    );
+    await user.type(
+      screen.getByLabelText("Invitee email"),
+      "new@northstar.test",
+    );
+    await user.type(
+      screen.getByLabelText("Invite expires at"),
+      "2026-09-30T17:00",
+    );
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(
+      await screen.findByText(/server record is now the source of truth/i),
+    ).toBeVisible();
+
+    const firstCall = fetchMock.mock.calls.at(0);
+    if (!firstCall) throw new Error("Invite request was not captured.");
+    const request = firstCall[0] as Request;
+    expect(request.url).toContain(
+      `/organizations/${routeContext.organizationId}/invites`,
+    );
+    await expect(request.clone().json()).resolves.toMatchObject({
+      accountId: routeContext.accountId,
+      email: "new@northstar.test",
+    });
+  });
+
+  /**
+   * The row version is deliberately not a `WorkflowRecordContext` key. It is
+   * compared against the core account aggregate's own `row_version`, which only
+   * an authoritative read of the account produces; the projection row version a
+   * route could reach is a different counter. Until that read exists the panel
+   * shows the guess rather than dressing a wrong number as a resolved one.
+   */
+  it("shows the account row version as a stated guess and posts what is shown", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="account"
+        surface="account"
+      />,
+    );
+
+    const rowVersion = screen.getByLabelText("Current row version");
+    expect(rowVersion).toHaveValue(1);
+    expect(rowVersion).not.toHaveAttribute("readonly");
+    await user.clear(rowVersion);
+    await user.type(rowVersion, "7");
+    await user.type(screen.getByLabelText("Legal name"), "Northstar Ltd");
+    await user.type(
+      screen.getByLabelText("Invoice delivery email"),
+      "ap@northstar.test",
+    );
+    await user.type(screen.getByLabelText("Billing contact name"), "Maya Chen");
+    await user.type(
+      screen.getByLabelText("Billing contact email"),
+      "maya@northstar.test",
+    );
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(
+      await screen.findByText(/server record is now the source of truth/i),
+    ).toBeVisible();
+
+    const firstCall = fetchMock.mock.calls.at(0);
+    if (!firstCall) throw new Error("Account update was not captured.");
+    await expect(
+      (firstCall[0] as Request).clone().json(),
+    ).resolves.toMatchObject({
+      id: routeContext.accountId,
+      accountId: routeContext.accountId,
+      expectedVersion: 7,
+    });
+  });
+
+  /**
+   * The shape `/partner/portfolio/[id]` shipped: a required identifier the
+   * surface does not carry, rendered as an empty editable box, so Submit failed
+   * local validation and posted nothing while looking like a working form. An
+   * identifier nobody can read is not one anybody can type, so the panel now
+   * states the gap and refuses, and the refusal is visible before a reader
+   * fills anything in.
+   */
+  it("refuses to submit when a required identifier is not on the surface", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="renewal"
+        surface="partnerRenewals"
+      />,
+    );
+
+    const order = screen.getByLabelText("Order ID");
+    expect(order).toHaveValue("");
+    expect(order).toBeDisabled();
+    expect(screen.getByText(/binds to the order id/i)).toBeVisible();
+
+    const submit = screen.getByRole("button", { name: "Submit securely" });
+    expect(submit).toBeDisabled();
+    await user.click(submit);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The complement, and the reason the field is not unconditionally read-only:
+   * an identifier the command can be built without stays typeable, because a
+   * POC that is not being converted has no paid quote or order to carry.
+   */
+  it("leaves an optional unresolved identifier editable", () => {
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="poc"
+        surface="pocs"
+      />,
+    );
+
+    for (const label of [
+      "Paid quote ID",
+      "Paid order ID",
+      "Support owner ID",
+    ]) {
+      const field = screen.getByLabelText(label);
+      expect(field).toHaveValue("");
+      expect(field).toBeEnabled();
+    }
+    expect(
+      screen.getByRole("button", { name: "Submit securely" }),
+    ).toBeEnabled();
+  });
+
+  /**
+   * The seeded identifiers used to appear whenever `NODE_ENV` was development
+   * or test -- which is every environment a test runs in, and none that a
+   * customer uses. Nothing may reintroduce them.
+   */
+  it("never falls back to a seeded identifier", () => {
+    render(
+      <WorkflowPanel context={{}} workflow="renewal" surface="services" />,
+    );
+    for (const label of ["Account ID", "Order ID"])
+      expect(screen.getByLabelText(label)).toHaveValue("");
+  });
+
+  /**
+   * The brand form's domain, DNS token and brand name were pre-filled with a
+   * fixture partner's values whenever the runtime environment was development
+   * or test, so the form every test drove was not the form production renders.
+   */
+  it("renders the brand form with no seeded partner values", () => {
+    render(
+      <WorkflowPanel
+        context={{ partnerAccountId: routeContext.accountId }}
+        workflow="brand"
+        surface="brand"
+      />,
+    );
+
+    expect(screen.getByLabelText("Partner account ID")).toHaveValue(
+      routeContext.accountId,
+    );
+    for (const label of [
+      "Custom domain",
+      "DNS verification token",
+      "Brand name",
+    ])
+      expect(screen.getByLabelText(label)).toHaveValue("");
+  });
+
+  /**
+   * An unreachable command used to render as "Development simulation accepted"
+   * in exactly the environments every test and local drive runs in, which is
+   * how a panel that posts real commands could look green while posting
+   * nothing. A failure now reads as a failure everywhere.
+   */
+  it("reports an unavailable command as a failure, not a simulated success", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ error: "unavailable" }), {
+            status: 503,
+            headers: { "content-type": "application/json" },
+          }),
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{
+          accountId: routeContext.accountId,
+          orderId: routeContext.orderId,
+        }}
+        workflow="renewal"
+        surface="services"
+      />,
+    );
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(await screen.findByRole("alert")).toBeVisible();
+    expect(screen.queryByText(/Development simulation accepted/i)).toBeNull();
+    expect(
+      screen.queryByText(/server record is now the source of truth/i),
+    ).toBeNull();
   });
 });

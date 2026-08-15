@@ -1,9 +1,10 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { Button } from "@clockwork/ui";
+import { ApplicationStatePanel, Button, buttonClassName } from "@clockwork/ui";
 import { uuidV7 } from "@clockwork/contracts";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
@@ -11,31 +12,110 @@ import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { t } from "@/src/i18n/en";
 
 import {
-  clientOptions,
-  offerOptions,
+  emptyResaleQuoteDraft,
+  merchantOfRecordName,
+  partnerPricedRoute,
+  quotableOffers,
   quoteReviewSummary,
+  quoteRouteLabel,
   resaleQuotePayload,
-  resolveSelectorId,
+  resolveOption,
   validateResaleQuoteStage,
+  type PartnerQuoteContext,
   type QuoteValidation,
   type ResaleQuoteDraft,
 } from "./resale-quote-model";
 import styles from "./partner.module.css";
 
-const initialDraft: ResaleQuoteDraft = {
-  offerName: offerOptions[0].name,
-  region: "us-east",
-  capacity: "120",
-  termMonths: "12",
-  route: "resale",
-  endClientName: clientOptions[0].name,
-  expiresAt: "2026-08-31T17:00",
-  resalePrice: "68400",
+export type MissingQuoteInput =
+  "agreement" | "referralRoute" | "offers" | "endClients";
+
+const nothingToQuote: Readonly<
+  Record<
+    MissingQuoteInput,
+    { title: string; description: string; href: Route; action: string }
+  >
+> = {
+  agreement: {
+    title: "No complete partner agreement is on file for this account",
+    description:
+      "A partner quote is written under a persisted channel agreement, and both the commercial route and the transfer tier come from that agreement rather than from this form. Your account returned no agreement type or no transfer tier, so there is nothing to quote under.",
+    href: "/partner",
+    action: "Back to the partner desk",
+  },
+  referralRoute: {
+    title: "Fil One writes the quote on a referral agreement",
+    description:
+      "Your agreement is a referral: Fil One is merchant of record, prices the end client itself, and pays commission against your agreement. `core_partner_can_append_commercial_audit` admits a partner-written quote only where the partner is merchant of record, so a referral quote is not yours to create. Register the deal and the Fil One desk quotes it.",
+    href: "/partner/registrations",
+    action: "Open deal registrations",
+  },
+  offers: {
+    title: "No offer is available to quote",
+    description:
+      "A partner quote is priced from a rate card on an activated price book in your billing currency. None was returned for your partner account, so there is nothing to price this quote against yet.",
+    href: "/partner/quotes",
+    action: "Back to quotes",
+  },
+  endClients: {
+    title: "No end client is available to quote",
+    description:
+      "A partner quote names an end client you hold an approved, currently protected deal registration for. Yours returned none, so register the opportunity before quoting it.",
+    href: "/partner/registrations",
+    action: "Open deal registrations",
+  },
 };
 
-export function ResaleQuoteBuilder() {
+/**
+ * Nothing can be quoted without an agreement to quote under, a rate card to
+ * price against, or a registered end client to quote to. All three are server
+ * reads, so an empty one is a state to name rather than an empty picker to
+ * leave the seller guessing at.
+ */
+export function NothingToQuote({ missing }: { missing: MissingQuoteInput }) {
+  const copy = nothingToQuote[missing];
+  return (
+    <main className={styles.main} id="main-content">
+      <div className={styles.state}>
+        <ApplicationStatePanel
+          state="empty"
+          title={copy.title}
+          description={copy.description}
+          action={
+            <Link
+              className={buttonClassName({ variant: "secondary" })}
+              href={copy.href}
+            >
+              {copy.action}
+            </Link>
+          }
+        />
+      </div>
+    </main>
+  );
+}
+
+export function ResaleQuoteBuilder({
+  context,
+}: {
+  context: PartnerQuoteContext;
+}) {
+  // Registered end clients are reported first: on a referral route the offer
+  // list is filtered to the currencies those clients are billed in, so an empty
+  // portfolio empties the offers too and "no offer" would name the wrong gap.
+  if (context.endClients.length === 0)
+    return <NothingToQuote missing="endClients" />;
+  if (context.offers.length === 0) return <NothingToQuote missing="offers" />;
+  return <QuoteWorkspace context={context} />;
+}
+
+function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const [stage, setStage] = useState<1 | 2 | 3>(1);
-  const [draft, setDraft] = useState(initialDraft);
+  // Derived from the clock this form was opened against, never from a calendar
+  // date compiled into the bundle.
+  const [draft, setDraft] = useState<ResaleQuoteDraft>(() =>
+    emptyResaleQuoteDraft(new Date()),
+  );
   const [errors, setErrors] = useState<QuoteValidation>({});
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -49,6 +129,7 @@ export function ResaleQuoteBuilder() {
     payload: ReturnType<typeof resaleQuotePayload>;
   } | null>(null);
   const stages = customerPartnerCopy.commercial.quoteStages;
+  const partnerPriced = partnerPricedRoute(context.route);
 
   function update<K extends keyof ResaleQuoteDraft>(
     key: K,
@@ -77,7 +158,12 @@ export function ResaleQuoteBuilder() {
   function advance() {
     // Expiry is validated against the clock at the moment of the interaction,
     // so a stale tab cannot accept an expiry that has already passed.
-    const nextErrors = validateResaleQuoteStage(stage, draft, new Date());
+    const nextErrors = validateResaleQuoteStage(
+      stage,
+      draft,
+      context,
+      new Date(),
+    );
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
     setStage((current) => (current === 1 ? 2 : 3));
@@ -85,7 +171,7 @@ export function ResaleQuoteBuilder() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextErrors = validateResaleQuoteStage(3, draft, new Date());
+    const nextErrors = validateResaleQuoteStage(3, draft, context, new Date());
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
     if (!confirmed) return;
@@ -96,7 +182,7 @@ export function ResaleQuoteBuilder() {
       submissionRef.current ??= {
         idempotencyKey: crypto.randomUUID(),
         quoteId: uuidV7(),
-        payload: resaleQuotePayload(draft),
+        payload: resaleQuotePayload(draft, context),
       };
       const submission = submissionRef.current;
       await sendCoreCommand(
@@ -120,9 +206,10 @@ export function ResaleQuoteBuilder() {
     }
   }
 
-  const offerId = resolveSelectorId(draft.offerName, offerOptions);
-  const endClientId = resolveSelectorId(draft.endClientName, clientOptions);
-  const summary = quoteReviewSummary(draft);
+  const offer = resolveOption(draft.offerName, context.offers);
+  const endClient = resolveOption(draft.endClientName, context.endClients);
+  const selectableOffers = quotableOffers(context, draft.endClientName);
+  const summary = quoteReviewSummary(draft, context);
   // A disabled primary action always says what would enable it.
   const submitReason =
     stage < 3
@@ -137,7 +224,9 @@ export function ResaleQuoteBuilder() {
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>Resale quote</p>
+          <p className={styles.eyebrow}>
+            {quoteRouteLabel(context.route)} quote
+          </p>
           <h1>Create a partner quote</h1>
           <p>
             Choose recognizable commercial options. Fil One submits the existing
@@ -180,63 +269,37 @@ export function ResaleQuoteBuilder() {
           <h2>{stages[stage - 1]}</h2>
           <p className={styles.muted}>
             {stage === 1
-              ? "Choose the approved offer and service region."
+              ? "Choose the approved offer. Its price book, service region and currency come with it."
               : stage === 2
                 ? "Set the partner-controlled commercial shape and end client."
                 : "Review both pricing boundaries before creating the server-priced draft."}
           </p>
           <div className={styles.formGrid}>
             {stage === 1 ? (
-              <>
-                <label className={`${styles.field} ${styles.full}`}>
-                  Offer and price book
-                  <input
-                    name="offerName"
-                    list="partner-offers"
-                    value={draft.offerName}
-                    onChange={(event) =>
-                      update("offerName", event.target.value)
-                    }
-                    aria-invalid={Boolean(errors.offerName)}
-                    aria-describedby={
-                      errors.offerName ? "offer-error" : undefined
-                    }
-                    autoComplete="off"
-                  />
-                  <datalist id="partner-offers">
-                    {offerOptions.map((option) => (
-                      <option value={option.name} key={option.id} />
-                    ))}
-                  </datalist>
-                  {errors.offerName ? (
-                    <span
-                      className={styles.error}
-                      id="offer-error"
-                      role="alert"
-                    >
-                      {errors.offerName}
-                    </span>
-                  ) : null}
-                </label>
-                <label className={styles.field}>
-                  Service region
-                  <select
-                    name="region"
-                    value={draft.region}
-                    onChange={(event) => update("region", event.target.value)}
-                    aria-invalid={Boolean(errors.region)}
-                  >
-                    <option value="us-east">US East (Virginia)</option>
-                    <option value="eu-west">EU West (Frankfurt)</option>
-                    <option value="uk-south">UK South (London)</option>
-                  </select>
-                  {errors.region ? (
-                    <span className={styles.error} role="alert">
-                      {errors.region}
-                    </span>
-                  ) : null}
-                </label>
-              </>
+              <label className={`${styles.field} ${styles.full}`}>
+                Offer and price book
+                <input
+                  name="offerName"
+                  list="partner-offers"
+                  value={draft.offerName}
+                  onChange={(event) => update("offerName", event.target.value)}
+                  aria-invalid={Boolean(errors.offerName)}
+                  aria-describedby={
+                    errors.offerName ? "offer-error" : undefined
+                  }
+                  autoComplete="off"
+                />
+                <datalist id="partner-offers">
+                  {selectableOffers.map((option) => (
+                    <option value={option.name} key={option.id} />
+                  ))}
+                </datalist>
+                {errors.offerName ? (
+                  <span className={styles.error} id="offer-error" role="alert">
+                    {errors.offerName}
+                  </span>
+                ) : null}
+              </label>
             ) : null}
             {stage === 2 ? (
               <>
@@ -277,22 +340,6 @@ export function ResaleQuoteBuilder() {
                   ) : null}
                 </label>
                 <label className={styles.field}>
-                  Commercial route
-                  <select
-                    name="route"
-                    value={draft.route}
-                    onChange={(event) =>
-                      update(
-                        "route",
-                        event.target.value as ResaleQuoteDraft["route"],
-                      )
-                    }
-                  >
-                    <option value="resale">Resale</option>
-                    <option value="distributor">Two-tier distributor</option>
-                  </select>
-                </label>
-                <label className={styles.field}>
                   End client
                   <input
                     name="endClientName"
@@ -305,7 +352,7 @@ export function ResaleQuoteBuilder() {
                     autoComplete="off"
                   />
                   <datalist id="partner-clients">
-                    {clientOptions.map((option) => (
+                    {context.endClients.map((option) => (
                       <option value={option.name} key={option.id} />
                     ))}
                   </datalist>
@@ -332,23 +379,41 @@ export function ResaleQuoteBuilder() {
                     </span>
                   ) : null}
                 </label>
-                <label className={styles.field}>
-                  {customerPartnerCopy.partner.partnerPrice} (major units)
-                  <input
-                    name="resalePrice"
-                    inputMode="decimal"
-                    value={draft.resalePrice}
-                    onChange={(event) =>
-                      update("resalePrice", event.target.value)
-                    }
-                    aria-invalid={Boolean(errors.resalePrice)}
-                  />
-                  {errors.resalePrice ? (
-                    <span className={styles.error} role="alert">
-                      {errors.resalePrice}
-                    </span>
-                  ) : null}
-                </label>
+                {partnerPriced ? (
+                  <label className={styles.field}>
+                    {customerPartnerCopy.partner.partnerPrice} (
+                    {offer?.currency ?? endClient?.quoteCurrency ?? "major"}{" "}
+                    major units)
+                    <input
+                      name="resalePrice"
+                      inputMode="decimal"
+                      value={draft.resalePrice}
+                      onChange={(event) =>
+                        update("resalePrice", event.target.value)
+                      }
+                      aria-invalid={Boolean(errors.resalePrice)}
+                    />
+                    {errors.resalePrice ? (
+                      <span className={styles.error} role="alert">
+                        {errors.resalePrice}
+                      </span>
+                    ) : null}
+                  </label>
+                ) : (
+                  <p className={`${styles.muted} ${styles.full}`}>
+                    Fil One is merchant of record on a referral, prices the end
+                    client itself, and pays commission against your agreement.
+                    There is no partner-set price on this route.
+                  </p>
+                )}
+                {errors.offerName ? (
+                  <span
+                    className={`${styles.error} ${styles.full}`}
+                    role="alert"
+                  >
+                    {errors.offerName}
+                  </span>
+                ) : null}
               </>
             ) : null}
             {stage === 3 ? (
@@ -426,7 +491,12 @@ export function ResaleQuoteBuilder() {
               <strong>Offer:</strong> {draft.offerName || "Not selected"}
             </li>
             <li>
-              <strong>Region:</strong> {draft.region || "Not selected"}
+              <strong>Region:</strong> {offer?.region ?? "Set by the offer"}
+            </li>
+            <li>
+              <strong>Commercial route:</strong>{" "}
+              {quoteRouteLabel(context.route)} · from your persisted partner
+              agreement
             </li>
             <li>
               <strong>End client:</strong>{" "}
@@ -438,8 +508,12 @@ export function ResaleQuoteBuilder() {
               {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
             </li>
             <li>
-              <strong>{customerPartnerCopy.partner.partnerPrice}:</strong> $
-              {Number(draft.resalePrice || 0).toLocaleString("en-US")}
+              <strong>{customerPartnerCopy.partner.partnerPrice}:</strong>{" "}
+              {!partnerPriced
+                ? "Not set on a referral"
+                : draft.resalePrice
+                  ? `${offer?.currency ?? ""} ${Number(draft.resalePrice).toLocaleString("en-US")}`.trim()
+                  : "Not set"}
             </li>
             <li>
               <strong>{customerPartnerCopy.partner.transferPrice}:</strong>{" "}
@@ -447,19 +521,25 @@ export function ResaleQuoteBuilder() {
             </li>
             <li>
               <strong>{customerPartnerCopy.partner.merchantOfRecord}:</strong>{" "}
-              Meridian Channel Group
+              {merchantOfRecordName(context)}
             </li>
           </ul>
           <details className={styles.technical}>
             <summary>{customerPartnerCopy.common.technicalDetails}</summary>
             <p>
-              Offer ID: <code>{offerId ?? "Unresolved"}</code>
+              Price book ID: <code>{offer?.priceBookId ?? "Unresolved"}</code>
             </p>
             <p>
-              End-client ID: <code>{endClientId ?? "Unresolved"}</code>
+              Rate card:{" "}
+              <code>
+                {offer ? `${offer.sku}/${offer.region}` : "Unresolved"}
+              </code>
             </p>
             <p>
-              Partner ID: <code>22222222-2222-4222-8222-222222222222</code>
+              End-client ID: <code>{endClient?.id ?? "Unresolved"}</code>
+            </p>
+            <p>
+              Partner ID: <code>{context.partnerAccountId}</code>
             </p>
           </details>
         </aside>

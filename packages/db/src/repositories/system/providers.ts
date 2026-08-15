@@ -21,6 +21,7 @@ import {
 } from "../../schema";
 import { collectionActions, collectionCases } from "../../schema/core/finance";
 import {
+  lifecycleAgreementDrafts,
   lifecycleAgreementTemplateTexts,
   lifecycleProvisioningAttempts,
   lifecycleSignatureEnvelopes,
@@ -430,11 +431,24 @@ export class DatabaseEsignSigningSessionRepository {
           )
           .returning({ rowVersion: lifecycleSignatureEnvelopes.rowVersion });
         if (!updated) throw new Error("E_SIGNING_PROVIDER_BINDING_CONFLICT");
+        // P0-51: the event below is an `agreement` event keyed on the draft, and
+        // `audit_aggregate_version_unique` sequences that aggregate on one
+        // counter. The envelope is a different row with its own
+        // `touch_versioned_row` counter, so publishing `updated.rowVersion`
+        // here fed two counters into one sequence and collided with
+        // `agreement.envelope_created`, which the lifecycle command repository
+        // had already written at the draft version. Take the version from the
+        // draft the way `bumpDraftVersion` does: read it in this transaction,
+        // advance it compare-and-set, and publish what the row now holds.
+        const draftVersion = await bumpAgreementDraftVersion(
+          transaction,
+          envelope.agreementDraftId,
+        );
         await appendAuditAndOutbox(transaction, {
           accountId: envelope.accountId,
           aggregateType: "agreement",
           aggregateId: envelope.agreementDraftId,
-          aggregateVersion: updated.rowVersion,
+          aggregateVersion: draftVersion,
           eventType: "agreement.envelope_provider_linked",
           actor: { kind: "provider", id: "esign" },
           requestId: input.requestId,
@@ -447,6 +461,50 @@ export class DatabaseEsignSigningSessionRepository {
       },
     );
   }
+}
+
+/**
+ * Advances the agreement aggregate one step and returns the version the event
+ * writer must publish. This is `DatabaseLifecycleCommandRepository`'s private
+ * `bumpDraftVersion` reproduced for the provider path, deliberately with the
+ * same read-then-compare-and-set shape: the draft is the sole counter behind
+ * `audit_aggregate_version_unique` for `aggregate_type = 'agreement'`, so every
+ * writer has to take its number from this row and no other.
+ *
+ * The compare-and-set refuses exactly one thing -- a draft whose `row_version`
+ * moved between the read and the write, which can only be another committed
+ * transaction advancing the same aggregate concurrently. That caller has taken
+ * the version this one read, so continuing would either duplicate its audit
+ * version or silently overwrite its bump; the loser must retry. A draft that no
+ * transaction is racing always satisfies the predicate, and the draft itself is
+ * always present: `lifecycle_signature_envelopes.agreement_draft_id` is
+ * `not null` and carries a foreign key to `lifecycle_agreement_drafts`.
+ */
+async function bumpAgreementDraftVersion(
+  transaction: RuntimeTransaction,
+  draftId: string,
+): Promise<number> {
+  const draft = await transaction.query.lifecycleAgreementDrafts.findFirst({
+    columns: { rowVersion: true },
+    where: eq(lifecycleAgreementDrafts.id, draftId),
+  });
+  if (!draft) throw new Error("E_SIGNING_AGREEMENT_DRAFT_NOT_FOUND");
+  // `touch_versioned_row` recomputes `row_version` as `old.row_version + 1`
+  // regardless of what is assigned here; the assignment keeps the statement
+  // readable and matches `bumpDraftVersion`, and the predicate is what makes
+  // the increment safe.
+  const [updated] = await transaction
+    .update(lifecycleAgreementDrafts)
+    .set({ rowVersion: draft.rowVersion + 1 })
+    .where(
+      and(
+        eq(lifecycleAgreementDrafts.id, draftId),
+        eq(lifecycleAgreementDrafts.rowVersion, draft.rowVersion),
+      ),
+    )
+    .returning({ rowVersion: lifecycleAgreementDrafts.rowVersion });
+  if (!updated) throw new Error("E_SIGNING_PROVIDER_BINDING_CONFLICT");
+  return updated.rowVersion;
 }
 
 /** Read shape required by ProvisioningWebhookVerifier. */

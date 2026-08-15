@@ -1,6 +1,9 @@
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import {
+  getRouteIdentity,
+  getRouteRoles,
+} from "@/src/features/shell/route-session";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 
 export default async function Page({
@@ -9,7 +12,8 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [roles, record] = await Promise.all([
+  const [identity, roles, record] = await Promise.all([
+    getRouteIdentity("customer"),
     getRouteRoles("customer"),
     loadCommercialRecord("billing", id),
   ]);
@@ -19,7 +23,12 @@ export default async function Page({
       audience="customer"
       requiredPermission="billing:read"
     >
-      <CommercialRecordDetail canMutate={canPay} id={id} record={record} />
+      <CommercialRecordDetail
+        accountId={identity.accountId}
+        canMutate={canPay}
+        id={id}
+        record={record}
+      />
     </SurfacePermissionGate>
   );
 }

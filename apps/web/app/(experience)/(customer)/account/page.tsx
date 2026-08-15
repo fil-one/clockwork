@@ -92,7 +92,11 @@ async function AccountWorkspace() {
           audience="customer"
           requiredPermission="account:write"
         >
-          <WorkflowPanel workflow="account" surface="account" />
+          <WorkflowPanel
+            context={{ accountId: identity.accountId }}
+            workflow="account"
+            surface="account"
+          />
         </SurfaceActionGate>
       }
       canManageAccount={roles.some(
