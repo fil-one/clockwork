@@ -1,4 +1,9 @@
 import {
+  exceptionQueues,
+  type ExceptionQueue,
+} from "@clockwork/domain/lifecycle";
+
+import {
   durableHumanWait,
   type DurableHumanWait,
   workflowEffect,
@@ -11,17 +16,9 @@ export const exceptionTaskIds = Object.freeze({
   humanDecision: "lifecycle-exceptions-human-decision-v1",
 });
 
-export const exceptionQueues = [
-  "pricing",
-  "legal",
-  "credit_collections",
-  "restricted_parties",
-  "disputes",
-  "deal_registration_disputes",
-  "poc_qualification",
-] as const;
-
-export type ExceptionQueue = (typeof exceptionQueues)[number];
+// One vocabulary, declared in @clockwork/domain. This file used to hold a
+// byte-identical copy of seven of them (P0-43).
+export { exceptionQueues, type ExceptionQueue };
 
 export interface ExceptionQueuePolicy {
   queue: ExceptionQueue;

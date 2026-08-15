@@ -206,6 +206,53 @@ describe("durable outbox dispatcher", () => {
     });
   });
 
+  /**
+   * Contract pin, not a nicety. The outbox is the durable delivery record for
+   * the whole audit log, not a work queue: ADR 0005 appends an
+   * `outbox_messages` row inside the same transaction as every `audit_events`
+   * row, and `appendAuditAndOutbox` defaults the topic to the event type. The
+   * dispatch map is the exception, not the rule -- `lifecycle-task-dispatch.ts`
+   * says so outright: "Only domain events with an immediate task have outbox
+   * dispatch mappings." So the great majority of topics in the table have no
+   * handler by design and never will.
+   *
+   * A dispatcher that claimed *without* the topic filter in order to fail and
+   * eventually dead-letter whatever it could not route would therefore march
+   * every audit-only row up the eight-attempt ladder in
+   * `DatabaseOutboxDispatcherStore` -- on a one-minute cron -- writing a
+   * `workflow_runs` row per message, stamping `OUTBOX_DISPATCH_DEAD_LETTERED`
+   * on rows that are working exactly as designed, and burying the dead-letter
+   * surface the runbooks depend on. It would also mutate `attempt_count` and
+   * `available_at` on the audit stream's own delivery record.
+   *
+   * Hence the invariant pinned here: every claim this dispatcher issues is
+   * filtered to its registered topics, and an empty routable queue ends the
+   * run. The mock returns a stranded row for any unfiltered claim, so
+   * reintroducing that survey fails this test on all three assertions.
+   */
+  it("never claims outside its registered topics, leaving audit-only rows untouched", async () => {
+    const auditOnly = message("core.accounts.create");
+    const claimNext = vi.fn(
+      (input: {
+        workerId: string;
+        topics?: readonly string[];
+      }): Promise<ClaimedOutboxMessage | null> =>
+        Promise.resolve(input.topics ? null : auditOnly),
+    );
+    const fail = vi.fn().mockResolvedValue(undefined);
+    const dispatcher = new DurableOutboxDispatcher(
+      { claimNext, complete: vi.fn(), fail },
+      new Map([["commerce.order.accepted", vi.fn()]]),
+    );
+
+    await expect(
+      dispatcher.dispatchBatch("worker-audit-only"),
+    ).resolves.toEqual({ delivered: 0, idle: true });
+    for (const [input] of claimNext.mock.calls)
+      expect(input.topics).toEqual(["commerce.order.accepted"]);
+    expect(fail).not.toHaveBeenCalled();
+  });
+
   it("stops at the batch limit and rejects unsafe limits", async () => {
     const claimed = message();
     const claimNext = vi.fn().mockResolvedValue(claimed);

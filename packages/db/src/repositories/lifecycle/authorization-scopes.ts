@@ -1,11 +1,26 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import {
+  isExceptionQueue,
+  type ExceptionQueue,
+} from "@clockwork/domain/lifecycle";
+
 import type { RuntimeDatabase } from "../../client";
 import { exceptionCases, orders, pocs } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
 
-const PersistedLifecycleExceptionQueueSchema = z.enum([
+/**
+ * The subset of the one exception vocabulary that the lifecycle API decides.
+ * Deliberately narrower than {@link exceptionQueues}: the queues raised by the
+ * workflow engine and by the order-acceptance database path are decided on the
+ * internal operations surface, which carries its own permission mapping, and
+ * `queuePermission` in packages/api is total over this type. `satisfies` is
+ * what keeps it a subset — a queue named here that the database would refuse
+ * no longer compiles. This used to be declared twice in this file, once as a
+ * Zod enum and once as a hand-written union (P0-43).
+ */
+export const persistedLifecycleExceptionQueues = [
   "pricing",
   "legal",
   "credit_collections",
@@ -13,19 +28,29 @@ const PersistedLifecycleExceptionQueueSchema = z.enum([
   "disputes",
   "deal_registration_disputes",
   "poc_qualification",
-]);
+] as const satisfies readonly ExceptionQueue[];
 
 export type PersistedLifecycleExceptionQueue =
-  | "pricing"
-  | "legal"
-  | "credit_collections"
-  | "restricted_parties"
-  | "disputes"
-  | "deal_registration_disputes"
-  | "poc_qualification";
+  (typeof persistedLifecycleExceptionQueues)[number];
 
+const PersistedLifecycleExceptionQueueSchema = z.enum(
+  persistedLifecycleExceptionQueues,
+);
+
+/**
+ * Fails closed, and says which of the two failures it is. A queue outside the
+ * vocabulary means corrupt data; a vocabulary queue outside this surface means
+ * the case belongs to internal operations. Both used to surface as a raw
+ * ZodError, so the route could not tell them apart.
+ */
 function persistedQueue(value: string): PersistedLifecycleExceptionQueue {
-  return PersistedLifecycleExceptionQueueSchema.parse(value);
+  const parsed = PersistedLifecycleExceptionQueueSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  throw new Error(
+    isExceptionQueue(value)
+      ? `LIFECYCLE_AUTHORIZATION_QUEUE_OUT_OF_SCOPE:${value}`
+      : "LIFECYCLE_AUTHORIZATION_QUEUE_UNKNOWN",
+  );
 }
 
 /**

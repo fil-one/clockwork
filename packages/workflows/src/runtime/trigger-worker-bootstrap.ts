@@ -56,6 +56,12 @@ export const productionWorkflowExternalInputs = [
       "selected transactional notification provider and sender credentials",
   },
   {
+    component: "crm",
+    gate: "EXT-PROVIDER-01",
+    input:
+      "selected CRM endpoint, scoped credentials, and approved one-way object mapping (CRM_PROVIDER_BASE_URL, CRM_PROVIDER_TOKEN)",
+  },
+  {
     component: "screening",
     gate: "EXT-PROVIDER-01",
     input:

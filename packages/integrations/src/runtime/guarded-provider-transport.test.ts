@@ -1,10 +1,13 @@
 import { IdempotencyKeySchema, ids } from "@clockwork/contracts";
 import { describe, expect, it, vi } from "vitest";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 
 import { HttpProvisioningAdapter } from "../production-adapters";
 import type { ProviderJsonTransport } from "../provider-transport";
-import { GuardedProviderJsonTransport } from "./guarded-provider-transport";
+import {
+  defaultProviderOperationPolicy,
+  GuardedProviderJsonTransport,
+} from "./guarded-provider-transport";
 import {
   DeterministicProviderGateStateStore,
   ProviderRuntime,
@@ -86,5 +89,82 @@ describe("GuardedProviderJsonTransport", () => {
       code: "PROVIDER_GATE_INACTIVE",
     });
     expect(request).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * What this guard must NOT be composed over. Both are recorded executably
+ * because a gate in the wrong place is worse than no gate, and both would only
+ * show up in production: neither adapter has a guarded composition today.
+ */
+describe("GuardedProviderJsonTransport composition hazards", () => {
+  function guarded(states = active) {
+    const inner = {
+      request: vi.fn((input: Parameters<ProviderJsonTransport["request"]>[0]) =>
+        Promise.resolve(input.response.parse({ ok: true })),
+      ),
+    };
+    return {
+      inner,
+      transport: new GuardedProviderJsonTransport(
+        inner as unknown as ProviderJsonTransport,
+        new ProviderRuntime(
+          new DeterministicProviderGateStateStore("test", states),
+          () => now,
+        ),
+        () => ({
+          environment: "test",
+          mode: "live",
+          boundary: "provider_effect",
+          requestId: "provider-request-1",
+          effectId: "effect-1",
+        }),
+      ),
+    };
+  }
+
+  it("would deadlock the activation probe that activates the gates it checks", async () => {
+    // `provider.activation_test` falls through to `provider.effect`, whose
+    // gates include EXT-ACC-01 -- the gate the probe exists to turn on.
+    expect(
+      defaultProviderOperationPolicy({
+        operation: "provider.activation_test",
+        path: "/v1/activation-tests/run",
+        body: {},
+      }),
+    ).toBe("provider.effect");
+    const { transport, inner } = guarded([]);
+    await expect(
+      transport.request({
+        operation: "provider.activation_test",
+        path: "/v1/activation-tests/run",
+        body: { provider: "billing" },
+        response: z.object({ ok: z.boolean() }),
+        idempotencyKey: "activation:billing:2026-07-31T16",
+      }),
+    ).rejects.toThrow("PROVIDER_GATE_INACTIVE");
+    expect(inner.request).not.toHaveBeenCalled();
+  });
+
+  it("would deny a keyless read the default policy misreads as an effect", async () => {
+    // HttpLifecycleEvidenceStorageAdapter.createPresignedDownload sends no
+    // idempotency key, and the name matches none of the read heuristics.
+    expect(
+      defaultProviderOperationPolicy({
+        operation: "evidence.create_download",
+        path: "/v1/evidence/downloads",
+        body: {},
+      }),
+    ).toBe("provider.effect");
+    const { transport, inner } = guarded();
+    await expect(
+      transport.request({
+        operation: "evidence.create_download",
+        path: "/v1/evidence/downloads",
+        body: {},
+        response: z.object({ ok: z.boolean() }),
+      }),
+    ).rejects.toThrow("PROVIDER_EFFECT_IDEMPOTENCY_REQUIRED");
+    expect(inner.request).not.toHaveBeenCalled();
   });
 });

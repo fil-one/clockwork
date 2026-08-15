@@ -6,9 +6,17 @@ import {
   submitCoreScheduleOccurrence,
 } from "./scheduled-runtime";
 
-function defineCoreSchedule(
-  definition: (typeof coreScheduleDefinitions)[number],
-) {
+type CoreScheduleDefinitionId = (typeof coreScheduleDefinitions)[number]["id"];
+
+/**
+ * Bound by name, not by array position. The exports below used to index
+ * `coreScheduleDefinitions`, so inserting or reordering a definition silently
+ * moved every cron after it onto the wrong task id -- a rebinding no type and
+ * no test could see.
+ */
+function defineCoreSchedule(id: CoreScheduleDefinitionId) {
+  const definition = coreScheduleDefinitions.find((entry) => entry.id === id);
+  if (!definition) throw new Error(`CORE_SCHEDULE_NOT_DEFINED:${id}`);
   return schedules.task({
     id: definition.id,
     cron: {
@@ -27,27 +35,27 @@ function defineCoreSchedule(
 }
 
 export const syncOverageSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[0],
+  "core.schedule.sync-overage.v1",
 );
-export const dunningSchedule = defineCoreSchedule(coreScheduleDefinitions[1]);
+export const dunningSchedule = defineCoreSchedule("core.schedule.dunning.v1");
 export const partnerCreditSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[2],
+  "core.schedule.partner-credit.v1",
 );
 export const commissionSettlementSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[3],
+  "core.schedule.commission-settlement.v1",
 );
 export const usageReconciliationSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[4],
+  "core.schedule.usage-reconciliation.v1",
 );
 export const threeWayReconciliationSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[5],
+  "core.schedule.three-way-reconciliation.v1",
 );
 export const weeklyReportExportSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[6],
+  "core.schedule.report-export-weekly.v1",
 );
 export const monthlyReportExportSchedule = defineCoreSchedule(
-  coreScheduleDefinitions[7],
+  "core.schedule.report-export-monthly.v1",
 );
 export const procurementCertificateExpirySchedule = defineCoreSchedule(
-  coreScheduleDefinitions[8],
+  "core.schedule.procurement-certificate-expiry.v1",
 );

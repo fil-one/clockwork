@@ -131,12 +131,35 @@ export function retryDelayMs(attempt: number): number {
   );
 }
 
+/** Uniform sample over the closed interval [0, 1]. */
+export type RetryJitterSource = () => number;
+
+/**
+ * Equal jitter over `retryDelayMs`: the lower half of the backoff is still a
+ * floor, the upper half is spread. Every run failed by one provider outage
+ * shares an attempt number, so the undithered schedule wakes them together and
+ * the outage recurs on the retry. Determinism is a test requirement rather than
+ * a production one, so the sample is injected and never read from a module.
+ */
+export function jitteredRetryDelayMs(
+  attempt: number,
+  jitter: RetryJitterSource,
+): number {
+  const base = retryDelayMs(attempt);
+  const sample = jitter();
+  if (!Number.isFinite(sample) || sample < 0 || sample > 1)
+    throw new Error("RETRY_JITTER_SAMPLE_INVALID");
+  const spread = Math.floor(base / 2);
+  return base - spread + Math.round(sample * spread);
+}
+
 export function disposeEffectFailure(input: {
   identity: WorkflowIdentity;
   effectDiscriminator: string;
   attempt: number;
   failure: ProviderFailure;
   failedAt: string;
+  jitter?: RetryJitterSource;
 }): EffectFailureDisposition {
   if (!Number.isFinite(Date.parse(input.failedAt)))
     throw new Error("FAILED_AT_INVALID");
@@ -160,9 +183,11 @@ export function disposeEffectFailure(input: {
     });
   }
   const requested = input.failure.retryAfterMs;
+  // A provider-supplied Retry-After is an instruction, not a guess, so it is
+  // clamped but never dithered. Only the backoff this module computes is.
   const delay =
     requested === undefined
-      ? retryDelayMs(input.attempt)
+      ? jitteredRetryDelayMs(input.attempt, input.jitter ?? Math.random)
       : Math.max(0, Math.min(requested, LIFECYCLE_RETRY_POLICY.maxDelayMs));
   return Object.freeze({
     status: "retry_scheduled",

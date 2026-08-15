@@ -6,14 +6,21 @@ import { isProviderRuntimeDeniedError } from "./runtime/provider-runtime";
 const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_RESPONSE_BYTES = 1_048_576;
 
+/**
+ * `cause` carries the original throw for an operator reading a stack; nothing
+ * on this class other than `name` and `code` reaches telemetry
+ * (`ClockworkTelemetry.recordError`) or a problem document
+ * (`createApiApp`'s onError), so attaching it cannot widen either surface.
+ */
 export class ProviderTransportError extends Error {
   public constructor(
     public readonly kind: "transient" | "permanent",
     public readonly code: string,
     message: string,
     public readonly retryAfterMs?: number,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "ProviderTransportError";
   }
 }
@@ -155,7 +162,7 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
         },
         body: JSON.stringify(input.body),
       });
-    } catch {
+    } catch (cause) {
       const timeout = controller.signal.aborted;
       throw new ProviderTransportError(
         "transient",
@@ -163,6 +170,8 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
         timeout
           ? `${this.options.provider} request timed out`
           : `${this.options.provider} request failed`,
+        undefined,
+        { cause },
       );
     } finally {
       clearTimeout(timer);
@@ -184,11 +193,13 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
     let payload: unknown;
     try {
       payload = text ? JSON.parse(text) : {};
-    } catch {
+    } catch (cause) {
       throw new ProviderTransportError(
         response.ok ? "permanent" : "transient",
         "PROVIDER_RESPONSE_INVALID",
         `${this.options.provider} returned invalid JSON`,
+        undefined,
+        { cause },
       );
     }
     if (!response.ok) {
@@ -212,6 +223,8 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
         "permanent",
         "PROVIDER_RESPONSE_SCHEMA_INVALID",
         `${this.options.provider} returned an invalid response`,
+        undefined,
+        { cause: parsed.error },
       );
     return parsed.data;
   }

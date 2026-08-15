@@ -7,6 +7,7 @@ import type {
   OrchestratorUsagePort,
   ProviderResult,
 } from "@clockwork/contracts";
+import type { ExceptionQueue } from "@clockwork/domain/lifecycle";
 import type {
   CommissionSettlementAccountingPort,
   StripeLedgerBillingPort,
@@ -50,13 +51,14 @@ export interface CoreCapabilityGuard {
   }): Promise<{ allowed: boolean; disabled: readonly CoreCapabilityKey[] }>;
 }
 
-export type ExceptionQueue =
-  | "billing_operations"
-  | "credit_collections"
-  | "commissions"
-  | "reconciliation"
-  | "reporting"
-  | "workflow_operations";
+/**
+ * This used to be a six-member union disjoint from every other declaration in
+ * the tree: only `credit_collections` overlapped, and the other five named
+ * queues no roster and no §16 row knew about (P0-43). They are all still
+ * raised below, so they moved into the one vocabulary rather than being
+ * deleted; the ten §16 queues are now nameable here too.
+ */
+export type { ExceptionQueue };
 
 export interface WorkflowExceptionRequest {
   taskId: CoreWorkflowTaskId;

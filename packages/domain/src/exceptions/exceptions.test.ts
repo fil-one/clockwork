@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertExceptionRoutingQueue,
   decideException,
   exceptionQueues,
   openExceptionCase,
@@ -22,7 +23,7 @@ const policies = validateQueuePolicies(
 
 describe("exception queues", () => {
   it("requires owner, distinct backup, SLA, and escalation for every queue", () => {
-    expect(policies.size).toBe(7);
+    expect(policies.size).toBe(exceptionQueues.length);
     expect(() =>
       validateQueuePolicies(
         exceptionQueues.slice(1).map((queue, index) => ({
@@ -35,6 +36,47 @@ describe("exception queues", () => {
         })),
       ),
     ).toThrow("QUEUE_POLICY_MISSING:pricing");
+  });
+
+  it("opens a case on the §16 queues no declaration in the tree could name", () => {
+    // Provisioning recovery, migration review and offboarding/destructive are
+    // rows in §16 that every one of the four declarations omitted (P0-43), so
+    // there was no policy for them and a case could not be opened at all.
+    for (const queue of [
+      "provisioning_recovery",
+      "migration_review",
+      "offboarding_destructive",
+    ] as const) {
+      const opened = openExceptionCase({
+        caseId: `case-${queue}`,
+        queue,
+        objectType: "order",
+        objectId: "order-1",
+        requestedBy: "requester-1",
+        openedAt: "2026-07-31T16:00:00.000Z",
+        policies,
+      });
+      expect(opened).toMatchObject({ queue, status: "open" });
+      expect(opened.ownerId).not.toBe(opened.backupId);
+      expect(Date.parse(opened.targetAt)).toBeGreaterThan(
+        Date.parse(opened.openedAt),
+      );
+    }
+  });
+
+  it("refuses to route a shape-valid queue that is not in the vocabulary", () => {
+    // `provider_recovery` is what a live packages/api fixture calls §16's
+    // provisioning recovery. It satisfies the identifier shape, so the routing
+    // guard used to pass it through to a roster lookup that could never match.
+    expect(() => assertExceptionRoutingQueue("provider_recovery")).toThrow(
+      "EXCEPTION_ROUTING_QUEUE_UNKNOWN:provider_recovery",
+    );
+    expect(() => assertExceptionRoutingQueue("Not A Queue")).toThrow(
+      "EXCEPTION_ROUTING_QUEUE_INVALID",
+    );
+    expect(assertExceptionRoutingQueue("provisioning_recovery")).toBe(
+      "provisioning_recovery",
+    );
   });
 
   it("prevents self approval and captures immutable decision evidence", () => {

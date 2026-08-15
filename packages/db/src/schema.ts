@@ -1737,6 +1737,47 @@ export const notificationDeliveries = pgTable(
   ],
 );
 
+/**
+ * Mirrors `001400_notification_preferences.sql`. The alert-kind vocabulary here
+ * is narrower than the delivery record's on purpose: contractual notice windows
+ * and collections dunning have no preference row because they cannot be
+ * switched off.
+ */
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: id(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    alertKind: text("alert_kind").notNull(),
+    channel: text("channel").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    rowVersion: rowVersion(),
+  },
+  (table) => [
+    uniqueIndex("notification_preference_unique").on(
+      table.accountId,
+      table.alertKind,
+      table.channel,
+    ),
+    index("notification_preference_account_idx").on(
+      table.accountId,
+      table.alertKind,
+    ),
+    check(
+      "notification_preference_alert_kind_check",
+      sql`${table.alertKind} in ('renewal_term_window','poc_milestone','quote_expiry')`,
+    ),
+    check(
+      "notification_preference_channel_check",
+      sql`${table.channel} = 'email'`,
+    ),
+  ],
+);
+
 export const schemaTables = {
   accounts,
   documents,
@@ -1785,4 +1826,5 @@ export const schemaTables = {
   impersonationSessions,
   roleSyncEvents,
   notificationDeliveries,
+  notificationPreferences,
 };

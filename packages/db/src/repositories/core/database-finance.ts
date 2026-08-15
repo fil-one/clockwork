@@ -2,10 +2,12 @@ import { and, asc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 
 import {
+  coreReportNames,
   ids,
   MoneySchema,
   uuidV7,
   type Actor,
+  type CoreReportName,
   type EntityName,
   type TaxPort,
   type TaxTreatment,
@@ -80,6 +82,9 @@ import {
 } from "../../schema";
 import {
   accountCommercialProfiles,
+  accountContacts,
+  accountingExports,
+  accountRelationshipRoles,
   amendmentFinancialTerms,
   amendmentLineSupersessions,
   billingPolicies,
@@ -87,6 +92,7 @@ import {
   collectionCases,
   commitmentAllowanceAdjustments,
   commitmentPeriods,
+  marketplaceReconciliations,
   orderCommercialProfiles,
   orderLineSnapshots,
   quoteCommercialProfiles,
@@ -186,17 +192,12 @@ export interface DatabaseCoreListInput {
   authorization: AuthorizationContext;
 }
 
-export const databaseCoreReportNames = [
-  "revenue_forecast",
-  "capacity_planning",
-  "renewal_churn_exposure",
-  "partner_performance",
-  "funnel_cycle_time",
-  "margin_poc_cost",
-  "three_way_tie_out",
-  "weekly_scorecard",
-] as const;
-export type DatabaseCoreReportName = (typeof databaseCoreReportNames)[number];
+// The §17 catalogue, re-exported rather than restated -- see the comment on
+// `coreReportNames` in @clockwork/contracts. `coreReportSources` below is a
+// total record over it, which is what stops a name being added to the
+// catalogue with no relation behind it.
+export { coreReportNames as databaseCoreReportNames };
+export type DatabaseCoreReportName = CoreReportName;
 
 export interface DatabaseCoreReportInput {
   report: DatabaseCoreReportName;
@@ -205,6 +206,182 @@ export interface DatabaseCoreReportInput {
   limit: number;
   authorization: AuthorizationContext;
 }
+
+/**
+ * Who a §17 report is for.
+ *
+ * `internal` reports are refused to a non-internal caller by `report()` AND
+ * ungranted to `clockwork_runtime` in SQL. `tenant` reports are reachable by an
+ * account party who holds `report:read` and names an account they hold, and are
+ * granted `select` to `clockwork_runtime` so the security-invoker view runs
+ * under the caller's row-level security rather than the service role's.
+ *
+ * The two facts are one field here on purpose. They were two lists -- the
+ * `internalOnly` set in `report()` and the grants in 000100/000905/001396 --
+ * and the three reports 001396 added were in neither, so a non-internal owner
+ * holding `report:read` reached `core_commission_settlement` and got
+ * `42501 permission denied for view core_commission_settlement`: a raw
+ * PostgreSQL error on a report the catalogue advertised to them.
+ * `core-reports.integration.test.ts` reads `has_table_privilege` for
+ * `clockwork_runtime` on every relation below and fails when it disagrees with
+ * the audience declared here, so the binding is measured rather than asserted
+ * in a comment.
+ */
+export type CoreReportAudience = "internal" | "tenant";
+
+export interface CoreReportSource {
+  /**
+   * The relation the report is read from. Checked to exist -- and to be the
+   * relation the audience claims -- by the integration test; never built from
+   * caller input.
+   */
+  relation: string;
+  /** Who may read it, in both senses above. */
+  audience: CoreReportAudience;
+  /**
+   * The column an account filter narrows on. Absent where the report has no
+   * account dimension at all (capacity, the tie-out, the scorecard), which is
+   * part of why those three are internal.
+   */
+  accountColumn?: string;
+  /**
+   * Set for the eight views 000100 shipped, which are read through
+   * `CoreFinanceRepository.readInternalReport` and its own short keys. The
+   * three 001396 added are read by `readReportView`. The split is by migration
+   * vintage rather than by anything meaningful.
+   */
+  shipped?: Parameters<CoreFinanceRepository["readInternalReport"]>[0];
+}
+
+/**
+ * Where each report in the §17 catalogue is read from, and for whom.
+ *
+ * Total over `CoreReportName` by its type, which is the binding that stops the
+ * catalogue in @clockwork/contracts becoming a list of names nothing serves:
+ * add one there and this stops compiling until it names a relation.
+ *
+ * The audiences, and why each is what it is:
+ *
+ *   * The five 000905 granted to `clockwork_runtime` stay tenant-reachable.
+ *     Its own comment is the authority: "Customer-facing reports must execute
+ *     as clockwork_runtime so the security-invoker views apply underlying table
+ *     RLS. Internal management views deliberately remain service-only."
+ *
+ *   * `capacity_planning`, `three_way_tie_out` and `weekly_scorecard` stay
+ *     internal. None of them has an account dimension to narrow on, so there is
+ *     no such thing as one tenant's row of them.
+ *
+ *   * `arr_mrr` is tenant-reachable. It reads exactly one relation --
+ *     `core_revenue_forecast`, which 000905 already made tenant-reachable --
+ *     and adds no table of its own, so its reach is the reach that report
+ *     already has and its rows are scoped by the same RLS. Denying it would
+ *     deny a tenant the run rate of numbers they can already page through
+ *     month by month.
+ *
+ *   * `billing_collections` is tenant-reachable. Every relation it reads has a
+ *     SELECT policy for the account party -- invoices, payments, credit notes,
+ *     refunds, disputes, the collection case, the billing policy and the
+ *     commercial profile -- so the row an account reads for its own invoice is
+ *     column-for-column the row an internal operator reads. Verified against
+ *     the demo seed, not assumed: 1397_report_reach_and_partner_credit.test.sql
+ *     compares the two reads. What it makes newly reachable in practice is the
+ *     collection case -- dunning owner, next action, running-service decision --
+ *     because `core_collection_cases` is not on the record-read surface. Its
+ *     policy already admits the account party and §17 names the dunning owner
+ *     as content of this report; the grant follows the policy rather than
+ *     widening it.
+ *
+ *   * `commission_settlement` is INTERNAL, and it is the one report here whose
+ *     content would survive the grant while being wrong. Two reasons, both
+ *     measured in the pgTAP test:
+ *
+ *       1. It joins `invoices` and `orders` inline. A commission accrual only
+ *          exists on a referral order (`core_validate_finance_chain`:
+ *          "commission must belong to an attributed referral invoice"), and on
+ *          a referral the merchant of record is Fil One, so the invoice belongs
+ *          to the END CLIENT. The partner cannot read that invoice, the join
+ *          drops, and the partner's own commission report comes back EMPTY --
+ *          proven against the seed: as an owner on Redwood, `commission_accruals`
+ *          returns their accrual and `core_commission_settlement` returns zero
+ *          rows.
+ *       2. `marketplace_fee_minor` sums `core_marketplace_financial_entries`,
+ *          whose only policy is `app_is_internal()`. A tenant reads 0 for a
+ *          spec-required column whatever the fee actually was.
+ *
+ *     A report that silently returns nothing to the exact party it is about,
+ *     and zero for a fee that is not zero, is worse than a typed refusal. §17
+ *     opens "Internal only; clients and partners see their own data in the
+ *     portal", and a partner's settlement position is already reachable
+ *     row-by-row through `core_commission_statements`, which is scoped to
+ *     `app_has_account(partner_account_id)`. Making this tenant-reachable is a
+ *     view change -- the joins have to survive the end client's RLS and the
+ *     marketplace fee has to come from somewhere a partner may read -- not a
+ *     grant.
+ */
+export const coreReportSources: Readonly<
+  Record<CoreReportName, CoreReportSource>
+> = {
+  revenue_forecast: {
+    relation: "core_revenue_forecast",
+    audience: "tenant",
+    accountColumn: "account_id",
+    shipped: "revenue_forecast",
+  },
+  capacity_planning: {
+    relation: "core_capacity_planning",
+    audience: "internal",
+    shipped: "capacity",
+  },
+  renewal_churn_exposure: {
+    relation: "core_renewal_churn_exposure",
+    audience: "tenant",
+    accountColumn: "account_id",
+    shipped: "renewal_churn",
+  },
+  partner_performance: {
+    relation: "core_partner_performance",
+    audience: "tenant",
+    accountColumn: "partner_account_id",
+    shipped: "partner_performance",
+  },
+  funnel_cycle_time: {
+    relation: "core_funnel_cycle_time",
+    audience: "tenant",
+    accountColumn: "account_id",
+    shipped: "funnel_cycle",
+  },
+  margin_poc_cost: {
+    relation: "core_margin_poc_cost",
+    audience: "tenant",
+    accountColumn: "account_id",
+    shipped: "margin_poc",
+  },
+  three_way_tie_out: {
+    relation: "core_three_way_tie_out",
+    audience: "internal",
+    shipped: "three_way_tie_out",
+  },
+  weekly_scorecard: {
+    relation: "core_weekly_scorecard",
+    audience: "internal",
+    shipped: "weekly_scorecard",
+  },
+  arr_mrr: {
+    relation: "core_arr_mrr",
+    audience: "tenant",
+    accountColumn: "account_id",
+  },
+  billing_collections: {
+    relation: "core_billing_collections",
+    audience: "tenant",
+    accountColumn: "account_id",
+  },
+  commission_settlement: {
+    relation: "core_commission_settlement",
+    audience: "internal",
+    accountColumn: "partner_account_id",
+  },
+};
 
 export type DatabaseCoreErrorCode =
   "NOT_FOUND" | "VERSION_CONFLICT" | "DUPLICATE" | "INVALID_STATE";
@@ -269,12 +446,15 @@ const CoreServiceError = DatabaseCoreError;
  * so this is the command surface rather than a description of one.
  */
 export const databaseCoreCommands = {
-  // `update` and the four settings verbs share one patch branch today; they
-  // resolve, which is all this table claims. What each of them ought to write
-  // separately is not settled here -- and unlike `mutateProcurement`, which
-  // now branches on the verb, `mutateAccount` still answers all five with the
-  // same three optional keys, so a role, a contact, payment terms and a credit
-  // limit are audited under their own event and never written.
+  // `mutateAccount` branches on each of these and writes what its verb names:
+  // `add_role` the relationship-role row and the array column, `add_contact`
+  // the contact row, `set_payment_terms` the billing policy and the commercial
+  // profile's printed terms, `set_partner_credit` both halves of the aggregate
+  // credit limit -- the `accounts` column and the approved limit on the
+  // commercial profile, which a database trigger requires to be the same
+  // number. They shared one three-key patch until
+  // 001396's work-stream, which meant a role, a contact, payment terms and a
+  // credit limit were each audited under their own event and never written.
   accounts: [
     "create",
     "update",
@@ -925,6 +1105,89 @@ function assertCertificatesNotLapsed(
       "INVALID_STATE",
       `Exemption certificate for ${lapsed.jurisdiction} expired on ${lapsed.expiresOn ?? "an unknown date"} and cannot be recorded`,
     );
+}
+
+/**
+ * The five account commands, one payload shape each.
+ *
+ * Strict, because the failure this replaces was a payload whose keys nobody
+ * looked at: `{ role: "partner" }` was accepted, audited as
+ * `core.accounts.add_role`, and dropped. An unrecognised key is now an answer.
+ */
+const AccountRoleCommandSchema = z
+  .object({
+    role: CommercialRoleSchema,
+    source: z.enum(["self_declared", "verified", "operator"]).optional(),
+    effectiveFrom: z.iso.date().optional(),
+  })
+  .strict();
+const AccountContactCommandSchema = z
+  .object({
+    kind: z.enum([
+      "billing",
+      "accounts_payable",
+      "remit_to",
+      "tax",
+      "procurement",
+      "commercial",
+      "technical",
+    ]),
+    name: z.string().min(1).max(255),
+    email: z.email().max(320),
+    title: z.string().min(1).max(255).optional(),
+    phone: z.string().min(1).max(64).optional(),
+    isPrimary: z.boolean().default(false),
+    receivesInvoices: z.boolean().default(false),
+  })
+  .strict();
+const AccountPaymentTermsCommandSchema = z
+  .object({
+    collectionMethod: z.enum(["prepay", "auto_charge", "net_terms"]),
+    paymentRail: z.enum([
+      "card",
+      "ach_debit",
+      "wire",
+      "sepa_credit",
+      "bacs",
+      "marketplace",
+    ]),
+    termsDays: z.int().min(1).max(365).optional(),
+    dunningPolicyVersion: z.string().min(1).max(64).optional(),
+    requirePo: z.boolean().optional(),
+    consolidatePartnerInvoices: z.boolean().optional(),
+  })
+  .strict();
+const AccountPartnerCreditCommandSchema = z
+  .object({ creditLimit: MoneySchema })
+  .strict();
+
+/**
+ * Account commands that write service-owned finance configuration.
+ *
+ * Each of the three writes state whose row policy is `app_is_internal()` or
+ * whose meaning depends on it not being self-set. `mutateWithReplay` runs them
+ * on the service pool and refuses them to anyone who is not internal staff;
+ * `create`, `update` and `add_contact` stay on the tenant transaction, where an
+ * account maintaining its own legal name, invoice address and payables contact
+ * is ordinary self-service.
+ */
+const internalAccountCommands = new Set([
+  "add_role",
+  "set_payment_terms",
+  "set_partner_credit",
+]);
+
+function accountCommand<Schema extends z.ZodType>(
+  schema: Schema,
+  input: CoreMutation,
+): z.infer<Schema> {
+  const parsed = schema.safeParse(input.payload);
+  if (!parsed.success)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Account ${input.action} payload is invalid`,
+    );
+  return parsed.data;
 }
 
 function procurementCommand<Schema extends z.ZodType>(
@@ -2142,6 +2405,31 @@ async function audited(
   };
 }
 
+/**
+ * One page of a §17 report view.
+ *
+ * Same shape as `CoreFinanceRepository.readInternalReport`, for the views that
+ * arrived after it: the relation and the account column are chosen from
+ * `coreReportSources`, never from caller input, and the offset and limit are
+ * clamped the same way, so nothing here interpolates a value a caller supplied.
+ */
+async function readReportView(
+  transaction: RuntimeTransaction,
+  source: { relation: string; accountColumn?: string },
+  options: { limit: number; offset: number; accountId?: string },
+): Promise<ReadonlyArray<Record<string, unknown>>> {
+  const limit = Math.min(Math.max(options.limit, 1), 101);
+  const offset = Math.min(Math.max(options.offset, 0), 10_000);
+  const view = sql.identifier(source.relation);
+  return source.accountColumn && options.accountId
+    ? transaction.execute(
+        sql`select * from ${view} where ${sql.identifier(source.accountColumn)} = ${options.accountId} limit ${limit} offset ${offset}`,
+      )
+    : transaction.execute(
+        sql`select * from ${view} limit ${limit} offset ${offset}`,
+      );
+}
+
 function authorization(input: {
   authorization: AuthorizationContext;
   requestId?: string;
@@ -2741,7 +3029,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     // tenant-facing runtime pool: it authenticates as clockwork_runtime, which
     // is not a member of clockwork_service, so opening an internal transaction
     // on it raises SQLSTATE 42501 rather than escalating.
-    return input.resource === "commitments" || input.resource === "price_books"
+    // Three account commands write the same kind of state. A relationship role,
+    // a billing policy and an aggregate credit limit are finance configuration,
+    // not customer self-service: `core_account_roles_write` and
+    // `core_billing_policy_write` admit the service connection alone, the
+    // tenant role holds SELECT and nothing else on either table, and a credit
+    // limit an account sets for itself is not a credit limit. They therefore
+    // run on the service pool for the same reason `price_books` does, and carry
+    // the authorization in code -- the refusal below, before any transaction is
+    // opened. It turns away exactly the callers the two row policies already
+    // turn away, and no portal surface offers any of the three (`actionsFor`
+    // renders none of them), so nothing legitimate is inside it.
+    const serviceOwnedAccountCommand =
+      input.resource === "accounts" &&
+      internalAccountCommands.has(input.action);
+    if (serviceOwnedAccountCommand && !input.authorization.isInternalStaff)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        `Account ${input.action} is internal finance configuration`,
+      );
+    return input.resource === "commitments" ||
+      input.resource === "price_books" ||
+      serviceOwnedAccountCommand
       ? withInternalTransaction(
           this.options.pricingDatabase,
           input.requestId,
@@ -3720,34 +4029,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "VERSION_CONFLICT",
         "Account version is stale",
       );
+    // The verb's own write happens first, so a payload this account cannot
+    // accept never advances its version, and the touch below is what carries
+    // the aggregate version the audit event is chained on.
+    const command = await this.applyAccountCommand(transaction, input, prior);
     const [row] = await transaction
       .update(accounts)
-      .set({
-        ...(input.payload.legalName
-          ? {
-              legalName: normalizeLegalName(
-                string(input.payload.legalName, "legalName"),
-              ),
-            }
-          : {}),
-        ...(input.payload.invoiceDeliveryEmail
-          ? {
-              invoiceDeliveryEmail: string(
-                input.payload.invoiceDeliveryEmail,
-                "invoiceDeliveryEmail",
-              ),
-            }
-          : {}),
-        ...(input.payload.billingContact
-          ? {
-              billingContact: object(
-                input.payload.billingContact,
-                "billingContact",
-              ),
-            }
-          : {}),
-        updatedAt: this.now(),
-      })
+      .set({ ...command.patch, updatedAt: this.now() })
       .where(
         and(
           eq(accounts.id, input.id),
@@ -3760,12 +4048,322 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "VERSION_CONFLICT",
         "Account version is stale",
       );
+    await command.after?.();
     return audited(
       transaction,
       input,
       coreRecord("accounts", row, row.id),
       prior,
     );
+  }
+
+  /**
+   * What each account command writes.
+   *
+   * All five non-create verbs used to land on one patch of three optional keys
+   * -- `legalName`, `invoiceDeliveryEmail`, `billingContact`. A caller sending
+   * `add_role`, `add_contact`, `set_payment_terms` or `set_partner_credit` got
+   * a 200, an audit event named after the verb, and a row version increment,
+   * and not one of the four things they asked for was written anywhere. That is
+   * worse than a refusal: a refusal is visible, and this was a receipt for work
+   * nobody did.
+   *
+   * Each branch now writes only what its verb names. `patch` is the columns of
+   * `accounts` that go with it, applied by the single versioned update in
+   * `mutateAccount`; `after` is work that has to follow that update, because
+   * `core_validate_finance_chain` requires the relationship-role register to
+   * agree with the array column and so the register row cannot be written
+   * before the array holds the role. The `default` is what a verb no branch
+   * implements now gets, which `accounts` previously had no way to say.
+   */
+  private async applyAccountCommand(
+    transaction: RuntimeTransaction,
+    input: CoreMutation,
+    prior: typeof accounts.$inferSelect,
+  ): Promise<{
+    patch: Partial<typeof accounts.$inferInsert>;
+    after?: () => Promise<void>;
+  }> {
+    switch (input.action) {
+      case "update":
+        return {
+          patch: {
+            ...(input.payload.legalName
+              ? {
+                  legalName: normalizeLegalName(
+                    string(input.payload.legalName, "legalName"),
+                  ),
+                }
+              : {}),
+            ...(input.payload.invoiceDeliveryEmail
+              ? {
+                  invoiceDeliveryEmail: string(
+                    input.payload.invoiceDeliveryEmail,
+                    "invoiceDeliveryEmail",
+                  ),
+                }
+              : {}),
+            ...(input.payload.billingContact
+              ? {
+                  billingContact: object(
+                    input.payload.billingContact,
+                    "billingContact",
+                  ),
+                }
+              : {}),
+          },
+        };
+      case "add_role": {
+        const command = accountCommand(AccountRoleCommandSchema, input);
+        // `core_account_relationship_roles` is keyed on (account, role) and the
+        // array column on `accounts` is what every reader parses, so both move
+        // or neither does. Re-adding a role the account already holds is one of
+        // the two things this refuses, and the primary key refuses it anyway --
+        // this only turns a constraint violation into an answer.
+        if (prior.relationshipRoles.includes(command.role))
+          throw new CoreServiceError(
+            "DUPLICATE",
+            `Account already holds the ${command.role} role`,
+          );
+        // The other. `core_validate_finance_chain` requires an account holding
+        // the partner role to have `approved_credit_limit_minor` equal to
+        // `aggregate_credit_limit_minor`, and it checks that ON THE PROFILE.
+        // Granting the role to an account whose two limits already differ is
+        // therefore accepted here and fails LATER -- on the next statement to
+        // touch the profile, which for a partner is
+        // `core_reserve_order_acceptance` reserving exposure for an order.
+        // Refusing names the fix; accepting hands someone a partner that cannot
+        // accept an order and no reason why. The refusal is exactly this state,
+        // and only when the role being added is `partner`: an account with no
+        // commercial profile, or one whose limits already agree, is unaffected.
+        if (command.role === "partner") {
+          const commercial =
+            await transaction.query.accountCommercialProfiles.findFirst({
+              where: eq(accountCommercialProfiles.accountId, prior.id),
+            });
+          if (
+            commercial &&
+            commercial.approvedCreditLimitMinor !==
+              prior.aggregateCreditLimitMinor
+          )
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              `A partner account requires its approved credit limit (${commercial.approvedCreditLimitMinor}) to equal its aggregate credit limit (${prior.aggregateCreditLimitMinor}); send accounts:set_partner_credit first, which writes both`,
+            );
+        }
+        return {
+          patch: {
+            relationshipRoles: [...prior.relationshipRoles, command.role],
+          },
+          after: async () => {
+            await transaction.insert(accountRelationshipRoles).values({
+              accountId: prior.id,
+              role: command.role,
+              ...(command.source ? { source: command.source } : {}),
+              ...(command.effectiveFrom
+                ? { effectiveFrom: command.effectiveFrom }
+                : {}),
+            });
+          },
+        };
+      }
+      case "add_contact": {
+        const command = accountCommand(AccountContactCommandSchema, input);
+        // One active primary per kind, which is the partial unique index on the
+        // table. Nothing else is refused: a second non-primary contact of the
+        // same kind is ordinary, and so is a primary for a kind that has none.
+        if (command.isPrimary) {
+          const held = await transaction.query.accountContacts.findFirst({
+            where: and(
+              eq(accountContacts.accountId, prior.id),
+              eq(accountContacts.kind, command.kind),
+              eq(accountContacts.isPrimary, true),
+              eq(accountContacts.active, true),
+            ),
+          });
+          if (held)
+            throw new CoreServiceError(
+              "DUPLICATE",
+              `Account already has a primary ${command.kind} contact`,
+            );
+        }
+        await transaction.insert(accountContacts).values({
+          accountId: prior.id,
+          kind: command.kind,
+          name: command.name,
+          email: command.email,
+          ...(command.title ? { title: command.title } : {}),
+          ...(command.phone ? { phone: command.phone } : {}),
+          isPrimary: command.isPrimary,
+          receivesInvoices: command.receivesInvoices,
+        });
+        return { patch: {} };
+      }
+      case "set_payment_terms": {
+        const command = accountCommand(AccountPaymentTermsCommandSchema, input);
+        // Both check constraints say the same thing -- a term in days belongs
+        // to net terms and to nothing else -- so the command says it too, and
+        // the caller gets an answer instead of a constraint violation. The set
+        // this refuses is exactly {net terms with no days, other terms with
+        // days}, and neither is a policy anyone can hold.
+        if (
+          (command.collectionMethod === "net_terms") !==
+          (command.termsDays !== undefined)
+        )
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "A term in days belongs to net terms and to no other collection method",
+          );
+        const existing = await transaction.query.billingPolicies.findFirst({
+          where: eq(billingPolicies.accountId, prior.id),
+        });
+        const dunningPolicyVersion =
+          command.dunningPolicyVersion ?? existing?.dunningPolicyVersion;
+        if (!dunningPolicyVersion)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "A first billing policy must name the dunning policy version it runs under",
+          );
+        const policy = {
+          collectionMethod: command.collectionMethod,
+          paymentRail: command.paymentRail,
+          termsDays: command.termsDays ?? null,
+          dunningPolicyVersion,
+          requirePo: command.requirePo ?? existing?.requirePo ?? false,
+          consolidatePartnerInvoices:
+            command.consolidatePartnerInvoices ??
+            existing?.consolidatePartnerInvoices ??
+            false,
+        };
+        await transaction
+          .insert(billingPolicies)
+          .values({ accountId: prior.id, ...policy })
+          .onConflictDoUpdate({
+            target: billingPolicies.accountId,
+            set: { ...policy, updatedAt: this.now() },
+          });
+        // The order form prints "Net N days" off the commercial profile
+        // (`artifact-definitions.ts`), so leaving it behind would put stale
+        // terms on a document. The profile is written by the acceptance path
+        // and carries a legal-entity fingerprint this command cannot invent, so
+        // an account that has none is left alone rather than given one.
+        const commercial =
+          await transaction.query.accountCommercialProfiles.findFirst({
+            where: eq(accountCommercialProfiles.accountId, prior.id),
+          });
+        if (commercial)
+          await transaction
+            .update(accountCommercialProfiles)
+            .set({
+              billingModel: command.collectionMethod,
+              paymentTermsDays: command.termsDays ?? null,
+              updatedAt: this.now(),
+            })
+            .where(eq(accountCommercialProfiles.accountId, prior.id));
+        return { patch: {} };
+      }
+      /**
+       * The aggregate partner credit limit, written on BOTH sides of the
+       * invariant that says they are one number.
+       *
+       * `core_validate_finance_chain` refuses a `core_account_commercial_profiles`
+       * row whose `approved_credit_limit_minor` differs from
+       * `accounts.aggregate_credit_limit_minor` when the account holds the
+       * partner role -- `23514 partner credit limit must match the account
+       * aggregate limit` -- and supabase/seed.sql seeds the profile FROM the
+       * account column for exactly that reason ("Credit limits remain exactly
+       * the account limits above").
+       *
+       * The first implementation of this verb wrote only `accounts`. The
+       * trigger is on the profile, not on `accounts`, so that write SUCCEEDED
+       * and left the invariant broken behind it. The next statement to touch
+       * the profile is the one that failed -- and on a partner that is
+       * `core_reserve_order_acceptance`, which increments
+       * `current_exposure_minor` for the invoicing account and again for the
+       * partner account on EVERY accepted order (001000). One call on a partner
+       * therefore rolled back every subsequent order acceptance for that
+       * partner, which is why the profile update below is not optional and is
+       * not a separate command.
+       *
+       * The ordering matters and is not incidental: `mutateAccount` applies
+       * `patch` to `accounts` first and runs `after` second, so by the time the
+       * trigger reads `accounts` it reads the new limit and the two agree.
+       *
+       * The complete set of inputs this refuses:
+       *   1. a payload that is not `{ creditLimit: { currency, minor } }`;
+       *   2. a limit stated in a currency other than the account's -- the
+       *      columns are minor units with no currency of their own, so it would
+       *      be recorded as a number that means something else;
+       *   3. a negative limit, which `accounts_credit_nonnegative_check` and
+       *      the profile's own check refuse as a raw 23514 -- answered here
+       *      instead.
+       * Nothing else: raising, lowering, and lowering BELOW current exposure
+       * are all allowed. The last is a real commercial act -- the partner is
+       * over its limit and `core_reserve_order_acceptance` starts rejecting new
+       * orders, which is what a reduced limit is for.
+       *
+       * It does NOT refuse an account that holds no partner role, though §4
+       * attaches the aggregate limit to partner accounts. A draft of this verb
+       * did, and that guard blocked a legitimate write: `add_role` refuses the
+       * partner role to an account whose two limits differ, this verb is the
+       * only writer of either column in the tree, and between them a direct
+       * client with an approved limit could never become a partner at all.
+       * Writing both columns for every account is also what supabase/seed.sql
+       * does -- it seeds the profile from the account limit for ALL accounts,
+       * not only partners -- so the pair stays equal everywhere and an account
+       * is always safe to grant the partner role to.
+       *
+       * What it deliberately does NOT write is `credit_status`. Approving
+       * credit is the credit exception queue's decision (§9); this verb sets
+       * the cap. A net-terms partner sitting at `not_requested` stays blocked
+       * after this command, with the limit it will get when credit is approved.
+       */
+      case "set_partner_credit": {
+        const command = accountCommand(
+          AccountPartnerCreditCommandSchema,
+          input,
+        );
+        if (command.creditLimit.currency !== prior.currency)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            `Partner credit limit must be stated in ${prior.currency}`,
+          );
+        const limitMinor = BigInt(command.creditLimit.minor);
+        if (limitMinor < 0n)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Partner credit limit cannot be negative",
+          );
+        return {
+          patch: { aggregateCreditLimitMinor: limitMinor },
+          after: async () => {
+            // Absent for an account whose commercial profile has not been
+            // written yet -- it is created by the acceptance path and carries a
+            // legal-entity fingerprint this command cannot invent. There is
+            // nothing to diverge from in that state, and the same trigger
+            // checks the profile against `accounts` when it is finally
+            // inserted, so the limit set here is the one it has to match.
+            const commercial =
+              await transaction.query.accountCommercialProfiles.findFirst({
+                where: eq(accountCommercialProfiles.accountId, prior.id),
+              });
+            if (!commercial) return;
+            await transaction
+              .update(accountCommercialProfiles)
+              .set({
+                approvedCreditLimitMinor: limitMinor,
+                updatedAt: this.now(),
+              })
+              .where(eq(accountCommercialProfiles.accountId, prior.id));
+          },
+        };
+      }
+      default:
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Unsupported account command",
+        );
+    }
   }
 
   /**
@@ -6707,167 +7305,361 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   }
 
   public list(input: CoreListInput) {
+    // Two of the sixteen carry no account dimension and their row-level policy
+    // is `app_is_internal()`, which is false for every tenant-pool session --
+    // so on the authorized transaction they can only ever return an empty page,
+    // whatever the caller asked for. Reading them on the internal pool the way
+    // `report()` does is what makes the read real, and the refusal below is
+    // what keeps that pool behind the same door: it turns away exactly the
+    // callers whose policy already gives them nothing, and no tenant has a row
+    // in either table to be turned away from.
+    const internalOnly = new Set<CoreResourceName>([
+      "accounting_exports",
+      "marketplace_reconciliations",
+    ]);
+    if (
+      internalOnly.has(input.resource) &&
+      !input.authorization.isInternalStaff
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        `${input.resource} reads are restricted to internal operators`,
+      );
+    const readList = async (transaction: RuntimeTransaction) => {
+      const decodedCursor: unknown = input.cursor
+        ? JSON.parse(Buffer.from(input.cursor, "base64url").toString("utf8"))
+        : undefined;
+      const cursor = z.object({ id: z.string() }).safeParse(decodedCursor);
+      const after = cursor.success ? cursor.data.id : undefined;
+      const whereId = after
+        ? gt(sql`${sql.identifier("id")}`, after)
+        : undefined;
+      /** Orders this account is the client on. */
+      const accountOrders = (accountId: string) =>
+        transaction
+          .select({ id: orders.id })
+          .from(orders)
+          .where(eq(orders.accountId, accountId));
+      /** Invoices billed to this account. */
+      const accountInvoices = (accountId: string) =>
+        transaction
+          .select({ id: invoices.id })
+          .from(invoices)
+          .where(eq(invoices.accountId, accountId));
+      /** Payments settling an invoice billed to this account. */
+      const accountPayments = (accountId: string) =>
+        transaction
+          .select({ id: payments.id })
+          .from(payments)
+          .innerJoin(invoices, eq(invoices.id, payments.invoiceId))
+          .where(eq(invoices.accountId, accountId));
+      let rows: JsonRecord[];
+      switch (input.resource) {
+        case "accounts":
+          rows = await transaction
+            .select()
+            .from(accounts)
+            .where(
+              input.accountId
+                ? and(eq(accounts.id, input.accountId), whereId)
+                : whereId,
+            )
+            .orderBy(asc(accounts.id))
+            .limit(input.limit + 1);
+          break;
+        // A price book belongs to no account. Reads are internal-only and
+        // carry the rate-card count the activation surface scans on.
+        case "price_books": {
+          if (!input.authorization.isInternalStaff)
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              "Price book reads require internal staff",
+            );
+          rows = await transaction
+            .select({
+              id: priceBooks.id,
+              name: priceBooks.name,
+              currency: priceBooks.currency,
+              effectiveFrom: priceBooks.effectiveFrom,
+              effectiveTo: priceBooks.effectiveTo,
+              status: priceBooks.status,
+              version: priceBooks.version,
+              createdAt: priceBooks.createdAt,
+              rateCardCount: sql<number>`count(${rateCards.id})::int`,
+            })
+            .from(priceBooks)
+            .leftJoin(rateCards, eq(rateCards.priceBookId, priceBooks.id))
+            .where(whereId)
+            .groupBy(priceBooks.id)
+            .orderBy(asc(priceBooks.id))
+            .limit(input.limit + 1);
+          break;
+        }
+        case "quotes":
+          rows = await transaction
+            .select()
+            .from(quotes)
+            .where(
+              input.accountId
+                ? and(eq(quotes.accountId, input.accountId), whereId)
+                : whereId,
+            )
+            .orderBy(asc(quotes.id))
+            .limit(input.limit + 1);
+          break;
+        case "orders":
+          rows = await transaction
+            .select()
+            .from(orders)
+            .where(
+              input.accountId
+                ? and(eq(orders.accountId, input.accountId), whereId)
+                : whereId,
+            )
+            .orderBy(asc(orders.id))
+            .limit(input.limit + 1);
+          break;
+        case "invoices":
+          rows = await transaction
+            .select()
+            .from(invoices)
+            .where(
+              input.accountId
+                ? and(eq(invoices.accountId, input.accountId), whereId)
+                : whereId,
+            )
+            .orderBy(asc(invoices.id))
+            .limit(input.limit + 1);
+          break;
+        case "deal_registrations":
+          rows = await transaction
+            .select()
+            .from(dealRegistrations)
+            .where(
+              input.accountId
+                ? and(
+                    eq(dealRegistrations.partnerAccountId, input.accountId),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(dealRegistrations.id))
+            .limit(input.limit + 1);
+          break;
+        case "commissions":
+          rows = await transaction
+            .select()
+            .from(commissionAccruals)
+            .where(
+              input.accountId
+                ? and(
+                    eq(commissionAccruals.partnerAccountId, input.accountId),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(commissionAccruals.id))
+            .limit(input.limit + 1);
+          break;
+        case "procurement_profiles":
+          rows = await transaction
+            .select()
+            .from(procurementProfiles)
+            .where(
+              input.accountId
+                ? and(
+                    eq(procurementProfiles.accountId, input.accountId),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(procurementProfiles.id))
+            .limit(input.limit + 1);
+          break;
+        // The five below hang off an order or an invoice rather than carrying
+        // an account of their own, so the `accountId` narrowing walks the same
+        // chain the row-level policy does -- `amendments_scope` and
+        // `commitment_ledgers_scope` reach the order, `credit_notes_scope` the
+        // invoice, `refunds_scope` and `dispute_cases_scope` the payment's
+        // invoice. RLS is still what decides visibility; this only narrows an
+        // already-visible page the way the caller asked.
+        case "amendments":
+          rows = await transaction
+            .select()
+            .from(amendments)
+            .where(
+              input.accountId
+                ? and(
+                    inArray(amendments.orderId, accountOrders(input.accountId)),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(amendments.id))
+            .limit(input.limit + 1);
+          break;
+        case "commitments":
+          rows = await transaction
+            .select()
+            .from(commitmentLedgers)
+            .where(
+              input.accountId
+                ? and(
+                    inArray(
+                      commitmentLedgers.orderId,
+                      accountOrders(input.accountId),
+                    ),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(commitmentLedgers.id))
+            .limit(input.limit + 1);
+          break;
+        case "credit_notes":
+          rows = await transaction
+            .select()
+            .from(creditNotes)
+            .where(
+              input.accountId
+                ? and(
+                    inArray(
+                      creditNotes.invoiceId,
+                      accountInvoices(input.accountId),
+                    ),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(creditNotes.id))
+            .limit(input.limit + 1);
+          break;
+        case "refunds":
+          rows = await transaction
+            .select()
+            .from(refunds)
+            .where(
+              input.accountId
+                ? and(
+                    inArray(
+                      refunds.paymentId,
+                      accountPayments(input.accountId),
+                    ),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(refunds.id))
+            .limit(input.limit + 1);
+          break;
+        case "disputes":
+          rows = await transaction
+            .select()
+            .from(disputeCases)
+            .where(
+              input.accountId
+                ? and(
+                    inArray(
+                      disputeCases.paymentId,
+                      accountPayments(input.accountId),
+                    ),
+                    whereId,
+                  )
+                : whereId,
+            )
+            .orderBy(asc(disputeCases.id))
+            .limit(input.limit + 1);
+          break;
+        // Ledger and provider-statement rows with no account dimension at
+        // all. `core_accounting_exports_internal` and
+        // `core_marketplace_reconciliation_internal` are internal-only
+        // policies, so a tenant caller reads an empty page rather than an
+        // error, and `accountId` has nothing to narrow. `report_exports` is
+        // the same shape: its policy scopes to the requesting user, not to an
+        // account.
+        case "accounting_exports":
+          rows = await transaction
+            .select()
+            .from(accountingExports)
+            .where(whereId)
+            .orderBy(asc(accountingExports.id))
+            .limit(input.limit + 1);
+          break;
+        case "marketplace_reconciliations":
+          rows = await transaction
+            .select()
+            .from(marketplaceReconciliations)
+            .where(whereId)
+            .orderBy(asc(marketplaceReconciliations.id))
+            .limit(input.limit + 1);
+          break;
+        case "reports":
+          rows = await transaction
+            .select()
+            .from(reportExports)
+            .where(whereId)
+            .orderBy(asc(reportExports.id))
+            .limit(input.limit + 1);
+          break;
+        // Unreachable, and that is the point: the switch is total over
+        // `coreResourceNames`, so a resource added to the advertised read
+        // surface with no branch here fails to compile instead of reaching a
+        // caller as an error on a URL the OpenAPI document told them to call.
+        // Sixteen resources were advertised and seven were implemented.
+        default: {
+          const unread: never = input.resource;
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            `${String(unread)} has no read`,
+          );
+        }
+      }
+      const page = rows.slice(0, input.limit);
+      const items = page.map((row) => {
+        const accountId =
+          typeof row.accountId === "string"
+            ? row.accountId
+            : typeof row.partnerAccountId === "string"
+              ? row.partnerAccountId
+              : undefined;
+        const visibleRow =
+          input.resource === "quotes"
+            ? redactPartnerQuoteData(row, input.authorization)
+            : row;
+        return coreRecord(input.resource, visibleRow, accountId);
+      });
+      const last = page.at(-1);
+      return {
+        items,
+        nextCursor:
+          rows.length > input.limit && last
+            ? Buffer.from(JSON.stringify({ id: last.id })).toString("base64url")
+            : null,
+      };
+    };
+    if (internalOnly.has(input.resource))
+      return withInternalTransaction(
+        this.options.pricingDatabase,
+        uuidV7(),
+        readList,
+      );
     return withAuthorizedTransaction(
       this.options.database,
       authorization(input),
       { secret: this.options.authorizationSecret, now: this.now() },
-      async (transaction) => {
-        const decodedCursor: unknown = input.cursor
-          ? JSON.parse(Buffer.from(input.cursor, "base64url").toString("utf8"))
-          : undefined;
-        const cursor = z.object({ id: z.string() }).safeParse(decodedCursor);
-        const after = cursor.success ? cursor.data.id : undefined;
-        const whereId = after
-          ? gt(sql`${sql.identifier("id")}`, after)
-          : undefined;
-        let rows: JsonRecord[];
-        switch (input.resource) {
-          case "accounts":
-            rows = await transaction
-              .select()
-              .from(accounts)
-              .where(
-                input.accountId
-                  ? and(eq(accounts.id, input.accountId), whereId)
-                  : whereId,
-              )
-              .orderBy(asc(accounts.id))
-              .limit(input.limit + 1);
-            break;
-          // A price book belongs to no account. Reads are internal-only and
-          // carry the rate-card count the activation surface scans on.
-          case "price_books": {
-            if (!input.authorization.isInternalStaff)
-              throw new CoreServiceError(
-                "INVALID_STATE",
-                "Price book reads require internal staff",
-              );
-            rows = await transaction
-              .select({
-                id: priceBooks.id,
-                name: priceBooks.name,
-                currency: priceBooks.currency,
-                effectiveFrom: priceBooks.effectiveFrom,
-                effectiveTo: priceBooks.effectiveTo,
-                status: priceBooks.status,
-                version: priceBooks.version,
-                createdAt: priceBooks.createdAt,
-                rateCardCount: sql<number>`count(${rateCards.id})::int`,
-              })
-              .from(priceBooks)
-              .leftJoin(rateCards, eq(rateCards.priceBookId, priceBooks.id))
-              .where(whereId)
-              .groupBy(priceBooks.id)
-              .orderBy(asc(priceBooks.id))
-              .limit(input.limit + 1);
-            break;
-          }
-          case "quotes":
-            rows = await transaction
-              .select()
-              .from(quotes)
-              .where(
-                input.accountId
-                  ? and(eq(quotes.accountId, input.accountId), whereId)
-                  : whereId,
-              )
-              .orderBy(asc(quotes.id))
-              .limit(input.limit + 1);
-            break;
-          case "orders":
-            rows = await transaction
-              .select()
-              .from(orders)
-              .where(
-                input.accountId
-                  ? and(eq(orders.accountId, input.accountId), whereId)
-                  : whereId,
-              )
-              .orderBy(asc(orders.id))
-              .limit(input.limit + 1);
-            break;
-          case "invoices":
-            rows = await transaction
-              .select()
-              .from(invoices)
-              .where(
-                input.accountId
-                  ? and(eq(invoices.accountId, input.accountId), whereId)
-                  : whereId,
-              )
-              .orderBy(asc(invoices.id))
-              .limit(input.limit + 1);
-            break;
-          case "deal_registrations":
-            rows = await transaction
-              .select()
-              .from(dealRegistrations)
-              .where(
-                input.accountId
-                  ? and(
-                      eq(dealRegistrations.partnerAccountId, input.accountId),
-                      whereId,
-                    )
-                  : whereId,
-              )
-              .orderBy(asc(dealRegistrations.id))
-              .limit(input.limit + 1);
-            break;
-          case "commissions":
-            rows = await transaction
-              .select()
-              .from(commissionAccruals)
-              .where(
-                input.accountId
-                  ? and(
-                      eq(commissionAccruals.partnerAccountId, input.accountId),
-                      whereId,
-                    )
-                  : whereId,
-              )
-              .orderBy(asc(commissionAccruals.id))
-              .limit(input.limit + 1);
-            break;
-          default:
-            throw new CoreServiceError(
-              "INVALID_STATE",
-              `${input.resource} reads require their dedicated report or repository`,
-            );
-        }
-        const page = rows.slice(0, input.limit);
-        const items = page.map((row) => {
-          const accountId =
-            typeof row.accountId === "string"
-              ? row.accountId
-              : typeof row.partnerAccountId === "string"
-                ? row.partnerAccountId
-                : undefined;
-          const visibleRow =
-            input.resource === "quotes"
-              ? redactPartnerQuoteData(row, input.authorization)
-              : row;
-          return coreRecord(input.resource, visibleRow, accountId);
-        });
-        const last = page.at(-1);
-        return {
-          items,
-          nextCursor:
-            rows.length > input.limit && last
-              ? Buffer.from(JSON.stringify({ id: last.id })).toString(
-                  "base64url",
-                )
-              : null,
-        };
-      },
+      readList,
     );
   }
 
   public report(input: DatabaseCoreReportInput) {
-    const internalOnly = new Set<DatabaseCoreReportName>([
-      "capacity_planning",
-      "three_way_tie_out",
-      "weekly_scorecard",
-    ]);
+    // Derived, not restated. This used to be a hand-written set of three, and
+    // the grants that have to agree with it lived in three migrations, so the
+    // three reports 001396 added were absent from both and a tenant caller got
+    // `42501 permission denied for view core_commission_settlement` instead of
+    // either rows or a refusal. There is now one declaration --
+    // `coreReportSources[report].audience` -- and the integration test reads the
+    // SQL grant back to hold it to that.
+    const source = coreReportSources[input.report];
     if (!input.authorization.isInternalStaff) {
       if (
         !input.accountId ||
@@ -6879,7 +7671,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "NOT_FOUND",
           "Report account scope was not found",
         );
-      if (internalOnly.has(input.report))
+      if (source.audience === "internal")
         throw new CoreServiceError(
           "INVALID_STATE",
           "This management report is restricted to internal operators",
@@ -6892,24 +7684,19 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
             JSON.parse(Buffer.from(input.cursor, "base64url").toString("utf8")),
           )
       : { offset: 0 };
-    const reportNames = {
-      revenue_forecast: "revenue_forecast",
-      capacity_planning: "capacity",
-      renewal_churn_exposure: "renewal_churn",
-      partner_performance: "partner_performance",
-      funnel_cycle_time: "funnel_cycle",
-      margin_poc_cost: "margin_poc",
-      three_way_tie_out: "three_way_tie_out",
-      weekly_scorecard: "weekly_scorecard",
-    } as const;
     const readReport = async (transaction: RuntimeTransaction) => {
-      const rows = await new CoreFinanceRepository(
-        transaction,
-      ).readInternalReport(reportNames[input.report], {
+      const readOptions = {
         limit: input.limit + 1,
         offset: cursor.offset,
         ...(input.accountId ? { accountId: input.accountId } : {}),
-      });
+      };
+      const rows =
+        source.shipped === undefined
+          ? await readReportView(transaction, source, readOptions)
+          : await new CoreFinanceRepository(transaction).readInternalReport(
+              source.shipped,
+              readOptions,
+            );
       const page = rows.slice(0, input.limit);
       return {
         items: page.map((raw) => {

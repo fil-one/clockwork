@@ -95,6 +95,7 @@ describe("onboarding durable workflows", () => {
       attempt: 2,
       failure: { kind: "transient", code: "TIMEOUT", message: "try again" },
       failedAt: "2026-07-31T16:00:00.000Z",
+      jitter: () => 1,
     });
     expect(retry).toMatchObject({
       status: "retry_scheduled",

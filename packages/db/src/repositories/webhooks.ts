@@ -148,9 +148,108 @@ export class DatabaseWebhookDeduplicator {
   }
 }
 
+/**
+ * The complete set of reasons `DatabaseRoleSynchronizationSink.apply` records
+ * on `role_sync_events.error`.
+ *
+ * Both are terminal for the delivery: redelivering the same WorkOS event cannot
+ * change either outcome, so the event is acknowledged rather than retried, and
+ * the reason is left on the row for `listUnresolvedRoleSynchronizations` to
+ * surface.
+ *
+ * - `STALE_WORKOS_EVENT_IGNORED` -- a later event for the same organization and
+ *   user was already processed. Informational; nothing is owed.
+ * - `AWAITING_COMMERCE_MEMBERSHIP_APPROVAL` -- the identity and organization are
+ *   linked but no commerce membership joins them, so there is no row to carry
+ *   the WorkOS membership id. Per ADR 0004 this is the expected ordering, not a
+ *   fault: WorkOS can create a membership before commerce approves one. It is
+ *   the actionable reason -- an operator either approves the membership in
+ *   commerce or the WorkOS membership stays unlinked.
+ *
+ * Neither is raised to the caller. Raising `AWAITING_COMMERCE_MEMBERSHIP_APPROVAL`
+ * would make the route return a retryable non-2xx for a state that no retry can
+ * clear, so WorkOS would redeliver until it disabled the endpoint and took the
+ * whole webhook down with it.
+ */
+export const roleSynchronizationReasons = [
+  "STALE_WORKOS_EVENT_IGNORED",
+  "AWAITING_COMMERCE_MEMBERSHIP_APPROVAL",
+] as const;
+
+export type RoleSynchronizationReason =
+  (typeof roleSynchronizationReasons)[number];
+
+export interface UnresolvedRoleSynchronization {
+  workosEventId: string;
+  organizationId: string | null;
+  userId: string | null;
+  action: string;
+  reason: string;
+  providerOccurredAt: Date;
+  processedAt: Date | null;
+  createdAt: Date;
+}
+
+/**
+ * Operator read surface for the reasons `apply` records.
+ *
+ * `role_sync_events.error` is written on every event the sink acknowledged
+ * without linking anything, and before this function existed it was read by
+ * nothing in the tree: a WorkOS membership that commerce never approved was
+ * recorded durably and invisible at the same time. Returns every event carrying
+ * a reason, newest first; the caller distinguishes the actionable
+ * `AWAITING_COMMERCE_MEMBERSHIP_APPROVAL` from the informational
+ * `STALE_WORKOS_EVENT_IGNORED` by `reason`.
+ */
+export async function listUnresolvedRoleSynchronizations(
+  db: RuntimeDatabase,
+  input: { requestId: string; limit?: number },
+): Promise<readonly UnresolvedRoleSynchronization[]> {
+  const rows = await withInternalTransaction(
+    db,
+    input.requestId,
+    (transaction) =>
+      transaction.query.roleSyncEvents.findMany({
+        where: isNotNull(roleSyncEvents.error),
+        orderBy: desc(roleSyncEvents.createdAt),
+        limit: input.limit ?? 100,
+      }),
+  );
+  return rows.map((row) => ({
+    workosEventId: row.workosEventId,
+    organizationId: row.organizationId,
+    userId: row.userId,
+    action: row.action,
+    reason: row.error ?? "",
+    providerOccurredAt: row.providerOccurredAt,
+    processedAt: row.processedAt,
+    createdAt: row.createdAt,
+  }));
+}
+
 export class DatabaseRoleSynchronizationSink {
   public constructor(private readonly db: RuntimeDatabase) {}
 
+  /**
+   * Links or revokes the WorkOS identity record on an existing commerce
+   * membership. `input.roleSlugs` is deliberately NOT written to
+   * `memberships.role`; it is kept only in the event payload for audit.
+   *
+   * ADR 0004 (Accepted, 2026-07-31) states the contract twice: "WorkOS role
+   * webhooks synchronize identifiers into commerce; they do not grant access
+   * without a matching commerce membership" and "WorkOS role slugs never grant
+   * commerce roles: membership webhooks link or revoke identity records, while
+   * commerce approval remains authoritative."
+   *
+   * Writing the slug here would be a privilege escalation, not a bug fix.
+   * `resolveWorkosIdentity` (./identity.ts) selects `memberships.role` straight
+   * into the session identity used by apps/web/src/auth/session.ts and
+   * apps/web/app/auth/callback/route.ts, so a WorkOS-side actor who controls an
+   * organization's role slugs would set the commerce role directly:
+   * `evaluateMembershipPolicy` (@clockwork/domain) would never run, and its
+   * COMMERCE_APPROVAL_REQUIRED, STAFF_BOUNDARY and MFA_POLICY_REQUIRED refusals
+   * would all be bypassed. See webhooks.test.ts, which pins this.
+   */
   public async apply(input: {
     eventId: string;
     action: "upsert" | "delete";
@@ -204,7 +303,7 @@ export class DatabaseRoleSynchronizationSink {
           })
           .onConflictDoNothing();
 
-        let synchronizationError: string | null = null;
+        let synchronizationError: RoleSynchronizationReason | null = null;
         if (latest && latest.providerOccurredAt >= occurredAt) {
           synchronizationError = "STALE_WORKOS_EVENT_IGNORED";
         } else if (
@@ -229,6 +328,7 @@ export class DatabaseRoleSynchronizationSink {
           if (!membership) {
             synchronizationError = "AWAITING_COMMERCE_MEMBERSHIP_APPROVAL";
           } else {
+            // Identifier only. `role` is owned by commerce approval -- ADR 0004.
             await transaction
               .update(memberships)
               .set({

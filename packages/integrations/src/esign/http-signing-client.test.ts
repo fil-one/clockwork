@@ -84,4 +84,115 @@ describe("HTTP e-sign signing client", () => {
       "untrusted signing URL",
     );
   });
+
+  it("passes an abort signal and gives up on a provider that never answers", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("The operation was aborted", "AbortError")),
+          );
+        }),
+    );
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      timeoutMs: 100,
+      fetchImplementation,
+    });
+
+    const started = Date.now();
+    const error = await client
+      .createEnvelope(input())
+      .catch((thrown: unknown) => thrown);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("E-sign envelope request timed out");
+    // The cause the operator needs; discarded before this change.
+    expect((error as Error).cause).toBeInstanceOf(DOMException);
+    expect(Date.now() - started).toBeLessThan(5_000);
+    const request = fetchImplementation.mock.calls[0]?.[1];
+    expect(request?.signal).toBeInstanceOf(AbortSignal);
+    expect(request?.signal?.aborted).toBe(true);
+  });
+
+  it("refuses a response larger than the transport bound", async () => {
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      fetchImplementation: vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: "provider-envelope-1",
+              state: "sent",
+              signingUrl: "https://sign.provider.example/session/1",
+              padding: "x".repeat(1_048_577),
+            }),
+            { status: 200 },
+          ),
+        ),
+      ),
+    });
+
+    await expect(client.createEnvelope(input())).rejects.toThrow(
+      "exceeded the maximum size",
+    );
+  });
+
+  it("refuses a declared length beyond the bound before reading the body", async () => {
+    const body = vi.fn();
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      fetchImplementation: vi.fn<typeof fetch>(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-length": "1048577" }),
+          text: body,
+        } as unknown as Response),
+      ),
+    });
+
+    await expect(client.createEnvelope(input())).rejects.toThrow(
+      "exceeded the maximum size",
+    );
+    expect(body).not.toHaveBeenCalled();
+  });
+
+  it("keeps the provider's malformed body out of the thrown message", async () => {
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      fetchImplementation: vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response("Bearer live-secret-not-json", { status: 200 }),
+        ),
+      ),
+    });
+
+    const error = await client
+      .createEnvelope(input())
+      .catch((thrown: unknown) => thrown);
+    expect((error as Error).message).toBe(
+      "E-sign provider returned invalid JSON",
+    );
+    expect((error as Error).cause).toBeInstanceOf(SyntaxError);
+  });
+
+  it("rejects a timeout outside the supported range at construction", () => {
+    expect(
+      () =>
+        new HttpEsignSigningClient({
+          baseUrl: "https://api.provider.example/",
+          apiKey: "secret-test-key",
+          signingOrigins: ["https://sign.provider.example"],
+          timeoutMs: 120_000,
+        }),
+    ).toThrow("timeout is invalid");
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createRuntimeDatabase } from "@clockwork/db";
 import {
@@ -23,12 +23,52 @@ import {
 } from "@clockwork/integrations/fakes";
 
 import { lifecycleWorkflowRegistry } from "../lifecycle";
+import { createLifecycleTaskOutboxHandlers } from "../system/lifecycle-task-dispatch";
+import { productionTaskImporters } from "../trigger/discovery";
 import {
   createProductionWorkflowAdapterFactory,
   PersistedWorkflowProviderActivationGuard,
   type ProductionWorkflowProviderSelections,
   type WorkflowProviderActivationGuard,
 } from "./production-adapter-factory";
+
+/**
+ * Records what the Trigger SDK was actually asked to do, so registration and
+ * submission are both observed rather than described. Every assertion about
+ * the lifecycle registry below reads this, never a second hand-kept list.
+ */
+const sdk = vi.hoisted(() => ({
+  registrations: [] as {
+    id: string;
+    scheduled: boolean;
+    cron: string | undefined;
+  }[],
+  submissions: [] as { id: string; payload: unknown }[],
+}));
+
+vi.mock("@trigger.dev/sdk", () => {
+  const define =
+    (scheduled: boolean) =>
+    (definition: { id: string; cron?: { pattern?: string } }) => {
+      sdk.registrations.push({
+        id: definition.id,
+        scheduled,
+        cron: definition.cron?.pattern,
+      });
+      return definition;
+    };
+  return {
+    task: define(false),
+    schedules: { task: define(true) },
+    tasks: {
+      trigger: (id: string, payload: unknown) => {
+        sdk.submissions.push({ id, payload });
+        return Promise.resolve({ id: `run_${sdk.submissions.length}` });
+      },
+    },
+    idempotencyKeys: { create: (key: string) => Promise.resolve(key) },
+  };
+});
 
 const now = new Date("2026-07-31T16:00:00.000Z");
 
@@ -393,5 +433,166 @@ describe("persisted activation bootstrap preflight", () => {
     await expect(
       guard.requireActive(["EXT-ACC-01"], "after-refresh"),
     ).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * The composition claim, bound to behaviour.
+ *
+ * Ten lifecycle effects once ran inline inside the one-minute outbox cron
+ * because the dispatcher's submission port defaulted to executing them, and
+ * the factory called it with no argument. A list saying which task each topic
+ * maps to could not see that, so this drives the bundle production builds and
+ * watches the Trigger boundary: an effect that never reaches `tasks.trigger`
+ * has no durable run, no retry policy and no queue.
+ */
+describe("every lifecycle registry identifier reaches tasks.trigger", () => {
+  const reached = new Map<string, string>();
+
+  beforeAll(async () => {
+    for (const importTasks of productionTaskImporters) await importTasks();
+
+    const bundle = await withDatabase((db) =>
+      createProductionWorkflowAdapterFactory({
+        authorizationSecret: "test-authorization-context-secret",
+        coreTaskSubmitter: { submit: () => Promise.resolve({ id: "run-1" }) },
+        providers: selections(),
+        exceptionRouting: routing(),
+        activationGuard: new RecordingGuard(),
+        clock: () => now,
+      }).create({
+        db,
+        environment: {
+          runtimeEnvironment: "test",
+          directDatabaseUrl:
+            "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
+          triggerProjectRef: "proj_clockwork_test",
+          triggerSecretKey: "tr_clockwork_test_secret",
+        },
+        source: {},
+      }),
+    );
+
+    // The dispatcher names its own topics; the handlers driven are the bundle's.
+    const topics = [
+      ...createLifecycleTaskOutboxHandlers({
+        submit: () => Promise.resolve(),
+      }).keys(),
+    ];
+    let index = 0;
+    for (const topic of topics) {
+      const handler = bundle.outboxHandlers.get(topic);
+      expect(handler, `${topic} is not composed into the bundle`).toBeDefined();
+      index += 1;
+      const messageId = `10000000-0000-4000-8000-${`${index}`.padStart(12, "0")}`;
+      const before = sdk.submissions.length;
+      // A topic the core lane also subscribes to runs its handler after this
+      // one and rejects the lifecycle envelope; the submission it is chained
+      // behind has already happened, which is what is being measured.
+      await handler?.({
+        messageId,
+        eventId: `event-${messageId}`,
+        topic,
+        idempotencyKey: `outbox:${messageId}`,
+        payload: {
+          eventType: topic,
+          aggregateType: "aggregate",
+          aggregateId: `aggregate-${messageId}`,
+          aggregateVersion: 1,
+          data: {},
+        },
+      }).catch(() => undefined);
+      for (const submission of sdk.submissions.slice(before))
+        reached.set(submission.id, topic);
+    }
+  });
+
+  it("registers each registry identifier exactly once with the SDK", () => {
+    const registered = sdk.registrations
+      .filter((registration) =>
+        (lifecycleWorkflowRegistry as readonly string[]).includes(
+          registration.id,
+        ),
+      )
+      .map(({ id }) => id);
+    expect(registered.sort()).toEqual([...lifecycleWorkflowRegistry].sort());
+  });
+
+  it("submits every event-driven identifier through the production bundle", () => {
+    const eventDriven = sdk.registrations
+      .filter(
+        (registration) =>
+          !registration.scheduled &&
+          (lifecycleWorkflowRegistry as readonly string[]).includes(
+            registration.id,
+          ),
+      )
+      .map(({ id }) => id)
+      .sort();
+    expect(eventDriven).toHaveLength(10);
+    expect([...reached.keys()].sort()).toEqual(eventDriven);
+  });
+
+  it("fires every remaining identifier from its own schedule", () => {
+    const orphaned = sdk.registrations.filter(
+      (registration) =>
+        (lifecycleWorkflowRegistry as readonly string[]).includes(
+          registration.id,
+        ) &&
+        !reached.has(registration.id) &&
+        !registration.cron?.trim(),
+    );
+    expect(orphaned.map(({ id }) => id)).toEqual([]);
+  });
+
+  it("opens one durable run per effect rather than one per cron drain", () => {
+    const lifecycle = sdk.submissions.filter((submission) =>
+      (lifecycleWorkflowRegistry as readonly string[]).includes(submission.id),
+    );
+    expect(lifecycle).toHaveLength(reached.size);
+    expect(new Set(lifecycle.map(({ id }) => id)).size).toBe(lifecycle.length);
+    for (const submission of lifecycle)
+      expect(
+        (submission.payload as { idempotencyKey?: unknown }).idempotencyKey,
+      ).toMatch(/^outbox:10000000-0000-4000-8000-\d{12}$/);
+  });
+});
+
+describe("provider activation failures keep their cause", () => {
+  it("reports the probe's own error under the typed activation failure", async () => {
+    const providers = selections();
+    const transport = new Error("activation probe transport refused");
+    providers.notifications.activationTest = () => Promise.reject(transport);
+    const factory = createProductionWorkflowAdapterFactory({
+      authorizationSecret: "test-authorization-context-secret",
+      coreTaskSubmitter: { submit: () => Promise.resolve({ id: "run-1" }) },
+      providers,
+      exceptionRouting: routing(),
+      activationGuard: new RecordingGuard(),
+      clock: () => now,
+    });
+    const thrown: unknown = await withDatabase((db) =>
+      factory
+        .create({
+          db,
+          environment: {
+            runtimeEnvironment: "test",
+            directDatabaseUrl:
+              "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
+            triggerProjectRef: "proj_clockwork_test",
+            triggerSecretKey: "tr_clockwork_test_secret",
+          },
+          source: {},
+        })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        ),
+    );
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe(
+      "WORKFLOW_PROVIDER_ACTIVATION_TEST_FAILED:notifications",
+    );
+    expect((thrown as Error).cause).toBe(transport);
   });
 });
