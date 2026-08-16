@@ -15,10 +15,21 @@ import type { RuntimeTransaction } from "../../client";
 export interface DatabasePreparedOrderForm {
   documentId: string;
   orderId: string;
+  /**
+   * The artifact request the document was stored against.
+   *
+   * This is what `/api/experience/artifacts/{kind}/{id}` resolves: the download
+   * looks in `experience_artifact_deliveries` by `id` and, failing that, in
+   * `core_commercial_artifact_requests` by `id`. Neither is keyed on
+   * `document_id`, so the reader cannot open the form they are about to be
+   * bound by without this. The two identifiers travel together for the same
+   * reason `orderId` does -- they are useless apart.
+   */
+  artifactId: string;
 }
 
 const PreparedOrderFormRowSchema = z
-  .object({ document_id: z.uuid(), subject_id: z.uuid() })
+  .object({ id: z.uuid(), document_id: z.uuid(), subject_id: z.uuid() })
   .strict();
 
 /**
@@ -56,7 +67,7 @@ export async function findPreparedOrderForm(
 ): Promise<DatabasePreparedOrderForm | null> {
   const orderId = z.uuid().parse(input.orderId);
   const rows = await transaction.execute(sql`
-    select request.document_id, request.subject_id
+    select request.id, request.document_id, request.subject_id
     from public.core_commercial_artifact_requests request
     where request.subject_type = 'order'
       and request.subject_id = ${orderId}::uuid
@@ -68,5 +79,9 @@ export async function findPreparedOrderForm(
   const row = rows[0];
   if (!row) return null;
   const parsed = PreparedOrderFormRowSchema.parse(row);
-  return { documentId: parsed.document_id, orderId: parsed.subject_id };
+  return {
+    documentId: parsed.document_id,
+    orderId: parsed.subject_id,
+    artifactId: parsed.id,
+  };
 }

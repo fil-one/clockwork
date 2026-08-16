@@ -74,6 +74,16 @@ export class CommerceApiError extends Error {
     public readonly code:
       "validation" | "forbidden" | "conflict" | "unavailable" | "unknown",
     message: string,
+    /**
+     * The server's own problem code, when it sent one.
+     *
+     * `code` above is a coarse class the client chose from the status. That is
+     * enough to decide whether to offer a retry, and not enough to tell an
+     * outage from a refusal: a deliberate 503 -- the demo declining to contact a
+     * payment provider -- and a service that fell over both arrive as
+     * `unavailable`. Surfaces that must tell those apart read this.
+     */
+    public readonly problemCode?: string,
   ) {
     super(message);
     this.name = "CommerceApiError";
@@ -123,6 +133,19 @@ function problemDetail(error: unknown): string | undefined {
   return detail.length > 0 && detail.length <= 500 ? detail : undefined;
 }
 
+/** The `code` member of an RFC 9457 problem document, when there is one. */
+function problemCode(error: unknown): string | undefined {
+  if (
+    !error ||
+    typeof error !== "object" ||
+    !("code" in error) ||
+    typeof error.code !== "string"
+  )
+    return undefined;
+  const code = error.code.trim();
+  return /^[A-Z][A-Z0-9_]{2,63}$/.test(code) ? code : undefined;
+}
+
 function apiError(status: number, error: unknown): CommerceApiError {
   if (status === 403)
     return new CommerceApiError(
@@ -144,15 +167,29 @@ function apiError(status: number, error: unknown): CommerceApiError {
         "The request did not pass server validation. Review the highlighted information.",
     );
   if (status === 503)
+    /**
+     * A 503 that explains itself is quoted, not overwritten.
+     *
+     * This used to answer every 503 with "The commerce service is
+     * unavailable." The demo's checkout refusal is a 503 -- it carries
+     * `DEMO_PAYMENT_UNAVAILABLE` and the sentence "The demo never contacts a
+     * payment provider, so no checkout session exists." -- and that sentence
+     * was being thrown away and replaced with one that reads as an outage. A
+     * prospect was shown breakage where the product had made a deliberate
+     * refusal. The generic sentence remains the fallback for a 503 that says
+     * nothing.
+     */
     return new CommerceApiError(
       status,
       "unavailable",
-      "The commerce service is unavailable.",
+      problemDetail(error) ?? "The commerce service is unavailable.",
+      problemCode(error),
     );
   return new CommerceApiError(
     status,
     "unknown",
     "The request could not be completed. Nothing was changed.",
+    problemCode(error),
   );
 }
 

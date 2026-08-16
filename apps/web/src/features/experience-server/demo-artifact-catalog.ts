@@ -175,6 +175,36 @@ const cobaltOrchard: Party = {
   contactEmail: "procurement@cobalt-orchard.test",
 };
 
+/**
+ * The counterparty each demo account is, as one lookup.
+ *
+ * The parties above were already the recipients on every document the demo
+ * renders. Order acceptance needs the same party for the order form it composes
+ * from a live acceptance, and taking it from here rather than restating it is
+ * what keeps a prospect's own order form addressed identically to the
+ * catalogue's.
+ */
+const demoParties: Readonly<Record<string, Party>> = {
+  [accounts.direct]: meridian,
+  [accounts.reseller]: emberPeak,
+  [accounts.distributor]: harborline,
+  [accounts.resaleEndClient]: asterHouse,
+  [accounts.ukEndClient]: cobaltOrchard,
+};
+
+export function demoPartyFor(accountId: string): Party {
+  const party = demoParties[accountId];
+  if (!party) throw new Error(`DEMO_PARTY_NOT_FOUND:${accountId}`);
+  return party;
+}
+
+/**
+ * The entity the demo issues as. Every document in the catalogue above already
+ * names it; a document composed from a live demo acceptance names the same one,
+ * rather than asking the deploy to configure a legal issuer it does not have.
+ */
+export const demoPlatformIssuer: Party = filOneUs;
+
 /* --------------------------------------------------------------------------
  * Tax profiles
  *
@@ -317,7 +347,7 @@ function line(
  * 400 × $420.00 = $168,000.00, plus $16,800.00 of enhanced support, which is
  * the `$184,800.00` the quote and order surfaces already show.
  */
-const annualCapacityLines: readonly DocumentLineItem[] = [
+export const annualCapacityLines: readonly DocumentLineItem[] = [
   line(
     "line-capacity",
     "Committed archive capacity — 400 TB · US East",

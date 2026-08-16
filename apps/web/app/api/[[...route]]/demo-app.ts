@@ -8,8 +8,44 @@ import { getResponse } from "msw";
 // mutation, and the proxy mints the clockwork-csrf cookie the client reads.
 const handlers = [...createDemoCommerceHandlers()];
 
+/**
+ * The one command lane the demo runs rather than simulates.
+ *
+ * Every other operation here echoes a contract-shaped response, which is right
+ * for a demo: it proves the wire shape without pretending a decision was made.
+ * Order acceptance is different, because the decision IS the demonstration. The
+ * echo answered `orders:prepare_artifact` with the payload it was handed, so no
+ * order form was ever composed, no binding was ever recorded, and the second
+ * pass had nothing to quote -- the prospect reached a permanent wait. The demo
+ * order lane runs the product's own `acceptOrder` over seeded records instead,
+ * and the CSRF and replay evidence the simulators demand is demanded here too.
+ */
+function isOrderCommand(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    url.pathname.replace(/^\/api/, "") === "/v1/core/commands/orders"
+  );
+}
+
+function missingMutationProof(request: Request): boolean {
+  return !(
+    request.headers.get("idempotency-key") &&
+    request.headers.get("x-csrf-token")
+  );
+}
+
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  if (isOrderCommand(request, url)) {
+    if (missingMutationProof(request))
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    // Loaded on demand, the way this route already loads its two apps: the
+    // order lane pulls in the domain, the document renderer and the demo state
+    // store, and no other request needs any of them.
+    const lane =
+      await import("@/src/features/experience-server/demo-order-command");
+    return lane.handleDemoOrderCommand(request);
+  }
   const simulated = new URL(
     `${url.pathname.replace(/^\/api/, "") || "/"}${url.search}`,
     DEMO_ORIGIN,

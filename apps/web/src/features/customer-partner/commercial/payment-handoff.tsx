@@ -2,7 +2,10 @@
 
 import { useRef, useState } from "react";
 
-import { createInvoicePaymentSession } from "@/src/features/contracts/commerce-client";
+import {
+  CommerceApiError,
+  createInvoicePaymentSession,
+} from "@/src/features/contracts/commerce-client";
 import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
 
 import { customerPartnerCopy } from "../copy";
@@ -31,6 +34,18 @@ export function PaymentHandoff({
   const [pending, setPending] = useState(false);
   const [providerUrl, setProviderUrl] = useState("");
   const [error, setError] = useState("");
+  /**
+   * Set when the server refused on purpose rather than failed.
+   *
+   * The demo declines checkout with `DEMO_PAYMENT_UNAVAILABLE`, because moving
+   * money in a prospect's browser would be worse than saying no. That refusal
+   * arrived here as a 503 and was rendered in the alert style with the sentence
+   * "The commerce service is unavailable." -- so the one place the demo is most
+   * deliberately honest read as the product being broken. A scripted boundary
+   * is not an error: it keeps the reader's own copy, drops the alert role, and
+   * withdraws the retry, because pressing the button again cannot change it.
+   */
+  const [boundary, setBoundary] = useState("");
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const prepare = async () => {
@@ -40,6 +55,7 @@ export function PaymentHandoff({
     }
     setPending(true);
     setError("");
+    setBoundary("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       const session = await createInvoicePaymentSession(
@@ -48,6 +64,13 @@ export function PaymentHandoff({
       );
       setProviderUrl(trustedStripePaymentUrl(session.url));
     } catch (caught) {
+      if (
+        caught instanceof CommerceApiError &&
+        caught.problemCode === "DEMO_PAYMENT_UNAVAILABLE"
+      ) {
+        setBoundary(caught.message);
+        return;
+      }
       setError(
         caught instanceof Error
           ? caught.message
@@ -98,11 +121,18 @@ export function PaymentHandoff({
           {error}
         </p>
       ) : null}
+      {boundary ? (
+        <p className={styles.notice} role="status">
+          Payment is where this workspace stops. {boundary} On the live platform
+          this control opens a Stripe checkout session, and the invoice is
+          marked paid only by the provider webhook that follows.
+        </p>
+      ) : null}
       {providerUrl ? (
         <a className={styles.primary} href={providerUrl} rel="noreferrer">
           Continue to secure Stripe payment
         </a>
-      ) : (
+      ) : boundary ? null : (
         <button
           className={styles.primary}
           disabled={pending}

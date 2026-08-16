@@ -202,6 +202,13 @@ describe("order acceptance", () => {
 });
 
 const orderFormDocumentId = "80000000-0000-4000-8000-000000000001";
+/**
+ * The artifact request the document was stored against. It is a different
+ * identifier from the document, and it is the one the download route resolves,
+ * so the "open the order form" link is asserted against this rather than the
+ * document identifier the create pass quotes.
+ */
+const orderFormArtifactId = "80000000-0000-4000-8000-0000000000a1";
 
 const acceptLabel = "Accept order and create commitment";
 const createLabel = "Create the order and commitment";
@@ -259,6 +266,7 @@ function storeOrderForm() {
   lookupOrderForm.mockResolvedValue({
     status: "stored",
     documentId: orderFormDocumentId,
+    artifactId: orderFormArtifactId,
   });
 }
 
@@ -367,6 +375,53 @@ describe("order acceptance two-pass bridge", () => {
       "Chief Operating Officer",
     );
     expect(screen.getByRole("checkbox")).toBeChecked();
+  });
+
+  /**
+   * The paper, before the signature.
+   *
+   * The create pass is a binding acceptance OF a document, and the surface used
+   * to complete it without ever offering the document. The link is keyed on the
+   * artifact identifier rather than the document identifier the create pass
+   * quotes, because the download route resolves the former and would answer the
+   * latter with nothing.
+   */
+  it("offers the rendered order form before the create pass", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+
+    expect(
+      screen.queryByRole("link", { name: "Open the order form" }),
+    ).toBeNull();
+
+    storeOrderForm();
+    await elapse(2_000);
+
+    expect(
+      screen.getByRole("link", { name: "Open the order form" }),
+    ).toHaveAttribute(
+      "href",
+      `/api/experience/artifacts/order_form/${orderFormArtifactId}`,
+    );
+  });
+
+  it("withdraws the order form when a bound entry changes", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    storeOrderForm();
+    await elapse(2_000);
+
+    await settled(() => {
+      fireEvent.change(screen.getByLabelText("Purchase order"), {
+        target: { value: "PO-NA-1093" },
+      });
+    });
+
+    expect(
+      screen.queryByRole("link", { name: "Open the order form" }),
+    ).toBeNull();
   });
 
   it("creates under a fresh idempotency key against the same order", async () => {

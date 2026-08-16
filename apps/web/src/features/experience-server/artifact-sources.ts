@@ -381,6 +381,103 @@ function assertScope(
     );
 }
 
+/**
+ * One stored commercial artifact request, in the shape the mapping below reads.
+ *
+ * The persisted row and the demo's own request record are both projected into
+ * this before the mapping runs, which is the point: there is exactly one
+ * definition-to-document translation, and substituting the store cannot
+ * substitute it. A demo that wrote its own translation would render order forms
+ * that differ from the product's in ways nobody would notice until a prospect
+ * compared the two.
+ */
+export interface CommercialArtifactRequestRecord {
+  readonly subjectType: string;
+  readonly subjectId: string;
+  readonly audienceAccountId: string;
+  readonly audience: ExperienceAudience;
+  readonly kind: ArtifactKind;
+  /** The `CommercialArtifactDefinition` the prepare pass hashed. */
+  readonly definition: Readonly<Record<string, unknown>>;
+  /** `commercialArtifactSourceHash(definition)`, re-checked here. */
+  readonly sourceHash: string;
+  readonly retainUntil: string;
+  /**
+   * Who the platform issues as, when the caller knows.
+   *
+   * Left unset on the persisted path, where the issuer is a deployment fact
+   * read from `PLATFORM_ISSUER_JSON` -- a real deployment must state the legal
+   * entity it invoices as, and refusing to render without one is correct. The
+   * demo is not a deployment that invoices anyone: it names the same fictional
+   * Fil One entity every other demo document already names, and requiring an
+   * operator to configure a legal issuer before a prospect can see an order
+   * form would be a control that blocks the demo for no benefit.
+   */
+  readonly issuer?: Party;
+}
+
+/**
+ * The commercial definition, as the document the renderer takes.
+ *
+ * `displayDocumentId`, `documentVersion`, `issuerMode` and `partnerIssuer` are
+ * request-side fields rather than document body, so they are lifted out and the
+ * rest is carried through untouched. The issuer is resolved from `issuerMode`
+ * because a partner-issued document names the partner and a platform-issued one
+ * names Fil One, and only the request knows which.
+ */
+export function commercialArtifactSource(
+  record: CommercialArtifactRequestRecord,
+): ResolvedArtifactSource {
+  if (
+    createHash("sha256")
+      .update(canonicalJson(record.definition))
+      .digest("hex") !== record.sourceHash
+  )
+    throw new Error("ARTIFACT_SOURCE_CORRUPT");
+  const definition = record.definition;
+  const sourceVersion = z
+    .string()
+    .min(1)
+    .max(80)
+    .parse(definition.documentVersion);
+  const issuerMode = z
+    .enum(["platform", "partner"])
+    .parse(definition.issuerMode);
+  const issuer =
+    issuerMode === "partner"
+      ? PartySchema.parse(definition.partnerIssuer)
+      : (record.issuer ?? platformIssuer());
+  const { displayDocumentId, documentVersion } = definition;
+  const documentDefinition = Object.fromEntries(
+    Object.entries(definition).filter(
+      ([key]) =>
+        ![
+          "displayDocumentId",
+          "documentVersion",
+          "issuerMode",
+          "partnerIssuer",
+        ].includes(key),
+    ),
+  );
+  return finalized({
+    accountId: record.audienceAccountId,
+    audience: record.audience,
+    audienceAccountId: record.audienceAccountId,
+    subjectType: record.subjectType,
+    subjectId: record.subjectId,
+    kind: record.kind,
+    sourceVersion,
+    retainUntil: record.retainUntil,
+    input: {
+      ...documentDefinition,
+      kind: record.kind,
+      documentId: z.string().min(1).parse(displayDocumentId),
+      version: z.string().min(1).parse(documentVersion),
+      issuer,
+    } as DocumentWithoutVerification,
+  });
+}
+
 async function commercialSource(
   transaction: RuntimeTransaction,
   request: ArtifactSourceRequest,
@@ -396,53 +493,15 @@ async function commercialSource(
   `);
   const row = rows[0];
   if (!row) throw new Error("ARTIFACT_SOURCE_NOT_FOUND");
-  const definition = object(row, "source_definition");
-  if (
-    createHash("sha256").update(canonicalJson(definition)).digest("hex") !==
-    text(row, "source_hash")
-  )
-    throw new Error("ARTIFACT_SOURCE_CORRUPT");
-  const sourceVersion = z
-    .string()
-    .min(1)
-    .max(80)
-    .parse(definition.documentVersion);
-  const issuerMode = z
-    .enum(["platform", "partner"])
-    .parse(definition.issuerMode);
-  const issuer =
-    issuerMode === "partner"
-      ? PartySchema.parse(definition.partnerIssuer)
-      : platformIssuer();
-  const { displayDocumentId, documentVersion } = definition;
-  const documentDefinition = Object.fromEntries(
-    Object.entries(definition).filter(
-      ([key]) =>
-        ![
-          "displayDocumentId",
-          "documentVersion",
-          "issuerMode",
-          "partnerIssuer",
-        ].includes(key),
-    ),
-  );
-  const audience = text(row, "audience") === "partner" ? "partner" : "customer";
-  return finalized({
-    accountId: text(row, "audience_account_id"),
-    audience,
-    audienceAccountId: text(row, "audience_account_id"),
+  return commercialArtifactSource({
     subjectType: text(row, "subject_type"),
     subjectId: text(row, "subject_id"),
+    audienceAccountId: text(row, "audience_account_id"),
+    audience: text(row, "audience") === "partner" ? "partner" : "customer",
     kind: request.kind,
-    sourceVersion,
+    definition: object(row, "source_definition"),
+    sourceHash: text(row, "source_hash"),
     retainUntil: instant(row, "retain_until"),
-    input: {
-      ...documentDefinition,
-      kind: request.kind,
-      documentId: z.string().min(1).parse(displayDocumentId),
-      version: z.string().min(1).parse(documentVersion),
-      issuer,
-    } as DocumentWithoutVerification,
   });
 }
 
