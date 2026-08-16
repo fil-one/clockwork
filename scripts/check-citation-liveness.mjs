@@ -3,14 +3,40 @@
 // reference to that symbol from somewhere other than its own declaration and
 // other than a test file, across apps/, packages/, scripts/ and supabase/.
 //
-// EVERY SYMBOL, FILE AND VERDICT THIS HEADER RELIES ON IS IN
-// `DOCUMENTED_SYMBOL_VERDICTS` BELOW, AND ITS TEST RE-DERIVES EVERY ROW FROM
-// THE WORKING TREE. That is not decoration. A verification pass over the first
-// version of this file found four wrong statements baked into these comments,
-// including `readReportView` attributed to the wrong file entirely and
-// `capacityPlanning` described as referenced by nothing when a test file names
-// it. Prose in a header is unchecked; the table is checked, so the prose cites
-// the table instead of restating it.
+// HOW THIS HEADER IS KEPT TRUE, AND WHY IT NEEDS KEEPING. Every earlier version
+// of this comment block shipped a false statement, including the rewrite that
+// claimed to have fixed the previous ones. That rewrite's own framing - "prose
+// in a header is unchecked; the table is checked, so the prose cites the table
+// instead of restating it" - was the false part: nothing read the prose, and
+// the prose went on restating counts nothing re-computed. So the text is now
+// CHECKED rather than reviewed. `check-citation-liveness.test.mjs` reads this
+// comment block and:
+//
+//   * scores every symbol named below against the working tree, through
+//     `DOCUMENTED_SYMBOL_VERDICTS`, and checks it against the verdict recorded
+//     there - as a floor, for the reason given under A SINGLE RECORDED VERDICT
+//     IS A FLOOR - and separately checks that each recorded file really
+//     declares the symbol;
+//   * asserts the sentences below that carry a number, against numbers it
+//     derives itself from that table and the tree;
+//   * REJECTS ANY OTHER NUMBER in the comment forms it reads, and those forms
+//     are exactly two: every whole-line `//` comment, including this block, and
+//     every `/*` or `/**` block that starts a line. It does NOT read a comment
+//     that follows code on the same line, in either form, and it does not read
+//     the inside of a string literal. A figure written in either of those is
+//     unchecked, so do not write one there. What it enforces is membership - a
+//     number in a scanned comment has to be one it computed - and not
+//     placement, so it cannot tell that a figure it derived is being quoted for
+//     the wrong thing; the sentences carrying those figures are pinned by exact
+//     text as well, which is what covers that.
+//
+// It follows that no count in this header is a LEDGER count. Ledger counts move
+// with every remap, cannot be pinned by a test in a tree several lanes are
+// editing, and are printed live instead: run `pnpm check:citation-liveness` and
+// read `symbolCitations`, `distinctSymbols` and `verdicts` in its report.
+//
+// What the test cannot check is whether an unnumbered sentence is true. A
+// sentence nothing in this repository can settle is marked [UNCHECKED].
 //
 // P0-71's failure mode stated as a check. The entry found the ledger citing
 // `capacityPlanning` and `weeklyScorecard` in
@@ -28,31 +54,59 @@
 //   dead        nothing names it at all            -> FAILS
 //
 // `capacityPlanning` and `weeklyScorecard` are the P0-71 pair, and they score
-// `test-only` rather than `dead` for a reason worth stating: the only file in
-// the whole repository that names either of them is
-// `scripts/validate-traceability.test.mjs`, which asserts on them as citation
-// STRINGS. That is limit 3 below arriving through the back door. Which of the
-// two failing verdicts they land in therefore depends on a file this checker
-// does not own, which is why `DOCUMENTED_SYMBOL_VERDICTS` records both as
-// acceptable for that pair and the tests assert failure rather than a verdict.
+// `test-only` rather than `dead` for a reason worth stating: the files that name
+// them are test files asserting on them as citation STRINGS, which is limit 3
+// below arriving through the back door. Which of the two failing verdicts they
+// land in therefore depends on files this checker does not own, which is why
+// `DOCUMENTED_SYMBOL_VERDICTS` records both verdicts as acceptable for that pair
+// and the tests assert failure rather than a verdict. The identity of those
+// files is deliberately not written down here: pinning it would let an unrelated
+// lane's edit break this one.
 //
 // USED WITHIN ITS OWN FILE. The rule this checker was specified with was "at
 // least one reference OUTSIDE its defining file", and it does not survive the
-// corpus. Run against the ledger's 58 `path#symbol` citations as they stood
-// before the remap it scored 12 dead, and NINE of the twelve were private
-// helpers called from their own module - `reportCsv`, `readReportView`,
-// `recordDunningNotification`, `specExceptionQueues`, `CrmProjectionPort`,
-// `crmProjectionTopics`, `mapCommerceEvent`, `withRuntimeBoundAdapters` and
-// `lifecycleTaskExecutionSpecs`, each with its declaring file recorded in
-// `DOCUMENTED_SYMBOL_VERDICTS`. They are spread across five packages; none of
-// them lives in `packages/api/src/routes/core/index.ts`, which is where the
-// first draft of this header put two of them. A checker with a 75%
-// false-positive rate is not a checker. Occurrences inside the defining file
-// are therefore counted, with the declaration itself discounted: more than one
-// occurrence means at least one use. The three that survive the correction are
-// real, and are exactly P0-71's class - `FakeCrmProjectionAdapter`,
-// `planExceptionEscalation` and `waitForMigrationReview` were cited as
-// implementation evidence and are named by nothing but their own tests.
+// corpus. Beside the P0-71 pair, `DOCUMENTED_SYMBOL_VERDICTS` records 12 cited
+// symbols that rule scored dead, and 9 of the 12 are reached from inside their
+// own module: `reportCsv`, `readReportView`, `recordDunningNotification`,
+// `specExceptionQueues`, `CrmProjectionPort`, `crmProjectionTopics`,
+// `mapCommerceEvent`, `withRuntimeBoundAdapters` and
+// `lifecycleTaskExecutionSpecs`, each with its declaring file recorded in that
+// table. They are recorded across 5 packages, and 1 of the 9 - `reportCsv` -
+// is recorded in `packages/api/src/routes/core/index.ts`. The previous version
+// of this sentence said NONE of them lived there while the table below recorded
+// `reportCsv` at exactly that path, which is the kind of contradiction the
+// number check now catches. A rule that called all 12 dead would be wrong about
+// 9 of them: a 75% false-positive rate, which is not a checker. Occurrences
+// inside the defining file are therefore counted, with the declaration itself
+// discounted: more than one occurrence means at least one use. The 3 that
+// survive the correction are recorded test-only - `FakeCrmProjectionAdapter`,
+// `planExceptionEscalation` and `waitForMigrationReview`, cited as
+// implementation evidence and, when recorded, reached by nothing but their own
+// tests.
+//
+// A SINGLE RECORDED VERDICT IS A FLOOR, NOT A SNAPSHOT, and that is the answer
+// to a control that blocked legitimate work. 6 of the 9 are exported, so a
+// second production file importing one is ordinary work rather than a contrived
+// edit. The table used to pin the exact verdict, so that ordinary import turned
+// `check-citation-liveness.test.mjs` RED - and that file runs in `pnpm
+// test:unit`, everyone's gate, not in the opt-in `pnpm check:citation-liveness`
+// - which made a foreign lane edit this lane's table and this header's
+// sentences in lockstep in order to land an improvement. What is checked now is
+// that each entry scores AT LEAST the verdict recorded against it on the
+// ladder dead < test-only < file-local < referenced, is never `unscanned`, and
+// is declared in the file recorded for it; the 9 are additionally checked to
+// have more than one occurrence in that file, which is the property the
+// paragraph above actually claims and which an outside caller cannot take away.
+// A symbol becoming MORE live passes. Becoming less live, losing its
+// declaration, or moving file still fails, because those are the directions
+// this header can be wrong in.
+//
+// THE ONE PIN THAT IS STILL EXACT is the P0-71 pair, whose entries record an
+// array rather than a string: an array is an exact acceptable set, not a floor.
+// A production caller for `capacityPlanning` or `weeklyScorecard` would turn
+// `pnpm test:unit` red, deliberately, because it would retire P0-71's finding.
+// The fix in that case is to delete the assertion and the entry, not to weaken
+// the checker.
 //
 // ============================ WHAT IT DOES NOT PROVE ========================
 //
@@ -60,9 +114,9 @@
 // green run buys, and P0-71 is itself the evidence for the first one.
 //
 // 1. A SAME-NAME COLLISION MASKS DEADNESS, and this is not hypothetical.
-//    `threeWayTieOut` is declared twice in this repository:
-//    `packages/domain/src/core/reports/index.ts:323` and
-//    `packages/integrations/src/core/accounting/adapter.ts:296`. They are
+//    `threeWayTieOut` is declared twice in this repository, in
+//    `packages/domain/src/core/reports/index.ts` and in
+//    `packages/integrations/src/core/accounting/adapter.ts`. They are
 //    different functions. A citation of the domain one is scored LIVE by this
 //    checker, because the text `threeWayTieOut` appears outside the defining
 //    file - in the OTHER declaration. The reference count is over identifier
@@ -99,26 +153,32 @@
 //
 // 5. It says nothing about prose citations, which are the large majority of
 //    the ledger's evidence values and are grandfathered in
-//    `scripts/validate-traceability.mjs`. The exact split moves with every
-//    remap and is deliberately not restated here; `pnpm check:traceability`
-//    prints it live as `citationGrammar.prose` over `citationGrammar.total`.
-//    It was 2,033 of 2,323 when this paragraph was last re-derived, at b4fbcc8.
+//    `scripts/validate-traceability.mjs`. The split moves with every remap and
+//    is deliberately not restated here; `pnpm check:traceability` prints it
+//    live as `citationGrammar.prose` over `citationGrammar.total`.
 //
-// NOT IN `verify:static`. Limits 1, 3 and 4 are false-verdict modes in both
-// directions, and a checker that can wrongly block every future pull request
-// does not belong in the gate that every pull request runs. Same call the
-// schema-drift work made, for a weaker reason. Run it deliberately:
-// `pnpm check:citation-liveness`.
+// THE CHECKER IS NOT IN `verify:static`; ITS TEST FILE IS IN `test:unit`. Those
+// are different things and this paragraph used to give only the first. Limits 1,
+// 3 and 4 are false-verdict modes in both directions, and a checker that can
+// wrongly block every future pull request does not belong in the gate that every
+// pull request runs, so `main()` is opt-in: run it deliberately with
+// `pnpm check:citation-liveness`. Same call the schema-drift work made, for a
+// weaker reason. But `check-citation-liveness.test.mjs`, which reads this header
+// and asserts `DOCUMENTED_SYMBOL_VERDICTS` against the tree, IS listed in
+// `pnpm test:unit` and does run on every pull request. Anything pinned there is
+// pinned for the whole repository, which is why the pins are floors.
 //
-// WHAT IT SAID ABOUT THE LEDGER, AND WHAT IT SAYS NOW. The ledger was being
-// remapped while this was written. The first run against real citations scored
-// 58 distinct symbols - 46 referenced, 9 file-local, 3 test-only, 0 dead - and
-// the three test-only citations were replaced by the remapping lane before this
-// landed. Re-derived at b4fbcc8: 96 `path#symbol` citations, 55 distinct
-// symbols, 46 referenced, 9 file-local, 0 test-only, 0 dead, 0 unscanned, and
-// it exits zero. Those numbers move with every remap and the tests deliberately
-// do not pin them; they pin the verdicts in `DOCUMENTED_SYMBOL_VERDICTS`
-// against the working tree instead, and those do not depend on the ledger.
+// WHAT IT SAYS ABOUT THE LEDGER. Nothing, in this header. The ledger is owned
+// by another lane and remapped row by row, so every figure about it lives in
+// this script's own report and nowhere else: `symbolCitations`,
+// `distinctSymbols`, `verdicts` and `exceptions`, re-derived on every run. The
+// tests pin the verdicts in `DOCUMENTED_SYMBOL_VERDICTS` against the working
+// tree instead, and those do not depend on the ledger at all.
+//
+// [UNCHECKED] Historical, and not re-derivable from this tree: the first run of
+// this checker against real citations failed on test-only citations that the
+// remapping lane then replaced. Nothing in the repository records that state,
+// so no test asserts it and no count for it is given here.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import process from "node:process";
@@ -159,17 +219,15 @@ export const SELF_DOCUMENTING_FILES = Object.freeze([
 // The test file needs its own entry even though `isTestFile` already matches
 // it. Being a test file only keeps it out of the NON-test reference count; it
 // still lands in `testReferences`, which is reported and read as evidence, so a
-// green verdict would be citing this lane's own assertions back at the reader.
-// Both channels have to be closed for the reference SITES to mean anything.
+// green verdict would be citing this checker's own assertions back at the
+// reader. Both channels have to be closed for the reference SITES to mean
+// anything.
 //
-// It is no longer load-bearing for the VERDICT of the P0-71 pair, and saying so
-// is the point of this note. `scripts/validate-traceability.test.mjs` now names
-// `capacityPlanning` and `weeklyScorecard` too, so they score `test-only`
-// whether or not this file's test is in the corpus. What the exclusions still
-// decide is `dead`-versus-`test-only` in general and, for these two,
-// `referenced`-versus-not: drop `check-citation-liveness.mjs` from the corpus
-// list and both pop straight to `referenced` off this header alone, which is
-// exactly limit 3 and is asserted by
+// The exclusion of the test file is not load-bearing for the VERDICT of the
+// P0-71 pair - other test files in the repository name those symbols too - but
+// the exclusion of THIS file is: drop `check-citation-liveness.mjs` from the
+// corpus list and both symbols pop straight to `referenced` off this header
+// alone, which is exactly limit 3. That is asserted, both ways, by
 // "the checker's own documentation does not make the symbols it names look live".
 
 const SKIPPED_DIRECTORIES = new Set([
@@ -207,30 +265,47 @@ export const COVERAGE = Object.freeze({
 
 /**
  * EVERY FACTUAL CLAIM THIS FILE'S HEADER MAKES ABOUT A NAMED SYMBOL, in the one
- * form a test can check. `verdict` is the verdict `analyzeCitationLiveness`
- * must return for `path#symbol` against the real working tree; an array means
- * any listed verdict is acceptable and the entry says why.
+ * form a test can check. `verdict` says what `analyzeCitationLiveness` must
+ * return for `path#symbol` against the real working tree, in two flavours:
  *
- * This exists because prose is not checkable and this header's prose was wrong.
+ *   a STRING is a FLOOR. The tree has to score the symbol at least this live on
+ *     the ladder dead < test-only < file-local < referenced. Scoring higher is
+ *     an improvement and passes, because a foreign lane giving one of these an
+ *     outside caller is ordinary work and must not turn a repo-wide gate red.
+ *   an ARRAY is an EXACT acceptable set, and the entry says why. It is used
+ *     only where the failing state IS the finding, so that leaving the state is
+ *     something a human should look at.
+ *
+ * This exists because this header's prose was wrong and nothing could read it.
  * The first version attributed `readReportView` to
  * `packages/api/src/routes/core/index.ts` when it is declared in
  * `packages/db/src/repositories/core/database-finance.ts`, and described
- * `capacityPlanning` as "referenced by nothing anywhere in the repository"
- * when `scripts/validate-traceability.test.mjs` names it, which is the whole
- * difference between the `dead` and `test-only` verdicts this checker exists to
- * separate. Neither error was reachable by any test, because neither was
- * expressed as anything a test could read.
+ * `capacityPlanning` as "referenced by nothing anywhere in the repository" when
+ * a test file names it, which is the whole difference between the `dead` and
+ * `test-only` verdicts this checker exists to separate. A later version said
+ * none of the private helpers listed below lived in
+ * `packages/api/src/routes/core/index.ts` while this very table recorded
+ * `reportCsv` there. None of the three errors was reachable by any test,
+ * because none was expressed as anything a test could read. Every claim the
+ * header makes about a named symbol is now an entry here, and the header's
+ * counts are derived FROM here rather than written beside it.
  *
- * NOT A GATE, AND IT REFUSES NOTHING. This table is asserted by
- * `check-citation-liveness.test.mjs` and is not consulted by `main()`. It
- * cannot fail a citation, exempt one, or change any verdict; the only thing it
- * can do is fail this lane's own test suite when the header stops being true.
+ * IT REFUSES NO CITATION, BUT IT IS NOT HARMLESS EITHER, and the previous
+ * version of this note got the second half wrong. The table is asserted by
+ * `check-citation-liveness.test.mjs` and is not consulted by `main()`, so it
+ * cannot fail a citation, exempt one, or change any verdict. What it can do is
+ * fail `check-citation-liveness.test.mjs` - which `package.json` runs from
+ * `pnpm test:unit`, the repo-wide gate, and NOT from the opt-in
+ * `pnpm check:citation-liveness`. Calling that "this lane's own test suite", as
+ * this note used to, understated it by the whole repository. That is why a
+ * string verdict is a floor rather than a snapshot: the only edits that turn it
+ * red are ones where the header has genuinely stopped being true.
  */
 export const DOCUMENTED_SYMBOL_VERDICTS = Object.freeze([
   // The P0-71 pair: cited as evidence, zero non-test references. `dead` and
   // `test-only` are both failures and both correct depending on whether some
-  // unrelated test file happens to name them - today
-  // `scripts/validate-traceability.test.mjs` does, so it is `test-only`.
+  // unrelated test file happens to name them, which is why both are accepted.
+  // An array here means "any of these", not "unknown".
   Object.freeze({
     path: "packages/domain/src/core/reports/index.ts",
     symbol: "capacityPlanning",
@@ -253,7 +328,9 @@ export const DOCUMENTED_SYMBOL_VERDICTS = Object.freeze([
     symbol: "threeWayTieOut",
     verdict: "referenced",
   }),
-  // The nine private helpers the "outside its defining file" rule scored dead.
+  // The private helpers the "outside its defining file" rule scored dead. Their
+  // count, their package spread and how many of them share a file are all
+  // derived from THIS LIST by the header-claims test; do not restate them here.
   Object.freeze({
     path: "packages/api/src/routes/core/index.ts",
     symbol: "reportCsv",
@@ -329,10 +406,11 @@ export const DOCUMENTED_SYMBOL_VERDICTS = Object.freeze([
  * exception is no longer earned.
  *
  * Empty because nothing has earned an entry, not because there is nothing to
- * score. As of b4fbcc8 the ledger carries 96 `path#symbol` citations over 55
- * distinct symbols and every one of them is referenced or file-local, so any
- * entry here today would immediately fail as
- * `CITATION_EXCEPTION_EARNED_BACK` or `CITATION_EXCEPTION_STALE`.
+ * score: the ledger's `path#symbol` citations all currently score referenced or
+ * file-local, so any entry added here today would immediately fail as
+ * `CITATION_EXCEPTION_EARNED_BACK` or `CITATION_EXCEPTION_STALE`. The live
+ * tallies are `verdicts` and `exceptions` in this script's report; they are not
+ * restated here because they move with the ledger, which this lane does not own.
  */
 export const DEAD_CITATION_EXCEPTIONS = Object.freeze({});
 

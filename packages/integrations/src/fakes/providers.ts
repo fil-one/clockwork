@@ -12,12 +12,16 @@ import type {
   ScreeningPort,
   SignaturePort,
   SupportFeedPort,
+  TaxDeterminationPort,
   TaxPort,
   WebhookVerifier,
   WebhookVerificationResult,
 } from "@clockwork/contracts";
 import { ids, MoneySchema } from "@clockwork/contracts";
+import { taxOnNet, type TaxRuleBook } from "@clockwork/domain/core";
 
+import { RuleBookTaxDeterminationAdapter } from "../core/tax/rule-book-adapter";
+import { seedTaxRuleBook } from "../core/tax/seed-rule-book";
 import { FakeProviderKernel } from "./scenario";
 
 const stableReference = (prefix: string, value: unknown) => {
@@ -129,11 +133,11 @@ export class FakeScreeningAdapter implements ScreeningPort {
 }
 
 /**
- * Repository fixture standing in for an approved tax engine. Every figure here
- * is test data: the fixture carries the rates and the jurisdiction lists so no
- * rate and no country rule is written into shipped code, and a run with no
- * fixture states a zero-rate `standard` determination rather than inventing
- * one. A pass here is never an `EXT-TAX-01` activation pass.
+ * Legacy fixture for the deprecated {@link TaxPort}. It carries the rates and
+ * the jurisdiction lists so no rate and no country rule is written into shipped
+ * code. It cannot be made correct — `TaxPort.calculate` has no supplier, so no
+ * place-of-supply rule can be applied to it — and it exists only until the last
+ * caller moves to {@link FakeTaxAdapter.determine}.
  */
 export interface FakeTaxFixture {
   /** Basis points by tax code. An absent code is zero-rated, not refused. */
@@ -144,23 +148,81 @@ export interface FakeTaxFixture {
   readonly reverseChargeIdentifierPrefixes?: readonly string[];
 }
 
-export class FakeTaxAdapter implements TaxPort {
+/**
+ * The fake tax provider, which is the real determination engine.
+ *
+ * `determine` and the new `validateTaxId` run `@clockwork/domain`'s engine
+ * against a seeded rule book, so the fake and production differ only in where
+ * the rule book came from — one implementation of every rule, nothing to drift.
+ * That is what makes tax testable today rather than after `EXT-TAX-01`: the
+ * rates in the seed are fixture data and a pass here is not an activation pass,
+ * but the reverse-charge, place-of-supply and rounding behaviour under test is
+ * the behaviour that ships.
+ *
+ * The deprecated `calculate` stays fixture-driven on purpose. Routing it
+ * through the engine would mean inventing the supplier its signature omits,
+ * which is the defect, not the fix.
+ */
+export class FakeTaxAdapter implements TaxPort, TaxDeterminationPort {
+  private readonly engine: RuleBookTaxDeterminationAdapter;
+
   public constructor(
     private readonly kernel: FakeProviderKernel,
     private readonly fixture: FakeTaxFixture = {},
-  ) {}
-  public validateTaxId(input: Parameters<TaxPort["validateTaxId"]>[0]) {
-    return this.kernel.execute("tax.validateTaxId", input, () => {
-      const normalized = input.value.replace(/\s/g, "").toUpperCase();
-      return {
-        valid: input.value.length >= 5,
-        normalized,
-        reverseChargeEligible: (
-          this.fixture.reverseChargeIdentifierPrefixes ?? []
-        ).some((prefix) => normalized.startsWith(prefix.toUpperCase())),
-      };
-    });
+    ruleBooks: TaxRuleBook | readonly TaxRuleBook[] = seedTaxRuleBook(),
+  ) {
+    this.engine = new RuleBookTaxDeterminationAdapter(ruleBooks);
   }
+
+  public async determine(
+    input: Parameters<TaxDeterminationPort["determine"]>[0],
+  ): Promise<Awaited<ReturnType<TaxDeterminationPort["determine"]>>> {
+    const scenario = await this.kernel.execute("tax.determine", input, () =>
+      this.engine.determine(input),
+    );
+    return scenario.ok ? scenario.value : scenario;
+  }
+
+  public validateTaxId(
+    input: Parameters<TaxDeterminationPort["validateTaxId"]>[0],
+  ): Promise<Awaited<ReturnType<TaxDeterminationPort["validateTaxId"]>>>;
+  public validateTaxId(
+    input: Parameters<TaxPort["validateTaxId"]>[0],
+  ): Promise<Awaited<ReturnType<TaxPort["validateTaxId"]>>>;
+  public async validateTaxId(input: {
+    country: string;
+    value: string;
+    checkedAt?: string;
+  }): Promise<
+    | Awaited<ReturnType<TaxDeterminationPort["validateTaxId"]>>
+    | Awaited<ReturnType<TaxPort["validateTaxId"]>>
+  > {
+    // The deprecated port omits `checkedAt`, and a validation with no date is
+    // exactly the evidence the EU asks for and does not get. The legacy shape
+    // keeps answering, without inventing a date it was never told.
+    if (input.checkedAt === undefined)
+      return this.kernel.execute("tax.validateTaxId", input, () => {
+        const normalized = input.value.replace(/\s/g, "").toUpperCase();
+        return {
+          valid: input.value.length >= 5,
+          normalized,
+          reverseChargeEligible: (
+            this.fixture.reverseChargeIdentifierPrefixes ?? []
+          ).some((prefix) => normalized.startsWith(prefix.toUpperCase())),
+        };
+      });
+    const checkedAt = input.checkedAt;
+    const scenario = await this.kernel.execute("tax.validateTaxId", input, () =>
+      this.engine.validateTaxId({
+        country: input.country,
+        value: input.value,
+        checkedAt,
+      }),
+    );
+    return scenario.ok ? scenario.value : scenario;
+  }
+
+  /** @deprecated Determines against the invoiced account; use `determine`. */
   public calculate(input: Parameters<TaxPort["calculate"]>[0]) {
     return this.kernel.execute("tax.calculate", input, () => {
       const jurisdiction = input.jurisdiction.toUpperCase();
@@ -171,19 +233,21 @@ export class FakeTaxAdapter implements TaxPort {
         : (this.fixture.exemptJurisdictions ?? []).includes(jurisdiction)
           ? ("exempt" as const)
           : ("standard" as const);
-      // Only a standard supply carries an amount. Half away from zero keeps a
-      // credit line's negative tax the mirror of the charge it reverses.
+      // Only a standard supply carries an amount, and the rounding is the
+      // engine's own `taxOnNet`: half away from zero, so a credit line's
+      // negative tax is the mirror of the charge it reverses. Sharing the
+      // primitive is the point — two roundings is two answers.
       const minor =
         treatment === "standard"
-          ? input.lines.reduce((total, line) => {
-              const rate = BigInt(
-                this.fixture.rateBasisPoints?.[line.taxCode] ?? 0,
-              );
-              const product = BigInt(line.amount.minor) * rate;
-              const magnitude = product < 0n ? -product : product;
-              const rounded = (magnitude + 5_000n) / 10_000n;
-              return total + (product < 0n ? -rounded : rounded);
-            }, 0n)
+          ? input.lines.reduce(
+              (total, line) =>
+                total +
+                taxOnNet(
+                  BigInt(line.amount.minor),
+                  (this.fixture.rateBasisPoints?.[line.taxCode] ?? 0) * 100,
+                ),
+              0n,
+            )
           : 0n;
       return {
         tax: MoneySchema.parse({
@@ -314,6 +378,7 @@ export class FakeWebhookVerifier<T> implements WebhookVerifier<T> {
 export function createFakeProviderPorts(
   kernel = new FakeProviderKernel(),
 ): ProviderPorts & { kernel: FakeProviderKernel } {
+  const taxAdapter = new FakeTaxAdapter(kernel);
   return {
     kernel,
     billing: new FakeBillingAdapter(kernel),
@@ -322,7 +387,8 @@ export function createFakeProviderPorts(
     crm: new FakeCrmAdapter(kernel),
     accounting: new FakeAccountingAdapter(kernel),
     screening: new FakeScreeningAdapter(kernel),
-    tax: new FakeTaxAdapter(kernel),
+    tax: taxAdapter,
+    taxDetermination: taxAdapter,
     evidence: new FakeEvidenceStorageAdapter(kernel),
     notifications: new FakeNotificationAdapter(kernel),
     support: new FakeSupportFeedAdapter(kernel),

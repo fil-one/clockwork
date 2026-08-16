@@ -2,6 +2,22 @@
 // contract it is generated from, `docs/backlog.md`, the external-gate registry,
 // and - since P0-71 - the grammar of its own evidence citations.
 //
+// NO LEDGER COUNT APPEARS IN THIS HEADER, and that is a rule rather than a
+// style. Earlier versions carried dated tallies - citation totals, prose shares,
+// percentages - written by hand and re-derived by nothing, and one of those
+// percentages had never been the share on any revision of this ledger. The
+// ledger is owned by the lane remapping it and every one of those figures moves
+// when it does. `validate-traceability.test.mjs` REJECTS ANY NUMBER IT DID NOT
+// DERIVE ITSELF, in the comment forms it reads. Those forms are exactly two:
+// every whole-line `//` comment, including this block, and every `/*` or `/**`
+// block that starts a line. It does not read a comment that follows code on the
+// same line, in either form, and it does not read the inside of a string
+// literal - a figure written in either place is unchecked, so do not write one
+// there. What it enforces is membership: a number in a scanned comment has to be
+// one the test computed. It does not enforce placement, so it cannot tell that a
+// figure it derived is being quoted for the wrong thing. The live figures are in
+// `citationGrammar` in this script's own report, on every run.
+//
 // TWO THINGS CHANGED HERE, AND THEY ARE INDEPENDENT.
 //
 // 1. IT NO LONGER STOPS AT THE FIRST OFFENDER. Every check used to `throw` in
@@ -10,32 +26,57 @@
 //    oracle costs one full validation per error. Failures are now collected and
 //    printed together and the process exits non-zero at the end. The failure
 //    IDENTIFIERS are unchanged, and any single-identifier grep over this
-//    script's output still matches. Two classes still stop the run early
-//    (`fatal`): a ledger whose `requirements` is not a usable array, and an
-//    unreadable gate registry - continuing past either only produces a
-//    TypeError wearing a validation error's clothes. Both still print the
-//    TRACEABILITY_FAILURES header and everything collected before the stop.
+//    script's output still matches.
 //
-//    THE FIRST OF THOSE TWO USED TO BE UNREACHABLE, which is a thing worth
-//    admitting rather than quietly fixing. "Not a usable array" has three
-//    shapes - not an array, empty, and an array of non-objects - and only the
-//    empty one ever reached its own `fatal`. The other two crashed first,
-//    inside `assertSchemaShape`, on `for...of` over a non-iterable and on
-//    `field in requirement` against a primitive: an uncaught TypeError, no
-//    TRACEABILITY_FAILURES header, no collected identifiers at all. So the
-//    sentence above was false in the exact direction this whole conversion was
-//    about. `isReadableRequirement` and `requirementsFatal` below make it true:
-//    the schema pass skips what it cannot read, and the stop names the offending
-//    indices. Still two classes; both now behave the way the sentence says.
+//    HOW THE RUN CAN STILL END EARLY, AS TWO SEPARATE CLAIMS. The previous
+//    version of this paragraph ran them together and was false for it, so they
+//    are kept apart here.
+//
+//    The first is a count of CODE, and it is small on purpose: this file has 2
+//    explicit `fatal` call sites - a ledger whose `requirements` is not a usable
+//    array, and an unreadable gate registry - and each prints the
+//    TRACEABILITY_FAILURES header with everything collected before the stop. The
+//    test derives that 2 by counting `fatal(` in the source, so the sentence
+//    cannot drift from the code.
+//
+//    The second is a claim about BEHAVIOUR, and counting `fatal(` cannot
+//    establish it. An uncaught TypeError also ends the run - exit non-zero, no
+//    header, not one collected identifier - and by construction it has no
+//    `fatal(` token for a token count to see. The previous version asserted that
+//    the token count WAS the number of early stops, which is the same error in
+//    miniature as the sentence it was written to fix. So the behaviour is
+//    MEASURED instead: "a malformed ledger is reported, not crashed on" drives a
+//    matrix of malformed shapes end to end through the real script in a fixture
+//    tree and requires each to exit non-zero, print the header, and print no
+//    TypeError. That matrix is a SAMPLE. It covers every shape known to have
+//    crashed this script; a shape nobody has tried can still crash it, and no
+//    test here can say otherwise. [UNCHECKED] as a universal claim.
+//
+//    THE SHAPES THAT DID CRASH IT, all pre-existing, all now reportable, and
+//    all in the matrix. "`requirements` is not a usable array" has three of
+//    them - not an array, empty, and an array of non-objects - and only the
+//    empty one ever reached its own `fatal`; the other two died first inside
+//    `assertSchemaShape`, on `for...of` over a non-iterable and on
+//    `field in requirement` against a primitive. `isReadableRequirement` and
+//    `requirementsFatal` below make those two reportable, and the guard's full
+//    refused set is enumerated by "the complete refused set of the requirements
+//    guard". A malformed `statusPolicy` produced the same outcome by four more
+//    routes, none of which any earlier version of this header admitted to: a
+//    PRIMITIVE `statusPolicy` (`??` catches null and undefined, not `"x"`, so
+//    `field in statusPolicy` threw), a non-array `notes` (`.includes` is not a
+//    function), and a non-string member of `reviewedAgainst` or of
+//    `evidenceManifests` (`resolve()` refuses a number). `isPlainObject` and
+//    `stringMembers` below make those four reportable too.
 //
 // 2. CITATION GRAMMAR (P0-71, LAYER 1). See CITATION_COVERAGE below for what a
 //    green run does and does not prove. Read that before trusting this file.
 //
 // WHY THE BACKLOG ENTRY'S PRESCRIBED FIX IS NOT WHAT IS IMPLEMENTED. P0-71 asks
 // for "every cited symbol resolves to a definition reachable from production".
-// Measured against the ledger as it stood at 5c0f727^, before the remap, the six
-// evidence columns of the 312 rows held 2,264 citations: 123 repository paths
-// over 101 distinct paths, ZERO of the form `path#symbol`, and the other 2,141
+// [UNCHECKED - a dated measurement of a file this lane does not own, re-derived
+// by hand from the ledger as it stood before this grammar landed, and by no
+// test] NOT ONE of the ledger's citations was then of the form
+// `path#symbol`: the evidence columns held repository paths and, overwhelmingly,
 // prose labels ("package boundaries", "external gate state", "report tests"),
 // API route paths ("/v1/core"), package specifiers ("@clockwork/ui") and module
 // shorthands ("core/accounts"). There is no symbol in any of those to resolve.
@@ -43,23 +84,19 @@
 // instead enforces the grammar the ledger ALREADY claims for itself in
 // `statusPolicy.mappingSemantics` - "Path-like values are exact repository
 // paths; ... remaining human-readable labels are search terms" - and says out
-// loud which citations it did not check.
-//
-// DO NOT TRUST THOSE FIGURES AS CURRENT; THE CONVERSION IS UNDER WAY. Every
-// count in this header is a dated measurement, not a property of the file. The
-// live ones are in `citationGrammar` in this script's own output, re-derived on
-// every run. At b4fbcc8 they read 2,323 citations: 194 path, 96 `path#symbol`
-// over 55 distinct symbols, 2,033 prose, 0 malformed.
+// loud which citations it did not check. The conversion is still under way; how
+// far it has got is `citationGrammar.symbol` over `citationGrammar.total`.
 //
 // A NAIVE READING OF THAT RULE DOES NOT WORK EITHER, and this is worth writing
 // down because it is the obvious first implementation. "A citation containing
 // `/` must resolve on disk" fails the clear majority of slash-bearing
 // citations, because "quote/order artifacts", "renewal/notice UI" and
-// "/v1/lifecycle" all contain a slash and none of them is a path. The exact
-// figure is not restated here either - it is `citationGrammar.naiveSlashRule`
-// in the report, re-derived every run, and at b4fbcc8 it is 448 of 606
-// occurrences and 385 of 488 distinct values. The discriminator that works is
-// an anchor on a real top-level repository directory plus the absence of
+// "/v1/lifecycle" all contain a slash and none of them is a path. That is not
+// an estimate and it is not restated here as a figure either: the run measures
+// the rejected rule against the current ledger and prints it as
+// `citationGrammar.naiveSlashRule`, so a reader can see the damage it would do
+// today rather than on the day this was written. The discriminator that works
+// is an anchor on a real top-level repository directory plus the absence of
 // whitespace; see `classifyCitation`.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -115,19 +152,19 @@ export const CITATION_COVERAGE = Object.freeze({
 
 /**
  * Prose citations are not checked, and that is a decision rather than an
- * oversight. When this was written 2,141 of the ledger's 2,264 citations - 95%
- * of them - were prose labels inherited from a ledger written before any
- * checker existed. Failing them all would make the gate unrunnable on day one;
- * converting them is a corpus project that has to happen row by row against the
- * code, which is what P0-71's fifteen named rows are for. The rule for NEW work
- * is in CITATION_POLICY_NOTE.
+ * oversight. The large majority of the ledger's citations are prose labels
+ * inherited from a ledger written before any checker existed. Failing them all
+ * would make the gate unrunnable on day one; converting them is a corpus
+ * project that has to happen row by row against the code, which is what the
+ * rows P0-71 names are for. The rule for NEW work is in CITATION_POLICY_NOTE.
  *
- * `reason` below carries NO percentage, deliberately. The share falls with
- * every converted row - it was 95% at 5c0f727^ and is 88% at b4fbcc8 - and a
- * number frozen into an exported string is a false claim with a delay fuse.
- * That is not hypothetical: the string this replaces said 78%, which was not
- * the share on any revision of this ledger. `citationGrammar.prose` over
- * `citationGrammar.total` in the report is the live figure.
+ * `reason` below carries NO percentage, deliberately, and neither does this
+ * comment. The share falls with every converted row, and a number frozen into
+ * an exported string is a false claim with a delay fuse - the string this
+ * replaces quoted a percentage that had never been the share on any revision of
+ * this ledger. `citationGrammar.prose` over `citationGrammar.total` in the
+ * report is the live figure, and the test rejects any percentage written back
+ * into either place.
  */
 export const CITATION_GRANDFATHERING = Object.freeze({
   rule: "A citation that is neither anchored on a top-level repository directory nor of the form `path#symbol` is not checked.",
@@ -149,7 +186,7 @@ export const CITATION_GRANDFATHERING = Object.freeze({
  * ledger carries this exact string, and `statusPolicyNoteExpected` prints the
  * string to copy. Turning the flag into a gate is one line:
  *
- *   if (!(ledger.statusPolicy?.notes ?? []).includes(CITATION_POLICY_NOTE))
+ *   if (!stringMembers(statusPolicy.notes).includes(CITATION_POLICY_NOTE))
  *     fail("TRACEABILITY_CITATION_POLICY_NOTE_MISSING");
  *
  * The note is documentation; the grammar above is enforcement. The grammar does
@@ -369,6 +406,29 @@ function sha256(value) {
 }
 
 /**
+ * A value `field in value` and `Object.keys(value)` can be run against without
+ * throwing. `??` does not do this job: it passes a primitive straight through,
+ * and `"x" ?? {}` is `"x"`, which is exactly how a primitive `statusPolicy`
+ * used to end the run with an uncaught TypeError and no header.
+ */
+export function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The non-empty string members of a value that is supposed to be an array of
+ * paths, and nothing else. `resolve()` throws on a number rather than returning
+ * false, so filtering here is what turns a numeric member of `reviewedAgainst`
+ * or `evidenceManifests` from a crash into a collected
+ * TRACEABILITY_STATUS_POLICY_ARRAY_VALUE identifier.
+ */
+export function stringMembers(value) {
+  return Array.isArray(value)
+    ? value.filter((member) => typeof member === "string" && member.length > 0)
+    : [];
+}
+
+/**
  * A `requirements` entry this validator can read at all. Everything downstream
  * does `field in requirement` and `requirement.id`, and `in` throws a TypeError
  * on a primitive rather than returning false.
@@ -384,7 +444,7 @@ function sha256(value) {
  * duplicate it.
  */
 export function isReadableRequirement(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return isPlainObject(value);
 }
 
 /**
@@ -394,7 +454,7 @@ export function isReadableRequirement(value) {
  * still exactly two such classes.
  *
  * The second identifier is why this function exists. An array of non-objects
- * cleared the old `Array.isArray(...) || length === 0` guard and then died
+ * cleared the old "is it an array, and is it non-empty" guard and then died
  * inside `assertSchemaShape` with an uncaught TypeError, printing no
  * TRACEABILITY_FAILURES header and not one collected identifier - strictly
  * worse than the fatal stop it evaded, and a third way for the run to end early
@@ -466,6 +526,13 @@ function main() {
   const externalGates = readFileSync(externalGatesPath, "utf8");
   const launchChecklist = readFileSync(launchChecklistPath, "utf8");
   const gateRegistry = readFileSync(gateRegistryPath, "utf8");
+  // Normalised ONCE, and every read below goes through this binding rather than
+  // through `ledger.statusPolicy`. `?.` and `??` are safe against null and
+  // undefined and are not safe against a primitive, and mixing the two styles is
+  // how `statusPolicy: "x"` used to reach `field in statusPolicy` and throw.
+  const statusPolicy = isPlainObject(ledger.statusPolicy)
+    ? ledger.statusPolicy
+    : {};
   const statuses = new Set([
     "implemented",
     "partial",
@@ -505,7 +572,8 @@ function main() {
     }
 
     const statusPolicySchema = schema.$defs.statusPolicy;
-    const statusPolicy = ledger.statusPolicy ?? {};
+    if (!isPlainObject(ledger.statusPolicy))
+      fail("TRACEABILITY_STATUS_POLICY_UNREADABLE");
     for (const field of statusPolicySchema.required)
       if (!(field in statusPolicy))
         fail(`TRACEABILITY_SCHEMA_REQUIRED:statusPolicy:${field}`);
@@ -534,9 +602,21 @@ function main() {
       if (
         !Array.isArray(statusPolicy[field]) ||
         statusPolicy[field].length === 0
-      )
+      ) {
         fail(`TRACEABILITY_STATUS_POLICY_ARRAY:${field}`);
-      else if (new Set(statusPolicy[field]).size !== statusPolicy[field].length)
+        continue;
+      }
+      // Member types, not just the array. `reviewedAgainst` and
+      // `evidenceManifests` are handed to `resolve()` below, which throws on a
+      // number instead of returning false, and `notes` is handed to
+      // `.includes()` when the report is built.
+      if (
+        statusPolicy[field].some(
+          (member) => typeof member !== "string" || member.length === 0,
+        )
+      )
+        fail(`TRACEABILITY_STATUS_POLICY_ARRAY_VALUE:${field}`);
+      if (new Set(statusPolicy[field]).size !== statusPolicy[field].length)
         fail(`TRACEABILITY_STATUS_POLICY_DUPLICATE:${field}`);
     }
     for (const status of statuses)
@@ -596,7 +676,9 @@ function main() {
     );
   if (new Set(backlogHeadings).size !== backlogHeadings.length)
     fail("TRACEABILITY_BACKLOG_DUPLICATE");
-  const aliases = ledger.statusPolicy?.backlogReferenceAliases ?? {};
+  const aliases = isPlainObject(statusPolicy.backlogReferenceAliases)
+    ? statusPolicy.backlogReferenceAliases
+    : {};
   for (const [alias, target] of Object.entries(aliases)) {
     if (!backlogIds.has(target))
       fail(`TRACEABILITY_BACKLOG_ALIAS_TARGET:${alias}:${target}`);
@@ -638,7 +720,9 @@ function main() {
         fail(`TRACEABILITY_EXTERNAL_GATE_EVIDENCE:${gateId}:${requiredMarker}`);
     }
   }
-  const gateAliases = ledger.statusPolicy?.gateReferenceAliases ?? {};
+  const gateAliases = isPlainObject(statusPolicy.gateReferenceAliases)
+    ? statusPolicy.gateReferenceAliases
+    : {};
   for (const [alias, target] of Object.entries(gateAliases))
     if (target !== "ALL_REGISTERED_EXTERNAL_GATES" && !gateIds.has(target))
       fail(`TRACEABILITY_GATE_ALIAS_TARGET:${alias}:${target}`);
@@ -755,19 +839,19 @@ function main() {
 
   const sortedIds = [...ids].sort();
   const idSetSha256 = sha256(`${sortedIds.join("\n")}\n`);
-  if (ledger.statusPolicy?.requirementCount !== ids.size)
+  if (statusPolicy.requirementCount !== ids.size)
     fail(
-      `TRACEABILITY_REQUIREMENT_COUNT:${ledger.statusPolicy?.requirementCount}:${ids.size}`,
+      `TRACEABILITY_REQUIREMENT_COUNT:${statusPolicy.requirementCount}:${ids.size}`,
     );
-  if (ledger.statusPolicy?.requirementIdSetSha256 !== idSetSha256)
+  if (statusPolicy.requirementIdSetSha256 !== idSetSha256)
     fail(
-      `TRACEABILITY_REQUIREMENT_ID_SET:${ledger.statusPolicy?.requirementIdSetSha256}:${idSetSha256}`,
+      `TRACEABILITY_REQUIREMENT_ID_SET:${statusPolicy.requirementIdSetSha256}:${idSetSha256}`,
     );
 
-  for (const reviewedArtifact of ledger.statusPolicy?.reviewedAgainst ?? [])
+  for (const reviewedArtifact of stringMembers(statusPolicy.reviewedAgainst))
     if (!existsSync(resolve(root, reviewedArtifact)))
       fail(`TRACEABILITY_REVIEWED_ARTIFACT_MISSING:${reviewedArtifact}`);
-  for (const artifact of ledger.statusPolicy?.evidenceManifests ?? [])
+  for (const artifact of stringMembers(statusPolicy.evidenceManifests))
     if (!existsSync(resolve(root, artifact)))
       fail(`TRACEABILITY_EVIDENCE_MISSING:${artifact}`);
 
@@ -811,7 +895,7 @@ function main() {
 
   if (
     ["repository-qualified", "launch-qualified"].includes(
-      ledger.statusPolicy?.reviewState,
+      statusPolicy.reviewState,
     )
   ) {
     const unresolvedRequirements = ledger.requirements.filter((requirement) =>
@@ -834,7 +918,7 @@ function main() {
       );
   }
 
-  if (ledger.statusPolicy?.reviewState === "launch-qualified") {
+  if (statusPolicy.reviewState === "launch-qualified") {
     const designApprovalSection = launchChecklist.match(
       /### Human design approval required for any future RC\/launch designation([\s\S]*?)Blank names are a failed gate\./,
     )?.[1];
@@ -926,7 +1010,7 @@ function main() {
         ...citationReport.counts,
         grandfatheredDistinct: citationReport.grandfatheredDistinct,
         naiveSlashRule: citationReport.naiveSlashRule,
-        statusPolicyNotePresent: (ledger.statusPolicy?.notes ?? []).includes(
+        statusPolicyNotePresent: stringMembers(statusPolicy.notes).includes(
           CITATION_POLICY_NOTE,
         ),
         statusPolicyNoteExpected: CITATION_POLICY_NOTE,

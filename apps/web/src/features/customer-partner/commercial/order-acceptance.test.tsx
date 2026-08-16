@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   sendCoreCommand: vi.fn(),
+  lookupOrderForm: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -16,6 +17,7 @@ vi.mock("@/src/features/contracts/commerce-client", () => ({
 }));
 
 import { OrderAcceptance, type AcceptableQuote } from "./order-acceptance";
+import type { LookupPreparedOrderForm } from "./prepared-order-form";
 
 const account = {
   id: "10000000-0000-4000-8000-000000000001",
@@ -31,6 +33,10 @@ const quote: AcceptableQuote = {
   acceptedLabel: "Accepted Jul 25",
 };
 
+const lookupOrderForm = mocks.lookupOrderForm as unknown as ReturnType<
+  typeof vi.fn<LookupPreparedOrderForm>
+>;
+
 function renderSurface(
   overrides: Partial<Parameters<typeof OrderAcceptance>[0]> = {},
 ) {
@@ -38,7 +44,7 @@ function renderSurface(
     <OrderAcceptance
       account={account}
       agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-      orderForm={null}
+      lookupOrderForm={lookupOrderForm}
       quote={quote}
       signerUserId="20000000-0000-4000-8000-000000000002"
       {...overrides}
@@ -48,6 +54,8 @@ function renderSurface(
 
 beforeEach(() => {
   mocks.sendCoreCommand.mockResolvedValue({});
+  // The renderer has not finished. Every test that needs a document says so.
+  lookupOrderForm.mockResolvedValue({ status: "pending" });
 });
 
 afterEach(() => {
@@ -79,6 +87,7 @@ describe("order acceptance", () => {
 
     expect(screen.getByLabelText("Purchase order")).toHaveValue("");
     expect(screen.getByLabelText("Service start")).toHaveValue("");
+    expect(screen.getByLabelText("Service end")).toHaveValue("");
     expect(screen.getByLabelText("Authority title")).toHaveValue("");
   });
 
@@ -100,12 +109,62 @@ describe("order acceptance", () => {
     expect(purchaseOrder).toHaveAttribute("aria-invalid", "true");
   });
 
+  /**
+   * The order form cannot be rendered without a service end:
+   * `orderArtifactDefinition` throws `COMMERCIAL_ARTIFACT_ORDER_TERM_REQUIRED`
+   * before it reads anything else, on both branches of `mutateOrder`. The form
+   * that shipped collected a start and no end, so its first pass was refused
+   * against every real database and no document ever existed for the bridge to
+   * find.
+   */
+  it("asks for the service end the order form cannot be rendered without", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.type(screen.getByLabelText("Purchase order"), "PO-NA-1092");
+    await user.type(screen.getByLabelText("Service start"), "2026-08-15");
+    await user.click(
+      screen.getByRole("button", {
+        name: "Accept order and create commitment",
+      }),
+    );
+
+    const serviceEnd = screen.getByLabelText("Service end");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose the service end date.",
+    );
+    expect(serviceEnd).toHaveFocus();
+    expect(serviceEnd).toHaveAttribute("aria-invalid", "true");
+  });
+
+  /** `acceptOrder` refuses `end < serviceStartsOn`; the form says so first. */
+  it("refuses a service end that precedes the service start", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    await user.type(screen.getByLabelText("Purchase order"), "PO-NA-1092");
+    await user.type(screen.getByLabelText("Service start"), "2026-08-15");
+    await user.type(screen.getByLabelText("Service end"), "2026-08-14");
+    await user.click(
+      screen.getByRole("button", {
+        name: "Accept order and create commitment",
+      }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Choose a service end on or after the service start date.",
+    );
+    expect(screen.getByLabelText("Service end")).toHaveFocus();
+    expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
+  });
+
   it("requires the explicit commitment confirmation after valid inputs", async () => {
     const user = userEvent.setup();
     renderSurface();
 
     await user.type(screen.getByLabelText("Purchase order"), "PO-NA-1092");
     await user.type(screen.getByLabelText("Service start"), "2026-08-15");
+    await user.type(screen.getByLabelText("Service end"), "2027-08-14");
     await user.type(
       screen.getByLabelText("Authority title"),
       "Chief Operating Officer",
@@ -143,10 +202,10 @@ describe("order acceptance", () => {
 });
 
 const orderFormDocumentId = "80000000-0000-4000-8000-000000000001";
-const foreignOrderId = "90000000-0000-4000-8000-00000000000f";
 
 const acceptLabel = "Accept order and create commitment";
 const createLabel = "Create the order and commitment";
+const recheckLabel = "Check for the order form again";
 
 /** The order-form poll sleeps a second between attempts, so tests drive it. */
 async function elapse(milliseconds: number) {
@@ -161,6 +220,9 @@ function fillAcceptanceInputs() {
   });
   fireEvent.change(screen.getByLabelText("Service start"), {
     target: { value: "2026-08-15" },
+  });
+  fireEvent.change(screen.getByLabelText("Service end"), {
+    target: { value: "2027-08-14" },
   });
   fireEvent.change(screen.getByLabelText("Authority title"), {
     target: { value: "Chief Operating Officer" },
@@ -188,23 +250,16 @@ function preparedOrderId(): string {
 }
 
 /**
- * What the server produces once the artifact renderer has stored the form:
- * the same client component, re-rendered with a document *and* the order it
- * was bound to.
+ * What the artifact renderer produces: a stored document, bound to the order
+ * the prepare pass named. The lookup is keyed on that order identifier, so the
+ * server cannot answer for any other one -- which is the property the old
+ * projection-derived prop did not have.
  */
-function deliverOrderForm(
-  view: ReturnType<typeof renderSurface>,
-  orderId: string,
-) {
-  view.rerender(
-    <OrderAcceptance
-      account={account}
-      agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-      orderForm={{ documentId: orderFormDocumentId, orderId }}
-      quote={quote}
-      signerUserId="20000000-0000-4000-8000-000000000002"
-    />,
-  );
+function storeOrderForm() {
+  lookupOrderForm.mockResolvedValue({
+    status: "stored",
+    documentId: orderFormDocumentId,
+  });
 }
 
 function commandCall(index: number) {
@@ -221,16 +276,22 @@ function commandCall(index: number) {
 }
 
 /**
- * P0-68's second half. The two-pass design is the contract -- acceptance can
- * only be recorded against an order form that exists -- but the first pass
- * used to end at a message that disabled the submit for good, with no refresh
- * and no polling, so completing the commitment meant navigating away and
- * re-keying the purchase order, service start and authority title.
+ * P0-68's second half, third attempt.
  *
- * Every assertion below fails against that code: it never calls
- * `router.refresh()`, its submit is disabled on `Boolean(message)` and so
- * stays disabled after the document arrives, and it replays one idempotency
- * key across two different actions and payloads.
+ * The first attempt ended the prepare pass at a message that disabled the
+ * submit for good. The second polled `router.refresh()` for a server prop the
+ * page derived from the orders channel -- and that prop can never carry this
+ * document. `orders:prepare_artifact` writes no order row: `mutateOrder`'s
+ * create branch is the only writer of `public.orders` and of
+ * `orders.order_form_document_id`, and `authoritative-state.ts` projects the
+ * order channel from `public.orders`. The one row that channel could ever
+ * match is an order that has *already* been created, bound to a different
+ * order identifier and to entries this reader never typed.
+ *
+ * So the bridge now asks the server about the order it actually prepared. Every
+ * assertion below fails against the merged code, which has no lookup to call:
+ * `lookupOrderForm` is never invoked, no document ever arrives, and the create
+ * pass is unreachable however long the poll runs.
  */
 describe("order acceptance two-pass bridge", () => {
   beforeEach(() => {
@@ -250,28 +311,53 @@ describe("order acceptance two-pass bridge", () => {
     );
   });
 
-  it("polls for the rendered form instead of stranding the reader", async () => {
+  /**
+   * The whole bridge rests on this. Replayed against the local authoritative
+   * database, the payload without `serviceEndsOn` is refused with
+   * `COMMERCIAL_ARTIFACT_ORDER_TERM_REQUIRED` and the same payload with it
+   * stores an order form; so a first pass that omits the field produces no
+   * document, and everything downstream of it is unreachable regardless of how
+   * the client polls.
+   */
+  it("sends the service term on both passes, so the order form can be rendered", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    storeOrderForm();
+    await elapse(2_000);
+
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: createLabel }));
+    });
+
+    for (const index of [0, 1]) {
+      expect(commandCall(index).command.payload).toMatchObject({
+        serviceStartsOn: "2026-08-15",
+        serviceEndsOn: "2027-08-14",
+      });
+    }
+  });
+
+  it("polls for the order it prepared, not for whatever the account holds", async () => {
     renderSurface();
     fillAcceptanceInputs();
 
     await submitFirstPass();
     await elapse(3_000);
 
-    expect(mocks.refresh).toHaveBeenCalled();
+    expect(lookupOrderForm).toHaveBeenCalled();
+    for (const call of lookupOrderForm.mock.calls)
+      expect(call[0]).toBe(preparedOrderId());
     expect(screen.getByRole("button", { name: acceptLabel })).toBeDisabled();
   });
 
-  it("releases the create pass when the document prop arrives, keeping every entry", async () => {
-    const view = renderSurface();
+  it("releases the create pass once the form is stored, keeping every entry", async () => {
+    renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
-    await elapse(2_000);
 
-    // What `router.refresh()` produces: the same client component, re-rendered
-    // with a server prop it did not have before.
-    await settled(() => {
-      deliverOrderForm(view, preparedOrderId());
-    });
+    storeOrderForm();
+    await elapse(2_000);
 
     const create = screen.getByRole("button", { name: createLabel });
     expect(create).toBeEnabled();
@@ -281,17 +367,14 @@ describe("order acceptance two-pass bridge", () => {
       "Chief Operating Officer",
     );
     expect(screen.getByRole("checkbox")).toBeChecked();
-    expect(screen.queryByText(/Order form requested/)).not.toBeInTheDocument();
   });
 
   it("creates under a fresh idempotency key against the same order", async () => {
-    const view = renderSurface();
+    renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
+    storeOrderForm();
     await elapse(2_000);
-    await settled(() => {
-      deliverOrderForm(view, preparedOrderId());
-    });
 
     await settled(() => {
       fireEvent.click(screen.getByRole("button", { name: createLabel }));
@@ -304,7 +387,8 @@ describe("order acceptance two-pass bridge", () => {
     expect(second.command.payload.orderFormDocumentId).toBe(
       orderFormDocumentId,
     );
-    // Same order aggregate, so the second pass completes the first one's work.
+    // Same order aggregate, so the second pass completes the first one's work
+    // and the document's `subject_id` binding still holds.
     expect(second.command.id).toBe(first.command.id);
     // Different key, because the action and the payload differ. Replaying the
     // prepare key here is the write an idempotency store exists to refuse.
@@ -328,20 +412,95 @@ describe("order acceptance two-pass bridge", () => {
     expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(1);
   });
 
-  it("offers a recheck once polling gives up", async () => {
+  /**
+   * Two claims this surface used to make to the reader, both false.
+   *
+   * "Come back to this page later to finish" cannot happen: the order form is
+   * hashed over the acceptance instant, the purchase order, the service period
+   * and the signing title, and the instant is minted per mount and stored
+   * nowhere. A later visit can only start a new attempt.
+   *
+   * "Track this acceptance in orders" pointed at a ledger that cannot show it:
+   * `orders:prepare_artifact` writes no `public.orders` row, and the orders
+   * channel projects `public.orders`.
+   */
+  it("promises no resumption and no order ledger entry before the order exists", async () => {
     renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
     await elapse(30_000);
-    const polls = mocks.refresh.mock.calls.length;
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Leaving this page ends this attempt");
+    expect(status).not.toHaveTextContent(/come back to this page later/i);
+    expect(
+      screen.queryByRole("link", { name: "Track this acceptance in orders" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("links to the order only once the order exists", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    storeOrderForm();
+    await elapse(2_000);
 
     await settled(() => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Check for the order form again" }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: createLabel }));
     });
 
-    expect(mocks.refresh.mock.calls.length).toBeGreaterThan(polls);
+    expect(
+      screen.getByRole("link", { name: "Open the created order" }),
+    ).toBeVisible();
+  });
+
+  it("offers a recheck once polling gives up, and completes on it", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    await elapse(30_000);
+
+    storeOrderForm();
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: recheckLabel }));
+    });
+    await elapse(2_000);
+
+    expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
+  });
+
+  /**
+   * A lookup that cannot be answered is not the same as one that says "not
+   * yet". Telling the reader to keep waiting for a form this deployment will
+   * never render is the failure mode the third state exists to prevent.
+   */
+  it("says so when the server cannot answer at all", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+
+    lookupOrderForm.mockResolvedValue({ status: "unavailable" });
+    await elapse(2_000);
+
+    expect(
+      screen.getByText(/cannot confirm whether the order form was rendered/),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: recheckLabel })).toBeEnabled();
+    expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(1);
+  });
+
+  /** A dropped request costs one attempt, never the whole acceptance. */
+  it("keeps waiting when one lookup fails", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+
+    lookupOrderForm.mockRejectedValueOnce(new Error("network"));
+    await elapse(2_000);
+    storeOrderForm();
+    await elapse(2_000);
+
+    expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
   });
 
   /**
@@ -378,13 +537,11 @@ describe("order acceptance two-pass bridge", () => {
   });
 
   it("closes the surface once the order exists", async () => {
-    const view = renderSurface();
+    renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
+    storeOrderForm();
     await elapse(2_000);
-    await settled(() => {
-      deliverOrderForm(view, preparedOrderId());
-    });
 
     await settled(() => {
       fireEvent.click(screen.getByRole("button", { name: createLabel }));
@@ -396,10 +553,9 @@ describe("order acceptance two-pass bridge", () => {
 });
 
 /**
- * P0-68, refuted. The bridge as merged binds the create pass to the *presence*
- * of a document identifier, and the server binds it to the order the document
- * was prepared for. Three places in the database prove they are not the same
- * condition:
+ * P0-68, refuted twice. The server binds the create pass to the order the
+ * document was prepared for and to the entries it was rendered from. Three
+ * places in the database prove the reader's screen is not enough:
  *
  * 1. `assertCommercialArtifactBinding` (packages/db/src/repositories/core/
  *    commercial-artifacts.ts) selects the request row by `(document_id,
@@ -412,42 +568,19 @@ describe("order acceptance two-pass bridge", () => {
  * 3. Neither has any tolerance: a mismatch on either is
  *    `COMMERCIAL_ARTIFACT_BINDING_INVALID`, and the refusal releases no further
  *    pass, so the reader is left with a form they can never submit.
- *
- * Both tests below fail against the merged code, which keys `creating` on
- * `orderFormDocumentId !== null` and mints `orderIdRef` afresh with `??=`.
  */
 describe("order acceptance binds the form to the order it was prepared for", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
 
-  it("prepares rather than creating against a form this session did not request", async () => {
-    renderSurface({
-      orderForm: { documentId: orderFormDocumentId, orderId: foreignOrderId },
-    });
-    fillAcceptanceInputs();
-
-    await submitFirstPass();
-
-    // The account already held a rendered order form, but it was rendered for
-    // another order and from other entries. The only pass available is a
-    // prepare for this one.
-    expect(commandCall(0).command.action).toBe("prepare_artifact");
-    expect(commandCall(0).command.id).not.toBe(foreignOrderId);
-    expect(commandCall(0).command.payload).not.toHaveProperty(
-      "orderFormDocumentId",
-    );
-  });
-
   it("returns to a prepare pass when a bound entry changes after the form arrives", async () => {
-    const view = renderSurface();
+    renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
+    storeOrderForm();
     await elapse(2_000);
     const prepared = preparedOrderId();
-    await settled(() => {
-      deliverOrderForm(view, prepared);
-    });
     expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
 
     // The purchase-order number is rendered into the order form and hashed
@@ -470,15 +603,95 @@ describe("order acceptance binds the form to the order it was prepared for", () 
     expect(second.command.id).not.toBe(prepared);
   });
 
-  it("never creates under an order the document was not bound to", async () => {
-    const view = renderSurface();
+  /**
+   * The answer that arrives after the reader has moved on describes an order
+   * this acceptance is no longer being made under. Applying it would release a
+   * create pass bound to a superseded order.
+   */
+  it("discards an answer for an order the reader has already superseded", async () => {
+    renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
+
+    storeOrderForm();
+    fireEvent.change(screen.getByLabelText("Purchase order"), {
+      target: { value: "PO-NA-1093" },
+    });
+    await elapse(5_000);
+
+    expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: createLabel }),
+    ).not.toBeInTheDocument();
+  });
+
+  /**
+   * The service end is rendered into the order form and hashed into the
+   * request exactly as the purchase order is, so changing it after the form
+   * arrives has to invalidate the create pass too.
+   */
+  it("returns to a prepare pass when the service term changes after the form arrives", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    storeOrderForm();
+    await elapse(2_000);
+    expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText("Service end"), {
+      target: { value: "2028-08-14" },
+    });
+
+    expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: acceptLabel }));
+    });
+    expect(commandCall(1).command.action).toBe("prepare_artifact");
+    expect(commandCall(1).command.payload).toMatchObject({
+      serviceEndsOn: "2028-08-14",
+    });
+  });
+
+  /**
+   * A keystroke while the prepare pass is still on the wire used to null the
+   * order identifier the resumed code then recorded and polled for, which put
+   * the surface into the unanswerable state behind a control that could only
+   * reproduce it.
+   */
+  it("records nothing and polls for nothing when an entry changes mid-command", async () => {
+    let release: (value: unknown) => void = () => {};
+    mocks.sendCoreCommand.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    renderSurface();
+    fillAcceptanceInputs();
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: acceptLabel }));
+    });
+
+    fireEvent.change(screen.getByLabelText("Purchase order"), {
+      target: { value: "PO-NA-1093" },
+    });
+    await settled(() => release({}));
+    await elapse(30_000);
+
+    expect(lookupOrderForm).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: recheckLabel }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("never creates under an order the document was not bound to", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    storeOrderForm();
     await elapse(2_000);
     const prepared = preparedOrderId();
-    await settled(() => {
-      deliverOrderForm(view, prepared);
-    });
 
     await settled(() => {
       fireEvent.click(screen.getByRole("button", { name: createLabel }));
@@ -498,6 +711,20 @@ describe("order acceptance binds the form to the order it was prepared for", () 
  * chosen from a prefix. The reader is the one committing money against them,
  * so the incompleteness is disclosed rather than absorbed.
  */
+describe("order acceptance review panel", () => {
+  it("shows both ends of the term the reader is committing to", () => {
+    renderSurface();
+    fillAcceptanceInputs();
+
+    const summary = screen
+      .getByRole("heading", { name: "Review before accepting" })
+      .closest("aside");
+    expect(summary).not.toBeNull();
+    expect(summary).toHaveTextContent("Service start2026-08-15");
+    expect(summary).toHaveTextContent("Service end2027-08-14");
+  });
+});
+
 describe("order acceptance under a truncated read", () => {
   it("discloses that the records shown are a prefix", () => {
     renderSurface({ partialRead: true });

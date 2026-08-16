@@ -404,4 +404,199 @@ insert into audit_events (id, account_id, aggregate_type, aggregate_id, aggregat
 insert into outbox_messages (id, event_id, topic, payload, processed_at) values
 ('96000000-0000-4000-8000-000000000001','95000000-0000-4000-8000-000000000001','demo.reset','{"resetAt":"2026-07-31T16:00:00Z"}','2026-07-31T16:00:00Z');
 
+-- ---------------------------------------------------------------------------
+-- TAX: the supplier side, the rule books, and the rates the engine consults.
+--
+-- EVERY BOOK BELOW SHIPS AS `repository_fixture`. That is the honest label and
+-- it is what makes shipping rates at all defensible: the engine is live,
+-- exercised and tested end to end against these, usable for demo, staging and
+-- test, and system_gate_is_active (001000:22-42) already refuses to report
+-- EXT-TAX-01 active unless provenance is live_signed — so no live-signed
+-- invoice can be issued against a single figure here. When an accountant signs
+-- one jurisdiction's matrix, that book alone flips to live_signed. Per
+-- jurisdiction, not all-or-nothing.
+--
+-- The numbers are plausible fixtures for a first global beta, not advice and
+-- not a verified matrix. Each carries the authority_reference and legal_basis
+-- an accountant would review before signing, and every one of them says
+-- "fixture" so no reader can mistake it for a signed input.
+--
+-- There is deliberately NO 'EU' rule book. Reverse charge is a member-state
+-- rule applied by the member state, so it lives in each member's
+-- rule_parameters where the resolver can actually reach it; an 'EU' book would
+-- be an ancestor of nothing (ES is not EU-ES) and could never resolve.
+
+insert into documents (id, account_id, kind, storage_key, content_hash, mime_type, byte_length, object_lock_mode, retain_until, storage_version_id) values
+('40000000-0000-4000-8000-000000000040',null,'tax_registration_evidence','sha256/40/gb-vat-fixture.pdf',lpad('40',64,'0'),'application/pdf',1024,'COMPLIANCE','2036-07-31T16:00:00Z','demo-v1'),
+('40000000-0000-4000-8000-000000000041',null,'tax_registration_evidence','sha256/41/us-ny-fixture.pdf',lpad('41',64,'0'),'application/pdf',1024,'COMPLIANCE','2036-07-31T16:00:00Z','demo-v1'),
+('40000000-0000-4000-8000-000000000042','10000000-0000-4000-8000-000000000003','tax_registration_evidence','sha256/42/es-partner-fixture.pdf',lpad('42',64,'0'),'application/pdf',1024,'COMPLIANCE','2036-07-31T16:00:00Z','demo-v1');
+
+-- Our selling entities, plus the Spanish reseller acting as its own merchant of
+-- record. That third row is the case the current determination gets wrong:
+-- quote 70000000-...-003 is a resale route whose merchant_of_record is
+-- 'partner' and whose invoiced account is Blue Harbor MSP (ES), so today the
+-- determination is made against ES with a US supplier. With a supplier side in
+-- the data, the supply can be determined from both parties.
+insert into core_legal_entities (
+  id, legal_name, merchant_role, account_id, established_country,
+  registered_address, invoice_header_text, invoice_footer_text
+) values
+('97000000-0000-4000-8000-000000000001','Clockwork Commerce Ltd','our_entity',null,'GB',
+ '{"line1":"1 Fiction Row","city":"London","postalCode":"EC1A 1BB","country":"GB"}',
+ 'Clockwork Commerce Ltd (fictional)','Fictional footer text pending EXT-BRAND-01 approval.'),
+('97000000-0000-4000-8000-000000000002','Clockwork Commerce Inc','our_entity',null,'US',
+ '{"line1":"2 Fiction Row","city":"Wilmington","postalCode":"19801","country":"US"}',
+ 'Clockwork Commerce Inc (fictional)','Fictional footer text pending EXT-BRAND-01 approval.'),
+('97000000-0000-4000-8000-000000000003','Blue Harbor MSP','partner_entity','10000000-0000-4000-8000-000000000003','ES',
+ '{"line1":"3 Fiction Way","city":"Madrid","postalCode":"28001","country":"ES"}',
+ 'Blue Harbor MSP (fictional partner merchant of record)','Fictional footer text pending EXT-BRAND-01 approval.');
+
+-- Operator statements. Note what is NOT here: no registration anywhere in
+-- Connecticut, although US-CT has a rule book with rates. A supply there
+-- resolves a book, finds no registration, and is `not_registered` — no tax
+-- charged, treatment recorded, exception raised. That absence is the point.
+insert into core_tax_registrations (
+  id, legal_entity_id, jurisdiction, scheme, registration_number,
+  effective_from, effective_to, status, stated_by, stated_at, evidence_document_id
+) values
+('97100000-0000-4000-8000-000000000001','97000000-0000-4000-8000-000000000001','GB','vat','GB000000000',
+ '2020-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000040'),
+('97100000-0000-4000-8000-000000000002','97000000-0000-4000-8000-000000000001','IE','vat_oss','IE0000000XX',
+ '2021-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000040'),
+('97100000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000002','US-NY','sales_tax','NY-000000000',
+ '2022-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000041'),
+-- Applied for, certificate not yet received. A pending row carries no evidence
+-- and answers no determination; recording the application is a legitimate
+-- operation and refusing to record it would block one.
+('97100000-0000-4000-8000-000000000004','97000000-0000-4000-8000-000000000002','US-TX','sales_tax','TX-000000000',
+ '2026-09-01',null,'pending','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z',null),
+('97100000-0000-4000-8000-000000000005','97000000-0000-4000-8000-000000000003','ES','vat','ESX0000000X',
+ '2023-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000042');
+
+-- Rule books are created as drafts and published through the two-person
+-- approval the database enforces (001412). The seed walks that flow rather than
+-- inserting published rows, because a seed that could not pass the control
+-- would be evidence the control is wrong.
+insert into core_tax_rule_books (
+  id, jurisdiction, version, status, effective_from, effective_to,
+  rule_parameters, authority_reference, determination_source,
+  input_provenance, subdivision_scope
+) values
+-- The superseded United Kingdom book. It is retired and it still answers: a
+-- supply with a 2025 tax point resolves HERE, not to the 2026 book. Filtering
+-- resolution on 'active' alone would price last year's supply at this year's
+-- rates and nothing would look wrong.
+('97200000-0000-4000-8000-000000000001','GB',1,'draft','2020-01-01','2026-01-01',
+ '{"placeOfSupply":"destination_b2b","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_outside_gb","notationCode":"RC-GB"}}',
+ 'Repository fixture: superseded United Kingdom matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000002','GB',2,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_outside_gb","notationCode":"RC-GB"}}',
+ 'Repository fixture: United Kingdom matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000003','IE',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","memberState":true,"roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_in_another_member_state","notationCode":"RC-EU","scheme":"vat","basis":"article_196_style_fixture"}}',
+ 'Repository fixture: Ireland matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000004','ES',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","memberState":true,"roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_in_another_member_state","notationCode":"RC-EU","scheme":"vat","basis":"article_196_style_fixture"}}',
+ 'Repository fixture: Spain matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000005','DE',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","memberState":true,"roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_in_another_member_state","notationCode":"RC-EU","scheme":"vat","basis":"article_196_style_fixture"}}',
+ 'Repository fixture: Germany matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000006','FR',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","memberState":true,"roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_in_another_member_state","notationCode":"RC-EU","scheme":"vat","basis":"article_196_style_fixture"}}',
+ 'Repository fixture: France matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000007','NL',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination_b2b","memberState":true,"roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","reverseCharge":{"appliesWhen":"customer_registered_in_another_member_state","notationCode":"RC-EU","scheme":"vat","basis":"article_196_style_fixture"}}',
+ 'Repository fixture: Netherlands matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+-- United States, state level. Every one of these is `this_level_only` except
+-- Connecticut, which levies no local sales tax in this fixture. That single
+-- column is why asking for a New York City address does not silently come back
+-- with New York State's 4%.
+('97200000-0000-4000-8000-000000000008','US-NY',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":true}',
+ 'Repository fixture: New York State matrix, pending EXT-TAX-01 signature','local','repository_fixture','this_level_only'),
+-- The combined New York City rate, decomposed. Three stacked components summing
+-- to 88750 ppm — 8.875% — which is 887.5 basis points and therefore not
+-- expressible as an integer in the repository's usual rate unit. This row is
+-- the concrete reason core_tax_rates.rate_ppm is parts per million.
+('97200000-0000-4000-8000-000000000009','US-NY-36061',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","stacks":["state_share","city","district"]}',
+ 'Repository fixture: New York County combined matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction'),
+('97200000-0000-4000-8000-000000000010','US-TX',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":true}',
+ 'Repository fixture: Texas matrix, pending EXT-TAX-01 signature','local','repository_fixture','this_level_only'),
+('97200000-0000-4000-8000-000000000011','US-PA',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":true}',
+ 'Repository fixture: Pennsylvania matrix, pending EXT-TAX-01 signature','local','repository_fixture','this_level_only'),
+('97200000-0000-4000-8000-000000000012','US-WA',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":true}',
+ 'Repository fixture: Washington matrix, pending EXT-TAX-01 signature','local','repository_fixture','this_level_only'),
+('97200000-0000-4000-8000-000000000013','US-OH',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":true}',
+ 'Repository fixture: Ohio matrix, pending EXT-TAX-01 signature','local','repository_fixture','this_level_only'),
+('97200000-0000-4000-8000-000000000014','US-CT',1,'draft','2026-01-01',null,
+ '{"placeOfSupply":"destination","roundingRule":"half_up_minor_unit","taxPointRule":"invoice_date","localRatesStack":false}',
+ 'Repository fixture: Connecticut matrix, pending EXT-TAX-01 signature','local','repository_fixture','whole_jurisdiction');
+
+-- Rates in PARTS PER MILLION: 20% is 200000, 8.875% is 88750.
+insert into core_tax_rates (id, tax_rule_book_id, tax_code, rate_kind, rate_ppm, legal_basis, notation) values
+('97300000-0000-4000-8000-000000000001','97200000-0000-4000-8000-000000000001','txcd_demo','standard',200000,'Repository fixture: superseded United Kingdom standard rate',''),
+('97300000-0000-4000-8000-000000000002','97200000-0000-4000-8000-000000000002','txcd_demo','standard',200000,'Repository fixture: United Kingdom standard rate',''),
+('97300000-0000-4000-8000-000000000003','97200000-0000-4000-8000-000000000002','txcd_demo_zero','zero',0,'Repository fixture: United Kingdom zero rate','Zero-rated supply'),
+('97300000-0000-4000-8000-000000000004','97200000-0000-4000-8000-000000000003','txcd_demo','standard',230000,'Repository fixture: Ireland standard rate',''),
+('97300000-0000-4000-8000-000000000005','97200000-0000-4000-8000-000000000004','txcd_demo','standard',210000,'Repository fixture: Spain standard rate',''),
+('97300000-0000-4000-8000-000000000006','97200000-0000-4000-8000-000000000005','txcd_demo','standard',190000,'Repository fixture: Germany standard rate',''),
+('97300000-0000-4000-8000-000000000007','97200000-0000-4000-8000-000000000006','txcd_demo','standard',200000,'Repository fixture: France standard rate',''),
+('97300000-0000-4000-8000-000000000008','97200000-0000-4000-8000-000000000007','txcd_demo','standard',210000,'Repository fixture: Netherlands standard rate',''),
+('97300000-0000-4000-8000-000000000009','97200000-0000-4000-8000-000000000008','txcd_demo','standard',40000,'Repository fixture: New York State rate, local rates stack on top',''),
+('97300000-0000-4000-8000-000000000010','97200000-0000-4000-8000-000000000009','txcd_demo_state','state_share',40000,'Repository fixture: New York State share of the New York County combined rate',''),
+('97300000-0000-4000-8000-000000000011','97200000-0000-4000-8000-000000000009','txcd_demo_city','city',45000,'Repository fixture: New York City share of the New York County combined rate',''),
+('97300000-0000-4000-8000-000000000012','97200000-0000-4000-8000-000000000009','txcd_demo_district','district',3750,'Repository fixture: transit district share of the New York County combined rate','0.375% — the component that cannot be an integer number of basis points'),
+('97300000-0000-4000-8000-000000000013','97200000-0000-4000-8000-000000000010','txcd_demo','standard',62500,'Repository fixture: Texas state rate, local rates stack on top',''),
+('97300000-0000-4000-8000-000000000014','97200000-0000-4000-8000-000000000011','txcd_demo','standard',60000,'Repository fixture: Pennsylvania state rate, local rates stack on top',''),
+('97300000-0000-4000-8000-000000000015','97200000-0000-4000-8000-000000000012','txcd_demo','standard',65000,'Repository fixture: Washington state rate, local rates stack on top',''),
+('97300000-0000-4000-8000-000000000016','97200000-0000-4000-8000-000000000013','txcd_demo','standard',57500,'Repository fixture: Ohio state rate, local rates stack on top',''),
+('97300000-0000-4000-8000-000000000017','97200000-0000-4000-8000-000000000014','txcd_demo','standard',63500,'Repository fixture: Connecticut rate, no local sales tax in this fixture','');
+
+-- Two distinct people per book, as the database requires. Iris Operator
+-- requests and Dana Direct approves; they are different users, which is what
+-- approvals_two_person_check (000001:136) and 001412's trigger between them
+-- insist on.
+insert into approvals (id, account_id, action, object_type, object_id, requested_by, approved_by, status, requested_at, decided_at)
+select
+  ('97400000-0000-4000-8000-' || lpad(row_number() over (order by book.jurisdiction, book.version)::text, 12, '0'))::uuid,
+  null, 'tax_rule_book_activation', 'tax_rule_book', book.id,
+  '20000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002',
+  'approved', '2026-07-31T15:00:00Z', '2026-07-31T15:30:00Z'
+from core_tax_rule_books book
+where book.id between '97200000-0000-4000-8000-000000000001'::uuid
+  and '97200000-0000-4000-8000-000000000014'::uuid;
+
+-- The superseded book is published straight to retired: it is history, and it
+-- has to pass the same two-person control precisely because a retired book
+-- still answers a back-dated tax point.
+update core_tax_rule_books set status = 'retired'
+where id = '97200000-0000-4000-8000-000000000001';
+
+update core_tax_rule_books set status = 'active'
+where id between '97200000-0000-4000-8000-000000000002'::uuid
+  and '97200000-0000-4000-8000-000000000014'::uuid;
+
+insert into core_tax_rule_book_activation_events (
+  id, tax_rule_book_id, action, previous_status, resulting_status,
+  previous_provenance, resulting_provenance, effective_at,
+  actor_user_id, reason, request_id
+)
+select
+  ('97500000-0000-4000-8000-' || lpad(row_number() over (order by book.jurisdiction, book.version)::text, 12, '0'))::uuid,
+  book.id,
+  case when book.status = 'retired' then 'retire' else 'activate' end,
+  'draft', book.status, null, null,
+  (book.effective_from || 'T00:00:00Z')::timestamptz,
+  '20000000-0000-4000-8000-000000000002',
+  'Fixture matrix published for demo, staging and test. Provenance stays repository_fixture, so EXT-TAX-01 remains blocked and no live-signed invoice can be issued against it.',
+  'seed-2026-07-31'
+from core_tax_rule_books book
+where book.id between '97200000-0000-4000-8000-000000000001'::uuid
+  and '97200000-0000-4000-8000-000000000014'::uuid;
+
 reset role;

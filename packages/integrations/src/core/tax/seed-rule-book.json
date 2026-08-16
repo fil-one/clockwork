@@ -1,0 +1,529 @@
+{
+  "id": "seed-2026-01",
+  "version": 3,
+  "effectiveFrom": "2026-01-01",
+  "unions": [
+    {
+      "id": "eu-vat",
+      "reverseCharge": [
+        {
+          "supplyType": "service",
+          "available": true,
+          "legalBasis": "Article 196, Directive 2006/112/EC"
+        },
+        {
+          "supplyType": "digital_service",
+          "available": true,
+          "legalBasis": "Article 196, Directive 2006/112/EC"
+        },
+        {
+          "supplyType": "goods",
+          "available": false,
+          "legalBasis": "Article 138, Directive 2006/112/EC"
+        }
+      ]
+    }
+  ],
+  "territories": [
+    {
+      "id": "ES",
+      "country": "ES",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "ES-CN",
+      "country": "ES",
+      "regions": ["CN", "Canarias", "Canary Islands"],
+      "postalPrefixes": ["35", "38"],
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Canary Islands are outside the EU VAT territory (IGIC applies)"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "DE",
+      "country": "DE",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FR",
+      "country": "FR",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FR-RE",
+      "country": "FR",
+      "regions": ["RE", "Reunion", "La Reunion"],
+      "postalPrefixes": ["974"],
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Reunion is outside the EU VAT territory"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FI",
+      "country": "FI",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1995-01-01"
+    },
+    {
+      "id": "FI-AX",
+      "country": "FI",
+      "regions": ["AX", "Aland", "Ahvenanmaa"],
+      "postalPrefixes": ["22"],
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Aland is outside the EU VAT territory"
+      },
+      "effectiveFrom": "1995-01-01"
+    },
+    {
+      "id": "IE",
+      "country": "IE",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "GB",
+      "country": "GB",
+      "unionId": "eu-vat",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "Article 44, Directive 2006/112/EC"
+      },
+      "effectiveFrom": "1993-01-01",
+      "effectiveTo": "2020-12-31"
+    },
+    {
+      "id": "GB",
+      "country": "GB",
+      "rounding": "line",
+      "exportOfServices": {
+        "treatment": "zero_rated",
+        "rateKind": "zero",
+        "legalBasis": "VATA 1994 Schedule 8 (export of services)"
+      },
+      "effectiveFrom": "2021-01-01"
+    },
+    {
+      "id": "US",
+      "country": "US",
+      "sourcing": "destination",
+      "rounding": "invoice",
+      "exportOfServices": {
+        "treatment": "out_of_scope",
+        "rateKind": "none",
+        "legalBasis": "US sales tax does not reach supplies delivered abroad"
+      },
+      "effectiveFrom": "1900-01-01"
+    }
+  ],
+  "jurisdictions": [
+    {
+      "id": "ES",
+      "territoryId": "ES",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "ES-CN",
+      "territoryId": "ES-CN",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "DE",
+      "territoryId": "DE",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FR",
+      "territoryId": "FR",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FR-RE",
+      "territoryId": "FR-RE",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "FI",
+      "territoryId": "FI",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1995-01-01"
+    },
+    {
+      "id": "FI-AX",
+      "territoryId": "FI-AX",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1995-01-01"
+    },
+    {
+      "id": "IE",
+      "territoryId": "IE",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "GB",
+      "territoryId": "GB",
+      "level": "country",
+      "sequence": 1,
+      "effectiveFrom": "1993-01-01"
+    },
+    {
+      "id": "US-WA",
+      "territoryId": "US",
+      "level": "state",
+      "sequence": 1,
+      "regions": ["WA", "Washington"],
+      "effectiveFrom": "1935-05-01"
+    },
+    {
+      "id": "US-WA-KING",
+      "territoryId": "US",
+      "level": "county",
+      "sequence": 2,
+      "postalPrefixes": ["980", "981"],
+      "effectiveFrom": "1970-01-01"
+    },
+    {
+      "id": "US-WA-SEATTLE",
+      "territoryId": "US",
+      "level": "city",
+      "sequence": 3,
+      "postalPrefixes": ["981"],
+      "effectiveFrom": "1970-01-01"
+    },
+    {
+      "id": "US-WA-RTA",
+      "territoryId": "US",
+      "level": "district",
+      "sequence": 4,
+      "postalPrefixes": ["981"],
+      "effectiveFrom": "1997-01-01"
+    },
+    {
+      "id": "US-CA",
+      "territoryId": "US",
+      "level": "state",
+      "sequence": 1,
+      "regions": ["CA", "California"],
+      "effectiveFrom": "1933-08-01"
+    },
+    {
+      "id": "US-OR",
+      "territoryId": "US",
+      "level": "state",
+      "sequence": 1,
+      "regions": ["OR", "Oregon"],
+      "effectiveFrom": "1900-01-01"
+    }
+  ],
+  "rates": [
+    {
+      "jurisdictionId": "ES",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 210000,
+      "treatment": "standard",
+      "legalBasis": "Ley 37/1992 Article 90",
+      "effectiveFrom": "2012-09-01"
+    },
+    {
+      "jurisdictionId": "ES",
+      "taxCode": "txcd_ebook_demo",
+      "rateKind": "reduced",
+      "ratePpm": 40000,
+      "treatment": "standard",
+      "legalBasis": "Ley 37/1992 Article 91",
+      "effectiveFrom": "2020-04-23"
+    },
+    {
+      "jurisdictionId": "ES-CN",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 70000,
+      "treatment": "standard",
+      "legalBasis": "IGIC general rate",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "jurisdictionId": "DE",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 190000,
+      "treatment": "standard",
+      "legalBasis": "UStG Section 12(1)",
+      "effectiveFrom": "2007-01-01"
+    },
+    {
+      "jurisdictionId": "DE",
+      "taxCode": "txcd_exempt_demo",
+      "rateKind": "none",
+      "ratePpm": 0,
+      "treatment": "exempt",
+      "legalBasis": "UStG Section 4",
+      "effectiveFrom": "2007-01-01"
+    },
+    {
+      "jurisdictionId": "FR",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 200000,
+      "treatment": "standard",
+      "legalBasis": "CGI Article 278",
+      "effectiveFrom": "2014-01-01"
+    },
+    {
+      "jurisdictionId": "FR-RE",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 85000,
+      "treatment": "standard",
+      "legalBasis": "CGI Article 296",
+      "effectiveFrom": "2014-01-01"
+    },
+    {
+      "jurisdictionId": "FI",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 255000,
+      "treatment": "standard",
+      "legalBasis": "AVL Section 84",
+      "effectiveFrom": "2024-09-01"
+    },
+    {
+      "jurisdictionId": "FI-AX",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 255000,
+      "treatment": "standard",
+      "legalBasis": "AVL Section 84 (Aland, outside the EU VAT territory)",
+      "effectiveFrom": "2024-09-01"
+    },
+    {
+      "jurisdictionId": "IE",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 230000,
+      "treatment": "standard",
+      "legalBasis": "VATCA 2010 Section 46",
+      "effectiveFrom": "2021-03-01"
+    },
+    {
+      "jurisdictionId": "GB",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 200000,
+      "treatment": "standard",
+      "legalBasis": "VATA 1994 Section 2",
+      "effectiveFrom": "2011-01-04"
+    },
+    {
+      "jurisdictionId": "US-WA",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 65000,
+      "treatment": "standard",
+      "legalBasis": "RCW 82.08.020 state rate",
+      "effectiveFrom": "1983-07-01"
+    },
+    {
+      "jurisdictionId": "US-WA-KING",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 12000,
+      "treatment": "standard",
+      "legalBasis": "King County local rate",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "jurisdictionId": "US-WA-SEATTLE",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 21500,
+      "treatment": "standard",
+      "legalBasis": "Seattle local rate",
+      "effectiveFrom": "2020-01-01"
+    },
+    {
+      "jurisdictionId": "US-WA-RTA",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 14000,
+      "treatment": "standard",
+      "legalBasis": "Regional Transit Authority district rate",
+      "effectiveFrom": "2017-04-01"
+    },
+    {
+      "jurisdictionId": "US-CA",
+      "taxCode": "*",
+      "rateKind": "standard",
+      "ratePpm": 72500,
+      "treatment": "standard",
+      "legalBasis": "California statewide rate",
+      "effectiveFrom": "2017-01-01"
+    },
+    {
+      "jurisdictionId": "US-CA",
+      "taxCode": "txcd_10103101",
+      "rateKind": "none",
+      "ratePpm": 0,
+      "treatment": "out_of_scope",
+      "legalBasis": "California does not tax this service",
+      "effectiveFrom": "2017-01-01"
+    },
+    {
+      "jurisdictionId": "US-OR",
+      "taxCode": "*",
+      "rateKind": "none",
+      "ratePpm": 0,
+      "treatment": "out_of_scope",
+      "legalBasis": "Oregon levies no general sales tax",
+      "effectiveFrom": "1900-01-01"
+    }
+  ],
+  "schemes": [
+    {
+      "id": "eu-vat",
+      "scope": "territory",
+      "territories": ["ES", "DE", "FR", "FI", "IE"],
+      "admitsReverseCharge": true,
+      "maxValidationAgeDays": 90,
+      "numberPattern": "^(ES[A-Z0-9]\\d{7}[A-Z0-9]|DE\\d{9}|FR[A-Z0-9]{2}\\d{9}|FI\\d{8}|IE\\d{7}[A-Z]{1,2})$"
+    },
+    {
+      "id": "eu-oss",
+      "scope": "union",
+      "unionId": "eu-vat",
+      "admitsReverseCharge": false,
+      "maxValidationAgeDays": 365
+    },
+    {
+      "id": "gb-vat",
+      "scope": "territory",
+      "territories": ["GB"],
+      "admitsReverseCharge": true,
+      "maxValidationAgeDays": 365,
+      "numberPattern": "^GB(\\d{9}|\\d{12}|GD\\d{3}|HA\\d{3})$"
+    },
+    {
+      "id": "us-sales-tax",
+      "scope": "territory",
+      "territories": ["US"],
+      "admitsReverseCharge": false
+    },
+    {
+      "id": "es-igic",
+      "scope": "territory",
+      "territories": ["ES-CN"],
+      "admitsReverseCharge": false
+    }
+  ],
+  "notations": [
+    {
+      "treatment": "reverse_charge",
+      "unionId": "eu-vat",
+      "text": "Reverse charge: VAT to be accounted for by the recipient under Article 196, Directive 2006/112/EC"
+    },
+    {
+      "treatment": "reverse_charge",
+      "territoryId": "GB",
+      "text": "Reverse charge: customer to account for VAT to HMRC"
+    },
+    {
+      "treatment": "out_of_scope",
+      "text": "Outside the scope of VAT"
+    },
+    {
+      "treatment": "zero_rated",
+      "text": "Zero-rated supply"
+    },
+    {
+      "treatment": "exempt",
+      "text": "Exempt supply; no input tax recovery"
+    },
+    {
+      "treatment": "not_registered",
+      "text": "No tax charged: the supplier holds no registration in this jurisdiction"
+    }
+  ],
+  "thresholds": [
+    {
+      "jurisdictionId": "US-WA",
+      "currency": "USD",
+      "amountMinor": "10000000",
+      "periodMonths": 12,
+      "basis": "RCW 82.08.052 economic nexus"
+    },
+    {
+      "jurisdictionId": "US-CA",
+      "currency": "USD",
+      "amountMinor": "50000000",
+      "periodMonths": 12,
+      "basis": "RTC 6203 economic nexus"
+    },
+    {
+      "jurisdictionId": "DE",
+      "currency": "EUR",
+      "amountMinor": "1000000",
+      "periodMonths": 12,
+      "basis": "EU-wide distance-selling threshold"
+    }
+  ]
+}

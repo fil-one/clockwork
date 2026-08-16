@@ -2,7 +2,6 @@ import {
   OrderAcceptance,
   type AcceptableQuote,
   type GoverningAgreement,
-  type PreparedOrderForm,
 } from "@/src/features/customer-partner/commercial/order-acceptance";
 import {
   firstSearchParam,
@@ -16,6 +15,8 @@ import {
 } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+
+import { lookupPreparedOrderForm } from "./actions";
 
 type Data = Readonly<Record<string, unknown>>;
 
@@ -37,14 +38,6 @@ const AGREEMENT_PROBE_LIMIT = 25;
 function text(data: Data, key: string): string | undefined {
   const value = data[key];
   return typeof value === "string" && value.trim() ? value : undefined;
-}
-
-/** Server-projected records carry the raw aggregate under `authoritative`. */
-function authoritative(data: Data): Data {
-  const value = data.authoritative;
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Data)
-    : {};
 }
 
 function acceptableQuote(record: ProjectionRecord): AcceptableQuote {
@@ -98,41 +91,36 @@ async function loadGoverningAgreement(): Promise<
 }
 
 /**
- * Acceptance binds the rendered order form. A first pass asks the server to
- * render it; the document identifier only exists on the order projection once
- * that request has been fulfilled.
+ * Why this page reads no orders channel any more.
  *
- * The order the document belongs to travels with it. The server binds the two
- * -- `assertCommercialArtifactBinding` matches on `(document_id, subject_type,
- * subject_id)` -- and a create pass naming any other order is refused, so a
- * surface that hands the client a bare document identifier is handing it
- * something it cannot safely use.
+ * Acceptance binds the rendered order form, and a first pass asks the server
+ * to render it. The page used to look for the resulting document on the orders
+ * projection. It cannot be there: `orders:prepare_artifact` writes no order
+ * row, `mutateOrder`'s create branch is the only writer of `public.orders` and
+ * of `orders.order_form_document_id`, and the orders channel projects
+ * `public.orders`. The one value that channel could ever match on -- an
+ * `orderFormDocumentId` beside this page's `quoteId` -- therefore belongs to an
+ * order that has *already* been created, bound to a different order identifier
+ * and to entries this reader never typed. Handing that to the create pass is
+ * `COMMERCIAL_ARTIFACT_BINDING_INVALID`; waiting for anything else here is
+ * waiting for ever.
+ *
+ * The binding between the two passes lives on the artifact request, which
+ * `lookupPreparedOrderForm` reads under the reader's own authorization. The
+ * identifier it is asked about is minted client-side for a command that has
+ * created nothing yet, so no server render can hold it and the question has to
+ * be asked rather than answered in advance.
  */
-function preparedOrderForm(
-  records: readonly ProjectionRecord[],
-  quoteId: string,
-): PreparedOrderForm | null {
-  for (const record of records) {
-    const state = authoritative(record.data);
-    if (text(state, "quoteId") !== quoteId) continue;
-    const documentId = text(state, "orderFormDocumentId");
-    if (documentId)
-      return { documentId, orderId: text(state, "id") ?? record.aggregateId };
-  }
-  return null;
-}
-
 async function OrderAcceptanceWorkspace({
   params,
 }: {
   params: RawSearchParams;
 }) {
   const requested = firstSearchParam(params, "quote");
-  const [identity, quotes, agreements, orders] = await Promise.all([
+  const [identity, quotes, agreements] = await Promise.all([
     getRouteIdentity("customer"),
     loadPortalRecords("customer", "quotes"),
     loadGoverningAgreement(),
-    loadPortalRecords("customer", "orders"),
   ]);
   const selected =
     (requested
@@ -146,11 +134,11 @@ async function OrderAcceptanceWorkspace({
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}
       agreement={governingAgreement(agreements.records)}
-      orderForm={quote ? preparedOrderForm(orders.records, quote.id) : null}
+      lookupOrderForm={lookupPreparedOrderForm}
       // A truncated read is a prefix, not the set: the quote this page
       // selected and the agreement it bound may both be wrong, and the reader
       // is the one committing money on them.
-      partialRead={quotes.truncated || agreements.truncated || orders.truncated}
+      partialRead={quotes.truncated || agreements.truncated}
       quote={quote}
       signerUserId={identity.userId}
     />

@@ -9,7 +9,10 @@ export * from "./stripe/adjustments";
 export * from "./stripe/payment-sessions";
 export * from "./stripe/types";
 export * from "./stripe/webhooks";
+export * from "./tax/http-determination-adapter";
 export * from "./tax/http-tax-adapter";
+export * from "./tax/rule-book-adapter";
+export * from "./tax/seed-rule-book";
 
 export const coreIntegrationRegistry = [
   "stripe-finance-v1",

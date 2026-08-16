@@ -523,6 +523,52 @@ function staffServiceCommand(command: LifecycleCommandName): boolean {
   ].includes(command);
 }
 
+/**
+ * The commands a non-staff caller may not issue at all, as opposed to the ones
+ * that merely run on the service pool when staff issue them.
+ *
+ * `staffServiceCommand` is a POOL decision: it says a staff caller bypasses row
+ * policy, and it says nothing about a tenant, who falls through to the
+ * authorized pool and is judged there. For these three that fall-through is not
+ * a tenant flow, it is an unreachable one, and leaving it implicit is what this
+ * classification exists to stop:
+ *
+ *   * `start_migration` reaches the legacy source system before any row policy
+ *     can intervene.
+ *   * `open_exception` and `decide_exception` are internal queue work.
+ *     `exception_cases_scope` has carried `with check (app_is_internal())`
+ *     since the foundation migration, so the tenant write has never once
+ *     succeeded -- it raised `42501` from the database after the command had
+ *     already read state and reasoned about it. Every spec'd tenant-triggered
+ *     entry is machine-opened by the `open_poc_qualification` workflow effect,
+ *     which inserts through `workflows/core.ts` and never issues this command.
+ *
+ * Each name here is asserted twice: once below, before a transaction of either
+ * kind is opened, and once inside the method itself, so the guarantee survives
+ * a caller that reaches the method by another route.
+ */
+function internalStaffOnlyCommand(command: LifecycleCommandName): boolean {
+  return (
+    command === "start_migration" ||
+    command === "open_exception" ||
+    command === "decide_exception"
+  );
+}
+
+/** The refusal `internalStaffOnlyCommand` raises, named per command. */
+function assertInternalStaffCommand(
+  command: LifecycleCommandName,
+  authorization: { isInternalStaff: boolean },
+): void {
+  if (!internalStaffOnlyCommand(command) || authorization.isInternalStaff)
+    return;
+  throw new Error(
+    command === "start_migration"
+      ? "MIGRATION_INTERNAL_STAFF_REQUIRED"
+      : "EXCEPTION_INTERNAL_STAFF_REQUIRED",
+  );
+}
+
 const OffboardingPlanSchema: z.ZodType<OffboardingPlan> = z.object({
   terminationId: z.string(),
   accountId: z.string(),
@@ -748,17 +794,15 @@ export class DatabaseLifecycleCommandRepository {
       };
     if (!readCommand(input.command) && !input.context.idempotencyKey)
       throw new Error("LIFECYCLE_IDEMPOTENCY_KEY_REQUIRED");
-    // Migration start reaches out to the legacy source system before any row
-    // policy can intervene, so deny a non-staff caller before a transaction is
-    // opened rather than letting the staff test below merely pick a different
-    // one. Scoped to this command on purpose: other staffServiceCommand entries
-    // (open_exception, decide_exception) are deliberately account-scoped tenant
-    // flows and must keep falling through.
-    if (
-      input.command === "start_migration" &&
-      !requireAuthorization(input.context).isInternalStaff
-    )
-      throw new Error("MIGRATION_INTERNAL_STAFF_REQUIRED");
+    // Deny a non-staff caller of an internal-staff-only command before a
+    // transaction of either kind is opened, rather than letting the staff test
+    // below merely pick a different one and leaving the refusal to a row
+    // policy that fires after the command has already done its reading.
+    if (internalStaffOnlyCommand(input.command))
+      assertInternalStaffCommand(
+        input.command,
+        requireAuthorization(input.context),
+      );
     if (providerCommand(input.command)) {
       if (input.context.actor.kind !== "provider")
         throw new Error("PROVIDER_ACTOR_REQUIRED");
@@ -4404,6 +4448,12 @@ export class DatabaseLifecycleCommandRepository {
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
   ) {
+    // Asserted again here, unconditionally: the route and the command router
+    // above both deny a non-staff caller, and this is the layer that holds if a
+    // caller reaches the method by any other path. Without it the refusal is
+    // `exception_cases_scope` raising 42501 on the insert, after the account
+    // resolution and evidence read below have already run.
+    assertInternalStaffCommand("open_exception", requireAuthorization(context));
     const payload = openExceptionPayloadSchema.parse(raw);
     const authoritativeAccountId =
       payload.accountId ??
@@ -4515,6 +4565,14 @@ export class DatabaseLifecycleCommandRepository {
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
   ) {
+    // The same second layer as `openException`, and the reason it is not
+    // redundant with `EXCEPTION_DECIDER_NOT_AUTHORIZED` below: that check is
+    // about the roster, this one is about the lane. A tenant is refused for
+    // being a tenant, before the case is read.
+    assertInternalStaffCommand(
+      "decide_exception",
+      requireAuthorization(context),
+    );
     const payload = decideExceptionPayloadSchema.parse(raw);
     const row = await transaction.query.exceptionCases.findFirst({
       where: eq(exceptionCases.id, payload.caseId),

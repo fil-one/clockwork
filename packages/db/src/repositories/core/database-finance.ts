@@ -123,7 +123,11 @@ import {
   persistCommercialArtifactRequest,
   quoteArtifactDefinition,
 } from "./artifact-definitions";
-import { assertCommercialArtifactBinding } from "./commercial-artifacts";
+import {
+  assertCommercialArtifactBinding,
+  loadCommercialArtifactBindings,
+  type CommercialArtifactBindingEvidence,
+} from "./commercial-artifacts";
 import {
   applyCommitmentDecision,
   ingestUsageEvents,
@@ -3336,12 +3340,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       quoteCommercialContext,
       orderAcceptanceContext,
       commissionContext,
+      artifactBindings,
     ] = await Promise.all([
       this.loadConfidentialPriceBook(input),
       this.loadDealRegistrationContext(input),
       this.loadQuoteCommercialContext(input),
       this.loadOrderAcceptanceContext(input),
       this.loadCommissionContext(input),
+      this.loadArtifactBindingEvidence(input),
     ]);
     // Sequenced after the acceptance context rather than beside it: which
     // account is invoiced — and therefore whose jurisdiction the determination
@@ -3362,6 +3368,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         orderAcceptanceContext,
         commissionContext,
         taxDetermination,
+        artifactBindings,
       );
     // The commitment ledger, its periods, and its corrections are deliberately
     // not writable by the tenant runtime role. Metering runs on the service
@@ -3428,6 +3435,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
     taxDetermination?: TaxDetermination,
+    artifactBindings?: CommercialArtifactBindingEvidence,
   ): Promise<{ result: CoreMutationResult; replayed: boolean }> {
     const key = z.string().min(16).max(255).parse(input.idempotencyKey);
     const ownerUserId = input.authorization.userId;
@@ -3484,6 +3492,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       orderAcceptanceContext,
       commissionContext,
       taxDetermination,
+      artifactBindings,
     );
     const [completed] = await transaction
       .update(lifecycleIdempotencyRecords)
@@ -4234,6 +4243,69 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     );
   }
 
+  /**
+   * THE ARTIFACT A COMMAND BINDS IS EVIDENCE, NOT A PERMISSION.
+   *
+   * `assertCommercialArtifactBinding` proves the document id a command names is
+   * the artifact that this subject, this audience and this source definition
+   * were rendered into. It read that evidence on the TENANT pool, so it also
+   * asked -- silently, and for no stated reason -- whether the CALLER may see
+   * the document row. `documents_scope` (000001_foundation.sql:1173) is
+   * `app_has_account(account_id)`, and a resale or distributor quote's
+   * end-client artifact belongs to the END CLIENT, so the partner who is
+   * merchant of record on that quote, who authored the artifact request and is
+   * the only party `core_quote_is_visible` admits to the quote at all, saw
+   * nothing and got COMMERCIAL_ARTIFACT_BINDING_INVALID on valid evidence.
+   * Measured on this database, as the distributor partner, before this method
+   * existed: `quotes:issue` refused; the quote stayed `draft` at row version 1
+   * and no `core_quote_snapshots` row was written. 001401 unblocked
+   * `quotes:prepare_artifact` for the same caller one step earlier; this is the
+   * step after it, and it is why that migration's own test says issuance is
+   * "still blocked further down".
+   *
+   * The evidence is therefore read here, on the internal pool, exactly as the
+   * acceptance context, the confidential price book and the renewal provenance
+   * already are, and the CLAIM it is judged against is still derived inside the
+   * transaction from the subject being written. Nothing about the refused set
+   * changes for a wrong document: the claim pins subject, audience, document
+   * kind and the source hash of the rendered definition, so an artifact from
+   * another quote, another audience or another definition fails exactly as
+   * before. What stops happening is failing on a row the caller cannot see.
+   */
+  private async loadArtifactBindingEvidence(
+    input: CoreMutation,
+  ): Promise<CommercialArtifactBindingEvidence | undefined> {
+    // Each command keeps its document id in its own place, and the amendment's
+    // is nested. Read as opaque lookup keys, deliberately not re-parsed through
+    // the command schema: a malformed or absent id gathers no evidence, and
+    // `assertCommercialArtifactBinding` then reads the transaction exactly as
+    // it did before, so a shape missed here cannot become a refusal.
+    const claimed =
+      input.resource === "quotes" && input.action === "issue"
+        ? [input.payload.renderedDocumentId, input.payload.partnerDocumentId]
+        : input.resource === "orders" && input.action === "create"
+          ? [input.payload.orderFormDocumentId]
+          : input.resource === "amendments" && input.action === "create"
+            ? [
+                z
+                  .object({ documentId: z.unknown() })
+                  .safeParse(input.payload.amendment).data?.documentId,
+              ]
+            : [];
+    if (claimed.length === 0) return undefined;
+    const documentIds = claimed.flatMap((value) =>
+      typeof value === "string" && z.uuid().safeParse(value).success
+        ? [value]
+        : [],
+    );
+    return withInternalTransaction(
+      this.options.pricingDatabase,
+      input.requestId,
+      async (transaction) =>
+        loadCommercialArtifactBindings(transaction, documentIds),
+    );
+  }
+
   private async mutateInTransaction(
     transaction: RuntimeTransaction,
     input: CoreMutation,
@@ -4243,6 +4315,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     orderAcceptanceContext?: OrderAcceptanceContext,
     commissionContext?: CommissionSourceContext,
     taxDetermination?: TaxDetermination,
+    artifactBindings?: CommercialArtifactBindingEvidence,
   ): Promise<CoreMutationResult> {
     const implemented: readonly string[] = databaseCoreCommands[input.resource];
     if (!implemented.includes(input.action)) {
@@ -4271,6 +4344,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           input,
           confidentialPriceBook,
           quoteCommercialContext,
+          artifactBindings,
         );
       case "orders":
         return this.mutateOrder(
@@ -4278,9 +4352,10 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           input,
           orderAcceptanceContext,
           taxDetermination,
+          artifactBindings,
         );
       case "amendments":
-        return this.mutateAmendment(transaction, input);
+        return this.mutateAmendment(transaction, input, artifactBindings);
       case "commitments":
         return this.mutateCommitment(transaction, input);
       case "invoices":
@@ -5733,6 +5808,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     confidentialPriceBook?: PriceBook,
     commercialContext?: QuoteCommercialContext,
+    artifactBindings?: CommercialArtifactBindingEvidence,
   ) {
     if (!confidentialPriceBook)
       throw new CoreServiceError(
@@ -5944,16 +6020,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         audience: "end_client",
         issuedAt,
       });
-      await assertCommercialArtifactBinding(transaction, {
-        documentId: renderedDocumentId,
-        subjectType: "quote",
-        subjectId: snapshot.id,
-        commercialAccountId: snapshot.accountId,
-        audienceAccountId: endClientArtifact.audienceAccountId,
-        audience: "end_client",
-        documentKind: endClientArtifact.documentKind,
-        sourceHash: endClientArtifact.sourceHash,
-      });
+      await assertCommercialArtifactBinding(
+        transaction,
+        {
+          documentId: renderedDocumentId,
+          subjectType: "quote",
+          subjectId: snapshot.id,
+          commercialAccountId: snapshot.accountId,
+          audienceAccountId: endClientArtifact.audienceAccountId,
+          audience: "end_client",
+          documentKind: endClientArtifact.documentKind,
+          sourceHash: endClientArtifact.sourceHash,
+        },
+        artifactBindings,
+      );
       const partnerDocumentId = optionalString(
         input.payload.partnerDocumentId,
         "partnerDocumentId",
@@ -5965,16 +6045,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           audience: "partner",
           issuedAt,
         });
-        await assertCommercialArtifactBinding(transaction, {
-          documentId: parsedPartnerDocumentId,
-          subjectType: "quote",
-          subjectId: snapshot.id,
-          commercialAccountId: snapshot.accountId,
-          audienceAccountId: partnerArtifact.audienceAccountId,
-          audience: "partner",
-          documentKind: partnerArtifact.documentKind,
-          sourceHash: partnerArtifact.sourceHash,
-        });
+        await assertCommercialArtifactBinding(
+          transaction,
+          {
+            documentId: parsedPartnerDocumentId,
+            subjectType: "quote",
+            subjectId: snapshot.id,
+            commercialAccountId: snapshot.accountId,
+            audienceAccountId: partnerArtifact.audienceAccountId,
+            audience: "partner",
+            documentKind: partnerArtifact.documentKind,
+            sourceHash: partnerArtifact.sourceHash,
+          },
+          artifactBindings,
+        );
         quoteIssuance = {
           issuedAt,
           renderedDocumentId,
@@ -6050,6 +6134,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     acceptanceContext?: OrderAcceptanceContext,
     taxDetermination?: TaxDetermination,
+    artifactBindings?: CommercialArtifactBindingEvidence,
   ) {
     if (input.action === "create" || input.action === "prepare_artifact") {
       if (!acceptanceContext)
@@ -6196,16 +6281,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           prepared,
         );
       }
-      await assertCommercialArtifactBinding(transaction, {
-        documentId: accepted.orderFormDocumentId,
-        subjectType: "order",
-        subjectId: accepted.id,
-        commercialAccountId: accepted.accountId,
-        audienceAccountId: artifact.audienceAccountId,
-        audience: artifactAudience,
-        documentKind: "order_form",
-        sourceHash: artifact.sourceHash,
-      });
+      await assertCommercialArtifactBinding(
+        transaction,
+        {
+          documentId: accepted.orderFormDocumentId,
+          subjectType: "order",
+          subjectId: accepted.id,
+          commercialAccountId: accepted.accountId,
+          audienceAccountId: artifact.audienceAccountId,
+          audience: artifactAudience,
+          documentKind: "order_form",
+          sourceHash: artifact.sourceHash,
+        },
+        artifactBindings,
+      );
       const [acceptedQuote] = await transaction
         .update(quotes)
         .set({ status: "accepted", updatedAt: this.now() })
@@ -6342,6 +6431,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
   private async mutateAmendment(
     transaction: RuntimeTransaction,
     input: CoreMutation,
+    artifactBindings?: CommercialArtifactBindingEvidence,
   ) {
     if (input.action !== "create" && input.action !== "prepare_artifact")
       throw new CoreServiceError(
@@ -6466,16 +6556,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         prepared,
       );
     }
-    await assertCommercialArtifactBinding(transaction, {
-      documentId: amendment.documentId,
-      subjectType: "amendment",
-      subjectId: amendment.id,
-      commercialAccountId: persistedOrder.accountId,
-      audienceAccountId: artifact.audienceAccountId,
-      audience: artifactAudience,
-      documentKind: "amendment",
-      sourceHash: artifact.sourceHash,
-    });
+    await assertCommercialArtifactBinding(
+      transaction,
+      {
+        documentId: amendment.documentId,
+        subjectType: "amendment",
+        subjectId: amendment.id,
+        commercialAccountId: persistedOrder.accountId,
+        audienceAccountId: artifact.audienceAccountId,
+        audience: artifactAudience,
+        documentKind: "amendment",
+        sourceHash: artifact.sourceHash,
+      },
+      artifactBindings,
+    );
     const [row] = await transaction
       .insert(amendments)
       .values({

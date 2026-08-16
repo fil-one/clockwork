@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -220,19 +220,58 @@ function storedKind(kind: CommercialArtifactRequest["documentKind"]): string {
   return kind;
 }
 
-export async function assertCommercialArtifactBinding(
+export interface CommercialArtifactBindingClaim {
+  documentId: string;
+  subjectType: CommercialArtifactRequest["subjectType"];
+  subjectId: string;
+  commercialAccountId: string;
+  audienceAccountId: string;
+  audience: CommercialArtifactRequest["audience"];
+  documentKind: CommercialArtifactRequest["documentKind"];
+  sourceHash: string;
+}
+
+interface CommercialArtifactBindingRow {
+  readonly request: typeof commercialArtifactRequests.$inferSelect;
+  readonly document: typeof documents.$inferSelect;
+}
+
+/**
+ * The persisted request/document pairs a binding assertion is decided on,
+ * gathered for a set of document ids and keyed by document id.
+ *
+ * THIS EXISTS BECAUSE THE ASSERTION IS AN INTEGRITY CHECK, NOT AN ACCESS
+ * CHECK. `assertCommercialArtifactBinding` proves that the document id a
+ * command names really is the artifact this subject, audience and source hash
+ * were rendered into. Read on the TENANT pool it also silently asked whether
+ * the CALLER may see the document row, and `documents_scope`
+ * (000001_foundation.sql:1173) is `app_has_account(account_id)` -- so on a
+ * resale or distributor quote, whose end-client artifact belongs to the END
+ * CLIENT, the partner who is merchant of record found nothing and the command
+ * died COMMERCIAL_ARTIFACT_BINDING_INVALID on evidence that is perfectly
+ * valid. Measured before this existed: `quotes:issue` on a distributor quote,
+ * driven as the partner that authored it, refused every time.
+ *
+ * Passing the evidence in from the internal pool cannot admit a binding this
+ * function previously rejected on its merits: every field of the claim below
+ * is derived inside the transaction from the subject being issued, so a
+ * document belonging to any other subject, audience or definition still fails.
+ * It only stops the check from failing on invisibility.
+ */
+export interface CommercialArtifactBindingEvidence {
+  readonly bindings: ReadonlyMap<
+    string,
+    readonly CommercialArtifactBindingRow[]
+  >;
+}
+
+export async function loadCommercialArtifactBindings(
   transaction: RuntimeTransaction,
-  input: {
-    documentId: string;
-    subjectType: CommercialArtifactRequest["subjectType"];
-    subjectId: string;
-    commercialAccountId: string;
-    audienceAccountId: string;
-    audience: CommercialArtifactRequest["audience"];
-    documentKind: CommercialArtifactRequest["documentKind"];
-    sourceHash: string;
-  },
-): Promise<void> {
+  documentIds: readonly string[],
+): Promise<CommercialArtifactBindingEvidence> {
+  const wanted = [...new Set(documentIds)];
+  const bindings = new Map<string, CommercialArtifactBindingRow[]>();
+  if (wanted.length === 0) return { bindings };
   const rows = await transaction
     .select({ request: commercialArtifactRequests, document: documents })
     .from(commercialArtifactRequests)
@@ -240,39 +279,67 @@ export async function assertCommercialArtifactBinding(
       documents,
       eq(documents.id, commercialArtifactRequests.documentId),
     )
-    .where(
-      and(
-        eq(commercialArtifactRequests.documentId, input.documentId),
-        eq(commercialArtifactRequests.subjectType, input.subjectType),
-        eq(commercialArtifactRequests.subjectId, input.subjectId),
-        eq(
-          commercialArtifactRequests.commercialAccountId,
-          input.commercialAccountId,
-        ),
-        eq(
-          commercialArtifactRequests.audienceAccountId,
-          input.audienceAccountId,
-        ),
-        eq(commercialArtifactRequests.audience, input.audience),
-        eq(commercialArtifactRequests.documentKind, input.documentKind),
-        eq(commercialArtifactRequests.sourceHash, input.sourceHash),
-        eq(commercialArtifactRequests.status, "stored"),
-      ),
-    )
-    .limit(1);
-  const binding = rows[0];
-  if (
-    !binding ||
-    binding.document.accountId !== input.audienceAccountId ||
-    binding.document.kind !== storedKind(input.documentKind) ||
-    binding.document.contentHash !== binding.request.contentHash ||
-    binding.document.storageVersionId !== binding.request.storageVersionId ||
-    binding.document.mimeType !== "application/pdf" ||
-    binding.document.byteLength < 1n ||
-    binding.document.objectLockMode !== "COMPLIANCE" ||
-    binding.document.retainUntil.toISOString() !==
+    .where(inArray(commercialArtifactRequests.documentId, wanted));
+  for (const row of rows) {
+    const key = row.document.id;
+    const existing = bindings.get(key);
+    if (existing) existing.push(row);
+    else bindings.set(key, [row]);
+  }
+  return { bindings };
+}
+
+function bindingSatisfiesClaim(
+  binding: CommercialArtifactBindingRow,
+  claim: CommercialArtifactBindingClaim,
+): boolean {
+  return (
+    binding.request.documentId === claim.documentId &&
+    binding.request.subjectType === claim.subjectType &&
+    binding.request.subjectId === claim.subjectId &&
+    binding.request.commercialAccountId === claim.commercialAccountId &&
+    binding.request.audienceAccountId === claim.audienceAccountId &&
+    binding.request.audience === claim.audience &&
+    binding.request.documentKind === claim.documentKind &&
+    binding.request.sourceHash === claim.sourceHash &&
+    binding.request.status === "stored" &&
+    binding.document.accountId === claim.audienceAccountId &&
+    binding.document.kind === storedKind(claim.documentKind) &&
+    binding.document.contentHash === binding.request.contentHash &&
+    binding.document.storageVersionId === binding.request.storageVersionId &&
+    binding.document.mimeType === "application/pdf" &&
+    binding.document.byteLength >= 1n &&
+    binding.document.objectLockMode === "COMPLIANCE" &&
+    binding.document.retainUntil.toISOString() ===
       binding.request.retainUntil.toISOString()
-  )
+  );
+}
+
+/**
+ * `evidence` is consulted only when it actually holds the claimed document,
+ * and the transaction is read otherwise.
+ *
+ * That is not defensive noise: the pre-loader has to know where each command
+ * keeps its document id, and the first version of it looked for the
+ * amendment's under `payload.documentId` when it lives under
+ * `payload.amendment.documentId`. With an unconditional hand-off that mistake
+ * refused three amendment commands that had valid artifacts -- exactly the
+ * failure this whole change exists to remove, reintroduced by the fix for it.
+ * Falling back means a key the loader does not know about costs the old
+ * behaviour and never a new refusal.
+ */
+export async function assertCommercialArtifactBinding(
+  transaction: RuntimeTransaction,
+  input: CommercialArtifactBindingClaim,
+  evidence?: CommercialArtifactBindingEvidence,
+): Promise<void> {
+  const candidates =
+    evidence?.bindings.get(input.documentId) ??
+    (
+      await loadCommercialArtifactBindings(transaction, [input.documentId])
+    ).bindings.get(input.documentId) ??
+    [];
+  if (!candidates.some((binding) => bindingSatisfiesClaim(binding, input)))
     throw new Error("COMMERCIAL_ARTIFACT_BINDING_INVALID");
 }
 
