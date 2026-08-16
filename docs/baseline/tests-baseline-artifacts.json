@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T20:58:29Z",
+  "capturedAt": "2026-08-16T21:02:00Z",
   "testFiles": [
     "apps/web/app/(experience)/(customer)/account/notifications/notification-preference-model.test.ts",
     "apps/web/app/(experience)/(customer)/account/notifications/notification-preferences.test.tsx",

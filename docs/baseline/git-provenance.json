@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T20:58:29Z",
+  "capturedAt": "2026-08-16T21:02:00Z",
   "captureRef": "main",
-  "captureCommit": "78b8679f484a6f02c5de24429024364aded34936",
-  "captureTree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
-  "captureWorkingTreePathCount": 93,
+  "captureCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+  "captureTree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+  "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
+  "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -60,18 +60,15 @@
       "ref": "ws9/tax-wiring-and-close",
       "fullRef": "refs/heads/ws9/tax-wiring-and-close",
       "refType": "branch",
-      "object": "78b8679f484a6f02c5de24429024364aded34936",
+      "object": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
       "objectType": "commit",
-      "peeledCommit": "78b8679f484a6f02c5de24429024364aded34936",
-      "commit": "78b8679f484a6f02c5de24429024364aded34936",
-      "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-      "treeEntryCount": 1253,
-      "treeListingSha256": "da695e53e82e96a2630fede4da0bdff05fff528dbc692cbb136d89c97a1763f3",
-      "parents": [
-        "2e45cad71d057b887f11bfd302b9ab82e99b148f",
-        "6cf5f260650ead68ee1b273a4c1274a4b96ecaf4"
-      ],
-      "subject": "Merge pull request #16 from fil-one/ws8/final-push",
+      "peeledCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+      "tree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+      "treeEntryCount": 1283,
+      "treeListingSha256": "046176ce7a4180ec35fe0d43e50ca9c0cb383dd397b644e8ee9cb94b5053c171",
+      "parents": ["78b8679f484a6f02c5de24429024364aded34936"],
+      "subject": "close the backlog, and the defects that closing it uncovered",
       "mergeBaseWithMain": "78b8679f484a6f02c5de24429024364aded34936"
     },
     {
@@ -337,108 +334,14 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Desktop/filecoindev/clockwork",
-      "head": "78b8679f484a6f02c5de24429024364aded34936",
+      "head": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
       "branch": "ws9/tax-wiring-and-close",
       "detached": false,
       "locked": false,
       "prunable": false,
       "status": {
-        "staged": [
-          ".github/workflows/ci.yml",
-          "LICENSE",
-          "apps/web/app/(experience)/(customer)/account/procurement/page.tsx",
-          "apps/web/app/(experience)/(customer)/account/users/page.tsx",
-          "apps/web/app/(experience)/(customer)/agreements/page.tsx",
-          "apps/web/app/(experience)/(customer)/amendments/page.tsx",
-          "apps/web/app/(experience)/(customer)/billing/page.tsx",
-          "apps/web/app/(experience)/(customer)/marketplace/page.tsx",
-          "apps/web/app/(experience)/(customer)/orders/page.tsx",
-          "apps/web/app/(experience)/(customer)/pocs/page.tsx",
-          "apps/web/app/(experience)/(customer)/quotes/page.tsx",
-          "apps/web/app/(experience)/(customer)/services/page.tsx",
-          "apps/web/app/(experience)/(customer)/support/page.tsx",
-          "apps/web/app/api/[[...route]]/hono-app.ts",
-          "apps/web/next.config.ts",
-          "apps/web/src/features/customer-partner/commercial/collection-page.sort.test.tsx",
-          "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
-          "apps/web/src/features/customer-partner/commercial/order-acceptance.tsx",
-          "apps/web/src/features/customer-partner/commercial/record-detail.forward-step.test.tsx",
-          "apps/web/src/features/customer-partner/commercial/record-detail.not-found.test.tsx",
-          "apps/web/src/features/customer-partner/commercial/record-detail.test.tsx",
-          "apps/web/src/features/customer-partner/commercial/record-detail.tsx",
-          "apps/web/src/features/customer-partner/copy.ts",
-          "apps/web/src/features/customer-partner/customer/customer-collection.freshness.test.tsx",
-          "apps/web/src/features/customer-partner/customer/customer-collection.sort.test.tsx",
-          "apps/web/src/features/customer-partner/partner/partner-collection.partial.test.tsx",
-          "apps/web/src/features/customer-partner/partner/partner-collection.sort.test.tsx",
-          "apps/web/src/features/customer-partner/projection-freshness.partial.test.tsx",
-          "apps/web/src/features/customer-partner/projection-freshness.test.tsx",
-          "apps/web/src/features/customer-partner/projection-freshness.tsx",
-          "apps/web/src/features/customer-partner/projection-freshness.wiring.test.ts",
-          "apps/web/src/features/experience-server/controller.failure-log.test.ts",
-          "apps/web/src/features/experience-server/controller.ts",
-          "apps/web/src/features/experience-server/delivery.customer-visible.test.tsx",
-          "apps/web/src/features/experience-server/delivery.test.ts",
-          "apps/web/src/features/experience-server/delivery.ts",
-          "apps/web/src/features/experience-server/demo-artifact-catalog.ts",
-          "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
-          "apps/web/src/features/experience-server/demo-experience-repository.ts",
-          "apps/web/src/features/experience-server/demo-portal-records.ts",
-          "apps/web/src/features/experience-server/demo-tax.ts",
-          "apps/web/src/features/experience-server/projection-source.demo-reset.test.ts",
-          "apps/web/src/features/experience-server/projection-source.ts",
-          "apps/web/src/features/internal-ops/recovery/copy.ts",
-          "apps/web/src/features/internal-ops/recovery/provisioning-recovery-dispatch.integration.test.ts",
-          "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
-          "apps/web/src/proxy-nonce-propagation.test.ts",
-          "docs/backlog.md",
-          "docs/baseline/workflows.json",
-          "docs/external-gates.md",
-          "docs/traceability/launch-requirements.json",
-          "package.json",
-          "packages/db/src/repositories/core/database-finance.integration.test.ts",
-          "packages/db/src/repositories/core/database-finance.ts",
-          "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts",
-          "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
-          "packages/db/src/repositories/core/tax-determination.ts",
-          "packages/db/src/repositories/core/tax-replay.integration.test.ts",
-          "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
-          "packages/db/src/repositories/lifecycle/command-repository.ts",
-          "packages/db/src/repositories/lifecycle/provisioning-callback.integration.test.ts",
-          "packages/db/src/repositories/lifecycle/provisioning-recovery.integration.test.ts",
-          "packages/db/src/repositories/system/dead-letter-dispatch.ts",
-          "packages/db/src/repositories/system/dead-letter.integration.test.ts",
-          "packages/db/src/repositories/system/dead-letter.ts",
-          "packages/db/src/repositories/workflows/core-dispatch.ts",
-          "packages/db/src/schema/core/tax.integration.test.ts",
-          "packages/db/src/schema/core/tax.ts",
-          "packages/documents/src/delivery.ts",
-          "packages/documents/src/render-failure.test.ts",
-          "packages/documents/src/render.tsx",
-          "packages/domain/src/core/orders/index.ts",
-          "packages/domain/src/core/tax/engine.ts",
-          "packages/domain/src/core/tax/index.ts",
-          "packages/domain/src/core/tax/persisted.ts",
-          "packages/workflows/src/runtime/gate-activation.ts",
-          "packages/workflows/src/system/gate-activation-tasks.ts",
-          "packages/workflows/src/system/index.ts",
-          "patches/README.md",
-          "patches/next@16.2.12.patch",
-          "pnpm-lock.yaml",
-          "supabase/migrations/001414_commission_on_tax_exclusive_revenue.sql",
-          "supabase/migrations/001415_invoice_tax_treatment_vocabulary.sql",
-          "supabase/migrations/001416_order_selling_entity_binding.sql",
-          "supabase/migrations/001417_invoice_tax_determinations.sql",
-          "supabase/migrations/001418_commission_apportionment_and_tax_share.sql",
-          "supabase/seed.sql",
-          "supabase/tests/1392_invoice_tax.test.sql",
-          "supabase/tests/1414_commission_tax_exclusive.test.sql",
-          "supabase/tests/1415_invoice_tax_treatment_vocabulary.test.sql",
-          "supabase/tests/1416_order_selling_entity_binding.test.sql",
-          "supabase/tests/1417_invoice_tax_determinations.test.sql",
-          "supabase/tests/1418_commission_apportionment_and_tax_share.test.sql"
-        ],
-        "unstaged": ["docs/backlog.md"],
+        "staged": [],
+        "unstaged": [],
         "untracked": [],
         "ignoredRoots": [
           ".artifacts",
@@ -491,11 +394,17 @@
         "rejectedIgnoredArtifactCount": 77381,
         "ignoredArtifactListingSha256": "dbd64e8c857c44a788187e0444eef5c6a31cc084d176cc19b144a33099504848",
         "rejectedIgnoredArtifactListingSha256": "dbd64e8c857c44a788187e0444eef5c6a31cc084d176cc19b144a33099504848",
-        "porcelainSha256": "8acd5e725852de8553aa889c11f76b4ee31d3dde82ebab2aac356a372cb5f4c3"
+        "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+      "tree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+      "parents": ["78b8679f484a6f02c5de24429024364aded34936"],
+      "subject": "close the backlog, and the defects that closing it uncovered"
+    },
     {
       "commit": "78b8679f484a6f02c5de24429024364aded34936",
       "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
@@ -1400,7 +1309,7 @@
       "subject": "feat: establish Clockwork commerce foundation"
     }
   ],
-  "reachableCommitCount": 140,
+  "reachableCommitCount": 141,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1486,6 +1395,16 @@
     }
   ],
   "reflogEntries": [
+    {
+      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+      "selector": "refs/heads/ws9/tax-wiring-and-close@{2026-08-16T17:00:30-04:00}",
+      "subject": "commit: close the backlog, and the defects that closing it uncovered"
+    },
+    {
+      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+      "selector": "HEAD@{2026-08-16T17:00:30-04:00}",
+      "subject": "commit: close the backlog, and the defects that closing it uncovered"
+    },
     {
       "commit": "78b8679f484a6f02c5de24429024364aded34936",
       "selector": "refs/heads/ws9/tax-wiring-and-close@{2026-08-16T12:32:32-04:00}",
@@ -2416,6 +2335,11 @@
         },
         {
           "state": "unreachable",
+          "type": "blob",
+          "object": "750589798531a0361db2c78a911f980e4249ae58"
+        },
+        {
+          "state": "unreachable",
           "type": "tree",
           "object": "9a859805fb337d717f1f85714430bda9616beb61"
         },
@@ -2523,6 +2447,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "f18c9d4a544a15570ce06c9892d5238cb8b628e5"
+        },
+        {
+          "state": "unreachable",
+          "type": "blob",
+          "object": "f38c673e5cd98e415bb8667aa672e4564b3a2940"
         },
         {
           "state": "unreachable",

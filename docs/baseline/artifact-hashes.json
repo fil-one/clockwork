@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T20:58:29Z",
-  "captureCommit": "78b8679f484a6f02c5de24429024364aded34936",
-  "captureTree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-  "captureMode": "working-tree-consolidation: captureCommit and captureTree identify the committed base while the worktree inventory records consolidated-main-quality paths not yet represented by that commit",
-  "captureWorkingTreePathCount": 93,
+  "capturedAt": "2026-08-16T21:02:00Z",
+  "captureCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
+  "captureTree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+  "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
+  "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "da695e53e82e96a2630fede4da0bdff05fff528dbc692cbb136d89c97a1763f3",
+  "captureTreeListingSha256": "046176ce7a4180ec35fe0d43e50ca9c0cb383dd397b644e8ee9cb94b5053c171",
   "artifactCount": 912,
   "categories": {
     "contract-release": {
