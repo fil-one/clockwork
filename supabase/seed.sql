@@ -600,3 +600,422 @@ where book.id between '97200000-0000-4000-8000-000000000001'::uuid
   and '97200000-0000-4000-8000-000000000014'::uuid;
 
 reset role;
+
+-- ===========================================================================
+-- WS-9: THE SUPPLIER BINDING, AND THE ENGINE PARAMETERS THE BOOKS DID NOT CARRY
+-- ===========================================================================
+--
+-- Two gaps this section closes, both found by driving the database rather than
+-- by reading it.
+--
+-- 1. NOTHING SAID WHICH OF OUR ENTITIES SELLS. 001416 gives that answer a home
+--    (core_selling_entity_assignments) and a pin (core_order_supplier_bindings).
+--    The statements below are the fixture's answer, at all three scopes, so the
+--    resolution order is exercised and not merely declared.
+--
+-- 2. THE PUBLISHED BOOKS CARRIED NO PARAMETERS THE ENGINE CAN READ.
+--    `rule_parameters` on the books above holds a sketch — "placeOfSupply":
+--    "destination_b2b", "roundingRule": "half_up_minor_unit" — which is a note
+--    to a reader, not an input to `determineTax`. The engine needs territories,
+--    taxing authorities, unions, schemes, notations and what a rate kind means,
+--    and 001411 says exactly where those live: rule_parameters, "everything an
+--    accountant might amend that is not a rate".
+--
+--    Those books are published and published books are immutable, which is the
+--    control working as designed. So the parameters arrive the way any change
+--    to a published book arrives: A NEW VERSION, through the same two-person
+--    approval, closing its predecessor's window. The predecessors stay in the
+--    database and stay answerable for a tax point before 2026-08-01, which is
+--    what 001413's retired-book rule is for.
+set role clockwork_service;
+
+-- WHO SELLS. Three scopes, most specific first (001416).
+--
+--   default        -> Clockwork Commerce Inc (US)
+--   country GB     -> Clockwork Commerce Ltd (GB)
+--   Blue Harbor    -> Clockwork Commerce Inc (US)
+--
+-- The third is 001410's worked example made real: the Spanish reseller is
+-- contracted by our US entity, so the supply is US -> ES and is outside UK and
+-- Spanish VAT rather than a Spanish-VAT sale to our own customer. Without the
+-- account statement the country default would have picked the US entity
+-- anyway; it is stated explicitly because "the Spaniards happen to fall to the
+-- default" and "we decided the US entity contracts Blue Harbor" are different
+-- facts, and only the second survives a change of default.
+insert into core_selling_entity_assignments (
+  id, legal_entity_id, account_id, customer_country, effective_from,
+  stated_by, stated_at, reason
+) values
+('97700000-0000-4000-8000-000000000001','97000000-0000-4000-8000-000000000002',
+ null, null, '2020-01-01','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z',
+ 'Fixture: the US entity contracts everyone no other statement covers.'),
+('97700000-0000-4000-8000-000000000002','97000000-0000-4000-8000-000000000001',
+ null, 'GB', '2020-01-01','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z',
+ 'Fixture: United Kingdom counterparties contract with the UK entity.'),
+('97700000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000002',
+ '10000000-0000-4000-8000-000000000003', null, '2020-01-01',
+ '20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z',
+ 'Fixture: Blue Harbor MSP is contracted by the US entity (001410 worked example).');
+
+-- REGISTRATIONS FOR THE STATES THE FIXTURE ACTUALLY SUPPLIES INTO. Without
+-- these the seeded books for Massachusetts, Colorado, Illinois and Washington
+-- resolve, find no registration, and every demo invoice is `not_registered` at
+-- zero — a jurisdiction that is reachable in the resolver and unreachable in
+-- practice. Connecticut is still deliberately absent: it has a book, it has
+-- rates, and we hold no registration there, which is the case the vocabulary
+-- needs to be able to record.
+insert into core_tax_registrations (
+  id, legal_entity_id, jurisdiction, scheme, registration_number,
+  effective_from, effective_to, status, stated_by, stated_at, evidence_document_id
+) values
+('97100000-0000-4000-8000-000000000006','97000000-0000-4000-8000-000000000002','US-MA','sales_tax','MA-000000000',
+ '2022-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000041'),
+('97100000-0000-4000-8000-000000000007','97000000-0000-4000-8000-000000000002','US-CO','sales_tax','CO-000000000',
+ '2022-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000041'),
+('97100000-0000-4000-8000-000000000008','97000000-0000-4000-8000-000000000002','US-IL','sales_tax','IL-000000000',
+ '2022-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000041'),
+('97100000-0000-4000-8000-000000000009','97000000-0000-4000-8000-000000000002','US-WA','sales_tax','WA-000000000',
+ '2022-01-01',null,'active','20000000-0000-4000-8000-000000000001','2026-07-31T16:00:00Z','40000000-0000-4000-8000-000000000041');
+
+-- THE ENGINE PARAMETERS, AS A NEW VERSION OF EVERY BOOK.
+--
+-- What each fragment says, and why it is data and not code:
+--
+--   territory          The unit place-of-supply rules compare. Declared by the
+--                      COUNTRY book only — a state book contributes an
+--                      authority inside the United States, not a territory of
+--                      its own, and two books declaring "US" differently would
+--                      be two answers to one question.
+--   jurisdictions      The authorities that can charge, and the addresses that
+--                      reach them. US ZIP prefixes are three digits and exact:
+--                      "02" would put Rhode Island in Massachusetts.
+--   unions             Membership, which is what makes a cross-border business
+--                      service reverse charge. GB has none, which is how Brexit
+--                      is expressed here — a fact about a row, not a branch.
+--   schemes            Which register a number sits on and whether a CUSTOMER
+--                      number on it can carry a reverse charge. A sales-tax
+--                      permit cannot; a VAT number can.
+--   notations          Wording the document must print. Legal text is never a
+--                      literal in TypeScript.
+--   rateKindTreatments What `standard`, `zero` and `exempt` MEAN. Nothing infers
+--                      "exempt" from a rate of zero: same zero on the bill, a
+--                      different number in the accounts.
+with places(jurisdiction, kind, prefix_lo, prefix_hi, subdivision_scope,
+            new_rate_ppm, new_rate_kind, authority) as (values
+  ('GB','vat_country',null::integer,null::integer,'whole_jurisdiction',null::bigint,null::text,'United Kingdom'),
+  ('IE','eu_country',null,null,'whole_jurisdiction',null,null,'Ireland'),
+  ('ES','eu_country',null,null,'whole_jurisdiction',null,null,'Spain'),
+  ('DE','eu_country',null,null,'whole_jurisdiction',null,null,'Germany'),
+  ('FR','eu_country',null,null,'whole_jurisdiction',null,null,'France'),
+  ('NL','eu_country',null,null,'whole_jurisdiction',null,null,'Netherlands'),
+  -- The United States at country level: a territory, an export rule and a
+  -- registration scheme, and NO taxing authority of its own. There is no
+  -- federal sales tax, and the rate row below says so with its basis because
+  -- 001412 refuses to publish a book with no rates at all — a control that is
+  -- right for a jurisdiction that charges and that this book satisfies by
+  -- recording the position rather than by inventing a federal rate.
+  ('US','us_country',null,null,'this_level_only',0,'federal_none','United States (federal)'),
+  -- New York STATE, deliberately not covering 100-104. Those are New York
+  -- County, whose combined 8.875% has its own book, and answering a Manhattan
+  -- address with the state's 4% alone is the wrong number 001411 was written to
+  -- prevent. The county book decomposes its rate by TAX CODE while the engine
+  -- attributes by AUTHORITY, so until it is re-published per authority a
+  -- Manhattan address reaches no authority and the determination refuses. A
+  -- refusal is the correct failure; 4% is not.
+  ('US-NY','us_state',105,149,'this_level_only',null,null,'New York State'),
+  ('US-TX','us_state',750,799,'this_level_only',null,null,'Texas'),
+  ('US-PA','us_state',150,196,'this_level_only',null,null,'Pennsylvania'),
+  ('US-WA','us_state',980,994,'this_level_only',null,null,'Washington'),
+  ('US-OH','us_state',430,459,'this_level_only',null,null,'Ohio'),
+  ('US-CT','us_state',60,69,'whole_jurisdiction',null,null,'Connecticut'),
+  -- Three states the fixture's own customers are in — Boston, Denver, Chicago —
+  -- which had no book at all, so every determination for the demo dataset
+  -- resolved nothing and refused.
+  ('US-MA','us_state',10,27,'this_level_only',62500,'standard','Massachusetts'),
+  ('US-CO','us_state',800,816,'this_level_only',29000,'standard','Colorado'),
+  ('US-IL','us_state',600,629,'this_level_only',62500,'standard','Illinois')
+)
+insert into core_tax_rule_books (
+  id, jurisdiction, version, status, effective_from, effective_to,
+  rule_parameters, authority_reference, determination_source,
+  input_provenance, subdivision_scope
+)
+select
+  ('97600000-0000-4000-8000-' || lpad(row_number() over (order by place.jurisdiction)::text, 12, '0'))::uuid,
+  place.jurisdiction,
+  coalesce((select max(book.version) from core_tax_rule_books book
+            where book.jurisdiction = place.jurisdiction), 0) + 1,
+  'draft',
+  '2026-08-01',
+  null,
+  coalesce(
+    (select book.rule_parameters from core_tax_rule_books book
+     where book.jurisdiction = place.jurisdiction and book.status = 'active'),
+    '{}'::jsonb
+  ) || jsonb_build_object('engine',
+    case place.kind
+      when 'us_state' then jsonb_build_object(
+        'jurisdictions', jsonb_build_array(jsonb_build_object(
+          'id', place.jurisdiction, 'territoryId', 'US', 'level', 'state',
+          'sequence', 0, 'effectiveFrom', '2026-08-01',
+          'postalPrefixes', (
+            select jsonb_agg(lpad(prefix::text, 3, '0') order by prefix)
+            from generate_series(place.prefix_lo, place.prefix_hi) prefix
+          )
+        )),
+        'thresholds', jsonb_build_array(jsonb_build_object(
+          'jurisdictionId', place.jurisdiction, 'currency', 'USD',
+          'amountMinor', '10000000', 'periodMonths', 12,
+          'basis', 'Repository fixture: economic nexus threshold for ' || place.authority
+        )),
+        'rateKindTreatments', jsonb_build_object('standard', 'standard')
+      )
+      when 'us_country' then jsonb_build_object(
+        'territory', jsonb_build_object(
+          'id', 'US', 'country', 'US', 'sourcing', 'destination',
+          'rounding', 'line', 'effectiveFrom', '2026-08-01',
+          'exportOfServices', jsonb_build_object(
+            'treatment', 'out_of_scope', 'rateKind', 'none',
+            'legalBasis', 'Repository fixture: a service supplied to a customer outside the United States is outside the scope of state sales tax'
+          )
+        ),
+        'schemes', jsonb_build_array(jsonb_build_object(
+          'id', 'sales_tax', 'scope', 'territory', 'territories', jsonb_build_array('US'),
+          'admitsReverseCharge', false
+        )),
+        'notations', jsonb_build_array(
+          jsonb_build_object('treatment', 'not_registered', 'territoryId', 'US',
+            'text', 'No sales tax charged: the supplier holds no registration in this jurisdiction'),
+          jsonb_build_object('treatment', 'out_of_scope', 'territoryId', 'US',
+            'text', 'Outside the scope of United States state sales tax')
+        ),
+        'rateKindTreatments', jsonb_build_object(
+          'standard', 'standard', 'federal_none', 'out_of_scope'
+        )
+      )
+      else jsonb_build_object(
+        'territory', jsonb_build_object(
+          'id', place.jurisdiction, 'country', place.jurisdiction,
+          'sourcing', 'destination', 'rounding', 'line',
+          'effectiveFrom', '2026-08-01',
+          'exportOfServices', jsonb_build_object(
+            'treatment', 'out_of_scope', 'rateKind', 'none',
+            'legalBasis', 'Repository fixture: a service supplied to a business customer outside the regime is outside its scope'
+          )
+        ) || case when place.kind = 'eu_country'
+               then jsonb_build_object('unionId', 'eu-vat') else '{}'::jsonb end,
+        'jurisdictions', jsonb_build_array(jsonb_build_object(
+          'id', place.jurisdiction, 'territoryId', place.jurisdiction,
+          'level', 'country', 'sequence', 0, 'effectiveFrom', '2026-08-01'
+        )),
+        'unions', case when place.kind = 'eu_country' then jsonb_build_array(
+          jsonb_build_object('id', 'eu-vat', 'reverseCharge', jsonb_build_array(
+            jsonb_build_object('supplyType', 'service', 'available', true,
+              'legalBasis', 'Repository fixture: cross-border business services are accounted for by the customer'),
+            jsonb_build_object('supplyType', 'digital_service', 'available', true,
+              'legalBasis', 'Repository fixture: cross-border business services are accounted for by the customer'),
+            jsonb_build_object('supplyType', 'goods', 'available', false,
+              'legalBasis', 'Repository fixture: cross-border goods follow their own regime and are not reverse charged here')
+          ))
+        ) else '[]'::jsonb end,
+        'schemes', jsonb_build_array(jsonb_build_object(
+          'id', 'vat', 'scope', 'territory',
+          'territories', jsonb_build_array(place.jurisdiction),
+          'admitsReverseCharge', true
+        )) || case when place.kind = 'eu_country' then jsonb_build_array(
+          jsonb_build_object('id', 'vat_oss', 'scope', 'union', 'unionId', 'eu-vat',
+            'territories', '[]'::jsonb, 'admitsReverseCharge', true)
+        ) else '[]'::jsonb end,
+        'notations', jsonb_build_array(
+          jsonb_build_object('treatment', 'reverse_charge', 'territoryId', place.jurisdiction,
+            'text', 'Reverse charge: the customer accounts for the tax on this supply'),
+          jsonb_build_object('treatment', 'not_registered', 'territoryId', place.jurisdiction,
+            'text', 'No tax charged: the supplier holds no registration in this jurisdiction'),
+          jsonb_build_object('treatment', 'out_of_scope', 'territoryId', place.jurisdiction,
+            'text', 'Outside the scope of this jurisdiction''s tax'),
+          jsonb_build_object('treatment', 'zero_rated', 'territoryId', place.jurisdiction,
+            'text', 'Zero-rated supply')
+        ),
+        'rateKindTreatments', jsonb_build_object(
+          'standard', 'standard', 'reduced', 'standard',
+          'zero', 'zero_rated', 'exempt', 'exempt'
+        )
+      )
+    end
+  ),
+  'Repository fixture: ' || place.authority
+    || ' matrix with engine parameters, pending EXT-TAX-01 signature',
+  'local', 'repository_fixture', place.subdivision_scope
+from places place;
+
+-- Rates carry forward unchanged from the predecessor: this version adds
+-- parameters, not numbers, and a rate that moved while nobody was looking is
+-- the thing the replay test exists to catch.
+insert into core_tax_rates (
+  id, tax_rule_book_id, tax_code, rate_kind, rate_ppm, legal_basis, notation
+)
+select
+  ('97800000-0000-4000-8000-' || lpad(row_number() over (
+     order by successor.jurisdiction, rate.tax_code)::text, 12, '0'))::uuid,
+  successor.id, rate.tax_code, rate.rate_kind, rate.rate_ppm,
+  rate.legal_basis, rate.notation
+from core_tax_rule_books successor
+join core_tax_rule_books predecessor
+  on predecessor.jurisdiction = successor.jurisdiction
+ and predecessor.status = 'active'
+join core_tax_rates rate on rate.tax_rule_book_id = predecessor.id
+where successor.id between '97600000-0000-4000-8000-000000000001'::uuid
+                       and '97600000-0000-4000-8000-000000000099'::uuid;
+
+with places(jurisdiction, kind, prefix_lo, prefix_hi, subdivision_scope,
+            new_rate_ppm, new_rate_kind, authority) as (values
+  ('GB','vat_country',null::integer,null::integer,'whole_jurisdiction',null::bigint,null::text,'United Kingdom'),
+  ('IE','eu_country',null,null,'whole_jurisdiction',null,null,'Ireland'),
+  ('ES','eu_country',null,null,'whole_jurisdiction',null,null,'Spain'),
+  ('DE','eu_country',null,null,'whole_jurisdiction',null,null,'Germany'),
+  ('FR','eu_country',null,null,'whole_jurisdiction',null,null,'France'),
+  ('NL','eu_country',null,null,'whole_jurisdiction',null,null,'Netherlands'),
+  -- The United States at country level: a territory, an export rule and a
+  -- registration scheme, and NO taxing authority of its own. There is no
+  -- federal sales tax, and the rate row below says so with its basis because
+  -- 001412 refuses to publish a book with no rates at all — a control that is
+  -- right for a jurisdiction that charges and that this book satisfies by
+  -- recording the position rather than by inventing a federal rate.
+  ('US','us_country',null,null,'this_level_only',0,'federal_none','United States (federal)'),
+  -- New York STATE, deliberately not covering 100-104. Those are New York
+  -- County, whose combined 8.875% has its own book, and answering a Manhattan
+  -- address with the state's 4% alone is the wrong number 001411 was written to
+  -- prevent. The county book decomposes its rate by TAX CODE while the engine
+  -- attributes by AUTHORITY, so until it is re-published per authority a
+  -- Manhattan address reaches no authority and the determination refuses. A
+  -- refusal is the correct failure; 4% is not.
+  ('US-NY','us_state',105,149,'this_level_only',null,null,'New York State'),
+  ('US-TX','us_state',750,799,'this_level_only',null,null,'Texas'),
+  ('US-PA','us_state',150,196,'this_level_only',null,null,'Pennsylvania'),
+  ('US-WA','us_state',980,994,'this_level_only',null,null,'Washington'),
+  ('US-OH','us_state',430,459,'this_level_only',null,null,'Ohio'),
+  ('US-CT','us_state',60,69,'whole_jurisdiction',null,null,'Connecticut'),
+  -- Three states the fixture's own customers are in — Boston, Denver, Chicago —
+  -- which had no book at all, so every determination for the demo dataset
+  -- resolved nothing and refused.
+  ('US-MA','us_state',10,27,'this_level_only',62500,'standard','Massachusetts'),
+  ('US-CO','us_state',800,816,'this_level_only',29000,'standard','Colorado'),
+  ('US-IL','us_state',600,629,'this_level_only',62500,'standard','Illinois')
+)
+insert into core_tax_rates (
+  id, tax_rule_book_id, tax_code, rate_kind, rate_ppm, legal_basis, notation
+)
+select
+  ('97810000-0000-4000-8000-' || lpad(row_number() over (
+     order by book.jurisdiction)::text, 12, '0'))::uuid,
+  book.id,
+  case when place.kind = 'us_country' then 'txcd_federal' else 'txcd_demo' end,
+  place.new_rate_kind, place.new_rate_ppm,
+  case when place.kind = 'us_country'
+    then 'Repository fixture: the United States levies no federal sales tax; authority is held by the states and each publishes its own book'
+    else 'Repository fixture: ' || place.authority || ' state rate' end,
+  ''
+from places place
+join core_tax_rule_books book
+  on book.jurisdiction = place.jurisdiction
+ and book.id between '97600000-0000-4000-8000-000000000001'::uuid
+                 and '97600000-0000-4000-8000-000000000099'::uuid
+where place.new_rate_ppm is not null;
+
+-- Two different people per book, as 001412 requires of every publication.
+insert into approvals (
+  id, account_id, action, object_type, object_id, requested_by, approved_by,
+  status, requested_at, decided_at
+)
+select
+  ('97900000-0000-4000-8000-' || lpad(row_number() over (order by book.jurisdiction)::text, 12, '0'))::uuid,
+  null, 'tax_rule_book_activation', 'tax_rule_book', book.id,
+  '20000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002',
+  'approved', '2026-07-31T15:00:00Z', '2026-07-31T15:30:00Z'
+from core_tax_rule_books book
+where book.id between '97600000-0000-4000-8000-000000000001'::uuid
+                  and '97600000-0000-4000-8000-000000000099'::uuid;
+
+-- The predecessor's window closes on the day the successor's opens. Half-open,
+-- so a supply on 2026-08-01 belongs to the successor and to nothing else, and a
+-- supply before it still resolves the book that was in force.
+update core_tax_rule_books predecessor
+set effective_to = '2026-08-01'
+where predecessor.status = 'active'
+  and predecessor.effective_to is null
+  and exists (
+    select 1 from core_tax_rule_books successor
+    where successor.jurisdiction = predecessor.jurisdiction
+      and successor.id between '97600000-0000-4000-8000-000000000001'::uuid
+                           and '97600000-0000-4000-8000-000000000099'::uuid
+  );
+
+update core_tax_rule_books predecessor
+set status = 'retired'
+where predecessor.status = 'active'
+  and predecessor.effective_to = '2026-08-01'
+  and exists (
+    select 1 from core_tax_rule_books successor
+    where successor.jurisdiction = predecessor.jurisdiction
+      and successor.id between '97600000-0000-4000-8000-000000000001'::uuid
+                           and '97600000-0000-4000-8000-000000000099'::uuid
+  );
+
+update core_tax_rule_books set status = 'active'
+where id between '97600000-0000-4000-8000-000000000001'::uuid
+             and '97600000-0000-4000-8000-000000000099'::uuid;
+
+insert into core_tax_rule_book_activation_events (
+  id, tax_rule_book_id, action, previous_status, resulting_status,
+  previous_provenance, resulting_provenance, effective_at,
+  actor_user_id, reason, request_id
+)
+select
+  ('97910000-0000-4000-8000-' || lpad(row_number() over (order by book.jurisdiction, book.version)::text, 12, '0'))::uuid,
+  book.id,
+  case when book.status = 'retired' then 'retire' else 'activate' end,
+  case when book.status = 'retired' then 'active' else 'draft' end,
+  book.status, null, null,
+  case when book.status = 'retired' then '2026-08-01T00:00:00Z'::timestamptz
+       else (book.effective_from || 'T00:00:00Z')::timestamptz end,
+  '20000000-0000-4000-8000-000000000002',
+  'Engine parameters added to the fixture matrix. Rates unchanged from the predecessor; provenance stays repository_fixture, so EXT-TAX-01 remains blocked.',
+  'seed-2026-08-16'
+from core_tax_rule_books book
+where book.id between '97600000-0000-4000-8000-000000000001'::uuid
+                  and '97600000-0000-4000-8000-000000000099'::uuid
+   or (book.status = 'retired' and book.effective_to = '2026-08-01');
+
+
+-- THE BINDING FOR THE FIXTURE'S OWN ORDERS, through the same function the
+-- acceptance writer calls. A seed that inserted these rows directly would prove
+-- nothing about the writer; this one fails if the writer is wrong.
+select public.core_bind_order_selling_entity(o.id, o.immutable_at)
+from orders o
+where o.immutable_at is not null
+order by o.id;
+
+reset role;
+
+-- THE SPANISH RESELLER'S OWN VAT NUMBER, which the fixture never carried.
+--
+-- Without it the engine reads Blue Harbor as a consumer — the rule that decides
+-- a reverse charge is "a validated registration or no reverse charge", and an
+-- absent number is not a validated one — so a supply to a Spanish RESELLER is
+-- placed in Spain as a consumer digital service and comes back
+-- `not_registered`. With it the same supply is business-to-business, leaves the
+-- US regime under that territory's export rule, and is out of scope with the
+-- customer accounting for its own tax. That is 001410's worked example landing
+-- correctly, and the difference between the two answers is one row of stated
+-- evidence rather than a line of code.
+set role clockwork_service;
+insert into core_account_tax_identifiers (
+  id, account_id, jurisdiction, type, normalized_value, validation_status,
+  verification_reference, reverse_charge_eligible, validated_at
+) values (
+  '97a00000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000003',
+  'ES', 'vat', 'ESX0000000B', 'valid',
+  'fixture:vies:2026-07-31', true, '2026-07-31T16:00:00Z'
+);
+reset role;

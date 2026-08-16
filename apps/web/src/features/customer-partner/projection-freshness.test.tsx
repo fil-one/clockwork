@@ -21,7 +21,7 @@ describe("stale disclosure on a customer or partner surface", () => {
     render(
       <ProjectionFreshnessNotice
         formatting={newYork}
-        freshness={{ generatedAt, stale: true }}
+        freshness={{ generatedAt, partial: false, stale: true }}
       />,
     );
 
@@ -35,7 +35,7 @@ describe("stale disclosure on a customer or partner surface", () => {
     render(
       <ProjectionFreshnessNotice
         formatting={newYork}
-        freshness={{ generatedAt, stale: false }}
+        freshness={{ generatedAt, partial: false, stale: false }}
       />,
     );
 
@@ -50,7 +50,7 @@ describe("stale disclosure on a customer or partner surface", () => {
     render(
       <ProjectionFreshnessNotice
         formatting={london}
-        freshness={{ generatedAt, stale: false }}
+        freshness={{ generatedAt, partial: false, stale: false }}
       />,
     );
 
@@ -64,7 +64,7 @@ describe("stale disclosure on a customer or partner surface", () => {
     const { unmount } = render(
       <ProjectionFreshnessNotice
         formatting={newYork}
-        freshness={{ generatedAt, stale: false }}
+        freshness={{ generatedAt, partial: false, stale: false }}
       />,
     );
     // 13:04Z is 09:04 in New York and 14:04 in London. Before this the second
@@ -76,7 +76,7 @@ describe("stale disclosure on a customer or partner surface", () => {
     render(
       <ProjectionFreshnessNotice
         formatting={london}
-        freshness={{ generatedAt, stale: false }}
+        freshness={{ generatedAt, partial: false, stale: false }}
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("14:04");

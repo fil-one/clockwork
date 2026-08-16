@@ -27,17 +27,23 @@ export interface ProjectionFreshness {
    *
    * Distinct from `stale`, and worse. Stale means the rows may be behind their
    * source; partial means rows are *missing*, so the result count, the owner
-   * and status choices in the filter panel, and any total on the page describe
-   * a prefix rather than the collection. `loadPortalRecords` sets `stale` too
-   * on a truncated read, but "may be out of date" is not what happened and a
-   * refresh is not the answer, so the two are said separately.
+   * and status choices in the filter panel, any total on the page, and any
+   * ordering applied to it describe a prefix rather than the collection. A
+   * sorted view is the sharpest case: `filterAndSortRecords` orders the whole
+   * *read* set, so a list sorted by highest value renders confidently and
+   * correctly ordered while the record the sort was meant to surface may be in
+   * the unread tail. `loadPortalRecords` sets `stale` too on a truncated read,
+   * but "may be out of date" is not what happened and a refresh is not the
+   * answer, so the two are said separately.
    *
-   * Optional so a surface that has not been given the loader's `truncated`
-   * flag keeps rendering exactly as it does today rather than failing to
-   * compile -- but a surface that omits it is a surface that cannot disclose
-   * this, which is what the customer collection routes still are.
+   * Required, not optional, for the same reason the collections take this
+   * whole object as a required prop: it was optional while the customer
+   * collection routes were still dropping the loader's `truncated` flag, and
+   * every one of them shipped the generic stale banner over a cut-off ledger.
+   * Now that every route passes it, a surface that cannot answer the question
+   * is a surface that must not compile.
    */
-  partial?: boolean;
+  partial: boolean;
 }
 
 /**

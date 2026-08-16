@@ -165,6 +165,51 @@ function supplierRegistrationFor(
   });
 }
 
+/**
+ * Whether a registration reaches a TAXING JURISDICTION inside the territory.
+ *
+ * A VAT territory has one authority at country level, its id is the
+ * territory's, and this reduces to the territory rule above — nothing changes
+ * for GB or ES. A federal sales tax does not: authority is held by the states,
+ * a registration is held per state, and `registrationCovers` alone answers
+ * "does a US-NY permit cover the territory US" with no, which makes every US
+ * supply `not_registered` even in the state we are registered in. Answering yes
+ * instead would be worse: it would charge Connecticut tax on a New York permit.
+ *
+ * So the question is asked per authority, with the same ancestor rule
+ * `core_tax_registration_at` (001413) applies in the database — a registration
+ * at US-NY covers US-NY and everything under it, and nothing beside it. The
+ * hierarchy is read out of the identifier, so no country knows about this
+ * function and this function knows about no country.
+ */
+function registrationReaches(
+  registrationJurisdiction: string,
+  jurisdictionId: string,
+): boolean {
+  const held = registrationJurisdiction.trim().toUpperCase();
+  const asked = jurisdictionId.trim().toUpperCase();
+  return asked === held || asked.startsWith(`${held}-`);
+}
+
+function supplierRegistrationForJurisdiction(
+  ruleBook: TaxRuleBook,
+  request: TaxDeterminationRequest,
+  territory: TaxTerritoryRule,
+  jurisdictionId: string,
+  day: string,
+): TaxRegistration | undefined {
+  return request.supplier.registrations.find((registration) => {
+    const scheme = schemeFor(ruleBook, registration.scheme);
+    if (!scheme) return false;
+    if (
+      !registrationCovers(scheme, registration.jurisdiction, territory) &&
+      !registrationReaches(registration.jurisdiction, jurisdictionId)
+    )
+      return false;
+    return registrationValidity(ruleBook, registration, day).usable;
+  });
+}
+
 type TaxExemptionCertificate =
   TaxDeterminationRequest["customer"]["exemptionCertificates"][number];
 
@@ -287,33 +332,25 @@ function chargingRows(
   reviewReasons: string[],
   supplierRegistrations: Map<string, TaxRegistration | undefined>,
 ): ResolvedLine["rows"] {
-  const registration = supplierRegistrations.get(territory.id);
-  if (!registration) {
-    // One row per taxing jurisdiction that WOULD have charged, not one row for
-    // the territory. Thresholds are keyed by jurisdiction (US-WA, US-CA), so a
-    // single territory-level row cannot say which registration a run of
-    // untaxed supplies has put over the line, and it would carry one
-    // jurisdiction's statute on a label naming the whole territory.
-    const bookNotation = notationFor(ruleBook, "not_registered", territory);
-    const row = (jurisdictionId: string) => {
-      const threshold = thresholdFor(ruleBook, jurisdictionId);
-      return {
-        jurisdictionId,
-        treatment: "not_registered" as const,
-        rateKind: "none",
-        ratePpm: 0,
-        ruleBookId: ruleBook.id,
-        ruleBookVersion: ruleBook.version,
-        legalBasis: threshold?.basis ?? "supplier holds no registration here",
-        notation: notRegisteredNotation(bookNotation, threshold),
-      };
+  // One row per taxing jurisdiction that WOULD have charged, not one row for
+  // the territory. Thresholds are keyed by jurisdiction (US-WA, US-CA), so a
+  // single territory-level row cannot say which registration a run of
+  // untaxed supplies has put over the line, and it would carry one
+  // jurisdiction's statute on a label naming the whole territory.
+  const bookNotation = notationFor(ruleBook, "not_registered", territory);
+  const notRegisteredRow = (jurisdictionId: string) => {
+    const threshold = thresholdFor(ruleBook, jurisdictionId);
+    return {
+      jurisdictionId,
+      treatment: "not_registered" as const,
+      rateKind: "none",
+      ratePpm: 0,
+      ruleBookId: ruleBook.id,
+      ruleBookVersion: ruleBook.version,
+      legalBasis: threshold?.basis ?? "supplier holds no registration here",
+      notation: notRegisteredNotation(bookNotation, threshold),
     };
-    const jurisdictions = taxingJurisdictions(ruleBook, territory, place, day);
-    // A territory whose taxing authorities the book has not stated still has to
-    // count: losing the row entirely would lose the breach it evidences.
-    if (jurisdictions.length === 0) return [row(territory.id)];
-    return jurisdictions.map((jurisdiction) => row(jurisdiction.id));
-  }
+  };
 
   /**
    * An exemption is attributed per taxing jurisdiction, exactly as a charge and
@@ -351,6 +388,11 @@ function chargingRows(
 
   const jurisdictions = taxingJurisdictions(ruleBook, territory, place, day);
   if (jurisdictions.length === 0) {
+    // A territory whose taxing authorities the book has not stated still has to
+    // count when the supplier is unregistered: losing the row entirely would
+    // lose the breach it evidences.
+    if (!supplierRegistrations.get(territory.id))
+      return [notRegisteredRow(territory.id)];
     // No authority to attribute to. A territory-level certificate still answers
     // — the same deliberate fallback the `not_registered` branch makes, for the
     // same reason: the territory id is the only id the book has given us, and
@@ -369,39 +411,55 @@ function chargingRows(
       `The rule book names no taxing jurisdiction in ${territory.id} for the address supplied`,
     );
   }
-  const rows = jurisdictions.flatMap((jurisdiction: TaxJurisdictionRule) => {
-    const exemption = exemptionCertificatesFor(
-      request,
-      [territory.id, jurisdiction.id],
-      day,
-    );
-    if (exemption.expired)
-      reviewReasons.push("customer_exemption_certificate_expired");
-    if (exemption.certificate)
-      return [exemptRow(jurisdiction.id, exemption.certificate)];
-    const rate = rateFor(
-      ruleBook,
-      jurisdiction.id,
-      line.taxCode,
-      line.supplyType,
-      day,
-    );
-    if (!rate) return [];
-    const treatment = rateTreatment(ruleBook, rate);
-    return [
-      {
-        jurisdictionId: jurisdiction.id,
-        treatment,
-        rateKind: rate.rateKind,
-        ratePpm: treatment === "standard" ? rate.ratePpm : 0,
-        legalBasis: rate.legalBasis,
-        notation:
-          rate.notation ?? notationFor(ruleBook, treatment, territory) ?? "",
-        ruleBookId: rate.ruleBookId ?? ruleBook.id,
-        ruleBookVersion: rate.ruleBookVersion ?? ruleBook.version,
-      },
-    ];
-  });
+  const rows = jurisdictions.flatMap(
+    (jurisdiction: TaxJurisdictionRule): ResolvedLine["rows"] => {
+      // Asked per authority, because authority is where a registration is held.
+      // A supplier registered in one state of a federal regime and not in its
+      // neighbour charges in the first and reports `not_registered` in the
+      // second, on the same document.
+      if (
+        !supplierRegistrationForJurisdiction(
+          ruleBook,
+          request,
+          territory,
+          jurisdiction.id,
+          day,
+        )
+      )
+        return [notRegisteredRow(jurisdiction.id)];
+      const exemption = exemptionCertificatesFor(
+        request,
+        [territory.id, jurisdiction.id],
+        day,
+      );
+      if (exemption.expired)
+        reviewReasons.push("customer_exemption_certificate_expired");
+      if (exemption.certificate)
+        return [exemptRow(jurisdiction.id, exemption.certificate)];
+      const rate = rateFor(
+        ruleBook,
+        jurisdiction.id,
+        line.taxCode,
+        line.supplyType,
+        day,
+      );
+      if (!rate) return [];
+      const treatment = rateTreatment(ruleBook, rate);
+      return [
+        {
+          jurisdictionId: jurisdiction.id,
+          treatment,
+          rateKind: rate.rateKind,
+          ratePpm: treatment === "standard" ? rate.ratePpm : 0,
+          legalBasis: rate.legalBasis,
+          notation:
+            rate.notation ?? notationFor(ruleBook, treatment, territory) ?? "",
+          ruleBookId: rate.ruleBookId ?? ruleBook.id,
+          ruleBookVersion: rate.ruleBookVersion ?? ruleBook.version,
+        },
+      ];
+    },
+  );
   if (rows.length === 0)
     throw new TaxDeterminationError(
       "TAX_RATE_MISSING",

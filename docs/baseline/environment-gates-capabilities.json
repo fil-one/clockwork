@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T20:06:37Z",
+  "capturedAt": "2026-08-16T20:58:29Z",
   "qualityDisposition": {
     "target": "consolidated-main-quality",
     "declaresReleaseCandidate": false,
@@ -41,6 +41,7 @@
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_URL",
+    "CLOCKWORK_TELEMETRY_INGEST_SECRET",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",
     "DATABASE_URL",
     "DIRECT_DATABASE_URL",
@@ -60,7 +61,9 @@
     "EVIDENCE_STORAGE_INTERNAL_TOKEN",
     "EVIDENCE_STORAGE_INTERNAL_URL",
     "INTERNAL_EMAIL_DOMAINS",
-    "MARKETPLACE_WEBHOOK_SECRET",
+    "MARKETPLACE_WEBHOOK_SECRET_AWS",
+    "MARKETPLACE_WEBHOOK_SECRET_AZURE",
+    "MARKETPLACE_WEBHOOK_SECRET_GOOGLE",
     "MIGRATION_FEATURE_ENABLED",
     "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
     "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
@@ -95,8 +98,10 @@
     "SIGNATURE_PROVIDER_TOKEN",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
-    "SUPPORT_PROVIDER",
-    "SUPPORT_WEBHOOK_SECRET",
+    "SUPPORT_PROVIDERS",
+    "SUPPORT_WEBHOOK_SECRET_ZENDESK",
+    "TAX_PROVIDER_BASE_URL",
+    "TAX_PROVIDER_TOKEN",
     "TRIGGER_PROJECT_REF",
     "TRIGGER_SECRET_KEY",
     "USAGE_PROVIDER_BASE_URL",
@@ -388,24 +393,38 @@
       "source": ".env.example"
     },
     {
-      "key": "MARKETPLACE_WEBHOOK_SECRET",
-      "exampleDefault": "",
-      "exampleState": "explicit-empty",
-      "sensitive": true,
-      "source": ".env.example"
-    },
-    {
-      "key": "SUPPORT_PROVIDER",
+      "key": "MARKETPLACE_WEBHOOK_SECRET_AWS",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": false,
       "source": ".env.example"
     },
     {
-      "key": "SUPPORT_WEBHOOK_SECRET",
+      "key": "MARKETPLACE_WEBHOOK_SECRET_AZURE",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
-      "sensitive": true,
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "MARKETPLACE_WEBHOOK_SECRET_GOOGLE",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "SUPPORT_PROVIDERS",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "SUPPORT_WEBHOOK_SECRET_ZENDESK",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
       "source": ".env.example"
     },
     {
@@ -501,6 +520,20 @@
     },
     {
       "key": "SCREENING_PROVIDER_TOKEN",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "TAX_PROVIDER_BASE_URL",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "TAX_PROVIDER_TOKEN",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": true,
@@ -757,15 +790,21 @@
       "exampleState": "local-default",
       "sensitive": false,
       "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_TELEMETRY_INGEST_SECRET",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": true,
+      "source": ".env.example"
     }
   ],
-  "declaredCount": 92,
+  "declaredCount": 97,
   "staticallyReferencedEnvironment": [
     "APP_ORIGIN",
     "AUTHORIZATION_CONTEXT_SECRET",
     "AUTOMATED_TEARDOWN_ENABLED",
     "BASELINE_CAPTURED_AT",
-    "CACHE_404_PAGE",
     "CI",
     "CLICK_THROUGH_THRESHOLD_MINOR",
     "CLOCKWORK_ARTIFACT_DIR",
@@ -797,74 +836,41 @@
     "CLOCKWORK_RELEASE_STRESS_RUNS",
     "CLOCKWORK_RELEASE_SUITES_SCRIPT",
     "CLOCKWORK_SERVICE_DATABASE_URL",
+    "CLOCKWORK_TEST_CLOCK",
     "CLOCKWORK_TEST_PORT",
     "DATABASE_URL",
-    "DEPLOY_ID",
-    "DEPLOY_PRIME_URL",
-    "DEPLOY_URL",
     "DIRECT_DATABASE_URL",
     "ESIGN_RETURN_ORIGINS",
     "EVIDENCE_CLIENT_ORIGINS",
     "EVIDENCE_STORAGE_INTERNAL_TOKEN",
     "EVIDENCE_STORAGE_INTERNAL_URL",
-    "HOSTNAME",
     "INTERNAL_EMAIL_DOMAINS",
-    "KEEP_ALIVE_TIMEOUT",
     "KEY",
     "MIGRATION_FEATURE_ENABLED",
     "MIGRATION_SOURCE_EXECUTION_ENABLED",
-    "NETLIFY_DEV",
-    "NETLIFY_ENABLE_SYSTEM_LOGGING",
-    "NETLIFY_LOCAL",
-    "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
-    "NETLIFY_NEXT_PLUGIN_SKIP",
-    "NETLIFY_NEXT_SKEW_PROTECTION",
-    "NETLIFY_NEXT_VERIFY_FORMS",
-    "NETLIFY_PURGE_API_TOKEN",
-    "NETLIFY_SKEW_PROTECTION_TOKEN",
-    "NEXT_DEBUG_BUILD",
-    "NEXT_DEBUG_IMMEDIATES",
-    "NEXT_DEPLOYMENT_ID",
-    "NEXT_MINIMAL",
-    "NEXT_OTEL_FETCH_DISABLED",
-    "NEXT_OTEL_PERFORMANCE_PREFIX",
-    "NEXT_OTEL_VERBOSE",
-    "NEXT_PHASE",
-    "NEXT_PRIVATE_DEBUG_CACHE",
-    "NEXT_PRIVATE_DEBUG_VALIDATION",
-    "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
-    "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
-    "NEXT_PRIVATE_STANDALONE",
-    "NEXT_PRIVATE_TEST_PROXY",
     "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_CLOCKWORK_RELEASE_SHA",
     "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
     "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
-    "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-    "NEXT_RUNTIME",
-    "NEXT_SSG_FETCH_METRICS",
-    "NEXT_TEST_LOG_VALIDATION",
-    "NEXT_UNHANDLED_REJECTION_FILTER",
-    "NODE_DEBUG",
     "NODE_ENV",
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
     "PATH",
     "PLATFORM_ISSUER_JSON",
     "PORT",
-    "SITE_ID",
     "STRIPE_SECRET_KEY",
+    "TAX_PROVIDER_BASE_URL",
+    "TAX_PROVIDER_TOKEN",
     "TRIGGER_PROJECT_REF",
-    "TURBOPACK",
-    "URL",
-    "USE_REGIONAL_BLOBS",
     "WORKOS_API_KEY",
     "WORKOS_CLIENT_ID",
     "WORKOS_COOKIE_PASSWORD",
+    "WORKOS_MFA_ASSURANCE_CLAIM",
+    "WORKOS_MFA_ASSURANCE_VALUES",
     "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
     "WORKOS_REDIRECT_URI"
   ],
-  "staticallyReferencedCount": 102,
+  "staticallyReferencedCount": 68,
   "environmentReferenceRecords": [
     {
       "key": "APP_ORIGIN",
@@ -883,50 +889,90 @@
       "key": "AUTHORIZATION_CONTEXT_SECRET",
       "declared": true,
       "sources": [
+        "apps/web/app/(experience)/(customer)/account/notifications/page.tsx",
+        "apps/web/app/(experience)/(partner)/partner/quotes/new/page.tsx",
+        "apps/web/app/(experience)/(partner)/partner/registrations/page.tsx",
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
         "apps/web/e2e/production-proof.setup.ts",
         "apps/web/e2e/production-proof.spec.ts",
         "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.test.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.ts",
         "apps/web/src/features/experience-server/repository.test.ts",
         "apps/web/src/features/experience-server/repository.ts",
+        "apps/web/src/features/internal-ops/recovery/provisioning-recovery-dispatch.integration.test.ts",
         "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
         "apps/web/src/features/internal-ops/webhook-replay/actions.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "packages/api/src/routes/core/command-catalogue.integration.test.ts",
+        "packages/db/src/repositories/core/account-commands.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
         "packages/db/src/repositories/core/commitments.integration.test.ts",
+        "packages/db/src/repositories/core/core-command-row-policies.integration.test.ts",
+        "packages/db/src/repositories/core/core-record-reads.integration.test.ts",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts",
         "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/core/service-pool-separation.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/prepared-order-form.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
-        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
-        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-tenant-refusal.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-preferences.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provider-operation-claims.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-callback.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-recovery.integration.test.ts",
+        "packages/db/src/repositories/system/esign-provider-binding.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
-        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
       ],
       "runtimeSources": [
+        "apps/web/app/(experience)/(customer)/account/notifications/page.tsx",
+        "apps/web/app/(experience)/(partner)/partner/quotes/new/page.tsx",
+        "apps/web/app/(experience)/(partner)/partner/registrations/page.tsx",
+        "apps/web/src/features/experience-server/portal-view-loader.ts",
         "apps/web/src/features/experience-server/repository.ts",
         "apps/web/src/features/internal-ops/webhook-replay/actions.ts"
       ],
       "toolingOrTestSources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
         "apps/web/e2e/production-proof.setup.ts",
         "apps/web/e2e/production-proof.spec.ts",
         "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.test.ts",
         "apps/web/src/features/experience-server/repository.test.ts",
+        "apps/web/src/features/internal-ops/recovery/provisioning-recovery-dispatch.integration.test.ts",
         "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "packages/api/src/routes/core/command-catalogue.integration.test.ts",
+        "packages/db/src/repositories/core/account-commands.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
         "packages/db/src/repositories/core/commitments.integration.test.ts",
+        "packages/db/src/repositories/core/core-command-row-policies.integration.test.ts",
+        "packages/db/src/repositories/core/core-record-reads.integration.test.ts",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts",
         "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/core/service-pool-separation.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/prepared-order-form.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
-        "packages/db/src/repositories/system/partial-payments.integration.test.ts",
-        "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-tenant-refusal.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-preferences.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provider-operation-claims.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-callback.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-recovery.integration.test.ts",
+        "packages/db/src/repositories/system/esign-provider-binding.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
-        "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts"
       ]
@@ -950,17 +996,6 @@
       "sources": ["scripts/generate-baseline-manifests.mjs"],
       "runtimeSources": [],
       "toolingOrTestSources": ["scripts/generate-baseline-manifests.mjs"]
-    },
-    {
-      "key": "CACHE_404_PAGE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
-      ],
-      "toolingOrTestSources": []
     },
     {
       "key": "CI",
@@ -1003,6 +1038,7 @@
       "key": "CLOCKWORK_CANONICAL_ORIGIN",
       "declared": true,
       "sources": [
+        "apps/web/src/features/experience-server/controller.failure-log.test.ts",
         "apps/web/src/features/experience-server/controller.test.ts",
         "apps/web/src/features/experience-server/controller.ts"
       ],
@@ -1010,6 +1046,7 @@
         "apps/web/src/features/experience-server/controller.ts"
       ],
       "toolingOrTestSources": [
+        "apps/web/src/features/experience-server/controller.failure-log.test.ts",
         "apps/web/src/features/experience-server/controller.test.ts"
       ]
     },
@@ -1053,22 +1090,24 @@
       "key": "CLOCKWORK_EXPERIENCE_ADAPTER",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/e2e/ux-internal-ops.spec.ts",
         "apps/web/e2e/visual.spec.ts",
         "apps/web/proxy.ts",
         "apps/web/src/features/experience-server/demo-experience-repository.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.test.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/proxy.ts",
         "apps/web/src/features/experience-server/demo-experience-repository.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.ts",
         "apps/web/src/features/experience-server/projection-source.ts"
       ],
       "toolingOrTestSources": [
         "apps/web/e2e/ux-internal-ops.spec.ts",
-        "apps/web/e2e/visual.spec.ts"
+        "apps/web/e2e/visual.spec.ts",
+        "apps/web/src/features/experience-server/portal-view-loader.test.ts"
       ]
     },
     {
@@ -1186,14 +1225,10 @@
       "key": "CLOCKWORK_RELEASE_PROOF",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/e2e/production-workflow-proof.ts",
         "apps/web/src/telemetry/runtime.ts"
       ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/src/telemetry/runtime.ts"
-      ],
+      "runtimeSources": ["apps/web/src/telemetry/runtime.ts"],
       "toolingOrTestSources": ["apps/web/e2e/production-workflow-proof.ts"]
     },
     {
@@ -1256,11 +1291,34 @@
       "key": "CLOCKWORK_SERVICE_DATABASE_URL",
       "declared": true,
       "sources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
         "apps/web/e2e/production-workflow-proof.ts",
-        "apps/web/src/db/service.ts"
+        "apps/web/src/db/service.ts",
+        "apps/web/src/features/internal-ops/billing-reconciliation/reconciliation-loader.test.ts",
+        "apps/web/src/features/internal-ops/unhandled-errors/incident-loader.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts"
       ],
       "runtimeSources": ["apps/web/src/db/service.ts"],
-      "toolingOrTestSources": ["apps/web/e2e/production-workflow-proof.ts"]
+      "toolingOrTestSources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/e2e/production-workflow-proof.ts",
+        "apps/web/src/features/internal-ops/billing-reconciliation/reconciliation-loader.test.ts",
+        "apps/web/src/features/internal-ops/unhandled-errors/incident-loader.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts"
+      ]
+    },
+    {
+      "key": "CLOCKWORK_TEST_CLOCK",
+      "declared": false,
+      "sources": [
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
+        "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts"
+      ],
+      "runtimeSources": [],
+      "toolingOrTestSources": [
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
+        "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts"
+      ]
     },
     {
       "key": "CLOCKWORK_TEST_PORT",
@@ -1278,42 +1336,12 @@
     {
       "key": "DATABASE_URL",
       "declared": true,
-      "sources": ["apps/web/src/db/service.ts"],
+      "sources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/src/db/service.ts"
+      ],
       "runtimeSources": ["apps/web/src/db/service.ts"],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "DEPLOY_ID",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "DEPLOY_PRIME_URL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "DEPLOY_URL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "toolingOrTestSources": []
+      "toolingOrTestSources": ["apps/web/app/api/[[...route]]/hono-app.test.ts"]
     },
     {
       "key": "DIRECT_DATABASE_URL",
@@ -1324,31 +1352,58 @@
         "apps/web/e2e/production-proof.teardown.ts",
         "apps/web/src/auth/release-proof-repository.integration.test.ts",
         "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/billing-reconciliation/disposition-store.integration.test.ts",
+        "apps/web/src/features/internal-ops/recovery/provisioning-recovery-dispatch.integration.test.ts",
         "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
+        "apps/web/src/features/internal-ops/unhandled-errors/decision-store.integration.test.ts",
+        "packages/api/src/routes/core/command-catalogue.integration.test.ts",
         "packages/db/drizzle.config.ts",
         "packages/db/src/durability.integration.test.ts",
+        "packages/db/src/repositories/core/account-commands.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
         "packages/db/src/repositories/core/commitments.integration.test.ts",
+        "packages/db/src/repositories/core/core-command-row-policies.integration.test.ts",
+        "packages/db/src/repositories/core/core-record-reads.integration.test.ts",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts",
         "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/core/service-pool-separation.integration.test.ts",
+        "packages/db/src/repositories/core/tax-replay.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/prepared-order-form.integration.test.ts",
         "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-tenant-refusal.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-branding.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-preferences.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provider-operation-claims.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-callback.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-recovery.integration.test.ts",
+        "packages/db/src/repositories/system/crm-projection.integration.test.ts",
         "packages/db/src/repositories/system/dead-letter.integration.test.ts",
+        "packages/db/src/repositories/system/esign-provider-binding.integration.test.ts",
         "packages/db/src/repositories/system/exception-routing.integration.test.ts",
         "packages/db/src/repositories/system/external-gates.integration.test.ts",
         "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
         "packages/db/src/repositories/system/partial-payments.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-category-ordering.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-event-ordering.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/webhooks.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
         "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+        "packages/db/src/schema/core/tax.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
-        "scripts/check-generated-dry-run.mjs"
+        "scripts/check-generated-dry-run.mjs",
+        "scripts/check-schema-drift.mjs"
       ],
       "runtimeSources": ["packages/db/drizzle.config.ts"],
       "toolingOrTestSources": [
@@ -1357,30 +1412,57 @@
         "apps/web/e2e/production-proof.teardown.ts",
         "apps/web/src/auth/release-proof-repository.integration.test.ts",
         "apps/web/src/features/internal-ops/assisted-session/repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/billing-reconciliation/disposition-store.integration.test.ts",
+        "apps/web/src/features/internal-ops/recovery/provisioning-recovery-dispatch.integration.test.ts",
         "apps/web/src/features/internal-ops/recovery/redrive.integration.test.ts",
+        "apps/web/src/features/internal-ops/unhandled-errors/decision-store.integration.test.ts",
+        "packages/api/src/routes/core/command-catalogue.integration.test.ts",
         "packages/db/src/durability.integration.test.ts",
+        "packages/db/src/repositories/core/account-commands.integration.test.ts",
         "packages/db/src/repositories/core/collections.integration.test.ts",
         "packages/db/src/repositories/core/commitments.integration.test.ts",
+        "packages/db/src/repositories/core/core-command-row-policies.integration.test.ts",
+        "packages/db/src/repositories/core/core-record-reads.integration.test.ts",
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
         "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts",
         "packages/db/src/repositories/core/price-books.integration.test.ts",
         "packages/db/src/repositories/core/referral-commissions.integration.test.ts",
+        "packages/db/src/repositories/core/service-pool-separation.integration.test.ts",
+        "packages/db/src/repositories/core/tax-replay.integration.test.ts",
         "packages/db/src/repositories/experience/authoritative-command.integration.test.ts",
         "packages/db/src/repositories/experience/portal-runtime.integration.test.ts",
+        "packages/db/src/repositories/experience/prepared-order-form.integration.test.ts",
         "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
         "packages/db/src/repositories/lifecycle/command-repository.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-tenant-refusal.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-branding.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-deliveries.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/notification-preferences.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provider-operation-claims.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-callback.integration.test.ts",
+        "packages/db/src/repositories/lifecycle/provisioning-recovery.integration.test.ts",
+        "packages/db/src/repositories/system/crm-projection.integration.test.ts",
         "packages/db/src/repositories/system/dead-letter.integration.test.ts",
+        "packages/db/src/repositories/system/esign-provider-binding.integration.test.ts",
         "packages/db/src/repositories/system/exception-routing.integration.test.ts",
         "packages/db/src/repositories/system/external-gates.integration.test.ts",
         "packages/db/src/repositories/system/gate-activation-tasks.integration.test.ts",
         "packages/db/src/repositories/system/partial-payments.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-category-ordering.integration.test.ts",
+        "packages/db/src/repositories/system/stripe-event-ordering.integration.test.ts",
         "packages/db/src/repositories/system/stripe-payment-creation-binding.integration.test.ts",
+        "packages/db/src/repositories/webhooks.integration.test.ts",
         "packages/db/src/repositories/workflows/core-schedules.integration.test.ts",
         "packages/db/src/repositories/workflows/invoice-workflow-projection.integration.test.ts",
         "packages/db/src/repositories/workflows/notification-deliveries.integration.test.ts",
         "packages/db/src/repositories/workflows/runtime.integration.test.ts",
+        "packages/db/src/schema/core/tax.integration.test.ts",
         "packages/testing/src/database/isolation.ts",
         "packages/workflows/src/offboarding/deletion-certificate.integration.test.ts",
-        "scripts/check-generated-dry-run.mjs"
+        "scripts/check-generated-dry-run.mjs",
+        "scripts/check-schema-drift.mjs"
       ]
     },
     {
@@ -1424,17 +1506,6 @@
       "toolingOrTestSources": []
     },
     {
-      "key": "HOSTNAME",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
       "key": "INTERNAL_EMAIL_DOMAINS",
       "declared": true,
       "sources": [
@@ -1443,17 +1514,6 @@
       ],
       "runtimeSources": ["apps/web/src/auth/session.ts"],
       "toolingOrTestSources": ["apps/web/playwright.proof.config.ts"]
-    },
-    {
-      "key": "KEEP_ALIVE_TIMEOUT",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ],
-      "toolingOrTestSources": []
     },
     {
       "key": "KEY",
@@ -1474,261 +1534,6 @@
       "declared": true,
       "sources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
       "runtimeSources": ["apps/web/app/api/[[...route]]/hono-app.ts"],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_DEV",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_ENABLE_SYSTEM_LOGGING",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_LOCAL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_NEXT_PLUGIN_SKIP",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_NEXT_SKEW_PROTECTION",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_NEXT_VERIFY_FORMS",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_PURGE_API_TOKEN",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NETLIFY_SKEW_PROTECTION_TOKEN",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_DEBUG_BUILD",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_DEBUG_IMMEDIATES",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_DEPLOYMENT_ID",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_MINIMAL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_OTEL_FETCH_DISABLED",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_OTEL_PERFORMANCE_PREFIX",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_OTEL_VERBOSE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PHASE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_DEBUG_CACHE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_DEBUG_VALIDATION",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_STANDALONE",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_PRIVATE_TEST_PROXY",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
       "toolingOrTestSources": []
     },
     {
@@ -1759,16 +1564,14 @@
         "apps/web/proxy.ts",
         "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/performance/web-vitals.tsx",
-        "apps/web/src/features/shell/route-session.ts",
-        "apps/web/src/features/surfaces/workflow-panel.tsx"
+        "apps/web/src/features/shell/route-session.ts"
       ],
       "runtimeSources": [
         "apps/web/app/(experience)/(customer)/states/page.tsx",
         "apps/web/proxy.ts",
         "apps/web/src/features/internal-ops/gates/server-gate-loader.ts",
         "apps/web/src/features/performance/web-vitals.tsx",
-        "apps/web/src/features/shell/route-session.ts",
-        "apps/web/src/features/surfaces/workflow-panel.tsx"
+        "apps/web/src/features/shell/route-session.ts"
       ],
       "toolingOrTestSources": []
     },
@@ -1782,95 +1585,25 @@
       "toolingOrTestSources": []
     },
     {
-      "key": "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_RUNTIME",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_SSG_FETCH_METRICS",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_TEST_LOG_VALIDATION",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NEXT_UNHANDLED_REJECTION_FILTER",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "NODE_DEBUG",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
       "key": "NODE_ENV",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/app/(experience)/(customer)/states/page.tsx",
         "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/app/signing/embedded/page.tsx",
         "apps/web/app/signing/redirect/page.tsx",
+        "apps/web/next.config.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/actions.ts",
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/contracts/provider-navigation.ts",
+        "apps/web/src/features/experience-server/controller.failure-log.test.ts",
         "apps/web/src/features/experience-server/controller.ts",
         "apps/web/src/features/shell/route-session.ts",
-        "apps/web/src/features/surfaces/workflow-panel.tsx",
+        "apps/web/src/providers/tax.ts",
         "apps/web/src/telemetry/runtime.ts",
         "packages/api/src/app.ts",
-        "packages/api/src/auth/session.ts",
         "packages/api/src/routes/core/index.ts",
         "packages/api/src/routes/lifecycle/index.ts",
         "packages/db/src/client.ts",
@@ -1883,24 +1616,21 @@
         "packages/workflows/src/system/outbox-dispatcher.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/app/(experience)/(customer)/states/page.tsx",
         "apps/web/app/api/[[...route]]/hono-app.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/app/signing/embedded/page.tsx",
         "apps/web/app/signing/redirect/page.tsx",
+        "apps/web/next.config.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/actions.ts",
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/contracts/provider-navigation.ts",
         "apps/web/src/features/experience-server/controller.ts",
         "apps/web/src/features/shell/route-session.ts",
-        "apps/web/src/features/surfaces/workflow-panel.tsx",
+        "apps/web/src/providers/tax.ts",
         "apps/web/src/telemetry/runtime.ts",
         "packages/api/src/app.ts",
-        "packages/api/src/auth/session.ts",
         "packages/api/src/routes/core/index.ts",
         "packages/api/src/routes/lifecycle/index.ts",
         "packages/db/src/client.ts",
@@ -1912,18 +1642,18 @@
         "packages/workflows/src/system/gate-activation-tasks.ts",
         "packages/workflows/src/system/outbox-dispatcher.ts"
       ],
-      "toolingOrTestSources": []
+      "toolingOrTestSources": [
+        "apps/web/src/features/experience-server/controller.failure-log.test.ts"
+      ]
     },
     {
       "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
@@ -1933,12 +1663,10 @@
       "key": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
         "apps/web/src/telemetry/runtime.ts",
         "packages/workflows/src/runtime/trigger-worker-bootstrap.ts"
       ],
@@ -1969,28 +1697,14 @@
       "key": "PORT",
       "declared": false,
       "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js",
         "apps/web/playwright.config.ts",
         "apps/web/playwright.proof.config.ts"
       ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ],
+      "runtimeSources": [],
       "toolingOrTestSources": [
         "apps/web/playwright.config.ts",
         "apps/web/playwright.proof.config.ts"
       ]
-    },
-    {
-      "key": "SITE_ID",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ],
-      "toolingOrTestSources": []
     },
     {
       "key": "STRIPE_SECRET_KEY",
@@ -2002,6 +1716,42 @@
       "toolingOrTestSources": []
     },
     {
+      "key": "TAX_PROVIDER_BASE_URL",
+      "declared": true,
+      "sources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "apps/web/src/providers/tax.test.ts",
+        "apps/web/src/providers/tax.ts"
+      ],
+      "runtimeSources": ["apps/web/src/providers/tax.ts"],
+      "toolingOrTestSources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "apps/web/src/providers/tax.test.ts"
+      ]
+    },
+    {
+      "key": "TAX_PROVIDER_TOKEN",
+      "declared": true,
+      "sources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "apps/web/src/providers/tax.test.ts",
+        "apps/web/src/providers/tax.ts"
+      ],
+      "runtimeSources": ["apps/web/src/providers/tax.ts"],
+      "toolingOrTestSources": [
+        "apps/web/app/api/[[...route]]/hono-app.test.ts",
+        "apps/web/src/features/internal-ops/webhook-replay/actions.test.ts",
+        "apps/web/src/providers/experience-outbox-tax-composition.test.ts",
+        "apps/web/src/providers/tax.test.ts"
+      ]
+    },
+    {
       "key": "TRIGGER_PROJECT_REF",
       "declared": true,
       "sources": ["trigger.config.ts"],
@@ -2009,58 +1759,20 @@
       "toolingOrTestSources": []
     },
     {
-      "key": "TURBOPACK",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "URL",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
-      "key": "USE_REGIONAL_BLOBS",
-      "declared": false,
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
-      ],
-      "toolingOrTestSources": []
-    },
-    {
       "key": "WORKOS_API_KEY",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.formatting.test.ts",
         "apps/web/src/features/shell/route-session.ts",
         "packages/integrations/src/system/webhook-verifiers.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
@@ -2068,48 +1780,70 @@
         "apps/web/src/features/shell/route-session.ts",
         "packages/integrations/src/system/webhook-verifiers.ts"
       ],
-      "toolingOrTestSources": []
+      "toolingOrTestSources": [
+        "apps/web/src/features/shell/route-session.formatting.test.ts"
+      ]
     },
     {
       "key": "WORKOS_CLIENT_ID",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.formatting.test.ts",
         "apps/web/src/features/shell/route-session.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/shell/route-session.ts"
       ],
-      "toolingOrTestSources": []
+      "toolingOrTestSources": [
+        "apps/web/src/features/shell/route-session.formatting.test.ts"
+      ]
     },
     {
       "key": "WORKOS_COOKIE_PASSWORD",
       "declared": true,
       "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/session.ts",
+        "apps/web/src/features/shell/route-session.formatting.test.ts",
         "apps/web/src/features/shell/route-session.ts"
       ],
       "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
+        "apps/web/app/api/telemetry/route.ts",
         "apps/web/app/auth/callback/route.ts",
         "apps/web/app/sign-in/route.ts",
         "apps/web/proxy.ts",
         "apps/web/src/auth/session.ts",
         "apps/web/src/features/shell/route-session.ts"
       ],
+      "toolingOrTestSources": [
+        "apps/web/src/features/shell/route-session.formatting.test.ts"
+      ]
+    },
+    {
+      "key": "WORKOS_MFA_ASSURANCE_CLAIM",
+      "declared": false,
+      "sources": ["apps/web/src/auth/session.ts"],
+      "runtimeSources": ["apps/web/src/auth/session.ts"],
+      "toolingOrTestSources": []
+    },
+    {
+      "key": "WORKOS_MFA_ASSURANCE_VALUES",
+      "declared": false,
+      "sources": ["apps/web/src/auth/session.ts"],
+      "runtimeSources": ["apps/web/src/auth/session.ts"],
       "toolingOrTestSources": []
     },
     {
@@ -2122,22 +1856,13 @@
     {
       "key": "WORKOS_REDIRECT_URI",
       "declared": true,
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/app/layout.tsx",
-        "apps/web/proxy.ts"
-      ],
-      "runtimeSources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/app/layout.tsx",
-        "apps/web/proxy.ts"
-      ],
+      "sources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
+      "runtimeSources": ["apps/web/app/layout.tsx", "apps/web/proxy.ts"],
       "toolingOrTestSources": []
     }
   ],
   "referencedButUndeclared": [
     "BASELINE_CAPTURED_AT",
-    "CACHE_404_PAGE",
     "CLOCKWORK_ARTIFACT_DIR",
     "CLOCKWORK_POPULATED_UPGRADE_PROJECT_ID",
     "CLOCKWORK_POPULATED_UPGRADE_WORKDIR",
@@ -2159,294 +1884,22 @@
     "CLOCKWORK_RELEASE_STARTED_AT",
     "CLOCKWORK_RELEASE_STRESS_RUNS",
     "CLOCKWORK_RELEASE_SUITES_SCRIPT",
+    "CLOCKWORK_TEST_CLOCK",
     "CLOCKWORK_TEST_PORT",
-    "DEPLOY_ID",
-    "DEPLOY_PRIME_URL",
-    "DEPLOY_URL",
-    "HOSTNAME",
-    "KEEP_ALIVE_TIMEOUT",
     "KEY",
-    "NETLIFY_DEV",
-    "NETLIFY_ENABLE_SYSTEM_LOGGING",
-    "NETLIFY_LOCAL",
-    "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
-    "NETLIFY_NEXT_PLUGIN_SKIP",
-    "NETLIFY_NEXT_SKEW_PROTECTION",
-    "NETLIFY_NEXT_VERIFY_FORMS",
-    "NETLIFY_PURGE_API_TOKEN",
-    "NETLIFY_SKEW_PROTECTION_TOKEN",
-    "NEXT_DEBUG_BUILD",
-    "NEXT_DEBUG_IMMEDIATES",
-    "NEXT_DEPLOYMENT_ID",
-    "NEXT_MINIMAL",
-    "NEXT_OTEL_FETCH_DISABLED",
-    "NEXT_OTEL_PERFORMANCE_PREFIX",
-    "NEXT_OTEL_VERBOSE",
-    "NEXT_PHASE",
-    "NEXT_PRIVATE_DEBUG_CACHE",
-    "NEXT_PRIVATE_DEBUG_VALIDATION",
-    "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
-    "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
-    "NEXT_PRIVATE_STANDALONE",
-    "NEXT_PRIVATE_TEST_PROXY",
-    "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-    "NEXT_RUNTIME",
-    "NEXT_SSG_FETCH_METRICS",
-    "NEXT_TEST_LOG_VALIDATION",
-    "NEXT_UNHANDLED_REJECTION_FILTER",
-    "NODE_DEBUG",
     "PATH",
     "PORT",
-    "SITE_ID",
-    "TURBOPACK",
-    "URL",
-    "USE_REGIONAL_BLOBS"
+    "WORKOS_MFA_ASSURANCE_CLAIM",
+    "WORKOS_MFA_ASSURANCE_VALUES"
   ],
   "runtimeReferencedButUndeclared": [
     {
-      "key": "CACHE_404_PAGE",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/headers.js"
-      ]
+      "key": "WORKOS_MFA_ASSURANCE_CLAIM",
+      "sources": ["apps/web/src/auth/session.ts"]
     },
     {
-      "key": "DEPLOY_ID",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ]
-    },
-    {
-      "key": "DEPLOY_PRIME_URL",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ]
-    },
-    {
-      "key": "DEPLOY_URL",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ]
-    },
-    {
-      "key": "HOSTNAME",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ]
-    },
-    {
-      "key": "KEEP_ALIVE_TIMEOUT",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ]
-    },
-    {
-      "key": "NETLIFY_DEV",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ]
-    },
-    {
-      "key": "NETLIFY_ENABLE_SYSTEM_LOGGING",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/request-context.cjs"
-      ]
-    },
-    {
-      "key": "NETLIFY_LOCAL",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ]
-    },
-    {
-      "key": "NETLIFY_NEXT_FORCE_APPLY_ONGOING_PATCHES",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/content/server.js"
-      ]
-    },
-    {
-      "key": "NETLIFY_NEXT_PLUGIN_SKIP",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ]
-    },
-    {
-      "key": "NETLIFY_NEXT_SKEW_PROTECTION",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ]
-    },
-    {
-      "key": "NETLIFY_NEXT_VERIFY_FORMS",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/verification.js"
-      ]
-    },
-    {
-      "key": "NETLIFY_PURGE_API_TOKEN",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ]
-    },
-    {
-      "key": "NETLIFY_SKEW_PROTECTION_TOKEN",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ]
-    },
-    {
-      "key": "NEXT_DEBUG_BUILD",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_DEBUG_IMMEDIATES",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_DEPLOYMENT_ID",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/skew-protection.js"
-      ]
-    },
-    {
-      "key": "NEXT_MINIMAL",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_OTEL_FETCH_DISABLED",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/next.cjs"
-      ]
-    },
-    {
-      "key": "NEXT_OTEL_PERFORMANCE_PREFIX",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_OTEL_VERBOSE",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PHASE",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_DEBUG_CACHE",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_DEBUG_VALIDATION",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_RESPONSE_CACHE_MAX_SIZE",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_RESPONSE_CACHE_TTL",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_STANDALONE",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ]
-    },
-    {
-      "key": "NEXT_PRIVATE_TEST_PROXY",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_RUNTIME",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_SSG_FETCH_METRICS",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_TEST_LOG_VALIDATION",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NEXT_UNHANDLED_REJECTION_FILTER",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "NODE_DEBUG",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/edge-runtime/vendor/deno.land/std@0.175.0/node/internal/util/debuglog.ts",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/esm-chunks/chunk-JNOKXHJS.js"
-      ]
-    },
-    {
-      "key": "PORT",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/server.js"
-      ]
-    },
-    {
-      "key": "SITE_ID",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/handlers/tags-handler.cjs"
-      ]
-    },
-    {
-      "key": "TURBOPACK",
-      "sources": [
-        "apps/web/.netlify/edge-functions/___netlify-edge-handler-node-middleware/server/node-middleware.js"
-      ]
-    },
-    {
-      "key": "URL",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/index.js"
-      ]
-    },
-    {
-      "key": "USE_REGIONAL_BLOBS",
-      "sources": [
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/___netlify-server-handler.mjs",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler-monorepo.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/build/templates/handler.tmpl.js",
-        "apps/web/.netlify/functions-internal/___netlify-server-handler/apps/web/.netlify/dist/run/storage/regional-blob-store.cjs"
-      ]
+      "key": "WORKOS_MFA_ASSURANCE_VALUES",
+      "sources": ["apps/web/src/auth/session.ts"]
     }
   ],
   "toolingOrTestOnlyReferencedButUndeclared": [
@@ -2554,6 +2007,13 @@
       "sources": ["scripts/benchmark-release.mjs"]
     },
     {
+      "key": "CLOCKWORK_TEST_CLOCK",
+      "sources": [
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
+        "apps/web/src/features/customer-partner/partner/resale-quote-model.test.ts"
+      ]
+    },
+    {
       "key": "CLOCKWORK_TEST_PORT",
       "sources": [
         "apps/web/playwright.config.ts",
@@ -2567,6 +2027,13 @@
     {
       "key": "PATH",
       "sources": ["scripts/release-suites.mjs"]
+    },
+    {
+      "key": "PORT",
+      "sources": [
+        "apps/web/playwright.config.ts",
+        "apps/web/playwright.proof.config.ts"
+      ]
     }
   ],
   "declaredButNotStaticallyReferenced": [
@@ -2578,6 +2045,7 @@
     "CLOCKWORK_ENV",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
+    "CLOCKWORK_TELEMETRY_INGEST_SECRET",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",
     "DOCUMENT_RENDERER_PROVIDER_BASE_URL",
     "DOCUMENT_RENDERER_PROVIDER_TOKEN",
@@ -2590,7 +2058,9 @@
     "EVIDENCE_BUCKET",
     "EVIDENCE_PROVIDER_BASE_URL",
     "EVIDENCE_PROVIDER_TOKEN",
-    "MARKETPLACE_WEBHOOK_SECRET",
+    "MARKETPLACE_WEBHOOK_SECRET_AWS",
+    "MARKETPLACE_WEBHOOK_SECRET_AZURE",
+    "MARKETPLACE_WEBHOOK_SECRET_GOOGLE",
     "MIGRATION_SOURCE_ACCESS_EVIDENCE_HASH",
     "MIGRATION_SOURCE_AUTHORIZED_ACTOR_ID",
     "MIGRATION_SOURCE_BASE_URL",
@@ -2614,8 +2084,8 @@
     "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
     "SIGNATURE_PROVIDER_TOKEN",
     "STRIPE_WEBHOOK_SECRET",
-    "SUPPORT_PROVIDER",
-    "SUPPORT_WEBHOOK_SECRET",
+    "SUPPORT_PROVIDERS",
+    "SUPPORT_WEBHOOK_SECRET_ZENDESK",
     "TRIGGER_SECRET_KEY",
     "USAGE_PROVIDER_BASE_URL",
     "USAGE_PROVIDER_TOKEN",

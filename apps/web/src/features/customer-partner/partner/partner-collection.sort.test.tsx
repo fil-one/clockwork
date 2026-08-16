@@ -16,7 +16,11 @@ import { partnerSurfaces } from "./partner-data";
 let search = "";
 
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
-const fresh = { generatedAt: "2026-08-14T13:04:00Z", stale: false };
+const fresh = {
+  generatedAt: "2026-08-14T13:04:00Z",
+  partial: false,
+  stale: false,
+};
 
 function record(letter: string, index: number): PartnerRecord {
   return {

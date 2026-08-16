@@ -370,6 +370,17 @@ const lifecycleService =
             serviceDatabase,
           ),
           migrationSource,
+          // The same composed port also answers for the tax identifiers a
+          // registration carries. Until this line existed, the lifecycle
+          // repository's `tax` option had no production injection at all, so
+          // every registration carrying a tax id failed even with EXT-TAX-01
+          // fully configured — and `core_account_tax_identifiers` had no
+          // reachable production writer. Unlike `orders:create` and
+          // `invoices:create`, an unconfigured provider does not refuse here:
+          // a registration tax id is reference data, not a `tax_minor`, so the
+          // repository records it as unverified and lets the registration
+          // proceed (see `verifyRegistrationTaxIds`).
+          tax: taxProvider,
         }),
       )
     : undefined;

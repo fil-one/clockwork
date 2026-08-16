@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T20:06:37Z",
+  "capturedAt": "2026-08-16T20:58:29Z",
   "authority": "Canonical migration SQL is authoritative. The latest Drizzle snapshot supplies detailed machine-readable columns, types, nullability, defaults, keys, constraints, and indexes for represented objects; canonicalSqlObjects supplies the complete SQL-derived identity and access-control inventory, including objects absent from the snapshot.",
   "snapshot": {
     "path": "packages/db/drizzle/meta/0008_snapshot.json",
@@ -18341,12 +18341,16 @@
       "public.core_deal_registration_exclusions",
       "public.core_invoice_document_snapshots",
       "public.core_invoice_end_client_allocations",
+      "public.core_invoice_tax_determinations",
+      "public.core_invoice_tax_lines",
+      "public.core_legal_entities",
       "public.core_marketplace_events",
       "public.core_marketplace_financial_entries",
       "public.core_marketplace_reconciliations",
       "public.core_order_acceptance_reservations",
       "public.core_order_commercial_profiles",
       "public.core_order_line_snapshots",
+      "public.core_order_supplier_bindings",
       "public.core_partner_hierarchy_edges",
       "public.core_partner_qbo_vendor_mappings",
       "public.core_partner_transfer_tiers",
@@ -18355,7 +18359,12 @@
       "public.core_procurement_certificates",
       "public.core_quote_commercial_profiles",
       "public.core_quote_snapshots",
+      "public.core_selling_entity_assignments",
       "public.core_stripe_adjustment_operations",
+      "public.core_tax_rates",
+      "public.core_tax_registrations",
+      "public.core_tax_rule_book_activation_events",
+      "public.core_tax_rule_books",
       "public.core_three_way_tie_outs",
       "public.core_usage_reconciliations",
       "public.cost_records",
@@ -18400,6 +18409,7 @@
       "public.lifecycle_signature_envelopes",
       "public.memberships",
       "public.notification_deliveries",
+      "public.notification_preferences",
       "public.novations",
       "public.order_lines",
       "public.orders",
@@ -18510,13 +18520,13 @@
         "statement": "create policy audit_events_finance_insert on public.audit_events for insert to clockwork_runtime with check ( app_has_role('finance_approver') and actor ->> 'id' = public.app_current_user_id()::text and aggregate_type in ( 'invoice','credit_note','refund','dispute','dispute_case', 'collection_case','collection_action' ) );"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "audit_events_finance_insert_guard",
         "table": "public.audit_events",
         "command": "insert",
         "roles": ["clockwork_runtime"],
-        "clauses": "as restrictive for insert to clockwork_runtime with check ( not app_has_role('finance_approver') or ( actor ->> 'id' = public.app_current_user_id()::text and aggregate_type in ( 'invoice','credit_note','refund','dispute','dispute_case', 'collection_case','collection_action' ) ) )",
-        "statement": "create policy audit_events_finance_insert_guard on public.audit_events as restrictive for insert to clockwork_runtime with check ( not app_has_role('finance_approver') or ( actor ->> 'id' = public.app_current_user_id()::text and aggregate_type in ( 'invoice','credit_note','refund','dispute','dispute_case', 'collection_case','collection_action' ) ) );"
+        "clauses": "as restrictive for insert to clockwork_runtime with check ( not app_has_role('finance_approver') -- ATTRIBUTION IS UNCONDITIONAL for a finance holder. This is the conjunct -- that actually stops a forged four-eyes, and it is what 001000 was -- protecting",
+        "statement": "create policy audit_events_finance_insert_guard on public.audit_events as restrictive for insert to clockwork_runtime with check ( not app_has_role('finance_approver') -- ATTRIBUTION IS UNCONDITIONAL for a finance holder. This is the conjunct -- that actually stops a forged four-eyes, and it is what 001000 was -- protecting;"
       },
       {
         "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
@@ -18580,6 +18590,24 @@
         "roles": ["clockwork_runtime"],
         "clauses": "for insert to clockwork_runtime with check (public.core_partner_can_append_commercial_audit( aggregate_type,aggregate_id,account_id,aggregate_version,event_type,actor ))",
         "statement": "create policy audit_events_partner_mor_insert on public.audit_events for insert to clockwork_runtime with check (public.core_partner_can_append_commercial_audit( aggregate_type,aggregate_id,account_id,aggregate_version,event_type,actor ));"
+      },
+      {
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
+        "name": "audit_events_report_export_insert",
+        "table": "public.audit_events",
+        "command": "insert",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for insert to clockwork_runtime with check ( account_id is null and aggregate_type = 'report_export' and actor ->> 'kind' = 'user' and actor ->> 'id' = public.app_current_user_id()::text and exists ( select 1 from public.report_exports source where source.id = aggregate_id and source.requested_by = public.app_current_user_id() and source.row_version = aggregate_version ) )",
+        "statement": "create policy audit_events_report_export_insert on public.audit_events for insert to clockwork_runtime with check ( account_id is null and aggregate_type = 'report_export' and actor ->> 'kind' = 'user' and actor ->> 'id' = public.app_current_user_id()::text and exists ( select 1 from public.report_exports source where source.id = aggregate_id and source.requested_by = public.app_current_user_id() and source.row_version = aggregate_version ) );"
+      },
+      {
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
+        "name": "audit_events_report_export_read",
+        "table": "public.audit_events",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using ( account_id is null and aggregate_type = 'report_export' and actor ->> 'id' = public.app_current_user_id()::text and exists ( select 1 from public.report_exports source where source.id = aggregate_id and source.requested_by = public.app_current_user_id() ) )",
+        "statement": "create policy audit_events_report_export_read on public.audit_events for select to clockwork_runtime using ( account_id is null and aggregate_type = 'report_export' and actor ->> 'id' = public.app_current_user_id()::text and exists ( select 1 from public.report_exports source where source.id = aggregate_id and source.requested_by = public.app_current_user_id() ) );"
       },
       {
         "migration": "supabase/migrations/000001_foundation.sql",
@@ -18807,22 +18835,22 @@
         "statement": "create policy core_collection_action_write on core_collection_actions for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_collection_actions_finance_insert",
         "table": "public.core_collection_actions",
         "command": "insert",
         "roles": ["clockwork_runtime"],
-        "clauses": "for insert to clockwork_runtime with check ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = collection_case_id and collection_case.owner_user_id = public.app_current_user_id() ) )",
-        "statement": "create policy core_collection_actions_finance_insert on public.core_collection_actions for insert to clockwork_runtime with check ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = collection_case_id and collection_case.owner_user_id = public.app_current_user_id() ) );"
+        "clauses": "for insert to clockwork_runtime with check ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = core_collection_actions.collection_case_id ) )",
+        "statement": "create policy core_collection_actions_finance_insert on public.core_collection_actions for insert to clockwork_runtime with check ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = core_collection_actions.collection_case_id ) );"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_collection_actions_finance_read",
         "table": "public.core_collection_actions",
         "command": "select",
         "roles": ["clockwork_runtime"],
-        "clauses": "for select to clockwork_runtime using ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = collection_case_id and collection_case.owner_user_id = public.app_current_user_id() ) )",
-        "statement": "create policy core_collection_actions_finance_read on public.core_collection_actions for select to clockwork_runtime using ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() and exists ( select 1 from public.core_collection_cases collection_case where collection_case.id = collection_case_id and collection_case.owner_user_id = public.app_current_user_id() ) );"
+        "clauses": "for select to clockwork_runtime using ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() )",
+        "statement": "create policy core_collection_actions_finance_read on public.core_collection_actions for select to clockwork_runtime using ( app_has_role('finance_approver') and actor_user_id = public.app_current_user_id() );"
       },
       {
         "migration": "supabase/migrations/000100_core_finance.sql",
@@ -18843,31 +18871,31 @@
         "statement": "create policy core_collection_case_write on core_collection_cases for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_collection_cases_finance_insert",
         "table": "public.core_collection_cases",
         "command": "insert",
         "roles": ["clockwork_runtime"],
-        "clauses": "for insert to clockwork_runtime with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = invoice_id and source_invoice.account_id = account_id ) )",
-        "statement": "create policy core_collection_cases_finance_insert on public.core_collection_cases for insert to clockwork_runtime with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = invoice_id and source_invoice.account_id = account_id ) );"
+        "clauses": "for insert to clockwork_runtime with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = core_collection_cases.invoice_id and source_invoice.account_id = core_collection_cases.account_id ) )",
+        "statement": "create policy core_collection_cases_finance_insert on public.core_collection_cases for insert to clockwork_runtime with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = core_collection_cases.invoice_id and source_invoice.account_id = core_collection_cases.account_id ) );"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_collection_cases_finance_read",
         "table": "public.core_collection_cases",
         "command": "select",
         "roles": ["clockwork_runtime"],
-        "clauses": "for select to clockwork_runtime using ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() )",
-        "statement": "create policy core_collection_cases_finance_read on public.core_collection_cases for select to clockwork_runtime using ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() );"
+        "clauses": "for select to clockwork_runtime using (app_has_role('finance_approver'))",
+        "statement": "create policy core_collection_cases_finance_read on public.core_collection_cases for select to clockwork_runtime using (app_has_role('finance_approver'));"
       },
       {
-        "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_collection_cases_finance_update",
         "table": "public.core_collection_cases",
         "command": "update",
         "roles": ["clockwork_runtime"],
-        "clauses": "for update to clockwork_runtime using ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() ) with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = invoice_id and source_invoice.account_id = account_id ) )",
-        "statement": "create policy core_collection_cases_finance_update on public.core_collection_cases for update to clockwork_runtime using ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() ) with check ( app_has_role('finance_approver') and owner_user_id = public.app_current_user_id() and exists ( select 1 from public.invoices source_invoice where source_invoice.id = invoice_id and source_invoice.account_id = account_id ) );"
+        "clauses": "for update to clockwork_runtime using (app_has_role('finance_approver')) with check ( app_has_role('finance_approver') and exists ( select 1 from public.invoices source_invoice where source_invoice.id = core_collection_cases.invoice_id and source_invoice.account_id = core_collection_cases.account_id ) )",
+        "statement": "create policy core_collection_cases_finance_update on public.core_collection_cases for update to clockwork_runtime using (app_has_role('finance_approver')) with check ( app_has_role('finance_approver') and exists ( select 1 from public.invoices source_invoice where source_invoice.id = core_collection_cases.invoice_id and source_invoice.account_id = core_collection_cases.account_id ) );"
       },
       {
         "migration": "supabase/migrations/000932_commercial_artifact_scope.sql",
@@ -18879,13 +18907,13 @@
         "statement": "create policy core_commercial_artifact_insert on public.core_commercial_artifact_requests for insert to clockwork_runtime with check ( app_is_internal() or ( subject_type in ('order','amendment') and document_kind in ('order_form','amendment') and app_has_account(audience_account_id) ) or ( subject_type = 'quote' and exists ( select 1 from public.quotes q where q.id = subject_id and q.account_id = commercial_account_id and ( ( document_kind = 'direct_quote' and audience = 'end_client' and audience_account_id = q.account_id and app_has_account(audience_account_id) ) or ( document_kind = 'partner_transfer_quote' and audience = 'partner' and q.partner_account_id is not null and audience_account_id = q.partner_account_id and app_has_account(audience_account_id) ) or ( document_kind = 'partner_resale_quote' and audience = 'end_client' and audience_account_id = q.account_id and commercial_account_id = q.account_id and ( app_has_account(audience_account_id) or ( q.partner_account_id is not null and app_has_account(q.partner_account_id) ) ) ) ) ) ) );"
       },
       {
-        "migration": "supabase/migrations/000931_commercial_artifacts.sql",
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
         "name": "core_commercial_artifact_select",
         "table": "public.core_commercial_artifact_requests",
         "command": "select",
         "roles": ["clockwork_runtime"],
-        "clauses": "for select to clockwork_runtime using (app_is_internal() or app_has_account(audience_account_id))",
-        "statement": "create policy core_commercial_artifact_select on public.core_commercial_artifact_requests for select to clockwork_runtime using (app_is_internal() or app_has_account(audience_account_id));"
+        "clauses": "for select to clockwork_runtime using ( app_is_internal() or app_has_account(audience_account_id) or ( subject_type = 'quote' and document_kind = 'partner_resale_quote' and audience = 'end_client' and exists ( select 1 from public.quotes quote_record where quote_record.id = core_commercial_artifact_requests.subject_id and quote_record.account_id = core_commercial_artifact_requests.commercial_account_id and quote_record.partner_account_id is not null and app_has_account(quote_record.partner_account_id) ) ) )",
+        "statement": "create policy core_commercial_artifact_select on public.core_commercial_artifact_requests for select to clockwork_runtime using ( app_is_internal() or app_has_account(audience_account_id) or ( subject_type = 'quote' and document_kind = 'partner_resale_quote' and audience = 'end_client' and exists ( select 1 from public.quotes quote_record where quote_record.id = core_commercial_artifact_requests.subject_id and quote_record.account_id = core_commercial_artifact_requests.commercial_account_id and quote_record.partner_account_id is not null and app_has_account(quote_record.partner_account_id) ) ) );"
       },
       {
         "migration": "supabase/migrations/000931_commercial_artifacts.sql",
@@ -19113,6 +19141,60 @@
         "statement": "create policy core_invoice_allocation_write on core_invoice_end_client_allocations for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
+        "migration": "supabase/migrations/001417_invoice_tax_determinations.sql",
+        "name": "core_invoice_tax_determination_read",
+        "table": "public.core_invoice_tax_determinations",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) )",
+        "statement": "create policy core_invoice_tax_determination_read on core_invoice_tax_determinations for select using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) );"
+      },
+      {
+        "migration": "supabase/migrations/001417_invoice_tax_determinations.sql",
+        "name": "core_invoice_tax_determination_write",
+        "table": "public.core_invoice_tax_determinations",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) ) with check ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) )",
+        "statement": "create policy core_invoice_tax_determination_write on core_invoice_tax_determinations for all using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) ) with check ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) );"
+      },
+      {
+        "migration": "supabase/migrations/001417_invoice_tax_determinations.sql",
+        "name": "core_invoice_tax_line_read",
+        "table": "public.core_invoice_tax_lines",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) )",
+        "statement": "create policy core_invoice_tax_line_read on core_invoice_tax_lines for select using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) );"
+      },
+      {
+        "migration": "supabase/migrations/001417_invoice_tax_determinations.sql",
+        "name": "core_invoice_tax_line_write",
+        "table": "public.core_invoice_tax_lines",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) ) with check ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) )",
+        "statement": "create policy core_invoice_tax_line_write on core_invoice_tax_lines for all using ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) ) with check ( app_is_internal() or exists ( select 1 from public.invoices invoice where invoice.id = invoice_id and app_has_account(invoice.account_id) ) );"
+      },
+      {
+        "migration": "supabase/migrations/001410_tax_supplier_side.sql",
+        "name": "core_legal_entities_read",
+        "table": "public.core_legal_entities",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or merchant_role = 'our_entity' or app_has_account(account_id) )",
+        "statement": "create policy core_legal_entities_read on core_legal_entities for select using ( app_is_internal() or merchant_role = 'our_entity' or app_has_account(account_id) );"
+      },
+      {
+        "migration": "supabase/migrations/001410_tax_supplier_side.sql",
+        "name": "core_legal_entities_write",
+        "table": "public.core_legal_entities",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_legal_entities_write on core_legal_entities for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
         "migration": "supabase/migrations/000100_core_finance.sql",
         "name": "core_marketplace_events_internal",
         "table": "public.core_marketplace_events",
@@ -19165,6 +19247,24 @@
         "roles": ["public"],
         "clauses": "for all using (exists (select 1 from order_lines ol where ol.id = order_line_id and core_can_access_order(ol.order_id))) with check (exists (select 1 from order_lines ol where ol.id = order_line_id and core_can_access_order(ol.order_id)))",
         "statement": "create policy core_order_line_snapshot_scope on core_order_line_snapshots for all using (exists (select 1 from order_lines ol where ol.id = order_line_id and core_can_access_order(ol.order_id))) with check (exists (select 1 from order_lines ol where ol.id = order_line_id and core_can_access_order(ol.order_id)));"
+      },
+      {
+        "migration": "supabase/migrations/001416_order_selling_entity_binding.sql",
+        "name": "core_order_supplier_bindings_read",
+        "table": "public.core_order_supplier_bindings",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using (app_is_internal() or core_can_access_order(order_id))",
+        "statement": "create policy core_order_supplier_bindings_read on core_order_supplier_bindings for select using (app_is_internal() or core_can_access_order(order_id));"
+      },
+      {
+        "migration": "supabase/migrations/001416_order_selling_entity_binding.sql",
+        "name": "core_order_supplier_bindings_write",
+        "table": "public.core_order_supplier_bindings",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_order_supplier_bindings_write on core_order_supplier_bindings for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
         "migration": "supabase/migrations/000100_core_finance.sql",
@@ -19302,6 +19402,24 @@
         "statement": "create policy core_quote_snapshot_scope on core_quote_snapshots for all using (core_can_access_quote(quote_id)) with check (core_can_access_quote(quote_id));"
       },
       {
+        "migration": "supabase/migrations/001416_order_selling_entity_binding.sql",
+        "name": "core_selling_entity_assignments_read",
+        "table": "public.core_selling_entity_assignments",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using (app_is_internal())",
+        "statement": "create policy core_selling_entity_assignments_read on core_selling_entity_assignments for select using (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001416_order_selling_entity_binding.sql",
+        "name": "core_selling_entity_assignments_write",
+        "table": "public.core_selling_entity_assignments",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_selling_entity_assignments_write on core_selling_entity_assignments for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
         "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
         "name": "core_stripe_adjustment_operations_service",
         "table": "public.core_stripe_adjustment_operations",
@@ -19309,6 +19427,105 @@
         "roles": ["clockwork_service"],
         "clauses": "for all to clockwork_service using (true) with check (true)",
         "statement": "create policy core_stripe_adjustment_operations_service on public.core_stripe_adjustment_operations for all to clockwork_service using (true) with check (true);"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rates_finance_read",
+        "table": "public.core_tax_rates",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy core_tax_rates_finance_read on core_tax_rates for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rates_read",
+        "table": "public.core_tax_rates",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or exists ( select 1 from core_tax_rule_books book where book.id = tax_rule_book_id and book.status in ('active','retired') ) )",
+        "statement": "create policy core_tax_rates_read on core_tax_rates for select using ( app_is_internal() or exists ( select 1 from core_tax_rule_books book where book.id = tax_rule_book_id and book.status in ('active','retired') ) );"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rates_write",
+        "table": "public.core_tax_rates",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_tax_rates_write on core_tax_rates for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001410_tax_supplier_side.sql",
+        "name": "core_tax_registrations_read",
+        "table": "public.core_tax_registrations",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or exists ( select 1 from core_legal_entities entity where entity.id = legal_entity_id and entity.account_id is not null and app_has_account(entity.account_id) ) )",
+        "statement": "create policy core_tax_registrations_read on core_tax_registrations for select using ( app_is_internal() or exists ( select 1 from core_legal_entities entity where entity.id = legal_entity_id and entity.account_id is not null and app_has_account(entity.account_id) ) );"
+      },
+      {
+        "migration": "supabase/migrations/001410_tax_supplier_side.sql",
+        "name": "core_tax_registrations_write",
+        "table": "public.core_tax_registrations",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_tax_registrations_write on core_tax_registrations for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001412_tax_rule_book_activation.sql",
+        "name": "core_tax_activation_finance_read",
+        "table": "public.core_tax_rule_book_activation_events",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy core_tax_activation_finance_read on core_tax_rule_book_activation_events for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+      },
+      {
+        "migration": "supabase/migrations/001412_tax_rule_book_activation.sql",
+        "name": "core_tax_activation_read",
+        "table": "public.core_tax_rule_book_activation_events",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using ( app_is_internal() or exists ( select 1 from core_tax_rule_books book where book.id = tax_rule_book_id and book.status in ('active','retired') ) )",
+        "statement": "create policy core_tax_activation_read on core_tax_rule_book_activation_events for select using ( app_is_internal() or exists ( select 1 from core_tax_rule_books book where book.id = tax_rule_book_id and book.status in ('active','retired') ) );"
+      },
+      {
+        "migration": "supabase/migrations/001412_tax_rule_book_activation.sql",
+        "name": "core_tax_activation_write",
+        "table": "public.core_tax_rule_book_activation_events",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_tax_activation_write on core_tax_rule_book_activation_events for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rule_books_finance_read",
+        "table": "public.core_tax_rule_books",
+        "command": "select",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for select to clockwork_runtime using (app_has_any_role(array['finance_approver']))",
+        "statement": "create policy core_tax_rule_books_finance_read on core_tax_rule_books for select to clockwork_runtime using (app_has_any_role(array['finance_approver']));"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rule_books_read",
+        "table": "public.core_tax_rule_books",
+        "command": "select",
+        "roles": ["public"],
+        "clauses": "for select using (app_is_internal() or status in ('active','retired'))",
+        "statement": "create policy core_tax_rule_books_read on core_tax_rule_books for select using (app_is_internal() or status in ('active','retired'));"
+      },
+      {
+        "migration": "supabase/migrations/001411_tax_rule_books.sql",
+        "name": "core_tax_rule_books_write",
+        "table": "public.core_tax_rule_books",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
+        "statement": "create policy core_tax_rule_books_write on core_tax_rule_books for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
         "migration": "supabase/migrations/000100_core_finance.sql",
@@ -20067,6 +20284,15 @@
         "statement": "create policy notification_delivery_service on notification_deliveries for all using (app_is_internal()) with check (app_is_internal());"
       },
       {
+        "migration": "supabase/migrations/001400_notification_preferences.sql",
+        "name": "notification_preference_scope",
+        "table": "public.notification_preferences",
+        "command": "all",
+        "roles": ["public"],
+        "clauses": "for all using (app_has_account(account_id)) with check (app_has_account(account_id))",
+        "statement": "create policy notification_preference_scope on notification_preferences for all using (app_has_account(account_id)) with check (app_has_account(account_id));"
+      },
+      {
         "migration": "supabase/migrations/000001_foundation.sql",
         "name": "novations_scope",
         "table": "public.novations",
@@ -20182,6 +20408,15 @@
         "roles": ["clockwork_runtime"],
         "clauses": "for insert to clockwork_runtime with check (exists ( select 1 from public.audit_events event_record where event_record.id = event_id and public.core_partner_can_append_commercial_audit( event_record.aggregate_type,event_record.aggregate_id, event_record.account_id,event_record.aggregate_version, event_record.event_type,event_record.actor ) and topic = event_record.event_type and payload ->> 'eventId' = event_record.id::text and payload ->> 'eventType' = event_record.event_type and payload ->> 'aggregateType' = event_record.aggregate_type and payload ->> 'aggregateId' = event_record.aggregate_id::text and payload ->> 'aggregateVersion' = event_record.aggregate_version::text and payload ->> 'requestId' = event_record.request_id ))",
         "statement": "create policy outbox_messages_partner_mor_insert on public.outbox_messages for insert to clockwork_runtime with check (exists ( select 1 from public.audit_events event_record where event_record.id = event_id and public.core_partner_can_append_commercial_audit( event_record.aggregate_type,event_record.aggregate_id, event_record.account_id,event_record.aggregate_version, event_record.event_type,event_record.actor ) and topic = event_record.event_type and payload ->> 'eventId' = event_record.id::text and payload ->> 'eventType' = event_record.event_type and payload ->> 'aggregateType' = event_record.aggregate_type and payload ->> 'aggregateId' = event_record.aggregate_id::text and payload ->> 'aggregateVersion' = event_record.aggregate_version::text and payload ->> 'requestId' = event_record.request_id ));"
+      },
+      {
+        "migration": "supabase/migrations/001401_core_command_row_policies.sql",
+        "name": "outbox_messages_report_export_insert",
+        "table": "public.outbox_messages",
+        "command": "insert",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for insert to clockwork_runtime with check ( exists ( select 1 from public.audit_events source_event where source_event.id = outbox_messages.event_id and source_event.account_id is null and source_event.aggregate_type = 'report_export' and source_event.actor ->> 'id' = public.app_current_user_id()::text and outbox_messages.topic = source_event.event_type and (outbox_messages.payload ->> 'eventId') = source_event.id::text and (outbox_messages.payload ->> 'eventType') = source_event.event_type and (outbox_messages.payload ->> 'aggregateType') = source_event.aggregate_type and (outbox_messages.payload ->> 'aggregateId') = source_event.aggregate_id::text and (outbox_messages.payload ->> 'requestId') = source_event.request_id ) )",
+        "statement": "create policy outbox_messages_report_export_insert on public.outbox_messages for insert to clockwork_runtime with check ( exists ( select 1 from public.audit_events source_event where source_event.id = outbox_messages.event_id and source_event.account_id is null and source_event.aggregate_type = 'report_export' and source_event.actor ->> 'id' = public.app_current_user_id()::text and outbox_messages.topic = source_event.event_type and (outbox_messages.payload ->> 'eventId') = source_event.id::text and (outbox_messages.payload ->> 'eventType') = source_event.event_type and (outbox_messages.payload ->> 'aggregateType') = source_event.aggregate_type and (outbox_messages.payload ->> 'aggregateId') = source_event.aggregate_id::text and (outbox_messages.payload ->> 'requestId') = source_event.request_id ) );"
       },
       {
         "migration": "supabase/migrations/000001_foundation.sql",
@@ -20308,6 +20543,15 @@
         "roles": ["public"],
         "clauses": "for all using (app_is_internal()) with check (app_is_internal())",
         "statement": "create policy provider_operations_internal on provider_operations for all using (app_is_internal()) with check (app_is_internal());"
+      },
+      {
+        "migration": "supabase/migrations/001399_provider_operations_tenant_claim.sql",
+        "name": "provider_operations_tenant_claim",
+        "table": "public.provider_operations",
+        "command": "insert",
+        "roles": ["clockwork_runtime"],
+        "clauses": "for insert to clockwork_runtime with check ( status = 'pending' and attempt_count = 0 and provider_reference is null and last_error is null and next_attempt_at is null and ( -- `createSignatureEnvelope`: the counter-signed e-sign envelope claim. -- The aggregate is the agreement draft, and the command has already -- refused any draft whose `execution_mode` is not `counter_signed`",
+        "statement": "create policy provider_operations_tenant_claim on provider_operations for insert to clockwork_runtime with check ( status = 'pending' and attempt_count = 0 and provider_reference is null and last_error is null and next_attempt_at is null and ( -- `createSignatureEnvelope`: the counter-signed e-sign envelope claim. -- The aggregate is the agreement draft, and the command has already -- refused any draft whose `execution_mode` is not `counter_signed`;"
       },
       {
         "migration": "supabase/migrations/001000_commercial_database_integrity.sql",
@@ -20626,8 +20870,12 @@
       }
     ],
     "views": [
+      "public.core_arr_mrr",
+      "public.core_billing_collections",
       "public.core_capacity_planning",
+      "public.core_commission_settlement",
       "public.core_funnel_cycle_time",
+      "public.core_invoice_amendment_drift",
       "public.core_margin_poc_cost",
       "public.core_partner_performance",
       "public.core_renewal_churn_exposure",
@@ -20638,15 +20886,25 @@
     "customRoles": ["clockwork_runtime", "clockwork_service"]
   },
   "coverage": {
-    "canonicalSqlTableCount": 120,
+    "canonicalSqlTableCount": 130,
     "snapshotTableCount": 118,
     "tablesAbsentFromSnapshot": [
       "private.authorization_secrets",
-      "public.core_order_acceptance_reservations"
+      "public.core_invoice_tax_determinations",
+      "public.core_invoice_tax_lines",
+      "public.core_legal_entities",
+      "public.core_order_acceptance_reservations",
+      "public.core_order_supplier_bindings",
+      "public.core_selling_entity_assignments",
+      "public.core_tax_rates",
+      "public.core_tax_registrations",
+      "public.core_tax_rule_book_activation_events",
+      "public.core_tax_rule_books",
+      "public.notification_preferences"
     ],
-    "canonicalSqlPolicyCount": 244,
+    "canonicalSqlPolicyCount": 270,
     "snapshotPolicyCount": 0,
-    "canonicalSqlViewCount": 8,
+    "canonicalSqlViewCount": 12,
     "snapshotViewCount": 0,
     "customRoleCount": 2
   }

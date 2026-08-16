@@ -1445,15 +1445,23 @@
       "source": "§8 document catalog: order form",
       "requirement": "Order form is accepted in portal or counter-signed and binds exact quote and governing agreement versions.",
       "domain": ["orders"],
-      "api": ["core order command"],
-      "database": ["orders", "commercial artifacts"],
-      "workflowProvider": ["artifact renderer"],
-      "portalDocument": ["order form"],
-      "tests": ["order/document tests"],
+      "api": ["packages/api/src/routes/core/index.ts#registerCoreRoutes"],
+      "database": [
+        "packages/db/src/repositories/core/database-finance.ts#DatabaseCoreFinanceRepository"
+      ],
+      "workflowProvider": ["packages/documents/src/render.tsx"],
+      "portalDocument": [
+        "apps/web/src/features/customer-partner/commercial/order-acceptance.tsx"
+      ],
+      "tests": [
+        "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
+        "packages/db/src/repositories/core/database-finance.integration.test.ts",
+        "packages/db/src/repositories/core/order-acceptance-clock-gap.integration.test.ts"
+      ],
       "externalGates": ["EXT-LEGAL-01"],
       "backlog": [],
-      "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered input EXT-LEGAL-01; the gate register supplies the absent input and activation test."
+      "status": "implemented",
+      "rationale": "Both halves hold. The binding half: the prepared order form is hashed over one acceptance instant, the create pass re-derives the same definition and refuses a different hash, and the artifact binding is asserted inside the accepting transaction. The portal half now completes. `mutateOrder` previously required `Date.parse(command.acceptedAt)` to equal `Date.parse(input.occurredAt)`, and for any HTTP caller `occurredAt` is the API's own receive instant, while the surface must resend the prepare-pass `acceptedAt` because the hash covers it — so the create pass always arrived later and was always refused. `acceptedAt` is now documentary and carried from prepare to create, matching what amendments and `quotes:issue` already did; expiry is enforced against `occurredAt`, which is what the refusal message always described; and `boundAt`, `immutableAt` and the provisioning request instant are keyed on server time, `boundAt` necessarily so, since the selling entity resolves by UTC date. `order-acceptance-clock-gap.integration.test.ts` drives both passes against the authoritative database with a real interval between them and is pinned against two distinct reversions: restoring the equality, and dropping the documentary carry alone, which trades the clock refusal for `COMMERCIAL_ARTIFACT_BINDING_INVALID`. Related gate reference EXT-LEGAL-01 identifies the counsel-approved template input and is unchanged by this."
     },
     {
       "id": "SPEC-08-DOC-05",
@@ -3619,16 +3627,26 @@
       "id": "SPEC-18-INV-06",
       "source": "§18 invariants",
       "requirement": "Verify webhook raw-body signatures before acknowledgment; dedupe provider/event ID and allow controlled replay/reordering.",
-      "domain": ["webhook policy"],
-      "api": ["webhook routes"],
-      "database": ["webhook_receipts"],
-      "workflowProvider": ["provider verifiers"],
-      "portalDocument": ["replay controls"],
-      "tests": ["webhook replay tests"],
+      "domain": [],
+      "api": ["packages/api/src/webhooks.ts#verifyAndClaimWebhook"],
+      "database": [
+        "packages/db/src/repositories/webhooks.ts#DatabaseWebhookDeduplicator",
+        "packages/db/src/repositories/system/webhook-replay.ts#DatabaseWebhookReplayReadModel"
+      ],
+      "workflowProvider": [
+        "packages/integrations/src/core/stripe/webhooks.ts#StripeFinancialWebhookVerifier"
+      ],
+      "portalDocument": [
+        "apps/web/src/features/internal-ops/webhook-replay/actions.ts#replayWebhookEvent"
+      ],
+      "tests": [
+        "packages/integrations/src/core/stripe/webhooks.test.ts",
+        "packages/db/src/repositories/core/webhook-replay-refusal.test.ts"
+      ],
       "externalGates": ["EXT-ACC-01", "EXT-PROVIDER-01"],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation/control and direct acceptance tests are complete. Related gate references EXT-ACC-01, EXT-PROVIDER-01 identify later production inputs but do not withhold this repository requirement."
+      "backlog": ["P0-56"],
+      "status": "partial",
+      "rationale": "Raw-body signature verification before acknowledgment and provider/event dedupe are implemented and tested: `verifyAndClaimWebhook` claims each delivery through `DatabaseWebhookDeduplicator`, so a provider redelivery is a recorded no-op rather than a second projection, and out-of-order arrival is tolerated by the watermarked projections that consume the inbox. Controlled replay as an operator capability is not delivered: no registered task re-runs a stored verified payload, so `replayWebhookEvent` fails closed with a typed refusal that leaves the inbox row and its dedupe marker untouched — pinned by `webhook-replay-refusal.test.ts`, whose AST tripwire also demands the refusal be deleted on the day the task is registered. P0-56 holds that residue. Related gate references EXT-ACC-01, EXT-PROVIDER-01 identify later production inputs and are unchanged by this."
     },
     {
       "id": "SPEC-18-INV-07",
@@ -3785,6 +3803,8 @@
       "database": [],
       "workflowProvider": [
         "scripts/release-suites.mjs",
+        "scripts/validate-traceability.mjs#checkCitationGrammar",
+        "scripts/check-citation-liveness.mjs",
         "packages/testing/src"
       ],
       "portalDocument": [
@@ -3793,6 +3813,8 @@
       ],
       "tests": [
         "scripts/validate-release-test-inventory.mjs",
+        "scripts/validate-traceability.test.mjs",
+        "scripts/check-citation-liveness.test.mjs",
         "packages/domain/src/money.test.ts",
         "packages/testing/src/providers/fakes.contract.test.ts",
         "packages/testing/src/personas/playwright.test.ts",
@@ -3802,9 +3824,9 @@
         "supabase/tests/000_schema.test.sql"
       ],
       "externalGates": [],
-      "backlog": [],
-      "status": "implemented",
-      "rationale": "Repository implementation and direct acceptance tests are complete; no external input remains for this repository requirement."
+      "backlog": ["P0-71"],
+      "status": "partial",
+      "rationale": "The listed product toolchain is in use as declared, and since P0-71 the validation toolchain also includes this ledger's own evidence checkers: `checkCitationGrammar` enforces that a `path#symbol` citation names a real file declaring that symbol and that a path citation exists on disk, running inside `verify:static` on every ledger change, and `check-citation-liveness.mjs` reports cited symbols with no non-test reference outside their defining file; both checkers' own tests run in root `test:unit`. The row is held partial deliberately while P0-71 remains open, and the gap is named rather than implied: the liveness half reports without gating — it is deliberately outside `verify:static` because its false-positive behaviour is documented in its own header — so no gate yet enforces that a cited symbol is reachable, and the citation corpus is still mostly grandfathered prose, converted row by row. The row returns to implemented when P0-71 closes."
     },
     {
       "id": "SPEC-18-VAL-02",

@@ -1,4 +1,4 @@
-import { ids } from "@clockwork/contracts";
+import { ids, type TaxPort } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -758,8 +758,54 @@ describe("lifecycle registration tax identifiers", () => {
   // registration was persisted verbatim, and `reverse_charge_eligible` had one
   // hit, a Drizzle column nothing read or wrote.
   //
+  // The provider's affirmative answers are authoritative: valid persists as
+  // verified, invalid refuses. A provider that cannot answer — absent, or
+  // permanently refusing because EXT-TAX-01 is unconfigured — does NOT refuse
+  // the registration; the identifier is recorded as unverified
+  // (`validation_status: 'pending'`) instead. Only a transient provider
+  // failure still refuses, and it refuses retryably.
+  //
   // Every value the fixture answers with is test data. Which registrations are
   // real and which admit reverse charge is EXT-TAX-01.
+  const taxRepository = (tax?: TaxPort) =>
+    new DatabaseLifecycleCommandRepository({
+      database: db,
+      serviceDatabase: db,
+      authorizationSecret,
+      policies: {
+        clickThroughThresholdMinor: "1000000",
+        migrationFeatureEnabled: false,
+        automatedTeardownEnabled: false,
+        exceptionQueues: queuePolicies,
+      },
+      ...(tax ? { tax } : {}),
+    });
+
+  // The exact wire shape `composedTaxProvider()` injects in hono-app.ts when
+  // TAX_PROVIDER_BASE_URL / TAX_PROVIDER_TOKEN are absent: a port that refuses
+  // every determination permanently rather than a composition without a port.
+  const unconfiguredRefusal = {
+    ok: false as const,
+    kind: "permanent" as const,
+    code: "TAX_PROVIDER_NOT_CONFIGURED",
+    message:
+      "EXT-TAX-01 is not wired: set TAX_PROVIDER_BASE_URL and TAX_PROVIDER_TOKEN.",
+  };
+  const unconfiguredTaxPort: TaxPort = {
+    validateTaxId: () => Promise.resolve(unconfiguredRefusal),
+    calculate: () => Promise.resolve(unconfiguredRefusal),
+  };
+  const outageRefusal = {
+    ok: false as const,
+    kind: "transient" as const,
+    code: "TAX_PROVIDER_TIMEOUT",
+    message: "The tax provider did not answer in time.",
+  };
+  const outageTaxPort: TaxPort = {
+    validateTaxId: () => Promise.resolve(outageRefusal),
+    calculate: () => Promise.resolve(outageRefusal),
+  };
+
   const registration = (
     suffix: string,
     taxIds: readonly { jurisdiction: string; value: string }[],
@@ -803,15 +849,89 @@ describe("lifecycle registration tax identifiers", () => {
       tx.query.accounts.findFirst({ where: eq(accounts.domain, domain) }),
     );
 
-  it("refuses a registration whose identifier nothing can verify", async () => {
+  it("records an identifier the unconfigured production port cannot answer for as pending", async () => {
+    // This is the production composition's unconfigured state end to end: the
+    // refusing port `composedTaxProvider()` injects, the real repository, the
+    // live database. The registration proceeds and the identifier is recorded
+    // as exactly what it is — typed input nobody vouched for.
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const identifier = `GB ${suffix}`;
+    const result = await taxRepository(
+      unconfiguredTaxPort,
+    ).executeInTransaction(
+      registration(suffix, [{ jurisdiction: "GB", value: identifier }]),
+    );
+    expect(result).toMatchObject({ status: "screening_review" });
+    const account = await persistedAccount(`tax-${suffix}.registrant.test`);
+    if (!account) throw new Error("registrant account was not persisted");
+    // `verified: false` is what keeps `identityIsVerified` refusing this
+    // identity until a provider answers; the registration itself is not the
+    // control surface.
+    expect(account.taxIds).toEqual([
+      {
+        jurisdiction: "GB",
+        value: identifier,
+        normalized: `GB${suffix.toUpperCase()}`,
+        verified: false,
+        reverseChargeEligible: false,
+      },
+    ]);
+    const persisted = await withInternalTransaction(
+      db,
+      `tax-unverified-identifier-${suffix}`,
+      async (tx) =>
+        tx.query.accountTaxIdentifiers.findMany({
+          where: eq(accountTaxIdentifiers.accountId, account.id),
+        }),
+    );
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]).toMatchObject({
+      jurisdiction: "GB",
+      normalizedValue: `GB${suffix.toUpperCase()}`,
+      // 'pending' is the state the tax determination path deliberately
+      // excludes, so this row can never grant reverse charge.
+      validationStatus: "pending",
+      reverseChargeEligible: false,
+    });
+    expect(persisted[0]?.validatedAt).toBeNull();
+    expect(persisted[0]?.verificationReference).toBe(
+      `registration-unverified:lifecycle-registration-tax-${suffix}`,
+    );
+  });
+
+  it("records an identifier as pending when no port is composed at all", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const result = await repository.executeInTransaction(
+      registration(suffix, [{ jurisdiction: "DE", value: `DE${suffix}` }]),
+    );
+    expect(result).toMatchObject({ status: "screening_review" });
+    const account = await persistedAccount(`tax-${suffix}.registrant.test`);
+    expect(account?.taxIds).toEqual([
+      {
+        jurisdiction: "DE",
+        value: `DE${suffix}`,
+        normalized: `DE${suffix.toUpperCase()}`,
+        verified: false,
+        reverseChargeEligible: false,
+      },
+    ]);
+  });
+
+  it("refuses retryably when a configured provider fails transiently", async () => {
     const suffix = crypto.randomUUID().slice(0, 8);
     await expect(
-      repository.executeInTransaction(
-        registration(suffix, [{ jurisdiction: "GB", value: "GB123456789" }]),
+      taxRepository(outageTaxPort).executeInTransaction(
+        registration(suffix, [{ jurisdiction: "GB", value: `GB${suffix}` }]),
       ),
-    ).rejects.toThrow("REGISTRATION_TAX_VERIFIER_UNAVAILABLE:EXT-TAX-01");
-    // The account is not created and verified "later": an account whose
-    // reverse-charge treatment nobody decided is the defect, not a to-do.
+    ).rejects.toMatchObject({
+      name: "ProblemError",
+      problem: {
+        code: "REGISTRATION_TAX_VERIFIER_UNAVAILABLE",
+        status: 503,
+        retryable: true,
+      },
+    });
+    // A retry will answer, so nothing half-recorded may exist to collide with.
     expect(
       await persistedAccount(`tax-${suffix}.registrant.test`),
     ).toBeUndefined();
@@ -829,25 +949,23 @@ describe("lifecycle registration tax identifiers", () => {
 
   it("refuses an identifier the provider rejects", async () => {
     const suffix = crypto.randomUUID().slice(0, 8);
-    const verifying = new DatabaseLifecycleCommandRepository({
-      database: db,
-      serviceDatabase: db,
-      authorizationSecret,
-      policies: {
-        clickThroughThresholdMinor: "1000000",
-        migrationFeatureEnabled: false,
-        automatedTeardownEnabled: false,
-        exceptionQueues: queuePolicies,
-      },
-      // The fixture calls anything under five characters invalid. It is a
-      // fixture rule, and the point is that a rule is consulted at all.
-      tax: new FixtureTaxPort(),
-    });
+    // The fixture calls anything under five characters invalid. It is a
+    // fixture rule, and the point is that a rule is consulted at all. An
+    // affirmative rejection is a wrong value, not a missing verifier, and it
+    // is the one identifier state that still blocks a registration.
+    const verifying = taxRepository(new FixtureTaxPort());
     await expect(
       verifying.executeInTransaction(
         registration(suffix, [{ jurisdiction: "GB", value: "GB1" }]),
       ),
-    ).rejects.toThrow("REGISTRATION_TAX_IDENTIFIER_INVALID:GB");
+    ).rejects.toMatchObject({
+      name: "ProblemError",
+      problem: {
+        code: "REGISTRATION_TAX_IDENTIFIER_INVALID",
+        status: 422,
+        retryable: false,
+      },
+    });
     expect(
       await persistedAccount(`tax-${suffix}.registrant.test`),
     ).toBeUndefined();
@@ -855,18 +973,9 @@ describe("lifecycle registration tax identifiers", () => {
 
   it("persists the provider's answer, including reverse-charge eligibility", async () => {
     const suffix = crypto.randomUUID().slice(0, 8);
-    const verifying = new DatabaseLifecycleCommandRepository({
-      database: db,
-      serviceDatabase: db,
-      authorizationSecret,
-      policies: {
-        clickThroughThresholdMinor: "1000000",
-        migrationFeatureEnabled: false,
-        automatedTeardownEnabled: false,
-        exceptionQueues: queuePolicies,
-      },
-      tax: new FixtureTaxPort({ reverseChargeIdentifierPrefixes: ["GB"] }),
-    });
+    const verifying = taxRepository(
+      new FixtureTaxPort({ reverseChargeIdentifierPrefixes: ["GB"] }),
+    );
     const identifier = `GB ${suffix}`;
     const result = await verifying.executeInTransaction(
       registration(suffix, [{ jurisdiction: "GB", value: identifier }]),

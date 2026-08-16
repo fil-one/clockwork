@@ -16,6 +16,7 @@ import {
 import {
   ActorSchema,
   ids,
+  ProblemError,
   uuidV7,
   type Actor,
   type EntityName,
@@ -252,20 +253,39 @@ export interface DatabaseLifecycleCommandRepositoryOptions {
   exceptionRouting?: LifecycleExceptionRoutingPort;
   migrationSource?: LifecycleMigrationSourcePort;
   /**
-   * Verifies tax identifiers entered at registration. Optional only because a
-   * registration that supplies none needs no verifier; a registration that
-   * supplies one and has no verifier is refused rather than persisting an
-   * unverified identifier, which is what P0-45 recorded. `EXT-TAX-01` supplies
-   * the production one.
+   * Verifies tax identifiers entered at registration. `EXT-TAX-01` supplies
+   * the production one through the composed port in hono-app.ts. When the
+   * port is absent, or refuses permanently because no provider is configured,
+   * a registration carrying an identifier still succeeds and the identifier
+   * is recorded as unverified — see `verifyRegistrationTaxIds` for why that
+   * is the deliberate call.
    */
   tax?: TaxPort;
 }
 
-/** One registration tax identifier the provider has answered for. */
-interface VerifiedTaxIdentifier {
+/**
+ * The stored form of an identifier no provider answered for: uppercased with
+ * whitespace removed — the same convention the fixture provider applies — so
+ * the unique (jurisdiction, type, normalized_value) index still deduplicates
+ * a second registration of the same number. A provider's own normalization
+ * replaces it whenever the identifier is verified.
+ */
+function unverifiedTaxIdentifierNormalization(value: string): string {
+  return value.replace(/\s/g, "").toUpperCase();
+}
+
+/**
+ * One registration tax identifier as it will be persisted: the provider's
+ * answer (`verified: true`, provider normalization, provider reverse-charge
+ * determination) or the registrant's input recorded as exactly that
+ * (`verified: false`, deterministic local normalization, never
+ * reverse-charge eligible).
+ */
+interface RegistrationTaxIdentifier {
   jurisdiction: string;
   value: string;
   normalized: string;
+  verified: boolean;
   reverseChargeEligible: boolean;
 }
 
@@ -815,16 +835,18 @@ export class DatabaseLifecycleCommandRepository {
     if (input.command === "register") {
       // P0-45: a tax identifier typed at registration was persisted verbatim
       // into accounts.tax_ids and never checked against anything. It is now
-      // verified before the transaction opens — the provider is a network call
-      // and must not run inside the write — and the verified result, including
-      // whether the registration admits reverse charge, is carried into the
-      // command so `register` writes evidence rather than user input.
-      const verifiedTaxIdentifiers = await this.verifyRegistrationTaxIds(input);
+      // answered for before the transaction opens — the provider is a network
+      // call and must not run inside the write — and the result, including
+      // whether the identifier is verified at all and whether the registration
+      // admits reverse charge, is carried into the command so `register`
+      // writes evidence rather than user input.
+      const registrationTaxIdentifiers =
+        await this.verifyRegistrationTaxIds(input);
       return withInternalTransaction(
         this.serviceDatabase,
         input.context.requestId,
         (transaction) =>
-          this.executeClaimed(transaction, input, verifiedTaxIdentifiers),
+          this.executeClaimed(transaction, input, registrationTaxIdentifiers),
       );
     }
     if (
@@ -861,10 +883,10 @@ export class DatabaseLifecycleCommandRepository {
   private async executeClaimed(
     transaction: RuntimeTransaction,
     input: DatabaseLifecycleCommandInput,
-    verifiedTaxIdentifiers?: readonly VerifiedTaxIdentifier[],
+    registrationTaxIdentifiers?: readonly RegistrationTaxIdentifier[],
   ): Promise<DatabaseLifecycleCommandResult> {
     if (readCommand(input.command))
-      return this.dispatch(transaction, input, verifiedTaxIdentifiers);
+      return this.dispatch(transaction, input, registrationTaxIdentifiers);
     const key = input.context.idempotencyKey;
     if (!key) throw new Error("LIFECYCLE_IDEMPOTENCY_KEY_REQUIRED");
     const requestHash = hashJson({
@@ -896,7 +918,7 @@ export class DatabaseLifecycleCommandRepository {
     const response = await this.dispatch(
       transaction,
       input,
-      verifiedTaxIdentifiers,
+      registrationTaxIdentifiers,
     );
     if (input.context.actor.kind === "user" && input.command !== "register")
       await this.completeUserIdempotency(
@@ -920,7 +942,7 @@ export class DatabaseLifecycleCommandRepository {
   private dispatch(
     transaction: RuntimeTransaction,
     input: DatabaseLifecycleCommandInput,
-    verifiedTaxIdentifiers?: readonly VerifiedTaxIdentifier[],
+    registrationTaxIdentifiers?: readonly RegistrationTaxIdentifier[],
   ): Promise<DatabaseLifecycleCommandResult> {
     switch (input.command) {
       case "register":
@@ -928,7 +950,7 @@ export class DatabaseLifecycleCommandRepository {
           transaction,
           input.payload,
           input.context,
-          verifiedTaxIdentifiers ?? [],
+          registrationTaxIdentifiers ?? [],
         );
       case "invite_member":
         return this.inviteMember(transaction, input.payload, input.context);
@@ -1058,51 +1080,93 @@ export class DatabaseLifecycleCommandRepository {
   }
 
   /**
-   * Verifies every tax identifier a registration carries, before any write.
+   * Answers for every tax identifier a registration carries, before any write.
    *
    * A registration with none is untouched: there is nothing to verify and no
-   * reason to require a provider. A registration that carries one and has no
-   * provider is refused — persisting an unverified identifier is precisely the
-   * defect, and an account created now and verified "later" is an account whose
-   * reverse-charge treatment nobody ever decided.
+   * reason to require a provider. When a provider answers, its answer is
+   * authoritative — a valid identifier is persisted as verified with the
+   * provider's normalization and reverse-charge determination, and an
+   * identifier the provider affirmatively rejects refuses the registration,
+   * because that is a wrong value, not a missing verifier.
+   *
+   * When no provider can answer — none injected, or the composed port refuses
+   * permanently because `EXT-TAX-01` is unconfigured — the registration
+   * SUCCEEDS and the identifier is recorded as unverified (`verified: false`
+   * in accounts.tax_ids, `validation_status: 'pending'` in
+   * core_account_tax_identifiers, never reverse-charge eligible). A tax
+   * identifier at registration is reference data, not an authorization
+   * decision; the platform runs in jurisdictions where no verifier exists at
+   * all, and refusing here would block every legitimate registration in them.
+   * Nothing downstream mistakes the record for evidence: `identityIsVerified`
+   * refuses any unverified identifier and the tax determination path selects
+   * only `validation_status = 'valid'` rows.
+   *
+   * A transient provider failure is the one refusal kept, and it is
+   * retryable: the verifier exists and a retry will answer, so downgrading to
+   * an unverified record would trade one retry for permanently weaker
+   * evidence.
    */
   private async verifyRegistrationTaxIds(
     input: DatabaseLifecycleCommandInput,
-  ): Promise<readonly VerifiedTaxIdentifier[]> {
+  ): Promise<readonly RegistrationTaxIdentifier[]> {
     const payload = registrationPayloadSchema.parse(input.payload);
     if (payload.taxIds.length === 0) return [];
     const { tax } = this.options;
-    if (!tax)
-      throw new Error("REGISTRATION_TAX_VERIFIER_UNAVAILABLE:EXT-TAX-01");
-    const verified: VerifiedTaxIdentifier[] = [];
+    const identifiers: RegistrationTaxIdentifier[] = [];
     for (const taxId of payload.taxIds) {
-      const result = await tax.validateTaxId({
-        country: taxId.jurisdiction,
-        value: taxId.value,
-      });
-      if (!result.ok)
-        throw new Error(
-          `REGISTRATION_TAX_IDENTIFIER_UNVERIFIABLE:${taxId.jurisdiction}`,
-        );
-      if (!result.value.valid)
-        throw new Error(
-          `REGISTRATION_TAX_IDENTIFIER_INVALID:${taxId.jurisdiction}`,
-        );
-      verified.push({
+      const result = tax
+        ? await tax.validateTaxId({
+            country: taxId.jurisdiction,
+            value: taxId.value,
+          })
+        : undefined;
+      if (result?.ok) {
+        if (!result.value.valid)
+          throw new ProblemError({
+            type: "https://clockwork.test/problems/registration-tax-identifier",
+            title: "Registration tax identifier is invalid",
+            status: 422,
+            detail: `The verification provider rejected the ${taxId.jurisdiction} tax identifier.`,
+            code: "REGISTRATION_TAX_IDENTIFIER_INVALID",
+            requestId: input.context.requestId,
+            errors: { taxIds: [taxId.jurisdiction] },
+            retryable: false,
+          });
+        identifiers.push({
+          jurisdiction: taxId.jurisdiction,
+          value: taxId.value,
+          normalized: result.value.normalized,
+          verified: true,
+          reverseChargeEligible: result.value.reverseChargeEligible,
+        });
+        continue;
+      }
+      if (result && result.kind === "transient")
+        throw new ProblemError({
+          type: "https://clockwork.test/problems/registration-tax-verifier",
+          title: "Tax identifier verification is temporarily unavailable",
+          status: 503,
+          detail: `The tax verification provider could not answer for ${taxId.jurisdiction} (${result.code}). Retry the registration.`,
+          code: "REGISTRATION_TAX_VERIFIER_UNAVAILABLE",
+          requestId: input.context.requestId,
+          retryable: true,
+        });
+      identifiers.push({
         jurisdiction: taxId.jurisdiction,
         value: taxId.value,
-        normalized: result.value.normalized,
-        reverseChargeEligible: result.value.reverseChargeEligible,
+        normalized: unverifiedTaxIdentifierNormalization(taxId.value),
+        verified: false,
+        reverseChargeEligible: false,
       });
     }
-    return verified;
+    return identifiers;
   }
 
   private async register(
     transaction: RuntimeTransaction,
     raw: unknown,
     context: LifecycleRepositoryOperationContext,
-    verifiedTaxIdentifiers: readonly VerifiedTaxIdentifier[],
+    registrationTaxIdentifiers: readonly RegistrationTaxIdentifier[],
   ) {
     const payload = registrationPayloadSchema.parse(raw);
     const registration = registerLegalEntity({
@@ -1138,14 +1202,16 @@ export class DatabaseLifecycleCommandRepository {
         legalName: registration.legalName,
         relationshipRoles: [...registration.relationshipRoles],
         registeredAddress: payload.registeredAddress,
-        // What the provider verified, not what the registrant typed. `verified`
-        // is the flag `identityIsVerified` (packages/domain/src/identity) has
-        // always read and nothing has ever set.
-        taxIds: verifiedTaxIdentifiers.map((taxId) => ({
+        // What the provider answered when a provider answered, and the
+        // registrant's input honestly flagged as unverified when none could.
+        // `verified` is the flag `identityIsVerified`
+        // (packages/domain/src/identity) reads, so an unverified identifier
+        // keeps the identity unverified rather than blocking the registration.
+        taxIds: registrationTaxIdentifiers.map((taxId) => ({
           jurisdiction: taxId.jurisdiction,
           value: taxId.value,
           normalized: taxId.normalized,
-          verified: true,
+          verified: taxId.verified,
           reverseChargeEligible: taxId.reverseChargeEligible,
         })),
         billingContact: payload.billingContact,
@@ -1161,21 +1227,27 @@ export class DatabaseLifecycleCommandRepository {
     // core_account_tax_identifiers has existed since 000100 with nothing
     // writing it, which is why reverse_charge_eligible had exactly one hit in
     // the tree: a Drizzle column. `register` runs on the service connection, so
-    // app_is_internal() holds and the identifier row is written by the one path
-    // that has provider evidence for it. The unique (jurisdiction, type,
-    // normalized_value) index makes a second account claiming the same
-    // registration a conflict rather than a duplicate.
-    if (verifiedTaxIdentifiers.length > 0)
+    // app_is_internal() holds and the identifier row is written here. A
+    // provider-verified identifier lands as 'valid' with the validation
+    // instant; one no provider could answer for lands as 'pending' — the
+    // status the column was born with and the state the tax determination
+    // path deliberately excludes — with no validation instant to forge. The
+    // unique (jurisdiction, type, normalized_value) index makes a second
+    // account claiming the same registration a conflict rather than a
+    // duplicate.
+    if (registrationTaxIdentifiers.length > 0)
       await transaction.insert(accountTaxIdentifiers).values(
-        verifiedTaxIdentifiers.map((taxId) => ({
+        registrationTaxIdentifiers.map((taxId) => ({
           accountId: account.id,
           jurisdiction: taxId.jurisdiction,
           type: "vat",
           normalizedValue: taxId.normalized,
-          validationStatus: "valid",
-          verificationReference: `registration:${context.requestId}`,
+          validationStatus: taxId.verified ? "valid" : "pending",
+          verificationReference: taxId.verified
+            ? `registration:${context.requestId}`
+            : `registration-unverified:${context.requestId}`,
           reverseChargeEligible: taxId.reverseChargeEligible,
-          validatedAt: now,
+          validatedAt: taxId.verified ? now : null,
         })),
       );
     const [organization] = await transaction
@@ -2362,6 +2434,37 @@ export class DatabaseLifecycleCommandRepository {
       )
       .returning();
     if (!updated) throw new Error("VERSION_CONFLICT");
+    // This is the provider's own verdict on the operation, so it has to reach
+    // the effect row the dispatch actually claimed. Two writers claim a row
+    // under a provisioning command's idempotency key and they use different
+    // provider names: the eager inserts made when a `sandbox` or `teardown`
+    // attempt is created write `provisioning` (decidePoc and the offboarding
+    // approval below), while the row a `provision` dispatch claims is written
+    // lazily by `claimProviderEffect`
+    // (packages/db/src/repositories/workflows/lifecycle.ts) under
+    // `lifecycle-provisioning`. Matching only `provisioning` therefore updated
+    // ZERO rows for every `provision` attempt -- the one operation a customer
+    // pays for. A provider callback reporting failure left the effect row on
+    // `succeeded` with a `committed` checkpoint, and the next dispatch read
+    // `{status: 'succeeded'}` back out of `claimProviderEffect`, skipped the
+    // provider entirely and recorded a successful dispatch of an operation the
+    // provider had rejected.
+    //
+    // The provider predicate stays rather than being dropped for the
+    // idempotency key alone. Six values are ever written to this column --
+    // `esign`, `provisioning`, `lifecycle-provisioning`, `lifecycle-runtime`,
+    // `clockwork-workflow-record`, `clockwork-workflow-exception` -- all six as
+    // literals, and `lifecycle-runtime` rows are keyed by an effect key that
+    // the provisioning dispatch handler builds out of this very
+    // `command.idempotencyKey` (provider-lifecycle.ts). Dropping the predicate
+    // would put a generic effect row in range of a provisioning callback.
+    // Narrowing it further -- by `operation`, say -- cannot help either:
+    // `provider_operations_idempotency_unique` is (provider, idempotency_key),
+    // so at most one row exists per provider per key and any extra predicate
+    // can only re-open the "matched nothing" failure this fixes.
+    //
+    // `row_version` is not set here because `touch_versioned_row` owns that
+    // column on update; the value being written was the ATTEMPT's version.
     await transaction
       .update(providerOperations)
       .set({
@@ -2372,11 +2475,13 @@ export class DatabaseLifecycleCommandRepository {
             ? "Provisioning provider reported failure"
             : null,
         updatedAt: this.now(),
-        rowVersion: attemptRow.rowVersion + 1,
       })
       .where(
         and(
-          eq(providerOperations.provider, "provisioning"),
+          inArray(providerOperations.provider, [
+            "provisioning",
+            "lifecycle-provisioning",
+          ]),
           eq(providerOperations.idempotencyKey, attempt.command.idempotencyKey),
         ),
       );
@@ -2437,19 +2542,47 @@ export class DatabaseLifecycleCommandRepository {
       if (attempt.command.operation === "teardown")
         eventType = "termination.teardown_confirmed";
     }
-    let auditAggregateType: EntityName =
-      attempt.command.operation === "teardown"
-        ? "provider_operation"
-        : attemptRow.pocId
-          ? "poc"
-          : "order";
-    let auditAggregateId =
-      attempt.command.operation === "teardown"
-        ? attemptRow.id
-        : (attemptRow.pocId ?? attemptRow.orderId ?? attemptRow.id);
-    // The POC row, not the provisioning attempt, is what `poc.activated` binds
-    // to, so the version has to come from the POC that was just activated.
-    let auditAggregateVersion = activatedPocVersion ?? updated.rowVersion;
+    // The binding follows the VERSION, not the subject. `updated.rowVersion` is
+    // the ATTEMPT's row version, and `audit_aggregate_version_unique` is
+    // (aggregate_type, aggregate_id, aggregate_version): writing an attempt
+    // version under the order or POC aggregate drops it into that subject's own
+    // version sequence, where a `core.orders.*` or `poc.*` row already sits.
+    // The collision is not a stray audit row -- it is a 23505 that aborts the
+    // whole provider callback, so the platform silently loses the provider's
+    // verdict on an operation a customer is paying for. `teardown` was exempted
+    // to `('provider_operation', attempt.id)` at some point and its siblings
+    // were left behind; every branch whose version comes from the attempt now
+    // binds the same way, which is also the binding the acceptance emitter
+    // (accepted-order-provisioning.ts) and `recoverProvisioning` use.
+    //
+    // Checked against every reader before moving: `order.provisioning_confirmed`
+    // and `order.provisioning_dead_lettered` are absent from
+    // `lifecycleEventTopics` in packages/workflows/src/experience/
+    // projection-definitions.ts (asserted absent by its own test), so no portal
+    // projection resolves them and `authoritative-state.ts` is never asked;
+    // `incident-repository.ts` reads `order.provisioning_dead_lettered` but
+    // reaches the cause through `after->>'commandId'`, which is unchanged, and
+    // its `provider_operation` join is on `provider_operations.id`, which
+    // neither binding ever supplied; `core_commercial_audit_is_visible` names
+    // `order.provisioning_requested` only, on both its `order` arm and its
+    // `provider_operation` arm, so partner visibility is unchanged in both
+    // directions; `core_guard_provisioning_outbox` fires on topic
+    // `order.provisioning_requested` alone; `exception-routing.ts` writes
+    // `approval`/`exception_case` events and reads none of these. `account_id`
+    // stays on the row either way, so `audit_events_scope` keeps the tenant's
+    // read.
+    //
+    // Two departures, both because the version is genuinely someone else's:
+    // `poc.activated` carries the version of the POC just activated, and the
+    // teardown confirmation below carries the termination's.
+    let auditAggregateType: EntityName = "provider_operation";
+    let auditAggregateId = attemptRow.id;
+    let auditAggregateVersion = updated.rowVersion;
+    if (activatedPocVersion !== undefined && attemptRow.pocId) {
+      auditAggregateType = "poc";
+      auditAggregateId = attemptRow.pocId;
+      auditAggregateVersion = activatedPocVersion;
+    }
     if (
       payload.status === "succeeded" &&
       attempt.command.operation === "teardown" &&
@@ -3445,6 +3578,18 @@ export class DatabaseLifecycleCommandRepository {
       )
       .returning();
     if (!updated) throw new Error("VERSION_CONFLICT");
+    // Two providers claim a row under this idempotency key, and recovery has
+    // to release whichever one is present. The eager rows written when a
+    // sandbox or teardown attempt is created use `provisioning`
+    // (decidePoc/decideApproval below); the row the dispatch handler claims
+    // for a `provision` attempt is written lazily by `claimProviderEffect`
+    // (packages/db/src/repositories/workflows/lifecycle.ts) under
+    // `lifecycle-provisioning`. Matching only `provisioning` updated nothing
+    // on exactly the attempts an operator recovers: the effect row stayed
+    // `failed`, so the re-dispatch claimed it, read `permanent_failure` and
+    // raised PROVISIONING_DISPATCH_PREVIOUSLY_FAILED before reaching the
+    // provider. `row_version` is not set here because `touch_versioned_row`
+    // owns that column on update.
     await transaction
       .update(providerOperations)
       .set({
@@ -3452,33 +3597,80 @@ export class DatabaseLifecycleCommandRepository {
         lastError: null,
         nextAttemptAt: new Date(context.occurredAt),
         updatedAt: this.now(),
-        rowVersion: row.rowVersion + 1,
       })
       .where(
         and(
-          eq(providerOperations.provider, "provisioning"),
+          inArray(providerOperations.provider, [
+            "provisioning",
+            "lifecycle-provisioning",
+          ]),
           eq(
             providerOperations.idempotencyKey,
             recovered.command.idempotencyKey,
           ),
         ),
       );
+    // Only a `provision` attempt bound to an order is dispatchable. That is
+    // not a preference: `DatabaseProvisioningDispatchStore.load` refuses
+    // `sandbox` and `teardown` outright, `ProvisioningRequestedEventSchema`
+    // requires a `data.orderId`, and `core_guard_provisioning_outbox`
+    // (supabase/migrations/001000) raises 23514 on any
+    // `order.provisioning_requested` message whose payload yields no order
+    // with an approved acceptance reservation. Recovering a dead-lettered
+    // sandbox attempt used to hit that trigger and fail with a message about
+    // acceptance reservations, which is an operation refused rather than a
+    // value refused.
+    const dispatchable =
+      row.orderId !== null && recovered.command.operation !== "teardown";
+    // The dispatch payload is the acceptance emitter's, not a stub. The
+    // consumer schema is a literal `provider_operation` keyed on the attempt,
+    // and `loadDeadLetterDispatch` finds a dispatch by `after.command`, so a
+    // recovery that omits either enqueues a run that dies at parse and leaves
+    // no redrivable record. Carrying the stored command rather than rebuilding
+    // one also keeps this honest about provenance: `attempt.command` is the
+    // durable copy of the bytes the first dispatch ran on.
+    //
+    // Keying on the attempt rather than on `('order'|'poc', subject)` is the
+    // same choice the acceptance emitter makes, and for the same reason:
+    // `aggregateVersion` here is the ATTEMPT's row version, so writing it
+    // against the order or POC aggregate mixes two version sequences into one
+    // `audit_aggregate_version_unique` key and collides with the subject's own
+    // history. Nothing reads these rows by the old binding --
+    // `runtimeFailureEventTypes` excludes this event type, the experience
+    // projection topics exclude it deliberately, and
+    // `core_commercial_audit_is_visible` resolves the same partner from the
+    // `provider_operation` arm as from the `order` arm.
+    const eventType = dispatchable
+      ? "order.provisioning_requested"
+      : "order.provisioning_recovered";
     await appendEvent(transaction, {
       accountId: row.accountId,
-      aggregateType: row.pocId ? "poc" : "order",
-      aggregateId: row.pocId ?? row.orderId ?? row.id,
+      aggregateType: "provider_operation",
+      aggregateId: row.id,
       aggregateVersion: updated.rowVersion,
-      eventType: "order.provisioning_requested",
+      eventType,
       context,
       before: { state: row.state, rowVersion: row.rowVersion },
-      after: {
-        commandId: row.commandId,
-        state: updated.state,
-        recoveredBy: userId(context),
-        reason: payload.reason,
-      },
+      after: dispatchable
+        ? {
+            orderId: row.orderId,
+            accountId: row.accountId,
+            organizationId: row.organizationId,
+            command: recovered.command,
+            commandId: row.commandId,
+            state: updated.state,
+            recoveredBy: userId(context),
+            reason: payload.reason,
+          }
+        : {
+            commandId: row.commandId,
+            operation: row.operation,
+            state: updated.state,
+            recoveredBy: userId(context),
+            reason: payload.reason,
+          },
     });
-    return result(updated.id, updated.state, "order.provisioning_requested");
+    return result(updated.id, updated.state, eventType);
   }
 
   private async acceptPassThrough(
@@ -4724,6 +4916,22 @@ export class DatabaseLifecycleCommandRepository {
     if (!requireRecentAuthentication(context).isInternalStaff)
       throw new Error("MIGRATION_INTERNAL_STAFF_REQUIRED");
     const payload = startMigrationPayloadSchema.parse(raw);
+    // A resume writes nothing, and that is the specified behaviour rather than
+    // an unfinished branch. docs/operations/migration.md, production execution
+    // step 3: "Process bounded batches through
+    // `lifecycle-migrations-scheduled-batch-v1`. Pause on every ambiguous match
+    // or invariant failure. Resume with the recorded run ID and checkpoint; do
+    // not start a parallel run for the same snapshot."
+    //
+    // So resuming binds to the recorded run and creates nothing: no second run
+    // row, and no `migration.started` event, because the outbox mapping for
+    // that event type is `lifecycle-migrations-discovery-v1` -- emitting it
+    // would re-run discovery over a run already past that phase, not continue
+    // its batches. The run is already self-driving: the scheduled batch task
+    // sweeps every run whose status is not `complete` or `failed`, so the work
+    // resumes without an enqueue here. `eventType: undefined` is this file's
+    // convention for a command that appended nothing, shared with the
+    // duplicate, stale and read-only returns.
     if (payload.resumeRunId) {
       const existing = await transaction.query.lifecycleMigrationRuns.findFirst(
         {

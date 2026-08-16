@@ -70,7 +70,100 @@ function json(
   });
 }
 
-function problem(error: unknown, id: string): Response {
+/** The `{ name, message, stack }` shape both fields below are logged as. */
+function errorDetail(value: unknown) {
+  return value instanceof Error
+    ? { name: value.name, message: value.message, stack: value.stack }
+    : { name: "UnknownError", message: String(value) };
+}
+
+/**
+ * Write the cause of an experience failure to the server log, once, at the
+ * boundary that would otherwise be the last place it existed.
+ *
+ * This is the same instrument as `reportRenderFailure` in
+ * `packages/documents/src/delivery.ts`, for the same reason and with the same
+ * join. `problem()` below deliberately withholds the message from the tenant
+ * in production -- correctly, because that body leaves the server -- and the
+ * consequence was that a `TypeError: Cannot read properties of undefined
+ * (reading 'S')` naming the exact defect reached nobody: every artifact
+ * request answered a bare 503 `EXPERIENCE_UNAVAILABLE` and reading the cause
+ * required patching this function by hand. The render boundary was instrumented
+ * and stopped losing document renders; every other experience route still lost
+ * everything.
+ *
+ * `requestId` is the join, and it is the only reason this is worth writing: it
+ * is the identical value the problem+json body carries, so an operator holding
+ * a failed request id has the term to grep for.
+ *
+ * It reports exactly what the response cannot carry, and nothing the response
+ * already carries. An `ExperienceProblem` puts its own `message`, `code` and
+ * `status` in the body in every environment, so a 404 `ROUTE_NOT_FOUND` writes
+ * nothing here; an `ExperienceProblem` that was given a `cause` -- the
+ * transition-error attachment on the projection-action path does exactly that
+ * -- writes, because a `cause` is never in the body.
+ *
+ * Nothing here is tenant data. `requestId` is the client's own `x-request-id`
+ * or a generated v7, already length-bounded by `requestId()`; `route` is the
+ * request's own path segments, bounded again below because they are raw input;
+ * and the rest is the server's own error.
+ *
+ * A log rather than a durable audit event is a deliberate choice; the
+ * constraints that force it are recorded in the delivery notes for this change
+ * and, in short: this boundary is reached by unauthenticated requests with no
+ * resolved account, `audit_events` refuses an `account_id IS NULL` row on the
+ * tenant pool, an append is therefore only admissible on the service pool
+ * where every unauthenticated 503 would become an immutable row plus an outbox
+ * message, and the demo adapter has no database at all.
+ */
+function reportExperienceFailure(
+  error: unknown,
+  id: string,
+  context: { method: string; route: readonly string[] },
+): void {
+  console.error("Experience request failed", {
+    requestId: id,
+    method: context.method,
+    // Raw, undecoded request input: bounded in both directions so a hostile
+    // path cannot flood the log, and never interpolated into the message.
+    route: context.route.slice(0, 12).join("/").slice(0, 512),
+    code:
+      error instanceof ExperienceProblem
+        ? error.code
+        : "EXPERIENCE_UNAVAILABLE",
+    status: error instanceof ExperienceProblem ? error.status : 503,
+    error: errorDetail(error),
+    cause:
+      error instanceof Error && error.cause !== undefined
+        ? errorDetail(error.cause)
+        : undefined,
+  });
+}
+
+/**
+ * Whether the failure's cause survives anywhere other than the server log.
+ *
+ * An `ExperienceProblem` carries its own message into the response body. Its
+ * `cause` does not, and neither does anything about an error that is not an
+ * `ExperienceProblem` at all once production replaces the message with a
+ * constant.
+ */
+function causeIsDiscarded(error: unknown): boolean {
+  if (!(error instanceof ExperienceProblem)) return true;
+  return error.cause !== undefined;
+}
+
+/**
+ * `context` is required rather than optional on purpose: an optional argument
+ * would let a second caller of `problem()` reintroduce the silent 503 by
+ * omitting it, which is the defect this parameter exists to close.
+ */
+function problem(
+  error: unknown,
+  id: string,
+  context: { method: string; route: readonly string[] },
+): Response {
+  if (causeIsDiscarded(error)) reportExperienceFailure(error, id, context);
   const value =
     error instanceof ExperienceProblem
       ? error
@@ -999,7 +1092,10 @@ export async function handleExperienceRequest(
       "Experience route not found",
     );
   } catch (error) {
-    return problem(error, id);
+    // `rawSegments` rather than the cleaned ones: `cleanSegments` calls
+    // `decodeURIComponent`, which throws `URIError` on a malformed escape, so
+    // the cleaned value does not exist for one of the failures this reports.
+    return problem(error, id, { method: request.method, route: rawSegments });
   }
 }
 

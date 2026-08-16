@@ -6,7 +6,7 @@ import type {
   DocumentKind,
   RenderedDocument,
 } from "./model";
-import { renderCommerceDocument } from "./render";
+import { DocumentRenderError, renderCommerceDocument } from "./render";
 
 export type DocumentAudience = "customer" | "partner" | "internal";
 
@@ -86,6 +86,48 @@ function assertAuthorization(context: AuthorizedRenderContext): void {
     throw new Error("Document audience scope denied");
 }
 
+/**
+ * Write the cause of a render failure to the server log, once, where the stack
+ * is still intact and the request is still identifiable.
+ *
+ * Every HTTP boundary above this turns an unrecognized error into a generic
+ * 5xx, and in production it deliberately does not put the message in the
+ * response body -- correctly, because that body goes to a tenant. The
+ * consequence was that a `TypeError` naming the exact defect reached nobody:
+ * all nineteen catalog artifacts answered 503 EXPERIENCE_UNAVAILABLE and
+ * reading the cause required patching the error handler.
+ *
+ * `requestId` is the join. It is the same value the problem+json response
+ * carries, so an operator holding a failed download has the term to grep for.
+ * Nothing here is tenant data: identifiers, the document kind, and the
+ * renderer's own error.
+ */
+function reportRenderFailure(
+  error: unknown,
+  context: AuthorizedRenderContext,
+  documentId: string,
+): void {
+  console.error("Commerce document render failed", {
+    requestId: context.requestId,
+    kind: context.kind,
+    documentId,
+    audience: context.audience,
+    code: error instanceof DocumentRenderError ? error.code : "RENDER_FAILED",
+    error:
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : { name: "UnknownError", message: String(error) },
+    cause:
+      error instanceof Error && error.cause instanceof Error
+        ? {
+            name: error.cause.name,
+            message: error.cause.message,
+            stack: error.cause.stack,
+          }
+        : undefined,
+  });
+}
+
 /** Render only from the immutable, server-loaded request and its signed scope. */
 export async function renderAuthorizedCommerceDocument(
   input: CommerceDocumentInput,
@@ -96,7 +138,13 @@ export async function renderAuthorizedCommerceDocument(
     throw new Error("Document kind differs from the persisted render request");
   if (!equalHash(input.verification.recordHash, context.sourceHash))
     throw new Error("Document source hash differs from the persisted record");
-  const rendered = await renderCommerceDocument(input);
+  let rendered: RenderedDocument;
+  try {
+    rendered = await renderCommerceDocument(input);
+  } catch (error) {
+    reportRenderFailure(error, context, input.documentId);
+    throw error;
+  }
   return {
     ...rendered,
     accountId: context.accountId,

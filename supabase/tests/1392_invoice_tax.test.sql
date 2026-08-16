@@ -43,13 +43,18 @@ select ok(
   'invoices written before any determination existed record that none was made'
 );
 
+-- 001415 widened this vocabulary to the six values the determination engine
+-- actually returns, `zero_rated` among them, so the refusal is now pinned with
+-- a value that is outside the engine's vocabulary rather than merely outside
+-- 001392's. The assertion is the same one: the column is a closed vocabulary
+-- and not free text. 1415 covers which six are admitted and why.
 select throws_ok(
   $$insert into invoices (id, order_id, account_id, currency, amount_minor,
                           tax_minor, tax_treatment, po_number, status)
     values ('90000000-0000-4000-8000-000000000191',
             '80000000-0000-4000-8000-000000000001',
             '10000000-0000-4000-8000-000000000001',
-            'USD', 180000, 0, 'zero_rated', 'PO-DEMO-001', 'draft')$$,
+            'USD', 180000, 0, 'reduced_rate', 'PO-DEMO-001', 'draft')$$,
   '23514',
   null,
   'a treatment outside the vocabulary the provider answers in is refused'

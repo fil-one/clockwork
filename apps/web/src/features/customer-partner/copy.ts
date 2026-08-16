@@ -40,7 +40,7 @@ export const customerPartnerCopy = {
     freshnessAction: "Refresh records",
     freshnessPartialTitle: "Only part of this collection could be read.",
     freshnessPartialBody:
-      "This account holds more records in this channel than one read of this workspace returns, so the rows below are the most recently updated ones. The result count, the filter choices and any total on this page describe only what was read. The incomplete read has been reported for attention; refreshing will not return the rest.",
+      "This account holds more records in this channel than one read of this workspace returns, so the rows below are the most recently updated ones. The result count, the filter choices and any total on this page describe only what was read, and sorting orders only what was read: a list sorted by value can be correctly ordered and still be missing this account's largest record. The incomplete read has been reported for attention; refreshing will not return the rest.",
     unsavedTitle: "Leave without saving?",
     unsavedBody:
       "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",

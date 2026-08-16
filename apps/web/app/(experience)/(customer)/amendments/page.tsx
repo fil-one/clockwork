@@ -19,6 +19,7 @@ export default async function Page({
       <CustomerCollection
         freshness={{
           generatedAt: projection.generatedAt,
+          partial: projection.truncated,
           stale: projection.stale,
         }}
         formatting={{ locale: session.locale, timeZone: session.timeZone }}

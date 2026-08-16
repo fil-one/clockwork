@@ -129,6 +129,18 @@ import {
   type CommercialArtifactBindingEvidence,
 } from "./commercial-artifacts";
 import {
+  amendmentDeltaLine,
+  bindOrderSellingEntity,
+  determineTaxForSubject,
+  loadOrderSupplierBinding,
+  orderTaxLines,
+  persistInvoiceTaxDetermination,
+  prospectiveSupplierEntity,
+  TaxDeterminationUnavailableError,
+  type TaxDeterminationDetail,
+  type TaxRequestLineSource,
+} from "./tax-determination";
+import {
   applyCommitmentDecision,
   ingestUsageEvents,
   reconcileLedgerToSource,
@@ -659,6 +671,19 @@ type CommissionSourceContext =
       partnerAccountId: string;
       occurredAt: string;
       currency: "USD" | "EUR" | "GBP";
+      /**
+       * The TAX-EXCLUSIVE base this accrual is attributed to, which is what
+       * every commission figure derives from — NOT the source event's own
+       * amount, which is tax-inclusive and is what the eligibility check above
+       * compares against the invoice.
+       *
+       * A `grossAmountMinor` sat here for one round, documented as the figure
+       * eligibility is checked on, and was read by nothing: eligibility is
+       * checked where the source is loaded, several hundred lines before this
+       * object exists. It is removed rather than wired to a second reader,
+       * because a field whose only job is to be available is the declaration
+       * this project has paid for ten times.
+       */
       amountMinor: string;
       agreementType: "referral";
       rateBps: number;
@@ -2061,6 +2086,14 @@ export interface TaxDetermination {
   netMinor: bigint;
   taxMinor: bigint;
   treatment: TaxTreatment;
+  /**
+   * The determination itself: both parties, the per-line per-jurisdiction
+   * answer, the books it was made against, and the canonical question it was
+   * asked. Present whenever the determination was made for an invoice, which is
+   * every case that writes one; absent on the acceptance pre-check, which has no
+   * invoice to attach it to and deliberately persists nothing.
+   */
+  detail?: TaxDeterminationDetail;
 }
 
 /**
@@ -2069,25 +2102,19 @@ export interface TaxDetermination {
  * quote is the only place both exist together, and it is the same evidence the
  * invoice's amount is derived from.
  *
- * `soleTaxCode` is absent when the lines disagree. An amendment delta is a
- * single amount against the whole order and there is no rule here for splitting
- * it across codes, so a mixed-code order with an amendment is refused at the
- * caller instead of being taxed at whichever code happened to sort first.
+ * This is the ACCEPTANCE path only. Once an order exists its lines are read
+ * from `core_order_line_snapshots`, which froze the tax code at acceptance —
+ * the rate card can be revised afterwards, and a bill determined against
+ * today's card rather than the frozen one is the drift the snapshot exists to
+ * prevent.
  */
 async function taxableQuoteLines(
   transaction: RuntimeTransaction,
   quoteId: string,
-  currency: string,
-): Promise<{
-  lines: readonly {
-    taxCode: string;
-    amount: { currency: string; minor: string };
-  }[];
-  netMinor: bigint;
-  soleTaxCode?: string;
-}> {
+): Promise<{ lines: readonly TaxRequestLineSource[]; netMinor: bigint }> {
   const rows = await transaction
     .select({
+      lineId: quoteLines.id,
       taxCode: rateCards.stripeTaxCode,
       lineTotalMinor: quoteLines.lineTotalMinor,
     })
@@ -2099,173 +2126,179 @@ async function taxableQuoteLines(
       "INVALID_STATE",
       "Quote carries no priced lines to determine tax against",
     );
-  const codes = new Set(rows.map((row) => row.taxCode));
-  const sole = codes.size === 1 ? [...codes][0] : undefined;
   return {
-    lines: rows.map((row) => ({
-      taxCode: row.taxCode,
-      amount: { currency, minor: row.lineTotalMinor.toString() },
-    })),
+    lines: rows
+      .map((row) => ({
+        lineId: row.lineId,
+        taxCode: row.taxCode,
+        netMinor: row.lineTotalMinor,
+      }))
+      .sort((left, right) => left.lineId.localeCompare(right.lineId)),
     netMinor: rows.reduce((total, row) => total + row.lineTotalMinor, 0n),
-    ...(sole ? { soleTaxCode: sole } : {}),
-  };
-}
-
-/** What a determination is made against, before any provider has answered. */
-interface TaxBasis {
-  accountId: string;
-  jurisdiction: string;
-  currency: string;
-  netMinor: bigint;
-  lines: readonly {
-    taxCode: string;
-    amount: { currency: string; minor: string };
-  }[];
-}
-
-async function quoteTaxBasis(
-  transaction: RuntimeTransaction,
-  quote: {
-    accountId: string;
-    jurisdiction: string;
-    quoteId: string;
-    currency: string;
-    totalMinor: bigint;
-  },
-): Promise<TaxBasis> {
-  const composition = await taxableQuoteLines(
-    transaction,
-    quote.quoteId,
-    quote.currency,
-  );
-  if (composition.netMinor !== quote.totalMinor)
-    throw new CoreServiceError(
-      "INVALID_STATE",
-      "Quote line totals do not sum to the quote total",
-    );
-  return {
-    accountId: quote.accountId,
-    jurisdiction: quote.jurisdiction,
-    currency: quote.currency,
-    netMinor: composition.netMinor,
-    lines: composition.lines,
   };
 }
 
 /**
- * The taxable basis of an order's one invoice: its accepted quote's lines plus
- * the signed net delta of every amendment accepted on it, in the jurisdiction
- * of the account that is invoiced rather than the account that is served.
+ * Turns a refusal from the determination path into a command failure that says
+ * which refusal it was. The codes are the engine's and the rule books' —
+ * `TAX_RULE_BOOK_UNRESOLVED`, `TAX_RATE_MISSING`, `TAX_JURISDICTION_UNKNOWN`,
+ * `ORDER_NOT_BOUND_TO_SELLING_ENTITY` — and every one of them is a refusal
+ * rather than a zero, which is the property this whole path exists to have.
  */
-async function orderTaxBasis(
+function taxRefusal(error: unknown): never {
+  if (error instanceof TaxDeterminationUnavailableError)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      `Tax could not be determined (${error.code}): ${error.message}`,
+    );
+  throw error;
+}
+
+/**
+ * The determination for an order's invoice.
+ *
+ * The supplier is the entity the order was bound to AT ACCEPTANCE (001416) and
+ * the customer is the invoiced account. That is the correction: the old path
+ * passed the invoiced account as `jurisdiction` and called it the
+ * merchant-of-record side, so on a resale route it determined the supply
+ * against our own customer's country with no supplier at all.
+ *
+ * The lines are the immutable acceptance snapshots and carry the tax code each
+ * one froze. The amendment delta joins them as its own line, because an
+ * amendment moves the amount owed and therefore the amount taxed.
+ */
+async function orderTaxDeterminationIn(
   transaction: RuntimeTransaction,
-  orderId: string,
-): Promise<TaxBasis> {
+  input: { orderId: string; taxPointDate: string },
+): Promise<TaxDetermination> {
   const order = await transaction.query.orders.findFirst({
-    where: eq(orders.id, orderId),
+    where: eq(orders.id, input.orderId),
   });
   if (!order)
     throw new CoreServiceError("NOT_FOUND", "Billable order was not found");
-  const [quote, invoicedAccount] = await Promise.all([
-    transaction.query.quotes.findFirst({
-      where: and(eq(quotes.id, order.quoteId), eq(quotes.status, "accepted")),
-    }),
-    transaction.query.accounts.findFirst({
-      where: eq(accounts.id, order.invoicingAccountId),
-      columns: { id: true, country: true },
-    }),
-  ]);
-  if (!quote || !invoicedAccount)
+  const quote = await transaction.query.quotes.findFirst({
+    where: and(eq(quotes.id, order.quoteId), eq(quotes.status, "accepted")),
+  });
+  if (!quote)
     throw new CoreServiceError(
       "INVALID_STATE",
       "Invoice drafts require an immutable accepted order and quote",
     );
-  const basis = await quoteTaxBasis(transaction, {
-    accountId: invoicedAccount.id,
-    jurisdiction: invoicedAccount.country,
-    quoteId: quote.id,
-    currency: quote.currency,
-    totalMinor: quote.totalMinor,
-  });
-  // Amendments move the amount owed, so they move the amount taxed. The delta
-  // is one signed figure for the whole order; attributing it needs a tax code,
-  // and the only defensible one is the code the order already bills every line
-  // under.
+  const binding = await loadOrderSupplierBinding(transaction, order.id).catch(
+    taxRefusal,
+  );
+  // A marketplace supply is the marketplace's, not ours: we issue no document,
+  // so there is nothing of ours to determine. The invoice writers already
+  // refuse this route; the refusal is repeated here so the reason is the
+  // supply's and not a missing column's.
+  if (!binding.supplierLegalEntityId)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "A marketplace order is not supplied by one of our entities and is not invoiced by us",
+    );
+
+  const lines = await orderTaxLines(
+    transaction,
+    order.id,
+    quote.currency,
+  ).catch(taxRefusal);
+  const composedNet = lines.reduce((total, line) => total + line.netMinor, 0n);
+  if (composedNet !== quote.totalMinor)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "Quote line totals do not sum to the quote total",
+    );
   const amendmentDeltaMinor = await acceptedAmendmentDeltaMinor(
     transaction,
     order,
     quote.currency,
   );
-  if (amendmentDeltaMinor === 0n) return basis;
-  const composition = await taxableQuoteLines(
-    transaction,
-    quote.id,
-    quote.currency,
-  );
-  if (!composition.soleTaxCode)
-    throw new CoreServiceError(
-      "INVALID_STATE",
-      "Amended order carries mixed tax codes; the amendment delta cannot be attributed to one",
-    );
-  return {
-    ...basis,
-    netMinor: basis.netMinor + amendmentDeltaMinor,
-    lines: [
-      ...basis.lines,
-      {
-        taxCode: composition.soleTaxCode,
-        amount: {
-          currency: quote.currency,
-          minor: amendmentDeltaMinor.toString(),
-        },
-      },
-    ],
-  };
+  const subjectLines =
+    amendmentDeltaMinor === 0n
+      ? lines
+      : [...lines, amendmentDeltaLine(lines, amendmentDeltaMinor)];
+
+  const determined = await determineTaxForSubject(transaction, {
+    orderId: order.id,
+    supplierLegalEntityId: binding.supplierLegalEntityId,
+    customerAccountId: order.invoicingAccountId,
+    lines: subjectLines,
+    currency: quote.currency,
+    documentType: "invoice",
+    taxPointDate: input.taxPointDate,
+  }).catch(taxRefusal);
+  return assertDeterminationConsistent(determined, quote.currency);
 }
 
 /**
- * Asks the provider and refuses anything it cannot use. A provider failure is a
- * refusal, never a zero: `ok: false` is the provider saying it does not know,
- * and billing zero because a network call failed is exactly the wrong number
- * this path exists to prevent.
+ * The determination for a quote about to be accepted.
+ *
+ * There is no order and therefore no binding yet — the binding is written by
+ * the acceptance itself — so the supplier is resolved from the same operator
+ * statement the binding will pin, for the account that will be invoiced. This
+ * is a pre-check and writes nothing: its purpose is that an order whose supply
+ * cannot be taxed fails at acceptance rather than at the invoice, which is the
+ * fail-closed property P0-61 records.
  */
-async function determineTax(
-  tax: TaxPort,
-  basis: TaxBasis,
+async function quoteTaxDeterminationIn(
+  transaction: RuntimeTransaction,
+  input: {
+    quoteId: string;
+    invoicedAccountId: string;
+    currency: string;
+    totalMinor: bigint;
+    taxPointDate: string;
+  },
 ): Promise<TaxDetermination> {
-  const calculated = await tax.calculate({
-    accountId: ids.account.parse(basis.accountId),
-    jurisdiction: basis.jurisdiction,
-    lines: basis.lines.map((line) => ({
-      taxCode: line.taxCode,
-      amount: MoneySchema.parse(line.amount),
-    })),
-  });
-  if (!calculated.ok)
+  const composition = await taxableQuoteLines(transaction, input.quoteId);
+  if (composition.netMinor !== input.totalMinor)
     throw new CoreServiceError(
       "INVALID_STATE",
-      `Tax could not be determined for jurisdiction ${basis.jurisdiction} (EXT-TAX-01): ${calculated.code}`,
+      "Quote line totals do not sum to the quote total",
     );
-  if (calculated.value.tax.currency !== basis.currency)
+  const supplierLegalEntityId = await prospectiveSupplierEntity(transaction, {
+    accountId: input.invoicedAccountId,
+    taxPointDate: input.taxPointDate,
+  }).catch(taxRefusal);
+  const determined = await determineTaxForSubject(transaction, {
+    orderId: input.quoteId,
+    supplierLegalEntityId,
+    customerAccountId: input.invoicedAccountId,
+    lines: composition.lines,
+    currency: input.currency,
+    documentType: "proforma",
+    taxPointDate: input.taxPointDate,
+  }).catch(taxRefusal);
+  return assertDeterminationConsistent(determined, input.currency);
+}
+
+/**
+ * The two checks the old provider path made, kept because they are about the
+ * ANSWER and not about who produced it: the currency has to be the one the
+ * order bills in, and only a standard supply may carry an amount. The second
+ * mirrors `invoices_tax_amount_check`, so an inconsistent answer fails with a
+ * message naming the inconsistency instead of a raw constraint violation.
+ */
+function assertDeterminationConsistent(
+  determined: Awaited<ReturnType<typeof determineTaxForSubject>>,
+  currency: string,
+): TaxDetermination {
+  if (determined.currency !== currency)
     throw new CoreServiceError(
       "INVALID_STATE",
       "Tax was determined in a currency the order does not bill in",
     );
-  const taxMinor = BigInt(calculated.value.tax.minor);
-  // Mirrors invoices_tax_amount_check. A provider that charges against a
-  // reverse-charged or exempt supply is answering inconsistently, and the
-  // command fails here with a message that names the inconsistency rather than
-  // surfacing a raw constraint violation from the insert.
-  if (calculated.value.treatment !== "standard" && taxMinor !== 0n)
+  if (determined.treatment !== "standard" && determined.taxMinor !== 0n)
     throw new CoreServiceError(
       "INVALID_STATE",
       "Tax was charged against a reverse-charged or exempt supply",
     );
   return {
-    currency: basis.currency,
-    netMinor: basis.netMinor,
-    taxMinor,
-    treatment: calculated.value.treatment,
+    currency: determined.currency,
+    netMinor: determined.netMinor,
+    taxMinor: determined.taxMinor,
+    treatment: determined.treatment,
+    detail: determined.detail,
   };
 }
 
@@ -2273,22 +2306,24 @@ async function determineTax(
  * The determination for an order's invoice, for a caller that is not running a
  * Core command — `ensureInvoiceDraftForProvisionedOrder` is the other writer of
  * the same row and must reach the same figure by the same rule. The reads run
- * in their own short transaction and the provider is called outside it, so no
- * write transaction ever holds a row lock across the network; the caller
- * re-checks `netMinor` against the net it computes for itself.
+ * in their own short transaction, and the caller re-checks `netMinor` against
+ * the net it computes for itself before it writes anything.
  */
 export async function orderTaxDetermination(input: {
   database: RuntimeDatabase;
-  tax: TaxPort;
   requestId: string;
   orderId: string;
+  taxPointDate: string;
 }): Promise<TaxDetermination> {
-  const basis = await withInternalTransaction(
+  return withInternalTransaction(
     input.database,
     input.requestId,
-    (transaction) => orderTaxBasis(transaction, input.orderId),
+    (transaction) =>
+      orderTaxDeterminationIn(transaction, {
+        orderId: input.orderId,
+        taxPointDate: input.taxPointDate,
+      }),
   );
-  return determineTax(input.tax, basis);
 }
 
 export interface DatabaseCoreFinanceRepositoryOptions {
@@ -2296,13 +2331,24 @@ export interface DatabaseCoreFinanceRepositoryOptions {
   pricingDatabase: RuntimeDatabase;
   authorizationSecret: string;
   /**
-   * Required, not optional. An optional tax source is a source that is absent
-   * in production and silently zero everywhere else, which is the defect. A
-   * composition that cannot name one cannot build this repository, and the
-   * production composition can only name one once `EXT-TAX-01` supplies the
-   * endpoint and credential it needs.
+   * THE DEPRECATED PORT, NOW READ BY NOTHING.
+   *
+   * It was required because it was the determination source, and an optional
+   * source is one that is absent in production and silently zero everywhere
+   * else. It is neither any more: the determination is made from
+   * `core_tax_rule_books` and `core_tax_registrations` by the engine in
+   * `@clockwork/domain`, which cannot be absent and cannot be zero — a missing
+   * book is a refusal.
+   *
+   * It stays in the options, and optional, for one reason: three compositions
+   * outside this lane's edit scope still pass it
+   * (`repositories/experience/authoritative-command.ts`,
+   * `packages/workflows/src/core/outbox-handlers.ts`, and the web provider
+   * wiring), and removing the field would fail their type-check without
+   * removing anything real. Deleting it is a three-line change in those files
+   * and belongs with them. Nothing in this repository reads it.
    */
-  tax: TaxPort;
+  tax?: TaxPort;
   now?: () => Date;
 }
 
@@ -3699,6 +3745,26 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
             "INVALID_STATE",
             "Eligible persisted referral commission source was not found",
           );
+        // COMMISSION IS ON ATTRIBUTED NET COLLECTED REVENUE (spec:150), and
+        // `invoices.amount_minor` is the GROSS by 001392's deliberate choice.
+        // The revenue this accrual is attributed to is therefore the
+        // tax-exclusive share of the CASH — of the payment, not of the invoice,
+        // or the first instalment of a part-paid bill would carry the whole
+        // invoice's net.
+        //
+        // Apportioned CUMULATIVELY (001418): the rounded running total is what
+        // is rounded and each accrual takes the difference between successive
+        // totals, so the bases sum to the invoice's net exactly however the
+        // instalments fall. Rounding each payment independently invents up to
+        // one minor unit per instalment, always in the partner's favour.
+        // 001418 holds the identical rule in `validate_commission_source_truth`;
+        // this figure and that one have to agree or the insert is refused,
+        // which is what stops the two from drifting.
+        //
+        // `invoices_tax_share_check` (001418) holds 0 <= tax <= gross on the
+        // invoice itself, which is where a malformed figure is created. It is
+        // not re-checked here: refusing the accrual for an invoice the database
+        // accepted is the false refusal that migration removes.
         const partner = await transaction.query.accounts.findFirst({
           where: eq(accounts.id, order.partnerAccountId),
         });
@@ -3711,7 +3777,35 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         let rateBps = partner.commissionRateBps;
         let holdbackBps = partner.commissionHoldbackBps;
         let adjustmentSourceId: string | undefined;
-        if (sourceType !== "payment") {
+        let baseMinor: bigint;
+        if (sourceType === "payment") {
+          // What this invoice has already collected and already accrued, over
+          // its payment accruals alone: a clawback reverses a base rather than
+          // collecting one, so counting it here would apportion the same cash
+          // twice.
+          const [prior] = await transaction
+            .select({
+              collectedMinor: sql<string>`coalesce(sum(${payments.amountMinor}), 0)::text`,
+              accruedMinor: sql<string>`coalesce(sum(${commissionAccruals.netCollectedRevenueMinor}), 0)::text`,
+            })
+            .from(commissionAccruals)
+            .innerJoin(payments, eq(payments.id, commissionAccruals.sourceId))
+            .where(
+              and(
+                eq(commissionAccruals.invoiceId, invoice.id),
+                eq(commissionAccruals.partnerAccountId, order.partnerAccountId),
+                eq(commissionAccruals.sourceType, "payment"),
+              ),
+            );
+          const collectedBefore = BigInt(prior?.collectedMinor ?? "0");
+          const accruedBefore = BigInt(prior?.accruedMinor ?? "0");
+          baseMinor =
+            divideRound(
+              (collectedBefore + source.amountMinor) *
+                (invoice.amountMinor - invoice.taxMinor),
+              invoice.amountMinor,
+            ) - accruedBefore;
+        } else {
           const original =
             sourceType === "credit_note_void"
               ? await transaction.query.commissionAccruals.findFirst({
@@ -3761,6 +3855,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           rateBps = original.rateBps;
           holdbackBps = original.holdbackBps;
           adjustmentSourceId = original.id;
+          if (sourceType === "credit_note_void") {
+            // A void reverses the clawback that was WRITTEN, read rather than
+            // recomputed. Recomputing it against the invoice ratio is how a
+            // void comes back one unit away from the clawback it reverses.
+            baseMinor = -original.netCollectedRevenueMinor;
+          } else {
+            // A share of the ACCRUAL being reversed, so a full refund reverses
+            // its payment's accrual exactly whatever rounding produced it.
+            const [reversedPayment] = await transaction
+              .select({ amountMinor: payments.amountMinor })
+              .from(payments)
+              .where(eq(payments.id, original.sourceId));
+            if (!reversedPayment || reversedPayment.amountMinor <= 0n)
+              throw new CoreServiceError(
+                "INVALID_STATE",
+                "A clawback requires the persisted payment its accrual was collected on",
+              );
+            baseMinor = divideRound(
+              source.amountMinor * original.netCollectedRevenueMinor,
+              reversedPayment.amountMinor,
+            );
+          }
         }
         if (rateBps === null || holdbackBps === null)
           throw new CoreServiceError(
@@ -3775,7 +3891,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           partnerAccountId: order.partnerAccountId,
           occurredAt: source.occurredAt,
           currency: CurrencySchema.parse(source.currency),
-          amountMinor: source.amountMinor.toString(),
+          amountMinor: baseMinor.toString(),
           agreementType: "referral" as const,
           rateBps,
           holdbackBps,
@@ -3852,22 +3968,32 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     const orderId = invoicing
       ? string(input.payload.orderId, "orderId")
       : undefined;
-    const basis = await withInternalTransaction(
+    // The tax point is the caller's `occurredAt`, never a clock read here: the
+    // determination has to be reproducible, and a rule book resolves by DATE.
+    const taxPointDate = input.occurredAt;
+    return withInternalTransaction(
       this.options.pricingDatabase,
       input.requestId,
       (transaction) => {
-        if (orderId) return orderTaxBasis(transaction, orderId);
+        if (orderId)
+          return orderTaxDeterminationIn(transaction, {
+            orderId,
+            taxPointDate,
+          });
         if (!orderAcceptanceContext)
           throw new CoreServiceError(
             "INVALID_STATE",
             "Authoritative order acceptance context is unavailable",
           );
         const { quote, snapshot, buyer, partner } = orderAcceptanceContext;
-        // The merchant of record bills the partner on a resale or distributor
-        // route, so the jurisdiction that matters is the partner's. This is the
-        // same branch loadOrderAcceptanceContext takes for billingAccountId; it
-        // is read from the context rather than recomputed so the two cannot
-        // drift.
+        // Which account is INVOICED — the partner on a resale or distributor
+        // route, the buyer otherwise. This is the same branch
+        // loadOrderAcceptanceContext takes for billingAccountId; it is read
+        // from the context rather than recomputed so the two cannot drift.
+        //
+        // What it is NOT any more: the jurisdiction the supply is determined
+        // in. That was the defect. The invoiced account is the CUSTOMER, and
+        // the supplier is the entity the acceptance is about to bind.
         const invoiced =
           snapshot.route === "resale" || snapshot.route === "distributor"
             ? partner
@@ -3877,16 +4003,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
             "INVALID_STATE",
             "Invoiced party is unresolved for the accepted route",
           );
-        return quoteTaxBasis(transaction, {
-          accountId: invoiced.id,
-          jurisdiction: invoiced.country,
+        return quoteTaxDeterminationIn(transaction, {
           quoteId: quote.id,
+          invoicedAccountId: invoiced.id,
           currency: quote.currency,
           totalMinor: quote.totalMinor,
+          taxPointDate,
         });
       },
     );
-    return determineTax(this.options.tax, basis);
   }
 
   private async loadOrderAcceptanceContext(
@@ -6199,14 +6324,22 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "INVALID_STATE",
           "Tax determination does not describe the quote being accepted",
         );
+      // The invariant is that the quote was still live when the server took the
+      // acceptance, and `occurredAt` — the API's own receive instant — is the
+      // evidence for it. `acceptedAt` is DOCUMENTARY: the signer's order form
+      // states it, the artifact hash covers it, and the two-pass surface must
+      // resend the pass-one value or the binding cannot reproduce. Requiring
+      // the two to be equal made the second pass unpassable by construction,
+      // since it can only arrive after the first. `acceptOrder` bounds the
+      // documentary instant above by the same expiry on both passes, and the
+      // artifact binding is what ties it to this order.
       if (
         !preparingArtifact &&
-        (Date.parse(command.acceptedAt) !== Date.parse(input.occurredAt) ||
-          Date.parse(input.occurredAt) >= Date.parse(snapshot.expiresAt))
+        Date.parse(input.occurredAt) >= Date.parse(snapshot.expiresAt)
       )
         throw new CoreServiceError(
           "INVALID_STATE",
-          "Order acceptance time must be current server evidence for an unexpired quote",
+          "Quote expired before the acceptance was received",
         );
       const accepted = acceptOrder({
         orderId: input.id,
@@ -6232,7 +6365,10 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           ? { coTerminateOn: command.coTerminateOn }
           : {}),
         ...(command.noticeOn ? { noticeOn: command.noticeOn } : {}),
-        acceptedAt: preparingArtifact ? command.acceptedAt : input.occurredAt,
+        // Both passes take the SAME documentary instant. The artifact hashes
+        // over `order.acceptedAt`, so a create pass that substituted its own
+        // receive instant here could never reproduce the prepare pass's hash.
+        acceptedAt: command.acceptedAt,
         orderFormDocumentId,
         orderLineIds: command.orderLineIds,
       });
@@ -6331,7 +6467,9 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           serviceEndsOn: accepted.serviceEndsOn,
           noticeOn: accepted.noticeOn,
           orderFormDocumentId: accepted.orderFormDocumentId,
-          immutableAt: new Date(accepted.acceptedAt),
+          // When the record became immutable is a SERVER fact, not something
+          // the order form states.
+          immutableAt: new Date(input.occurredAt),
         })
         .returning();
       if (!row) throw new Error("Order insert returned no row");
@@ -6370,7 +6508,31 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           : {}),
         ...(invoiceGroupingKey ? { invoiceGroupingKey } : {}),
         contractualTimeZone: "UTC",
+        // The DOCUMENTARY instant, and the only column that carries it.
+        // `currentAmendedOrder` reconstructs the `AcceptedOrder` from this row,
+        // so it has to be the value the order form stated and the artifact
+        // hashed, not the server's receive instant.
         acceptedAt: new Date(accepted.acceptedAt),
+      });
+      // WHICH ENTITY SELLS THIS ORDER, pinned here and never again. The
+      // acceptance is where the agreement version, the merchant of record and
+      // the line snapshots are frozen, and the supplier belongs with them: a
+      // determination made in six months' time must be made against the entity
+      // that sold the order, not against whichever entity the assignments name
+      // then. The rule lives in the database (001416) because the partner's own
+      // entity is not readable on the tenant pool this acceptance runs on.
+      //
+      // BOUND ON `occurredAt`, NOT ON THE DOCUMENTARY INSTANT. 001416 resolves
+      // the assignment by `(bound_at at time zone 'UTC')::date`, and the
+      // pre-check that already ran resolved the same statement on
+      // `input.occurredAt` (see `loadTaxDetermination`: "the tax point is the
+      // caller's occurredAt, never a clock read here"). The two are documented
+      // as unable to disagree about which entity sells; binding on a
+      // client-stated instant that could straddle midnight would let the buyer
+      // choose the selling entity.
+      await bindOrderSellingEntity(transaction, {
+        orderId: accepted.id,
+        boundAt: new Date(input.occurredAt),
       });
       const persistedLineSnapshots = await transaction
         .insert(orderLineSnapshots)
@@ -6404,7 +6566,8 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           orderVersion: row.rowVersion,
           accountId: row.accountId,
           provisioningIdempotencyKey: accepted.provisioningKey,
-          requestedAt: new Date(accepted.acceptedAt),
+          // Operational: when provisioning was asked for, which is now.
+          requestedAt: new Date(input.occurredAt),
           actor: input.actor,
           requestId: input.requestId,
           lineSnapshots: persistedLineSnapshots,
@@ -7227,6 +7390,25 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "Order has already been invoiced",
         );
       }
+      // THE DETERMINATION, PERSISTED WITH THE BILL IT PRODUCED (001417). The
+      // header keeps the two scalars it can hold; the per-line,
+      // per-jurisdiction answer and the canonical question that produced it go
+      // beside it, because a scalar cannot carry a stacked rate, a notation the
+      // document must print, or the books the figure was pinned to.
+      if (!taxDetermination.detail)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Tax determination carries no per-jurisdiction detail to record",
+        );
+      await persistInvoiceTaxDetermination(transaction, {
+        invoiceId: row.id,
+        orderId: order.id,
+        currency: row.currency,
+        netMinor: row.amountMinor - row.taxMinor,
+        taxMinor: row.taxMinor,
+        treatment: taxDetermination.treatment,
+        detail: taxDetermination.detail,
+      });
       return audited(
         transaction,
         input,

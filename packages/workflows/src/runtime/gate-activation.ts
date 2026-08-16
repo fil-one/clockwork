@@ -8,9 +8,21 @@ import type {
   ExternalGateKey,
 } from "@clockwork/domain/system";
 
+/**
+ * One id, because there is one behaviour.
+ *
+ * A second `system.external-gates.activation-recovery.v1` id was registered
+ * alongside this one from the first commit and never acquired a caller: no
+ * route, no cron, no outbox topic map, no dead-letter redrive and no operator
+ * control could reach it, and its handler was the activation handler with a
+ * different requestId prefix. Recovery is not a separate invocation here --
+ * `DurableExternalGateActivationRunner.run` below recovers a `succeeded` or
+ * `provider_succeeded` task on whatever invocation arrives next, so the
+ * activation id already carries it. Re-adding a recovery id would restate that
+ * behaviour rather than add one.
+ */
 export const externalGateActivationTaskIds = Object.freeze({
   activate: "system.external-gates.activation.v1",
-  recover: "system.external-gates.activation-recovery.v1",
 });
 
 export interface DurableGateActivationTaskStore {

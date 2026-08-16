@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
+import { verifyDownloadedArtifact } from "@clockwork/documents";
+import { DOCUMENT_KINDS } from "@clockwork/documents/model";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { demoArtifactCatalog } from "./demo-artifact-catalog";
 import {
   configuredExperienceRepository,
   DemoExperienceRepository,
@@ -267,18 +270,204 @@ describe("capabilities outside the demo subset", () => {
   it("answers with a problem instead of reaching for a database", () => {
     const subject = repository();
 
-    for (const call of [
-      () => subject.createRenderRequest(),
-      () => subject.findRenderRequest(),
-      () => subject.claimRenderRequest(),
-      () => subject.failRenderRequest(),
-      () => subject.storeArtifact(),
-      () => subject.findArtifact(),
-    ]) {
-      expect(call).toThrow(ExperienceProblem);
-      expect(call).toThrow("is not available in the demo");
-    }
+    expect(() => subject.invoiceDerivation()).toThrow(ExperienceProblem);
+    expect(() => subject.invoiceDerivation()).toThrow(
+      "is not available in the demo",
+    );
   });
+});
+
+describe("demo document artifacts", () => {
+  const internalSession: SessionClaims = {
+    ...session,
+    userId: "21000000-0000-4000-8000-000000000009",
+    accountIds: [],
+    roles: ["internal_operator"],
+    isInternalStaff: true,
+  };
+
+  it("renders every catalogued kind through the shared renderer", async () => {
+    const subject = repository();
+    const kinds = new Set<string>();
+    for (const fixture of demoArtifactCatalog) {
+      const actor =
+        fixture.audience === "internal"
+          ? internalSession
+          : { ...session, accountIds: [fixture.accountId as string] };
+      const { representation } = await subject.findArtifact(
+        actor,
+        fixture.kind,
+        fixture.id,
+        "request-artifact",
+      );
+      expect(representation.contentHash, fixture.kind).toMatch(
+        /^[a-f0-9]{64}$/,
+      );
+      expect(representation.filename, fixture.kind).toMatch(
+        /^[a-z0-9][a-z0-9._-]{0,159}\.pdf$/,
+      );
+      expect(representation.downloadHref, fixture.kind).toBe(
+        `/api/experience/artifacts/${fixture.kind}/${fixture.id}`,
+      );
+      expect(representation.sourceHash, fixture.kind).toMatch(/^[a-f0-9]{64}$/);
+      kinds.add(fixture.kind);
+    }
+    // Every kind the renderer can produce is reachable from the demo.
+    expect([...kinds].sort()).toEqual([...DOCUMENT_KINDS].sort());
+  }, 120_000);
+
+  it("serves bytes the download verifier accepts", async () => {
+    const gateway = new DemoEvidenceGateway();
+    const subject = new DemoExperienceRepository(
+      createMemoryDemoStore(),
+      () => gateway,
+    );
+    const fixture = demoArtifactCatalog.find(
+      (entry) => entry.kind === "invoice_companion",
+    );
+    if (!fixture) throw new Error("The demo invoice fixture is missing");
+    const download = await subject.findArtifact(
+      session,
+      fixture.kind,
+      fixture.id,
+      "request-invoice",
+    );
+    const actual = await gateway.readImmutable({
+      storageKey: download.storageKey,
+      storageVersionId: download.storageVersionId,
+      filename: download.representation.filename,
+    });
+
+    const bytes = verifyDownloadedArtifact(download.representation, actual);
+    expect(new TextDecoder("latin1").decode(bytes.slice(0, 5))).toBe("%PDF-");
+  }, 30_000);
+
+  it("refuses an artifact belonging to another account", async () => {
+    const subject = repository();
+    const fixture = demoArtifactCatalog.find(
+      (entry) => entry.kind === "invoice_companion",
+    );
+    if (!fixture) throw new Error("The demo invoice fixture is missing");
+
+    await expect(
+      subject.findArtifact(
+        { ...session, accountIds: ["11000000-0000-4000-8000-000000000005"] },
+        fixture.kind,
+        fixture.id,
+        "request-forbidden",
+      ),
+    ).rejects.toMatchObject({ status: 403, code: "ARTIFACT_SCOPE_FORBIDDEN" });
+  }, 30_000);
+
+  it("walks the render-request lifecycle the controller drives", async () => {
+    const subject = repository();
+    const fixture = demoArtifactCatalog.find(
+      (entry) => entry.kind === "order_form",
+    );
+    if (!fixture) throw new Error("The demo order form fixture is missing");
+
+    const created = await subject.createRenderRequest({
+      session,
+      source: {
+        kind: fixture.kind,
+        subjectId: fixture.subjectId,
+        expectedVersion: fixture.sourceVersion,
+        audience: "customer",
+        accountId: fixture.accountId,
+      },
+      requestId: "request-create",
+    });
+    expect(created).toMatchObject({ status: "pending", version: 1 });
+
+    // The create is idempotent on the same source, exactly as the persisted
+    // `on conflict do nothing` replay is.
+    await expect(
+      subject.createRenderRequest({
+        session,
+        source: {
+          kind: fixture.kind,
+          subjectId: fixture.subjectId,
+          expectedVersion: fixture.sourceVersion,
+          audience: "customer",
+          accountId: fixture.accountId,
+        },
+        requestId: "request-create-again",
+      }),
+    ).resolves.toMatchObject({ id: created.id, version: 1 });
+
+    await expect(
+      subject.createRenderRequest({
+        session,
+        source: {
+          kind: fixture.kind,
+          subjectId: fixture.subjectId,
+          expectedVersion: "not-the-version",
+          audience: "customer",
+          accountId: fixture.accountId,
+        },
+        requestId: "request-stale",
+      }),
+    ).rejects.toMatchObject({ code: "ARTIFACT_SOURCE_VERSION_CONFLICT" });
+
+    const found = await subject.findRenderRequest(
+      session,
+      created.id,
+      "request-find",
+    );
+    await subject.claimRenderRequest(found, "request-claim");
+    // A second claim at the same expected version is refused, which is what
+    // stops two workers rendering one request.
+    await expect(
+      subject.claimRenderRequest(found, "request-claim-again"),
+    ).rejects.toMatchObject({ code: "RENDER_VERSION_CONFLICT" });
+
+    const stored = await subject.storeArtifact({
+      request: found,
+      contentHash: "e".repeat(64),
+      byteLength: 2048,
+      filename: "order-form-demo.pdf",
+      immutableVersion: fixture.sourceVersion,
+      storageKey: "demo/immutable/e",
+      storageVersionId: "demo_v_e",
+      requestId: "request-store",
+    });
+    expect(stored).toMatchObject({ id: fixture.id, kind: "order_form" });
+    await expect(
+      subject.findRenderRequest(session, created.id, "request-final"),
+    ).resolves.toMatchObject({ status: "stored" });
+  }, 30_000);
+
+  it("records a failed render so the controller can redrive it", async () => {
+    const subject = repository();
+    const fixture = demoArtifactCatalog.find(
+      (entry) => entry.kind === "deletion_certificate",
+    );
+    if (!fixture)
+      throw new Error("The deletion certificate fixture is missing");
+    const created = await subject.createRenderRequest({
+      session,
+      source: {
+        kind: fixture.kind,
+        subjectId: fixture.subjectId,
+        expectedVersion: fixture.sourceVersion,
+        audience: "customer",
+        accountId: fixture.accountId,
+      },
+      requestId: "request-create",
+    });
+    await subject.claimRenderRequest(created, "request-claim");
+    await subject.failRenderRequest(created, "RENDER_FAILED", "request-fail");
+    const failed = await subject.findRenderRequest(
+      session,
+      created.id,
+      "request-read",
+    );
+    expect(failed.status).toBe("failed");
+    // A failed request is claimable again; that is the redrive path.
+    await expect(
+      subject.claimRenderRequest(failed, "request-reclaim"),
+    ).resolves.toBeUndefined();
+  }, 30_000);
 });
 
 describe("repository selection", () => {

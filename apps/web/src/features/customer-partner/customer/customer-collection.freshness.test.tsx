@@ -22,7 +22,11 @@ describe("customer collection freshness disclosure", () => {
       <CustomerCollection
         config={customerCollections.amendments}
         formatting={formatting}
-        freshness={{ generatedAt: "2026-08-14T13:04:00Z", stale: true }}
+        freshness={{
+          generatedAt: "2026-08-14T13:04:00Z",
+          partial: false,
+          stale: true,
+        }}
         searchParams={{}}
       />,
     );
@@ -40,7 +44,11 @@ describe("customer collection freshness disclosure", () => {
       <CustomerCollection
         config={customerCollections.amendments}
         formatting={formatting}
-        freshness={{ generatedAt: "2026-08-14T13:04:00Z", stale: false }}
+        freshness={{
+          generatedAt: "2026-08-14T13:04:00Z",
+          partial: false,
+          stale: false,
+        }}
         searchParams={{}}
       />,
     );

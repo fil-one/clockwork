@@ -67,14 +67,16 @@ restored into a scratch tree. `scripts/validate-release-join.mjs` refuses any
 report whose summary count differs from that list, and that refusal was
 exercised over synthetic per-shard summaries. Its `EXTERNAL-ONLY` remainder
 under `EXT-ACC-01` is limited to Actions billing on the organization, one
-observed green run on `main`, and branch protection requiring it. Two things
-this does not claim. No run of the workflow has ever been observed on `main`, so
-every result behind this row is local. And one repository defect P0-48 names is
-still open rather than gated:
+observed green run on `main`, and branch protection requiring it. One thing this
+does not claim: no run of the workflow has ever been observed on `main`, so
+every result behind this row is local.
+
+The one repository defect that was open rather than gated is now closed.
 `packages/documents/src/semantic-pdf.integration.test.ts` spawns `pdftotext`
-unguarded and no workflow step installs Poppler, so the `integration` shard
-cannot pass on a hosted runner however the billing is settled. That is
-repository work and does not sit behind this gate.
+unguarded and no workflow step installed Poppler, so the `integration` shard
+could not have passed on a hosted runner however the billing was settled. The
+shard now installs `poppler-utils` and asserts `pdftotext -v` answers before the
+suite runs. Nothing repository-side remains behind this gate.
 
 ## Gate-specific register
 

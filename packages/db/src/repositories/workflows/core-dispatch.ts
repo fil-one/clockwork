@@ -39,6 +39,7 @@ import {
   initialInvoiceId,
   orderTaxDetermination,
 } from "../core/database-finance";
+import { persistInvoiceTaxDetermination } from "../core/tax-determination";
 
 export type PersistedCommissionSourceType =
   "payment" | "credit_note" | "credit_note_void" | "refund" | "chargeback";
@@ -147,16 +148,23 @@ function collectionMethod(input: {
 export class DatabaseCoreWorkflowDispatchStore {
   private readonly finance: DatabaseCoreFinanceRepository;
 
+  /**
+   * `tax` is the deprecated {@link TaxPort} and is read by nothing: the
+   * determination is made from the persisted rule books by the engine in
+   * `@clockwork/domain`. It stays, optional, because `packages/workflows`
+   * still passes it positionally and that composition is outside this lane's
+   * edit scope; deleting the parameter is a one-line change there.
+   */
   public constructor(
     private readonly database: RuntimeDatabase,
     authorizationSecret: string,
-    private readonly tax: TaxPort,
+    tax?: TaxPort,
   ) {
     this.finance = new DatabaseCoreFinanceRepository({
       database,
       pricingDatabase: database,
       authorizationSecret,
-      tax,
+      ...(tax ? { tax } : {}),
     });
   }
 
@@ -169,16 +177,20 @@ export class DatabaseCoreWorkflowDispatchStore {
     if (!Number.isFinite(occurredAt.valueOf()))
       throw new Error("PROVISIONING_EVENT_TIME_INVALID");
     // Both writers of this row reach the same tax figure by the same rule, and
-    // the provider is called before the write transaction opens so no invoice
-    // row is held locked across the network. Its failure is carried rather than
-    // thrown: an order that is not invoice-eligible must still fail with the
-    // reason it is not eligible, not with a tax error about an order this
+    // the determination is made before the write transaction opens so no
+    // invoice row is held locked while it runs. Its failure is carried rather
+    // than thrown: an order that is not invoice-eligible must still fail with
+    // the reason it is not eligible, not with a tax error about an order this
     // writer was never going to bill.
+    //
+    // The tax point is the provisioning event's own time, not a clock read
+    // here: rule books resolve by date, and a determination that cannot say
+    // which day it was made for cannot be reproduced.
     const determination = await orderTaxDetermination({
       database: this.database,
-      tax: this.tax,
       requestId: input.requestId,
       orderId: input.orderId,
+      taxPointDate: occurredAt.toISOString(),
     }).then(
       (value) => ({ ok: true as const, value }),
       (error: unknown) => ({ ok: false as const, error }),
@@ -375,6 +387,22 @@ export class DatabaseCoreWorkflowDispatchStore {
             .digest("hex"),
           sourceVersion: snapshotSource.sourceVersion,
           createdAt: occurredAt,
+        });
+
+        // THE DETERMINATION, PERSISTED WITH THE BILL IT PRODUCED. One row per
+        // invoice and one per line per jurisdiction (001417), including the
+        // canonical question, so this figure can be replayed against the books
+        // it was pinned to rather than merely believed.
+        if (!determination.value.detail)
+          throw new Error("PROVISIONED_ORDER_TAX_DETERMINATION_NOT_RECORDED");
+        await persistInvoiceTaxDetermination(transaction, {
+          invoiceId: invoice.id,
+          orderId: order.id,
+          currency: invoice.currency,
+          netMinor: invoice.amountMinor - invoice.taxMinor,
+          taxMinor: invoice.taxMinor,
+          treatment: determination.value.treatment,
+          detail: determination.value.detail,
         });
 
         if (order.sourcing === "resale" || order.sourcing === "distributor") {

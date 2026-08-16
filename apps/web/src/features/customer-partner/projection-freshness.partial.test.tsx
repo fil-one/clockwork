@@ -33,10 +33,29 @@ describe("partial projection read disclosure", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Only part of this collection could be");
     expect(alert).toHaveTextContent(
-      "The result count, the filter choices and any total on this page describe only what was read.",
+      "The result count, the filter choices and any total on this page describe only what was read",
     );
     // The stale wording claims something different and lesser.
     expect(alert).not.toHaveTextContent("These records may be out of date.");
+  });
+
+  it("says a sorted view orders only what was read", () => {
+    render(
+      <ProjectionFreshnessNotice
+        formatting={formatting}
+        freshness={{ generatedAt, partial: true, stale: true }}
+      />,
+    );
+
+    // These collections sort the whole read set server-side, and the sort
+    // tests assert exactly that by name. On a truncated read that guarantee
+    // quietly becomes "ordered over the prefix": a customer sorting by highest
+    // value sees a confident, correctly-ordered list that can be missing the
+    // very record the sort was meant to surface. The banner has to say that
+    // the ordering, not just the count, describes only what was read.
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "sorting orders only what was read: a list sorted by value can be correctly ordered and still be missing this account's largest record",
+    );
   });
 
   it("offers no control that cannot resolve the condition", () => {
@@ -59,7 +78,7 @@ describe("partial projection read disclosure", () => {
     render(
       <ProjectionFreshnessNotice
         formatting={formatting}
-        freshness={{ generatedAt, stale: true }}
+        freshness={{ generatedAt, partial: false, stale: true }}
       />,
     );
 
