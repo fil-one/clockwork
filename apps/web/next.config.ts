@@ -6,15 +6,46 @@ const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: [
-    // Next externalizes these packages by default. Bundle their complete runtime
-    // closures so copied server externals never depend on pnpm's symlink layout.
+    // Next externalizes this package by default. Bundle its complete runtime
+    // closure so copied server externals never depend on pnpm's symlink layout.
+    // `@react-pdf/renderer` used to sit here for the same reason; it cannot,
+    // and `serverExternalPackages` below says why.
     "@aws-sdk/client-s3",
-    "@react-pdf/renderer",
     "@clockwork/api",
     "@clockwork/contracts",
     "@clockwork/domain",
     "@clockwork/ui",
   ],
+  /**
+   * `@react-pdf/renderer` must stay out of the server bundle graph, and this
+   * says so explicitly rather than relying on Next's default list.
+   *
+   * It was in `transpilePackages` above, added with the closure-bundling reason
+   * the comment there still gives. The effect was that every document in the
+   * product was unreachable: all nineteen artifact ids answered 503, dev and
+   * production build alike, on
+   *
+   *   TypeError: Cannot read properties of undefined (reading 'S')
+   *
+   * thrown inside `@react-pdf/reconciler`. Route handlers and server components
+   * compile under the `react-server` export condition. Bundling the renderer
+   * put its `@react-pdf/reconciler` dependency in that same graph, so its
+   * `import React from "react"` resolved to `react.react-server.js`, which does
+   * not export `__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE`.
+   * The reconciler read `ReactSharedInternals.S` off `undefined` and died. A
+   * React reconciler needs the client build of React by construction, so no
+   * amount of bundler configuration makes this one bundleable -- which is why
+   * Next itself ships it in `server-external-packages.jsonc`.
+   *
+   * The deployment concern that put it in `transpilePackages` is met a
+   * different way. Externalized packages are not copied by hand; Next traces
+   * them, and the trace beside each server chunk names every file in the
+   * closure by its real path under `node_modules/.pnpm/...`, not through the
+   * workspace symlink. Naming the package here rather than inheriting Next's
+   * default also means a future release dropping it from that list cannot
+   * silently reintroduce the crash.
+   */
+  serverExternalPackages: ["@react-pdf/renderer"],
   typedRoutes: true,
   headers() {
     return Promise.resolve([

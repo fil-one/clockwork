@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T20:06:37Z",
+  "capturedAt": "2026-08-16T21:02:00Z",
   "documentKinds": [
     "direct_quote",
     "partner_transfer_quote",
@@ -250,6 +250,7 @@
     "allKindTestFiles": [
       "packages/documents/src/delivery.test.ts",
       "packages/documents/src/documents.test.ts",
+      "packages/documents/src/render-failure.test.ts",
       "packages/documents/src/render.integration.test.ts",
       "packages/documents/src/semantic-pdf.integration.test.ts"
     ],

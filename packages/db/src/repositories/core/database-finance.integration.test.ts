@@ -93,33 +93,29 @@ const repository = new DatabaseCoreFinanceRepository({
   authorizationSecret,
   tax: new FixtureTaxPort(),
 });
-// Three engines, three answers, none of them a rule this repository ships. The
-// rates and the jurisdiction lists live in the fixture; EXT-TAX-01 owns the
-// real ones, and until it lands the only thing production can compose is an
-// HTTP adapter it has no endpoint for.
-const taxedRepository = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-  tax: new FixtureTaxPort({ rateBasisPoints: { txcd_demo: 2_000 } }),
-});
-const reverseChargedRepository = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-  tax: new FixtureTaxPort({
-    rateBasisPoints: { txcd_demo: 2_000 },
-    reverseChargeJurisdictions: ["ES"],
-  }),
-});
-const undeterminedTaxRepository = new DatabaseCoreFinanceRepository({
-  database: db,
-  pricingDatabase: db,
-  authorizationSecret,
-  // Every jurisdiction the seeded channels invoice in, so the probe below is
-  // the same refusal whichever party the route makes merchant of record.
-  tax: new FixtureTaxPort({ unavailableJurisdictions: ["US", "ES", "GB"] }),
-});
+// ONE ENGINE, AND THE RATES ARE ROWS. The three repositories that used to sit
+// here differed only in which fixture PROVIDER they were handed — one rated
+// txcd_demo at 2000 bps, one called Spain reverse-charged, one refused three
+// jurisdictions — and none of those answers came from a rule. The
+// determination is now made from `core_tax_rule_books` and
+// `core_tax_registrations` by the engine in `@clockwork/domain`, so a test that
+// wants a different answer changes the DATA, and the seeded matrix
+// (repository_fixture provenance, EXT-TAX-01 still blocked) is what every case
+// below determines against.
+const taxedRepository = repository;
+/**
+ * A tax point no rule book covers, which is how "the determination cannot be
+ * made" is now injected.
+ *
+ * It used to be injected by handing the repository a fixture provider that
+ * refused three jurisdictions. There is no provider on this path any more: the
+ * determination is made from `core_tax_rule_books` by the engine in
+ * `@clockwork/domain`, so the honest way to make it impossible is to ask for a
+ * supply on a day no book was in force. The refusal under test is the same one
+ * and it is now a real one — the seeded books begin in 2020 (GB) and 2026
+ * (everything else), so 2019 has no answer anywhere.
+ */
+const UNDETERMINABLE_TAX_POINT = "2019-08-01T00:00:00.000Z";
 const artifactStore = new DatabaseCommercialArtifactStore(db);
 const lifecycleRepository = new DatabaseLifecycleCommandRepository({
   database: db,
@@ -645,11 +641,11 @@ describe("database core direct-owner artifact chain", () => {
         prepared,
         `channel-order-${suffix}`,
       );
-      // EXT-TAX-01's stated behaviour until an approved engine exists: refuse
-      // the acceptance rather than accept an order that can only ever be
-      // invoiced net. prepare_artifact above is deliberately not gated — it
-      // renders an unsigned order form and commits the customer to nothing.
-      const refusedAcceptance = await undeterminedTaxRepository
+      // The stated behaviour when no determination can be made: refuse the
+      // acceptance rather than accept an order that can only ever be invoiced
+      // net. prepare_artifact above is deliberately not gated — it renders an
+      // unsigned order form and commits the customer to nothing.
+      const refusedAcceptance = await repository
         .mutate({
           resource: "orders",
           id: orderId,
@@ -660,12 +656,20 @@ describe("database core direct-owner artifact chain", () => {
           authorization: channelAuthorization,
           requestId: `channel-order-accept-no-tax-${suffix}`,
           idempotencyKey: testKey(`channel-order-accept-no-tax-${suffix}`),
-          occurredAt: "2026-08-01T00:00:00.000Z",
+          occurredAt: UNDETERMINABLE_TAX_POINT,
         })
         .catch((error: unknown) => error);
       expect(refusedAcceptance).toBeInstanceOf(DatabaseCoreError);
       expect(refusedAcceptance).toMatchObject({ code: "INVALID_STATE" });
-      expect((refusedAcceptance as Error).message).toContain("EXT-TAX-01");
+      // The refusal names WHICH question had no answer. On this date the first
+      // one to fail is the supplier: nobody had stated who sells in 2019, and a
+      // supply with no supplier cannot be placed, let alone rated.
+      expect((refusedAcceptance as Error).message).toContain(
+        "Tax could not be determined",
+      );
+      expect((refusedAcceptance as Error).message).toContain(
+        "SELLING_ENTITY_UNSTATED",
+      );
       const unaccepted = await withInternalTransaction(
         db,
         `channel-order-unaccepted-${suffix}`,
@@ -730,14 +734,24 @@ describe("database core direct-owner artifact chain", () => {
         },
       );
 
-      // The merchant of record bills the partner on a resale route, so the
-      // jurisdiction the determination is made in is Blue Harbor's (ES), not
-      // the end client's (US). A reverse-charged supply is billed net and says
-      // so: `reverse_charge_eligible` had exactly one hit in the tree before
-      // this work — a Drizzle column nothing read and nothing wrote — and no
-      // code determined EU or UK treatment at all.
+      // 001410'S WORKED EXAMPLE, DETERMINED FROM BOTH SIDES.
+      //
+      // On a resale route we bill the PARTNER, so Blue Harbor (ES) is the
+      // CUSTOMER — not, as the old path had it, the merchant-of-record side.
+      // The supplier is the entity the acceptance bound: Clockwork Commerce Inc
+      // (US), by the account statement the seed makes for exactly this case. A
+      // US entity supplying a Spanish business is outside the scope of the
+      // supplier territory's regime under its own export rule, so the bill is
+      // net and carries that treatment.
+      //
+      // It is deliberately NOT `reverse_charge`. That was the old fixture's
+      // answer and it came from a list of jurisdictions in a test double rather
+      // than from any rule: reverse charge is what the CUSTOMER's regime does
+      // with the supply, and our document's treatment is what OUR supplier
+      // territory says about it. 001415 records why the two cannot share a
+      // value — one must appear on a return and the other must not.
       if (channel.channel === "resale") {
-        const reverseCharged = await reverseChargedRepository.mutate({
+        const reverseCharged = await repository.mutate({
           resource: "invoices",
           id: crypto.randomUUID(),
           accountId: channel.invoicingAccountId,
@@ -752,14 +766,50 @@ describe("database core direct-owner artifact chain", () => {
           idempotencyKey: testKey(`channel-order-reverse-charge-${suffix}`),
           occurredAt: "2026-08-01T01:00:00.000Z",
         });
-        // The same fixture rates txcd_demo at 2000 bps. It is not applied here,
-        // and that is the point: the treatment decides, not the rate table.
+        // Spain rates txcd_demo at 210000 ppm. It is not applied here, and
+        // that is the point: the place of supply decides whether a rate is
+        // reached at all, and this supply never reaches Spain's.
         expect(reverseCharged.record.data).toMatchObject({
           orderId,
           currency: "EUR",
           amountMinor: "168000",
           taxMinor: "0",
-          taxTreatment: "reverse_charge",
+          taxTreatment: "out_of_scope",
+        });
+        // And the per-jurisdiction record says the same thing with its reasons
+        // attached, which the two scalars on the header cannot.
+        const determination = await withInternalTransaction(
+          db,
+          `channel-order-determination-${suffix}`,
+          async (tx) =>
+            tx.execute<{
+              treatment: string;
+              place_of_supply: string[];
+              supplier: string;
+              lines: number;
+              jurisdictions: string[];
+            }>(sql`
+              select determination.treatment,
+                     determination.place_of_supply,
+                     entity.legal_name as supplier,
+                     count(line.*)::int as lines,
+                     array_agg(distinct line.jurisdiction) as jurisdictions
+              from public.core_invoice_tax_determinations determination
+              join public.core_legal_entities entity
+                on entity.id = determination.supplier_legal_entity_id
+              join public.core_invoice_tax_lines line
+                on line.invoice_id = determination.invoice_id
+              where determination.invoice_id
+                = ${String(reverseCharged.record.data.id)}::uuid
+              group by determination.treatment, determination.place_of_supply,
+                       entity.legal_name
+            `),
+        );
+        expect([...determination][0]).toMatchObject({
+          treatment: "out_of_scope",
+          place_of_supply: ["ES"],
+          supplier: "Clockwork Commerce Inc",
+          jurisdictions: ["ES"],
         });
       }
     }
@@ -1305,13 +1355,16 @@ describe("database core direct-owner artifact chain", () => {
       new DatabaseCoreWorkflowDispatchStore(
         db,
         authorizationSecret,
-        new FixtureTaxPort({ unavailableJurisdictions: ["US"] }),
+        new FixtureTaxPort(),
       ).ensureInvoiceDraftForProvisionedOrder({
         orderId,
         requestId: `core-owner-draft-no-tax-${runId}`,
-        occurredAt: "2026-08-15T12:00:00.000Z",
+        // A provisioning event dated before any rule book was in force. The
+        // draft writer must refuse the same way the command writer does, and
+        // must leave no invoice behind when it does.
+        occurredAt: UNDETERMINABLE_TAX_POINT,
       }),
-    ).rejects.toThrow("EXT-TAX-01");
+    ).rejects.toThrow("no tax rule book answers");
     await restoreRequirePo(true);
     const undraftedInvoices = await withInternalTransaction(
       db,
@@ -1484,10 +1537,11 @@ describe("database core direct-owner artifact chain", () => {
       throw new Error("amended order fixture is missing its priced truth");
     const amendedInvoiceId = crypto.randomUUID();
 
-    // P0-61. A provider that cannot answer is a refusal, not a zero: billing
-    // net because a tax call failed is the under-invoice the whole path exists
-    // to prevent, and nothing about it is visible on the invoice afterwards.
-    const refusedInvoice = await undeterminedTaxRepository
+    // P0-61. A determination that cannot be made is a refusal, not a zero:
+    // billing net because no book answered is the under-invoice the whole path
+    // exists to prevent, and nothing about it is visible on the invoice
+    // afterwards.
+    const refusedInvoice = await repository
       .mutate({
         resource: "invoices",
         id: crypto.randomUUID(),
@@ -1498,12 +1552,14 @@ describe("database core direct-owner artifact chain", () => {
         authorization,
         requestId: "core-owner-amended-invoice-no-determination",
         idempotencyKey: testKey("core-owner-amended-invoice-no-determination"),
-        occurredAt: "2026-08-16T15:00:00.000Z",
+        occurredAt: UNDETERMINABLE_TAX_POINT,
       })
       .catch((error: unknown) => error);
     expect(refusedInvoice).toBeInstanceOf(DatabaseCoreError);
     expect(refusedInvoice).toMatchObject({ code: "INVALID_STATE" });
-    expect((refusedInvoice as Error).message).toContain("EXT-TAX-01");
+    expect((refusedInvoice as Error).message).toContain(
+      "Tax could not be determined",
+    );
     const stillUnbilled = await withInternalTransaction(
       db,
       `core-owner-amended-unbilled-${runId}`,
@@ -1541,22 +1597,79 @@ describe("database core direct-owner artifact chain", () => {
     // An invoice written after the amendment bills the amendment. Before this,
     // the customer signed the upgrade and was billed the untouched quote.
     //
-    // And it bills the tax on both. The fixture rates txcd_demo at 2000 bps, so
-    // the quoted 180000 carries 36000 and the amended 9148 carries 1830 (1829.6
-    // rounded away from zero), for 37830 on a net of 189148 and an amount owed
-    // of 226978. Before this, all three tax_minor columns took a literal zero
-    // and the customer in a tax-bearing jurisdiction was billed net.
+    // And it bills the tax on both, at the rate the customer's own authority
+    // publishes rather than at a rate a test double invented.
+    //
+    // Worked by hand. Northstar Archive Labs is at 02108, which the
+    // Massachusetts book claims by ZIP prefix, and Massachusetts publishes
+    // 62500 ppm — 6.25%. The territory rounds per line, so the two lines round
+    // separately:
+    //
+    //   quoted line  180000 * 62500 / 1000000 = 11250      -> 11250
+    //   amendment      9148 * 62500 / 1000000 =   571.75   ->   572
+    //                                            -------      -----
+    //                                            189148       11822
+    //
+    // for an amount owed of 200970. Before this work all three tax_minor
+    // columns took a literal zero and the customer was billed net; before this
+    // ROUND the figure was 20% of everything, because the fixture said so.
     expect(amendedInvoice.record.data).toMatchObject({
       orderId,
       accountId,
       stripeInvoiceId: null,
       currency: amendmentMoney.persistedQuote?.currency,
-      amountMinor: (quoteTotalMinor + 9_148n + 37_830n).toString(),
-      taxMinor: "37830",
+      amountMinor: (quoteTotalMinor + 9_148n + 11_822n).toString(),
+      taxMinor: "11822",
       taxTreatment: "standard",
       poNumber: null,
       status: "draft",
     });
+    // The per-jurisdiction record behind that figure: one row per line, both in
+    // Massachusetts, both pinned to the book that published the rate. The
+    // amendment delta has no order line of its own and says so by name.
+    const amendedTaxLines = await withInternalTransaction(
+      db,
+      `core-owner-amended-tax-lines-${runId}`,
+      async (tx) =>
+        tx.execute<{
+          line_id: string;
+          jurisdiction: string;
+          rate_ppm: string;
+          tax_minor: string;
+          book: string;
+        }>(sql`
+          select line.line_id, line.jurisdiction, line.rate_ppm::text,
+                 line.tax_minor::text, book.jurisdiction as book
+          from public.core_invoice_tax_lines line
+          join public.core_tax_rule_books book on book.id = line.rule_book_id
+          where line.invoice_id = ${amendedInvoice.record.id}::uuid
+          order by line.tax_minor desc
+        `),
+    );
+    expect(
+      [...amendedTaxLines].map((line) => ({
+        jurisdiction: line.jurisdiction,
+        ratePpm: line.rate_ppm,
+        taxMinor: line.tax_minor,
+        book: line.book,
+        amendment: line.line_id === "amendment-delta",
+      })),
+    ).toEqual([
+      {
+        jurisdiction: "US-MA",
+        ratePpm: "62500",
+        taxMinor: "11250",
+        book: "US-MA",
+        amendment: false,
+      },
+      {
+        jurisdiction: "US-MA",
+        ratePpm: "62500",
+        taxMinor: "572",
+        book: "US-MA",
+        amendment: true,
+      },
+    ]);
     expect(quoteTotalMinor).toBe(180_000n);
     // The invoice is identified by the order it bills, not by the identifier
     // the caller posted, and it is the identifier the provisioning-draft writer
@@ -1600,8 +1713,8 @@ describe("database core direct-owner artifact chain", () => {
     expect(billedOnce).toEqual([
       {
         id: persistedInvoiceId,
-        amountMinor: quoteTotalMinor + 9_148n + 37_830n,
-        taxMinor: 37_830n,
+        amountMinor: quoteTotalMinor + 9_148n + 11_822n,
+        taxMinor: 11_822n,
         taxTreatment: "standard",
       },
     ]);
@@ -1641,16 +1754,16 @@ describe("database core direct-owner artifact chain", () => {
       unbilledAmendmentDeltaMinor: 0n,
     });
     // `deriveInvoice`'s variance does NOT read zero here, and that is the point.
-    // The net-against-gross half of it is fixed — the 37830 of tax on this
+    // The net-against-gross half of it is fixed — the 11822 of tax on this
     // invoice is no longer counted as a discrepancy — but the derived total is
     // still one month of line revenue (15000) where the invoice bills twelve
     // (180000), so the note fires on an invoice nothing has drifted on. It is
     // recorded exactly, so that the AFTER reading below can be compared against
     // it rather than merely observed to be non-zero.
     expect(derivation.invoicedTotalMinor).toBe(
-      (quoteTotalMinor + 9_148n + 37_830n).toString(),
+      (quoteTotalMinor + 9_148n + 11_822n).toString(),
     );
-    expect(derivation.invoicedTaxMinor).toBe("37830");
+    expect(derivation.invoicedTaxMinor).toBe("11822");
     expect(derivation.invoicedNetTotalMinor).toBe(
       (quoteTotalMinor + 9_148n).toString(),
     );
@@ -1790,10 +1903,10 @@ describe("database core direct-owner artifact chain", () => {
     // The invoice keeps the amount it was issued at. A later amendment does not
     // rewrite an issued financial fact.
     expect(settledAfterAmendment.paid?.amountMinor).toBe(
-      quoteTotalMinor + 9_148n + 37_830n,
+      quoteTotalMinor + 9_148n + 11_822n,
     );
     expect(settledAfterAmendment.paid?.amountRemainingMinor).toBe(
-      quoteTotalMinor + 9_148n + 37_830n - 50_000n,
+      quoteTotalMinor + 9_148n + 11_822n - 50_000n,
     );
 
     // P0-49, residual A. The AFTER reading of the same two signals.
@@ -4504,16 +4617,17 @@ describe("database core quote persistence under row-level security", () => {
  * configured". Quote creation writes no `tax_minor` and never calls the port;
  * refusing it protected nobody from anything.
  *
- * `undeterminedTaxRepository` is the closest fixture there is to a deployment
- * with no engine wired: it refuses every jurisdiction the seeded channels
- * invoice in. The refusals it produces on `orders:create` and `invoices:create`
- * are asserted above; this is the complement, and the two together are the
+ * A tax point no rule book covers is the closest thing there is to a deployment
+ * with no matrix loaded: `orders:create` and `invoices:create` refuse on it,
+ * which is asserted above. This is the complement — quote creation writes no
+ * `tax_minor` and asks for no determination at all, so it succeeds on a
+ * repository whose determinations are refusable. The two together are the
  * refused set.
  */
 describe("core finance commands that never ask the tax port", () => {
   it("prices and persists a quote with no tax determination available", async () => {
     const id = crypto.randomUUID();
-    const created = await undeterminedTaxRepository.mutate({
+    const created = await repository.mutate({
       resource: "quotes",
       id,
       accountId,

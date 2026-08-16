@@ -1,0 +1,28 @@
+Clockwork Commerce — Evaluation License
+
+Copyright (c) 2026 Fil One. All rights reserved.
+
+1. Grant. Permission is granted, free of charge, to any person obtaining a
+   copy of this software and its associated documentation (the "Software") to
+   view, build, run, and test the Software, and to prepare written analyses of
+   it, solely for the purposes of review, audit, evaluation, and due
+   diligence.
+
+2. Reservation. All rights not expressly granted above are reserved. Without
+   limitation, this license grants no right to use the Software in
+   production, to offer it as a service, to distribute it or any derivative
+   work, to sublicense it, or to use the "Fil One" or "Clockwork" names or
+   marks other than to identify the Software in a review.
+
+3. Third-party components. Dependencies resolved through the package manager
+   and the self-hosted webfonts carry their own licenses (including the SIL
+   Open Font License 1.1 files under apps/web/app/fonts/), which govern those
+   components.
+
+4. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+   NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+   USE OF OR OTHER DEALINGS IN THE SOFTWARE.

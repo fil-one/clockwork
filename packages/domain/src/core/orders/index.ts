@@ -2,6 +2,7 @@ import type { Money, ProvisioningPort } from "@clockwork/contracts";
 
 import type { AccountCommercialRecord } from "../accounts";
 import { procurementReadiness } from "../accounts";
+import { merchantOfRecord as merchantOfRecordFor } from "../partners";
 import type { PricedQuoteLine } from "../pricing";
 import type { QuoteSnapshot } from "../quotes";
 import { assertQuoteSnapshotUnchanged } from "../quotes";
@@ -238,12 +239,10 @@ export function acceptOrder(input: AcceptOrderInput): AcceptedOrder {
       throw new Error("Resale order requires its invoicing partner");
     invoicingAccountId = partner.id;
   }
-  const merchantOfRecord =
-    quote.route === "resale" || quote.route === "distributor"
-      ? "partner"
-      : quote.route === "marketplace"
-        ? "marketplace"
-        : "fil_one";
+  // One derivation, called rather than copied. The two were identical text in
+  // two files, which is the shape of defect this project keeps paying for: a
+  // route added to one switch and not to its twin bills the wrong party.
+  const merchantOfRecord = merchantOfRecordFor(quote.route);
   return Object.freeze({
     id: input.orderId,
     quoteId: quote.id,

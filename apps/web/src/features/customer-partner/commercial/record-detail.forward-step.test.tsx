@@ -1,8 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CommercialRecord, CollectionKind } from "./model";
 import { CommercialRecordDetail } from "./record-detail";
+
+// Forward steps are header links; the document read is stubbed so the server
+// module stays out of jsdom and cannot influence what these assert.
+vi.mock("@/src/features/experience-server/delivery", () => ({
+  loadRecordArtifacts: () => Promise.resolve([]),
+}));
 
 /**
  * A record as `loadCommercialRecord` builds one from a materialized payload:
@@ -39,17 +45,17 @@ function projected(
   };
 }
 
-function forwardStep(
+async function forwardStep(
   kind: CollectionKind,
   recordKey: string,
   overrides: Partial<CommercialRecord> = {},
 ) {
   const view = render(
-    <CommercialRecordDetail
-      canMutate
-      id={recordKey}
-      record={projected(kind, overrides)}
-    />,
+    await CommercialRecordDetail({
+      canMutate: true,
+      id: recordKey,
+      record: projected(kind, overrides),
+    }),
   );
   // The header also carries "Sign this agreement", which is not a forward
   // step: it hands an agreement's aggregate id to the signing provider, which
@@ -78,34 +84,34 @@ describe("forward step references", () => {
    * what the link has to carry. The route's own `id` is that key by
    * construction: it is the value `loadCommercialRecord` found the record by.
    */
-  it("sends the service's record key to offboarding", () => {
-    expect(forwardStep("services", recordKeys.services)).toContain(
+  it("sends the service's record key to offboarding", async () => {
+    expect(await forwardStep("services", recordKeys.services)).toContain(
       `/account/offboarding?service=${encodeURIComponent(recordKeys.services)}`,
     );
   });
 
-  it("sends the quote's record key to order acceptance", () => {
+  it("sends the quote's record key to order acceptance", async () => {
     expect(
-      forwardStep("quotes", recordKeys.quotes, { status: "accepted" }),
+      await forwardStep("quotes", recordKeys.quotes, { status: "accepted" }),
     ).toContain(
       `/orders/accept?quote=${encodeURIComponent(recordKeys.quotes)}`,
     );
   });
 
-  it("sends the quote's record key to the revision builder", () => {
+  it("sends the quote's record key to the revision builder", async () => {
     expect(
-      forwardStep("quotes", recordKeys.quotes, { status: "draft" }),
+      await forwardStep("quotes", recordKeys.quotes, { status: "draft" }),
     ).toContain(`/quotes/new?revises=${encodeURIComponent(recordKeys.quotes)}`);
   });
 
-  it("sends the POC's record key to the quote builder", () => {
-    expect(forwardStep("pocs", recordKeys.pocs)).toContain(
+  it("sends the POC's record key to the quote builder", async () => {
+    expect(await forwardStep("pocs", recordKeys.pocs)).toContain(
       `/quotes/new?poc=${encodeURIComponent(recordKeys.pocs)}`,
     );
   });
 
-  it("sends the agreement's record key to execution", () => {
-    expect(forwardStep("agreements", recordKeys.agreements)).toContain(
+  it("sends the agreement's record key to execution", async () => {
+    expect(await forwardStep("agreements", recordKeys.agreements)).toContain(
       `/agreements/execute?agreement=${encodeURIComponent(recordKeys.agreements)}`,
     );
   });
@@ -115,9 +121,9 @@ describe("forward step references", () => {
    * the projected `id` are the same UUID, and no destination channel selects
    * on either, so a reference equal to it is the defect itself.
    */
-  it("carries the aggregate id to none of them", () => {
+  it("carries the aggregate id to none of them", async () => {
     for (const [kind, recordKey] of Object.entries(recordKeys))
-      for (const href of forwardStep(kind as CollectionKind, recordKey))
+      for (const href of await forwardStep(kind as CollectionKind, recordKey))
         expect(href).not.toContain("80000000-0000-4000-8000-000000000001");
   });
 
@@ -126,18 +132,18 @@ describe("forward step references", () => {
    * own list controls. It had an `?order=` that nothing could read; the link
    * states no reference rather than a reference the destination discards.
    */
-  it("states no reference on the amendments collection link", () => {
+  it("states no reference on the amendments collection link", async () => {
     expect(
-      forwardStep("orders", "order-90000000-0000-4000-8000-000000000005"),
+      await forwardStep("orders", "order-90000000-0000-4000-8000-000000000005"),
     ).toContain("/amendments");
   });
 
-  it("offers no forward step at all to a reader who cannot act", () => {
+  it("offers no forward step at all to a reader who cannot act", async () => {
     render(
-      <CommercialRecordDetail
-        id={recordKeys.services}
-        record={projected("services")}
-      />,
+      await CommercialRecordDetail({
+        id: recordKeys.services,
+        record: projected("services"),
+      }),
     );
 
     expect(

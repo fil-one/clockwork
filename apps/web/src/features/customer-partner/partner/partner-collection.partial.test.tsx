@@ -15,7 +15,7 @@ const formatting = { locale: "en-US", timeZone: "America/New_York" };
 function renderLedger(freshness: {
   generatedAt: string;
   stale: boolean;
-  partial?: boolean;
+  partial: boolean;
 }) {
   return render(
     <PartnerCollection
@@ -50,7 +50,11 @@ describe("partner ledger partial read disclosure", () => {
   });
 
   it("says nothing extra when the whole channel was read", () => {
-    renderLedger({ generatedAt: "2026-08-14T13:04:00Z", stale: false });
+    renderLedger({
+      generatedAt: "2026-08-14T13:04:00Z",
+      partial: false,
+      stale: false,
+    });
 
     expect(
       screen.queryByText(/Only part of this collection/),

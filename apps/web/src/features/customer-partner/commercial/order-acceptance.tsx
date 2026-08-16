@@ -439,24 +439,13 @@ export function OrderAcceptance({
        * different hash. Minting a fresh one on the create pass would invalidate
        * the document this pass exists to quote.
        *
-       * KNOWN, AND NOT THIS FILE'S TO FIX: `mutateOrder`'s create branch
-       * (packages/db/src/repositories/core/database-finance.ts) additionally
-       * requires `Date.parse(command.acceptedAt) === Date.parse(input.occurredAt)`,
-       * and for any HTTP caller `input.occurredAt` is the API's own receive
-       * instant (`requestContext.receivedAt`, set by `new Date()` in
-       * packages/api/src/middleware/request-context.ts). No browser can produce
-       * a future server millisecond, so `orders:create` over HTTP is refused
-       * whatever this surface sends. Observed, not inferred: replaying the two
-       * passes against the local authoritative database with the create pass's
-       * `occurredAt` one second after `acceptedAt` -- the surface's own
-       * sequence, since the poll sleeps before its first lookup -- fails with
-       * "Order acceptance time must be current server evidence for an unexpired
-       * quote", and the identical pair with the two instants equal writes the
-       * order. The fix belongs in the finance repository, not here: either
-       * accept `command.acceptedAt` for `create` as `prepare_artifact` already
-       * does and bound it to a recency window, or build the create branch's
-       * artifact definition from `command.acceptedAt` so the hashes agree
-       * without the equality.
+       * This is DOCUMENTARY, and the repository now treats it as such:
+       * `mutateOrder` takes `command.acceptedAt` on both passes and keys every
+       * server fact -- `immutableAt`, the selling-entity `boundAt`, the
+       * provisioning request, the tax point -- on its own receive instant
+       * instead. It used to additionally require the two to be equal, which no
+       * browser could satisfy because the create pass always arrives after the
+       * instant the prepared form states.
        */
       const acceptedAt = acceptedAtRef.current ?? new Date().toISOString();
       acceptedAtRef.current = acceptedAt;

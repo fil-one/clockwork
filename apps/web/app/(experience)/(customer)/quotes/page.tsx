@@ -21,6 +21,7 @@ export default async function Page({
       <CommercialCollectionPage
         freshness={{
           generatedAt: projection.generatedAt,
+          partial: projection.truncated,
           stale: projection.stale,
         }}
         formatting={{ locale: session.locale, timeZone: session.timeZone }}

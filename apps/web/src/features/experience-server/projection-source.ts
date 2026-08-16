@@ -12,8 +12,20 @@ import {
 import { commercialRecords } from "@/src/features/customer-partner/commercial/model";
 import { customerCollections } from "@/src/features/customer-partner/customer/customer-data";
 import { partnerSurfaces } from "@/src/features/customer-partner/partner/partner-data";
+import { formatMoney } from "@/src/features/shared/format";
 
 import { resolveScopedAccount } from "./authorization";
+import {
+  demoInvoiceFigures,
+  demoRecordArtifacts,
+} from "./demo-artifact-catalog";
+import {
+  demoAdditionalRecords,
+  demoRecordAccounts,
+  demoTaxedBillingRecords,
+  DEMO_DEFAULT_CUSTOMER_ACCOUNT,
+  DEMO_DEFAULT_PARTNER_ACCOUNT,
+} from "./demo-portal-records";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
@@ -78,9 +90,24 @@ interface DemoRecord {
   key: string;
   audience: ExperienceAudience;
   channel: ProjectionChannel;
+  /**
+   * The account the record belongs to, mirroring `audience_account_id`. Null
+   * only for the internal audience, which the persisted query scopes with
+   * `audience_account_id is null`.
+   */
+  accountId: string | null;
   version: number;
   updatedAt: string;
   data: Readonly<Record<string, unknown>>;
+}
+
+function ownerOf(
+  audience: ExperienceAudience,
+  channel: string,
+  key: string,
+  fallback: string,
+): string {
+  return demoRecordAccounts[`${audience}:${channel}:${key}`] ?? fallback;
 }
 
 function customerRecords(): DemoRecord[] {
@@ -89,6 +116,12 @@ function customerRecords(): DemoRecord[] {
     key: record.id,
     audience: "customer" as const,
     channel: record.kind,
+    accountId: ownerOf(
+      "customer",
+      record.kind,
+      record.id,
+      DEMO_DEFAULT_CUSTOMER_ACCOUNT,
+    ),
     version: Number(record.version ?? "1"),
     updatedAt: record.updatedAt,
     data: {
@@ -112,6 +145,12 @@ function partnerRecords(): DemoRecord[] {
         key: record.id,
         audience: "partner",
         channel: channel as ProjectionChannel,
+        accountId: ownerOf(
+          "partner",
+          channel,
+          record.id,
+          DEMO_DEFAULT_PARTNER_ACCOUNT,
+        ),
         version: 1,
         updatedAt: "2026-07-31T16:00:00.000Z",
         data: { ...record, allowedActions: [] },
@@ -132,6 +171,12 @@ function customerCollectionRecords(): DemoRecord[] {
         key: record.id,
         audience: "customer",
         channel: channel as ProjectionChannel,
+        accountId: ownerOf(
+          "customer",
+          channel,
+          record.id,
+          DEMO_DEFAULT_CUSTOMER_ACCOUNT,
+        ),
         version: record.recordVersion ?? 1,
         updatedAt: record.updatedAt,
         data: { ...record, allowedActions: [] },
@@ -139,6 +184,19 @@ function customerCollectionRecords(): DemoRecord[] {
     }
   }
   return records;
+}
+
+function additionalRecords(): DemoRecord[] {
+  return demoAdditionalRecords.map((record, index) => ({
+    id: `50000000-0000-4000-8000-${String(4001 + index).padStart(12, "0")}`,
+    key: record.key,
+    audience: record.audience,
+    channel: record.channel,
+    accountId: record.accountId,
+    version: record.version,
+    updatedAt: record.updatedAt,
+    data: record.data,
+  }));
 }
 
 function internalRecords(): DemoRecord[] {
@@ -207,8 +265,9 @@ function internalRecords(): DemoRecord[] {
   return records.map((record, index) => ({
     id: `50000000-0000-4000-8000-${String(3001 + index).padStart(12, "0")}`,
     key: record.key,
-    audience: "internal",
+    audience: "internal" as const,
     channel: record.channel,
+    accountId: null,
     version: 1,
     updatedAt,
     data: record.data,
@@ -220,6 +279,7 @@ const demoRecords = [
   ...customerCollectionRecords(),
   ...partnerRecords(),
   ...internalRecords(),
+  ...additionalRecords(),
 ];
 
 function applyDemoState(
@@ -236,9 +296,65 @@ function applyDemoState(
   };
 }
 
+/**
+ * The account test the persisted read applies.
+ *
+ * `accountScope` in the repository is `audience_account_id = $1` — or
+ * `audience_account_id is null` when the caller resolved to no account, which
+ * is the internal audience — and the `experience_projection_read` row policy
+ * repeats it. This is the same predicate. Before it existed, a customer persona
+ * could open another account's quote and the demo would render it under their
+ * own account identifier: not a dead end, but the demo showing something the
+ * product refuses.
+ */
+function withinAccount(record: DemoRecord, accountId: string | null): boolean {
+  return record.accountId === accountId;
+}
+
+/**
+ * The determination the money-bearing demo rows read their figures from.
+ *
+ * An "invoiced amount" is gross of tax. The fixtures state the net, and the
+ * gross is whatever the engine says it is under the seeded rule book — so the
+ * collection, the detail page and the invoice PDF cannot disagree, because
+ * there is only one place the number comes from.
+ */
+async function taxedBillingData(
+  record: DemoRecord,
+): Promise<Readonly<Record<string, unknown>>> {
+  const figures = await demoInvoiceFigures();
+  const gross = formatMoney(figures.grossMinor, figures.currency);
+  const tax = formatMoney(figures.taxMinor, figures.currency);
+  const net = formatMoney(figures.netMinor, figures.currency);
+  return {
+    ...record.data,
+    value: gross,
+    valueLabel: "Invoiced amount (incl. tax)",
+    invoicedNetOfTax: net,
+    taxDetermined: tax,
+    taxTreatment: figures.summary,
+  };
+}
+
+async function projectionData(
+  record: DemoRecord,
+): Promise<Readonly<Record<string, unknown>>> {
+  const data = demoTaxedBillingRecords.includes(
+    `${record.audience}:${record.channel}:${record.key}`,
+  )
+    ? await taxedBillingData(record)
+    : record.data;
+  const artifacts = demoRecordArtifacts(
+    record.audience,
+    record.channel,
+    record.key,
+  );
+  return artifacts.length > 0 ? { ...data, artifacts } : data;
+}
+
 function asProjection(
   record: DemoRecord,
-  accountId: string | null,
+  data: Readonly<Record<string, unknown>>,
   now: Date,
 ): ProjectionRecord {
   return {
@@ -246,15 +362,25 @@ function asProjection(
     recordKey: record.key,
     aggregateType: record.channel,
     aggregateId: record.id,
-    accountId,
+    // The record's own account, not the caller's. The two are equal after the
+    // scope filter; stamping the caller's was how another account's record used
+    // to arrive labelled as the reader's own.
+    accountId: record.accountId,
     audience: record.audience,
     channel: record.channel,
     version: record.version,
     sourceUpdatedAt: record.updatedAt,
     projectedAt: record.updatedAt,
     stale: now.getTime() - Date.parse(record.updatedAt) > 300_000,
-    data: record.data,
+    data,
   };
+}
+
+async function projectRecord(
+  record: DemoRecord,
+  now: Date,
+): Promise<ProjectionRecord> {
+  return asProjection(record, await projectionData(record), now);
 }
 
 /** Deterministic fixtures selected only through CLOCKWORK_EXPERIENCE_ADAPTER=demo. */
@@ -276,7 +402,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       .filter(
         (record) =>
           record.audience === input.audience &&
-          record.channel === input.channel,
+          record.channel === input.channel &&
+          withinAccount(record, input.accountId),
       )
       .map((record) => applyDemoState(record, state));
     // Only an explicit `orderBy` sorts. The fixtures' own declaration order is
@@ -293,8 +420,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       : selected;
     const page = matching.slice(offset, offset + input.limit);
     return {
-      items: page.map((record) =>
-        asProjection(record, input.accountId, input.now),
+      items: await Promise.all(
+        page.map((record) => projectRecord(record, input.now)),
       ),
       nextCursor:
         offset + page.length < matching.length
@@ -318,11 +445,17 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       recordKey: string;
     },
   ): Promise<ProjectionRecord> {
+    // The account test is part of the match, not a check after it, so a record
+    // outside the caller's account is indistinguishable from one that does not
+    // exist. The persisted read collapses the two the same way, deliberately:
+    // telling them apart would be an enumeration oracle for another tenant's
+    // references.
     const record = demoRecords.find(
       (item) =>
         item.audience === input.audience &&
         item.channel === input.channel &&
-        item.key === input.recordKey,
+        item.key === input.recordKey &&
+        withinAccount(item, input.accountId),
     );
     if (!record)
       throw new ExperienceProblem(
@@ -331,11 +464,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection record not found",
       );
     const state = await this.stateStore.read();
-    return asProjection(
-      applyDemoState(record, state),
-      input.accountId,
-      input.now,
-    );
+    return projectRecord(applyDemoState(record, state), input.now);
   }
 
   public async action(

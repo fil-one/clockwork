@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T20:06:37Z",
+  "capturedAt": "2026-08-16T21:02:00Z",
   "openapiVersion": "3.1.0",
-  "paths": 56,
-  "operations": 56,
+  "paths": 58,
+  "operations": 59,
   "clientSurfaces": [
     {
       "name": "hono-v1-openapi",
       "mount": "/api/v1",
       "sourcePathPrefix": "/v1",
-      "operationCount": 49,
+      "operationCount": 52,
       "generatedContract": "packages/api/src/generated/schema.d.ts",
       "client": "packages/api/src/generated/client.ts"
     },
@@ -299,14 +299,14 @@
     {
       "path": "packages/api/src/generated/openapi.json",
       "kind": "generated-openapi",
-      "sha256": "d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18",
-      "bytes": 270574
+      "sha256": "46801e4e7de68c5b999704b5aad37205818279fd14e38a0fc01384bca321da01",
+      "bytes": 281757
     },
     {
       "path": "packages/api/src/generated/schema.d.ts",
       "kind": "generated-types",
-      "sha256": "a87b32a07841531447c0d34e24b0a137cd5288ff31470f1425edddcad0579784",
-      "bytes": 169090
+      "sha256": "f6986590fa4709601767c0697effeb5f7984ab9e3df7c1c525a0ef77780974c2",
+      "bytes": 176112
     },
     {
       "path": "packages/api/src/generated/client.ts",

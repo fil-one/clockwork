@@ -1,12 +1,27 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-02T20:06:37Z",
+  "capturedAt": "2026-08-16T21:02:00Z",
   "mount": {
     "openapiPrefix": "/v1",
     "nextPrefix": "/api",
     "deployedPrefix": "/api/v1"
   },
   "applicationRoutes": [
+    {
+      "route": "/account/notifications",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/account/notifications/page.tsx"
+    },
     {
       "route": "/account/offboarding",
       "audience": "customer",
@@ -308,6 +323,21 @@
       "source": "apps/web/app/(experience)/(customer)/quotes/page.tsx"
     },
     {
+      "route": "/services/[id]",
+      "audience": "customer",
+      "intendedAccess": "authenticated-customer-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(customer)/services/[id]/page.tsx"
+    },
+    {
       "route": "/services",
       "audience": "customer",
       "intendedAccess": "authenticated-customer-role",
@@ -411,6 +441,21 @@
       },
       "kind": "page",
       "source": "apps/web/app/(experience)/(internal)/internal/assisted/page.tsx"
+    },
+    {
+      "route": "/internal/billing-reconciliation",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/billing-reconciliation/page.tsx"
     },
     {
       "route": "/internal/collections",
@@ -591,6 +636,21 @@
       },
       "kind": "page",
       "source": "apps/web/app/(experience)/(internal)/internal/search/page.tsx"
+    },
+    {
+      "route": "/internal/unhandled-errors",
+      "audience": "internal",
+      "intendedAccess": "authenticated-internal-role",
+      "observedGuard": {
+        "behavior": "layout RoutePermissionGate using getRouteRoles",
+        "sources": [
+          "apps/web/src/features/shell/route-session.ts",
+          "apps/web/src/features/shell/permission-gate.tsx"
+        ],
+        "limitation": "When WorkOS is unconfigured, getRouteRoles supplies static audience roles, including in production; this is not proof of an authenticated session."
+      },
+      "kind": "page",
+      "source": "apps/web/app/(experience)/(internal)/internal/unhandled-errors/page.tsx"
     },
     {
       "route": "/internal/webhook-replay",
@@ -995,6 +1055,30 @@
       "source": "apps/web/app/demo/persona/route.ts"
     },
     {
+      "route": "/developers/openapi.json",
+      "audience": "shared",
+      "intendedAccess": "route-handler-review-required",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/developers/openapi.json/route.ts"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "route-handler",
+      "source": "apps/web/app/developers/openapi.json/route.ts"
+    },
+    {
+      "route": "/developers",
+      "audience": "shared",
+      "intendedAccess": "authenticated-session",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/developers/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/developers/page.tsx"
+    },
+    {
       "route": "/",
       "audience": "access",
       "intendedAccess": "public-entry",
@@ -1089,6 +1173,18 @@
       },
       "kind": "page",
       "source": "apps/web/app/signing/return/page.tsx"
+    },
+    {
+      "route": "/trust",
+      "audience": "shared",
+      "intendedAccess": "authenticated-session",
+      "observedGuard": {
+        "behavior": "no audience layout guard inventoried",
+        "sources": ["apps/web/app/trust/page.tsx"],
+        "limitation": "Public entry classification does not imply that downstream APIs are public."
+      },
+      "kind": "page",
+      "source": "apps/web/app/trust/page.tsx"
     }
   ],
   "audiences": [
@@ -1133,7 +1229,9 @@
     "system:operate",
     "impersonation:assume",
     "destructive:request",
-    "destructive:approve"
+    "destructive:approve",
+    "a party to this account may ask for a\n  // destructive thing to be done to their own account",
+    "migration:execute"
   ],
   "rolePermissions": {
     "owner": [
@@ -1214,7 +1312,8 @@
       "report:read",
       "system:operate",
       "impersonation:assume",
-      "destructive:request"
+      "destructive:request",
+      "migration:execute"
     ],
     "finance_approver": [
       "account:read",
@@ -1495,8 +1594,8 @@
     "limitation": "The experience API is implemented by a typed Next.js controller and merged into the canonical OpenAPI document; authorization remains controller/repository enforced."
   },
   "api": {
-    "openapiSha256": "d1dcb164ab834ae12e065ce934ae665520cbefa1f1b2e7d2406e854477ecff18",
-    "operationCount": 56,
+    "openapiSha256": "46801e4e7de68c5b999704b5aad37205818279fd14e38a0fc01384bca321da01",
+    "operationCount": 59,
     "operations": [
       {
         "path": "/v1/core/status",
@@ -1568,6 +1667,33 @@
         "operationId": null,
         "summary": null,
         "tags": ["core", "documents"],
+        "security": null
+      },
+      {
+        "path": "/v1/notifications",
+        "mountedPath": "/api/v1/notifications",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["notifications"],
+        "security": null
+      },
+      {
+        "path": "/v1/notifications/preferences",
+        "mountedPath": "/api/v1/notifications/preferences",
+        "method": "GET",
+        "operationId": null,
+        "summary": null,
+        "tags": ["notifications"],
+        "security": null
+      },
+      {
+        "path": "/v1/notifications/preferences",
+        "mountedPath": "/api/v1/notifications/preferences",
+        "method": "PUT",
+        "operationId": null,
+        "summary": null,
+        "tags": ["notifications"],
         "security": null
       },
       {
@@ -2033,6 +2159,14 @@
     ],
     "sourcePermissionReferences": [
       {
+        "source": "packages/api/src/routes/core/command-catalogue.integration.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/core/command-catalogue.test.ts",
+        "permissionsReferenced": []
+      },
+      {
         "source": "packages/api/src/routes/core/core.integration.test.ts",
         "permissionsReferenced": []
       },
@@ -2069,6 +2203,10 @@
         "permissionsReferenced": []
       },
       {
+        "source": "packages/api/src/routes/lifecycle/exception-queue-authorization.test.ts",
+        "permissionsReferenced": []
+      },
+      {
         "source": "packages/api/src/routes/lifecycle/index.ts",
         "permissionsReferenced": [
           "account:read",
@@ -2079,6 +2217,7 @@
           "billing:approve",
           "destructive:approve",
           "destructive:request",
+          "migration:execute",
           "order:write",
           "poc:manage",
           "quote:approve",
@@ -2089,6 +2228,18 @@
       {
         "source": "packages/api/src/routes/lifecycle/lifecycle.integration.test.ts",
         "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/migration-authorization.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/notifications.test.ts",
+        "permissionsReferenced": []
+      },
+      {
+        "source": "packages/api/src/routes/lifecycle/notifications.ts",
+        "permissionsReferenced": ["account:read", "account:write"]
       },
       {
         "source": "packages/api/src/routes/lifecycle/service.test.ts",

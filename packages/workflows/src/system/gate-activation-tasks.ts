@@ -88,17 +88,17 @@ export function executeConfiguredExternalGateActivation(
   return configuredExecutor(ActivationPayloadSchema.parse(raw), requestId);
 }
 
+/**
+ * The only registered gate-activation task. Crash recovery arrives on this id
+ * too: the runner behind `executeConfiguredExternalGateActivation` finalises a
+ * `provider_succeeded` task without a second HTTP probe, so a retry of this
+ * task is the recovery path. A separate recovery id used to be registered here
+ * with the identical handler and no caller of any kind; see
+ * `externalGateActivationTaskIds`.
+ */
 export const externalGateActivationTask = task({
   id: externalGateActivationTaskIds.activate,
   retry: durableRetryPolicy,
   run: (payload: unknown, { ctx }) =>
     executeConfiguredExternalGateActivation(payload, `task:${ctx.run.id}`),
-});
-
-/** Same durable handler; provider_succeeded state selects recovery without HTTP. */
-export const externalGateActivationRecoveryTask = task({
-  id: externalGateActivationTaskIds.recover,
-  retry: durableRetryPolicy,
-  run: (payload: unknown, { ctx }) =>
-    executeConfiguredExternalGateActivation(payload, `recovery:${ctx.run.id}`),
 });

@@ -5,7 +5,11 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../../client";
 import {
+  invoiceTaxDeterminations,
+  invoiceTaxLines,
   legalEntities,
+  orderSupplierBindings,
+  sellingEntityAssignments,
   taxRates,
   taxRegistrations,
   taxRuleBookActivationEvents,
@@ -49,15 +53,23 @@ const taxTables: PgTable[] = [
   taxRuleBooks,
   taxRates,
   taxRuleBookActivationEvents,
+  sellingEntityAssignments,
+  orderSupplierBindings,
+  invoiceTaxDeterminations,
+  invoiceTaxLines,
 ];
 const tableNames = taxTables.map((table) => getTableName(table));
 
 const sorted = (values: string[]) => [...values].sort();
 
-describe("tax schema mirrors the applied migrations 001410-001412", () => {
-  it("declares the five tables the tax migrations create", () => {
+describe("tax schema mirrors the applied migrations 001410-001417", () => {
+  it("declares the tables the tax migrations create", () => {
     expect(sorted(tableNames)).toEqual([
+      "core_invoice_tax_determinations",
+      "core_invoice_tax_lines",
       "core_legal_entities",
+      "core_order_supplier_bindings",
+      "core_selling_entity_assignments",
       "core_tax_rates",
       "core_tax_registrations",
       "core_tax_rule_book_activation_events",
@@ -74,9 +86,21 @@ describe("tax schema mirrors the applied migrations 001410-001412", () => {
         is_nullable: string;
       }[]
     >`
-      select table_name, column_name, data_type, is_nullable
-      from information_schema.columns
-      where table_schema = 'public' and table_name = any(${tableNames})
+      -- format_type rather than information_schema.data_type, which reports
+      -- every array as the bare word ARRAY and so could not tell text[] from
+      -- uuid[]. The catalog says what the column actually is, which is what a
+      -- mirror has to agree with.
+      select rel.relname as table_name,
+             att.attname as column_name,
+             format_type(att.atttypid, att.atttypmod) as data_type,
+             case when att.attnotnull then 'NO' else 'YES' end as is_nullable
+      from pg_attribute att
+      join pg_class rel on rel.oid = att.attrelid
+      join pg_namespace nsp on nsp.oid = rel.relnamespace
+      where nsp.nspname = 'public'
+        and rel.relname = any(${tableNames})
+        and att.attnum > 0
+        and not att.attisdropped
     `;
     const applied = new Map(
       rows.map((row) => [

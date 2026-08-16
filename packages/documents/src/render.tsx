@@ -78,11 +78,51 @@ function validateInput(input: CommerceDocumentInput): void {
   }
 }
 
+/**
+ * A renderer failure that still names what failed.
+ *
+ * `renderToBuffer` runs a React reconciler, a layout pass and a PDF writer, and
+ * anything any of them throws arrives here as a bare `TypeError` with a stack
+ * that only mentions bundle chunks. Every caller above this line turns an
+ * unrecognized error into a generic 5xx, so that bare error is the last place
+ * the cause exists at all. This preserves it: the document being rendered is on
+ * the error, and the original is on `cause`.
+ *
+ * That is not decoration. A misconfigured bundler made `@react-pdf/renderer`
+ * resolve React's `react-server` build, whose client internals are absent, so
+ * the reconciler read `undefined.S` and every artifact in the product answered
+ * 503 with the TypeError discarded. Finding that needed a patched error handler.
+ */
+export class DocumentRenderError extends Error {
+  public readonly code = "DOCUMENT_RENDER_FAILED";
+
+  public constructor(
+    public readonly kind: CommerceDocumentInput["kind"],
+    public readonly documentId: string,
+    cause: unknown,
+  ) {
+    super(
+      `Rendering ${kind} document ${documentId} failed: ${
+        cause instanceof Error
+          ? `${cause.name}: ${cause.message}`
+          : String(cause)
+      }`,
+      { cause },
+    );
+    this.name = "DocumentRenderError";
+  }
+}
+
 export async function renderCommerceDocument(
   input: CommerceDocumentInput,
 ): Promise<RenderedDocument> {
   validateInput(input);
-  const rendered = await renderToBuffer(<CommerceDocument input={input} />);
+  let rendered: Awaited<ReturnType<typeof renderToBuffer>>;
+  try {
+    rendered = await renderToBuffer(<CommerceDocument input={input} />);
+  } catch (error) {
+    throw new DocumentRenderError(input.kind, input.documentId, error);
+  }
   const bytes = canonicalizeReactPdf(new Uint8Array(rendered));
   const contentHash = sha256(bytes);
   return {

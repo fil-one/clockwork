@@ -5,6 +5,10 @@ import { createHash, randomBytes } from "node:crypto";
 import type { SessionClaims } from "@clockwork/api";
 import type { InvoiceDerivation } from "@clockwork/db";
 import { uuidV7 } from "@clockwork/contracts";
+import {
+  renderAuthorizedCommerceDocument,
+  type CommerceDocumentInput,
+} from "@clockwork/documents";
 import { demoPersonas } from "@clockwork/testing/personas";
 import {
   findDemoProductionMarker,
@@ -12,6 +16,17 @@ import {
   type DemoAdapterStateStore,
 } from "@clockwork/testing/demo-state";
 
+import {
+  artifactSourceHash,
+  verifyResolvedArtifactSource,
+  type ResolvedArtifactSource,
+} from "./artifact-sources";
+import {
+  demoArtifactById,
+  demoArtifactBySubject,
+  demoUuid,
+  type DemoArtifactFixture,
+} from "./demo-artifact-catalog";
 import { configuredDemoStateStore } from "./demo-state-store";
 import {
   configuredEvidenceGateway,
@@ -19,10 +34,17 @@ import {
 } from "./evidence-gateway";
 import {
   ExperienceProblem,
+  type ArtifactKind,
+  type ArtifactRepresentation,
   type EsignReturnStatus,
   type EvidenceUploadRecord,
+  type ExperienceAudience,
 } from "./model";
-import { DatabaseExperienceRepository } from "./repository";
+import {
+  DatabaseExperienceRepository,
+  type ArtifactDownloadRecord,
+  type RenderRequestRecord,
+} from "./repository";
 import type { ExperienceRepository } from "./repository-port";
 
 export interface DemoEsignCorrelation {
@@ -44,6 +66,22 @@ interface DemoEvidenceUpload extends EvidenceUploadRecord {
 }
 
 /**
+ * A stored render request and the token of the write that produced it.
+ *
+ * The token is what makes a compare-and-swap answerable. The demo store may
+ * replay an updater when its own CAS retries, so an updater cannot report its
+ * own outcome; and reading the committed row back is not enough either,
+ * because a CONCURRENT claim leaves the row in exactly the state this call
+ * wanted. Only "the committed version carries my token" distinguishes the two,
+ * which is what `update ... where row_version = $n returning row_version`
+ * gives the persisted path for free.
+ */
+interface DemoRenderRequestEntry {
+  readonly record: RenderRequestRecord;
+  readonly writeToken: string;
+}
+
+/**
  * The two demo-only collections. They are optional keys on the existing demo
  * state, so the schema version is unchanged and a store written by an older
  * build still parses. A reset drops them with everything else.
@@ -51,6 +89,10 @@ interface DemoEvidenceUpload extends EvidenceUploadRecord {
 interface DemoExperienceState extends DemoAdapterState {
   readonly esignCorrelations?: Readonly<Record<string, DemoEsignCorrelation>>;
   readonly evidenceUploads?: Readonly<Record<string, DemoEvidenceUpload>>;
+  readonly renderRequests?: Readonly<Record<string, DemoRenderRequestEntry>>;
+  readonly artifactDeliveries?: Readonly<
+    Record<string, ArtifactRepresentation>
+  >;
 }
 
 function unavailable(capability: string): never {
@@ -63,18 +105,6 @@ function unavailable(capability: string): never {
 
 function stateKey(opaqueState: string): string {
   return createHash("sha256").update(opaqueState, "utf8").digest("hex");
-}
-
-/** A deterministic identifier shaped like the UUIDs the contract accepts. */
-function demoUuid(seed: string): string {
-  const hash = createHash("sha256").update(seed, "utf8").digest("hex");
-  return [
-    hash.slice(0, 8),
-    hash.slice(8, 12),
-    `4${hash.slice(13, 16)}`,
-    `8${hash.slice(17, 20)}`,
-    hash.slice(20, 32),
-  ].join("-");
 }
 
 function demoSignerEmail(session: SessionClaims): string {
@@ -120,6 +150,93 @@ const signedDocument = demoSignedPdfBytes();
 const signedDocumentHash = createHash("sha256")
   .update(signedDocument)
   .digest("hex");
+
+/**
+ * A demo fixture, finalized into exactly the shape the persisted artifact
+ * pipeline produces.
+ *
+ * The hash discipline is the production one, function for function:
+ * `artifactSourceHash` over the canonical document with the record hash zeroed,
+ * the hash written back into `verification.recordHash`, and
+ * `verifyResolvedArtifactSource` asserting the round trip. That matters because
+ * `renderAuthorizedCommerceDocument` refuses to render a document whose record
+ * hash differs from the source hash it was authorized against — the demo goes
+ * through that refusal rather than around it.
+ */
+async function resolveDemoArtifactSource(
+  fixture: DemoArtifactFixture,
+): Promise<ResolvedArtifactSource> {
+  const body = await fixture.document();
+  const draft = {
+    ...body,
+    verification: {
+      recordHash: "0".repeat(64),
+      objectVersion: fixture.sourceVersion,
+    },
+  } as CommerceDocumentInput;
+  const sourceHash = artifactSourceHash({
+    kind: fixture.kind,
+    subjectType: fixture.subjectType,
+    subjectId: fixture.subjectId,
+    sourceVersion: fixture.sourceVersion,
+    document: draft,
+  });
+  const resolved: ResolvedArtifactSource = {
+    accountId: fixture.accountId,
+    audience: fixture.audience,
+    audienceAccountId: fixture.accountId,
+    subjectType: fixture.subjectType,
+    subjectId: fixture.subjectId,
+    kind: fixture.kind,
+    sourceVersion: fixture.sourceVersion,
+    sourceHash,
+    retainUntil: fixture.retainUntil,
+    input: {
+      ...draft,
+      verification: { ...draft.verification, recordHash: sourceHash },
+    },
+  };
+  verifyResolvedArtifactSource(resolved);
+  return resolved;
+}
+
+/**
+ * The audience-scope test `resolveArtifactSource` applies on the persisted
+ * path, restated against fixtures rather than rows.
+ *
+ * It is deliberately the same predicate and not a looser one. A demo that let a
+ * customer persona download another account's order form would be showing a
+ * behaviour the product refuses, which is the misleading direction.
+ */
+function assertDemoArtifactScope(
+  session: SessionClaims,
+  source: {
+    accountId: string | null;
+    audience: ExperienceAudience;
+    audienceAccountId: string | null;
+  },
+): void {
+  const audienceAccountId = source.audienceAccountId;
+  const permitted =
+    source.audience === "internal"
+      ? session.isInternalStaff &&
+        session.impersonation === undefined &&
+        source.accountId === null &&
+        audienceAccountId === null
+      : source.accountId !== null &&
+        audienceAccountId !== null &&
+        !(session.isInternalStaff && !session.impersonation) &&
+        (session.impersonation
+          ? session.impersonation.accountId === audienceAccountId
+          : session.isInternalStaff ||
+            session.accountIds.includes(audienceAccountId));
+  if (!permitted)
+    throw new ExperienceProblem(
+      403,
+      "ARTIFACT_SCOPE_FORBIDDEN",
+      "The artifact source is outside the authorized audience scope",
+    );
+}
 
 function publicEvidence(record: DemoEvidenceUpload): EvidenceUploadRecord {
   // The idempotency key is internal correlation and never leaves the server.
@@ -581,28 +698,340 @@ export class DemoExperienceRepository implements ExperienceRepository {
     );
   }
 
-  public createRenderRequest(): never {
-    return unavailable("Document rendering");
+  /* ----------------------------------------------------------------------
+   * Documents
+   *
+   * The demo renders the same fifteen document kinds the product renders,
+   * through the same `@clockwork/documents` renderer, from the same
+   * `CommerceDocumentInput` the persisted pipeline assembles. What differs is
+   * only where the inputs come from: fixtures instead of rows.
+   * ------------------------------------------------------------------- */
+
+  async #renderRequestState(
+    id: string,
+  ): Promise<RenderRequestRecord | undefined> {
+    const stored = (await this.#read()).renderRequests?.[id]?.record;
+    if (!stored) return undefined;
+    // The persisted reader re-verifies every request it hands back, so a
+    // corrupted store cannot feed a document body into the renderer. The demo
+    // store is a file a presenter can edit, which is if anything more exposed.
+    verifyResolvedArtifactSource({
+      kind: stored.kind,
+      subjectType: stored.subjectType,
+      subjectId: stored.subjectId,
+      sourceVersion: stored.sourceVersion,
+      input: stored.input as unknown as CommerceDocumentInput,
+      sourceHash: stored.sourceHash,
+    });
+    return stored;
   }
 
-  public findRenderRequest(): never {
-    return unavailable("Document rendering");
+  async #putRenderRequest(record: RenderRequestRecord): Promise<void> {
+    const writeToken = randomBytes(16).toString("hex");
+    await this.#store.update((current) => {
+      const state = current as DemoExperienceState;
+      // An existing request is never overwritten: the persisted insert is
+      // `on conflict do nothing` and replays the row it found.
+      if (state.renderRequests?.[record.id]) return state;
+      const next: DemoExperienceState = {
+        ...state,
+        revision: state.revision + 1,
+        renderRequests: {
+          ...state.renderRequests,
+          [record.id]: { record, writeToken },
+        },
+      };
+      return next;
+    });
   }
 
-  public claimRenderRequest(): never {
-    return unavailable("Document rendering");
+  /**
+   * Applies a compare-and-swap to a render request, exactly as the persisted
+   * `update ... where status in (...) and row_version = $n` does. The store may
+   * replay an updater when its own compare-and-swap retries, so the outcome is
+   * read from the committed state rather than recorded by the updater.
+   */
+  async #transitionRenderRequest(
+    id: string,
+    from: readonly RenderRequestRecord["status"][],
+    expectedVersion: number,
+    next: (record: RenderRequestRecord) => RenderRequestRecord,
+  ): Promise<RenderRequestRecord> {
+    const writeToken = randomBytes(16).toString("hex");
+    const committed = (await this.#store.update((current) => {
+      const state = current as DemoExperienceState;
+      const entry = state.renderRequests?.[id];
+      if (
+        !entry ||
+        !from.includes(entry.record.status) ||
+        entry.record.version !== expectedVersion
+      )
+        return state;
+      const updated = {
+        ...next(entry.record),
+        version: entry.record.version + 1,
+      };
+      const value: DemoExperienceState = {
+        ...state,
+        revision: state.revision + 1,
+        renderRequests: {
+          ...state.renderRequests,
+          [id]: { record: updated, writeToken },
+        },
+      };
+      return value;
+    })) as DemoExperienceState;
+    const result = committed.renderRequests?.[id];
+    if (!result || result.writeToken !== writeToken)
+      throw new ExperienceProblem(
+        409,
+        "RENDER_VERSION_CONFLICT",
+        "Render request changed",
+      );
+    return result.record;
   }
 
-  public failRenderRequest(): never {
-    return unavailable("Document rendering");
+  public async createRenderRequest(input: {
+    session: SessionClaims;
+    source: {
+      kind: ArtifactKind;
+      subjectId: string;
+      expectedVersion: string;
+      audience: ExperienceAudience;
+      accountId: string | null;
+    };
+    requestId: string;
+  }): Promise<RenderRequestRecord> {
+    const fixture = demoArtifactBySubject(
+      input.source.kind,
+      input.source.subjectId,
+    );
+    if (!fixture)
+      throw new ExperienceProblem(
+        404,
+        "ARTIFACT_SOURCE_NOT_FOUND",
+        "No document source exists for that subject",
+      );
+    const source = await resolveDemoArtifactSource(fixture);
+    if (
+      input.source.accountId !== source.accountId ||
+      input.source.audience !== source.audience
+    )
+      throw new ExperienceProblem(
+        403,
+        "ARTIFACT_SCOPE_FORBIDDEN",
+        "The artifact source is outside the authorized audience scope",
+      );
+    assertDemoArtifactScope(input.session, source);
+    if (source.sourceVersion !== input.source.expectedVersion)
+      throw new ExperienceProblem(
+        409,
+        "ARTIFACT_SOURCE_VERSION_CONFLICT",
+        "The artifact source changed; reload before requesting a render",
+      );
+    // The persisted table is unique on (subject_type, subject_id,
+    // document_kind, source_hash) and replays the existing row, so the demo
+    // derives its identifier from the same four values and does the same.
+    const id = demoUuid(
+      `render-request:${source.subjectType}:${source.subjectId}:${source.kind}:${source.sourceHash}`,
+    );
+    const existing = await this.#renderRequestState(id);
+    if (existing) return existing;
+    const record: RenderRequestRecord = {
+      id,
+      accountId: source.accountId,
+      audience: source.audience,
+      audienceAccountId: source.audienceAccountId,
+      subjectType: source.subjectType,
+      subjectId: source.subjectId,
+      kind: source.kind,
+      input: source.input as unknown as Readonly<Record<string, unknown>>,
+      sourceHash: source.sourceHash,
+      sourceVersion: source.sourceVersion,
+      retainUntil: source.retainUntil,
+      status: "pending",
+      version: 1,
+    };
+    await this.#putRenderRequest(record);
+    return (await this.#renderRequestState(id)) ?? record;
   }
 
-  public storeArtifact(): never {
-    return unavailable("Document rendering");
+  public async findRenderRequest(
+    session: SessionClaims,
+    id: string,
+    _requestId: string,
+  ): Promise<RenderRequestRecord> {
+    const record = await this.#renderRequestState(id);
+    if (!record)
+      throw new ExperienceProblem(
+        404,
+        "RENDER_REQUEST_NOT_FOUND",
+        "Render request not found",
+      );
+    assertDemoArtifactScope(session, record);
+    return record;
   }
 
-  public findArtifact(): never {
-    return unavailable("Artifact download");
+  public async claimRenderRequest(
+    request: RenderRequestRecord,
+    _requestId: string,
+  ): Promise<void> {
+    await this.#transitionRenderRequest(
+      request.id,
+      ["pending", "failed"],
+      request.version,
+      (record) => ({ ...record, status: "rendering" }),
+    );
+  }
+
+  public async failRenderRequest(
+    request: RenderRequestRecord,
+    _failureCode: string,
+    _requestId: string,
+  ): Promise<void> {
+    // The claim already advanced the row, so the failure transition expects the
+    // claimed version, matching `row_version = ${request.version + 1}` on the
+    // persisted path.
+    await this.#transitionRenderRequest(
+      request.id,
+      ["rendering"],
+      request.version + 1,
+      (record) => ({ ...record, status: "failed" }),
+    );
+  }
+
+  public async storeArtifact(input: {
+    request: RenderRequestRecord;
+    contentHash: string;
+    byteLength: number;
+    filename: string;
+    immutableVersion: string;
+    storageKey: string;
+    storageVersionId: string;
+    requestId: string;
+  }): Promise<ArtifactRepresentation> {
+    const fixture = demoArtifactBySubject(
+      input.request.kind,
+      input.request.subjectId,
+    );
+    if (!fixture)
+      throw new ExperienceProblem(
+        404,
+        "ARTIFACT_SOURCE_NOT_FOUND",
+        "No document source exists for that subject",
+      );
+    const documentId = input.request.input.documentId;
+    const representation: ArtifactRepresentation = {
+      id: fixture.id,
+      kind: input.request.kind,
+      subjectType: input.request.subjectType,
+      subjectId: input.request.subjectId,
+      accountId: input.request.accountId,
+      audience: input.request.audience,
+      audienceAccountId: input.request.audienceAccountId,
+      documentId: typeof documentId === "string" ? documentId : fixture.id,
+      version: input.immutableVersion,
+      sourceHash: input.request.sourceHash,
+      contentHash: input.contentHash,
+      mimeType: "application/pdf",
+      byteLength: String(input.byteLength),
+      filename: input.filename,
+      retainUntil: input.request.retainUntil,
+      createdAt: new Date().toISOString(),
+      downloadHref: `/api/experience/artifacts/${input.request.kind}/${fixture.id}`,
+    };
+    await this.#transitionRenderRequest(
+      input.request.id,
+      ["rendering"],
+      input.request.version + 1,
+      (record) => ({ ...record, status: "stored" }),
+    );
+    await this.#store.update((current) => {
+      const state = current as DemoExperienceState;
+      const next: DemoExperienceState = {
+        ...state,
+        revision: state.revision + 1,
+        artifactDeliveries: {
+          ...state.artifactDeliveries,
+          [representation.id]: representation,
+        },
+      };
+      return next;
+    });
+    return representation;
+  }
+
+  /**
+   * The download.
+   *
+   * It renders and stores on read rather than looking for bytes an earlier
+   * request left behind. That is not a shortcut: the demo's immutable store is
+   * process-local, so a serverless instance that did not serve the render would
+   * answer a perfectly valid download link with "artifact not found" — a dead
+   * link on the one journey this whole file exists to open. Rendering is
+   * deterministic and content addressed, so re-rendering produces the identical
+   * bytes, hash and storage key the first render produced.
+   */
+  public async findArtifact(
+    session: SessionClaims,
+    kind: ArtifactKind,
+    id: string,
+    requestId: string,
+  ): Promise<ArtifactDownloadRecord> {
+    const fixture = demoArtifactById(kind, id);
+    if (!fixture)
+      throw new ExperienceProblem(
+        404,
+        "ARTIFACT_NOT_FOUND",
+        "Artifact not found",
+      );
+    const source = await resolveDemoArtifactSource(fixture);
+    assertDemoArtifactScope(session, source);
+    const rendered = await renderAuthorizedCommerceDocument(source.input, {
+      actorUserId: session.userId,
+      accountId: source.accountId,
+      accountIds: session.impersonation
+        ? [session.impersonation.accountId]
+        : session.accountIds,
+      isInternalStaff: session.isInternalStaff,
+      audience: source.audience,
+      audienceAccountId: source.audienceAccountId,
+      kind: source.kind,
+      sourceHash: source.sourceHash,
+      requestId,
+    });
+    const stored = await this.#evidenceGateway().storeImmutable({
+      bytes: rendered.bytes,
+      contentHash: rendered.contentHash,
+      mimeType: rendered.mimeType,
+      retainUntil: fixture.retainUntil,
+      accountId: source.accountId,
+      internalScopeId: source.subjectId,
+      source: `demo-render:${fixture.id}`,
+    });
+    return {
+      representation: {
+        id: fixture.id,
+        kind: fixture.kind,
+        subjectType: source.subjectType,
+        subjectId: source.subjectId,
+        accountId: source.accountId,
+        audience: source.audience,
+        audienceAccountId: source.audienceAccountId,
+        documentId: source.input.documentId,
+        version: rendered.version,
+        sourceHash: source.sourceHash,
+        contentHash: rendered.contentHash,
+        mimeType: "application/pdf",
+        byteLength: String(rendered.bytes.byteLength),
+        filename: rendered.fileName,
+        retainUntil: fixture.retainUntil,
+        createdAt: fixture.createdAt,
+        downloadHref: `/api/experience/artifacts/${fixture.kind}/${fixture.id}`,
+      },
+      storageKey: stored.storageKey,
+      storageVersionId: stored.storageVersionId,
+    };
   }
 }
 

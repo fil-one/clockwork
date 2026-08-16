@@ -11,6 +11,7 @@ import {
   commissionAccruals,
   creditNotes,
   disputeCases,
+  invoices,
   payments,
   refunds,
   webhookEvents,
@@ -771,5 +772,200 @@ describe("persisted referral commissions", () => {
       status: "succeeded",
       providerReference: providerBillId,
     });
+  });
+
+  /**
+   * THE INSTALMENT THAT USED TO INVENT A MINOR UNIT.
+   *
+   * The case below divides evenly, so it passes under either apportionment and
+   * cannot tell them apart. This one does not, and it is the arithmetic 001418
+   * was written for.
+   *
+   * Worked by hand. The referral order's quote is 120000, so the net is fixed
+   * at 120000 by the projection trigger; at 20% the tax is 24000 and the gross
+   * is 144000, and the ratio is 5/6. Paid 36003 then 107997 — both of which
+   * land exactly on a half.
+   *
+   *   INDEPENDENTLY, which is what 001414 did:
+   *      36003 * 5/6 =  30002.5 -> 30003
+   *     107997 * 5/6 =  89997.5 -> 89998
+   *                              ------
+   *                              120001
+   *   one minor unit of net the invoice does not have, in the partner's favour,
+   *   and one more for every extra instalment that lands on a half.
+   *
+   *   CUMULATIVELY, which is what it does now:
+   *     round( 36003 * 5/6)          - 0     = 30003 ; 12% of it -> 3600
+   *     round(144000 * 5/6) = 120000 - 30003 = 89997 ; 12% of it -> 10800
+   *                                            ------              -----
+   *                                            120000              14400
+   *   exactly the invoice's net, and exactly 12% of it — the same figures the
+   *   same invoice paid in one instalment produces.
+   */
+  it("apportions instalments cumulatively, inventing no minor unit on an uneven split", async () => {
+    const period = randomQuarter();
+    const unevenInvoiceId = randomUUID();
+    await internal(`${prefix}uneven-invoice-${unevenInvoiceId}`, async (tx) => {
+      await tx.insert(invoices).values({
+        id: unevenInvoiceId,
+        orderId: referralOrderId,
+        accountId: "10000000-0000-4000-8000-000000000004",
+        stripeInvoiceId: `in_${prefix}${unevenInvoiceId}`,
+        currency: "USD",
+        amountMinor: 144_000n,
+        taxMinor: 24_000n,
+        taxTreatment: "standard",
+        poNumber: "PO-REF-002",
+        status: "open",
+      });
+    });
+
+    const firstPaymentId = await insertPayment({
+      invoiceId: unevenInvoiceId,
+      orderId: referralOrderId,
+      currency: "USD",
+      amountMinor: 36_003n,
+      occurredAt: period.occurredAt,
+    });
+    const secondPaymentId = await insertPayment({
+      invoiceId: unevenInvoiceId,
+      orderId: referralOrderId,
+      currency: "USD",
+      amountMinor: 107_997n,
+      occurredAt: period.occurredAt,
+    });
+    await accrue({ sourceType: "payment", sourceId: firstPaymentId });
+    await accrue({ sourceType: "payment", sourceId: secondPaymentId });
+
+    await expect(
+      accrualBySource("payment", firstPaymentId),
+    ).resolves.toMatchObject({
+      netCollectedRevenueMinor: 30_003n,
+      amountMinor: 3_600n,
+    });
+    await expect(
+      accrualBySource("payment", secondPaymentId),
+    ).resolves.toMatchObject({
+      // 89997, not the 89998 an independently rounded share would give.
+      netCollectedRevenueMinor: 89_997n,
+      amountMinor: 10_800n,
+    });
+
+    const accrued = await internal(
+      `${prefix}uneven-total-${unevenInvoiceId}`,
+      (transaction) =>
+        transaction.query.commissionAccruals.findMany({
+          where: eq(commissionAccruals.invoiceId, unevenInvoiceId),
+        }),
+    );
+    const collected = accrued.reduce(
+      (sum, row) => sum + row.netCollectedRevenueMinor,
+      0n,
+    );
+    const commission = accrued.reduce((sum, row) => sum + row.amountMinor, 0n);
+    // The invariant, now true for any split and not only for a fixture that
+    // happens to divide evenly.
+    expect(collected).toBe(120_000n);
+    expect(collected).not.toBe(120_001n);
+    expect(commission).toBe(14_400n);
+  });
+
+  /**
+   * THE LIVE-DATABASE HALF OF 001414.
+   *
+   * Every invoice this suite touched above carries `tax_minor = 0`, so the
+   * tax-exclusive ratio in `loadCommissionContext` is exactly 1 and every
+   * assertion in this file passes whether or not the ratio is applied at all.
+   * A suite that cannot tell the two apart is not evidence, so this case bills
+   * an invoice that actually carries tax and drives the repository — not the
+   * trigger directly — across two instalments.
+   *
+   * Worked by hand before it was written here. Quote net 120000, 21% tax 25200,
+   * gross 145200, which is what the customer is billed and what pays:
+   *
+   *   100000 * 120000 / 145200 = 82644.628... -> 82645  -> 12% = 9917.4  -> 9917
+   *    45200 * 120000 / 145200 = 37355.371... -> 37355  -> 12% = 4482.6  -> 4483
+   *                                              ------            -----
+   *                                              120000            14400
+   *
+   * The bases sum to the net exactly and the commission is 12% of the net. On
+   * the gross the same two payments produce 12000 and 5424 — 17424, which is
+   * 14400 overpaid by exactly the 21% VAT rate. The repository and the database
+   * trigger must reach 14400 independently or the insert is refused, so a pass
+   * here is both of them agreeing rather than either of them alone.
+   */
+  it("accrues a taxed referral invoice on its tax-exclusive net across two instalments", async () => {
+    const period = randomQuarter();
+    const taxedInvoiceId = randomUUID();
+    await internal(`${prefix}taxed-invoice-${taxedInvoiceId}`, async (tx) => {
+      await tx.insert(invoices).values({
+        id: taxedInvoiceId,
+        orderId: referralOrderId,
+        accountId: "10000000-0000-4000-8000-000000000004",
+        stripeInvoiceId: `in_${prefix}${taxedInvoiceId}`,
+        currency: "USD",
+        amountMinor: 145_200n,
+        taxMinor: 25_200n,
+        taxTreatment: "standard",
+        poNumber: "PO-REF-002",
+        status: "open",
+      });
+    });
+
+    const firstPaymentId = await insertPayment({
+      invoiceId: taxedInvoiceId,
+      orderId: referralOrderId,
+      currency: "USD",
+      amountMinor: 100_000n,
+      occurredAt: period.occurredAt,
+    });
+    const secondPaymentId = await insertPayment({
+      invoiceId: taxedInvoiceId,
+      orderId: referralOrderId,
+      currency: "USD",
+      amountMinor: 45_200n,
+      occurredAt: period.occurredAt,
+    });
+
+    await accrue({ sourceType: "payment", sourceId: firstPaymentId });
+    await accrue({ sourceType: "payment", sourceId: secondPaymentId });
+
+    await expect(
+      accrualBySource("payment", firstPaymentId),
+    ).resolves.toMatchObject({
+      invoiceId: taxedInvoiceId,
+      currency: "USD",
+      netCollectedRevenueMinor: 82_645n,
+      amountMinor: 9_917n,
+      holdbackMinor: 992n,
+      period: period.quarter,
+    });
+    await expect(
+      accrualBySource("payment", secondPaymentId),
+    ).resolves.toMatchObject({
+      invoiceId: taxedInvoiceId,
+      currency: "USD",
+      netCollectedRevenueMinor: 37_355n,
+      amountMinor: 4_483n,
+      holdbackMinor: 448n,
+      period: period.quarter,
+    });
+
+    const accrued = await internal(
+      `${prefix}taxed-total-${taxedInvoiceId}`,
+      (transaction) =>
+        transaction.query.commissionAccruals.findMany({
+          where: eq(commissionAccruals.invoiceId, taxedInvoiceId),
+        }),
+    );
+    const collected = accrued.reduce(
+      (sum, row) => sum + row.netCollectedRevenueMinor,
+      0n,
+    );
+    const commission = accrued.reduce((sum, row) => sum + row.amountMinor, 0n);
+    // No minor unit invented and none lost by splitting the payment.
+    expect(collected).toBe(120_000n);
+    expect(commission).toBe(14_400n);
+    expect(commission).not.toBe(17_424n);
   });
 });

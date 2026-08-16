@@ -141,6 +141,10 @@ export const recoveryCopy = {
     DEAD_LETTER_OPERATION_ALREADY_DECIDED:
       "Another operator already abandoned this work.",
     DEAD_LETTER_OPERATION_NOT_FOUND: "This work is no longer stopped.",
+    // Only reachable from a page rendered before this row stopped being listed.
+    // The dispatch record cannot be decided; the message it delivers can.
+    DEAD_LETTER_OPERATION_NOT_ADDRESSABLE:
+      "This is the dispatch record for a queued message, not work you can decide. Reload the page and decide the message itself.",
     SYSTEM_RECOVERY_UNAVAILABLE: "The recovery queue cannot be reached.",
     SYSTEM_RECOVERY_REDRIVE_NOT_SUBMITTED:
       "The decision is recorded. The task runner did not accept the redrive, so submit it again.",

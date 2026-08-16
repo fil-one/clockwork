@@ -13,6 +13,8 @@ import styles from "./commercial.module.css";
 import type { CommercialRecord } from "./model";
 import { PaymentHandoff } from "./payment-handoff";
 import { validQuoteActions, type QuoteStatus } from "./workflow-model";
+import { ArtifactDeliveryList } from "@/src/features/experience-server/artifact-delivery-list";
+import { loadRecordArtifacts } from "@/src/features/experience-server/delivery";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
 import { t } from "@/src/i18n/en";
 
@@ -223,7 +225,22 @@ function payableInvoice(
   );
 }
 
-export function CommercialRecordDetail({
+/**
+ * Async because the Documents section is real.
+ *
+ * It used to be prose -- "Primary artifact", "Visible to authorized account
+ * roles", "Downloads are shown only when a document provider supplies a safe,
+ * authorized link" -- with no link behind any of it, on a page whose heading
+ * told the reader documents were there. The documents exist and the route to
+ * them exists, so the section reads them rather than describing them, and the
+ * read has to be awaited.
+ *
+ * Every route that mounts this is a customer route, which is why the audience
+ * below is not a parameter; `loadCommercialRecord`, which resolved the record
+ * these routes pass in, hardcodes the same audience for the same reason. The
+ * partner surfaces mount `PartnerPortfolioDetail`, not this.
+ */
+export async function CommercialRecordDetail({
   id,
   accountId,
   canMutate = false,
@@ -262,6 +279,7 @@ export function CommercialRecordDetail({
   const backHref: Route = `/${record.kind}`;
   const summary = commercialSummary(record);
   const chain = artifactChain(record);
+  const artifacts = await loadRecordArtifacts("customer", record.kind, id);
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
@@ -357,23 +375,23 @@ export function CommercialRecordDetail({
             aria-labelledby="documents-title"
           >
             <h2 id="documents-title">{customerPartnerCopy.common.documents}</h2>
-            <ul className={styles.reviewList}>
-              <li>
-                <span>Primary artifact</span>
-                <strong>
-                  {record.title}
-                  {record.version ? ` · version ${record.version}` : ""}
-                </strong>
-              </li>
-              <li>
-                <span>Availability</span>
-                <strong>Visible to authorized account roles</strong>
-              </li>
-            </ul>
-            <p className={styles.muted}>
-              Downloads are shown only when a document provider supplies a safe,
-              authorized link.
-            </p>
+            {/*
+             * The list is the whole statement, and it is the same list every
+             * other surface that shows generated paper renders. When documents
+             * are attached it gives each one its own download link, having
+             * first checked the stored bytes against the recorded hash, and
+             * names the file and immutable version it verified. When none are
+             * attached it says exactly that.
+             *
+             * Nothing here promises a download, because nothing here can know
+             * of one the list does not have. What this replaced did: a
+             * "Primary artifact" that was the record's own title, an
+             * "Availability" that was a claim about roles, and a sentence
+             * saying downloads appear "when a document provider supplies a
+             * safe, authorized link" -- from a surface that asked no provider
+             * anything and rendered no link under any condition.
+             */}
+            <ArtifactDeliveryList artifacts={artifacts} />
           </section>
         </div>
 

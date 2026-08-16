@@ -17,6 +17,13 @@ import {
 
 const temporaryDirectories: string[] = [];
 const session = {} as SessionClaims;
+/**
+ * The direct buyer's account. Customer projections are scoped to
+ * `audience_account_id` exactly as the persisted read is, so a customer read
+ * names the account it is acting for; `null` is the internal audience's scope
+ * and matches no tenant record.
+ */
+const accountId = "11000000-0000-4000-8000-000000000001";
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -59,10 +66,21 @@ describe("explicit demo projection durable reset", () => {
       session,
       audience: "customer",
       channel: "quotes",
-      accountId: null,
+      accountId,
       recordKey: "Q-2026-0184-v3",
       now: new Date("2026-07-31T16:00:00Z"),
     });
+    // The same reference read for another account is absent, not readable.
+    await expect(
+      source.find({
+        session,
+        audience: "customer",
+        channel: "quotes",
+        accountId: "11000000-0000-4000-8000-000000000005",
+        recordKey: "Q-2026-0184-v3",
+        now: new Date("2026-07-31T16:00:00Z"),
+      }),
+    ).rejects.toMatchObject({ status: 404, code: "PROJECTION_NOT_FOUND" });
 
     const receipt = await source.action({
       session,
@@ -70,7 +88,7 @@ describe("explicit demo projection durable reset", () => {
       recordKey: initial.recordKey,
       audience: initial.audience,
       channel: initial.channel,
-      accountId: null,
+      accountId,
       action: "accept",
       expectedVersion: initial.version,
       idempotencyKey: "demo-action-idempotency-1",
@@ -85,7 +103,7 @@ describe("explicit demo projection durable reset", () => {
       session,
       audience: "customer",
       channel: "quotes",
-      accountId: null,
+      accountId,
       recordKey: initial.recordKey,
       now: new Date("2026-08-01T12:00:00Z"),
     });
@@ -102,7 +120,7 @@ describe("explicit demo projection durable reset", () => {
         session,
         audience: "customer",
         channel: "quotes",
-        accountId: null,
+        accountId,
         recordKey: initial.recordKey,
         actionRequestId: receipt.id,
         requestId: "demo-receipt-request-1",
@@ -113,7 +131,7 @@ describe("explicit demo projection durable reset", () => {
         session,
         audience: "customer",
         channel: "quotes",
-        accountId: null,
+        accountId,
         recordKey: "Q-2026-0171-v1",
         actionRequestId: receipt.id,
         requestId: "demo-receipt-wrong-record-request",
@@ -133,7 +151,7 @@ describe("explicit demo projection durable reset", () => {
         session,
         audience: "customer",
         channel: "quotes",
-        accountId: null,
+        accountId,
         recordKey: initial.recordKey,
         now: new Date("2026-07-31T16:00:00Z"),
       }),
@@ -143,7 +161,7 @@ describe("explicit demo projection durable reset", () => {
         session,
         audience: "customer",
         channel: "quotes",
-        accountId: null,
+        accountId,
         recordKey: initial.recordKey,
         actionRequestId: receipt.id,
         requestId: "demo-receipt-request-2",

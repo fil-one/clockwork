@@ -5,12 +5,17 @@ branch. Historical lane names and tips are provenance only. This is not an RC or
 launch declaration.
 
 An independent audit re-derived every marker against `main` at `5cc5fdd` on
-2026-08-14 and added twenty-five findings, P0-47 onward. Seven work-stream pull
-requests have merged since — `#7` through `#13`, thirteen in total on `main` —
+2026-08-14 and added twenty-five findings, P0-47 onward. Ten work-stream pull
+requests have merged since — `#7` through `#16`, sixteen in total on `main` —
 and this file has been rewritten against what they actually did. Read their
-commit bodies before this file: they are the primary record, they are specific
-about what was and was not achieved, and several of them contradict the audit
-they were answering.
+commit bodies alongside this file: they are the primary record and several of
+them contradict the audit they were answering — but they are not uniformly
+reliable in either direction. At least one body records work as undelivered that
+its own diff delivered (deal-registration create, in `5897196`), and later
+bodies do not mention several things their trees shipped (server-side sortable
+columns and the customer freshness disclosure, both in `8c53747`). Where a body
+and the tree disagree, the tree was re-checked and the tree is what this file
+records.
 
 Four facts govern how the rest of this file should be read.
 
@@ -25,21 +30,26 @@ four are pinned under "Refuted findings — pinned, do not reimplement", each wi
 the test that fails if it is reimplemented. That section is not optional
 reading. Roughly the same number again were real but wrong about something
 material — P0-55's prescribed fix, P0-61's and P0-42's lead claims, P0-59's
-count, P0-67's money half, P0-68's population, two of P0-48's five diagnoses —
-and each of those entries says so where it says it is closed.
+count, P0-67's money half, P0-68's population, two of P0-48's five diagnoses,
+and P0-71's prescribed remedy — and each of those entries says so where it says
+it is closed.
 
 Second, **all qualification evidence in this repository is local.** GitHub
 Actions is billing-blocked on the organization: the last run that executed was
 on 2026-08-05, the 2026-08-10 run stopped all seven jobs within twelve seconds
-on a billing condition, and each of the seven work-stream pull requests records
+on a billing condition, and each of the ten work-stream pull requests records
 that Actions was still blocked and that no CI run was observed. Every figure any
-of them reports — typecheck 10/10, `test:unit` 49, `test:integration` 10/10,
-pgTAP 32 files / 687 assertions, drift, lint, boundaries, secrets, format — was
+of them reports — the last records typecheck 10/10, `test:unit` 86,
+`test:integration` 10/10, pgTAP 38 files / 785 assertions, drift, lint,
+boundaries, secrets, format, and the figures move with every merge — was
 produced on a developer machine. That is a billing condition rather than a
-repository defect, and it is nearly the whole of what remains in P0-48: the five
-repository defects that failed the last run that did execute are fixed, and the
-one repository-side residue is that `main` still carries no branch protection,
-so no status check gates a merge even once Actions can run.
+repository defect, and it is nearly the whole of what remains in P0-48, now
+`[EXTERNAL-ONLY]` under `EXT-ACC-01`: the five repository defects that failed
+the last run that did execute are fixed; the billing, one observed green run,
+and the branch-protection administration `main` still lacks are the gate's named
+inputs; and the last repository-side caveat — the workflow installed no Poppler
+while the semantic-PDF integration test spawns `pdftotext` unguarded — is now
+closed, so nothing repository-side remains behind that gate.
 
 Third, the CI configuration can now run the suite it describes. P0-47 was exact
 and is closed: the workflow matrix defines all seven shards
@@ -253,14 +263,20 @@ named.
   row. `poc.activated` took its version from the provisioning attempt rather
   than the POC and is corrected in place; the expiry branch published nothing at
   all, so `poc.expired` is new.
-- **P0-41 — Commitment ledger write path `[OPEN]`:** `createCommitmentPeriod`
-  and `appendLedgerCorrection` in `packages/db/src/repositories/core/finance.ts`
-  have no production caller, and `decideCommitmentOverage` and
-  `reconcileCommitmentToSource` are reached only from
-  `packages/domain/src/core/core-finance.test.ts`. Nothing inserts
-  `commitment_ledgers` or `usage_events`, so the overage-sync and
-  usage-reconciliation schedules read tables that are never populated. Spec §4
-  step 10 and §10.
+- **P0-41 — Commitment ledger write path `[COMPLETE]`:** the write path exists
+  and is reached from production, and the ledger row that held this open has
+  been re-derived. `supabase/migrations/001320_commitment_ledger_write_path.sql`
+  adds the correction and allowance-adjustment streams; `createCommitmentPeriod`
+  is called from the production create path and from renewal; `usage_events` are
+  written under the provider dedup index; and `decideCommitmentOverage` and
+  `reconcileCommitmentToSource` are reached from production in
+  `packages/db/src/repositories/core/commitments.ts` rather than only from a
+  domain test. The verbs are admitted over the API, and P0-54's closure removed
+  the failure that had made every one of those commands dead in production. The
+  marker waited deliberately for `SPEC-10-02`: flipping a backlog entry to
+  `COMPLETE` while a requirement row still references it is exactly what
+  `TRACEABILITY_BACKLOG_COMPLETE_STILL_MAPPED` refuses, and that row was
+  re-derived against this implementation in `5c0f727`. Spec §4 step 10 and §10.
 - **P0-42 — Missing reporting-layer reports `[COMPLETE]`:** closed in `bd42c1b`,
   and the entry understated one half while overstating another. ARR/MRR already
   had a function (`recurringRevenue`); only its catalogue entry and API key were
@@ -287,7 +303,11 @@ named.
   test
   (`packages/db/src/repositories/lifecycle/exception-queue-vocabulary.integration.test.ts`)
   that reads an owner, backup and escalation contact back out of
-  `exception_cases`.
+  `exception_cases`. One overstatement not to repeat: the binding is
+  behavioural, not structural. `packages/api/src/routes/lifecycle/types.ts` and
+  `packages/db/src/repositories/lifecycle/schemas.ts` still carry hand-written
+  subset literals that import nothing, so a drift there surfaces at runtime
+  through the behavioural tests and the check constraint, not at compile time.
 - **P0-44 — CRM projection has no runtime caller `[COMPLETE]`:** closed in
   `bd42c1b`. The outbox consumer and the `accounts.crm_record_id` write are
   composed in
@@ -300,11 +320,44 @@ named.
   `packages/integrations/src/crm/crm.contract.test.ts`), not against a provider.
   Live projection remains `EXT-PROVIDER-01`. Spec §15.
 - **P0-45 — Tax identifier validation and reverse charge `[COMPLETE]`:** closed
-  in `ca70c0c` together with P0-61. `validateTaxId` is wired and reverse-charge
-  treatment is determined. No rate, country list or exemption rule is written
-  into shipped code: acceptance in a tax-bearing jurisdiction fails closed
-  behind `EXT-TAX-01` rather than issuing a zero-tax invoice, and the policy
-  that decides those rates is still an external input. Spec §4, §10 and §19.
+  in `ca70c0c` together with P0-61, and completed later: `ca70c0c` gave
+  `validateTaxId` a real production caller in `verifyRegistrationTaxIds` and a
+  writer for `core_account_tax_identifiers`, but the only production
+  construction of `DatabaseLifecycleCommandRepository` never passed the `tax`
+  port, so every registration carrying a tax identifier threw
+  `REGISTRATION_TAX_VERIFIER_UNAVAILABLE` **even with `TAX_PROVIDER_BASE_URL`
+  and `TAX_PROVIDER_TOKEN` configured**, and that table had no reachable
+  production writer at all. A real caller behind a port nothing injects is the
+  shape this repository has now produced several times, and a green suite did
+  not show it — only reading the composition did. The port is now injected from
+  the same `composedTaxProvider()` instance the finance service receives. Where
+  no verifier can answer, a registration **succeeds** and the identifier is
+  recorded honestly as unverified — `validation_status` `pending`, null
+  `validated_at`, never reverse-charge eligible — because a tax identifier on a
+  registration is reference data rather than an authorization decision, and
+  refusing would block every legitimate registration in a jurisdiction where no
+  verifier exists. Nothing downstream mistakes that row for evidence:
+  `identityIsVerified` refuses any unverified identifier and tax determination
+  selects only `validation_status = 'valid'`. Two deliberate asymmetries, both
+  typed refusals rather than bare throws: a provider that affirmatively rejects
+  an identifier answers 422, since that is a wrong value rather than a missing
+  verifier, and a transient provider failure answers a retryable 503, since one
+  retry buys a verified row instead of permanently weaker evidence.
+  Reverse-charge treatment is determined. No rate, country list or exemption
+  rule is written into shipped code, and the mechanism that guarantees it has
+  since changed in a way worth recording, because the earlier phrasing no longer
+  describes the code. Determination was originally a provider port, refused
+  fail-closed behind `EXT-TAX-01` so that an unconfigured provider could not
+  issue a zero-tax invoice. It is now made by the engine in `@clockwork/domain`
+  from `core_tax_rule_books` and `core_tax_registrations`. That is a stronger
+  guarantee rather than a weaker one: an optional port is absent in production
+  and silently zero everywhere else, whereas a missing rule book is a refusal
+  that cannot be mistaken for a zero rate. Rates remain versioned data an
+  authority supplies, never literals in shipped code, so `EXT-TAX-01` still
+  names a real external input — the approved policy — and the port itself
+  survives only as a vestigial optional field, documented as read by nothing,
+  because three compositions outside that lane's scope still pass it. Spec §4,
+  §10 and §19.
 - **P0-46 — Notification delivery record `[COMPLETE]`:** closed across three
   commits, and the entry's lead claim was already stale when it was written.
   `supabase/migrations/001330_notification_deliveries.sql` creates
@@ -323,12 +376,12 @@ named.
 
 These entries were new repository findings from an independent audit of `main`
 at `5cc5fdd`. Each named a file and line and survived an adversarial pass whose
-default was to refute. Seven work-stream pull requests then implemented them,
-and the implementations disagreed with the audit often enough that the
-disagreements are recorded here rather than smoothed over: four findings were
-refuted outright and are pinned in their own section below, and several of the
-entries that were real were wrong about scope, cause or blast radius in ways the
-closure notes name.
+default was to refute. Ten work-stream pull requests then implemented them, and
+the implementations disagreed with the audit often enough that the disagreements
+are recorded here rather than smoothed over: four findings were refuted outright
+and are pinned in their own section below, and several of the entries that were
+real were wrong about scope, cause or blast radius in ways the closure notes
+name.
 
 - **P0-47 — The release gate cannot pass and one browser suite never runs
   `[COMPLETE]`:** closed in `0f68e36`. The entry was exact:
@@ -351,35 +404,49 @@ closure notes name.
   satisfiability was proved by running `validate-release-join.mjs` over
   synthetic per-shard summaries, because Actions has not run — see P0-48.
 
-- **P0-48 — `main` has no observed green continuous-integration run `[OPEN]`:**
-  the five repository defects are fixed; the observation is not, and cannot be
-  from inside this repository. Fixed in `0f68e36`, with two corrections to the
-  entry. The heap ceiling was real — `NODE_OPTIONS=--max-old-space-size=3072`
-  reproduces the SIGABRT locally with 3047 MB live, so the type-aware lint peak
-  is above 3 GB and the CI default is under it; the workflow now sets 6144. The
-  registry was **not** Docker Hub: "toomanyrequests: Rate exceeded" is ECR
-  Public's anonymous-pull message and the Supabase CLI defaults to
-  `public.ecr.aws`, now pinned to `ghcr.io`, whose manifests are byte-identical
-  for the images used. The integration failure was not in the migration fixtures
-  either: `supabase/seed.sql` set `invoices.amount_paid_minor` unconditionally
-  and the populated-upgrade drill replays that seed against `001230`, where the
-  column does not yet exist, so the whole reset aborted on 42703; it is guarded
-  on the column and the drill now runs and accepts. The two proof-shard
-  authorization failures were test fixtures rather than product — hand-seeded
-  partner payloads that did not satisfy the shape `dashboardRecord()` requires.
-  The `ui` claim and the mobile drawer inside it did not reproduce at all; see
-  the refuted section. Poppler is installed for the semantic-PDF verification.
+- **P0-48 — `main` has no observed green continuous-integration run
+  `[EXTERNAL-ONLY]`:** the five repository defects are fixed; the observation is
+  not, and cannot be from inside this repository. Fixed in `0f68e36`, with two
+  corrections to the entry. The heap ceiling was real —
+  `NODE_OPTIONS=--max-old-space-size=3072` reproduces the SIGABRT locally with
+  3047 MB live, so the type-aware lint peak is above 3 GB and the CI default is
+  under it; the workflow now sets 6144. The registry was **not** Docker Hub:
+  "toomanyrequests: Rate exceeded" is ECR Public's anonymous-pull message and
+  the Supabase CLI defaults to `public.ecr.aws`, now pinned to `ghcr.io`, whose
+  manifests are byte-identical for the images used. The integration failure was
+  not in the migration fixtures either: `supabase/seed.sql` set
+  `invoices.amount_paid_minor` unconditionally and the populated-upgrade drill
+  replays that seed against `001230`, where the column does not yet exist, so
+  the whole reset aborted on 42703; it is guarded on the column and the drill
+  now runs and accepts. The two proof-shard authorization failures were test
+  fixtures rather than product — hand-seeded partner payloads that did not
+  satisfy the shape `dashboardRecord()` requires. The `ui` claim and the mobile
+  drawer inside it did not reproduce at all; see the refuted section. Poppler
+  exists on the qualification machine, which is where every recorded run of the
+  semantic-PDF verification has happened, and the workflow itself installed
+  none, while `packages/documents/src/semantic-pdf.integration.test.ts` spawns
+  `pdftotext` unguarded — so the first observed `integration` shard would have
+  died on a bare spawn `ENOENT` naming nothing. The shard now installs
+  `poppler-utils` and asserts `pdftotext -v` answers, in a step conditioned on
+  `integration` alone, placed so the failure names itself rather than surfacing
+  as an unreadable test error. That was the last repository-side caveat behind
+  `EXT-ACC-01`.
 
-  What remains open is exactly one thing and it is external: **no CI run has
-  been observed.** Actions is billing-blocked on the organization — the
-  2026-08-10 run (id 31346389931) stopped all seven jobs within twelve seconds
-  reporting failed account payments or a spending limit, and nothing has
-  executed since, so all seven work-stream pull requests were merged without a
-  CI result and every figure they record is local. `main` also still carries no
-  branch protection, so no status check gates a merge; that is repository
-  configuration and is not fixed here. This entry stays `[OPEN]` rather than
-  `[EXTERNAL-ONLY]` because there is no registered external gate for it and no
-  fail-closed repository control that a gate would release.
+  What remains is external: **no CI run has been observed.** Actions is
+  billing-blocked on the organization — the 2026-08-10 run (id 31346389931)
+  stopped all seven jobs within twelve seconds reporting failed account payments
+  or a spending limit, and nothing has executed since, so all ten work-stream
+  pull requests were merged without a CI result and every figure they record is
+  local. The `EXT-ACC-01` row now names this remainder exactly: Actions billing
+  in good standing on the organization, one observed green run of the release
+  workflow on `main`, and branch-protection administration to require that run
+  before merge — none of which this account can supply, since it holds no
+  organization admin. `SPEC-18-VAL-02` sits behind that gate. The activation
+  test is the run itself: `scripts/release-artifacts.test.mjs` holds the
+  workflow matrix equal to `RELEASE_SUITE_NAMES` by mutation-checked parsing,
+  and `validate-release-join.mjs` refuses a partial shard set, so once billing
+  is restored the observation either happens or fails loudly. No repository-side
+  caveat remains: the Poppler step above was the last one.
 
 - **P0-49 — Accepted amendments persist no money `[COMPLETE]`:** closed in
   `ca70c0c`, in four rounds, three of which shipped a control that then had to
@@ -461,7 +528,11 @@ closure notes name.
   guard, while the workflow writer used a deterministic identifier with
   `onConflictDoNothing`, so two posts with fresh idempotency keys produced two
   full-value invoices, each independently issuable and each unlocking a fresh
-  full-invoice credit allowance. The two writers now agree.
+  full-invoice credit allowance. The two writers now agree. What was actually
+  done is narrower than the entry's prescribed fix and is recorded as what it
+  is: there is no database unique index on `invoices(order_id)`; the guarantee
+  is the shared deterministic identifier both writers derive, enforced through
+  the primary key. Adequate, and not the index the entry asked for.
 
 - **P0-54 — Commitment and price-book commands set the service role on the
   tenant connection `[COMPLETE]`:** closed in `ea4ab89`. One call site now uses
@@ -518,7 +589,11 @@ closure notes name.
   Registering it belongs to the workflows lane and was deliberately not taken by
   the security lane. A separate composition defect on the same surface —
   `webhook-replay/actions.ts` composing `requiredTaxProvider()`, which throws at
-  composition — is in flight and is not this entry.
+  composition, so an unwired `EXT-TAX-01` refused every replay before this
+  entry's refusal could even run — was fixed in `5c0f727`: the action now
+  composes `composedTaxProvider()`, which refuses `calculate` without detonating
+  the composition, verified at the emitted-JS level of a production build. That
+  was never this entry, and its fix delivers no replay.
 
 - **P0-57 — `mfaVerified` records an environment allow-list, not a second factor
   `[COMPLETE]`:** closed in `ea4ab89`. The boolean tested whether an
@@ -616,30 +691,35 @@ closure notes name.
   `RETURNING`, while every database-backed partner test is a rejection case that
   dies before the insert. There is now an integration test that drives a partner
   quote under a real signed authorization context with policies live and reads
-  the row back.
+  the row back. One residue found later and not fixed here: the **customer**
+  quote builder still ships fixture selector UUIDs in the client bundle — the
+  partner builder's fix did not cover it, and P0-50's bundle claim was about the
+  ten workflow mounts, not this surface. Recorded under the open residue.
 
 - **P0-63 — Internal surfaces render fixtures beneath explicit provenance claims
   `[COMPLETE]`:** closed in `5897196`, and the closure is split two ways because
   the honest answer differs per surface. Collections, provisioning and reports
-  now read the channels the materializer was already producing. Renewals and
-  migrations have **no backing channel at all** and now say so, rather than
-  printing a freshness claim over a constant — which is the entry's own remedy
-  ("delete the freshness and source strings and render an unmissable unwired
-  state"), not a wiring. The false provenance strings — "Collections ledger
-  refreshed 3 minutes ago", "Operational snapshot refreshed 4 minutes ago",
-  "operations · live provider state" — are gone from all eight pages, which was
-  the aggravating factor the entry identified. Two loose ends were found while
-  doing it: the collections `WorkflowPanel` branch, reported as retired by an
-  earlier round and still standing, was sending a payload shape a `.strict()`
-  schema rejects, so it could never have written either, and is now gone; and
-  adding `services/[id]` activated dead code in `nextStep`'s services branch,
-  which linked to `/account/offboarding` with the aggregate id while offboarding
-  selects on `recordKey` from a different channel — byte-identical pages with
-  and without the parameter. That fix is bound by a test constructing the
-  materialized payload shape, because under the demo adapter a record's id _is_
-  its record key, so a lazy fix would have looked correct in a production build
-  and still been wrong. The collections **corrections** surface named in P0-68
-  is a different thing and is not delivered.
+  now read the channels the materializer was already producing. Renewals has
+  since been wired to the internal `orders` channel — renewal work rows are
+  orders, and the page says so — superseding the honest-unwired state this entry
+  first shipped for it. Migrations still has **no backing channel at all** and
+  still says so, rather than printing a freshness claim over a constant — which
+  is the entry's own remedy ("delete the freshness and source strings and render
+  an unmissable unwired state"), not a wiring. The false provenance strings —
+  "Collections ledger refreshed 3 minutes ago", "Operational snapshot refreshed
+  4 minutes ago", "operations · live provider state" — are gone from all eight
+  pages, which was the aggravating factor the entry identified. Two loose ends
+  were found while doing it: the collections `WorkflowPanel` branch, reported as
+  retired by an earlier round and still standing, was sending a payload shape a
+  `.strict()` schema rejects, so it could never have written either, and is now
+  gone; and adding `services/[id]` activated dead code in `nextStep`'s services
+  branch, which linked to `/account/offboarding` with the aggregate id while
+  offboarding selects on `recordKey` from a different channel — byte-identical
+  pages with and without the parameter. That fix is bound by a test constructing
+  the materialized payload shape, because under the demo adapter a record's id
+  _is_ its record key, so a lazy fix would have looked correct in a production
+  build and still been wrong. The collections **corrections** surface named in
+  P0-68 is a different thing and was delivered separately; see that entry.
 
 - **P0-64 — The downloadable CSV escapes fewer formula prefixes than the
   workflow export, and the test that proves otherwise runs against dead code
@@ -695,15 +775,17 @@ closure notes name.
   `amendment_lines.price_delta_minor` stays **signed**: it is a delta, and
   `packages/domain/src/core/amendments/index.ts:156` requires a downgrade's
   quantity delta to be negative, so a non-negativity check would reject correct
-  data. Eleven columns gain a check, and the pgTAP proves _enforcement_ rather
-  than existence — every assertion attempts a violating write and requires it to
-  be rejected, and dropping the constraints on a live database turns 26 of them
-  red. Spec §18, §19.
+  data. Thirteen columns gain a check — an earlier count of eleven here omitted
+  the constrained pair on `order_lines` — and the pgTAP proves _enforcement_
+  rather than existence — every assertion attempts a violating write and
+  requires it to be rejected, and dropping the constraints on a live database
+  turns 26 of them red. Spec §18, §19.
 
-- **P0-68 — Three customer and partner journeys have no working path `[OPEN]`:**
-  two of the three are closed and the third is partly delivered; this entry
-  stays open on the residue rather than being flipped early, and the remaining
-  work is in flight.
+- **P0-68 — Three customer and partner journeys have no working path
+  `[COMPLETE]`:** two of the entry's named journeys were already delivered when
+  it was written, one of its claims was stale that same day, and the journey
+  that really was broken turned out to be worse than any phrasing this entry
+  used. All of it now closes.
 
   `recordRoute` is closed. It returned `/services` for the services channel with
   no `services/[id]` route, so every row on the live-entitlements surface linked
@@ -724,13 +806,60 @@ closure notes name.
   duplicates alongside the real surfaces, and leaving them standing is what made
   one cause present as nine findings.
 
-  Open: **deal registration has no create path**, which is the remaining member
-  of that second population and the one the entry named specifically —
-  `/partner/registrations` still lists deal registrations while describing
-  itself as the place to create them, and the command palette still offers
-  "Register a deal" as a link to that page. The **collections corrections
-  surface** is likewise not delivered. The order-acceptance two-pass refresh gap
-  is also not addressed here. Spec §4, §12, §14.
+  Deal-registration create is **delivered**, and the claim that it was missing
+  was stale on the day it was written: `5897196` — the same commit whose own
+  body records it as undelivered — mounts `DealRegistration` on
+  `/partner/registrations` behind `partner:quote:write`, with identity derived
+  from the session, the end-client roster read under row-level security rather
+  than a picker over fixtures, an empty roster rendered as a named state instead
+  of a Submit over nothing, and `deal_registrations:create` implemented in the
+  finance repository alongside `approve`, `reject`, `extend` and `convert`. The
+  **collections corrections surface** is likewise delivered in that commit:
+  `apps/web/src/features/internal-ops/collections-corrections/` is wired into
+  `/internal/collections`, and its three corrections map onto implemented verbs
+  — `credit_notes:issue`, `refunds:submit`, `disputes:create`.
+
+  The third journey was worse than the "two-pass refresh gap" this entry used to
+  call it: **no customer could complete an order acceptance at all**, and the
+  live database proved it — every order in the table carried its fixture's
+  acceptance instant, so the journey had never once completed anywhere. The
+  binding half was already sound: the prepared order form is hashed over one
+  acceptance instant and the create pass refuses a different hash. But
+  `mutateOrder`'s create branch also required
+  `Date.parse(command.acceptedAt) === Date.parse(input.occurredAt)`, and for any
+  HTTP caller `occurredAt` is the API's own receive instant, while the surface
+  must resend the prepare-pass `acceptedAt` precisely because the hash covers
+  it. Two correct controls, mutually unsatisfiable.
+
+  The repair makes `orders:create` behave the way its siblings already did.
+  Amendments — the two-pass resource that moves real money through deltas — and
+  `quotes:issue` both take a documentary timestamp with no clock check, relying
+  on the hash binding alone; `orders:create` was the only member of the family
+  with a clock equality stacked on top of the binding it duplicated. A sweep of
+  every timestamp comparison in the database, API and domain packages found no
+  other instance, so this generalizes to nothing. `acceptedAt` is now
+  documentary and carried from prepare to create; expiry is enforced against
+  `occurredAt`, which is what the refusal message always described; and the four
+  operational fields that had been quietly drinking from the merged value are
+  keyed on server time. One of those matters on its own: `boundAt` resolves the
+  selling entity by UTC date, so a documentary instant straddling midnight would
+  have let the buyer influence which legal entity sells them the order.
+
+  Two things worth recording because they nearly went wrong. Deleting the
+  equality **alone** does not fix this — it trades the clock refusal for
+  `COMMERCIAL_ARTIFACT_BINDING_INVALID`, which would have been the fourth
+  consecutive narrower instance of the same defect on this one bridge; the
+  regression test is pinned against that reversion specifically, not only
+  against the original. And an "acceptance cannot predate quote issuance" lower
+  bound is **wrong** here however obvious it looks: the deployed fixtures accept
+  before they issue, so adding it fails the suite wholesale.
+
+  The test this needed did not exist in any form. Every prior integration test
+  pinned `occurredAt` equal to the fixture `acceptedAt` and every surface test
+  stubbed the send, which is exactly why a journey that had never worked looked
+  covered. The new one drives both passes with a real clock gap between them and
+  asserts the order carries the documentary instant from pass one alongside
+  server-time facts. Spec §4, §8, §12, §14.
 
 - **P0-69 — An error on any partner or internal route destroys the application
   shell `[COMPLETE]`:** closed in `26ac061`. Per-group error boundaries mean an
@@ -749,66 +878,73 @@ closure notes name.
   intervened. Gated at both layers. Spec §21.
 
 - **P0-71 — The traceability ledger cites unreachable code as evidence
-  `[OPEN]`:** unchanged and untouched by the seven work-streams. Fifteen ledger
-  rows were checked against implementation rather than against their own prose,
-  and the `domain` and `tests` citation columns name symbols no production path
-  reaches — `capacityPlanning` and `weeklyScorecard` have no references and no
-  tests, seven of the ten functions in
-  `packages/domain/src/core/reports/index.ts` are unreferenced, and
-  `threeWayTieOut` collides with a live name in
-  `packages/integrations/src/core/accounting/adapter.ts:296`, so a reader who
-  greps it concludes the domain function is live.
+  `[OPEN]`:** largely delivered, open on a narrower residue than it was filed
+  with, and its prescribed remedy was wrong — the fifth wrong remedy in this
+  audit. The prescribed rule, "every cited symbol resolves to a definition
+  reachable from production", was tested before implementation against nine
+  symbols it would have called dead, and every one had a genuine in-module call
+  site; measured at the time, the ledger held 2,264 citations, none in
+  `path#symbol` form and 1,777 of them prose labels with no symbol in them to
+  resolve. The rule was unimplementable as written and wrong where it could run.
 
-  Two of the cited contradictions have moved and the entry must not be read as
-  frozen: `SPEC-18-VAL-02` was false in effect via P0-47, which is now closed,
-  and `SPEC-17-12` via P0-64, likewise closed. `SPEC-15-02` recording the CRM
-  projection as implemented while P0-44 recorded the same code as open is
-  resolved by P0-44 closing, though the CRM path is inert behind its gate and a
-  citation should say so. What has not changed is the mechanism:
-  `pnpm check:traceability` validates the ledger against its schema, not its
-  citations against the tree, so none of this is detectable by the checker that
-  is otherwise the oracle for this file. Extending it to require that every
-  cited symbol resolves to a definition reachable from production is the work.
-  This entry belongs to whoever owns
-  `docs/traceability/launch-requirements.json` and is not closed by anything in
-  the backlog.
+  What shipped instead, in `5c0f727` and wired into the gates in `8c53747`:
+  `scripts/validate-traceability.mjs` now enforces a citation grammar — a
+  `path#symbol` citation must name a file that exists and a symbol declared in
+  it, a path citation must exist on disk, prose is grandfathered and the run's
+  own report says so out loud — running inside `verify:static` on every ledger
+  change. `scripts/check-citation-liveness.mjs` reports cited symbols with no
+  non-test reference outside their defining file. The rows the entry named were
+  re-cited to the evidence that actually ships — the capacity and scorecard
+  reports are the SQL views `core_capacity_planning` and
+  `core_weekly_scorecard`, and those rows now cite the views and name the dead
+  citations they replaced. And the tooling's own tests, which on landing were
+  run by no gate because `scripts/` is not a workspace package, were wired into
+  root `test:unit` in `8c53747`.
+
+  What remains open, exactly: the liveness half reports without gating —
+  `check-citation-liveness.mjs` is deliberately outside `verify:static` because
+  its false-positive behaviour is documented in its own header — so no gate yet
+  enforces that a cited symbol is reachable; the prose corpus is grandfathered
+  and converts row by row, with progress readable as `citationGrammar.symbol`
+  over `citationGrammar.total` in every run's report; and no CI has ever
+  executed any of it, which is P0-48's remainder, not this entry's. This entry
+  closes when the liveness check either earns a place in a gate or is retired
+  with a recorded decision; `SPEC-18-VAL-01` holds the ledger-side reference
+  until then.
 
 ### Corrections to markers recorded before this audit
 
 The 2026-08-14 audit re-derived every marker and recorded ten corrections. Each
 has been re-checked against the current tree, because a correction can go stale
-the same way the marker it corrects did, and four of the ten have. What follows
-is the surviving set; the corrections that are now spent say so rather than
-being carried forward.
+the same way the marker it corrects did, and six of the ten now have. What
+follows is the surviving set; the corrections that are now spent say so rather
+than being carried forward.
 
 - **P0-02 `[COMPLETE]` still claims "zero unmapped or internally partial
-  requirements", and that is still false.**
-  `docs/traceability/launch-requirements.json` holds 312 rows — 183 implemented,
-  105 external-gated, 12 historical and **12 `partial`** — while the file's own
-  policy states that at repository-qualified review partial and unimplemented
-  are forbidden. The row count and the specification hash do check out. What has
-  changed is that the twelve partials are no longer _evidence of missing work_:
-  every one of them (`SPEC-06-07`, `SPEC-10-02`, `SPEC-15-01`, `SPEC-16-Q08`,
-  `SPEC-16-Q09`, `SPEC-16-Q10`, `SPEC-16-11`, `SPEC-17-R07`, `SPEC-17-R08`,
-  `SPEC-17-R09`, `SPEC-18-API-08`, `SPEC-19-03`) points at P0-42 through P0-46,
-  all of which are now closed. The rows are stale rather than open, and the
-  audit's own note that two rationales had already gone false is now true of all
-  twelve. The ledger is a separate artifact with a separate owner; this marker
-  cannot be honestly re-asserted until those rows are re-derived, and
-  re-deriving them is also what the validator needs before it will accept a
-  `COMPLETE` marker on P0-42 through P0-46.
+  requirements", and that is still false — now by three rows rather than twelve,
+  each held partial on purpose.** The twelve `partial` rows the audit found all
+  pointed at P0-42 through P0-46 and were re-derived in `5c0f727` against what
+  those closures actually shipped, with `path#symbol` citations the validator
+  now checks; the two rationales the audit had already caught as stale
+  (`SPEC-10-02`'s and `SPEC-18-API-08`'s) were rewritten with the rest. What
+  remains is deliberate: three rows are held `partial` as the ledger-side
+  mapping for the backlog entries still open — `SPEC-18-INV-06` (P0-56, the
+  operator replay refuses), `SPEC-08-DOC-04` (P0-68, portal order acceptance
+  cannot complete), and `SPEC-18-VAL-01` (P0-71, citation liveness reports
+  without gating). The row count and the specification hash do check out. This
+  marker cannot be honestly re-asserted until those three close.
 
 - **P0-04 and P0-15 `[COMPLETE]` rest on evidence captured before the tree
   changed, and the drift is now much larger than the audit measured.** The cited
   commit `9464bab` is real and dated 2026-08-01; two experience-wide redesign
   merges landed on 2026-08-02 and rewrote `packages/ui/src/styles.css`,
   `packages/ui/src/components/shell.tsx`, all four story files and fourteen
-  visual baselines. Seven further work-streams have landed since. The audit
+  visual baselines. Ten further work-streams have landed since. The audit
   measured the gap against `docs/baseline/tests-baseline-artifacts.json`, but
   that manifest is itself a capture — `capturedAt` is `2026-08-02T20:06:37Z` —
   and it is now stale too: it records `pgTapFiles: 22` and
-  `pgTapPlannedAssertions: 488` where the tree holds **32 files** and the
-  work-streams report **687 assertions**, and `totalFiles: 269` against a tree
+  `pgTapPlannedAssertions: 488` where the tree holds **38 files** and the last
+  work-stream reports **785 assertions**, and `totalFiles: 269` against a tree
   that has grown since. So the entries disagree with the manifest, the manifest
   disagrees with the tree, and neither figure should be quoted. Both markers
   need re-earning from a fresh capture, not re-argument. Regenerate with
@@ -850,36 +986,25 @@ being carried forward.
   assertion about locks rather than seconds, which is real work and is not
   claimed here.
 
-- **P0-41 `[OPEN]` is stale on its lead claim, and the entry is left open on
-  narrower grounds.**
-  `supabase/migrations/001320_commitment_ledger_write_path.sql` adds the
-  correction and allowance-adjustment streams; `database-finance.ts` inserts
-  `commitment_ledgers` and calls `createCommitmentPeriod` from the production
-  create path and from renewal; `usage_events` are written; and
-  `decideCommitmentOverage` and `reconcileCommitmentToSource` are reached from
-  production in `commitments.ts`. The verbs are admitted over the API. The
-  audit's caveat — that P0-54 made every one of those commands fail in
-  production — no longer applies, because P0-54 is closed. This entry is not
-  flipped here only because it is the one pre-audit `[OPEN]` still carrying a
-  live ledger reference (`SPEC-10-02`), and flipping a backlog entry to
-  `COMPLETE` while a requirement still points at it is exactly what
-  `TRACEABILITY_BACKLOG_COMPLETE_STILL_MAPPED` exists to catch. It closes with
-  the ledger, not before it.
-
-- **Spent corrections, recorded so they are not re-derived.** Four of the ten no
+- **Spent corrections, recorded so they are not re-derived.** Six of the ten no
   longer describe the tree and are withdrawn rather than carried: P0-34's mobile
   drawer, which did not reproduce and is pinned under refuted findings below;
-  P0-46's lead claim, now folded into that entry's closure; the P1 outbox and
-  dead-letter recovery surface and the P1 derivation view, both of which the
-  audit had already marked resolved and whose caveats — that P0-56 made the
-  replay control report success without doing anything, and that P0-49 made the
-  derivation view report every amended order as unamended — are respectively
-  now-refused-instead-of-lying and fixed. The P1 runbook correction is unchanged
-  and still accurate: four of the six named runbooks have operator surfaces, the
-  residue is `unhandled-errors.md` and `billing-reconciliation.md`, and the
-  finance-lifecycle review action at
-  `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx:75-79`
-  is review-only and applies nothing.
+  P0-46's lead claim, now folded into that entry's closure; P0-41's, spent in
+  the other direction — its lead claim had already been overtaken by `001320`
+  and the production write path, the entry was held open only by `SPEC-10-02`'s
+  live ledger reference, and that row was re-derived in `5c0f727`, so the entry
+  is `[COMPLETE]` above; and the P1 outbox and dead-letter recovery surface and
+  the P1 derivation view, both of which the audit had already marked resolved
+  and whose caveats — that P0-56 made the replay control report success without
+  doing anything, and that P0-49 made the derivation view report every amended
+  order as unamended — are respectively now-refused-instead-of-lying and fixed.
+  The P1 runbook correction is spent too, in the good direction: all six named
+  runbooks now have operator surfaces — `6cf5f26` added
+  `/internal/unhandled-errors` and `/internal/billing-reconciliation`, the
+  residue this correction carried — while its narrower point survives and is
+  restated where it belongs: the finance-lifecycle review action at
+  `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx` is
+  still review-only and applies nothing.
 
 - **The "Accepted verification evidence" block is stale in every figure the
   audit named and several it did not.** The dependency-lock hash, the canonical
@@ -1205,21 +1330,23 @@ a desired capability.
   with zero variance no longer applies: the supersession set is now written, and
   the vacuous NET-against-GROSS variance was replaced by
   `core_invoice_amendment_drift` as an exact tax-free signal at rest.
-- **Recurring runbooks are prose rather than actions `[largely RESOLVED]`.**
-  Four of the six named runbooks have operator surfaces:
+- **Recurring runbooks are prose rather than actions `[RESOLVED]`.** All six
+  named runbooks now have operator surfaces:
   `docs/operations/dead-letter-recovery.md` maps `/internal/recovery` onto the
   outbox, provisioning-attempt and workflow-run engines behind
-  `queue-outbox-health.md`, `stuck-provisioning.md` and `workflow-recovery.md`,
-  and `/internal/webhook-replay` covers `webhook-replay.md` — subject to P0-56,
-  which means that surface can inspect but not replay. The residue is
-  `unhandled-errors.md` and `billing-reconciliation.md`. Do not read the
-  finance-lifecycle pages as closure:
-  `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx:75-79`
-  is review-only and applies nothing.
+  `queue-outbox-health.md`, `stuck-provisioning.md` and `workflow-recovery.md`;
+  `/internal/webhook-replay` covers `webhook-replay.md`; and `6cf5f26` added
+  `/internal/unhandled-errors` — behind `system:operate`, reading the durable
+  `audit_events` failure stream with persisted decisions — and
+  `/internal/billing-reconciliation`, the two this entry had recorded as the
+  residue. Two caveats survive: the webhook-replay surface can inspect but not
+  replay (P0-56), and the finance-lifecycle pages are not closure —
+  `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx` is
+  review-only and applies nothing.
 
 ## P1 — quality and operability findings from the 2026-08-14 audit
 
-Rewritten against what the seven work-streams did. Two entries in the original
+Rewritten against what the ten work-streams did. Two entries in the original
 list were refuted rather than fixed — WorkOS role synchronization and outbox
 dead-lettering — and are in "Refuted findings" above; they are not repeated
 here, and reintroducing either fails a named test.
@@ -1305,7 +1432,8 @@ here, and reintroducing either fails a named test.
 
 - **The commission clawback ceiling is an unlocked read-then-write**
   (`database-finance.ts`), so concurrent clawbacks can exceed collected revenue.
-  Untouched by any work-stream.
+  Untouched by any merged work-stream; the commission lane in flight owns
+  adjacent code and this ceiling is not asserted fixed here.
 - **Contractual renewal price protection is captured and validated but never
   enforced by any pricing path.** See the residue below: the enforcement was
   written, adopted, and then deliberately reverted.
@@ -1314,17 +1442,23 @@ here, and reintroducing either fails a named test.
   product hand-rolls each of their jobs. `internal-projection-page.tsx` still
   duplicates `projection-detail-page.tsx` and is still imported by no route,
   confirmed against the current tree.
-- **Mutation feedback is generic and does not refresh.** `workflow-panel.tsx`
-  returns one of three sentences for fifteen mutations across ten routes, with
-  no identifier, no version, no link and no revalidation; it remounts the
-  confirmation dialog by key, which defeats focus restoration, and calls
-  `sendCoreCommand` without an idempotency key while leaving the confirm control
-  enabled during submission. The development-only guard that used to cover the
-  pre-filled legally consequential free text is gone with `demoValue` (P0-50),
-  so that text needs re-checking rather than assuming.
-- **No sortable columns, bulk actions or export.** No `aria-sort` anywhere in
-  `apps/web` or `packages/ui`, and `packages/ui/src/components/table.tsx` has no
-  sort interface.
+- **Mutation feedback is generic and does not refresh.**
+  `apps/web/src/features/surfaces/workflow-panel.tsx` returns one of three
+  sentences for the mutations it still owns after the seven supersessions, with
+  no identifier, no version, no link and no revalidation; it still remounts the
+  confirmation dialog by key, which defeats focus restoration, and still calls
+  `sendCoreCommand` without an idempotency key — both re-verified against the
+  tree — while leaving the confirm control enabled during submission. The
+  development-only guard that used to cover the pre-filled legally consequential
+  free text is gone with `demoValue` (P0-50), so that text needs re-checking
+  rather than assuming.
+- **Bulk actions and a collection export are still absent; sortable columns no
+  longer are.** `8c53747` delivered server-side sorting over the whole
+  collection — not a slice of the loaded page — with `aria-sort` on the customer
+  and partner collection surfaces and a test that discriminates the two. Bulk
+  actions and an export of the collection surfaces remain absent; the
+  formula-safe CSV export that exists is the §17 report download (P0-64), not a
+  collection export.
 - **Test tooling ships in the application.** `apps/web/package.json` still lists
   `msw` and `@clockwork/testing` as dependencies.
 - **Contract tests instantiate only the fake `[partly closed]`.** The CRM and
@@ -1339,25 +1473,43 @@ here, and reintroducing either fails a named test.
   teardown, migration runs, marketplace orders and tax exemption. The money
   work-stream added database-level and integration coverage, not browser
   coverage.
-- **No `LICENSE` file**, so no rights are granted for any external review.
-  Confirmed absent.
-- **Volume, freshness disclosure and accessibility gaps.** Page-level
-  pagination, the internal queue search dropping typed characters, customer
-  surfaces never disclosing stale data, fixed dashboard copy and timezone,
-  unsaved-changes protection, and the accessibility gaps the Axe run cannot see
-  (non-focusable `id="main-content"`, client-side navigation announcing nothing,
-  the operator queue table's unnamed scroll container, `display: grid` removing
-  table semantics below 48rem, `global-search.tsx` running
-  `aria-activedescendant` and real focus movement simultaneously). These were
-  being changed while this file was written and their status is deliberately not
-  asserted here; the final commit of this pass owns them.
+- **No `LICENSE` file `[RESOLVED]`.** The repository now carries a proprietary
+  evaluation licence: all rights reserved, with an express grant to view, run
+  and evaluate the software for review, audit and diligence — the use this entry
+  recorded as blocked. It grants no production, distribution or derivative
+  rights. Choosing a different licence is a business decision this file does not
+  preempt; what is resolved is that an external reviewer is no longer infringing
+  by reading.
+- **Volume, freshness disclosure and accessibility: mostly delivered, two
+  residues named.** Delivered and verified against the tree: page-level
+  pagination and the sorting above on the collection surfaces (`8c53747`);
+  customer stale-data disclosure through `ProjectionFreshnessNotice` on the
+  customer and partner collection surfaces (`8c53747`); unsaved-changes
+  protection on the six mutating surfaces, disarmed on the server's success
+  signal so a successful submit does not warn; the internal queue search rebuilt
+  so the input keeps local authority with a debounced URL commit and no longer
+  drops typed characters (`5c0f727`); dashboard copy and timezone from the
+  persona rather than a fixed string and America/New_York (`5c0f727`); and the
+  accessibility gaps the Axe run cannot see — a focusable skip-link target,
+  route announcements, the operator queue table keeping its semantics and
+  keyboard scroll below 48rem, and the combobox no longer running
+  `aria-activedescendant` and real focus movement simultaneously (`5c0f727`).
+  Still open or partial: the 100-page cliff is closed at the loader but only
+  partly disclosed — the partner surface discloses `truncated` while the
+  customer collection pages drop it and render the generic stale banner, so a
+  cut-off ledger reads as merely "may be out of date"; that repair is in flight
+  with the experience lane. Suspense boundaries exist on the acceptance page and
+  are not claimed anywhere else. The two-pass acceptance refusal is P0-68's, not
+  this entry's.
 
-### Open residue from the seven merged work-streams
+### Open residue from the ten merged work-streams
 
 Everything below was found _during_ the work and deliberately shipped open. It
 is collected here because a residue recorded only in a commit body is a residue
 nobody reads. None of it is speculative: each was observed by the work-stream
-that left it.
+that left it, and each has been re-checked against the tree by the pass that
+wrote this revision — entries a later work-stream closed say so instead of being
+silently deleted, because the closure is part of the record.
 
 - **The webhook-replay task is still unregistered** and the operator command
   still fails closed. See P0-56.
@@ -1371,16 +1523,32 @@ that left it.
   out of the set it was written for.
 - **`accepted-order-provisioning.ts` emits an `aggregateType` the dead-letter
   join can never match** — it appends with `aggregateType: "provider_operation"`
-  against a join that expects otherwise. Found by two separate work-streams and
-  fixed by neither. An operator redrive of these rows returns unmapped.
-- **`create_signature_envelope` cannot execute at all.** It is neither a
-  `providerCommand` nor a `staffServiceCommand`
-  (`packages/db/src/repositories/lifecycle/command-repository.ts:478` and
-  `:492`), so it runs as `clockwork_runtime` and its `provider_operations`
-  insert is refused with 42501 on a tenant route — which is _why_ P0-51's
-  guaranteed version collision never surfaced in practice. This was being
-  repaired while this file was written; treat the entry as the record of why the
-  path was dead, not as a claim about the current tree.
+  against a join that expects `order` or `poc`, so an operator redrive of these
+  rows returns unmapped. Found by two separate work-streams and fixed by neither
+  merged one; the join's own comment cites the wrong one of the two emitters,
+  and both existing tests hand-seed `order` rows by raw SQL — fixtures built to
+  satisfy the join rather than exercise the emitter. In repair by another lane
+  at the time of writing; treat this as the record of the defect, not a claim
+  about the final tree.
+- **`create_signature_envelope` executes now, and the sweep it forced found the
+  class elsewhere.** It was neither a `providerCommand` nor a
+  `staffServiceCommand`, so it ran as `clockwork_runtime` and its
+  `provider_operations` insert was refused with 42501 on a tenant route — which
+  is _why_ P0-51's guaranteed version collision never surfaced in practice.
+  `5c0f727` fixed it with a narrow role-targeted INSERT policy admitting only an
+  unstarted claim for the two enumerated provider calls, proven against the
+  aggregate row's account — the split migration `000200` already gave
+  `lifecycle_provisioning_attempts` — rather than reclassifying a
+  customer-initiated write onto the service connection. `decide_poc`'s approving
+  half had the same defect and the same fix. Still open from that sweep:
+  `open_exception` and `decide_exception` are dead for a tenant fall-through
+  their own comment declares intentional and are left deliberately — `8c53747`
+  then **removed** a migration that would have opened tenant exception intake,
+  because every spec'd tenant-triggered exception is machine-opened and the
+  tenant write path has never worked at any point in this repository's history;
+  the remaining finding is that the route should refuse non-staff callers
+  explicitly, with the two-layer treatment `start_migration` got, rather than
+  dying in the row policy.
 - **The provider-before-local-write window in the e-sign path remains.** Nothing
   retries, and there is no orphan sweeper for e-sign, so an envelope created at
   the provider before a failing local write leaves orphaned provider state.
@@ -1409,31 +1577,66 @@ that left it.
   name** and should be an allow-list, and the static scan that enforces it
   matches two literal spellings only. That is the guard standing between the
   tree and a recurrence of P0-54.
-- **`packages/api/src/routes/lifecycle/index.ts:1227` takes a tenant-reachable
-  permission with no account scope** — the one call site the `requirePermission`
-  scope change did not force.
+- **The one unscoped `requirePermission` call site is closed.** The lifecycle
+  route that took a tenant-reachable permission with no account scope now passes
+  a scope sentinel like every other call site; no two-argument
+  `requirePermission` call survives anywhere in `packages/api`, re-checked by
+  grep against the tree.
 - **The Stripe financial verifier and the marketplace tolerance path were not
   repaired.**
 - **`core_order_acceptance_reservations` has no Drizzle model at all**, so
   `check:schema-drift` cannot see it, and several pre-existing check-constraint
   names in `packages/db/src/schema/core/finance.ts` disagree with the applied
   SQL names.
-- **`RELEASE_REQUIRED_RUNTIME_ENVIRONMENT` omits the two tax variables** while
-  carrying every other provider credential pair — an isolation gap in a separate
-  contract from the one P0-61 closed. In flight at the time of writing.
-- **`renewals` and `migrations` have no backing projection channel.** Those two
-  internal surfaces say so honestly rather than printing a freshness claim over
-  a constant (P0-63), but the channels do not exist and the surfaces are
-  therefore unwired by design rather than by wiring.
+- **`RELEASE_REQUIRED_RUNTIME_ENVIRONMENT` omitted the two tax variables and no
+  longer does** — closed in `5c0f727`, which put `TAX_PROVIDER_BASE_URL` and
+  `TAX_PROVIDER_TOKEN` in the release isolation floor. The commit is exact about
+  what that closed: an assertion gap, not a leak — the token was already
+  scrubbed by the sensitive-name regex and the base URL by `.env.example`
+  membership. The second site of the over-broad tax gate — the internal
+  webhook-replay action — was fixed in the same commit (see P0-56); the third,
+  in the production-workflow proof, was reported there and fixed in `6cf5f26`:
+  the outbox drain now composes `composedTaxProvider()`, so an unwired
+  `EXT-TAX-01` refuses the two writing commands instead of decomposing the whole
+  drain, materialization included.
+- **`migrations` has no backing projection channel.** The surface says so
+  honestly rather than printing a freshness claim over a constant (P0-63).
+  `renewals`, which this entry used to name beside it, has since been wired to
+  the internal `orders` channel — renewal work rows are orders — so its
+  honest-unwired state is superseded.
 - **`recordRoute`'s `Route` alias does not bind the channel set to the route
   tree.** `RouteImpl`'s first three members are unconditional, so the original
   defective body recompiles clean under the new type; a unit test holds that
   direction and the compiler does not.
-- **Three prose inaccuracies remain for the documentation pass**, including a
+- **False claims in shipped file headers remain.** `5c0f727` records four and
+  `8c53747` records three more that its own work wrote — the defect the citation
+  tooling exists to catch, committed while building it — including a
   justification that argues from a premise about adapter coverage that is not
-  true.
+  true. They are code comments, not backlog rows, and they belong to the lanes
+  that own those files. The prose inaccuracies that lived in _this_ file —
+  deal-registration create recorded as undelivered, the collections corrections
+  surface recorded as missing, and "Poppler is installed" written as if it
+  described the workflow — are corrected in this revision.
+- **`commissions:accrue` cannot be executed by the role its own insert guard
+  invites.** `commission_accruals_insert_role_guard` names roles no permissive
+  lane admits — the only permissive lane on `commission_accruals` is
+  `app_has_account(partner_account_id)`, which a finance approver does not hold
+  — so the verb dies before its audit append. Recorded by `8c53747`, which fixed
+  the finance audit guard beside it and deliberately did not widen an
+  account-unscoped write lane to revive this; it is left with the commission
+  lane in flight.
+- **`core_deal_registration_disputes` exists and no code reads or writes it.**
+  The deal-registration dispute path is unbuilt — `dispute` and `decide_dispute`
+  are deliberately absent from the admitted verbs, and the 3-business-day
+  escalation the spec gives it has no owner in code. The service catalogue says
+  this in place so the absence cannot read as an oversight.
+- **The customer quote builder still ships fixture selector UUIDs in the client
+  bundle.** The partner builder's P0-62 fix did not cover it, and P0-50's
+  no-fixture-UUID bundle proof was scoped to the ten workflow mounts, not this
+  surface.
 - **`main` carries no branch protection**, so no status check gates a merge even
-  once Actions can run. See P0-48.
+  once Actions can run. Requiring it needs organization administration this
+  account does not hold; it is a named input of `EXT-ACC-01`. See P0-48.
 
 ## P1 — external activation and approval gates
 
@@ -1442,8 +1645,10 @@ fail-closed enforcement boundary, and exact live activation test in
 `docs/external-gates.md`.
 
 - `EXT-ACC-01` — named hosted accounts/projects, scoped credentials, selected
-  telemetry/paging backend and delivery proof, managed backup/PITR proof, and
-  staging soak.
+  telemetry/paging backend and delivery proof, managed backup/PITR proof,
+  staging soak, and — since P0-48 went external-only — Actions billing in good
+  standing, one observed green run of the release workflow on `main`, and
+  branch-protection administration to require it.
 - `EXT-LEGAL-01` — counsel-approved exact agreements, thresholds, retention,
   claims, screening, country variants, and re-execution policy.
 - `EXT-COMMERCIAL-01` — signed prices, floors, commitment/overage terms,
@@ -1472,17 +1677,27 @@ These are absent capabilities rather than defects, recorded because the portal
 is sold as a reason to buy and each gap is one a buyer or a buyer's agent meets
 before a human does.
 
-- **No trust, security or compliance surface.** `apps/web/app` declares no route
-  publishing an attestation, subprocessor list, data-processing agreement or
-  policy set. Enterprise security review now begins before first contact, and a
-  self-serve evidence surface is reported to deflect between thirty and fifty
-  per cent of questionnaire volume. Every question therefore arrives as email
-  against the same people who would otherwise be selling.
-- **No customer-facing API credential or documentation surface.** The tree
-  generates fifty-six OpenAPI paths and a typed client, and neither is reachable
-  by a customer: there is no credential management surface, no published
-  reference and no sandbox. The programmatic buying path exists as an internal
-  artifact rather than as product.
+- **The trust surface exists now, and is honest about what it is not.**
+  `6cf5f26` added `/trust`: a register of controls whose page states plainly
+  that no SOC 2 report, ISO 27001 certificate, PCI attestation, HIPAA assurance
+  or FedRAMP authorization is held or claimed, and whose integration list
+  refuses the subprocessor-schedule reading by name. Two things about how it got
+  there are the reason to trust it: the page's original guarantee — that the
+  build fails if a control's evidence stops supporting it — was attacked with
+  fabricated controls, three got through a strengthened guard, and the sentence
+  was **lowered to what the guard can actually detect** rather than the guard
+  being declared stronger than it is; and two false customer-visible security
+  claims were deleted rather than defended. What is still missing is what needs
+  external inputs: an attestation, a real subprocessor schedule, and a
+  data-processing agreement, under `EXT-LEGAL-01` and `EXT-ACC-01`.
+- **The API reference is published; credentials and a sandbox are not.**
+  `6cf5f26` added `/developers`, rendering the generated contract publicly —
+  both the page and `/developers/openapi.json` are in the unauthenticated path
+  list, asserted by test, because an integrator evaluating the API has no
+  account yet — with a plain statement of what is not yet available to an
+  integrator. What remains absent is customer credential management and a
+  sandbox, so the programmatic buying path is now documented but still not
+  self-servable.
 - **No machine-readable quote or price surface for a buyer's agent.** Agent-led
   purchasing now has published protocols, and industry forecasts put roughly a
   fifth of business sellers in front of agent-led quote negotiation before the
@@ -1497,9 +1712,11 @@ before a human does.
   commercial platforms ship, but the claim still cannot be demonstrated on
   demand. The reason has changed: the accessibility-adjacent browser failures
   P0-48 reported were fixtures and a non-reproducing drawer report, both now
-  disposed of, and what remains is that **no run has been observed** — Actions
-  is billing-blocked, so the evidence exists only as local captures — plus the
-  structural gaps in the P1 list, which no Axe run can see.
+  disposed of, and the structural gaps this entry used to point at — the
+  skip-link target, route announcements, the queue table below 48rem, the
+  combobox — were closed in `5c0f727`. What remains is that **no run has been
+  observed**: Actions is billing-blocked, so the evidence exists only as local
+  captures, and that is `EXT-ACC-01`'s remainder, not a repository one.
 
 ## P2 — post-spec expansion
 

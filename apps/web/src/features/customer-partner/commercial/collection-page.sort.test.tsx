@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { CommercialCollectionPage } from "./collection-page";
 import type { CommercialRecord } from "./model";
 
-const fresh = { generatedAt: "2026-08-14T13:00:00Z", stale: false };
+const fresh = {
+  generatedAt: "2026-08-14T13:00:00Z",
+  partial: false,
+  stale: false,
+};
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
 
 function record(letter: string, index: number): CommercialRecord {

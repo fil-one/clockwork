@@ -119,6 +119,17 @@ jobs:
       - name: Install Chromium and Linux dependencies
         if: matrix.shard == 'proof'
         run: pnpm playwright:install:ci
+      # `semantic-pdf.integration.test.ts` spawns `pdftotext` directly to read
+      # back all 15 rendered document kinds, so Poppler is a hard dependency of
+      # this shard rather than a convenience. The runner image does not carry
+      # it. Assert the binary answers here, where the failure names itself,
+      # instead of letting the test die on a bare spawn ENOENT.
+      - name: Install Poppler for semantic PDF extraction
+        if: matrix.shard == 'integration'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          pdftotext -v
       - name: Select explicit UI fixture adapter
         if: matrix.shard == 'ui'
         run: |
