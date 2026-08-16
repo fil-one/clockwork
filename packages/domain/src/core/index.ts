@@ -11,7 +11,12 @@ export * from "./pricing";
 export * from "./procurement";
 export * from "./quotes";
 export * from "./reports";
+export * from "./tax";
 
+// `coreDomainRegistry` names the lanes the composition test counts, and tax is
+// not one of them: the determination engine is domain code the finance lane
+// calls, not a lane of its own. Adding it here would change a count that means
+// something else.
 export const coreDomainRegistry = [
   "accounts",
   "pricing",

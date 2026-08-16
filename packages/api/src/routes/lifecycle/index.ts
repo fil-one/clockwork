@@ -1820,19 +1820,25 @@ export function registerLifecycleRoutes(
       dependencies,
       request,
     ).resolveExceptionScope({ caseId, requestId: request.requestId });
+    // The exception queue is internal work, and this route now says so. The
+    // case's account id is evidence about the case, not an entitlement to
+    // decide it: passing it here let a tenant holding the queue's permission
+    // stand in for staff status, and what stopped them was
+    // `exception_cases_scope`, whose `with check (app_is_internal())` has been
+    // in place since the foundation migration. That made the refusal a 42501
+    // out of the database instead of a typed one, and only for the write --
+    // `decideException` had already read and reasoned about the case.
     const authorization = requirePermission(
       context,
       queuePermission[scope.queue],
-      scope.accountId
-        ? ids.account.parse(scope.accountId)
-        : unscopedInternalStaff,
+      unscopedInternalStaff,
     );
-    if (!scope.accountId && !authorization.isInternalStaff)
+    if (!authorization.isInternalStaff)
       throw new ProblemError({
-        type: "https://clockwork.test/problems/account-scope",
-        title: "Account scope required",
+        type: "https://clockwork.test/problems/authorization",
+        title: "Internal staff required",
         status: 403,
-        code: "ACCOUNT_SCOPE_REQUIRED",
+        code: "INTERNAL_STAFF_REQUIRED",
         requestId: request.requestId,
         retryable: false,
       });
@@ -1866,19 +1872,23 @@ export function registerLifecycleRoutes(
   app.openapi(exceptionOpenRoute, async (context) => {
     const body = context.req.valid("json");
     const request = context.get("requestContext");
+    // Opening a case is internal work too, and the caller-supplied account id
+    // is the weaker half of the same pairing: it named the account the case
+    // belongs to, never the caller's right to raise one. Every spec'd
+    // tenant-triggered entry is machine-opened -- `poc_qualification` arrives
+    // from the `open_poc_qualification` workflow effect on the service pool,
+    // not from this route -- and no surface calls this route at all.
     const authorization = requirePermission(
       context,
       queuePermission[body.queue],
-      body.accountId
-        ? ids.account.parse(body.accountId)
-        : unscopedInternalStaff,
+      unscopedInternalStaff,
     );
-    if (!body.accountId && !authorization.isInternalStaff)
+    if (!authorization.isInternalStaff)
       throw new ProblemError({
-        type: "https://clockwork.test/problems/account-scope",
-        title: "Account scope required",
+        type: "https://clockwork.test/problems/authorization",
+        title: "Internal staff required",
         status: 403,
-        code: "ACCOUNT_SCOPE_REQUIRED",
+        code: "INTERNAL_STAFF_REQUIRED",
         requestId: request.requestId,
         retryable: false,
       });

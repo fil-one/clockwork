@@ -2,11 +2,19 @@ import "server-only";
 
 import type { Route } from "next";
 
+import { uuidV7 } from "@clockwork/contracts";
+import {
+  findPreparedOrderForm,
+  withAuthorizedTransaction,
+} from "@clockwork/db";
+
 import { getCommerceSession } from "@/src/auth/session";
+import { getOptionalRuntimeDatabase } from "@/src/db/service";
 import type {
   CommercialRecord,
   CollectionKind,
 } from "@/src/features/customer-partner/commercial/model";
+import type { PreparedOrderFormLookup } from "@/src/features/customer-partner/commercial/prepared-order-form";
 import type { CustomerCollectionRecord } from "@/src/features/customer-partner/customer/collection-state";
 import type { CustomerCollectionKey } from "@/src/features/customer-partner/customer/customer-data";
 import type {
@@ -22,6 +30,7 @@ import {
   type ProjectionOrder,
   type ProjectionRecord,
 } from "./model";
+import { authorizationContext } from "./authorization";
 import {
   configuredProjectionSource,
   projectionInput,
@@ -295,6 +304,51 @@ export async function loadTopPortalRecords(
     pagesRead: 1,
     truncated,
   };
+}
+
+/**
+ * Whether the order form an acceptance in progress is waiting on exists yet.
+ *
+ * This is deliberately *not* a projection read. `orders:prepare_artifact`
+ * writes no order row -- `mutateOrder`'s create branch is the only writer of
+ * `public.orders` and of `orders.order_form_document_id` -- and the orders
+ * channel projects `public.orders`. So the surface that used to look for the
+ * prepared document on the orders channel was waiting for a value that cannot
+ * exist until after the command the document is a precondition for. The
+ * binding between the two passes lives on the artifact request, and that is
+ * what this reads.
+ *
+ * Row-level security is the account scope: `core_commercial_artifact_select`
+ * admits the audience account, and the transaction runs under the caller's own
+ * authorization context. The identifier handed back is only useful to a caller
+ * who can also satisfy `assertCommercialArtifactBinding` on the create pass,
+ * which re-checks the subject, the audience, the document kind and the source
+ * hash inside the accepting transaction.
+ *
+ * `unavailable` rather than a throw when nothing is composed: a deployment
+ * without an authoritative database (or on demo data) cannot render order
+ * forms at all, and reporting that as "still rendering" would leave the reader
+ * polling something that is never coming.
+ */
+export async function loadPreparedOrderForm(
+  orderId: string,
+): Promise<PreparedOrderFormLookup> {
+  if (process.env.CLOCKWORK_EXPERIENCE_ADAPTER?.trim() === "demo")
+    return { status: "unavailable" };
+  const database = getOptionalRuntimeDatabase();
+  const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
+  if (!database || !secret || secret.length < 32)
+    return { status: "unavailable" };
+  const session = await getCommerceSession();
+  const prepared = await withAuthorizedTransaction(
+    database,
+    authorizationContext(session, `prepared-order-form:${uuidV7()}`),
+    { secret },
+    (transaction) => findPreparedOrderForm(transaction, { orderId }),
+  );
+  return prepared
+    ? { status: "stored", documentId: prepared.documentId }
+    : { status: "pending" };
 }
 
 function commercialRecord(

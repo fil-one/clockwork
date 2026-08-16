@@ -12,7 +12,7 @@ import {
   createProductionExperienceOutboxHandlers,
   DurableOutboxDispatcher,
 } from "@clockwork/workflows";
-import { requiredTaxProvider } from "@/src/providers/tax";
+import { composedTaxProvider } from "@/src/providers/tax";
 
 const telemetry = new ClockworkTelemetry(
   new OtlpHttpTelemetrySink({
@@ -53,12 +53,25 @@ export async function drainProductionExperienceOutbox(workerId: string) {
   });
   const clock = () => new Date();
   try {
+    // The third site of the same over-broad gate already corrected in the API
+    // composition and in webhook replay. The tax port reaches exactly one of
+    // these handlers -- `DatabaseAuthoritativePortalCommandExecutor` -- while
+    // the projection materializer and the five `experience.*` acknowledgement
+    // handlers never ask it anything. `requiredTaxProvider()` throws while this
+    // argument list is being built, so an unwired EXT-TAX-01 took down the
+    // whole drain, materialization included, before a single message was
+    // dispatched. That is not hypothetical under the release harness:
+    // `isolatedReleaseEnvironment` deletes every `.env.example` name from the
+    // inherited environment, both tax variables are documented there, and the
+    // `proof` shard re-supplies neither. `composedTaxProvider()` keeps the
+    // refusal on the commands that can write a `tax_minor` and lets the rest of
+    // the drain run.
     const dispatcher = new DurableOutboxDispatcher(
       new DatabaseOutboxDispatcherStore(runtime.db),
       createProductionExperienceOutboxHandlers({
         database: runtime.db,
         authorizationSecret,
-        tax: requiredTaxProvider(),
+        tax: composedTaxProvider(),
         clock,
       }),
       instrumentation,

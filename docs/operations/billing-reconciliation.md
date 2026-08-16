@@ -17,6 +17,34 @@ mapping variances may remain only with an owner and evidence.
 - Use `/internal/reports`, the `three_way_tie_out` report, and the immutable
   reconciliation export. The relevant durable tasks are
   `core.reconciliation.usage.v1` and `core.reconciliation.three-way.v1`.
+- `/internal/billing-reconciliation` is the operator surface for the close. It
+  lists the stored tie-out periods and the open variances, and it is where a
+  variance is classified. Reaching it requires `report:read`; recording a
+  disposition requires `billing:approve` or `system:operate`, re-read at
+  execution time, with recent authentication and a reason of at least 8
+  characters.
+
+## What the operator surface reads
+
+The two tables on that surface are different in kind and the surface says so:
+
+- **Tie-out periods** come from `core_three_way_tie_out`, a real view over a
+  real table that **no application path writes**.
+  `core.reconciliation.three-way.v1` computes its variances in memory, opens an
+  exception case and records the run; it inserts no tie-out row. Rows there were
+  loaded by a fixture or by hand and are shown as stored values, never as the
+  output of a close. A period is reported as untied from its own variance
+  columns, not from its `status` label.
+- **Variances** are the open exception cases in the `reconciliation` queue,
+  which is what both reconciliation tasks actually produce.
+
+Classifying a variance writes the classification, the expected clearing period
+and the evidence reference to the case's audit trail, and a summary to the
+case's `decision_reason`. It **does not close the case**: closing one is a
+signed decision requiring an immutable evidence document and stays on the
+lifecycle command path. An `unexplained` classification is accepted and keeps
+counting as blocking, because a close requires zero unexplained variance and the
+blocker has to be recordable to be tracked.
 
 ## Prepare the period
 

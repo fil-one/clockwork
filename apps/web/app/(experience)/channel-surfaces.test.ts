@@ -282,13 +282,20 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
     // `migrations` is not a member of `projectionChannels` at all, so no
     // projection could back it even if the materializer were changed. The rest
     // are operator tools that read their own sources and claim no channel.
+    //
+    // `/internal/billing-reconciliation` reads `core_three_way_tie_out` and the
+    // `reconciliation` exception queue; `/internal/unhandled-errors` reads the
+    // durable runtime-failure audit events. Neither is a projection channel and
+    // neither could be: the materializer writes no row for either.
     unchanneled: [
       "/internal/assisted",
+      "/internal/billing-reconciliation",
       "/internal/gates",
       "/internal/migrations",
       "/internal/price-books",
       "/internal/recovery",
       "/internal/search",
+      "/internal/unhandled-errors",
       "/internal/webhook-replay",
     ],
     ambiguous: [],

@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   getCommerceSession: vi.fn(),
   list: vi.fn(),
   find: vi.fn(),
+  findPreparedOrderForm: vi.fn(),
+  runtimeDatabase: vi.fn(),
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -15,12 +17,28 @@ vi.mock("./projection-source", () => ({
   configuredProjectionSource: () => ({ list: mocks.list, find: mocks.find }),
   projectionInput: (input: Record<string, unknown>) => input,
 }));
+vi.mock("@/src/db/service", () => ({
+  getOptionalRuntimeDatabase: mocks.runtimeDatabase,
+}));
+vi.mock("@clockwork/db", () => ({
+  findPreparedOrderForm: mocks.findPreparedOrderForm,
+  // The transaction wrapper is the authorization boundary, not the thing under
+  // test here; it is exercised against a live database by the repositories
+  // that use it. What matters at this level is that the read runs *inside* it.
+  withAuthorizedTransaction: (
+    _database: unknown,
+    _context: unknown,
+    _options: unknown,
+    operation: (transaction: unknown) => unknown,
+  ) => operation({ authorized: true }),
+}));
 
 import {
   loadCommercialRecord,
   loadCustomerCollectionRecords,
   loadPartnerRecords,
   loadPortalRecords,
+  loadPreparedOrderForm,
   loadTopPortalRecords,
   recordRoute,
   MAX_PROJECTION_PAGES,
@@ -568,4 +586,75 @@ describe("top-N projection reads", () => {
       expect(mocks.list).not.toHaveBeenCalled();
     },
   );
+});
+
+/**
+ * The read that carries the order-acceptance bridge between its two passes.
+ *
+ * It is not a projection read and must not become one: `orders:prepare_artifact`
+ * writes no order row, and `orders.order_form_document_id` -- the only value the
+ * orders channel could ever answer with -- is written by the create branch this
+ * document is the precondition for.
+ */
+describe("prepared order form", () => {
+  const orderId = "70000000-0000-4000-8000-000000000001";
+  const documentId = "80000000-0000-4000-8000-000000000001";
+
+  beforeEach(() => {
+    process.env.AUTHORIZATION_CONTEXT_SECRET = "x".repeat(48);
+    delete process.env.CLOCKWORK_EXPERIENCE_ADAPTER;
+    mocks.runtimeDatabase.mockReturnValue({ db: {} });
+  });
+
+  it("answers with the document the renderer stored", async () => {
+    mocks.findPreparedOrderForm.mockResolvedValue({ documentId, orderId });
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "stored",
+      documentId,
+    });
+    expect(mocks.findPreparedOrderForm).toHaveBeenCalledWith(
+      { authorized: true },
+      { orderId },
+    );
+  });
+
+  it("answers pending while no stored request exists", async () => {
+    mocks.findPreparedOrderForm.mockResolvedValue(null);
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "pending",
+    });
+  });
+
+  /**
+   * Reporting "still rendering" here would leave the reader polling something
+   * no part of this deployment is producing.
+   */
+  it("says it cannot answer when no authoritative database is composed", async () => {
+    mocks.runtimeDatabase.mockReturnValue(undefined);
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
+  });
+
+  it("says it cannot answer on demo data", async () => {
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
+  });
+
+  it("says it cannot answer without an authorization secret to sign with", async () => {
+    process.env.AUTHORIZATION_CONTEXT_SECRET = "too-short";
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
+  });
 });

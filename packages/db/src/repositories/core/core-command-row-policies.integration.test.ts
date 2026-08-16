@@ -11,9 +11,10 @@ import {
   auditEvents,
   outboxMessages,
   payments,
+  quotes,
   reportExports,
 } from "../../schema";
-import { collectionCases } from "../../schema/core/finance";
+import { collectionCases, quoteSnapshots } from "../../schema/core/finance";
 import { commercialArtifactRequests } from "../../schema/core/commercial-artifacts";
 import {
   withAuthorizedTransaction,
@@ -495,8 +496,10 @@ describe.sequential("core commands the row policies used to refuse", () => {
    * was then refused by `core_commercial_artifact_select` on its own
    * `returning`, because the audience is the END CLIENT and the partner does
    * not hold that account. 42501, after the row was accepted -- the same split
-   * shape that broke partner quote creation. `quotes:issue` on this quote is
-   * still blocked further down and is not asserted here; see the migration.
+   * shape that broke partner quote creation.
+   *
+   * The step this note said was "still blocked further down" is the test below
+   * it, and it is now asserted rather than deferred.
    */
   it("prepares the end-client artifact for a distributor quote as the partner", async () => {
     const quoteId = randomUUID();
@@ -570,6 +573,189 @@ describe.sequential("core commands the row policies used to refuse", () => {
           .where(eq(commercialArtifactRequests.id, request.requestId)),
     );
     expect(persisted).toHaveLength(1);
+  });
+
+  /**
+   * `quotes:issue` on a distributor quote, run by the partner that authored it.
+   *
+   * REPORTED as a split write: `quotes` moving while `core_quote_snapshots`
+   * failed 42501 on `core_quote_is_visible`'s third arm. Driven, it is neither.
+   * Both tables answer through `core_can_access_quote`, and the partner reaches
+   * both through its SECOND arm, so they cannot disagree. What actually
+   * happened is measured below and in `loadCommercialArtifactBindings`
+   * (database-finance.ts): the command died COMMERCIAL_ARTIFACT_BINDING_INVALID
+   * before writing anything at all -- quote left `draft` at row version 1, no
+   * snapshot row -- because `assertCommercialArtifactBinding` read its evidence
+   * on the TENANT pool, where `documents_scope` (000001_foundation.sql:1173) is
+   * `app_has_account(account_id)` and the end-client artifact's document row
+   * belongs to the END CLIENT.
+   *
+   * So the defect was not a split write but a blocked one, which in this system
+   * is the same severity: resale and distributor issuance -- and with it every
+   * resale order, since an order can only be cut from an ISSUED quote -- was
+   * dead for the only caller authorised to perform it. The evidence is now read
+   * on the internal pool and judged against a claim derived inside the
+   * transaction, so this test asserts the whole channel end to end: issue, then
+   * accept, as the partner.
+   */
+  it("issues and accepts a distributor quote as the partner", async () => {
+    const quoteId = randomUUID();
+    const asPartner = {
+      resource: "quotes" as const,
+      id: quoteId,
+      accountId: endClientAccountId,
+      actor: { kind: "user" as const, id: distributorUserId },
+      authorization: tenant(
+        distributorUserId,
+        ["partner_admin"],
+        [distributorAccountId],
+      ),
+    };
+    await repository.mutate({
+      ...asPartner,
+      action: "create",
+      payload: {
+        priceBookId: usdPriceBookId,
+        seriesId: randomUUID(),
+        route: "distributor",
+        endClientAccountId,
+        partnerAccountId: distributorAccountId,
+        partnerTier: "distributor",
+        partnerResaleTotal: { currency: "USD", minor: "180000" },
+        lines: [
+          {
+            lineId: randomUUID(),
+            sku: "LOCKED-STORAGE-TB",
+            region: "us-east-2",
+            quantity: "1",
+            termMonths: 12,
+          },
+        ],
+        expiresAt: "2026-12-31T23:59:59.000Z",
+      },
+      requestId: key("issued-distributor-quote"),
+      idempotencyKey: key("issued-distributor-quote"),
+      occurredAt,
+    });
+    // Two artifacts, two audiences. The end client's is the one whose document
+    // row the partner cannot see; the partner's own is visible either way, so
+    // only asserting the second would have proven nothing.
+    const renderedDocumentId = await persistArtifact(
+      await repository.mutate({
+        ...asPartner,
+        action: "prepare_artifact",
+        expectedVersion: 1,
+        payload: {
+          audience: "end_client",
+          issuedAt: occurredAt,
+          retainUntil: "2033-07-31T16:00:00.000Z",
+        },
+        requestId: key("issued-end-client-artifact"),
+        idempotencyKey: key("issued-end-client-artifact"),
+        occurredAt,
+      }),
+      "issued-end-client",
+    );
+    const partnerDocumentId = await persistArtifact(
+      await repository.mutate({
+        ...asPartner,
+        action: "prepare_artifact",
+        expectedVersion: 1,
+        payload: {
+          audience: "partner",
+          issuedAt: occurredAt,
+          retainUntil: "2033-07-31T16:00:00.000Z",
+        },
+        requestId: key("issued-partner-artifact"),
+        idempotencyKey: key("issued-partner-artifact"),
+        occurredAt,
+      }),
+      "issued-partner",
+    );
+    await repository.mutate({
+      ...asPartner,
+      action: "issue",
+      expectedVersion: 1,
+      payload: {
+        artifactIssuedAt: occurredAt,
+        renderedDocumentId,
+        partnerDocumentId,
+      },
+      requestId: key("issued-distributor-issue"),
+      idempotencyKey: key("issued-distributor-issue"),
+      occurredAt,
+    });
+    // Both halves of the reported split, read on the internal pool so the
+    // assertion is about what was WRITTEN and not about what is visible.
+    const issued = await withInternalTransaction(
+      db,
+      key("issued-distributor-read"),
+      async (tx) => {
+        const [quote, snapshot] = await Promise.all([
+          tx.query.quotes.findFirst({ where: eq(quotes.id, quoteId) }),
+          tx.query.quoteSnapshots.findFirst({
+            where: eq(quoteSnapshots.quoteId, quoteId),
+          }),
+        ]);
+        return { quote, snapshot };
+      },
+    );
+    expect(issued.quote).toMatchObject({
+      status: "issued",
+      renderedDocumentId,
+      partnerDocumentId,
+    });
+    expect(issued.snapshot?.quoteId).toBe(quoteId);
+
+    // And the step issuance exists to enable. `loadOrderAcceptanceContext`
+    // makes the PARTNER the accepting authority on a resale/distributor route,
+    // so this is the same caller again, and the order form is a third artifact
+    // whose audience is not the partner.
+    const orderId = randomUUID();
+    const orderCommand = {
+      quoteId,
+      signerUserId: distributorUserId,
+      authorityTitle: "Chief Demo Officer",
+      authorityAttested: true as const,
+      serviceStartsOn: "2026-09-01",
+      serviceEndsOn: "2027-08-31",
+      noticeOn: "2027-07-01",
+      acceptedAt: "2026-08-01T00:00:00.000Z",
+      orderLineIds: [randomUUID()],
+    };
+    const orderFormDocumentId = await persistArtifact(
+      await repository.mutate({
+        ...asPartner,
+        resource: "orders" as const,
+        id: orderId,
+        action: "prepare_artifact",
+        payload: { ...orderCommand, retainUntil: "2033-08-01T00:00:00.000Z" },
+        requestId: key("issued-order-artifact"),
+        idempotencyKey: key("issued-order-artifact"),
+        occurredAt: "2026-08-01T00:00:00.000Z",
+      }),
+      "issued-order-form",
+    );
+    const accepted = await repository.mutate({
+      ...asPartner,
+      resource: "orders" as const,
+      id: orderId,
+      action: "create",
+      payload: { ...orderCommand, orderFormDocumentId },
+      requestId: key("issued-order-create"),
+      idempotencyKey: key("issued-order-create"),
+      occurredAt: "2026-08-01T00:00:00.000Z",
+    });
+    // Identity and provenance only. Whether acceptance is auto-approved or
+    // routed to review is `core_reserve_order_acceptance`'s decision and
+    // depends on persisted credit state, so asserting a status here would make
+    // this test a hostage to a policy it is not about.
+    expect(accepted.record.data).toMatchObject({
+      id: orderId,
+      quoteId,
+      accountId: endClientAccountId,
+      partnerAccountId: distributorAccountId,
+    });
   });
 
   /**

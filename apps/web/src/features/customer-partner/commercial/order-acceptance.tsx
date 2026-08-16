@@ -16,6 +16,7 @@ import {
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import type { LookupPreparedOrderForm } from "./prepared-order-form";
 import { orderReviewSummary } from "./workflow-model";
 
 const reviewLabels = {
@@ -30,14 +31,47 @@ const ARTIFACT_RETENTION_YEARS = 7;
 
 /**
  * Acceptance is two server commands, and the second one's only precondition --
- * the rendered order form -- is computed server-side and arrives as a prop.
+ * the rendered order form -- is asked for rather than rendered into a prop.
+ *
+ * It used to arrive as a prop the page computed from the orders channel. It
+ * cannot come from there: `orders:prepare_artifact` writes no order row, and
+ * `orders.order_form_document_id` is written only by the create branch this
+ * document is the precondition *for*. So the prop was null for ever and the
+ * bridge polled a value the server could not produce. The question is now put
+ * to a server action that reads the artifact request, which is where the
+ * document and the order it was prepared for are actually bound together.
  *
  * The phase, not the presence of a message, is what says whether a further
- * pass is available. `router.refresh()` re-renders the server component but
- * deliberately preserves this client component's state, so a control disabled
- * on `Boolean(message)` stays disabled through the very refresh that is
- * supposed to release it -- which is how the customer ended up having to leave
- * the page and re-enter every field.
+ * pass is available. A control disabled on `Boolean(message)` stays disabled
+ * through the very event that is supposed to release it -- which is how the
+ * customer ended up having to leave the page and re-enter every field.
+ *
+ * THE FIRST PASS ALSO HAD TO BE MADE TO SUCCEED. Until this change the payload
+ * below carried a service start and no service end. `mutateOrder` calls
+ * `orderArtifactDefinition` on *both* its branches, and that function's first
+ * statement (packages/db/src/repositories/core/artifact-definitions.ts) is
+ * `if (!input.order.serviceEndsOn) throw COMMERCIAL_ARTIFACT_ORDER_TERM_REQUIRED`.
+ * `acceptOrder` (packages/domain/src/core/orders/index.ts) sets that field only
+ * from `coTerminateOn ?? serviceEndsOn`, and this form collected neither, so no
+ * order form was ever rendered for anything typed here and there was never a
+ * document for the second pass to find. Measured rather than argued: the old
+ * payload was replayed against the local authoritative database through
+ * `DatabaseCoreFinanceRepository.mutate` and refused with
+ * `COMMERCIAL_ARTIFACT_ORDER_TERM_REQUIRED`; the same payload with a service
+ * end prepared the form, and a create pass quoting the stored document then
+ * wrote an order whose `order_form_document_id` is that document and whose
+ * `governing_agreement_version` matches the `governingAgreementReference` the
+ * document was rendered from. Every earlier test of this surface stubbed
+ * `sendCoreCommand`, which is why earlier attempts at this bridge did not
+ * reach it.
+ *
+ * §4 of the spec puts the term on the order rather than the quote -- "Carries
+ * the service term clock: start, end (may be co-terminated to a parent
+ * agreement anniversary), notice date" -- and nothing this page can read
+ * carries it: the customer quote projection (`authoritative-state.ts`, the
+ * `quote:` query) publishes revision, status, currency, total, expiry and
+ * margin result, and no line terms at all. So the end is asked for rather than
+ * derived; deriving it would mean inventing a term the page has no source for.
  */
 type AcceptancePhase =
   /** A pass is available: prepare if no order form yet, otherwise create. */
@@ -48,6 +82,12 @@ type AcceptancePhase =
   | "awaiting_form"
   /** Polling gave up. Nothing was created; the recheck affordance is offered. */
   | "form_stalled"
+  /**
+   * The server cannot answer at all -- no authoritative database, demo data,
+   * or a session that has lost the permission. Distinct from `form_stalled`,
+   * because nothing is in flight and waiting longer changes nothing.
+   */
+  | "form_unavailable"
   /** The order exists. There is no third pass. */
   | "created";
 
@@ -55,8 +95,8 @@ type AcceptancePhase =
  * The same bounded discipline `awaitReceipt` uses for projection actions:
  * a fixed number of attempts, success only on the terminal condition, and a
  * recheck affordance rather than a spinner that never resolves. What is polled
- * differs -- a server-rendered prop here, an action receipt there -- so the
- * loop is not shared; the rules are.
+ * differs -- a server action here, an action receipt there -- so the loop is
+ * not shared; the rules are.
  */
 const ORDER_FORM_POLL_ATTEMPTS = 15;
 const ORDER_FORM_POLL_INTERVAL_MS = 1_000;
@@ -86,10 +126,10 @@ export interface GoverningAgreement {
  * under any other order identifier matches no row and is refused with
  * `COMMERCIAL_ARTIFACT_BINDING_INVALID`.
  *
- * Passing the document identifier alone -- which is what shipped -- makes that
- * refusal reachable and unrecoverable. See `preparedFor` below.
+ * Holding the document identifier alone makes that refusal reachable and
+ * unrecoverable. See `preparedFor` below.
  */
-export interface PreparedOrderForm {
+interface PreparedOrderForm {
   documentId: string;
   orderId: string;
 }
@@ -116,9 +156,10 @@ function retainUntil(acceptedAt: string): string {
 function boundFields(
   poNumber: string,
   serviceStart: string,
+  serviceEnd: string,
   authorityTitle: string,
 ): string {
-  return JSON.stringify([poNumber, serviceStart, authorityTitle]);
+  return JSON.stringify([poNumber, serviceStart, serviceEnd, authorityTitle]);
 }
 
 export function OrderAcceptance({
@@ -126,15 +167,20 @@ export function OrderAcceptance({
   signerUserId,
   quote,
   agreement,
-  orderForm,
+  lookupOrderForm,
   partialRead = false,
 }: {
   account: { id: string; name: string };
   signerUserId: string;
   quote: AcceptableQuote | null;
   agreement: GoverningAgreement | null;
-  /** The rendered order form this page found, if the server has one. */
-  orderForm: PreparedOrderForm | null;
+  /**
+   * Asks the server whether the order form this session prepared has been
+   * stored yet. Supplied by the route as a server action, and injected rather
+   * than imported so this component stays renderable -- and testable -- with
+   * no server boundary in the way.
+   */
+  lookupOrderForm: LookupPreparedOrderForm;
   /**
    * Set when a channel read stopped at the page ceiling. The quote this page
    * selected and the agreement it bound were then chosen from a prefix, and
@@ -145,8 +191,21 @@ export function OrderAcceptance({
 }) {
   const [poNumber, setPoNumber] = useState("");
   const [serviceStart, setServiceStart] = useState("");
+  /**
+   * The end of the committed service term. Bound, hashed and required: see the
+   * `COMMERCIAL_ARTIFACT_ORDER_TERM_REQUIRED` note at the top of this file.
+   */
+  const [serviceEnd, setServiceEnd] = useState("");
   const [authorityTitle, setAuthorityTitle] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  /**
+   * The stored order form this session's prepare pass produced.
+   *
+   * Client state, because the only identifier it can be found by is minted
+   * here: nothing the server renders knows which order this reader is part-way
+   * through accepting.
+   */
+  const [orderForm, setOrderForm] = useState<PreparedOrderForm | null>(null);
   const [phase, setPhase] = useState<AcceptancePhase>("ready");
   const [createdOrderId, setCreatedOrderId] = useState("");
   const [error, setError] = useState("");
@@ -178,10 +237,21 @@ export function OrderAcceptance({
    * Nothing typed into a freshly loaded form reproduces them.
    */
   const preparedRef = useRef<{ orderId: string; fields: string } | null>(null);
-  /** The prop, readable from inside the poll loop's closure. */
-  const orderFormRef = useRef(orderForm);
   /** Supersedes an in-flight poll when the reader rechecks or resubmits. */
   const pollRef = useRef(0);
+  /**
+   * Supersedes an in-flight *command* when a bound entry changes while it is
+   * still on the wire.
+   *
+   * `resetSubmission` runs on every keystroke in a bound field, including the
+   * keystrokes made during the second or two a prepare pass takes. It nulls
+   * `orderIdRef`, so the code that resumes after the await used to record a
+   * `preparedRef` with a null order identifier and then poll for it -- which
+   * lands the surface in `form_unavailable` behind a recheck control that can
+   * only reproduce it. The token says whose submission the resumed code belongs
+   * to, so a superseded one records nothing and polls for nothing.
+   */
+  const submissionRef = useRef(0);
 
   /**
    * Whether the create pass is the pass that is available.
@@ -197,23 +267,9 @@ export function OrderAcceptance({
     preparedRef.current !== null &&
     preparedRef.current.orderId === orderForm.orderId &&
     preparedRef.current.fields ===
-      boundFields(poNumber, serviceStart, authorityTitle)
+      boundFields(poNumber, serviceStart, serviceEnd, authorityTitle)
       ? orderForm
       : null;
-
-  // Only *this session's* form ends the wait. A form the account already held
-  // for some other order would otherwise release the control into a create
-  // pass bound to an order this reader is not accepting.
-  useEffect(() => {
-    orderFormRef.current = orderForm;
-    if (orderForm === null) return;
-    if (orderForm.orderId !== preparedRef.current?.orderId) return;
-    setPhase((current) =>
-      current === "awaiting_form" || current === "form_stalled"
-        ? "ready"
-        : current,
-    );
-  }, [orderForm]);
 
   /** Abandons a poll left running when the reader navigates away mid-wait. */
   useEffect(
@@ -224,16 +280,17 @@ export function OrderAcceptance({
   );
 
   /**
-   * Armed once a purchase-order number, a service start, or a signing title
-   * has been entered, or the commitment box has been ticked, and the order has
-   * not been created.
+   * Armed once a purchase-order number, either end of the service term, or a
+   * signing title has been entered, or the commitment box has been ticked, and
+   * the order has not been created.
    *
    * Every field on this form starts empty, so there is no default to exclude.
    * `createdOrderId` disarms, and it is set from the server's response, so the
    * prompt never stands between someone and the order they just placed.
    */
   const unsaved =
-    (anyEntered(poNumber, serviceStart, authorityTitle) || confirmed) &&
+    (anyEntered(poNumber, serviceStart, serviceEnd, authorityTitle) ||
+      confirmed) &&
     !createdOrderId;
   useUnsavedChangesWarning(unsaved);
 
@@ -268,6 +325,7 @@ export function OrderAcceptance({
     setValidationError(null);
     if (phase === "created") return;
     pollRef.current += 1;
+    submissionRef.current += 1;
     setPhase("ready");
     prepareKeyRef.current = null;
     createKeyRef.current = null;
@@ -278,28 +336,42 @@ export function OrderAcceptance({
     // would let the create pass fire against a document whose hash no longer
     // matches the command -- refused, and refused with nothing left to retry.
     preparedRef.current = null;
+    setOrderForm(null);
   };
 
   /**
-   * Bounded polling for the order form. Success is only the terminal
-   * condition -- the identifier actually present -- never "the loop ended".
+   * Bounded polling for the order form. Success is only the terminal condition
+   * -- the server answering `stored` for the order this session prepared --
+   * never "the loop ended".
+   *
+   * A thrown lookup is not an answer: a dropped request during a deploy would
+   * otherwise end the wait as though the form were never coming. The attempt
+   * is spent and the loop continues, so a transient failure costs one attempt
+   * rather than the whole acceptance.
    */
-  const awaitOrderForm = async () => {
+  const awaitOrderForm = async (orderId: string) => {
     const token = pollRef.current + 1;
     pollRef.current = token;
     setPhase("awaiting_form");
     for (let attempt = 0; attempt < ORDER_FORM_POLL_ATTEMPTS; attempt += 1) {
-      router.refresh();
       await new Promise((resolve) =>
         setTimeout(resolve, ORDER_FORM_POLL_INTERVAL_MS),
       );
       if (pollRef.current !== token) return;
-      // Terminal condition only, and only for the order this session prepared.
-      if (
-        orderFormRef.current !== null &&
-        orderFormRef.current.orderId === preparedRef.current?.orderId
-      ) {
+      const answer = await lookupOrderForm(orderId).catch(() => null);
+      if (pollRef.current !== token) return;
+      if (!answer) continue;
+      if (answer.status === "stored") {
+        // Only the order this session prepared ends the wait. A document
+        // bound to any other order would release the control into a create
+        // pass the server refuses.
+        if (preparedRef.current?.orderId !== orderId) return;
+        setOrderForm({ documentId: answer.documentId, orderId });
         setPhase("ready");
+        return;
+      }
+      if (answer.status === "unavailable" || answer.status === "forbidden") {
+        setPhase("form_unavailable");
         return;
       }
     }
@@ -316,17 +388,31 @@ export function OrderAcceptance({
             id: "service-start",
             message: t("orders.accept.validation.serviceStart"),
           }
-        : !authorityTitle.trim()
+        : !serviceEnd
           ? {
-              id: "order-authority-title",
-              message: t("orders.accept.validation.authority"),
+              id: "service-end",
+              message: "Choose the service end date.",
             }
-          : !confirmed
+          : // `acceptOrder` refuses `end < serviceStartsOn` outright. Saying so
+            // here costs one comparison and saves a round trip that comes back
+            // as a raw server refusal.
+            serviceEnd < serviceStart
             ? {
-                id: "order-confirmation",
-                message: t("orders.accept.validation.confirmation"),
+                id: "service-end",
+                message:
+                  "Choose a service end on or after the service start date.",
               }
-            : undefined;
+            : !authorityTitle.trim()
+              ? {
+                  id: "order-authority-title",
+                  message: t("orders.accept.validation.authority"),
+                }
+              : !confirmed
+                ? {
+                    id: "order-confirmation",
+                    message: t("orders.accept.validation.confirmation"),
+                  }
+                : undefined;
     if (invalid) {
       setValidationError(invalid);
       document.getElementById(invalid.id)?.focus();
@@ -336,45 +422,89 @@ export function OrderAcceptance({
     setPhase("submitting");
     setError("");
     const creating = preparedFor !== null;
+    const submission = submissionRef.current;
     try {
       // The create pass runs under the identifier the document was bound to,
       // never a fresh one. `preparedFor` has already established they are the
       // same value; assigning it here is what keeps them the same after a
       // reset cleared the ref.
-      orderIdRef.current = creating
+      const orderId = creating
         ? preparedFor.orderId
         : (orderIdRef.current ?? uuidV7());
-      acceptedAtRef.current ??= new Date().toISOString();
+      orderIdRef.current = orderId;
+      /**
+       * One acceptance instant for both passes, because the order form is
+       * hashed over it: the stored request's `signer.acceptedAt` is this value,
+       * and the create pass re-derives the same definition and refuses a
+       * different hash. Minting a fresh one on the create pass would invalidate
+       * the document this pass exists to quote.
+       *
+       * KNOWN, AND NOT THIS FILE'S TO FIX: `mutateOrder`'s create branch
+       * (packages/db/src/repositories/core/database-finance.ts) additionally
+       * requires `Date.parse(command.acceptedAt) === Date.parse(input.occurredAt)`,
+       * and for any HTTP caller `input.occurredAt` is the API's own receive
+       * instant (`requestContext.receivedAt`, set by `new Date()` in
+       * packages/api/src/middleware/request-context.ts). No browser can produce
+       * a future server millisecond, so `orders:create` over HTTP is refused
+       * whatever this surface sends. Observed, not inferred: replaying the two
+       * passes against the local authoritative database with the create pass's
+       * `occurredAt` one second after `acceptedAt` -- the surface's own
+       * sequence, since the poll sleeps before its first lookup -- fails with
+       * "Order acceptance time must be current server evidence for an unexpired
+       * quote", and the identical pair with the two instants equal writes the
+       * order. The fix belongs in the finance repository, not here: either
+       * accept `command.acceptedAt` for `create` as `prepare_artifact` already
+       * does and bound it to a recency window, or build the create branch's
+       * artifact definition from `command.acceptedAt` so the hashes agree
+       * without the equality.
+       */
+      const acceptedAt = acceptedAtRef.current ?? new Date().toISOString();
+      acceptedAtRef.current = acceptedAt;
       orderLineIdsRef.current ??= [uuidV7()];
       const keyRef = creating ? createKeyRef : prepareKeyRef;
-      keyRef.current ??= crypto.randomUUID();
+      const idempotencyKey = keyRef.current ?? crypto.randomUUID();
+      keyRef.current = idempotencyKey;
       const command = {
         quoteId: quote.id,
         signerUserId,
         authorityTitle,
         authorityAttested: true,
         poNumber,
-        acceptedAt: acceptedAtRef.current,
+        acceptedAt,
         serviceStartsOn: serviceStart,
+        // Without this the order carries no service end, and
+        // `orderArtifactDefinition` refuses to render the order form at all --
+        // which is why the first pass never produced a document to bridge to.
+        serviceEndsOn: serviceEnd,
         orderLineIds: orderLineIdsRef.current,
       };
       await sendCoreCommand(
         {
           resource: "orders",
-          id: orderIdRef.current,
+          id: orderId,
           accountId: account.id,
           // The order form is bound evidence: acceptance can only be recorded
           // once it exists, so a first pass asks the server to render it.
           action: creating ? "create" : "prepare_artifact",
           payload: creating
             ? { ...command, orderFormDocumentId: preparedFor.documentId }
-            : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
+            : { ...command, retainUntil: retainUntil(acceptedAt) },
         },
-        { idempotencyKey: keyRef.current },
+        { idempotencyKey },
       );
+      // A bound entry changed while this command was on the wire. The command
+      // itself stands -- the server has it either way -- but nothing it named
+      // describes what is on screen now, so it records nothing and starts no
+      // wait. The reader's next submission is a fresh prepare.
+      if (submissionRef.current !== submission) return;
       if (creating) {
-        setCreatedOrderId(orderIdRef.current);
+        setCreatedOrderId(orderId);
         setPhase("created");
+        // The order and its commitment now exist on the server. Every other
+        // surface in this shell reads them from a cache this request did not
+        // invalidate, so the orders collection would still show the state
+        // before the acceptance.
+        router.refresh();
         return;
       }
       // The first pass only asked for the document, and it named the order and
@@ -382,12 +512,12 @@ export function OrderAcceptance({
       // the wait starts: they are what says whether the form that turns up is
       // the one this acceptance may be completed with.
       preparedRef.current = {
-        orderId: orderIdRef.current,
-        fields: boundFields(poNumber, serviceStart, authorityTitle),
+        orderId,
+        fields: boundFields(poNumber, serviceStart, serviceEnd, authorityTitle),
       };
       // Bridge to the second pass here rather than making the reader navigate
       // away and re-key the form.
-      await awaitOrderForm();
+      await awaitOrderForm(orderId);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : t("orders.accept.failed"),
@@ -407,9 +537,51 @@ export function OrderAcceptance({
       ? t("orders.accept.created")
       : phase === "awaiting_form"
         ? t("orders.accept.prepared")
-        : phase === "form_stalled"
-          ? "The order form has not been rendered yet. Nothing has been created and your entries are held here — check again, or come back to this page later to finish."
-          : "";
+        : // Both waiting messages say only what this run verified: no order row
+          // is written until the create pass, the entries are component state,
+          // and the order form is hashed over the acceptance instant this
+          // session minted -- so a later visit cannot resume this attempt, it
+          // can only start another one. The copy this replaced told the reader
+          // to "come back to this page later to finish", which was never true.
+          phase === "form_stalled"
+          ? "The order form has not been rendered yet. Nothing has been created and your entries are held on this page — check again. Leaving this page ends this attempt: no order exists until it is completed here, and a later visit starts a new one."
+          : phase === "form_unavailable"
+            ? "This workspace cannot confirm whether the order form was rendered. Nothing has been created and your entries are held on this page — check again. Leaving this page ends this attempt: no order exists until it is completed here, and a later visit starts a new one."
+            : "";
+  /**
+   * Both waiting states offer the recheck, and neither is a failure of the
+   * acceptance: nothing was created, and the entries are still on screen. The
+   * control exists so the reader is never left with a disabled button and no
+   * way to ask again.
+   *
+   * It is offered only while there is a prepared order to ask about. A control
+   * whose handler finds nothing to do is a control that does nothing when it is
+   * pressed.
+   */
+  const awaitingOrderId = preparedRef.current?.orderId ?? null;
+  const rechecking =
+    (phase === "form_stalled" || phase === "form_unavailable") &&
+    awaitingOrderId !== null;
+  /**
+   * What the reader is told to review, in the order the form asks for it.
+   *
+   * `orderReviewSummary` has no service-end field and it is shared with the
+   * workflow model's tests, so the term's other half is inserted here rather
+   * than by widening a model this surface is only one caller of. Both halves
+   * are hashed into the order form, so the panel that says "review before
+   * accepting" has to show both.
+   */
+  const reviewRows: readonly (readonly [string, string])[] = summary
+    ? Object.entries(summary).flatMap(([key, value]) => {
+        const row = [
+          reviewLabels[key as keyof typeof reviewLabels],
+          value,
+        ] as const;
+        return key === "serviceStart"
+          ? [row, ["Service end", serviceEnd || "Not selected"] as const]
+          : [row];
+      })
+    : [];
 
   return (
     <main
@@ -534,6 +706,40 @@ export function OrderAcceptance({
                       value={serviceStart}
                     />
                   </div>
+                  <div className={styles.field}>
+                    <label htmlFor="service-end">Service end</label>
+                    <input
+                      aria-describedby={
+                        validationError?.id === "service-end"
+                          ? "order-validation"
+                          : "service-end-note"
+                      }
+                      aria-invalid={
+                        validationError?.id === "service-end" || undefined
+                      }
+                      id="service-end"
+                      min={serviceStart || undefined}
+                      onChange={(event) => {
+                        setServiceEnd(event.target.value);
+                        resetSubmission();
+                      }}
+                      required
+                      type="date"
+                      value={serviceEnd}
+                    />
+                    {/*
+                      Verified in this run, not assumed: the stored artifact
+                      request for a prepared order form carries
+                      `servicePeriod: { startDate, endDate }` in the definition
+                      its source hash is taken over, and the create pass
+                      re-derives that hash and refuses a mismatch.
+                    */}
+                    <p className={styles.description} id="service-end-note">
+                      The committed term this order runs to. It is rendered onto
+                      the order form and covered by the evidence hash that binds
+                      the form to this acceptance.
+                    </p>
+                  </div>
                   <div className={`${styles.field} ${styles.spanTwo}`}>
                     <label htmlFor="order-authority-title">
                       Authority title
@@ -583,11 +789,9 @@ export function OrderAcceptance({
                 <h2 id="order-summary-title">Review before accepting</h2>
               </div>
               <ul className={styles.reviewList}>
-                {Object.entries(summary ?? {}).map(([label, value]) => (
+                {reviewRows.map(([label, value]) => (
                   <li key={label}>
-                    <span>
-                      {reviewLabels[label as keyof typeof reviewLabels]}
-                    </span>
+                    <span>{label}</span>
                     <strong>{value}</strong>
                   </li>
                 ))}
@@ -615,16 +819,26 @@ export function OrderAcceptance({
               </label>
               {statusMessage ? (
                 <p className={styles.successMessage} role="status">
-                  {statusMessage}{" "}
+                  {statusMessage}
+                  {/*
+                    The link is offered only once there is something at the
+                    other end of it. Before the create pass runs there is no
+                    order row anywhere -- `orders:prepare_artifact` writes only
+                    a `core_commercial_artifact_requests` row, and the orders
+                    channel projects `public.orders` -- so "Track this
+                    acceptance in orders" pointed the reader at a ledger that
+                    could not show this acceptance, in exactly the three states
+                    (waiting, stalled, unanswerable) where they most wanted it
+                    to.
+                  */}
                   {createdOrderId ? (
-                    <Link href={`/orders/order-${createdOrderId}`}>
-                      {t("orders.accept.createdLink")}
-                    </Link>
-                  ) : (
-                    <Link href="/orders">
-                      {t("orders.accept.preparedLink")}
-                    </Link>
-                  )}
+                    <>
+                      {" "}
+                      <Link href={`/orders/order-${createdOrderId}`}>
+                        {t("orders.accept.createdLink")}
+                      </Link>
+                    </>
+                  ) : null}
                 </p>
               ) : null}
               {error ? (
@@ -632,10 +846,10 @@ export function OrderAcceptance({
                   {error}
                 </p>
               ) : null}
-              {phase === "form_stalled" ? (
+              {rechecking && awaitingOrderId ? (
                 <button
                   className={styles.secondary}
-                  onClick={() => void awaitOrderForm()}
+                  onClick={() => void awaitOrderForm(awaitingOrderId)}
                   type="button"
                 >
                   Check for the order form again

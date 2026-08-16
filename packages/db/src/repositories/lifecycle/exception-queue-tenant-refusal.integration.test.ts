@@ -18,11 +18,11 @@ import { DatabaseLifecycleCommandRepository } from "./command-repository";
 /**
  * The exception queue is internal work. This file PINS THAT CONTRACT.
  *
- * `command-repository.ts:750` says `open_exception` and `decide_exception`
- * "are deliberately account-scoped tenant flows and must keep falling
- * through". That comment describes an intention nobody implemented, and it is
- * two days old -- it arrived as an aside in the same commit that gave
- * `start_migration` its staff refusal. It is not authority:
+ * A comment at `command-repository.ts:750` used to say `open_exception` and
+ * `decide_exception` "are deliberately account-scoped tenant flows and must
+ * keep falling through". That comment described an intention nobody
+ * implemented, and it was two days old -- it arrived as an aside in the same
+ * commit that gave `start_migration` its staff refusal. It was not authority:
  *
  *   * `exception_cases_scope` has carried `with check (app_is_internal())`
  *     since the FOUNDATION migration, so the tenant write path has never
@@ -48,11 +48,16 @@ import { DatabaseLifecycleCommandRepository } from "./command-repository";
  * staff and MFA-enrolled and exclude the requester, and `decideException`
  * already refuses non-owners and self-approval.
  *
- * So the refusal below is the CURRENT CONTRACT, and the open finding is that
- * the ROUTE should say so explicitly -- `open_exception` and
- * `decide_exception` want the two-layer staff treatment `start_migration` got
- * in that same commit, and the route should stop accepting a tenant-supplied
- * `accountId` as an alternative to staff status.
+ * The refusal below is the CURRENT CONTRACT, and it is now SAID rather than
+ * merely happening. The comment is deleted; `open_exception` and
+ * `decide_exception` are classified `internalStaffOnlyCommand` and asserted
+ * twice -- once in the command router before a transaction of either kind
+ * opens, once inside the method itself -- and
+ * `POST /v1/lifecycle/exceptions` and
+ * `POST /v1/lifecycle/exceptions/{caseId}/decisions` no longer accept a
+ * caller-supplied `accountId` in place of staff status. The database policy
+ * still stands underneath all of it; it is simply no longer the first thing a
+ * tenant meets.
  *
  * If the product decision ever goes the other way, this repository already
  * names the pattern and no other should be accepted: the terminations split
@@ -119,6 +124,15 @@ const internal: AuthorizationContext = {
   mfaVerified: true,
   recentAuthenticationVerified: true,
 };
+/**
+ * A second internal caller, so a case can be raised by one person and decided
+ * by another. `separationRequired` is on for every queue in this file's policy,
+ * so the requester cannot be the decider.
+ */
+const internalEscalationOwner: AuthorizationContext = {
+  ...internal,
+  userId: ids.user.parse(escalationUserId),
+};
 
 const context = (label: string, authorization: AuthorizationContext) => ({
   requestId: `${requestPrefix}-${label}`,
@@ -172,7 +186,7 @@ afterAll(async () => {
   await client.end();
 });
 
-describe.sequential("the exception queue's tenant fall-through", () => {
+describe.sequential("the exception queue's staff boundary", () => {
   /**
    * The whole of the fix. Before 001402 this raised
    * `42501 new row violates row-level security policy for table
@@ -266,16 +280,39 @@ describe.sequential("the exception queue's tenant fall-through", () => {
   });
 
   /**
-   * The decision, stated as a test rather than as a comment.
+   * The tenant refusal, now stated by the command instead of by the database.
    *
-   * `decideException` requires the actor to be the case's owner, backup or
-   * escalation owner, all of which come from the internal roster or the queue
-   * policy. A tenant is none of them, so the command dies in the domain -- and
-   * an `exception_cases` UPDATE policy for tenants would be a grant that
-   * changes nothing. If this ever starts failing because the refusal moved to
-   * row-level security, the route and not this migration is what changed.
+   * `open_exception` and `decide_exception` are classified internal-staff-only
+   * in `command-repository.ts`, so a tenant is refused with a named error
+   * before a transaction of either kind is opened. Previously the tenant's open
+   * reached `exception_cases_scope` and came back as `42501`, and the tenant's
+   * decision reached `EXCEPTION_DECIDER_NOT_AUTHORIZED` -- a refusal about the
+   * roster, arrived at only after the case had been read. Both refusals are
+   * still underneath; neither is the one a tenant meets first any more.
    */
-  it("refuses the tenant the decision, in the domain and not in a policy", async () => {
+  it("refuses a tenant open before the command opens a transaction", async () => {
+    const objectId = randomUUID();
+    await expect(
+      openException({
+        label: "tenant-command-open",
+        authorization: tenant,
+        objectId,
+      }),
+    ).rejects.toThrow("EXCEPTION_INTERNAL_STAFF_REQUIRED");
+
+    const rows = await withInternalTransaction(
+      db,
+      `${requestPrefix}-tenant-command-open-read`,
+      async (tx) =>
+        tx
+          .select()
+          .from(exceptionCases)
+          .where(eq(exceptionCases.objectId, objectId)),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("refuses the tenant the decision, before the case is even read", async () => {
     const objectId = randomUUID();
     const opened = await openException({
       label: "for-decision",
@@ -295,7 +332,7 @@ describe.sequential("the exception queue's tenant fall-through", () => {
         },
         context: context("tenant-decision", tenant),
       }),
-    ).rejects.toThrow("EXCEPTION_DECIDER_NOT_AUTHORIZED");
+    ).rejects.toThrow("EXCEPTION_INTERNAL_STAFF_REQUIRED");
 
     const untouched = await withInternalTransaction(
       db,
@@ -306,5 +343,50 @@ describe.sequential("the exception queue's tenant fall-through", () => {
         }),
     );
     expect(untouched).toMatchObject({ status: "open", decisionReason: null });
+  });
+
+  /**
+   * The legitimate operation, end to end on the live database: internal staff
+   * raise a case and other internal staff decide it. A gate that stopped here
+   * would be the defect, not the control.
+   */
+  it("lets internal staff open a case and another decide it", async () => {
+    const objectId = randomUUID();
+    const opened = await openException({
+      label: "internal-open",
+      authorization: internalEscalationOwner,
+      objectId,
+    });
+    expect(opened).toMatchObject({ status: "open" });
+
+    const decided = await repository.executeInTransaction({
+      command: "decide_exception",
+      payload: {
+        caseId: opened.id,
+        accountId,
+        queue: "poc_qualification",
+        decision: "approved",
+        reason: "Qualification evidence is complete and the poc may start",
+        evidenceDocumentId,
+      },
+      // The queue's owner, who is not the requester: `separationRequired` is on
+      // for every queue in this policy.
+      context: context("internal-decision", internal),
+    });
+    expect(decided).toMatchObject({ status: "approved" });
+
+    const persisted = await withInternalTransaction(
+      db,
+      `${requestPrefix}-internal-decision-read`,
+      async (tx) =>
+        tx.query.exceptionCases.findFirst({
+          where: eq(exceptionCases.id, opened.id),
+        }),
+    );
+    expect(persisted).toMatchObject({
+      status: "approved",
+      decisionReason:
+        "Qualification evidence is complete and the poc may start",
+    });
   });
 });

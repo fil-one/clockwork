@@ -22,8 +22,10 @@ import {
   checkCitationGrammar,
   classifyCitation,
   expandCitationBraces,
+  isPlainObject,
   isReadableRequirement,
   requirementsFatal,
+  stringMembers,
   symbolIsDeclared,
 } from "./validate-traceability.mjs";
 
@@ -65,6 +67,122 @@ test("no check throws its identifier in place", () => {
   assert.ok(
     /const fail = \(id\) => \{/.test(source),
     "the collecting fail() helper is gone; the tripwire above is now vacuous",
+  );
+});
+
+// EXACTLY the comment forms the number rule reads, and the header of
+// validate-traceability.mjs names the same two:
+//
+//   * every block comment - single-star or double-star - that STARTS a line;
+//   * every whole-line `//` comment, which includes the leading header block.
+//
+// Deliberately not read, and said so in the header rather than papered over:
+// a comment that follows code on the same line, in either form, and the inside
+// of a string literal. Both exclusions are structural. Whole-line `//` keeps a
+// `//` inside a string from being mistaken for commentary; line-anchored blocks
+// keep a literal slash-star inside a string - CITATION_COVERAGE contains one -
+// from opening a false block that would swallow code as "commentary" and fail
+// this test on numbers that are not claims at all.
+function commentaryOf(source) {
+  const lines = source.split("\n");
+  return [
+    ...(source.match(/^[ \t]*\/\*[\s\S]*?\*\//gm) ?? []),
+    ...lines.filter((line) => /^\s*\/\//.test(line)),
+  ].join("\n");
+}
+
+/** The leading `//` block alone, unwrapped to one line. */
+function headerSentences(source) {
+  const header = [];
+  for (const line of source.split("\n")) {
+    if (!/^\s*\/\//.test(line)) break;
+    header.push(line.replace(/^\s*\/\/\s?/, ""));
+  }
+  return header.join(" ").replaceAll(/\s+/g, " ");
+}
+
+/** Every number in `text`, with backlog and requirement identifiers removed. */
+function numbersIn(text) {
+  return [
+    ...text
+      .replaceAll(/\bP0-\d+\b/g, "")
+      .replaceAll(/\bSPEC-[0-9A-Z-]+\b/g, "")
+      .matchAll(/\d[\d,]*/g),
+  ].map((match) => Number(match[0].replaceAll(",", "")));
+}
+
+test("every number in this script's commentary is one this test derived", () => {
+  // THE DEFECT THIS EXISTS FOR. This header used to carry a dated census of the
+  // ledger - totals, path counts, prose shares, a percentage - none of which any
+  // test re-computed, on a file another lane rewrites row by row. One exported
+  // string in it had quoted a share that was never true on any revision. The
+  // header now states the argument and the report states the numbers, and this
+  // is what keeps it that way.
+  //
+  // The escape hatch for a future number is to derive it here first, exactly as
+  // the two below are derived.
+  const source = readFileSync(script, "utf8");
+  const header = headerSentences(source);
+
+  // Derived from the source: how many `fatal(` call sites this file has.
+  //
+  // THAT IS ALL IT IS, and the previous version of this comment claimed more -
+  // "the count of `fatal` call sites IS the number of checks that stop the run
+  // early" - which is false, and was a false statement inside the tooling built
+  // to catch false statements. A `fatal(` count cannot see an early stop with no
+  // `fatal(` token in it, and an uncaught TypeError is exactly that: it ends the
+  // run with no header and no identifiers, and four `statusPolicy` shapes plus
+  // two `requirements` shapes used to do it. The behavioural claim is measured
+  // by "a malformed ledger is reported, not crashed on" below, which runs the
+  // real script. This assertion pins only that the header's `2` matches the
+  // code, and the header says only that. `requirementsFatal` and
+  // `FatalValidationError` are capitalised and do not match.
+  // Counted over CODE, with the commentary removed first: the header now
+  // discusses `fatal(` in prose, and counting those mentions would let the
+  // sentence inflate its own figure by describing itself.
+  const codeOnly = source
+    .replaceAll(/^[ \t]*\/\*[\s\S]*?\*\//gm, "")
+    .split("\n")
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n");
+  const fatalCallSites = (codeOnly.match(/(?<![A-Za-z0-9_.])fatal\(/g) ?? [])
+    .length;
+  assert.ok(fatalCallSites > 0, "the fatal stop is gone entirely");
+  assert.ok(
+    header.includes(`this file has ${fatalCallSites}`),
+    `the header no longer states the explicit \`fatal\` call-site count as ${fatalCallSites}`,
+  );
+  assert.ok(
+    header.includes(`test derives that ${fatalCallSites} by counting`),
+    "the header no longer says the fatal call-site count is derived by counting call sites, which is the only thing this assertion establishes",
+  );
+
+  const listMarkers = [...source.matchAll(/^\/\/ (\d+)\. /gm)].map((match) =>
+    Number(match[1]),
+  );
+  assert.ok(listMarkers.length > 0, "the numbered sections are gone");
+  // A list marker is an allow-listed number, so an unbounded marker regex is a
+  // hole: `// 58. ` reads as a section heading and admits 58 anywhere in the
+  // commentary. Bounding the markers to the sequence starting at one is what
+  // closes it.
+  assert.deepEqual(
+    listMarkers,
+    listMarkers.map((_, index) => index + 1),
+    "the numbered sections are not a 1..n sequence; an out-of-sequence marker is an unchecked figure wearing a section heading's clothes",
+  );
+  const allowed = new Set([
+    ...listMarkers,
+    fatalCallSites,
+    CITATION_COLUMNS.length,
+    CITATION_PATH_ROOTS.length,
+  ]);
+  const stray = [...new Set(numbersIn(commentaryOf(source)))].filter(
+    (value) => !allowed.has(value),
+  );
+  assert.deepEqual(
+    stray,
+    [],
+    `validate-traceability.mjs comments carry ${stray.join(", ")}, which this test did not derive. Ledger tallies and commit hashes rot into false claims; derive the figure here or drop it and let citationGrammar print it.`,
   );
 });
 
@@ -113,8 +231,56 @@ test("the script reports every collected identifier and exits non-zero", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The third stop-early path, which the header did not admit to.
+// Early termination, measured rather than counted.
 // ---------------------------------------------------------------------------
+
+test("the plain-object and string-member guards refuse exactly what throws, and nothing else", () => {
+  // `isPlainObject` is the predicate `field in value` and `Object.keys(value)`
+  // need. `??` is not it - `"x" ?? {}` is `"x"` - which is the whole mechanism
+  // behind the `statusPolicy` crashes.
+  for (const throwsOnIn of [undefined, null, "x", "", 0, 42, true, false, 7n])
+    assert.equal(
+      isPlainObject(throwsOnIn),
+      false,
+      `${String(throwsOnIn)} cannot be used with the \`in\` operator`,
+    );
+  assert.equal(isPlainObject([]), false, "an array is not a policy object");
+  for (const usable of [
+    {},
+    Object.create(null),
+    ledger.statusPolicy,
+    new Map(),
+  ])
+    assert.ok(isPlainObject(usable), "a usable object was refused");
+  // Directly: `in` throws on everything the predicate refuses except arrays,
+  // and does not throw on anything it accepts.
+  for (const value of [{}, [], ledger.statusPolicy])
+    assert.doesNotThrow(() => "generatedFrom" in value);
+  for (const value of ["x", 42, true])
+    assert.throws(() => "generatedFrom" in value, TypeError);
+
+  // `stringMembers` exists because `resolve()` throws on a number rather than
+  // returning false. It drops what would throw and keeps every legitimate
+  // member, so it cannot hide a real path.
+  assert.deepEqual(stringMembers(["a", 3, "", null, "b", {}]), ["a", "b"]);
+  for (const notAnArray of [undefined, null, "abc", 7, {}])
+    assert.deepEqual(stringMembers(notAnArray), []);
+  assert.deepEqual(
+    stringMembers(ledger.statusPolicy.reviewedAgainst),
+    ledger.statusPolicy.reviewedAgainst,
+    "a legitimate reviewedAgainst list lost a member",
+  );
+  assert.deepEqual(
+    stringMembers(ledger.statusPolicy.evidenceManifests),
+    ledger.statusPolicy.evidenceManifests,
+    "a legitimate evidenceManifests list lost a member",
+  );
+  assert.deepEqual(
+    stringMembers(ledger.statusPolicy.notes),
+    ledger.statusPolicy.notes,
+    "a legitimate notes list lost a member",
+  );
+});
 
 test("the complete refused set of the requirements guard, and nothing legitimate in it", () => {
   // Stated exhaustively because a control that refuses valid input is as bad as
@@ -155,16 +321,77 @@ test("the complete refused set of the requirements guard, and nothing legitimate
   assert.equal(requirementsFatal([{}]), null, "an empty object is readable");
 });
 
-test("a requirements array of non-objects is reported, not crashed on", async () => {
-  // PRE-EXISTING, NOT A REGRESSION: this shape passed the Array.isArray guard
-  // and then died inside assertSchemaShape on `field in requirement`, with an
-  // uncaught TypeError, no TRACEABILITY_FAILURES header and not one collected
-  // identifier. Verified against the unfixed script at b4fbcc8 by running this
-  // same fixture: stderr began "TypeError: Cannot use 'in' operator".
-  //
-  // Driven end to end through the real script rather than through the exported
-  // guard, because the crash was never in the guard - it was in the caller that
-  // ran before it.
+// Every ledger shape known to have ended this script's run with an uncaught
+// TypeError - no TRACEABILITY_FAILURES header, no collected identifiers, a
+// crash wearing a validation error's clothes. All are PRE-EXISTING defects
+// rather than regressions, and all are driven end to end through the REAL
+// script rather than through an exported guard, because none of the crashes was
+// ever in a guard: two were in `assertSchemaShape`, which runs first, and two
+// more were in code that runs after every check has already passed.
+//
+// This is the measurement the `fatal(` count cannot make. A token count sees
+// only stops that carry a `fatal(` token; every row below is a stop that does
+// not. It is a SAMPLE and the header says so - it cannot show that no other
+// shape crashes, only that these do not.
+//
+// Re-confirmed against the unfixed scripts rather than taken on trust: at
+// b4fbcc8 the array-of-non-objects row exits 1 with
+// `TypeError: Cannot use 'in' operator` at `field in requirement` and prints no
+// header, and the four `statusPolicy` rows below are byte-identical defects at
+// that commit.
+const MALFORMED_LEDGER_SHAPES = [
+  {
+    shape: "requirements is an array of non-objects",
+    patch: { requirements: ["SPEC-01-01", 7] },
+    expected: /TRACEABILITY_REQUIREMENTS_NOT_OBJECTS:0,1/,
+  },
+  {
+    shape: "requirements is not an array at all",
+    patch: { requirements: { "SPEC-01-01": {} } },
+    expected: /TRACEABILITY_REQUIREMENTS_EMPTY/,
+  },
+  {
+    shape: "requirements is empty",
+    patch: { requirements: [] },
+    expected: /TRACEABILITY_REQUIREMENTS_EMPTY/,
+  },
+  {
+    shape: "statusPolicy is a string",
+    patch: { statusPolicy: "x" },
+    expected: /TRACEABILITY_STATUS_POLICY_UNREADABLE/,
+  },
+  {
+    shape: "statusPolicy is a number",
+    patch: { statusPolicy: 42 },
+    expected: /TRACEABILITY_STATUS_POLICY_UNREADABLE/,
+  },
+  {
+    shape: "statusPolicy is a boolean",
+    patch: { statusPolicy: true },
+    expected: /TRACEABILITY_STATUS_POLICY_UNREADABLE/,
+  },
+  {
+    shape: "statusPolicy.notes is not an array",
+    patch: (base) => ({ statusPolicy: { ...base.statusPolicy, notes: 3 } }),
+    expected: /TRACEABILITY_STATUS_POLICY_ARRAY:notes/,
+  },
+  {
+    shape: "statusPolicy.reviewedAgainst holds a non-string",
+    patch: (base) => ({
+      statusPolicy: { ...base.statusPolicy, reviewedAgainst: [3] },
+    }),
+    expected: /TRACEABILITY_STATUS_POLICY_ARRAY_VALUE:reviewedAgainst/,
+  },
+  {
+    shape: "statusPolicy.evidenceManifests holds a non-string",
+    patch: (base) => ({
+      statusPolicy: { ...base.statusPolicy, evidenceManifests: [{}] },
+    }),
+    expected: /TRACEABILITY_STATUS_POLICY_ARRAY_VALUE:evidenceManifests/,
+  },
+];
+
+test("a malformed ledger is reported, not crashed on", async () => {
   // realpath, because on macOS mkdtemp hands back a /var symlink while
   // `import.meta.filename` resolves to /private/var, and the script's
   // `process.argv[1] === import.meta.filename` entrypoint guard would then
@@ -188,48 +415,52 @@ test("a requirements array of non-objects is reported, not crashed on", async ()
       "packages/domain/src/system/external-gates.ts",
     ])
       await copyFile(resolve(root, file), join(fixture, file));
-    await writeFile(
-      join(fixture, "docs/traceability/launch-requirements.json"),
-      // schemaVersion is wrong too, so the run has something to collect BEFORE
-      // the stop and the last assertion below is not vacuous.
-      JSON.stringify({
+
+    for (const { shape, patch, expected } of MALFORMED_LEDGER_SHAPES) {
+      // schemaVersion is wrong too, so every run has something to collect
+      // BEFORE any stop and the last assertion below is not vacuous.
+      const document = {
         ...ledger,
         schemaVersion: 2,
-        requirements: ["SPEC-01-01", 7],
-      }),
-    );
-
-    let status = 0;
-    let stderr = "";
-    try {
-      execFileSync(
-        process.execPath,
-        [join(fixture, "scripts/validate-traceability.mjs")],
-        { cwd: fixture, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+        ...(typeof patch === "function" ? patch(ledger) : patch),
+      };
+      await writeFile(
+        join(fixture, "docs/traceability/launch-requirements.json"),
+        JSON.stringify(document),
       );
-    } catch (error) {
-      status = error.status;
-      stderr = error.stderr ?? "";
+
+      let status = 0;
+      let stderr = "";
+      try {
+        execFileSync(
+          process.execPath,
+          [join(fixture, "scripts/validate-traceability.mjs")],
+          { cwd: fixture, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+        );
+      } catch (error) {
+        status = error.status;
+        stderr = error.stderr ?? "";
+      }
+      assert.equal(status, 1, `${shape}: must exit 1, not crash`);
+      assert.doesNotMatch(
+        stderr,
+        /TypeError/,
+        `${shape}: the run dies with a TypeError wearing a validation error's clothes`,
+      );
+      assert.match(
+        stderr,
+        /^TRACEABILITY_FAILURES:\d+\n/,
+        `${shape}: no TRACEABILITY_FAILURES header, so a grep over this script's output finds nothing`,
+      );
+      assert.match(stderr, expected, `${shape}: wrong identifier`);
+      // The whole point of the collect-don't-throw conversion: a stop still
+      // reports everything gathered before it.
+      assert.ok(
+        stderr.split("\n").filter((line) => line.startsWith("TRACEABILITY_"))
+          .length >= 3,
+        `${shape}: one identifier reported; the run is supposed to carry what was collected before the stop`,
+      );
     }
-    assert.equal(status, 1, "an unusable ledger must exit 1, not crash");
-    assert.doesNotMatch(
-      stderr,
-      /TypeError/,
-      "the run still dies with a TypeError wearing a validation error's clothes",
-    );
-    assert.match(
-      stderr,
-      /^TRACEABILITY_FAILURES:\d+\n/,
-      "no TRACEABILITY_FAILURES header was printed, so a grep over this script's output finds nothing",
-    );
-    assert.match(stderr, /TRACEABILITY_REQUIREMENTS_NOT_OBJECTS:0,1/);
-    // The whole point of the collect-don't-throw conversion: the stop still
-    // reports everything gathered before it.
-    assert.ok(
-      stderr.split("\n").filter((line) => line.startsWith("TRACEABILITY_"))
-        .length >= 3,
-      "the fatal stop reported one identifier; it is supposed to carry what was collected before it",
-    );
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }

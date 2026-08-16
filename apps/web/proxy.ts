@@ -59,6 +59,19 @@ const workosProxy = workosConfigured
           "/register",
           "/sign-in",
           "/api/v1/lifecycle/registrations",
+          // An enterprise security review starts before first contact and an
+          // integrator evaluating the API has no account yet, so a trust page
+          // or an API reference behind sign-in is not one. Both routes are pure
+          // renders of committed source -- `src/features/trust/trust-register.ts`
+          // and the generated OpenAPI contract -- and neither reads a session,
+          // a cookie, a header or the database, so there is nothing
+          // tenant-specific for an anonymous request to leak.
+          // `apps/web/app/trust/page.tsx` and `app/developers/page.tsx` carry
+          // the same note, and `route-authentication.test.ts` asserts that this
+          // list still contains exactly one `/api/` path.
+          "/trust",
+          "/developers",
+          "/developers/openapi.json",
         ],
       },
       redirectUri:
