@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:02:00Z",
-  "captureCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-  "captureTree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+  "capturedAt": "2026-08-16T21:57:22Z",
+  "captureCommit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+  "captureTree": "65a4d0a012dd13a0a0588730a2a5ad750a5ca2eb",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "hashInput": "Artifact SHA-256 values and byte sizes are read from working-tree file bytes at capture time; captureCommit/captureTree identify their committed base when captureMode is working-tree-consolidation.",
-  "captureTreeListingSha256": "046176ce7a4180ec35fe0d43e50ca9c0cb383dd397b644e8ee9cb94b5053c171",
-  "artifactCount": 912,
+  "captureTreeListingSha256": "832e65ea657540902118e3a58fcbba5e6dacd9710324b44bd9ce8b090750fe6f",
+  "artifactCount": 914,
   "categories": {
     "contract-release": {
       "artifactCount": 42,
@@ -68,7 +68,7 @@
     },
     "toolchain-ci": {
       "artifactCount": 87,
-      "aggregateSha256": "1f282698a5a0f18b4d29027b07c709698b411311f2d34bd5ba5695e1d24e5693",
+      "aggregateSha256": "97d9acb73a795ad6a00cb937952a0bf356168f63eba4a4f9d4684251a647ecf8",
       "paths": [
         ".env.example",
         ".github/workflows/ci.yml",
@@ -161,7 +161,7 @@
     },
     "route-auth-api": {
       "artifactCount": 213,
-      "aggregateSha256": "52134094f2d28bad2466b552d765768260fc1ef63adb81ab7721674a4082d4dd",
+      "aggregateSha256": "5922448f6c1fd9a79dd6e9ddeb056eb4339e68d9a05e9a0d53034fc53f88daea",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/notifications/notification-preference-client.ts",
         "apps/web/app/(experience)/(customer)/account/notifications/notification-preference-model.test.ts",
@@ -380,7 +380,7 @@
     },
     "database": {
       "artifactCount": 179,
-      "aggregateSha256": "24b529586a456a71e6874244673c43b87267ba24f5f2fd86831817729fb7ed59",
+      "aggregateSha256": "1b348d9523ba2fce9e81ebfbd42dd87c79966647fb1cfff8afd7773d1499305e",
       "paths": [
         "packages/db/drizzle/meta/0000_snapshot.json",
         "packages/db/drizzle/meta/0001_snapshot.json",
@@ -642,8 +642,8 @@
       ]
     },
     "documents-tests-visuals": {
-      "artifactCount": 435,
-      "aggregateSha256": "5acb372893a62f98b8afb1b6317df1dbc44ef24e3935e6d55166a305c11bccd2",
+      "artifactCount": 437,
+      "aggregateSha256": "5d27381f22ee660b3339dc8d5f9e5fcd4cbe79ce88da3952d9019ffeb5a22b00",
       "paths": [
         "apps/web/app/(experience)/(customer)/account/notifications/notification-preference-model.test.ts",
         "apps/web/app/(experience)/(customer)/account/notifications/notification-preferences.test.tsx",
@@ -703,6 +703,7 @@
         "apps/web/src/features/customer-partner/commercial/collection-page.sort.test.tsx",
         "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
         "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
+        "apps/web/src/features/customer-partner/commercial/payment-handoff.test.tsx",
         "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
         "apps/web/src/features/customer-partner/commercial/quote-builder.unsaved.test.tsx",
         "apps/web/src/features/customer-partner/commercial/record-detail.forward-step.test.tsx",
@@ -743,6 +744,7 @@
         "apps/web/src/features/experience-server/delivery.customer-visible.test.tsx",
         "apps/web/src/features/experience-server/delivery.test.ts",
         "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
+        "apps/web/src/features/experience-server/demo-order-acceptance.test.ts",
         "apps/web/src/features/experience-server/demo-state-store.test.ts",
         "apps/web/src/features/experience-server/derivation-loader.test.ts",
         "apps/web/src/features/experience-server/evidence-gateway.test.ts",
@@ -1611,13 +1613,13 @@
     },
     {
       "path": "apps/web/app/api/[[...route]]/demo-app.test.ts",
-      "bytes": 3633,
-      "sha256": "2db1c7bf869ec5d6b8477e2c1ddaf2f1edb0a7e0a11155aba16ab3438046beb8"
+      "bytes": 5134,
+      "sha256": "5b7511ddbba398215427529dc87ea9a8171ea4e7c942b83cc60b594a898706e5"
     },
     {
       "path": "apps/web/app/api/[[...route]]/demo-app.ts",
-      "bytes": 2014,
-      "sha256": "17064dce0e0966507df6108f255c1b944ea2effafa3c8d980662dd3daf893a66"
+      "bytes": 3577,
+      "sha256": "9472010285b59f12f3dea0ab1d0129cb5ae2c838ee61b38d6b301d935cbbd8ef"
     },
     {
       "path": "apps/web/app/api/[[...route]]/hono-app.test.ts",
@@ -1931,8 +1933,8 @@
     },
     {
       "path": "apps/web/package.json",
-      "bytes": 2327,
-      "sha256": "4a2339c554f847603744f80952a6a87e72bbc0fe6b33bb3da2eeed5ce903f4b0"
+      "bytes": 2367,
+      "sha256": "bb512b35c829d2c5c01447bc71fc0d03a53a71495a10b5a620401328bafe5b0e"
     },
     {
       "path": "apps/web/playwright.config.ts",
@@ -2036,8 +2038,8 @@
     },
     {
       "path": "apps/web/src/features/contracts/commerce-client.test.ts",
-      "bytes": 1480,
-      "sha256": "0be5ed53a0ef5d7b8a20d74d4130ad1976cdab2107d2a6d75ae66292207ef849"
+      "bytes": 4112,
+      "sha256": "bd95c6c8a83289244e12dbbcc88cc38169579315852bbd62a86f759b5351ea14"
     },
     {
       "path": "apps/web/src/features/contracts/experience-client.test.ts",
@@ -2076,8 +2078,13 @@
     },
     {
       "path": "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
-      "bytes": 25581,
-      "sha256": "0c04d237a8b2897670493cb7291299bf6f92bf8a3a8dfd2e3eaba7a1414f6443"
+      "bytes": 27329,
+      "sha256": "7045808f87e2a3c454070855f53d7fbf4d2b2de55cd4f53b1594c51e1bf1f9fb"
+    },
+    {
+      "path": "apps/web/src/features/customer-partner/commercial/payment-handoff.test.tsx",
+      "bytes": 3174,
+      "sha256": "c24431dda47287328cbe129daba5fa831e4a2d843de804e32310038a74a07076"
     },
     {
       "path": "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
@@ -2236,8 +2243,8 @@
     },
     {
       "path": "apps/web/src/features/experience-server/artifact-sources.ts",
-      "bytes": 41120,
-      "sha256": "49a6f67aa61726a728cdc1162bfd7bab04cd997997f648c80c4382bf734ac6e6"
+      "bytes": 43638,
+      "sha256": "3e26b31b949588cf3a0dc2940ca1dae185dfb139eed628a686b1f3b5f73b0268"
     },
     {
       "path": "apps/web/src/features/experience-server/authorization.test.ts",
@@ -2285,6 +2292,11 @@
       "sha256": "ddcf9ef04937e1cefb094d5efc94602a53f30547d137717bbb356674131fa333"
     },
     {
+      "path": "apps/web/src/features/experience-server/demo-order-acceptance.test.ts",
+      "bytes": 12566,
+      "sha256": "bb50d222d945dded33553ea8821bd4fe22febddf063c11e974ac7d92da2b3179"
+    },
+    {
       "path": "apps/web/src/features/experience-server/demo-state-store.test.ts",
       "bytes": 4696,
       "sha256": "309d50d3427ef43a794c7e135acc6201f0f6caa2a45b95d1d6cc67d453023e76"
@@ -2311,8 +2323,8 @@
     },
     {
       "path": "apps/web/src/features/experience-server/portal-view-loader.test.ts",
-      "bytes": 20381,
-      "sha256": "77efb26ce74043d79c85ae0ddcf6dd6fd6a6f949e87e94028a11c2d8505822e1"
+      "bytes": 21827,
+      "sha256": "c3d18c7588045bc967a77c20962f1386fbb9c17e9e540c0e987c85375e0b0428"
     },
     {
       "path": "apps/web/src/features/experience-server/projection-action-buttons.test.tsx",
@@ -3516,13 +3528,13 @@
     },
     {
       "path": "packages/db/src/repositories/experience/prepared-order-form.integration.test.ts",
-      "bytes": 7133,
-      "sha256": "c16b5e291e9af929cc129cee6a83b954b5298f873b6c7c812bc1a2efd332c9fe"
+      "bytes": 7444,
+      "sha256": "f250b65cdd60719b317b250df2dc0495d4b9b034ea496bb5cdcde5717f6afbf1"
     },
     {
       "path": "packages/db/src/repositories/experience/prepared-order-form.ts",
-      "bytes": 3248,
-      "sha256": "438ab9829f9cae96ad16b61e7a599d9d8e0b59b0ec9099324fdbc2508e5a3f64"
+      "bytes": 3845,
+      "sha256": "e33f16ef63e4cca5c196d946f8ba33c4345b4d63cbbfba3e5e46c317bb6a0903"
     },
     {
       "path": "packages/db/src/repositories/experience/system-recovery.integration.test.ts",
@@ -5031,8 +5043,8 @@
     },
     {
       "path": "pnpm-lock.yaml",
-      "bytes": 401683,
-      "sha256": "849939a92c05f2270bc550d69e311d718f40e587f6af82168da2333e7552afde"
+      "bytes": 401785,
+      "sha256": "d98c08abd3f786ae33123a1c4e3c6a5c60e8dcfb7eb9dc6573baef09e481e956"
     },
     {
       "path": "pnpm-workspace.yaml",

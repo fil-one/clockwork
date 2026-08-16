@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:02:00Z",
+  "capturedAt": "2026-08-16T21:57:22Z",
   "captureRef": "main",
-  "captureCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-  "captureTree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+  "captureCommit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+  "captureTree": "65a4d0a012dd13a0a0588730a2a5ad750a5ca2eb",
   "captureMode": "committed-clean-consolidation: captureCommit and captureTree identify the complete consolidated-main-quality state at capture time",
   "captureWorkingTreePathCount": 0,
   "qualityDisposition": {
@@ -39,72 +39,72 @@
   "remotes": ["origin"],
   "refs": [
     {
+      "ref": "demo/order-acceptance-journey",
+      "fullRef": "refs/heads/demo/order-acceptance-journey",
+      "refType": "branch",
+      "object": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "objectType": "commit",
+      "peeledCommit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "commit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "tree": "65a4d0a012dd13a0a0588730a2a5ad750a5ca2eb",
+      "treeEntryCount": 1287,
+      "treeListingSha256": "832e65ea657540902118e3a58fcbba5e6dacd9710324b44bd9ce8b090750fe6f",
+      "parents": ["3d30ee861ea405a59d1bd9489b0f328cc6be7569"],
+      "subject": "demo: complete the order-acceptance ceremony, and stop a scripted refusal reading as an outage",
+      "mergeBaseWithMain": "3d30ee861ea405a59d1bd9489b0f328cc6be7569"
+    },
+    {
       "ref": "main",
       "fullRef": "refs/heads/main",
       "refType": "branch",
-      "object": "78b8679f484a6f02c5de24429024364aded34936",
+      "object": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
       "objectType": "commit",
-      "peeledCommit": "78b8679f484a6f02c5de24429024364aded34936",
-      "commit": "78b8679f484a6f02c5de24429024364aded34936",
-      "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-      "treeEntryCount": 1253,
-      "treeListingSha256": "da695e53e82e96a2630fede4da0bdff05fff528dbc692cbb136d89c97a1763f3",
-      "parents": [
-        "2e45cad71d057b887f11bfd302b9ab82e99b148f",
-        "6cf5f260650ead68ee1b273a4c1274a4b96ecaf4"
-      ],
-      "subject": "Merge pull request #16 from fil-one/ws8/final-push",
-      "mergeBaseWithMain": "78b8679f484a6f02c5de24429024364aded34936"
-    },
-    {
-      "ref": "ws9/tax-wiring-and-close",
-      "fullRef": "refs/heads/ws9/tax-wiring-and-close",
-      "refType": "branch",
-      "object": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-      "objectType": "commit",
-      "peeledCommit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-      "tree": "0812072fa32057fb12bac3b6182539c3225d0e98",
+      "peeledCommit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
       "treeEntryCount": 1283,
-      "treeListingSha256": "046176ce7a4180ec35fe0d43e50ca9c0cb383dd397b644e8ee9cb94b5053c171",
-      "parents": ["78b8679f484a6f02c5de24429024364aded34936"],
-      "subject": "close the backlog, and the defects that closing it uncovered",
-      "mergeBaseWithMain": "78b8679f484a6f02c5de24429024364aded34936"
+      "treeListingSha256": "2a2aee7867f95111f4a8b8c6d61435f73768011e5f900b9ca2811476864358b9",
+      "parents": [
+        "78b8679f484a6f02c5de24429024364aded34936",
+        "5f192a3facba508714206ee85a3710eea9814933"
+      ],
+      "subject": "Merge pull request #17 from fil-one/ws9/tax-wiring-and-close",
+      "mergeBaseWithMain": "3d30ee861ea405a59d1bd9489b0f328cc6be7569"
     },
     {
       "ref": "origin/HEAD",
       "fullRef": "refs/remotes/origin/HEAD",
       "refType": "other",
-      "object": "78b8679f484a6f02c5de24429024364aded34936",
+      "object": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
       "objectType": "commit",
-      "peeledCommit": "78b8679f484a6f02c5de24429024364aded34936",
-      "commit": "78b8679f484a6f02c5de24429024364aded34936",
-      "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-      "treeEntryCount": 1253,
-      "treeListingSha256": "da695e53e82e96a2630fede4da0bdff05fff528dbc692cbb136d89c97a1763f3",
+      "peeledCommit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "treeEntryCount": 1283,
+      "treeListingSha256": "2a2aee7867f95111f4a8b8c6d61435f73768011e5f900b9ca2811476864358b9",
       "parents": [
-        "2e45cad71d057b887f11bfd302b9ab82e99b148f",
-        "6cf5f260650ead68ee1b273a4c1274a4b96ecaf4"
+        "78b8679f484a6f02c5de24429024364aded34936",
+        "5f192a3facba508714206ee85a3710eea9814933"
       ],
-      "subject": "Merge pull request #16 from fil-one/ws8/final-push",
+      "subject": "Merge pull request #17 from fil-one/ws9/tax-wiring-and-close",
       "mergeBaseWithMain": null
     },
     {
       "ref": "origin/main",
       "fullRef": "refs/remotes/origin/main",
       "refType": "other",
-      "object": "78b8679f484a6f02c5de24429024364aded34936",
+      "object": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
       "objectType": "commit",
-      "peeledCommit": "78b8679f484a6f02c5de24429024364aded34936",
-      "commit": "78b8679f484a6f02c5de24429024364aded34936",
-      "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
-      "treeEntryCount": 1253,
-      "treeListingSha256": "da695e53e82e96a2630fede4da0bdff05fff528dbc692cbb136d89c97a1763f3",
+      "peeledCommit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "treeEntryCount": 1283,
+      "treeListingSha256": "2a2aee7867f95111f4a8b8c6d61435f73768011e5f900b9ca2811476864358b9",
       "parents": [
-        "2e45cad71d057b887f11bfd302b9ab82e99b148f",
-        "6cf5f260650ead68ee1b273a4c1274a4b96ecaf4"
+        "78b8679f484a6f02c5de24429024364aded34936",
+        "5f192a3facba508714206ee85a3710eea9814933"
       ],
-      "subject": "Merge pull request #16 from fil-one/ws8/final-push",
+      "subject": "Merge pull request #17 from fil-one/ws9/tax-wiring-and-close",
       "mergeBaseWithMain": null
     },
     {
@@ -258,6 +258,21 @@
       "mergeBaseWithMain": null
     },
     {
+      "ref": "origin/ws9/tax-wiring-and-close",
+      "fullRef": "refs/remotes/origin/ws9/tax-wiring-and-close",
+      "refType": "other",
+      "object": "5f192a3facba508714206ee85a3710eea9814933",
+      "objectType": "commit",
+      "peeledCommit": "5f192a3facba508714206ee85a3710eea9814933",
+      "commit": "5f192a3facba508714206ee85a3710eea9814933",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "treeEntryCount": 1283,
+      "treeListingSha256": "2a2aee7867f95111f4a8b8c6d61435f73768011e5f900b9ca2811476864358b9",
+      "parents": ["8de5207b923e11b32dbe7ab7f97ecd7c862e8678"],
+      "subject": "baseline: regenerate against the committed tree",
+      "mergeBaseWithMain": null
+    },
+    {
       "ref": "stash",
       "fullRef": "refs/stash",
       "refType": "stash",
@@ -334,8 +349,8 @@
   "worktrees": [
     {
       "path": "/Users/jameskurz/Desktop/filecoindev/clockwork",
-      "head": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-      "branch": "ws9/tax-wiring-and-close",
+      "head": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "branch": "demo/order-acceptance-journey",
       "detached": false,
       "locked": false,
       "prunable": false,
@@ -344,7 +359,6 @@
         "unstaged": [],
         "untracked": [],
         "ignoredRoots": [
-          ".artifacts",
           ".envrc-local.sh",
           ".turbo",
           "apps",
@@ -374,7 +388,7 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "ignoredArtifactCount": 77381,
+        "ignoredArtifactCount": 78054,
         "retainedArchivePaths": [],
         "retainedQualificationEvidencePaths": [],
         "retainedEvidence": {
@@ -391,14 +405,35 @@
             "artifacts": []
           }
         },
-        "rejectedIgnoredArtifactCount": 77381,
-        "ignoredArtifactListingSha256": "dbd64e8c857c44a788187e0444eef5c6a31cc084d176cc19b144a33099504848",
-        "rejectedIgnoredArtifactListingSha256": "dbd64e8c857c44a788187e0444eef5c6a31cc084d176cc19b144a33099504848",
+        "rejectedIgnoredArtifactCount": 78054,
+        "ignoredArtifactListingSha256": "b8ef74b9fc65820e18f7e6c142afb3aabebaf474b38af0440ea95186075cbbe6",
+        "rejectedIgnoredArtifactListingSha256": "b8ef74b9fc65820e18f7e6c142afb3aabebaf474b38af0440ea95186075cbbe6",
         "porcelainSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
       }
     }
   ],
   "allReachableCommits": [
+    {
+      "commit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "tree": "65a4d0a012dd13a0a0588730a2a5ad750a5ca2eb",
+      "parents": ["3d30ee861ea405a59d1bd9489b0f328cc6be7569"],
+      "subject": "demo: complete the order-acceptance ceremony, and stop a scripted refusal reading as an outage"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "parents": [
+        "78b8679f484a6f02c5de24429024364aded34936",
+        "5f192a3facba508714206ee85a3710eea9814933"
+      ],
+      "subject": "Merge pull request #17 from fil-one/ws9/tax-wiring-and-close"
+    },
+    {
+      "commit": "5f192a3facba508714206ee85a3710eea9814933",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "parents": ["8de5207b923e11b32dbe7ab7f97ecd7c862e8678"],
+      "subject": "baseline: regenerate against the committed tree"
+    },
     {
       "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
       "tree": "0812072fa32057fb12bac3b6182539c3225d0e98",
@@ -1309,7 +1344,7 @@
       "subject": "feat: establish Clockwork commerce foundation"
     }
   ],
-  "reachableCommitCount": 141,
+  "reachableCommitCount": 144,
   "ancestryAssertions": [
     {
       "ref": "commerce/foundation",
@@ -1389,26 +1424,76 @@
   ],
   "mergeBases": [
     {
-      "left": "main",
-      "right": "ws9/tax-wiring-and-close",
-      "mergeBase": "78b8679f484a6f02c5de24429024364aded34936"
+      "left": "demo/order-acceptance-journey",
+      "right": "main",
+      "mergeBase": "3d30ee861ea405a59d1bd9489b0f328cc6be7569"
     }
   ],
   "reflogEntries": [
     {
-      "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
-      "selector": "refs/heads/ws9/tax-wiring-and-close@{2026-08-16T17:00:30-04:00}",
-      "subject": "commit: close the backlog, and the defects that closing it uncovered"
+      "commit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "selector": "refs/heads/demo/order-acceptance-journey@{2026-08-16T17:57:14-04:00}",
+      "subject": "commit: demo: complete the order-acceptance ceremony, and stop a scripted refusal reading as an outage"
+    },
+    {
+      "commit": "aa22893ed98120448d5a69847f840ad41dd40bb5",
+      "selector": "HEAD@{2026-08-16T17:57:14-04:00}",
+      "subject": "commit: demo: complete the order-acceptance ceremony, and stop a scripted refusal reading as an outage"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "HEAD@{2026-08-16T17:46:56-04:00}",
+      "subject": "reset: moving to HEAD"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "refs/heads/demo/order-acceptance-journey@{2026-08-16T17:05:33-04:00}",
+      "subject": "branch: Created from HEAD"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "HEAD@{2026-08-16T17:05:33-04:00}",
+      "subject": "checkout: moving from main to demo/order-acceptance-journey"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "refs/heads/main@{2026-08-16T17:04:28-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "refs/remotes/origin/main@{2026-08-16T17:04:28-04:00}",
+      "subject": "pull --ff-only origin main: fast-forward"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "HEAD@{2026-08-16T17:04:28-04:00}",
+      "subject": "checkout: moving from main to main"
+    },
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "selector": "HEAD@{2026-08-16T17:04:28-04:00}",
+      "subject": "pull --ff-only origin main: Fast-forward"
+    },
+    {
+      "commit": "78b8679f484a6f02c5de24429024364aded34936",
+      "selector": "HEAD@{2026-08-16T17:04:27-04:00}",
+      "subject": "checkout: moving from ws9/tax-wiring-and-close to main"
+    },
+    {
+      "commit": "5f192a3facba508714206ee85a3710eea9814933",
+      "selector": "refs/remotes/origin/ws9/tax-wiring-and-close@{2026-08-16T17:03:54-04:00}",
+      "subject": "update by push"
+    },
+    {
+      "commit": "5f192a3facba508714206ee85a3710eea9814933",
+      "selector": "HEAD@{2026-08-16T17:02:23-04:00}",
+      "subject": "commit: baseline: regenerate against the committed tree"
     },
     {
       "commit": "8de5207b923e11b32dbe7ab7f97ecd7c862e8678",
       "selector": "HEAD@{2026-08-16T17:00:30-04:00}",
       "subject": "commit: close the backlog, and the defects that closing it uncovered"
-    },
-    {
-      "commit": "78b8679f484a6f02c5de24429024364aded34936",
-      "selector": "refs/heads/ws9/tax-wiring-and-close@{2026-08-16T12:32:32-04:00}",
-      "subject": "branch: Created from HEAD"
     },
     {
       "commit": "78b8679f484a6f02c5de24429024364aded34936",
@@ -1969,7 +2054,6 @@
       {
         "worktree": "/Users/jameskurz/Desktop/filecoindev/clockwork",
         "roots": [
-          ".artifacts",
           ".envrc-local.sh",
           ".turbo",
           "apps",
@@ -1999,8 +2083,8 @@
           "packages/workflows/node_modules",
           "supabase"
         ],
-        "artifactCount": 77381,
-        "listingSha256": "dbd64e8c857c44a788187e0444eef5c6a31cc084d176cc19b144a33099504848",
+        "artifactCount": 78054,
+        "listingSha256": "b8ef74b9fc65820e18f7e6c142afb3aabebaf474b38af0440ea95186075cbbe6",
         "decision": "rejected-generated-or-local-only",
         "retainedArchives": [],
         "retainedArchiveDecision": "not-present-in-this-worktree",
@@ -2015,6 +2099,15 @@
     ]
   },
   "mergeCommits": [
+    {
+      "commit": "3d30ee861ea405a59d1bd9489b0f328cc6be7569",
+      "tree": "09536776d784d22d8f9a84f89f8b20ca5c30c9bc",
+      "parents": [
+        "78b8679f484a6f02c5de24429024364aded34936",
+        "5f192a3facba508714206ee85a3710eea9814933"
+      ],
+      "subject": "Merge pull request #17 from fil-one/ws9/tax-wiring-and-close"
+    },
     {
       "commit": "78b8679f484a6f02c5de24429024364aded34936",
       "tree": "35675907e6a39f2a408c49abe44ca5ef1a90fda1",
@@ -2301,6 +2394,21 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "e8412ceadf7d25e678fc6d22dd9c4ea4cd25f865"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "f1c1fc491b94b033f2ec8a4bc6e7b09bcaf27367"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "57026010e1b86b3e197d6ba2cac4797651525dc3"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "5d82804203019248e0953865873516b3474a6639"
         },
         {
@@ -2366,12 +2474,22 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "64c6ccc7eb88836e26657aae10103227a5da8b35"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "6d06e9341fd109a24b4065800d4bc4bb7d2e3051"
         },
         {
           "state": "unreachable",
           "type": "tree",
           "object": "8546637be6de9ac63f0a3df8243380773615608d"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "3387159edbd26d467e944627e099e92bfe8304b5"
         },
         {
           "state": "unreachable",
@@ -2432,6 +2550,16 @@
           "state": "unreachable",
           "type": "blob",
           "object": "bb0b74362b89a077aa89da9254553343bb1cfb85"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "7a8c780332811eadccabb8e9832b23b3240eff74"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "828cfe98e46e2ebfac3f652ee9302c6690e761ab"
         },
         {
           "state": "unreachable",
@@ -2536,6 +2664,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "56950c05ac7db7c80fd3080f4817da55c84b417a"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "c295cbcac4c51887b2bffe4404748018dccf9964"
         },
         {
@@ -2552,6 +2685,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "429605de63dea15561141534415fabd8cab388ee"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "55d6f6355da4cbca76621043e4bbe1e067797534"
         },
         {
           "state": "unreachable",
@@ -2577,6 +2715,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "ffd6896f8554920d035690393618202419742409"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c05776bcc5f5f38c3f466f494ca83313d83be811"
         },
         {
           "state": "unreachable",
@@ -2611,6 +2754,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "dada310c0117cdb582aeb5e991cf479f8188dbe1"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "291b07aa5e84d95b79424b34af5029c6f40b89a7"
         },
         {
@@ -2637,6 +2785,11 @@
           "state": "unreachable",
           "type": "blob",
           "object": "c25b1191123d8b70473af7dcf3ac7544c892d02b"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "d8db61b62917e6a95e4ba4dd3db458278082d1af"
         },
         {
           "state": "unreachable",
@@ -2692,6 +2845,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "9d60ded356f696c3da93d2f7343047a0a1b9f2ec"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "cc60796f99c0691c89be52d043bc9299207fcdb5"
         },
         {
           "state": "unreachable",
@@ -2761,6 +2919,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "d124e6229d69c6320ae82331772c85da3697ca02"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "41e5581d68df939f5e96be97c522060e9954d803"
         },
         {
@@ -2772,6 +2935,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "c12574e966694fc0ff4045ee2c6fbd10821f7346"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "fc25e4dfb365fb80cad991a83eae111930ccff36"
         },
         {
           "state": "unreachable",
@@ -2821,7 +2989,17 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "d1a841a98a2bcfc822560e053b09a13c63fb8142"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "b029f1b0afccd994d221f1248a96aea461abe4ba"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "c8e9b4f096ba3b11de4cf1e18f40c435a2d2392e"
         },
         {
           "state": "unreachable",
@@ -2882,6 +3060,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "a5ad79783d119b08f43e8a7f28ff9ab1cac513b8"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b9aee8a620ed64824374e0ff3fa788e721f7a8ae"
         },
         {
           "state": "unreachable",
@@ -3001,6 +3184,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "5c38eec3d6e6973f22d1fbb45741eb81ed55324f"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "aef8eb650bc7f00cdd9855717c0c86cbefe11def"
         },
         {
@@ -3026,6 +3214,11 @@
         {
           "state": "unreachable",
           "type": "tree",
+          "object": "feb974b2f0de46913fb01627d953e712c2447bf0"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
           "object": "323a39aebad5d6c595b294914b279f68e86097e6"
         },
         {
@@ -3037,6 +3230,11 @@
           "state": "unreachable",
           "type": "tree",
           "object": "127b4f281796d770a28dfdc65691498276b81990"
+        },
+        {
+          "state": "unreachable",
+          "type": "tree",
+          "object": "b3bc91bd83c264f7eac243fdb82e616ce8770fbc"
         },
         {
           "state": "unreachable",

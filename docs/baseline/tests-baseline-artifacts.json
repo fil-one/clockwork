@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:02:00Z",
+  "capturedAt": "2026-08-16T21:57:22Z",
   "testFiles": [
     "apps/web/app/(experience)/(customer)/account/notifications/notification-preference-model.test.ts",
     "apps/web/app/(experience)/(customer)/account/notifications/notification-preferences.test.tsx",
@@ -41,6 +41,7 @@
     "apps/web/src/features/customer-partner/commercial/collection-page.sort.test.tsx",
     "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
     "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
+    "apps/web/src/features/customer-partner/commercial/payment-handoff.test.tsx",
     "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
     "apps/web/src/features/customer-partner/commercial/quote-builder.unsaved.test.tsx",
     "apps/web/src/features/customer-partner/commercial/record-detail.forward-step.test.tsx",
@@ -79,6 +80,7 @@
     "apps/web/src/features/experience-server/delivery.customer-visible.test.tsx",
     "apps/web/src/features/experience-server/delivery.test.ts",
     "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
+    "apps/web/src/features/experience-server/demo-order-acceptance.test.ts",
     "apps/web/src/features/experience-server/demo-state-store.test.ts",
     "apps/web/src/features/experience-server/derivation-loader.test.ts",
     "apps/web/src/features/experience-server/evidence-gateway.test.ts",
@@ -400,8 +402,8 @@
     "supabase/tests/952_partner_mor_offboarding_rls.test.sql"
   ],
   "counts": {
-    "totalFiles": 396,
-    "unitFiles": 276,
+    "totalFiles": 398,
+    "unitFiles": 278,
     "storybookFiles": 4,
     "integrationFiles": 64,
     "scriptFiles": 6,
@@ -443,6 +445,7 @@
       "apps/web/src/features/customer-partner/commercial/collection-page.sort.test.tsx",
       "apps/web/src/features/customer-partner/commercial/collection-states.test.tsx",
       "apps/web/src/features/customer-partner/commercial/order-acceptance.test.tsx",
+      "apps/web/src/features/customer-partner/commercial/payment-handoff.test.tsx",
       "apps/web/src/features/customer-partner/commercial/quote-builder.test.tsx",
       "apps/web/src/features/customer-partner/commercial/quote-builder.unsaved.test.tsx",
       "apps/web/src/features/customer-partner/commercial/record-detail.forward-step.test.tsx",
@@ -481,6 +484,7 @@
       "apps/web/src/features/experience-server/delivery.customer-visible.test.tsx",
       "apps/web/src/features/experience-server/delivery.test.ts",
       "apps/web/src/features/experience-server/demo-experience-repository.test.ts",
+      "apps/web/src/features/experience-server/demo-order-acceptance.test.ts",
       "apps/web/src/features/experience-server/demo-state-store.test.ts",
       "apps/web/src/features/experience-server/derivation-loader.test.ts",
       "apps/web/src/features/experience-server/evidence-gateway.test.ts",
