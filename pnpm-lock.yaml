@@ -175,6 +175,9 @@ importers:
       '@clockwork/documents':
         specifier: workspace:*
         version: link:../../packages/documents
+      '@clockwork/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@clockwork/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations

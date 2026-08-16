@@ -1,5 +1,7 @@
 import { demoAccountIds } from "@clockwork/testing/personas";
 
+import { formatMoney } from "@/src/features/shared/format";
+
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 
 /**
@@ -822,3 +824,97 @@ export const demoAdditionalRecords: readonly DemoPortalRecord[] = [
   ...partnerBook,
   ...internalBook,
 ];
+
+/* --------------------------------------------------------------------------
+ * Orders a prospect created during the demo
+ *
+ * Everything above is seeded. These are not: they are written by the demo's
+ * order-acceptance create pass and read back onto the orders channel, so a
+ * prospect who completes the ceremony lands on a record that exists, in the
+ * ledger they already know, rather than on a confirmation with nothing behind
+ * it. A reset drops them with the rest of the demo state.
+ * ----------------------------------------------------------------------- */
+
+/** What the create pass recorded. Written by `DemoOrderAcceptance.create`. */
+export interface DemoCreatedOrder {
+  readonly id: string;
+  readonly quoteRecordKey: string;
+  readonly accountId: string;
+  readonly audienceAccountId: string;
+  readonly orderFormDocumentId: string;
+  readonly artifactRequestId: string;
+  readonly poNumber: string;
+  readonly authorityTitle: string;
+  readonly signerName: string;
+  readonly serviceStartsOn: string;
+  readonly serviceEndsOn: string;
+  /** The documentary instant the order form states. */
+  readonly acceptedAt: string;
+  /** The server's own receive instant, which is what `immutableAt` is. */
+  readonly immutableAt: string;
+  readonly currency: "USD" | "EUR" | "GBP";
+  readonly totalMinor: string;
+  readonly agreementReference: string;
+  readonly quoteReference: string;
+}
+
+/**
+ * The record key a created order is addressed by.
+ *
+ * `record-detail` links a created order as `/orders/order-${id}`, which is the
+ * link the acceptance surface already offers on success, so the key carries the
+ * same prefix. Nothing else in the demo may claim that shape.
+ */
+export function demoCreatedOrderKey(orderId: string): string {
+  return `order-${orderId}`;
+}
+
+/**
+ * The created order, as the orders channel serves it.
+ *
+ * `status: "active"` and the empty `allowedActions` are the honest reading of
+ * what the demo did: the order and its commitment exist, and no further
+ * customer action is available on it here. Every figure comes off the record
+ * the create pass wrote; nothing is restated.
+ */
+export function demoCreatedOrderRecord(
+  order: DemoCreatedOrder,
+): DemoPortalRecord {
+  return {
+    audience: "customer",
+    channel: "orders",
+    key: demoCreatedOrderKey(order.id),
+    accountId: order.audienceAccountId,
+    version: 1,
+    updatedAt: order.immutableAt,
+    data: {
+      ...commercial({
+        kind: "orders",
+        id: demoCreatedOrderKey(order.id),
+        title: `Committed capacity · ${order.poNumber}`,
+        description: `Accepted from ${order.quoteReference} · order form on file`,
+        status: "active",
+        statusLabel: "Active · accepted in this session",
+        tone: "success",
+        risk: "low",
+        owner: order.signerName,
+        value: formatMoney(order.totalMinor, order.currency),
+        valueLabel: "Committed spend",
+        dateLabel: `Accepted ${order.acceptedAt.slice(0, 10)}`,
+        term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,
+        nextAction: "Provisioning follows the service start date",
+      }),
+      // The bound evidence, carried on the record it bound. The seeded rows get
+      // theirs from the artifact catalogue's attachment index; this one was not
+      // in the catalogue when the process started, so it names its own.
+      artifacts: [
+        {
+          kind: "order_form" as const,
+          id: order.artifactRequestId,
+          label: `Order form · ${order.poNumber}`,
+          state: "stored" as const,
+        },
+      ],
+    },
+  };
+}

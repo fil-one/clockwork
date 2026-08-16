@@ -132,6 +132,13 @@ export interface GoverningAgreement {
 interface PreparedOrderForm {
   documentId: string;
   orderId: string;
+  /**
+   * What the reader opens. Distinct from `documentId`, which is what the create
+   * pass quotes -- see `PreparedOrderFormLookup`. Acceptance is a binding
+   * signature on a document, and a ceremony that asks for the signature without
+   * ever showing the paper is not the ceremony the product runs.
+   */
+  artifactId: string;
 }
 
 function retainUntil(acceptedAt: string): string {
@@ -366,7 +373,11 @@ export function OrderAcceptance({
         // bound to any other order would release the control into a create
         // pass the server refuses.
         if (preparedRef.current?.orderId !== orderId) return;
-        setOrderForm({ documentId: answer.documentId, orderId });
+        setOrderForm({
+          documentId: answer.documentId,
+          orderId,
+          artifactId: answer.artifactId,
+        });
         setPhase("ready");
         return;
       }
@@ -833,6 +844,29 @@ export function OrderAcceptance({
               {error ? (
                 <p className={styles.errorMessage} role="alert">
                   {error}
+                </p>
+              ) : null}
+              {/*
+                The paper, before the signature. The create pass is a binding
+                acceptance OF this document -- its hash covers the purchase
+                order, the service period, the signing title and the acceptance
+                instant -- so the reader is offered the rendered form itself
+                rather than asked to take its existence on trust. It appears
+                only while `preparedFor` holds, which is exactly while the
+                document on the server still describes what is on screen.
+              */}
+              {preparedFor ? (
+                <p className={styles.notice}>
+                  The order form has been rendered for these entries.{" "}
+                  <a
+                    href={`/api/experience/artifacts/order_form/${encodeURIComponent(preparedFor.artifactId)}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Open the order form
+                  </a>{" "}
+                  before you accept. Changing any entry above discards it and
+                  prepares a new one.
                 </p>
               ) : null}
               {rechecking && awaitingOrderId ? (

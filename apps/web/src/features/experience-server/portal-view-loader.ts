@@ -31,6 +31,7 @@ import {
   type ProjectionRecord,
 } from "./model";
 import { authorizationContext } from "./authorization";
+import { demoOrderAcceptance } from "./demo-order-acceptance";
 import {
   configuredProjectionSource,
   projectionInput,
@@ -326,15 +327,32 @@ export async function loadTopPortalRecords(
  * hash inside the accepting transaction.
  *
  * `unavailable` rather than a throw when nothing is composed: a deployment
- * without an authoritative database (or on demo data) cannot render order
- * forms at all, and reporting that as "still rendering" would leave the reader
- * polling something that is never coming.
+ * without an authoritative database cannot render order forms at all, and
+ * reporting that as "still rendering" would leave the reader polling something
+ * that is never coming.
+ *
+ * THE DEMO ADAPTER USED TO BE IN THAT SENTENCE, AND IT NO LONGER IS. The early
+ * return said a demo deployment "cannot render order forms at all", and that
+ * stopped being true: the demo renders all nineteen catalogue artifact kinds
+ * through the product's own renderer, and `DemoOrderAcceptance.prepare` records
+ * a real artifact request bound to the order the first pass named. Returning
+ * `unavailable` unconditionally was therefore the only reason the demo's
+ * acceptance journey dead-ended — every prospect who reached the second pass
+ * was told the workspace could not answer a question it could answer.
  */
 export async function loadPreparedOrderForm(
   orderId: string,
 ): Promise<PreparedOrderFormLookup> {
-  if (process.env.CLOCKWORK_EXPERIENCE_ADAPTER?.trim() === "demo")
-    return { status: "unavailable" };
+  if (process.env.CLOCKWORK_EXPERIENCE_ADAPTER?.trim() === "demo") {
+    const prepared = await demoOrderAcceptance().preparedOrderForm(orderId);
+    return prepared
+      ? {
+          status: "stored",
+          documentId: prepared.documentId,
+          artifactId: prepared.artifactId,
+        }
+      : { status: "pending" };
+  }
   const database = getOptionalRuntimeDatabase();
   const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
   if (!database || !secret || secret.length < 32)
@@ -347,7 +365,11 @@ export async function loadPreparedOrderForm(
     (transaction) => findPreparedOrderForm(transaction, { orderId }),
   );
   return prepared
-    ? { status: "stored", documentId: prepared.documentId }
+    ? {
+        status: "stored",
+        documentId: prepared.documentId,
+        artifactId: prepared.artifactId,
+      }
     : { status: "pending" };
 }
 

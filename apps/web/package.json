@@ -24,6 +24,7 @@
     "@clockwork/contracts": "workspace:*",
     "@clockwork/db": "workspace:*",
     "@clockwork/documents": "workspace:*",
+    "@clockwork/domain": "workspace:*",
     "@clockwork/integrations": "workspace:*",
     "@clockwork/testing": "workspace:*",
     "@clockwork/ui": "workspace:*",

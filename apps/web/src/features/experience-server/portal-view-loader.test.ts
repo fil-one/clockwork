@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   find: vi.fn(),
   findPreparedOrderForm: vi.fn(),
   runtimeDatabase: vi.fn(),
+  demoPreparedOrderForm: vi.fn(),
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -19,6 +20,11 @@ vi.mock("./projection-source", () => ({
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalRuntimeDatabase: mocks.runtimeDatabase,
+}));
+vi.mock("./demo-order-acceptance", () => ({
+  demoOrderAcceptance: () => ({
+    preparedOrderForm: mocks.demoPreparedOrderForm,
+  }),
 }));
 vi.mock("@clockwork/db", () => ({
   findPreparedOrderForm: mocks.findPreparedOrderForm,
@@ -599,19 +605,26 @@ describe("top-N projection reads", () => {
 describe("prepared order form", () => {
   const orderId = "70000000-0000-4000-8000-000000000001";
   const documentId = "80000000-0000-4000-8000-000000000001";
+  const artifactId = "80000000-0000-4000-8000-0000000000a1";
 
   beforeEach(() => {
     process.env.AUTHORIZATION_CONTEXT_SECRET = "x".repeat(48);
     delete process.env.CLOCKWORK_EXPERIENCE_ADAPTER;
     mocks.runtimeDatabase.mockReturnValue({ db: {} });
+    mocks.demoPreparedOrderForm.mockResolvedValue(null);
   });
 
   it("answers with the document the renderer stored", async () => {
-    mocks.findPreparedOrderForm.mockResolvedValue({ documentId, orderId });
+    mocks.findPreparedOrderForm.mockResolvedValue({
+      documentId,
+      orderId,
+      artifactId,
+    });
 
     await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
       status: "stored",
       documentId,
+      artifactId,
     });
     expect(mocks.findPreparedOrderForm).toHaveBeenCalledWith(
       { authorized: true },
@@ -640,11 +653,38 @@ describe("prepared order form", () => {
     expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
   });
 
-  it("says it cannot answer on demo data", async () => {
+  /**
+   * The demo used to answer `unavailable` here unconditionally, which is what
+   * dead-ended its acceptance journey: the reader was told the workspace could
+   * not confirm whether the order form had been rendered, for ever, with no
+   * further pass available. It CAN confirm it. The demo's prepare pass records
+   * a real artifact request bound to the order it named, and this reads it --
+   * never touching the authoritative lookup, which has no database behind it
+   * on a demo deploy.
+   */
+  it("reads the demo's own prepared request on demo data", async () => {
     process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+    mocks.demoPreparedOrderForm.mockResolvedValue({
+      documentId,
+      orderId,
+      artifactId,
+    });
 
     await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
-      status: "unavailable",
+      status: "stored",
+      documentId,
+      artifactId,
+    });
+    expect(mocks.demoPreparedOrderForm).toHaveBeenCalledWith(orderId);
+    expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
+  });
+
+  it("answers pending on demo data until the first pass has run", async () => {
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+    mocks.demoPreparedOrderForm.mockResolvedValue(null);
+
+    await expect(loadPreparedOrderForm(orderId)).resolves.toEqual({
+      status: "pending",
     });
     expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
   });

@@ -13,8 +13,19 @@
  * them to keep waiting for something that is never coming.
  */
 export type PreparedOrderFormLookup =
-  /** The renderer has stored the form and bound it to the order that was named. */
-  | { status: "stored"; documentId: string }
+  /**
+   * The renderer has stored the form and bound it to the order that was named.
+   *
+   * `documentId` is what the create pass quotes; `artifactId` is what the
+   * reader opens. They are different identifiers and both are needed: the
+   * binding is checked against the document, but the artifact download route is
+   * keyed on the request that produced it (`experience_artifact_deliveries.id`
+   * falling through to `core_commercial_artifact_requests.id`), so a link built
+   * from `documentId` resolves to nothing. Before `artifactId` travelled with
+   * the answer, the surface could tell the reader their order form existed and
+   * could not show it to them.
+   */
+  | { status: "stored"; documentId: string; artifactId: string }
   /** The request exists and the renderer has not finished. Keep waiting. */
   | { status: "pending" }
   /**

@@ -163,9 +163,14 @@ describe("prepared order form", () => {
     );
     expect(orderRows).toHaveLength(0);
 
+    // All three identifiers, because all three are load-bearing and none is
+    // derivable from the others: the create pass quotes `documentId` under
+    // `orderId`, and the reader opens `artifactId` -- the download route
+    // resolves the request, never the document.
     await expect(read(audienceAccountId, storedOrderId)).resolves.toEqual({
       documentId,
       orderId: storedOrderId,
+      artifactId: storedRequestId,
     });
   });
 

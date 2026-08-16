@@ -101,6 +101,49 @@ describe("demo commerce api", () => {
     });
   });
 
+  /**
+   * The order lane is run, not simulated, so it is the one command the echo
+   * handler must not answer. Reaching an authentication failure rather than a
+   * `{record: {data: <the payload>}}` echo is the evidence that the request was
+   * routed to the lane -- the lane reads a session, and this request carries
+   * none.
+   */
+  it("routes an order command to the lane rather than echoing it", async () => {
+    const response = await handle(
+      new Request("https://demo.clockwork.test/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "demo-order-command-1",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          id: "88888888-8888-4888-8888-888888888888",
+          accountId: "11111111-1111-4111-8111-111111111111",
+          action: "accept",
+          payload: {},
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ACTION_NOT_ALLOWED",
+    });
+  });
+
+  it("refuses an order command with no replay evidence", async () => {
+    const response = await handle(
+      new Request("https://demo.clockwork.test/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "x", action: "create", payload: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+  });
+
   it("reports an operation the demo does not simulate as problem details", async () => {
     const response = await handle(
       new Request("https://demo.clockwork.test/api/v1/system/nothing-here"),

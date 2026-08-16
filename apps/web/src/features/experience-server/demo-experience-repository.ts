@@ -18,15 +18,21 @@ import {
 
 import {
   artifactSourceHash,
+  commercialArtifactSource,
   verifyResolvedArtifactSource,
   type ResolvedArtifactSource,
 } from "./artifact-sources";
 import {
   demoArtifactById,
   demoArtifactBySubject,
+  demoPlatformIssuer,
   demoUuid,
   type DemoArtifactFixture,
 } from "./demo-artifact-catalog";
+import {
+  demoOrderAcceptance,
+  type DemoCommercialArtifactRequest,
+} from "./demo-order-acceptance";
 import { configuredDemoStateStore } from "./demo-state-store";
 import {
   configuredEvidenceGateway,
@@ -791,6 +797,29 @@ export class DemoExperienceRepository implements ExperienceRepository {
     return result.record;
   }
 
+  /**
+   * The artifact source for a subject, whether it was seeded or prepared here.
+   *
+   * A form a prospect prepared during this demo is a source in exactly the way
+   * a catalogue fixture is, and both render call sites have to see it: the
+   * on-read download AND this two-step pipeline. Answering the two-step with
+   * `ARTIFACT_SOURCE_NOT_FOUND` for a document the demo had just composed
+   * would be the demo disagreeing with itself about what exists.
+   */
+  async #subjectSource(
+    kind: ArtifactKind,
+    subjectId: string,
+  ): Promise<ResolvedArtifactSource | undefined> {
+    if (kind === "order_form") {
+      const request = (await demoOrderAcceptance().artifactRequests()).find(
+        (candidate) => candidate.subjectId === subjectId,
+      );
+      if (request) return (await this.#preparedArtifact(request.id))?.source;
+    }
+    const fixture = demoArtifactBySubject(kind, subjectId);
+    return fixture ? resolveDemoArtifactSource(fixture) : undefined;
+  }
+
   public async createRenderRequest(input: {
     session: SessionClaims;
     source: {
@@ -802,17 +831,16 @@ export class DemoExperienceRepository implements ExperienceRepository {
     };
     requestId: string;
   }): Promise<RenderRequestRecord> {
-    const fixture = demoArtifactBySubject(
+    const source = await this.#subjectSource(
       input.source.kind,
       input.source.subjectId,
     );
-    if (!fixture)
+    if (!source)
       throw new ExperienceProblem(
         404,
         "ARTIFACT_SOURCE_NOT_FOUND",
         "No document source exists for that subject",
       );
-    const source = await resolveDemoArtifactSource(fixture);
     if (
       input.source.accountId !== source.accountId ||
       input.source.audience !== source.audience
@@ -910,11 +938,15 @@ export class DemoExperienceRepository implements ExperienceRepository {
     storageVersionId: string;
     requestId: string;
   }): Promise<ArtifactRepresentation> {
-    const fixture = demoArtifactBySubject(
-      input.request.kind,
-      input.request.subjectId,
-    );
-    if (!fixture)
+    // The download identifier for this subject: the catalogue fixture's own,
+    // or -- for a form prepared during this demo -- the artifact request that
+    // composed it, which is what the download route resolves for those.
+    const deliveryId =
+      demoArtifactBySubject(input.request.kind, input.request.subjectId)?.id ??
+      (await demoOrderAcceptance().artifactRequests()).find(
+        (candidate) => candidate.subjectId === input.request.subjectId,
+      )?.id;
+    if (!deliveryId)
       throw new ExperienceProblem(
         404,
         "ARTIFACT_SOURCE_NOT_FOUND",
@@ -922,14 +954,14 @@ export class DemoExperienceRepository implements ExperienceRepository {
       );
     const documentId = input.request.input.documentId;
     const representation: ArtifactRepresentation = {
-      id: fixture.id,
+      id: deliveryId,
       kind: input.request.kind,
       subjectType: input.request.subjectType,
       subjectId: input.request.subjectId,
       accountId: input.request.accountId,
       audience: input.request.audience,
       audienceAccountId: input.request.audienceAccountId,
-      documentId: typeof documentId === "string" ? documentId : fixture.id,
+      documentId: typeof documentId === "string" ? documentId : deliveryId,
       version: input.immutableVersion,
       sourceHash: input.request.sourceHash,
       contentHash: input.contentHash,
@@ -938,7 +970,7 @@ export class DemoExperienceRepository implements ExperienceRepository {
       filename: input.filename,
       retainUntil: input.request.retainUntil,
       createdAt: new Date().toISOString(),
-      downloadHref: `/api/experience/artifacts/${input.request.kind}/${fixture.id}`,
+      downloadHref: `/api/experience/artifacts/${input.request.kind}/${deliveryId}`,
     };
     await this.#transitionRenderRequest(
       input.request.id,
@@ -972,12 +1004,54 @@ export class DemoExperienceRepository implements ExperienceRepository {
    * deterministic and content addressed, so re-rendering produces the identical
    * bytes, hash and storage key the first render produced.
    */
+  /**
+   * An order form a prospect prepared during this demo, resolved the way the
+   * persisted download resolves one: by the artifact request identifier.
+   *
+   * `commercialArtifactSource` is the same translation the database path runs
+   * over `core_commercial_artifact_requests.source_definition`. Only the row
+   * comes from somewhere else.
+   */
+  async #preparedArtifact(
+    id: string,
+  ): Promise<
+    | { source: ResolvedArtifactSource; request: DemoCommercialArtifactRequest }
+    | undefined
+  > {
+    const request = (await demoOrderAcceptance().artifactRequests()).find(
+      (candidate) => candidate.id === id,
+    );
+    if (!request) return undefined;
+    return {
+      request,
+      source: commercialArtifactSource({
+        subjectType: request.subjectType,
+        subjectId: request.subjectId,
+        audienceAccountId: request.audienceAccountId,
+        audience: request.audience === "partner" ? "partner" : "customer",
+        kind: request.documentKind,
+        definition: request.definition,
+        sourceHash: request.sourceHash,
+        retainUntil: request.retainUntil,
+        issuer: demoPlatformIssuer,
+      }),
+    };
+  }
+
   public async findArtifact(
     session: SessionClaims,
     kind: ArtifactKind,
     id: string,
     requestId: string,
   ): Promise<ArtifactDownloadRecord> {
+    const prepared =
+      kind === "order_form" ? await this.#preparedArtifact(id) : undefined;
+    if (prepared)
+      return this.#download(session, prepared.source, requestId, {
+        id,
+        createdAt: prepared.request.createdAt,
+        retainUntil: prepared.request.retainUntil,
+      });
     const fixture = demoArtifactById(kind, id);
     if (!fixture)
       throw new ExperienceProblem(
@@ -985,7 +1059,24 @@ export class DemoExperienceRepository implements ExperienceRepository {
         "ARTIFACT_NOT_FOUND",
         "Artifact not found",
       );
-    const source = await resolveDemoArtifactSource(fixture);
+    return this.#download(
+      session,
+      await resolveDemoArtifactSource(fixture),
+      requestId,
+      {
+        id: fixture.id,
+        createdAt: fixture.createdAt,
+        retainUntil: fixture.retainUntil,
+      },
+    );
+  }
+
+  async #download(
+    session: SessionClaims,
+    source: ResolvedArtifactSource,
+    requestId: string,
+    entry: { id: string; createdAt: string; retainUntil: string },
+  ): Promise<ArtifactDownloadRecord> {
     assertDemoArtifactScope(session, source);
     const rendered = await renderAuthorizedCommerceDocument(source.input, {
       actorUserId: session.userId,
@@ -1004,15 +1095,15 @@ export class DemoExperienceRepository implements ExperienceRepository {
       bytes: rendered.bytes,
       contentHash: rendered.contentHash,
       mimeType: rendered.mimeType,
-      retainUntil: fixture.retainUntil,
+      retainUntil: entry.retainUntil,
       accountId: source.accountId,
       internalScopeId: source.subjectId,
-      source: `demo-render:${fixture.id}`,
+      source: `demo-render:${entry.id}`,
     });
     return {
       representation: {
-        id: fixture.id,
-        kind: fixture.kind,
+        id: entry.id,
+        kind: source.kind,
         subjectType: source.subjectType,
         subjectId: source.subjectId,
         accountId: source.accountId,
@@ -1025,9 +1116,9 @@ export class DemoExperienceRepository implements ExperienceRepository {
         mimeType: "application/pdf",
         byteLength: String(rendered.bytes.byteLength),
         filename: rendered.fileName,
-        retainUntil: fixture.retainUntil,
-        createdAt: fixture.createdAt,
-        downloadHref: `/api/experience/artifacts/${fixture.kind}/${fixture.id}`,
+        retainUntil: entry.retainUntil,
+        createdAt: entry.createdAt,
+        downloadHref: `/api/experience/artifacts/${source.kind}/${entry.id}`,
       },
       storageKey: stored.storageKey,
       storageVersionId: stored.storageVersionId,

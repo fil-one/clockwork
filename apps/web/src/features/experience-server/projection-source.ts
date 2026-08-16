@@ -18,13 +18,16 @@ import { resolveScopedAccount } from "./authorization";
 import {
   demoInvoiceFigures,
   demoRecordArtifacts,
+  demoUuid,
 } from "./demo-artifact-catalog";
 import {
   demoAdditionalRecords,
+  demoCreatedOrderRecord,
   demoRecordAccounts,
   demoTaxedBillingRecords,
   DEMO_DEFAULT_CUSTOMER_ACCOUNT,
   DEMO_DEFAULT_PARTNER_ACCOUNT,
+  type DemoCreatedOrder,
 } from "./demo-portal-records";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
@@ -282,6 +285,62 @@ const demoRecords = [
   ...additionalRecords(),
 ];
 
+/**
+ * The orders a prospect created during this session, on the orders channel.
+ *
+ * Read from the demo state on every read rather than folded into the seeded
+ * `demoRecords` constant, because they are written after that constant is
+ * built. The projection identifier is derived from the order identifier so it
+ * is stable across reads -- an identifier that changed between the collection
+ * read and the detail read would make the record unopenable.
+ *
+ * This is the last link in the acceptance chain. Without it the create pass
+ * would succeed, the surface would offer "Track this acceptance in orders", and
+ * the ledger behind that link would not hold the order -- which is the same
+ * dead end this whole change exists to close, moved one step later.
+ */
+function createdOrderRecords(state: DemoAdapterState): DemoRecord[] {
+  const created = (
+    state as { createdOrders?: Record<string, DemoCreatedOrder> }
+  ).createdOrders;
+  if (!created) return [];
+  return Object.values(created).map((order) => {
+    const record = demoCreatedOrderRecord(order);
+    return {
+      id: demoUuid(`projection:order:${order.id}`),
+      key: record.key,
+      audience: record.audience,
+      channel: record.channel,
+      accountId: record.accountId,
+      version: record.version,
+      updatedAt: record.updatedAt,
+      data: record.data,
+    };
+  });
+}
+
+/**
+ * The projection identifier a seeded demo record is served under.
+ *
+ * The identifiers are positional, assigned by the builders above, and the
+ * acceptance surface sends one back as `quoteId` — it is the `aggregateId` the
+ * quote row was rendered with. Resolving it here rather than restating the
+ * numbering elsewhere is what keeps the two from drifting apart when a fixture
+ * is inserted into the middle of one of those arrays.
+ */
+export function demoProjectionRecordId(
+  audience: ExperienceAudience,
+  channel: ProjectionChannel,
+  recordKey: string,
+): string | undefined {
+  return demoRecords.find(
+    (record) =>
+      record.audience === audience &&
+      record.channel === channel &&
+      record.key === recordKey,
+  )?.id;
+}
+
 function applyDemoState(
   record: DemoRecord,
   state: DemoAdapterState,
@@ -398,7 +457,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection cursor is invalid",
       );
     const state = await this.stateStore.read();
-    const selected = demoRecords
+    const selected = [...demoRecords, ...createdOrderRecords(state)]
       .filter(
         (record) =>
           record.audience === input.audience &&
@@ -450,7 +509,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     // exist. The persisted read collapses the two the same way, deliberately:
     // telling them apart would be an enumeration oracle for another tenant's
     // references.
-    const record = demoRecords.find(
+    const state = await this.stateStore.read();
+    const record = [...demoRecords, ...createdOrderRecords(state)].find(
       (item) =>
         item.audience === input.audience &&
         item.channel === input.channel &&
@@ -463,7 +523,6 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "PROJECTION_NOT_FOUND",
         "Projection record not found",
       );
-    const state = await this.stateStore.read();
     return projectRecord(applyDemoState(record, state), input.now);
   }
 
