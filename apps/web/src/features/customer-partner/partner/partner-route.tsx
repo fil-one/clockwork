@@ -61,10 +61,17 @@ export async function PartnerCollectionRoute({
       config={{ ...partnerSurfaces[surface], records: projection.records }}
       roles={session.roles}
       partnerName={partnerMembership.accountName}
-      // The loader has always returned these two. This route dropped them and
+      // The loader has always returned these. This route dropped them and
       // rendered the rows as current; the reader had no way to know otherwise.
+      //
+      // `truncated` is the third of them and says something `stale` cannot:
+      // rows are missing, so the result count and the facet choices below
+      // describe a prefix. The loader stopped raising this as an error
+      // precisely so the read would succeed -- succeeding silently would just
+      // move the defect from a refused route to a wrong page.
       freshness={{
         generatedAt: projection.generatedAt,
+        partial: projection.truncated,
         stale: projection.stale,
       }}
       formatting={{ locale: session.locale, timeZone: session.timeZone }}

@@ -38,7 +38,7 @@ function renderSurface(
     <OrderAcceptance
       account={account}
       agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-      orderFormDocumentId={null}
+      orderForm={null}
       quote={quote}
       signerUserId="20000000-0000-4000-8000-000000000002"
       {...overrides}
@@ -143,6 +143,7 @@ describe("order acceptance", () => {
 });
 
 const orderFormDocumentId = "80000000-0000-4000-8000-000000000001";
+const foreignOrderId = "90000000-0000-4000-8000-00000000000f";
 
 const acceptLabel = "Accept order and create commitment";
 const createLabel = "Create the order and commitment";
@@ -179,6 +180,31 @@ async function submitFirstPass() {
   await settled(() => {
     fireEvent.click(screen.getByRole("button", { name: acceptLabel }));
   });
+}
+
+/** The order identifier the prepare pass named. */
+function preparedOrderId(): string {
+  return commandCall(0).command.id;
+}
+
+/**
+ * What the server produces once the artifact renderer has stored the form:
+ * the same client component, re-rendered with a document *and* the order it
+ * was bound to.
+ */
+function deliverOrderForm(
+  view: ReturnType<typeof renderSurface>,
+  orderId: string,
+) {
+  view.rerender(
+    <OrderAcceptance
+      account={account}
+      agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
+      orderForm={{ documentId: orderFormDocumentId, orderId }}
+      quote={quote}
+      signerUserId="20000000-0000-4000-8000-000000000002"
+    />,
+  );
 }
 
 function commandCall(index: number) {
@@ -244,15 +270,7 @@ describe("order acceptance two-pass bridge", () => {
     // What `router.refresh()` produces: the same client component, re-rendered
     // with a server prop it did not have before.
     await settled(() => {
-      view.rerender(
-        <OrderAcceptance
-          account={account}
-          agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-          orderFormDocumentId={orderFormDocumentId}
-          quote={quote}
-          signerUserId="20000000-0000-4000-8000-000000000002"
-        />,
-      );
+      deliverOrderForm(view, preparedOrderId());
     });
 
     const create = screen.getByRole("button", { name: createLabel });
@@ -272,15 +290,7 @@ describe("order acceptance two-pass bridge", () => {
     await submitFirstPass();
     await elapse(2_000);
     await settled(() => {
-      view.rerender(
-        <OrderAcceptance
-          account={account}
-          agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-          orderFormDocumentId={orderFormDocumentId}
-          quote={quote}
-          signerUserId="20000000-0000-4000-8000-000000000002"
-        />,
-      );
+      deliverOrderForm(view, preparedOrderId());
     });
 
     await settled(() => {
@@ -368,8 +378,13 @@ describe("order acceptance two-pass bridge", () => {
   });
 
   it("closes the surface once the order exists", async () => {
-    renderSurface({ orderFormDocumentId });
+    const view = renderSurface();
     fillAcceptanceInputs();
+    await submitFirstPass();
+    await elapse(2_000);
+    await settled(() => {
+      deliverOrderForm(view, preparedOrderId());
+    });
 
     await settled(() => {
       fireEvent.click(screen.getByRole("button", { name: createLabel }));
@@ -377,6 +392,104 @@ describe("order acceptance two-pass bridge", () => {
 
     expect(screen.getByRole("button", { name: createLabel })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Order created");
+  });
+});
+
+/**
+ * P0-68, refuted. The bridge as merged binds the create pass to the *presence*
+ * of a document identifier, and the server binds it to the order the document
+ * was prepared for. Three places in the database prove they are not the same
+ * condition:
+ *
+ * 1. `assertCommercialArtifactBinding` (packages/db/src/repositories/core/
+ *    commercial-artifacts.ts) selects the request row by `(document_id,
+ *    subject_type, subject_id, source_hash, status='stored')`. `subject_id` is
+ *    the order identifier the *prepare* pass named.
+ * 2. `mutateOrder`'s create branch recomputes `orderArtifactDefinition` from
+ *    the command it is handed and passes that definition's `sourceHash` to the
+ *    binding check. The definition carries the purchase-order number, the
+ *    service period and the signing title.
+ * 3. Neither has any tolerance: a mismatch on either is
+ *    `COMMERCIAL_ARTIFACT_BINDING_INVALID`, and the refusal releases no further
+ *    pass, so the reader is left with a form they can never submit.
+ *
+ * Both tests below fail against the merged code, which keys `creating` on
+ * `orderFormDocumentId !== null` and mints `orderIdRef` afresh with `??=`.
+ */
+describe("order acceptance binds the form to the order it was prepared for", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  it("prepares rather than creating against a form this session did not request", async () => {
+    renderSurface({
+      orderForm: { documentId: orderFormDocumentId, orderId: foreignOrderId },
+    });
+    fillAcceptanceInputs();
+
+    await submitFirstPass();
+
+    // The account already held a rendered order form, but it was rendered for
+    // another order and from other entries. The only pass available is a
+    // prepare for this one.
+    expect(commandCall(0).command.action).toBe("prepare_artifact");
+    expect(commandCall(0).command.id).not.toBe(foreignOrderId);
+    expect(commandCall(0).command.payload).not.toHaveProperty(
+      "orderFormDocumentId",
+    );
+  });
+
+  it("returns to a prepare pass when a bound entry changes after the form arrives", async () => {
+    const view = renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    await elapse(2_000);
+    const prepared = preparedOrderId();
+    await settled(() => {
+      deliverOrderForm(view, prepared);
+    });
+    expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
+
+    // The purchase-order number is rendered into the order form and hashed
+    // into the request. Changing it makes the held document evidence for
+    // entries that are no longer on screen.
+    fireEvent.change(screen.getByLabelText("Purchase order"), {
+      target: { value: "PO-NA-1093" },
+    });
+
+    expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: acceptLabel }));
+    });
+
+    const second = commandCall(1);
+    expect(second.command.action).toBe("prepare_artifact");
+    expect(second.command.payload).not.toHaveProperty("orderFormDocumentId");
+    // A new prepare is a new order. Reusing the identifier the first form was
+    // bound to would leave two requests fighting over one subject.
+    expect(second.command.id).not.toBe(prepared);
+  });
+
+  it("never creates under an order the document was not bound to", async () => {
+    const view = renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    await elapse(2_000);
+    const prepared = preparedOrderId();
+    await settled(() => {
+      deliverOrderForm(view, prepared);
+    });
+
+    await settled(() => {
+      fireEvent.click(screen.getByRole("button", { name: createLabel }));
+    });
+
+    const create = commandCall(1);
+    expect(create.command.action).toBe("create");
+    expect(create.command.id).toBe(prepared);
+    expect(create.command.payload.orderFormDocumentId).toBe(
+      orderFormDocumentId,
+    );
   });
 });
 

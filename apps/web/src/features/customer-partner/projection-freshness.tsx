@@ -22,6 +22,22 @@ export interface ProjectionFreshness {
   generatedAt: string;
   /** True when any record in the read is behind its source. */
   stale: boolean;
+  /**
+   * True when the read stopped at the loader's page ceiling.
+   *
+   * Distinct from `stale`, and worse. Stale means the rows may be behind their
+   * source; partial means rows are *missing*, so the result count, the owner
+   * and status choices in the filter panel, and any total on the page describe
+   * a prefix rather than the collection. `loadPortalRecords` sets `stale` too
+   * on a truncated read, but "may be out of date" is not what happened and a
+   * refresh is not the answer, so the two are said separately.
+   *
+   * Optional so a surface that has not been given the loader's `truncated`
+   * flag keeps rendering exactly as it does today rather than failing to
+   * compile -- but a surface that omits it is a surface that cannot disclose
+   * this, which is what the customer collection routes still are.
+   */
+  partial?: boolean;
 }
 
 /**
@@ -50,6 +66,18 @@ export function ProjectionFreshnessNotice({
       {formatSurfaceTimestamp(freshness.generatedAt, formatting)}
     </time>
   );
+  if (freshness.partial)
+    return (
+      <section
+        className={`${styles.staleBanner} ${styles.partialBanner} ${className}`.trim()}
+        role="alert"
+      >
+        <strong>{copy.freshnessPartialTitle}</strong>
+        <span>
+          {copy.freshnessPartialBody} {copy.freshnessReadAt} {readAt}
+        </span>
+      </section>
+    );
   if (!freshness.stale)
     return (
       <p className={`${styles.freshness} ${className}`.trim()} role="status">

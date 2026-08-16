@@ -13,6 +13,12 @@ import {
   ProjectionFreshnessNotice,
   type ProjectionFreshness,
 } from "@/src/features/customer-partner/projection-freshness";
+import {
+  columnSortDirection,
+  columnSortLabel,
+  nextColumnSort,
+  type SortableColumn,
+} from "@/src/features/customer-partner/sortable-column";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
 import type {
@@ -26,6 +32,7 @@ import {
   parsePartnerQuery,
   updatePartnerQuery,
   type PartnerQueryKey,
+  type PartnerSort,
 } from "./partner-query";
 import { roleCanUseSurface } from "./partner-rules";
 import styles from "./partner.module.css";
@@ -66,25 +73,60 @@ function RecordTitle({ record }: { record: PartnerRecord }) {
   );
 }
 
+/**
+ * Which ledger columns can be ordered, by table index.
+ *
+ * The last two columns are per-surface free text -- a commission basis here, a
+ * renewal date there -- with no ordering `sortPartnerRecords` can express, so
+ * they stay inert rather than advertising a sort that would do nothing.
+ */
+const sortableColumns: Readonly<Record<number, SortableColumn<PartnerSort>>> = {
+  0: { ascending: "name-asc", descending: "name-desc" },
+  1: { ascending: "status-asc", descending: "status-desc" },
+  2: { ascending: "risk-asc", descending: "risk-desc", first: "descending" },
+};
+
 function RecordsTable({
   config,
   records,
+  sort,
+  onSort,
 }: {
   config: PartnerSurfaceConfig;
   records: readonly PartnerRecord[];
+  sort: PartnerSort;
+  onSort: (next: PartnerSort) => void;
 }) {
+  const headers = [
+    config.columns[0],
+    copy.status,
+    "Risk and owner",
+    config.columns[1],
+    config.columns[2],
+  ];
   return (
     <Table
       caption={config.title}
       captionHidden
       className={styles.tableWrap ?? ""}
-      headers={[
-        config.columns[0],
-        copy.status,
-        "Risk and owner",
-        config.columns[1],
-        config.columns[2],
-      ]}
+      columnSort={headers.map((header, index) => {
+        const column = sortableColumns[index];
+        if (!column) return null;
+        return {
+          direction: columnSortDirection(column, sort),
+          control: (
+            <button
+              aria-label={columnSortLabel(column, sort, String(header))}
+              className={styles.sortButton}
+              onClick={() => onSort(nextColumnSort(column, sort))}
+              type="button"
+            >
+              {header}
+            </button>
+          ),
+        };
+      })}
+      headers={headers}
       rowKeys={records.map((record) => record.id)}
       rows={records.map((record) => [
         <RecordTitle record={record} />,
@@ -449,10 +491,19 @@ export function PartnerCollection({
             value={state.sort}
             onChange={(event) => setQuery("sort", event.target.value)}
           >
+            {/*
+              Every sort the URL accepts is offered here. A column header that
+              produced a token this list did not carry would leave a
+              controlled `<select>` with a value matching no option, and React
+              would fall back to showing the first one -- the page telling the
+              reader it is sorted by something it is not.
+            */}
             <option value="name-asc">Name A–Z</option>
             <option value="name-desc">Name Z–A</option>
             <option value="risk-desc">Highest risk</option>
-            <option value="status-asc">Status</option>
+            <option value="risk-asc">Lowest risk</option>
+            <option value="status-asc">Status A–Z</option>
+            <option value="status-desc">Status Z–A</option>
           </select>
         </label>
         <label className={styles.field}>
@@ -511,7 +562,12 @@ export function PartnerCollection({
           </div>
         ) : (
           <>
-            <RecordsTable config={config} records={page.records} />
+            <RecordsTable
+              config={config}
+              onSort={(next) => setQuery("sort", next)}
+              records={page.records}
+              sort={state.sort}
+            />
             <RecordCards records={page.records} />
           </>
         )}

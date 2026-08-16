@@ -359,6 +359,45 @@
 .table tbody tr:hover {
   background: color-mix(in srgb, var(--web-canvas) 65%, transparent);
 }
+/*
+ * A sortable ledger column header. The indicator is selected from `aria-sort`
+ * on the enclosing `<th>`, so the arrow a sighted reader sees and the state a
+ * screen reader announces are the same value.
+ */
+.sortButton {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 0.375rem;
+  padding: 0;
+  text-align: inherit;
+}
+.sortButton:hover {
+  color: var(--web-accent);
+  text-decoration: underline;
+}
+.sortButton:focus-visible {
+  outline: 3px solid var(--cw-focus);
+  outline-offset: 2px;
+}
+.sortButton::after {
+  color: var(--web-muted);
+  content: "↕";
+  font-size: var(--cw-text-xs);
+}
+th[aria-sort="ascending"] .sortButton::after {
+  color: var(--web-accent);
+  content: "↑";
+}
+th[aria-sort="descending"] .sortButton::after {
+  color: var(--web-accent);
+  content: "↓";
+}
+
 .recordLink {
   color: var(--web-ink);
   font-size: var(--cw-text-md);

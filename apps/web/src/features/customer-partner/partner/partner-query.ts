@@ -12,7 +12,21 @@ export const partnerQueryKeys = [
 ] as const;
 
 export type PartnerQueryKey = (typeof partnerQueryKeys)[number];
-export type PartnerSort = "name-asc" | "name-desc" | "risk-desc" | "status-asc";
+/**
+ * `risk-asc` and `status-desc` are the additions.
+ *
+ * The work ledger's column headers are sort controls, and a control that only
+ * moves one way is not one: having sorted by risk the reader could not undo it
+ * from the header row. The `<select>` still offers the four presets it always
+ * did; these two exist so every sortable header can be toggled back.
+ */
+export type PartnerSort =
+  | "name-asc"
+  | "name-desc"
+  | "risk-desc"
+  | "risk-asc"
+  | "status-asc"
+  | "status-desc";
 /**
  * Layout only. Loading, empty and error are outcomes of the request, never a
  * choice a partner can make from the URL against their own live records.
@@ -34,7 +48,9 @@ const sortValues: readonly PartnerSort[] = [
   "name-asc",
   "name-desc",
   "risk-desc",
+  "risk-asc",
   "status-asc",
+  "status-desc",
 ];
 const viewValues: readonly PartnerView[] = ["table", "cards"];
 
@@ -88,9 +104,19 @@ export function sortPartnerRecords(
         riskRank[right.risk] - riskRank[left.risk] ||
         left.name.localeCompare(right.name)
       );
+    if (sort === "risk-asc")
+      return (
+        riskRank[left.risk] - riskRank[right.risk] ||
+        left.name.localeCompare(right.name)
+      );
     if (sort === "status-asc")
       return (
         left.status.localeCompare(right.status) ||
+        left.name.localeCompare(right.name)
+      );
+    if (sort === "status-desc")
+      return (
+        right.status.localeCompare(left.status) ||
         left.name.localeCompare(right.name)
       );
     return left.name.localeCompare(right.name);

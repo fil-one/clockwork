@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import test from "node:test";
 
 import {
@@ -13,6 +22,8 @@ import {
   checkCitationGrammar,
   classifyCitation,
   expandCitationBraces,
+  isReadableRequirement,
+  requirementsFatal,
   symbolIsDeclared,
 } from "./validate-traceability.mjs";
 
@@ -102,6 +113,129 @@ test("the script reports every collected identifier and exits non-zero", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The third stop-early path, which the header did not admit to.
+// ---------------------------------------------------------------------------
+
+test("the complete refused set of the requirements guard, and nothing legitimate in it", () => {
+  // Stated exhaustively because a control that refuses valid input is as bad as
+  // one that permits invalid input. The guard refuses exactly: not-an-array,
+  // empty, and an array containing anything that is not a plain object.
+  for (const unusable of [undefined, null, 0, "", "x", {}, new Map(), []])
+    assert.equal(
+      requirementsFatal(unusable),
+      "TRACEABILITY_REQUIREMENTS_EMPTY",
+      `${String(unusable)} should stop the run`,
+    );
+  assert.equal(
+    requirementsFatal([{ id: "SPEC-01-01" }, "SPEC-01-02", 3, null, []]),
+    "TRACEABILITY_REQUIREMENTS_NOT_OBJECTS:1,2,3,4",
+    "the stop must name every unreadable index, not just the first",
+  );
+  // Nothing a valid ledger can hold is refused. The schema declares
+  // requirements as an array of $defs.requirement with type "object", so this
+  // is the full space of legitimate entries: any object, however incomplete.
+  const requirementSchema = JSON.parse(
+    readFileSync(
+      resolve(root, "docs/traceability/launch-requirements.schema.json"),
+      "utf8",
+    ),
+  ).$defs.requirement;
+  assert.equal(requirementSchema.type, "object");
+  for (const legitimate of [
+    {},
+    { id: "SPEC-01-01" },
+    Object.create(null),
+    ...ledger.requirements,
+  ])
+    assert.ok(
+      isReadableRequirement(legitimate),
+      "a legitimate requirement entry was refused",
+    );
+  assert.equal(requirementsFatal(ledger.requirements), null);
+  assert.equal(requirementsFatal([{}]), null, "an empty object is readable");
+});
+
+test("a requirements array of non-objects is reported, not crashed on", async () => {
+  // PRE-EXISTING, NOT A REGRESSION: this shape passed the Array.isArray guard
+  // and then died inside assertSchemaShape on `field in requirement`, with an
+  // uncaught TypeError, no TRACEABILITY_FAILURES header and not one collected
+  // identifier. Verified against the unfixed script at b4fbcc8 by running this
+  // same fixture: stderr began "TypeError: Cannot use 'in' operator".
+  //
+  // Driven end to end through the real script rather than through the exported
+  // guard, because the crash was never in the guard - it was in the caller that
+  // ran before it.
+  // realpath, because on macOS mkdtemp hands back a /var symlink while
+  // `import.meta.filename` resolves to /private/var, and the script's
+  // `process.argv[1] === import.meta.filename` entrypoint guard would then
+  // never fire - the run would exit 0 having validated nothing.
+  const fixture = await realpath(
+    await mkdtemp(join(tmpdir(), "traceability-fixture-")),
+  );
+  try {
+    await mkdir(join(fixture, "scripts"), { recursive: true });
+    await mkdir(join(fixture, "docs/traceability"), { recursive: true });
+    await mkdir(join(fixture, "packages/domain/src/system"), {
+      recursive: true,
+    });
+    for (const file of [
+      "scripts/validate-traceability.mjs",
+      "docs/traceability/launch-requirements.schema.json",
+      "commerce_platform_spec.md",
+      "docs/backlog.md",
+      "docs/external-gates.md",
+      "docs/launch-checklist.md",
+      "packages/domain/src/system/external-gates.ts",
+    ])
+      await copyFile(resolve(root, file), join(fixture, file));
+    await writeFile(
+      join(fixture, "docs/traceability/launch-requirements.json"),
+      // schemaVersion is wrong too, so the run has something to collect BEFORE
+      // the stop and the last assertion below is not vacuous.
+      JSON.stringify({
+        ...ledger,
+        schemaVersion: 2,
+        requirements: ["SPEC-01-01", 7],
+      }),
+    );
+
+    let status = 0;
+    let stderr = "";
+    try {
+      execFileSync(
+        process.execPath,
+        [join(fixture, "scripts/validate-traceability.mjs")],
+        { cwd: fixture, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+    } catch (error) {
+      status = error.status;
+      stderr = error.stderr ?? "";
+    }
+    assert.equal(status, 1, "an unusable ledger must exit 1, not crash");
+    assert.doesNotMatch(
+      stderr,
+      /TypeError/,
+      "the run still dies with a TypeError wearing a validation error's clothes",
+    );
+    assert.match(
+      stderr,
+      /^TRACEABILITY_FAILURES:\d+\n/,
+      "no TRACEABILITY_FAILURES header was printed, so a grep over this script's output finds nothing",
+    );
+    assert.match(stderr, /TRACEABILITY_REQUIREMENTS_NOT_OBJECTS:0,1/);
+    // The whole point of the collect-don't-throw conversion: the stop still
+    // reports everything gathered before it.
+    assert.ok(
+      stderr.split("\n").filter((line) => line.startsWith("TRACEABILITY_"))
+        .length >= 3,
+      "the fatal stop reported one identifier; it is supposed to carry what was collected before it",
+    );
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Citation grammar: classification.
 // ---------------------------------------------------------------------------
 
@@ -121,8 +255,12 @@ test("brace alternatives expand, and everything else is returned unchanged", () 
 
 test("prose is prose even when it contains a slash", () => {
   // The obvious rule - "a citation containing `/` must resolve on disk" - fails
-  // 346 of the 410 slash-bearing citations in this ledger. These are the four
-  // shapes that break it.
+  // the clear majority of the slash-bearing citations in this ledger. The exact
+  // figure is not written down here, because it moves with the remap and a
+  // stale number in a comment is the defect this lane exists to stop; the run
+  // reports it as `citationGrammar.naiveSlashRule` and the test below asserts
+  // the shape of the finding rather than its size. These are the four shapes
+  // that break the rule.
   for (const value of [
     "package boundaries",
     "quote/order artifacts",
@@ -357,10 +495,20 @@ test("the shipped ledger satisfies the citation grammar", () => {
 });
 
 test("the grandfathering and the rule that narrows it are both written down", () => {
-  // Refusing to check 2,141 prose citations is defensible; refusing to check
-  // them without saying so is not.
+  // Refusing to check the prose majority of the ledger's citations is
+  // defensible; refusing to check them without saying so is not. The count is
+  // deliberately absent from both this comment and CITATION_GRANDFATHERING:
+  // it was 2,141 of 2,264 before the remap and 2,033 of 2,323 after, and the
+  // exported string used to claim a third figure that matched neither.
   assert.ok(CITATION_GRANDFATHERING.rule.length > 0);
   assert.ok(CITATION_GRANDFATHERING.reason.length > 0);
+  assert.equal(
+    /\b\d{1,3}(?:,\d{3})+\b|\b\d{1,3}\s?%/.test(
+      Object.values(CITATION_GRANDFATHERING).join(" "),
+    ),
+    false,
+    "CITATION_GRANDFATHERING quotes a citation count or percentage; those move with every remap and rot into a false claim - point at citationGrammar in the report instead",
+  );
   assert.ok(CITATION_GRANDFATHERING.narrowing.includes("path#symbol"));
   assert.ok(CITATION_COVERAGE.doesNotCover.length >= 4);
   assert.ok(

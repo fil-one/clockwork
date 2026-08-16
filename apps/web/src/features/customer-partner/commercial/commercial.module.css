@@ -272,6 +272,45 @@
   border-top: 1px solid var(--color-border);
 }
 
+/*
+ * A sortable column header. The arrow is drawn from `aria-sort` on the `<th>`
+ * the link sits in, so the visual state and the announced state cannot drift:
+ * there is one source for both.
+ */
+.sortLink {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.sortLink:hover {
+  text-decoration: underline;
+}
+
+.sortLink:focus-visible {
+  outline: 3px solid var(--cw-focus);
+  outline-offset: 2px;
+}
+
+.sortLink::after {
+  color: var(--color-text-muted);
+  content: "↕";
+  font-size: var(--cw-text-xs);
+}
+
+th[aria-sort="ascending"] .sortLink::after {
+  color: var(--color-action);
+  content: "↑";
+}
+
+th[aria-sort="descending"] .sortLink::after {
+  color: var(--color-action);
+  content: "↓";
+}
+
 .recordLink,
 .cardLink {
   color: var(--color-text);

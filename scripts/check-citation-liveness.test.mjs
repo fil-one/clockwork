@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   COVERAGE,
   DEAD_CITATION_EXCEPTIONS,
+  DOCUMENTED_SYMBOL_VERDICTS,
   SELF_DOCUMENTING_FILES,
   analyzeCitationLiveness,
   collectSourceFiles,
@@ -84,6 +85,76 @@ test("test and fixture files are excluded from the reference count", () => {
 // The real symbols P0-71 names. These assertions read the working tree on
 // purpose: fixtures would prove the regex, not the finding.
 // ---------------------------------------------------------------------------
+
+test("every symbol the header names is declared where the header says, with the verdict the header claims", () => {
+  // The header of `check-citation-liveness.mjs` shipped with four false
+  // statements, and the worst of them - `readReportView` attributed to
+  // `packages/api/src/routes/core/index.ts` when it is declared in
+  // `packages/db/src/repositories/core/database-finance.ts` - survived review
+  // because nothing could read it. `DOCUMENTED_SYMBOL_VERDICTS` moves those
+  // claims into data and this re-derives every one of them from the tree. A
+  // wrong file now scores `unscanned` or `dead`, not `file-local`, and fails
+  // here.
+  assert.ok(
+    DOCUMENTED_SYMBOL_VERDICTS.length >= 16,
+    "the documented set shrank; a header claim was deleted rather than corrected",
+  );
+  const { symbols } = analyzeCitationLiveness({
+    citations: DOCUMENTED_SYMBOL_VERDICTS.map((entry) =>
+      cite(entry.symbol, entry.path),
+    ),
+    files,
+  });
+  const actual = new Map(
+    symbols.map((symbol) => [`${symbol.path}#${symbol.symbol}`, symbol]),
+  );
+  for (const entry of DOCUMENTED_SYMBOL_VERDICTS) {
+    const key = `${entry.path}#${entry.symbol}`;
+    const scored = actual.get(key);
+    assert.ok(scored, `${key} was not scored at all`);
+    assert.notEqual(
+      scored.verdict,
+      "unscanned",
+      `${key}: the header names a file that is not in the scanned corpus, so the attribution is wrong or the path is stale`,
+    );
+    const accepted = [entry.verdict].flat();
+    assert.ok(
+      accepted.includes(scored.verdict),
+      `${key}: the header claims ${accepted.join(" or ")}, the tree says ${scored.verdict}`,
+    );
+  }
+  // The nine private helpers are the whole argument for counting in-file
+  // occurrences; if any of them ever loses that property the header's "75%
+  // false-positive rate" claim stops being supported by anything.
+  const fileLocal = DOCUMENTED_SYMBOL_VERDICTS.filter(
+    (entry) => entry.verdict === "file-local",
+  );
+  assert.equal(
+    fileLocal.length,
+    9,
+    "the header says NINE of the twelve were private helpers called from their own module",
+  );
+  assert.equal(
+    new Set(fileLocal.map((entry) => entry.path.split("/")[1])).size,
+    5,
+    "the header says the nine are spread across five packages",
+  );
+  assert.equal(
+    fileLocal.filter(
+      (entry) => entry.path === "packages/api/src/routes/core/index.ts",
+    ).length,
+    1,
+    "the header says only one of the nine lives in packages/api/src/routes/core/index.ts; the first draft put two there",
+  );
+  assert.ok(
+    fileLocal.every(
+      (entry) =>
+        (actual.get(`${entry.path}#${entry.symbol}`)?.references ?? [])
+          .length === 0,
+    ),
+    "a documented private helper has a reference outside its own file, so it was never an example of this rule",
+  );
+});
 
 test("the two symbols P0-71 names as unreachable fail", () => {
   // If either of these ever acquires a real caller, this test fails and the
@@ -170,8 +241,10 @@ test("a private helper called by its own module is not dead", () => {
 });
 
 test("a symbol named only by its own test fails as test-only, not as absent", () => {
-  // The state P0-64 found `toCsv` in, and the state three of the ledger's
-  // current citations are in. `planExceptionEscalation` is declared in
+  // The state P0-64 found `toCsv` in. Three of the ledger's citations were in
+  // it when this checker was written; the remapping lane removed all three
+  // before it landed, so as of b4fbcc8 the ledger has none and a real fixture
+  // has to come from the tree instead. `planExceptionEscalation` is declared in
   // packages/workflows/src/exceptions/index.ts and named by index.test.ts alone.
   const path = "packages/workflows/src/exceptions/index.ts";
   const { failures, symbols } = verdictFor([
@@ -238,10 +311,13 @@ test("an exception the ledger no longer cites fails", () => {
 // ---------------------------------------------------------------------------
 
 test("the shipped ledger's own citations are analysed, and the exception map is consistent", () => {
-  // DELIBERATELY DOES NOT ASSERT A GREEN RUN. `pnpm check:citation-liveness`
-  // currently fails on three real test-only citations, and pinning that set
-  // here would turn a moving finding into a merge hazard while the ledger is
-  // being remapped. What is pinned is that the checker has subjects, that every
+  // DELIBERATELY DOES NOT ASSERT A GREEN RUN, in either direction. When this
+  // was written `pnpm check:citation-liveness` failed on three real test-only
+  // citations; at b4fbcc8 the remap has removed all three and it exits zero.
+  // Pinning either state would turn a moving finding into a merge hazard while
+  // the ledger is being remapped, and asserting the CURRENT green would be
+  // worse than asserting the old red - it would fail the moment the checker
+  // does its job. What is pinned is that the checker has subjects, that every
   // failure it raises is a known kind, and that the exception map is neither
   // stale nor unearned - the two directions that are this file's own contract
   // rather than the ledger's.
@@ -295,7 +371,11 @@ test("the checker's own documentation does not make the symbols it names look li
   ]);
   // Both files need the exclusion, and for different reasons: the checker
   // pollutes the non-test reference count, and this test file pollutes the
-  // test-only reference count, which is enough to turn `dead` into `test-only`.
+  // test-only reference count. The second one no longer changes the VERDICT of
+  // this pair - `scripts/validate-traceability.test.mjs` names them too, so
+  // they are `test-only` either way - but it still puts this lane's own
+  // assertions into the evidence a reader is shown, which is the thing the
+  // exclusion is for.
   assert.deepEqual(SELF_DOCUMENTING_FILES, [
     "scripts/check-citation-liveness.mjs",
     "scripts/check-citation-liveness.test.mjs",
@@ -306,6 +386,37 @@ test("the checker's own documentation does not make the symbols it names look li
     ),
   );
   assert.ok(isTestFile("scripts/check-citation-liveness.test.mjs"));
+
+  // The header used to say the same thing happened to `threeWayTieOut`. It did
+  // not, and the difference matters: that symbol is referenced for a real
+  // reason - the colliding declaration in limit 1 - so the header changed its
+  // reference LIST and not its verdict. Pinned so the corrected sentence cannot
+  // drift back.
+  const collision = (corpus) =>
+    analyzeCitationLiveness({
+      citations: [cite("threeWayTieOut")],
+      files: corpus,
+    }).symbols[0];
+  assert.equal(collision(files).verdict, "referenced");
+  assert.equal(collision(unexcluded).verdict, "referenced");
+  assert.deepEqual(collision(files).references, [
+    "packages/integrations/src/core/accounting/adapter.ts",
+  ]);
+  assert.deepEqual(collision(unexcluded).references, [
+    "packages/integrations/src/core/accounting/adapter.ts",
+    "scripts/check-citation-liveness.mjs",
+  ]);
+  // And `weeklyScorecard` behaves exactly as `capacityPlanning` does, which is
+  // what the header now claims for the pair rather than for a pair that
+  // included the collision.
+  const scorecard = analyzeCitationLiveness({
+    citations: [cite("weeklyScorecard")],
+    files: unexcluded,
+  }).symbols[0];
+  assert.equal(scorecard.verdict, "referenced");
+  assert.deepEqual(scorecard.references, [
+    "scripts/check-citation-liveness.mjs",
+  ]);
 });
 
 test("the corpus it scans is real, and its limits are written down", () => {

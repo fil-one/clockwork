@@ -189,6 +189,45 @@
   min-width: 14rem;
 }
 
+/*
+ * A sortable column header. The indicator is selected by `aria-sort` on the
+ * enclosing `<th>`, so what is drawn and what is announced come from one
+ * value and cannot disagree.
+ */
+.sortLink {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.sortLink:hover {
+  text-decoration: underline;
+}
+
+.sortLink:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--web-accent) 36%, transparent);
+  outline-offset: 2px;
+}
+
+.sortLink::after {
+  color: var(--web-muted);
+  content: "↕";
+  font-size: var(--cw-text-xs);
+}
+
+th[aria-sort="ascending"] .sortLink::after {
+  color: var(--web-accent);
+  content: "↑";
+}
+
+th[aria-sort="descending"] .sortLink::after {
+  color: var(--web-accent);
+  content: "↓";
+}
+
 .recordLink {
   color: var(--web-ink);
   font-size: var(--cw-text-md);

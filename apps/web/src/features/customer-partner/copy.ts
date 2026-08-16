@@ -38,6 +38,9 @@ export const customerPartnerCopy = {
     freshnessStaleBody:
       "The projection behind this page has not caught up with its source, so a recent change may be missing. Refresh before acting on anything here.",
     freshnessAction: "Refresh records",
+    freshnessPartialTitle: "Only part of this collection could be read.",
+    freshnessPartialBody:
+      "This account holds more records in this channel than one read of this workspace returns, so the rows below are the most recently updated ones. The result count, the filter choices and any total on this page describe only what was read. The incomplete read has been reported for attention; refreshing will not return the rest.",
     unsavedTitle: "Leave without saving?",
     unsavedBody:
       "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",

@@ -1,5 +1,31 @@
 import type { ReactNode } from "react";
 
+export type TableSortDirection = "ascending" | "descending";
+
+/**
+ * What a sortable column tells assistive technology, and the control that
+ * changes the ordering.
+ *
+ * `aria-sort` is only meaningful on a header the reader can actually act on,
+ * so this is per column and optional: a column with no entry keeps a plain
+ * header and no `aria-sort` at all, which is what the attribute's own
+ * specification asks for. A column that is sortable but is not the current
+ * ordering reports `none`; exactly one column in a table should report
+ * `ascending` or `descending`.
+ *
+ * `control` replaces the plain header label rather than sitting beside it, so
+ * the accessible name of the control *is* the column name. It is supplied by
+ * the caller because what changes the ordering differs by surface -- a link
+ * carrying URL state on a server-rendered collection, a button on a client one
+ * -- and this component must not reach for a router.
+ */
+export interface TableColumnSort {
+  /** `null` when the column is sortable but is not the active ordering. */
+  direction: TableSortDirection | null;
+  /** Names the column and says what activating it will do. */
+  control: ReactNode;
+}
+
 export interface TableProps {
   caption: ReactNode;
   captionDescription?: ReactNode;
@@ -12,6 +38,11 @@ export interface TableProps {
   rows: readonly (readonly ReactNode[])[];
   rowKeys?: readonly string[];
   numericColumns?: readonly number[];
+  /**
+   * Index-aligned with `headers`. Absent, `null` or `undefined` entries leave
+   * that column exactly as it renders today.
+   */
+  columnSort?: readonly (TableColumnSort | null | undefined)[];
   density?: "comfortable" | "compact";
   stickyHeader?: boolean;
   footer?: readonly ReactNode[];
@@ -26,6 +57,7 @@ export function Table({
   rows,
   rowKeys,
   numericColumns = [],
+  columnSort,
   density = "comfortable",
   stickyHeader = false,
   footer,
@@ -48,15 +80,19 @@ export function Table({
         </caption>
         <thead>
           <tr>
-            {headers.map((header, index) => (
-              <th
-                scope="col"
-                className={isNumeric(index) ? "cw-table__numeric" : undefined}
-                key={index}
-              >
-                {header}
-              </th>
-            ))}
+            {headers.map((header, index) => {
+              const sort = columnSort?.[index];
+              return (
+                <th
+                  scope="col"
+                  aria-sort={sort ? (sort.direction ?? "none") : undefined}
+                  className={isNumeric(index) ? "cw-table__numeric" : undefined}
+                  key={index}
+                >
+                  {sort ? sort.control : header}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>

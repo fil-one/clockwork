@@ -10,6 +10,12 @@ import {
   type ProjectionFreshness,
 } from "../projection-freshness";
 import {
+  columnSortDirection,
+  columnSortLabel,
+  nextColumnSort,
+  type SortableColumn,
+} from "../sortable-column";
+import {
   collectionDefinitions,
   type CollectionDefinition,
   type CollectionKind,
@@ -20,6 +26,7 @@ import {
   collectionUrl,
   filterAndSortRecords,
   parseCollectionState,
+  type CollectionState,
   type RawSearchParams,
 } from "./url-state";
 
@@ -45,26 +52,94 @@ const numericValueKinds: readonly CollectionKind[] = [
   "billing",
 ];
 
+/**
+ * The three columns whose ordering `filterAndSortRecords` can express, and the
+ * table index each one occupies.
+ *
+ * Status, risk and owner are deliberately absent: this collection has no sort
+ * for them, and a header advertising `aria-sort` that nothing can act on is a
+ * worse lie than an inert header. They are filters here, and the filter panel
+ * above the table is where they are answered.
+ */
+const sortableColumns: Readonly<
+  Record<
+    number,
+    { name: string; column: SortableColumn<CollectionState["sort"]> }
+  >
+> = {
+  0: {
+    name: "Record",
+    column: { ascending: "title_asc", descending: "title_desc" },
+  },
+  4: {
+    name: "Commercial context",
+    column: {
+      ascending: "value_asc",
+      descending: "value_desc",
+      first: "descending",
+    },
+  },
+  5: {
+    name: "Timing",
+    column: {
+      ascending: "updated_asc",
+      descending: "updated_desc",
+      first: "descending",
+    },
+  },
+};
+
 function RecordTable({
   definition,
   records,
+  pathname,
+  state,
 }: {
   definition: CollectionDefinition;
   records: readonly CommercialRecord[];
+  pathname: Route;
+  state: CollectionState;
 }) {
+  const headers = [
+    "Record",
+    customerPartnerCopy.common.status,
+    customerPartnerCopy.common.risk,
+    customerPartnerCopy.common.owner,
+    "Commercial context",
+    "Timing",
+  ];
   return (
     <Table
       caption={`${definition.title} results`}
       captionHidden
       className={styles.tableWrap ?? ""}
-      headers={[
-        "Record",
-        customerPartnerCopy.common.status,
-        customerPartnerCopy.common.risk,
-        customerPartnerCopy.common.owner,
-        "Commercial context",
-        "Timing",
-      ]}
+      columnSort={headers.map((header, index) => {
+        const sortable = sortableColumns[index];
+        if (!sortable) return null;
+        return {
+          direction: columnSortDirection(sortable.column, state.sort),
+          control: (
+            <Link
+              aria-label={columnSortLabel(
+                sortable.column,
+                state.sort,
+                sortable.name,
+              )}
+              className={styles.sortLink}
+              // Sorting reorders the whole filtered set, so the reader is put
+              // back on its first page rather than on page four of an
+              // ordering that no longer exists.
+              href={collectionUrl(pathname, state, {
+                page: 1,
+                sort: nextColumnSort(sortable.column, state.sort),
+              })}
+            >
+              {header}
+            </Link>
+          ),
+        };
+      })}
+      headers={headers}
       numericColumns={numericValueKinds.includes(definition.kind) ? [4] : []}
       rowKeys={records.map((record) => record.id)}
       rows={records.map((record) => [
@@ -290,10 +365,18 @@ export function CommercialCollectionPage({
             {customerPartnerCopy.common.sort}
           </label>
           <select defaultValue={state.sort} id={`${kind}-sort`} name="sort">
+            {/*
+              Every token `parseCollectionState` accepts has an option here.
+              A header sort that produced a value this list does not carry
+              would leave the control showing no selection at all, which is
+              the same page silently disagreeing with itself.
+            */}
             <option value="updated_desc">Recently updated</option>
             <option value="updated_asc">Oldest updated</option>
             <option value="title_asc">Title A–Z</option>
+            <option value="title_desc">Title Z–A</option>
             <option value="value_desc">Highest value</option>
+            <option value="value_asc">Lowest value</option>
           </select>
         </div>
         <div className={styles.field}>
@@ -369,7 +452,12 @@ export function CommercialCollectionPage({
         {records.length ? (
           <>
             {state.view === "table" ? (
-              <RecordTable definition={definition} records={records} />
+              <RecordTable
+                definition={definition}
+                pathname={pathname}
+                records={records}
+                state={state}
+              />
             ) : null}
             <RecordCards forced={state.view === "compact"} records={records} />
             <nav className={styles.pagination} aria-label="Result pages">
