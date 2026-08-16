@@ -62,17 +62,41 @@ Environment variables), scoped to builds, functions, and runtime:
 `CLOCKWORK_CANONICAL_ORIGIN`, `CLOCKWORK_ENV`, `OTEL_SDK_DISABLED`,
 `TAX_PROVIDER_BASE_URL`, `TAX_PROVIDER_TOKEN`.
 
-The last two are `EXT-TAX-01` and are unset on the demo, deliberately. Unset
-means the tax port refuses every determination, so the two Core finance commands
-that ask it for one — `orders:create` (quote acceptance) and `invoices:create` —
-refuse rather than issuing a document with a zero in `tax_minor`. Every other
-Core finance command, quote creation included, is unaffected: they never call
-the port. Set both together when a real engine exists; setting one without the
-other is the same as setting neither.
+The last two are `EXT-TAX-01` and are unset on the demo, deliberately. **What
+that now means changed, and the old description is worth stating so nobody
+restores it from memory.** Determination used to run through a provider port,
+and an unset port refused `orders:create` and `invoices:create` outright so that
+neither could issue a document with a zero in `tax_minor`. Determination is now
+made by the engine in `@clockwork/domain` from `core_tax_rule_books` and
+`core_tax_registrations`, and the port is read by nothing.
+
+The guarantee survived the move and got stronger. A missing rule book is a
+refusal that cannot be mistaken for a zero rate, whereas an optional port is
+absent in production and silently zero everywhere else. Rates are versioned data
+an authority supplies, never literals in shipped code, so `EXT-TAX-01` still
+names a real external input — the approved policy — rather than a piece of
+wiring. The two variables can stay unset indefinitely without a zero-tax
+document becoming possible.
+
+The demo determines tax in-process, over a seeded rule book, through the
+**same** `determineTax` engine the product runs. The numbers on a demo document
+are computed, not mocked.
 
 None of these belong in a committed file or a local `.env`. The demo access
 password in particular must stay out of `.env`, because `next dev` would load it
 and turn the password gate on for every local Playwright run.
+
+## Deploy a draft first
+
+Run the same command **without `--prod`**. It prints a unique draft URL. Verify
+there before promoting, because the checks below have each caught something the
+font-class check cannot see.
+
+**The draft shares demo state with production.** The Netlify Blobs store is
+site-wide, not deploy-scoped, so mutations and "Restore demo data" on a draft
+hit the same state the live site serves. Fine for fixture data, but reset
+deliberately when you are done rather than leaving a prospect's next visit
+holding your test order.
 
 ## Verifying a deploy
 
@@ -83,6 +107,44 @@ curl -s https://clockwork-commerce-demo.netlify.app/demo/access | grep -o '<html
 A current build carries the three font variable classes (`aspekta_…`,
 `funnelsans_…`, `funneldisplay_…`) on the `<html>` tag. Then sign in as any
 persona and sign out; it should land on the persona picker, not an error card.
+
+That check proves the build is current and the shell renders. It does not prove
+the demo still demonstrates anything, so walk these too — each corresponds to
+something that has actually broken here:
+
+1. **Wrong password** is refused, and the return path survives the retry.
+2. **Every persona** starts and lands on its own surface.
+3. **The guided journey deep links** from the demo panel all resolve. Two of
+   them silently stopped resolving once, and the panel is the first thing a
+   salesperson clicks.
+4. **A document downloads as a real PDF.** All 19 artifact kinds returned 503
+   for a while on a swallowed `TypeError`, and the fix is bundler configuration
+   whose file tracing is exactly the environment-sensitive part — local success
+   does not imply packaged success.
+5. **Quote → order acceptance completes**, past the order form and onto a
+   created order. This was a permanent dead end before it was fixed; it is the
+   flagship journey.
+6. **"Sign this agreement"** reaches the ceremony and returns. This depends on
+   `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS` containing the site's **own** origin —
+   the ceremony URL is same-origin and the client refuses any signing URL
+   outside that list. Being `NEXT_PUBLIC`, it is baked at build time, so
+   correcting it requires a rebuild, not just an environment change.
+7. **The devtools console** carries at most the Zod `eval` line, which is
+   cosmetic and documented in `apps/web/proxy.ts`. Anything mentioning
+   `script-src-elem` means the vendored Next patch in `patches/` was dropped —
+   see `patches/README.md`. Repeated `/api/telemetry` 403s mean no ingest secret
+   is set; harmless, fail-closed, but noisy for a technical prospect.
+
+One environment trap: `CLOCKWORK_DEMO_STATE_STORE=memory` breaks order
+acceptance in a production build, because the API route and the page bundles get
+separate module instances and the created order never reaches the ledger. The
+file store and `netlify-blobs` are both fine, and the site uses the latter.
+
+## Before you deploy at all
+
+Build once locally from the merged `main`. A state has been observed where the
+web build failed on a package it depends on, and "a deploy takes whatever is on
+disk" is a live hazard, not a theoretical one.
 
 One naming trap: `commerce-demo.netlify.app` is a different, unrelated site that
 is not in this account. The demo is `clockwork-commerce-demo`.
