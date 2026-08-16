@@ -1112,14 +1112,32 @@ function addCalendarDays(date: string, days: number): string {
   return result.toISOString().slice(0, 10);
 }
 
-export function evaluateAgreementTerm(
-  agreement: ExecutedAgreement,
+/**
+ * Everything the term clock reads, and nothing else.
+ *
+ * `ExecutedAgreement` satisfies this structurally, so nothing that already
+ * passes one has to change. It exists so a caller holding the PERSISTED
+ * agreement -- a row in `agreements` plus its `key_terms` -- can ask the same
+ * question without fabricating execution evidence it does not have. Renewal
+ * price protection is that caller.
+ */
+export interface AgreementTermState {
+  readonly term: Pick<AgreementTerm, "endsOn" | "noticeDays" | "renewalType">;
+  readonly status: ExecutedAgreement["status"];
+  readonly terminatedOn: string | null;
+}
+
+/**
+ * The status half of `evaluateAgreementTerm`, factored out rather than copied,
+ * so the renewal protection and the survival-clause evaluation cannot answer
+ * "is this paper in force" differently.
+ */
+function agreementTermStatus(
+  agreement: AgreementTermState,
   asOfDate: string,
-  inFlightOrders: boolean,
 ): {
   readonly status: ExecutedAgreement["status"];
   readonly noticeOpensOn: string | null;
-  readonly activeSurvivalClauses: readonly string[];
 } {
   assertLocalDate(asOfDate, "AS_OF_DATE_INVALID");
   const termEnded =
@@ -1129,16 +1147,31 @@ export function evaluateAgreementTerm(
   const noticeOpensOn = agreement.term.endsOn
     ? addCalendarDays(agreement.term.endsOn, -agreement.term.noticeDays)
     : null;
-  const status =
-    agreement.status === "superseded"
-      ? "superseded"
-      : terminated
-        ? "terminated"
-        : termEnded
-          ? "expired"
-          : noticeOpensOn && asOfDate >= noticeOpensOn
-            ? "in_notice"
-            : "active";
+  return {
+    status:
+      agreement.status === "superseded"
+        ? "superseded"
+        : terminated
+          ? "terminated"
+          : termEnded
+            ? "expired"
+            : noticeOpensOn && asOfDate >= noticeOpensOn
+              ? "in_notice"
+              : "active",
+    noticeOpensOn,
+  };
+}
+
+export function evaluateAgreementTerm(
+  agreement: ExecutedAgreement,
+  asOfDate: string,
+  inFlightOrders: boolean,
+): {
+  readonly status: ExecutedAgreement["status"];
+  readonly noticeOpensOn: string | null;
+  readonly activeSurvivalClauses: readonly string[];
+} {
+  const { status, noticeOpensOn } = agreementTermStatus(agreement, asOfDate);
   const activeSurvivalClauses =
     status === "expired" || status === "terminated" || status === "superseded"
       ? agreement.keyTerms.survivalRules
@@ -1158,135 +1191,96 @@ export function evaluateAgreementTerm(
 }
 
 /**
- * RENEWAL PRICE PROTECTION (P1) -- IMPLEMENTED HERE, NOT YET ADOPTED ANYWHERE.
+ * RENEWAL PRICE PROTECTION (P1) -- ADOPTED.
  *
- * The three functions below are the rule. They are unit-tested in
- * `agreements.test.ts` and believed correct for what they cover: the uplift
- * truncates in the customer's favour, 0 bps is an absolute freeze, a
- * price-lowering renewal passes through untouched, a null protection means the
- * proposal stands, and a lapsed or superseded paper reports
- * `agreement_not_in_force` rather than refusing.
- *
- * They reach a consumer as `@clockwork/domain/lifecycle`, which re-exports this
- * module whole.
- *
- * Nothing calls them in production. That is the open part of P1, and it is open
- * on purpose. Two adoptions were attempted and both were reverted because each
- * refused legitimate quotes. Read this before attempting a third.
+ * The three functions below are the rule. `persistQuoteDraft` in
+ * `packages/db/src/repositories/core/database-finance.ts` now calls
+ * `applyRenewalPriceProtection` for every line of a quote that carries renewal
+ * provenance, and the surrounding note there is the adoption record. This one
+ * says what changed, because two earlier adoptions were reverted for refusing
+ * legitimate quotes and the reason they failed is worth keeping.
  *
  * ---------------------------------------------------------------------------
- * WHICH CALL SITE MUST ADOPT IT
+ * WHAT THE FIRST TWO ATTEMPTS GOT WRONG
  *
- * `persistQuoteDraft` in
- * `packages/db/src/repositories/core/database-finance.ts`, immediately after
- * the `priceQuote` call and before the quote row is inserted. That is the only
- * point both `quotes:create` and `quotes:revise` pass through, so it is the
- * only place a protection cannot be routed around. The marker comment sits
- * there.
- *
- * The rule needs two inputs at that point and only one of them is resolvable
- * today:
- *
- *   1. the prior unit price the customer already pays -- available, from the
- *      account's accepted `core_order_line_snapshots`, though see (C) below;
- *   2. the agreement whose `renewalPriceProtectionBasisPoints` binds the term
- *      being quoted -- NOT resolvable. This is the blocker.
+ * Both resolved the governing paper BY DATE, with `agreementOn(...)`-shaped
+ * predicates over `effective_on`. That instrument exists to bind a NEW order
+ * under P0-06, and a quote has no service window to run it on, so each attempt
+ * had to substitute a date and each substitute answered a different question
+ * than the order would answer. The reverted case is still in the suite: an
+ * account whose protected paper is superseded by a signed successor that takes
+ * effect after the quote date has NOTHING in force on the quote date, and a
+ * date resolver fails closed on it -- refusing a renewal whose own paper
+ * carries no protection at all.
  *
  * ---------------------------------------------------------------------------
- * WHY IT CANNOT BE ADOPTED TODAY
+ * GOVERNANCE IS BY PINNED IDENTITY, NOT BY DATE RESOLUTION
  *
- * (A) A quote has no service start, so it cannot resolve its governing paper
- *     the way the order will.
+ * §8: "every order pins the agreement version that governs it, including
+ * through auto-renewal". `orders.agreement_id` is NOT NULL, and
+ * `resolveRenewalAgreement` (packages/domain/src/renewals) refuses to move it
+ * on an auto-renewal (AUTO_RENEWAL_MUST_KEEP_PINNED_AGREEMENT). So a renewal's
+ * governing paper is not a thing to look up on a date: it is the paper the
+ * EXPIRING ORDER already pins, read off that order's row. There is no date, no
+ * predicate and therefore no substitute to get wrong. (A) in the reverted note
+ * was not solved; it was found to be the wrong question.
  *
- *     Order acceptance resolves the binding paper in `agreementOn` (same file,
- *     inside the `orders:create` branch) with the predicate
- *
- *         accountId = :account
- *         AND status = 'active'
- *         AND effective_on <= :command.serviceStartsOn
- *         AND superseded_by_id IS NULL
- *
- *     -- on `serviceStartsOn`, which arrives with the ORDER command.
- *     `QuoteCreateCommandSchema` carries `expiresAt` and a per-line
- *     `termMonths` and no service window at all; the window is first fixed at
- *     acceptance. So a quote-time resolver has to pick a different date, and
- *     every substitute tried so far answers a different question than the one
- *     the order will answer:
- *
- *       * `occurredAt` (the quote date) refuses an account whose protected
- *         paper has been superseded by a signed successor that has not taken
- *         effect yet. Nothing is in force on the quote date, so the resolver
- *         fails closed -- but the renewal order starts service inside the
- *         successor's term and will bind to it, and the successor may carry no
- *         price protection at all. That is a signed, valid, unprotected renewal
- *         being refused. Reproduced by "prices a renewal whose signed successor
- *         paper carries no protection" in
- *         `packages/db/src/repositories/core/database-finance.integration.test.ts`.
- *       * Widening the resolver (dropping the `status` filter, or falling back
- *         to the earliest forthcoming paper) removes that refusal but makes the
- *         quote-time answer diverge from the order-time answer in the other
- *         direction: the quote gets judged against a ceiling the order will not
- *         be bound by. A reverted docstring asserted "a quote and the order it
- *         becomes cannot be governed by two different papers". That sentence is
- *         false as the code stands, and asserting it is what produced the
- *         refusal above.
- *
- * (B) The rule is total; the resolver was not. Note that
- *     `evaluateRenewalPriceProtection` already has a defined answer for a paper
- *     that has lapsed, terminated or been superseded -- `binding: false`,
- *     `reason: "agreement_not_in_force"`. It never needs a caller to fail
- *     closed on a missing agreement. Both failed adoptions failed in the
- *     resolver above the rule, on the state "which paper is this", not on the
- *     rule's own judgement.
- *
- * (C) Which prior price is the protected one is also unsettled. The reverted
- *     adoption took the maximum accepted unit price across the whole account
- *     for a (sku, region) pair. Whether the protected basis is per order, per
- *     (sku, region), or per commitment -- and whether a terminated or
- *     superseded line still counts -- is a commercial question with no written
- *     answer. Amendments move quantity and line total but not unit price, so
- *     the snapshot is a fair source; two live orders at two prices are still
- *     two answers.
- *
- * (D) A ceiling stated against a prior price in another currency needs an FX
- *     rate no repository on this path holds. The rule refuses the mismatch
- *     (`RENEWAL_PRICE_CURRENCY_MISMATCH`); the adopter must decide whether a
- *     cross-currency renewal is unprotected or unquotable.
+ * The consequence for the caller is the important part. "Cannot resolve the
+ * agreement" collapses to "this quote has no renewal provenance, therefore it
+ * is new business, therefore the protection does not apply". There is no
+ * fail-closed branch to write. Writing one is what killed the last attempt.
  *
  * ---------------------------------------------------------------------------
- * WHAT WOULD HAVE TO BE SETTLED FIRST
+ * WHICH PRIOR PRICE (the old (C))
  *
- *   1. Pick ONE of these two, and write it down before writing code:
+ * The unit price of the SPECIFIC LINE being renewed, matched to the source
+ * order's line by (sku, region), read from that line's persisted
+ * `core_order_line_snapshots` row -- which is what `RenewableOrderLine`
+ * already carries and what the customer is actually paying today. Not the
+ * maximum across the account, which is what the reverted adoption took and
+ * which has no commercial meaning when an account holds two orders at two
+ * negotiated prices. A quote line whose (sku, region) is not on the source
+ * order is new business inside a renewal and carries no protected basis.
  *
- *      (i)  Give the quote a service window. Add an intended `serviceStartsOn`
- *           to `QuoteCreateCommandSchema`, persist it on the quote, and require
- *           the order's `serviceStartsOn` to equal it at acceptance (refuse the
- *           order otherwise). Then quote-time and order-time resolution run the
- *           same predicate over the same date and (A) disappears -- the
- *           "one paper" claim becomes enforced rather than assumed. This is a
- *           schema and contract change, not a repository change.
+ * ---------------------------------------------------------------------------
+ * CURRENCY (the old (D))
  *
- *      (ii) Adopt at ORDER ACCEPTANCE instead, in the `orders:create` branch,
- *           where `serviceStartsOn` exists and `agreementOn` has already
- *           resolved the one paper the order binds to. Nothing has to be
- *           invented; the cost is that the breach is caught after the customer
- *           has seen the quote, so it wants an operator-visible refusal reason.
- *           This is the cheaper route and it is total today.
+ * `evaluateRenewalPriceProtection` refuses a mismatch
+ * (RENEWAL_PRICE_CURRENCY_MISMATCH) and the adopter must not let that reach a
+ * customer as a crash. The adoption never calls the rule across currencies: it
+ * treats a renewal quoted in a different currency from the prior line as
+ * unpriceable-against-the-ceiling and routes it to a pricing exception, which
+ * is a human decision and not a refusal.
  *
- *   2. Settle (C) in the specification, not in the repository.
- *   3. Decide (D).
- *   4. Before shipping, state the COMPLETE set of inputs the adopted control
- *      refuses. The rule's own refused set is exactly one commercial case --
- *      proposed unit price strictly above the ceiling
- *      (`RENEWAL_PRICE_PROTECTION_EXCEEDED`) -- plus malformed money and
- *      malformed dates. If the adopted control's refused set is larger than
- *      that, the extra refusals are coming from the resolver, and that is
- *      precisely where the last two attempts went wrong.
+ * ---------------------------------------------------------------------------
+ * THE COMPLETE REFUSED SET OF THE ADOPTED CONTROL
  *
- * The open state is pinned by "database core renewal price protection (open,
- * unenforced)" in `database-finance.integration.test.ts`. Those tests assert
- * that an uplift past a negotiated ceiling is currently accepted. Adopting the
- * rule must make them fail; change them deliberately at that point.
+ * Empty at pricing. `persistQuoteDraft` never refuses: a breach is computed
+ * into `pricing_inputs` and raises `margin_floor_result` to
+ * `exception_required`, exactly as the margin floor does, and the draft is
+ * always written. The refusals that follow are the ones the system already
+ * had:
+ *
+ *   * ISSUANCE -- `issueQuote` refuses while an exception stands
+ *     ("Pricing exception approval is required before issuance"). That refusal
+ *     is not new and is lifted the ordinary way, by
+ *     `quotes:approve_exception`.
+ *   * ORDER ACCEPTANCE -- the order is refused if the paper it binds is not
+ *     the paper the renewal's source order pins. That is §8 restated as a
+ *     check, and it fires only on a renewal whose provenance disagrees with
+ *     the persisted order.
+ *
+ * `assertRenewalPriceProtection` -- the throwing variant -- has NO production
+ * caller and deliberately so. It was written for an unattended auto-renewal
+ * that would bill without a human, and no such path exists in this tree:
+ * `execute_auto_renewal` and `create_renewal_request` are declared effect kinds
+ * in `packages/workflows/src/renewals` with no executor, and
+ * `prepopulateRenewalRequest` carries the source order's own unit prices
+ * forward unchanged, so an unattended renewal cannot uplift anything. When that
+ * path is built it should CLAMP to `enforcedUnitPrice` rather than refuse --
+ * billing exactly what the customer agreed to is a better answer than not
+ * billing -- and `applyRenewalPriceProtection` already returns the clamped
+ * price for it.
  */
 export interface RenewalPriceProtection {
   readonly binding: boolean;
@@ -1304,8 +1298,22 @@ export interface RenewalPriceDecision {
   readonly withinProtection: boolean;
 }
 
+/**
+ * The paper a renewal is governed by, as the protection needs to see it.
+ *
+ * This is `AgreementTermState` plus the one key term the rule reads. A full
+ * `ExecutedAgreement` satisfies it structurally, and so does a caller holding
+ * only the persisted `agreements` row and its `key_terms` -- which is what a
+ * renewal has, because §8 pins the governing agreement on the ORDER and the
+ * renewal reads it back off that order by identity rather than resolving it on
+ * a date.
+ */
+export interface RenewalGoverningAgreement extends AgreementTermState {
+  readonly keyTerms: Pick<KeyTerms, "renewalPriceProtectionBasisPoints">;
+}
+
 interface RenewalPriceInput {
-  readonly agreement: ExecutedAgreement;
+  readonly agreement: RenewalGoverningAgreement;
   readonly pricedOn: string;
   readonly priorUnitPrice: AgreementMoney;
 }
@@ -1317,10 +1325,16 @@ interface RenewalPriceInput {
  * terminated or superseded agreement protects nothing.
  */
 function renewalProtectionInForce(
-  agreement: ExecutedAgreement,
+  agreement: RenewalGoverningAgreement,
   pricedOn: string,
 ): boolean {
-  const { status } = evaluateAgreementTerm(agreement, pricedOn, false);
+  // A persisted row may carry a terminal status with no `terminatedOn` to
+  // derive it from, which the date arithmetic below would read as "active".
+  // Honouring the recorded status can only make the protection LESS binding,
+  // which is the safe direction for a control that must not refuse.
+  if (agreement.status === "superseded" || agreement.status === "terminated")
+    return false;
+  const { status } = agreementTermStatus(agreement, pricedOn);
   return (
     status === "active" ||
     status === "in_notice" ||

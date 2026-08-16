@@ -8,12 +8,18 @@ export const collectionStatuses = [
 ] as const;
 
 export const collectionRisks = ["all", "low", "medium", "high"] as const;
+/**
+ * `value-asc` is the addition, and it is what makes the value column's header
+ * a control rather than a one-way door: without it a reader who sorted by
+ * value could not return to any other ordering from the header row.
+ */
 export const collectionSorts = [
   "updated-desc",
   "updated-asc",
   "title-asc",
   "title-desc",
   "value-desc",
+  "value-asc",
 ] as const;
 export const collectionViews = ["table", "cards"] as const;
 export const collectionPageSizes = [5, 10, 25] as const;
@@ -168,6 +174,7 @@ export function filterAndSortRecords(
     if (state.sort === "title-desc")
       return right.title.localeCompare(left.title);
     if (state.sort === "value-desc") return right.valueSort - left.valueSort;
+    if (state.sort === "value-asc") return left.valueSort - right.valueSort;
     return right.updatedAt.localeCompare(left.updatedAt);
   });
 }

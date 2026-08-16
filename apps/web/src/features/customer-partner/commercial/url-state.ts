@@ -21,11 +21,30 @@ export interface CollectionState {
   status: string;
   risk: string;
   owner: string;
-  sort: "updated_desc" | "updated_asc" | "title_asc" | "value_desc";
+  sort: (typeof collectionSortTokens)[number];
   view: "table" | "compact";
   page: number;
   pageSize: number;
 }
+
+/**
+ * Both directions of every sortable column.
+ *
+ * `title_desc` and `value_asc` are the additions. A column header that can
+ * only be sorted one way is a control the reader cannot undo: having clicked
+ * "Commercial context" they would have no way back to any other ordering
+ * except the browser's back button or the address bar. The two new tokens are
+ * accepted from the URL and offered by the headers; the `<select>` keeps the
+ * four named presets it always had.
+ */
+export const collectionSortTokens = [
+  "updated_desc",
+  "updated_asc",
+  "title_asc",
+  "title_desc",
+  "value_desc",
+  "value_asc",
+] as const;
 
 function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -53,7 +72,7 @@ export function parseCollectionState(input: RawSearchParams): CollectionState {
     status: first(input.status),
     risk: first(input.risk),
     owner: first(input.owner),
-    sort: ["updated_asc", "title_asc", "value_desc"].includes(sort)
+    sort: (collectionSortTokens as readonly string[]).includes(sort)
       ? (sort as CollectionState["sort"])
       : "updated_desc",
     view: view === "compact" ? "compact" : "table",
@@ -93,8 +112,12 @@ export function filterAndSortRecords(
     .sort((left, right) => {
       if (state.sort === "title_asc")
         return left.title.localeCompare(right.title);
+      if (state.sort === "title_desc")
+        return right.title.localeCompare(left.title);
       if (state.sort === "value_desc")
         return numericValue(right.value) - numericValue(left.value);
+      if (state.sort === "value_asc")
+        return numericValue(left.value) - numericValue(right.value);
       const direction = state.sort === "updated_asc" ? 1 : -1;
       return left.updatedAt.localeCompare(right.updatedAt) * direction;
     });

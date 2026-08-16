@@ -14,6 +14,11 @@ import {
 } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import {
+  applyRenewalPriceProtection,
+  type RenewalGoverningAgreement,
+  type RenewalPriceDecision,
+} from "@clockwork/domain/lifecycle";
+import {
   accrueCommission,
   acceptOrder,
   activatePriceBook,
@@ -68,6 +73,7 @@ import {
   disputeCases,
   entitlements,
   invoices,
+  keyTerms,
   orderLines,
   orders,
   payments,
@@ -100,7 +106,10 @@ import {
   usageReconciliations,
   dealRegistrationExclusions,
 } from "../../schema/core/finance";
-import { lifecycleIdempotencyRecords } from "../../schema/lifecycle/platform";
+import {
+  lifecycleIdempotencyRecords,
+  lifecycleRenewalActions,
+} from "../../schema/lifecycle/platform";
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import {
   withAuthorizedTransaction,
@@ -603,6 +612,15 @@ interface QuoteCommercialContext {
     protectionStartsAt: Date;
     protectionEndsAt: Date;
   };
+  /**
+   * Present when the quote names a renewal request. Resolved on the internal
+   * pool with the rest of the commercial truth, deliberately: on the tenant
+   * pool a partner quoting a renewal for an end client cannot read that
+   * client's `agreements` or `key_terms`, so a cap loaded there would either
+   * refuse a legitimate partner renewal or silently evaporate into
+   * "not_negotiated". A cap must not depend on what the caller can see.
+   */
+  renewal?: RenewalProvenance;
 }
 
 interface OrderAcceptanceContext {
@@ -781,11 +799,24 @@ const QuoteCreateCommandSchema = z.object({
   partnerResaleTotal: MoneySchema.optional(),
   expiresAt: z.iso.datetime(),
   whiteLabel: QuoteSnapshotSchema.shape.whiteLabel,
-  // Nothing here says whether the quote continues service the customer already
-  // buys, and nothing should until renewal price protection has a call site
-  // that can resolve the governing paper. An optional `renewalOfOrderId` was
-  // tried and rejected: a protection that only binds the callers who volunteer
-  // it binds nobody.
+  /**
+   * The renewal request this quote answers, and the ONLY thing the caller
+   * supplies about the renewal.
+   *
+   * An optional `renewalOfOrderId` was tried and rejected on the ground that
+   * "a protection that only binds the callers who volunteer it binds nobody",
+   * and that objection is about a caller supplying the CAP's INPUTS -- a prior
+   * price, an agreement, a ceiling -- which a caller who wants a higher price
+   * would simply omit or shade. This is a different shape. It names a
+   * persisted `lifecycle_renewal_actions` row written by `requestRenewal`, and
+   * every input to the cap is then read from persisted rows the caller does
+   * not control: the source order, the agreement that order PINS (§8), and the
+   * prior unit price on that order's line snapshot. The caller cannot supply,
+   * shade or omit any of them; the only thing omitting the reference does is
+   * make the quote new business, which it then also is on the order side,
+   * because the resulting order will carry no renewal provenance either.
+   */
+  renewalRequestId: z.uuid().optional(),
 });
 const OrderLineSnapshotSchema = z.object({
   id: z.string().min(1),
@@ -2430,6 +2461,321 @@ async function readReportView(
       );
 }
 
+/**
+ * RENEWAL PRICE PROTECTION -- THE BRIDGE, AND WHY IT IS SHAPED LIKE THIS.
+ *
+ * `requestRenewal` (lifecycle/command-repository.ts) has been writing
+ * `lifecycle_renewal_actions` rows that nothing in finance ever read. A quote
+ * therefore had no way to know it was continuing service the customer already
+ * buys, which is the whole reason renewal price protection sat unenforced. The
+ * reference from the quote command to that row is the missing bridge.
+ *
+ * The caller supplies ONE value, `renewalRequestId`. Everything the cap is
+ * computed from is then read here, from rows the caller cannot write:
+ *
+ *   * the renewal request row itself -- which pins the SOURCE ORDER;
+ *   * that order's `agreement_id`, which is NOT NULL and which §8 makes the
+ *     paper governing the order "including through auto-renewal", so the
+ *     governing agreement is resolved BY IDENTITY and never by date. That is
+ *     the difference from the two reverted adoptions, both of which resolved
+ *     on a date a quote does not have;
+ *   * the agreement's `key_terms.renewal_price_protection_bps`;
+ *   * the prior unit price of each source line, from its persisted
+ *     `core_order_line_snapshots` row.
+ *
+ * A caller who omits the reference gets no protection, and also gets no
+ * renewal: the order the quote becomes will carry no provenance either, so it
+ * is new business on both sides rather than a renewal that escaped the cap.
+ */
+interface RenewalProvenance {
+  readonly requestId: string;
+  readonly sourceOrderId: string;
+  readonly agreementId: string;
+  readonly agreementVersion: number;
+  readonly agreement: RenewalGoverningAgreement;
+  /** Prior unit price per `sku::region`, from the source order's snapshots. */
+  readonly priorUnitPrices: ReadonlyMap<
+    string,
+    { currency: string; minor: string }
+  >;
+}
+
+/** A renewal is matched to its prior price line by what was actually sold. */
+function renewalLineKey(sku: string, region: string): string {
+  return `${sku}::${region}`;
+}
+
+/**
+ * `agreements` stores `effective_on` and `term_months` and no end date, and
+ * carries supersession in `superseded_by_id` rather than in `status`. The term
+ * clock in the domain wants both, so they are derived here once.
+ */
+function persistedAgreementTermState(row: {
+  effectiveOn: string;
+  termMonths: number | null;
+  noticeDays: number | null;
+  renewalType: string;
+  status: string;
+  supersededById: string | null;
+}): Omit<RenewalGoverningAgreement, "keyTerms"> {
+  const [year, month, day] = row.effectiveOn.split("-").map(Number);
+  // An open-ended paper has no term to end. `endsOn: null` is the domain's own
+  // representation of that and makes the clock report `active`, which is what
+  // an evergreen agreement is.
+  let endsOn: string | null = null;
+  if (row.termMonths !== null) {
+    const end = new Date(
+      Date.UTC(year ?? 0, (month ?? 1) - 1 + row.termMonths, day ?? 1),
+    );
+    end.setUTCDate(end.getUTCDate() - 1);
+    endsOn = end.toISOString().slice(0, 10);
+  }
+  return {
+    term: {
+      endsOn,
+      noticeDays: row.noticeDays ?? 0,
+      renewalType: row.renewalType === "auto_renew" ? "auto_renew" : "expires",
+    },
+    status: row.supersededById
+      ? "superseded"
+      : z
+          .enum(["active", "in_notice", "expired", "terminated"])
+          .catch("active")
+          .parse(row.status),
+    terminatedOn: null,
+  };
+}
+
+async function loadRenewalProvenance(
+  transaction: RuntimeTransaction,
+  input: {
+    renewalRequestId: string;
+    accountId: string;
+    authorization: AuthorizationContext;
+  },
+): Promise<RenewalProvenance> {
+  const action = await transaction.query.lifecycleRenewalActions.findFirst({
+    where: eq(lifecycleRenewalActions.id, input.renewalRequestId),
+  });
+  // This lookup runs on the INTERNAL pool, deliberately -- a cap must not
+  // depend on what the caller can see, and on the tenant pool a partner
+  // quoting a renewal for an end client can read neither that client's
+  // `agreements` nor its `key_terms`. Running there means the reachability
+  // test `lifecycle_renewal_read` would have applied has to be made here.
+  //
+  // Admitted: internal staff; a caller holding the request's account; and the
+  // user who RAISED the request, which is the partner-merchant-of-record case
+  // (`lifecycle_renewal_read` admits that partner and `requestRenewal` records
+  // them as the actor). Refused: everyone else, which is a caller who could
+  // neither have seen the request nor have created it. Nothing legitimate is
+  // in that set -- a renewal nobody with authority asked for is not a renewal.
+  const reachable =
+    action !== undefined &&
+    action.accountId === input.accountId &&
+    (input.authorization.isInternalStaff ||
+      input.authorization.accountIds.some(
+        (accountId) => accountId === action.accountId,
+      ) ||
+      action.actorUserId === input.authorization.userId);
+  if (!action || !reachable)
+    throw new CoreServiceError(
+      "NOT_FOUND",
+      "The renewal request was not found in the requested account",
+    );
+  if (action.action === "decline")
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "A declined renewal cannot be quoted",
+    );
+  const order = await transaction.query.orders.findFirst({
+    where: eq(orders.id, action.orderId),
+  });
+  if (!order)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "The renewal request no longer resolves to its source order",
+    );
+  const agreement = await transaction.query.agreements.findFirst({
+    where: eq(agreements.id, order.agreementId),
+  });
+  if (!agreement)
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      "The source order's pinned agreement is missing",
+    );
+  const [terms, lines] = await Promise.all([
+    transaction.query.keyTerms.findFirst({
+      where: eq(keyTerms.agreementId, agreement.id),
+    }),
+    transaction
+      .select({
+        snapshot: orderLineSnapshots.snapshot,
+        supersededByAmendmentId: orderLines.supersededByAmendmentId,
+      })
+      .from(orderLines)
+      .innerJoin(
+        orderLineSnapshots,
+        eq(orderLineSnapshots.orderLineId, orderLines.id),
+      )
+      .where(eq(orderLines.orderId, order.id)),
+  ]);
+  const priorUnitPrices = new Map<
+    string,
+    { currency: string; minor: string }
+  >();
+  for (const line of lines) {
+    // A line an amendment replaced is not what the customer pays today, so it
+    // is not the protected basis. Its replacement carries its own snapshot.
+    if (line.supersededByAmendmentId) continue;
+    const parsed = OrderLineSnapshotSchema.safeParse(line.snapshot);
+    if (!parsed.success) continue;
+    priorUnitPrices.set(
+      renewalLineKey(parsed.data.sku, parsed.data.region),
+      parsed.data.unitPrice,
+    );
+  }
+  return {
+    requestId: action.id,
+    sourceOrderId: order.id,
+    agreementId: agreement.id,
+    agreementVersion: agreement.version,
+    agreement: {
+      ...persistedAgreementTermState({
+        effectiveOn: agreement.effectiveOn,
+        termMonths: agreement.termMonths,
+        noticeDays: agreement.noticeDays,
+        renewalType: agreement.renewalType,
+        status: agreement.status,
+        supersededById: agreement.supersededById,
+      }),
+      keyTerms: {
+        renewalPriceProtectionBasisPoints:
+          terms?.renewalPriceProtectionBps ?? null,
+      },
+    },
+    priorUnitPrices,
+  };
+}
+
+interface RenewalLineJudgement {
+  readonly lineId: string;
+  readonly sku: string;
+  readonly region: string;
+  readonly priorUnitPriceMinor: string;
+  readonly proposedUnitPriceMinor: string;
+  readonly maximumUnitPriceMinor: string | null;
+  readonly enforcedUnitPriceMinor: string;
+  readonly exceededByMinor: string;
+  readonly basisPoints: number | null;
+  readonly reason:
+    RenewalPriceDecision["protection"]["reason"] | "currency_change";
+  readonly withinProtection: boolean;
+}
+
+/**
+ * Judges each priced line against the prior price of the line it renews.
+ *
+ * Lines with no matching (sku, region) on the source order are new business
+ * inside a renewal and are simply absent from the result: they have no prior
+ * price, so there is nothing to protect and nothing to refuse. A line quoted in
+ * a different currency from the one the customer pays today is reported as
+ * `currency_change` and treated as a breach rather than passed to the rule,
+ * which would throw RENEWAL_PRICE_CURRENCY_MISMATCH -- the cap has no meaning
+ * across currencies without an FX rate this path does not hold, and a human
+ * pricing exception is the honest answer.
+ */
+function judgeRenewalLines(input: {
+  provenance: RenewalProvenance;
+  lines: readonly PricedQuoteLine[];
+  pricedOn: string;
+}): readonly RenewalLineJudgement[] {
+  const judgements: RenewalLineJudgement[] = [];
+  for (const line of input.lines) {
+    const prior = input.provenance.priorUnitPrices.get(
+      renewalLineKey(line.sku, line.region),
+    );
+    if (!prior) continue;
+    if (prior.currency !== line.unitPrice.currency) {
+      judgements.push({
+        lineId: line.id,
+        sku: line.sku,
+        region: line.region,
+        priorUnitPriceMinor: prior.minor,
+        proposedUnitPriceMinor: line.unitPrice.minor,
+        maximumUnitPriceMinor: null,
+        enforcedUnitPriceMinor: line.unitPrice.minor,
+        exceededByMinor: "0",
+        basisPoints:
+          input.provenance.agreement.keyTerms.renewalPriceProtectionBasisPoints,
+        reason: "currency_change",
+        withinProtection: false,
+      });
+      continue;
+    }
+    const decision = applyRenewalPriceProtection({
+      agreement: input.provenance.agreement,
+      pricedOn: input.pricedOn,
+      priorUnitPrice: { currency: prior.currency, minor: prior.minor },
+      proposedUnitPrice: {
+        currency: line.unitPrice.currency,
+        minor: line.unitPrice.minor,
+      },
+    });
+    judgements.push({
+      lineId: line.id,
+      sku: line.sku,
+      region: line.region,
+      priorUnitPriceMinor: decision.protection.priorUnitPrice.minor,
+      proposedUnitPriceMinor: decision.proposedUnitPrice.minor,
+      maximumUnitPriceMinor:
+        decision.protection.maximumUnitPrice?.minor ?? null,
+      enforcedUnitPriceMinor: decision.enforcedUnitPrice.minor,
+      exceededByMinor: decision.exceededByMinor,
+      basisPoints: decision.protection.basisPoints,
+      reason: decision.protection.reason,
+      withinProtection: decision.withinProtection,
+    });
+  }
+  return judgements;
+}
+
+/** The pricing-exception reasons a set of judgements raises, if any. */
+function renewalExceptionReasons(
+  judgements: readonly RenewalLineJudgement[],
+): readonly string[] {
+  return judgements
+    .filter((judgement) => !judgement.withinProtection)
+    .map((judgement) =>
+      judgement.reason === "currency_change"
+        ? `renewal_price_currency_change:${judgement.sku}:${judgement.region}`
+        : `renewal_price_protection_exceeded:${judgement.sku}:${judgement.region}:${judgement.exceededByMinor}`,
+    );
+}
+
+/** The shape `pricing_inputs.renewalPriceProtection` carries forward. */
+const PersistedRenewalProtectionSchema = z.object({
+  renewalRequestId: z.uuid(),
+  sourceOrderId: z.uuid(),
+  agreementId: z.uuid(),
+  agreementVersion: z.number().int().positive(),
+  pricedOn: z.string().min(1),
+  lines: z.array(
+    z.object({
+      lineId: z.string().min(1),
+      sku: z.string().min(1),
+      region: z.string().min(1),
+      priorUnitPriceMinor: z.string(),
+      proposedUnitPriceMinor: z.string(),
+      maximumUnitPriceMinor: z.string().nullable(),
+      enforcedUnitPriceMinor: z.string(),
+      exceededByMinor: z.string(),
+      basisPoints: z.number().int().nullable(),
+      reason: z.string().min(1),
+      withinProtection: z.boolean(),
+    }),
+  ),
+});
+
 function authorization(input: {
   authorization: AuthorizationContext;
   requestId?: string;
@@ -3048,8 +3394,17 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "INVALID_STATE",
         `Account ${input.action} is internal finance configuration`,
       );
+    // `reports` joins them for the same reason and by the same precedent.
+    // `mutateReport` already refuses a non-staff caller in code, but it ran on
+    // the TENANT pool, and a report-export audit row carries no `account_id`
+    // at all -- `report_exports` has none to give. So no row policy on the
+    // tenant lane can ever admit it, and widening the finance guard to let it
+    // through would be exactly backwards: it would admit an account-less row
+    // through a lane meant for a finance approver's own aggregates. The defect
+    // is the pool, not the policy.
     return input.resource === "commitments" ||
       input.resource === "price_books" ||
+      input.resource === "reports" ||
       serviceOwnedAccountCommand
       ? withInternalTransaction(
           this.options.pricingDatabase,
@@ -3712,6 +4067,48 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
               "Quote deal-registration provenance no longer matches its commercial parties",
             );
         }
+        // RENEWAL PROVENANCE AT ACCEPTANCE. The cheap assertion, and it is
+        // deliberately an assertion about PROVENANCE and not about the paper
+        // the order binds.
+        //
+        // The stronger check was written first and then removed: requiring
+        // `buyerAgreement.id` to equal the agreement the source order pins.
+        // That refuses the exact case this lane already reverted an adoption
+        // over -- an account whose protected paper is superseded by a signed
+        // successor taking effect on the renewal's service start. Order
+        // acceptance resolves the successor through `agreementOn`, the renewal
+        // request pins the original, and a control demanding they agree turns
+        // away signed, valid business. The cap already bit at pricing and at
+        // issuance; acceptance does not get a third, blocking bite.
+        //
+        // What is left is the deal-registration pattern: the provenance the
+        // quote was priced against must still be true of the persisted rows.
+        // Refused set: exactly one case -- a quote whose named source order has
+        // since been removed, moved to another account, or repinned to a
+        // different agreement between pricing and acceptance. A quote with no
+        // renewal provenance never reaches this branch at all.
+        const persistedRenewal = PersistedRenewalProtectionSchema.safeParse(
+          pricingInputs.renewalPriceProtection,
+        );
+        if (pricingInputs.renewalPriceProtection && !persistedRenewal.success)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Quote renewal provenance is malformed",
+          );
+        if (persistedRenewal.success) {
+          const sourceOrder = await transaction.query.orders.findFirst({
+            where: eq(orders.id, persistedRenewal.data.sourceOrderId),
+          });
+          if (
+            !sourceOrder ||
+            sourceOrder.accountId !== input.accountId ||
+            sourceOrder.agreementId !== persistedRenewal.data.agreementId
+          )
+            throw new CoreServiceError(
+              "INVALID_STATE",
+              "Quote renewal provenance no longer matches its source order",
+            );
+        }
         return {
           quote,
           snapshot,
@@ -3757,10 +4154,18 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         if (!buyerRow)
           throw new CoreServiceError("NOT_FOUND", "Quote buyer was not found");
         const buyer = await accountCommercial(transaction, buyerId);
+        const renewal = command.renewalRequestId
+          ? await loadRenewalProvenance(transaction, {
+              renewalRequestId: command.renewalRequestId,
+              accountId: buyerId,
+              authorization: input.authorization,
+            })
+          : undefined;
         if (!partnerRoute)
           return {
             buyer,
             buyerScreeningStatus: buyerRow.screeningStatus,
+            ...(renewal ? { renewal } : {}),
           };
 
         const partnerId = z.uuid().parse(command.partnerAccountId);
@@ -3799,6 +4204,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           partner,
           partnerScreeningStatus: partnerRow.screeningStatus,
           ...(registration ? { registration } : {}),
+          ...(renewal ? { renewal } : {}),
         };
       },
     );
@@ -5127,12 +5533,33 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         : {}),
       quotedAt: input.occurredAt,
     });
-    // P1 renewal price protection is deliberately NOT enforced here. The rule
-    // exists and is tested (`assertRenewalPriceProtection`,
-    // packages/domain/src/agreements), but no call site can yet resolve which
-    // agreement governs a renewal quote — see the adoption note on the rule.
-    // Two adoptions have been attempted here and both refused legitimate
-    // quotes; the protection stays open rather than half-enforced.
+    // P1 RENEWAL PRICE PROTECTION, ADOPTED. This is the only point both
+    // `quotes:create` and `quotes:revise` pass through, so it is the only place
+    // the protection cannot be routed around.
+    //
+    // It COMPUTES and never refuses. A breach raises `marginResult` to
+    // `exception_required` and states itself in `exceptionReasons` and in
+    // `pricing_inputs`, exactly as the margin floor does, and the draft is
+    // always written. Refusing at pricing is what both reverted adoptions did,
+    // and it is why they were reverted: a quote is a proposal, and a proposal
+    // that breaks a negotiated ceiling is a thing to approve or reprice, not a
+    // thing to make unwritable. The refusal arrives at ISSUANCE, from
+    // `issueQuote`, which already refuses while an exception stands -- so the
+    // control costs no new refusal path at all.
+    //
+    // A quote with no `renewalRequestId` is new business and is not judged.
+    // There is no fail-closed branch here on purpose: "cannot resolve the
+    // agreement" is not a state this can reach, because the agreement is
+    // resolved by identity off the source order rather than looked up.
+    const renewal = context.commercialContext?.renewal;
+    const renewalJudgements = renewal
+      ? judgeRenewalLines({
+          provenance: renewal,
+          lines: priced.lines,
+          pricedOn: input.occurredAt.slice(0, 10),
+        })
+      : [];
+    const renewalReasons = renewalExceptionReasons(renewalJudgements);
     const draftInput = {
       id: context.quoteId,
       accountId: context.accountId,
@@ -5149,8 +5576,16 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       ...(command.partnerResaleTotal
         ? { partnerResaleTotal: command.partnerResaleTotal }
         : {}),
-      marginResult: priced.marginResult,
-      exceptionReasons: priced.exceptionReasons,
+      // A renewal breach can only raise the result, never lower one the margin
+      // floor already raised, and `approved`/`rejected` are decisions a human
+      // has taken that pricing does not get to overwrite.
+      marginResult:
+        renewalReasons.length > 0 &&
+        (priced.marginResult === "pass" ||
+          priced.marginResult === "not_configured")
+          ? ("exception_required" as const)
+          : priced.marginResult,
+      exceptionReasons: [...priced.exceptionReasons, ...renewalReasons],
       expiresAt: command.expiresAt,
       createdBy: input.authorization.userId,
       createdAt: input.occurredAt,
@@ -5238,8 +5673,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         ...(context.commercialContext?.registration
           ? { dealRegistrationId: context.commercialContext.registration.id }
           : {}),
-        exceptionReasons: priced.exceptionReasons,
+        exceptionReasons: [...priced.exceptionReasons, ...renewalReasons],
         marginImpact: priced.marginImpact,
+        ...(renewal
+          ? {
+              renewalPriceProtection: {
+                renewalRequestId: renewal.requestId,
+                sourceOrderId: renewal.sourceOrderId,
+                agreementId: renewal.agreementId,
+                agreementVersion: renewal.agreementVersion,
+                pricedOn: input.occurredAt.slice(0, 10),
+                lines: renewalJudgements,
+              },
+            }
+          : {}),
         guardrailBreaches: priced.guardrailBreaches,
         lineGuardrails: Object.fromEntries(
           priced.lines.flatMap((line) =>
@@ -6766,9 +7213,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "human_suspension_review",
       );
       const firstThreshold = decision.actions.includes("pause_new_orders");
-      const caseValues = {
+      // Ownership is a queue ASSIGNMENT and it belongs to whoever opened the
+      // case. 001401 lets a second finance approver see and advance a case they
+      // did not open -- cover, handover, escalation -- and
+      // `core_protect_collection_case_identity` (001000) raises 55000 on any
+      // change to `owner_user_id`, so the update below deliberately carries no
+      // owner: re-stating the acting user would turn every second-approver
+      // evaluation into a trigger failure.
+      const advanceValues = {
         accountId: invoice.accountId,
-        ownerUserId: input.authorization.userId,
         agingBucket: secondThreshold
           ? "second_threshold"
           : firstThreshold
@@ -6780,10 +7233,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         runningServiceDecision: secondThreshold ? "human_review" : "continue",
         maximumRetentionAt,
       };
+      const caseValues = {
+        ...advanceValues,
+        ownerUserId: input.authorization.userId,
+      };
       const [collectionCase] = priorCase
         ? await transaction
             .update(collectionCases)
-            .set(caseValues)
+            .set(advanceValues)
             .where(
               and(
                 eq(collectionCases.id, priorCase.id),

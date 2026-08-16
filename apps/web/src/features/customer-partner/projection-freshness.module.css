@@ -29,6 +29,16 @@
   font-size: var(--cw-text-sm);
 }
 
+/*
+ * A partial read has no action to offer, so the banner is two columns rather
+ * than three and reads at the danger weight: rows are missing, not merely
+ * behind.
+ */
+.partialBanner {
+  grid-template-columns: auto minmax(0, 1fr);
+  border-color: var(--web-danger);
+}
+
 .staleBanner button {
   min-height: 2.75rem;
   border: 0;

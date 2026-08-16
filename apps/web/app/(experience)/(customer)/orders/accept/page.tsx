@@ -2,6 +2,7 @@ import {
   OrderAcceptance,
   type AcceptableQuote,
   type GoverningAgreement,
+  type PreparedOrderForm,
 } from "@/src/features/customer-partner/commercial/order-acceptance";
 import {
   firstSearchParam,
@@ -100,16 +101,23 @@ async function loadGoverningAgreement(): Promise<
  * Acceptance binds the rendered order form. A first pass asks the server to
  * render it; the document identifier only exists on the order projection once
  * that request has been fulfilled.
+ *
+ * The order the document belongs to travels with it. The server binds the two
+ * -- `assertCommercialArtifactBinding` matches on `(document_id, subject_type,
+ * subject_id)` -- and a create pass naming any other order is refused, so a
+ * surface that hands the client a bare document identifier is handing it
+ * something it cannot safely use.
  */
 function preparedOrderForm(
   records: readonly ProjectionRecord[],
   quoteId: string,
-): string | null {
+): PreparedOrderForm | null {
   for (const record of records) {
     const state = authoritative(record.data);
     if (text(state, "quoteId") !== quoteId) continue;
     const documentId = text(state, "orderFormDocumentId");
-    if (documentId) return documentId;
+    if (documentId)
+      return { documentId, orderId: text(state, "id") ?? record.aggregateId };
   }
   return null;
 }
@@ -138,9 +146,7 @@ async function OrderAcceptanceWorkspace({
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}
       agreement={governingAgreement(agreements.records)}
-      orderFormDocumentId={
-        quote ? preparedOrderForm(orders.records, quote.id) : null
-      }
+      orderForm={quote ? preparedOrderForm(orders.records, quote.id) : null}
       // A truncated read is a prefix, not the set: the quote this page
       // selected and the agreement it bound may both be wrong, and the reader
       // is the one committing money on them.

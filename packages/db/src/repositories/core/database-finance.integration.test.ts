@@ -3510,18 +3510,24 @@ describe("database core procurement profile", () => {
 });
 
 /**
- * P1 renewal price protection is OPEN, and these pin the state it is open in.
+ * P1 renewal price protection is ENFORCED, and these are the flipped
+ * characterization tests, changed on purpose as their previous version
+ * instructed.
  *
- * The rule is implemented and unit-tested in `packages/domain/src/agreements`
- * (`assertRenewalPriceProtection`). It is NOT adopted by the quote path, and
- * the adoption note on the rule says exactly what has to be settled before it
- * can be. These are characterization tests: they record that an uplift past a
- * negotiated ceiling is currently accepted, so that whoever adopts the rule has
- * to come here and change them on purpose rather than discover the gap.
+ * What changed is not the rule -- `applyRenewalPriceProtection` in
+ * `packages/domain/src/agreements` is untouched -- but how a quote learns it is
+ * a renewal. It no longer resolves the governing paper on a date. It names a
+ * persisted `lifecycle_renewal_actions` row (`renewalRequestId`), and the
+ * repository reads the source order, the agreement that order PINS under §8,
+ * and the prior unit price of the specific line being renewed out of persisted
+ * rows. The caller supplies one identifier and cannot supply, shade or omit any
+ * input to the cap.
  *
- * Two adoptions were attempted and both refused legitimate quotes. The second
- * one is the reason the first test below exists: it refused a renewal whose own
- * signed paper carries no protection at all.
+ * THE CONTROL NEVER REFUSES A DRAFT. That is the whole difference from the two
+ * reverted adoptions. A breach raises `margin_floor_result` to
+ * `exception_required` and states itself, exactly as the margin floor does; the
+ * draft is always written, and the refusal arrives at issuance, from a
+ * `issueQuote` invariant that already existed.
  *
  * Every scenario gets its own account, so a second run against the same
  * database cannot resolve the first run's papers.
@@ -3531,7 +3537,7 @@ describe("database core procurement profile", () => {
  * The renewal then prices at list, 15000 against a prior 12000, which is a 2500
  * bps uplift: above the 500 bps protection the fixture negotiates.
  */
-describe("database core renewal price protection (open, unenforced)", () => {
+describe("database core renewal price protection", () => {
   const priceBookId = "60000000-0000-4000-8000-000000000001";
   const listUnitPriceMinor = 15_000n;
   const priorUnitPriceMinor = 12_000n;
@@ -3793,14 +3799,47 @@ describe("database core renewal price protection (open, unenforced)", () => {
   };
 
   /**
-   * An ordinary quote. It says nothing about renewing anything, because
-   * production says nothing about renewing anything: that is exactly the
-   * omission the protection now survives.
+   * The bridge. `requestRenewal` has always written this row; nothing in
+   * finance read it until now, which is the reason the protection sat
+   * unenforced. The id it returns is the ONE thing a renewal quote supplies.
+   */
+  const requestRenewalFor = async (input: {
+    account: RenewalAccount;
+    orderId: string;
+    label: string;
+  }): Promise<string> => {
+    const requested = await lifecycleRepository.executeInTransaction({
+      command: "request_renewal",
+      payload: {
+        orderId: input.orderId,
+        accountId: input.account.accountId,
+        requestedAction: "renew",
+        requestedTermMonths: 12,
+      },
+      context: {
+        requestId: `renewal-request-${input.label}-${runId}`,
+        idempotencyKey: testKey(`renewal-request-${input.label}`),
+        occurredAt: pricedAt,
+        actor: { kind: "user", id: userId },
+        authorization: input.account.authorization,
+        ip: "192.0.2.20",
+        userAgent: "renewal-protection-fixture",
+      },
+    });
+    return requested.id;
+  };
+
+  /**
+   * An ordinary quote. Without `renewalRequestId` it says nothing about
+   * renewing anything and is priced as new business -- which is what it then
+   * also is on the order side, because the order it becomes carries no renewal
+   * provenance either.
    */
   const quoteFor = (input: {
     account: RenewalAccount;
     label: string;
     discountBps?: number;
+    renewalRequestId?: string;
   }) =>
     repository.mutate({
       resource: "quotes",
@@ -3824,6 +3863,9 @@ describe("database core renewal price protection (open, unenforced)", () => {
           },
         ],
         expiresAt: "2026-12-31T23:59:59.000Z",
+        ...(input.renewalRequestId
+          ? { renewalRequestId: input.renewalRequestId }
+          : {}),
       },
       actor: { kind: "user", id: userId },
       authorization: input.account.authorization,
@@ -3832,21 +3874,76 @@ describe("database core renewal price protection (open, unenforced)", () => {
       occurredAt: pricedAt,
     });
 
+  /** The exception reasons the command persisted alongside the judgement. */
+  const reasonsFor = async (quoteId: string, label: string) =>
+    withInternalTransaction(
+      db,
+      `renewal-reasons-${label}-${runId}`,
+      async (tx) => {
+        const profile = await tx.query.quoteCommercialProfiles.findFirst({
+          where: eq(quoteCommercialProfiles.quoteId, quoteId),
+        });
+        return z
+          .object({ exceptionReasons: z.array(z.string()) })
+          .parse(profile?.pricingInputs).exceptionReasons;
+      },
+    );
+
+  /** The persisted judgement, read back from the profile the command wrote. */
+  const protectionFor = async (quoteId: string, label: string) =>
+    withInternalTransaction(
+      db,
+      `renewal-protection-${label}-${runId}`,
+      async (tx) => {
+        const profile = await tx.query.quoteCommercialProfiles.findFirst({
+          where: eq(quoteCommercialProfiles.quoteId, quoteId),
+        });
+        return z
+          .object({
+            renewalPriceProtection: z
+              .object({
+                renewalRequestId: z.string(),
+                sourceOrderId: z.string(),
+                agreementId: z.string(),
+                lines: z.array(
+                  z.object({
+                    sku: z.string(),
+                    region: z.string(),
+                    priorUnitPriceMinor: z.string(),
+                    proposedUnitPriceMinor: z.string(),
+                    maximumUnitPriceMinor: z.string().nullable(),
+                    enforcedUnitPriceMinor: z.string(),
+                    exceededByMinor: z.string(),
+                    reason: z.string(),
+                    withinProtection: z.boolean(),
+                  }),
+                ),
+              })
+              .optional(),
+          })
+          .parse(profile?.pricingInputs).renewalPriceProtection;
+      },
+    );
+
   /**
-   * The write the second adoption attempt blocked, and the reason this lane
-   * reverted rather than narrowed the control again.
+   * The write the second adoption attempt blocked, and the case that decided
+   * the shape of this one. Kept, and now asserted twice.
    *
-   * The account's protected paper is superseded by one both parties signed that
-   * takes effect on 1 September and states NO price protection. The renewal
-   * order starts service on 1 September, and order acceptance resolves the
-   * governing paper on `serviceStartsOn` (`agreementOn`), so the order this
-   * quote becomes binds to the successor -- which protects nothing. The quote
-   * priced on 20 August was nevertheless refused with "No governing agreement is
-   * in force", because the pricing-side resolver looked for a paper in force on
-   * the QUOTE date and found the gap between the two papers.
+   * The account's protected paper is superseded by one both parties signed
+   * that takes effect on 1 September and states NO price protection. A
+   * date-resolving adoption refused the quote outright -- "No governing
+   * agreement is in force" -- because on the 20 August quote date there is a
+   * gap between the two papers. That refusal is gone in both arms below, and
+   * it is gone for a structural reason and not because the resolver was
+   * widened: nothing here resolves a paper on a date at all.
    *
-   * That is the whole blocker in one fixture: a quote has no fixed
-   * `serviceStartsOn`, so it cannot resolve its paper the way the order will.
+   * The second arm names the quote as the renewal it is, and it still prices
+   * at list with no exception. Governing by pinned identity sends the rule to
+   * the paper the SOURCE ORDER pins -- the original -- and that paper has been
+   * superseded, so `evaluateRenewalPriceProtection` returns
+   * `agreement_not_in_force` with a null ceiling. Price protection is a term of
+   * an agreement and stops binding when the agreement does; the rule has always
+   * said so, and the two reverted adoptions failed before they could ask it.
    */
   it("prices a renewal whose signed successor paper carries no protection", async () => {
     const account = await seedAccount("successor");
@@ -3857,7 +3954,7 @@ describe("database core renewal price protection (open, unenforced)", () => {
       protectionBps: 500,
       keyTerms: true,
     });
-    await acceptDiscountedOrder({
+    const order = await acceptDiscountedOrder({
       account,
       label: "successor",
       expectedAgreementId: original,
@@ -3879,22 +3976,64 @@ describe("database core renewal price protection (open, unenforced)", () => {
           .where(eq(agreements.id, original));
       },
     );
+    // Arm one: no renewal provenance. New business, priced at list, no
+    // exception. This is the exact write the reverted adoption refused.
     const renewed = await quoteFor({ account, label: "successor-renewal" });
     expect(renewed.record.data).toMatchObject({
       status: "draft",
       totalMinor: (listUnitPriceMinor * termMonths).toString(),
+      marginFloorResult: "pass",
     });
+
+    // Arm two: the same quote, named as the renewal it is. Still written, still
+    // at list, and still with no exception -- and now for a reason the rule
+    // states rather than one a resolver stumbled into. The source order pins
+    // the ORIGINAL paper, that paper has been superseded, and
+    // `evaluateRenewalPriceProtection` answers `agreement_not_in_force` with a
+    // null ceiling. The rule was always total over this state; what the two
+    // reverted adoptions could not do was reach it.
+    const renewalRequestId = await requestRenewalFor({
+      account,
+      orderId: order,
+      label: "successor",
+    });
+    const named = await quoteFor({
+      account,
+      label: "successor-renewal-named",
+      renewalRequestId,
+    });
+    expect(named.record.data).toMatchObject({
+      status: "draft",
+      totalMinor: (listUnitPriceMinor * termMonths).toString(),
+      marginFloorResult: "pass",
+    });
+    const judged = await protectionFor(
+      String(named.record.data.id),
+      "successor-named",
+    );
+    expect(judged?.lines).toMatchObject([
+      {
+        reason: "agreement_not_in_force",
+        maximumUnitPriceMinor: null,
+        withinProtection: true,
+      },
+    ]);
   });
 
   /**
-   * OPEN FINDING, recorded deliberately. 500 bps over a prior 12000 is a
-   * ceiling of 12600, and this quotes the same SKU and region at list, 15000.
-   * The quote path does not consult the protection, so it is written.
+   * FLIPPED. The previous version of this test asserted that a 2500 bps uplift
+   * past a 500 bps ceiling was written with no exception, and instructed
+   * whoever adopted the rule to come here and change it on purpose. This is
+   * that change.
    *
-   * When the rule is adopted this test must start failing. Change it then --
-   * do not weaken it now.
+   * 500 bps over a prior 12000 is a ceiling of 12600; the renewal quotes the
+   * same SKU and region at list, 15000, which is 2400 minor over. The draft is
+   * still written -- the control computes and never refuses -- and the
+   * judgement is persisted in `pricing_inputs` against the source order and
+   * the agreement it pins, so the breach can be read back rather than
+   * inferred.
    */
-  it("does not yet cap a renewal that exceeds the negotiated ceiling", async () => {
+  it("caps a renewal that exceeds the negotiated ceiling with a pricing exception", async () => {
     const account = await seedAccount("uncapped");
     const agreement = await seedAgreement({
       account,
@@ -3903,16 +4042,299 @@ describe("database core renewal price protection (open, unenforced)", () => {
       protectionBps: 500,
       keyTerms: true,
     });
-    await acceptDiscountedOrder({
+    const order = await acceptDiscountedOrder({
       account,
       label: "uncapped",
       expectedAgreementId: agreement,
     });
-    const uplifted = await quoteFor({ account, label: "uncapped-uplift" });
+    const renewalRequestId = await requestRenewalFor({
+      account,
+      orderId: order,
+      label: "uncapped",
+    });
+    const uplifted = await quoteFor({
+      account,
+      label: "uncapped-uplift",
+      renewalRequestId,
+    });
     expect(uplifted.record.data).toMatchObject({
       status: "draft",
       totalMinor: (listUnitPriceMinor * termMonths).toString(),
+      marginFloorResult: "exception_required",
     });
+
+    const persisted = await protectionFor(
+      String(uplifted.record.data.id),
+      "uncapped",
+    );
+    expect(persisted).toMatchObject({
+      renewalRequestId,
+      sourceOrderId: order,
+      agreementId: agreement,
+    });
+    expect(persisted?.lines).toEqual([
+      {
+        sku: "LOCKED-STORAGE-TB",
+        region: "us-east-2",
+        priorUnitPriceMinor: priorUnitPriceMinor.toString(),
+        proposedUnitPriceMinor: listUnitPriceMinor.toString(),
+        maximumUnitPriceMinor: "12600",
+        // The clamped price the rule offers. Nothing bills it today, because
+        // no unattended renewal path exists to clamp -- see the note on the
+        // rule -- but it is recorded so the one that gets built has it.
+        enforcedUnitPriceMinor: "12600",
+        exceededByMinor: "2400",
+        reason: "protected",
+        withinProtection: false,
+      },
+    ]);
+  });
+
+  /**
+   * The half that proves this is a cap and not a wall, which is the assertion
+   * the two reverted adoptions could not have made.
+   *
+   * The same protected paper, the same prior 12000, and a renewal quoted at a
+   * 2000 bps discount -- 12000, exactly the price the customer already pays.
+   * Nothing is refused, nothing needs approving, and the margin floor's own
+   * verdict is left alone: this quote is below the discount matrix and so
+   * requires an exception for THAT reason, not for a renewal reason.
+   */
+  it("leaves a renewal at or under the ceiling to the margin floor alone", async () => {
+    const account = await seedAccount("within");
+    const agreement = await seedAgreement({
+      account,
+      effectiveOn: "2026-03-01",
+      label: "within",
+      protectionBps: 500,
+      keyTerms: true,
+    });
+    const order = await acceptDiscountedOrder({
+      account,
+      label: "within",
+      expectedAgreementId: agreement,
+    });
+    const renewalRequestId = await requestRenewalFor({
+      account,
+      orderId: order,
+      label: "within",
+    });
+    const held = await quoteFor({
+      account,
+      label: "within-hold",
+      discountBps: 2_000,
+      renewalRequestId,
+    });
+    expect(held.record.data).toMatchObject({
+      status: "draft",
+      totalMinor: (priorUnitPriceMinor * termMonths).toString(),
+    });
+    await expect(
+      reasonsFor(String(held.record.data.id), "within"),
+    ).resolves.not.toContain(
+      "renewal_price_protection_exceeded:LOCKED-STORAGE-TB:us-east-2:0",
+    );
+    const persisted = await protectionFor(
+      String(held.record.data.id),
+      "within",
+    );
+    expect(persisted?.lines).toMatchObject([
+      {
+        priorUnitPriceMinor: priorUnitPriceMinor.toString(),
+        proposedUnitPriceMinor: priorUnitPriceMinor.toString(),
+        maximumUnitPriceMinor: "12600",
+        enforcedUnitPriceMinor: priorUnitPriceMinor.toString(),
+        exceededByMinor: "0",
+        withinProtection: true,
+      },
+    ]);
+  });
+
+  /**
+   * The enforcement point that came free. `issueQuote` has always refused a
+   * draft carrying `exception_required`; the renewal breach raises that flag,
+   * so the refusal needed no new code and lifts the ordinary way.
+   *
+   * Both halves are asserted, because a control whose refusal cannot be lifted
+   * is the same defect as one that never fires.
+   */
+  it("refuses issuance while the renewal exception stands, and admits it once approved", async () => {
+    const account = await seedAccount("issuance");
+    const agreement = await seedAgreement({
+      account,
+      effectiveOn: "2026-03-01",
+      label: "issuance",
+      protectionBps: 500,
+      keyTerms: true,
+    });
+    const order = await acceptDiscountedOrder({
+      account,
+      label: "issuance",
+      expectedAgreementId: agreement,
+    });
+    const renewalRequestId = await requestRenewalFor({
+      account,
+      orderId: order,
+      label: "issuance",
+    });
+    const uplifted = await quoteFor({
+      account,
+      label: "issuance-uplift",
+      renewalRequestId,
+    });
+    const quoteId = String(uplifted.record.data.id);
+    const context = {
+      accountId: account.accountId,
+      actor: { kind: "user" as const, id: userId },
+      authorization: account.authorization,
+    };
+    // One artifact, used by both attempts. The rendered document binds to the
+    // quote's commercial content and not to its row version, and preparing it
+    // twice would only exercise the artifact replay path, which is not what
+    // this test is about.
+    const documentId = await persistTestArtifact(
+      await repository.mutate({
+        ...context,
+        resource: "quotes",
+        id: quoteId,
+        action: "prepare_artifact",
+        expectedVersion: 1,
+        payload: {
+          audience: "end_client",
+          issuedAt: pricedAt,
+          retainUntil: "2033-07-31T16:00:00.000Z",
+        },
+        requestId: "renewal-issue-artifact",
+        idempotencyKey: testKey("renewal-issue-artifact"),
+        occurredAt: pricedAt,
+      }),
+      "renewal-issue",
+    );
+    await expect(
+      repository.mutate({
+        ...context,
+        resource: "quotes",
+        id: quoteId,
+        action: "issue",
+        expectedVersion: 1,
+        payload: {
+          artifactIssuedAt: pricedAt,
+          renderedDocumentId: documentId,
+        },
+        requestId: "renewal-issue-blocked",
+        idempotencyKey: testKey("renewal-issue-blocked"),
+        occurredAt: pricedAt,
+      }),
+    ).rejects.toThrow("Pricing exception approval is required before issuance");
+
+    await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quoteId,
+      action: "approve_exception",
+      expectedVersion: 1,
+      payload: { reason: "Commercially agreed uplift, approved by finance" },
+      requestId: "renewal-issue-approve",
+      idempotencyKey: testKey("renewal-issue-approve"),
+      occurredAt: pricedAt,
+    });
+    const issued = await repository.mutate({
+      ...context,
+      resource: "quotes",
+      id: quoteId,
+      action: "issue",
+      expectedVersion: 2,
+      payload: {
+        artifactIssuedAt: pricedAt,
+        renderedDocumentId: documentId,
+      },
+      requestId: "renewal-issue-approved",
+      idempotencyKey: testKey("renewal-issue-approved"),
+      occurredAt: pricedAt,
+    });
+    expect(issued.record.data.status).toBe("issued");
+  });
+
+  /**
+   * The bridge's own refused set, stated in full: a caller who names a renewal
+   * request that is not a renewal request of theirs. Nothing else about the
+   * bridge can refuse, because nothing else about it is caller-supplied.
+   */
+  it("refuses a renewal reference the account did not produce", async () => {
+    const owner = await seedAccount("provenance-owner");
+    const stranger = await seedAccount("provenance-stranger");
+    const agreement = await seedAgreement({
+      account: owner,
+      effectiveOn: "2026-03-01",
+      label: "provenance",
+      protectionBps: 500,
+      keyTerms: true,
+    });
+    const order = await acceptDiscountedOrder({
+      account: owner,
+      label: "provenance",
+      expectedAgreementId: agreement,
+    });
+    const renewalRequestId = await requestRenewalFor({
+      account: owner,
+      orderId: order,
+      label: "provenance",
+    });
+    await expect(
+      quoteFor({
+        account: stranger,
+        label: "provenance-stolen",
+        renewalRequestId,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      quoteFor({
+        account: owner,
+        label: "provenance-unknown",
+        renewalRequestId: crypto.randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    // The reachability arm, and the reason it exists. The provenance is loaded
+    // on the INTERNAL pool -- a cap must not depend on what the caller can see
+    // -- so row-level security is not there to turn this away. A DIFFERENT
+    // user, holding neither the request's account nor having raised it, would
+    // otherwise have the owner's prior line prices computed into a quote and
+    // persisted in `pricing_inputs`. Refused in code, as NOT_FOUND, before the
+    // 42501 the quote insert would eventually have raised.
+    const outsider = "20000000-0000-4000-8000-000000000005";
+    await expect(
+      repository.mutate({
+        resource: "quotes",
+        id: crypto.randomUUID(),
+        accountId: owner.accountId,
+        action: "create",
+        payload: {
+          priceBookId,
+          seriesId: crypto.randomUUID(),
+          route: "direct",
+          lines: [
+            {
+              lineId: crypto.randomUUID(),
+              sku: "LOCKED-STORAGE-TB",
+              region: "us-east-2",
+              quantity: "1",
+              termMonths: 12,
+            },
+          ],
+          expiresAt: "2026-12-31T23:59:59.000Z",
+          renewalRequestId,
+        },
+        actor: { kind: "user", id: outsider },
+        authorization: {
+          ...stranger.authorization,
+          userId: ids.user.parse(outsider),
+        },
+        requestId: "renewal-quote-provenance-unreachable",
+        idempotencyKey: testKey("renewal-quote-provenance-unreachable"),
+        occurredAt: pricedAt,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
 

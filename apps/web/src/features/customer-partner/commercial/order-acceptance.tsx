@@ -76,6 +76,24 @@ export interface GoverningAgreement {
   version: string;
 }
 
+/**
+ * A rendered order form, and the order it was rendered for.
+ *
+ * The order identifier travels with the document because the server binds them
+ * together and refuses them apart. `assertCommercialArtifactBinding` looks the
+ * document up by `(document_id, subject_type, subject_id)`, where `subject_id`
+ * is the order the *prepare* pass named; a create pass that quotes the document
+ * under any other order identifier matches no row and is refused with
+ * `COMMERCIAL_ARTIFACT_BINDING_INVALID`.
+ *
+ * Passing the document identifier alone -- which is what shipped -- makes that
+ * refusal reachable and unrecoverable. See `preparedFor` below.
+ */
+export interface PreparedOrderForm {
+  documentId: string;
+  orderId: string;
+}
+
 function retainUntil(acceptedAt: string): string {
   const retention = new Date(acceptedAt);
   retention.setUTCFullYear(
@@ -84,19 +102,39 @@ function retainUntil(acceptedAt: string): string {
   return retention.toISOString();
 }
 
+/**
+ * The bound inputs, as one comparable value.
+ *
+ * The order form is rendered *from* these. `orderArtifactDefinition` puts the
+ * purchase-order number, the service period and the signing title into the
+ * definition it hashes, and the create pass recomputes that hash from the
+ * command it is given and requires it to equal the hash stored with the
+ * request. So a document prepared for one set of entries is not evidence for
+ * any other set, and the moment one of them is edited the only correct next
+ * pass is another prepare.
+ */
+function boundFields(
+  poNumber: string,
+  serviceStart: string,
+  authorityTitle: string,
+): string {
+  return JSON.stringify([poNumber, serviceStart, authorityTitle]);
+}
+
 export function OrderAcceptance({
   account,
   signerUserId,
   quote,
   agreement,
-  orderFormDocumentId,
+  orderForm,
   partialRead = false,
 }: {
   account: { id: string; name: string };
   signerUserId: string;
   quote: AcceptableQuote | null;
   agreement: GoverningAgreement | null;
-  orderFormDocumentId: string | null;
+  /** The rendered order form this page found, if the server has one. */
+  orderForm: PreparedOrderForm | null;
   /**
    * Set when a channel read stopped at the page ceiling. The quote this page
    * selected and the agreement it bound were then chosen from a prefix, and
@@ -128,20 +166,54 @@ export function OrderAcceptance({
   const orderIdRef = useRef<string | null>(null);
   const acceptedAtRef = useRef<string | null>(null);
   const orderLineIdsRef = useRef<readonly string[] | null>(null);
+  /**
+   * What this session's prepare pass asked for: the order it named, and the
+   * entries the resulting form was rendered from.
+   *
+   * Null until a prepare has been issued here, and that is the point. A
+   * document this session did not prepare cannot be used: the create pass
+   * rebuilds the artifact definition from the command it is given and requires
+   * the hash to equal the stored request's, and that hash covers the purchase
+   * order, the service period, the signing title and the acceptance instant.
+   * Nothing typed into a freshly loaded form reproduces them.
+   */
+  const preparedRef = useRef<{ orderId: string; fields: string } | null>(null);
   /** The prop, readable from inside the poll loop's closure. */
-  const documentIdRef = useRef(orderFormDocumentId);
+  const orderFormRef = useRef(orderForm);
   /** Supersedes an in-flight poll when the reader rechecks or resubmits. */
   const pollRef = useRef(0);
 
+  /**
+   * Whether the create pass is the pass that is available.
+   *
+   * Three conditions, all load-bearing: a form exists; this session prepared
+   * it, under the order identifier the server bound it to; and the entries it
+   * was rendered from are still the entries on screen. Dropping any one of
+   * them sends a create the server refuses -- and refuses for good, because
+   * the refusal does not release a further pass.
+   */
+  const preparedFor =
+    orderForm !== null &&
+    preparedRef.current !== null &&
+    preparedRef.current.orderId === orderForm.orderId &&
+    preparedRef.current.fields ===
+      boundFields(poNumber, serviceStart, authorityTitle)
+      ? orderForm
+      : null;
+
+  // Only *this session's* form ends the wait. A form the account already held
+  // for some other order would otherwise release the control into a create
+  // pass bound to an order this reader is not accepting.
   useEffect(() => {
-    documentIdRef.current = orderFormDocumentId;
-    if (orderFormDocumentId === null) return;
+    orderFormRef.current = orderForm;
+    if (orderForm === null) return;
+    if (orderForm.orderId !== preparedRef.current?.orderId) return;
     setPhase((current) =>
       current === "awaiting_form" || current === "form_stalled"
         ? "ready"
         : current,
     );
-  }, [orderFormDocumentId]);
+  }, [orderForm]);
 
   /** Abandons a poll left running when the reader navigates away mid-wait. */
   useEffect(
@@ -202,6 +274,10 @@ export function OrderAcceptance({
     orderIdRef.current = null;
     acceptedAtRef.current = null;
     orderLineIdsRef.current = null;
+    // The prepared form described the old entries. Keeping the record of it
+    // would let the create pass fire against a document whose hash no longer
+    // matches the command -- refused, and refused with nothing left to retry.
+    preparedRef.current = null;
   };
 
   /**
@@ -218,7 +294,11 @@ export function OrderAcceptance({
         setTimeout(resolve, ORDER_FORM_POLL_INTERVAL_MS),
       );
       if (pollRef.current !== token) return;
-      if (documentIdRef.current !== null) {
+      // Terminal condition only, and only for the order this session prepared.
+      if (
+        orderFormRef.current !== null &&
+        orderFormRef.current.orderId === preparedRef.current?.orderId
+      ) {
         setPhase("ready");
         return;
       }
@@ -255,9 +335,15 @@ export function OrderAcceptance({
     setValidationError(null);
     setPhase("submitting");
     setError("");
-    const creating = orderFormDocumentId !== null;
+    const creating = preparedFor !== null;
     try {
-      orderIdRef.current ??= uuidV7();
+      // The create pass runs under the identifier the document was bound to,
+      // never a fresh one. `preparedFor` has already established they are the
+      // same value; assigning it here is what keeps them the same after a
+      // reset cleared the ref.
+      orderIdRef.current = creating
+        ? preparedFor.orderId
+        : (orderIdRef.current ?? uuidV7());
       acceptedAtRef.current ??= new Date().toISOString();
       orderLineIdsRef.current ??= [uuidV7()];
       const keyRef = creating ? createKeyRef : prepareKeyRef;
@@ -280,10 +366,9 @@ export function OrderAcceptance({
           // The order form is bound evidence: acceptance can only be recorded
           // once it exists, so a first pass asks the server to render it.
           action: creating ? "create" : "prepare_artifact",
-          payload:
-            creating && orderFormDocumentId
-              ? { ...command, orderFormDocumentId }
-              : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
+          payload: creating
+            ? { ...command, orderFormDocumentId: preparedFor.documentId }
+            : { ...command, retainUntil: retainUntil(acceptedAtRef.current) },
         },
         { idempotencyKey: keyRef.current },
       );
@@ -292,8 +377,16 @@ export function OrderAcceptance({
         setPhase("created");
         return;
       }
-      // The first pass only asked for the document. Bridge to the second one
-      // here rather than making the reader navigate away and re-key the form.
+      // The first pass only asked for the document, and it named the order and
+      // the entries the server will render it from. Both are recorded before
+      // the wait starts: they are what says whether the form that turns up is
+      // the one this acceptance may be completed with.
+      preparedRef.current = {
+        orderId: orderIdRef.current,
+        fields: boundFields(poNumber, serviceStart, authorityTitle),
+      };
+      // Bridge to the second pass here rather than making the reader navigate
+      // away and re-key the form.
       await awaitOrderForm();
     } catch (caught) {
       setError(
@@ -557,9 +650,15 @@ export function OrderAcceptance({
                 disabled={phase !== "ready"}
                 type="submit"
               >
+                {/*
+                  The label names the pass that will actually run, so it is
+                  keyed on the same value the pass is: a form the account
+                  happens to hold is not a create pass, and saying it is would
+                  promise a command the server refuses.
+                */}
                 {phase === "submitting"
                   ? "Accepting…"
-                  : orderFormDocumentId
+                  : preparedFor
                     ? "Create the order and commitment"
                     : "Accept order and create commitment"}
               </button>

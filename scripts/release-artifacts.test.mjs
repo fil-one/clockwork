@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 
 import {
@@ -23,6 +23,7 @@ import {
   RELEASE_REQUIRED_RUNTIME_ENVIRONMENT,
   RELEASE_SUITE_ASSERTIONS,
   RELEASE_SUITE_NAMES,
+  RELEASE_UNWIRED_SCRIPT_TESTS,
   semanticArtifactInventoryFingerprint,
   sourceIdentityKey,
 } from "./release-artifacts.mjs";
@@ -570,6 +571,53 @@ test("executes every declared assertion as its own release command", async () =>
     "the release unit shard and pnpm test:unit must run the same node --test files",
   );
   assert.ok(RELEASE_SUITE_ASSERTIONS.unit.includes("release-benchmark-unit"));
+});
+
+test("no scripts/*.test.mjs on disk is run by nothing", async () => {
+  // The binding above holds the two enumerations equal to EACH OTHER; it says
+  // nothing about a test file that is in neither. That is how
+  // `scripts/validate-traceability.test.mjs` and
+  // `scripts/check-citation-liveness.test.mjs` shipped with 27 passing
+  // assertions that no gate executed: `scripts/` is not a pnpm workspace
+  // package, so turbo never sees them, and both hand-maintained lists omitted
+  // them consistently. Discover the corpus instead of restating it.
+  const onDisk = (await readdir(new URL("../scripts/", import.meta.url)))
+    .filter((entry) => entry.endsWith(".test.mjs"))
+    .map((entry) => `scripts/${entry}`)
+    .sort();
+  assert.ok(
+    onDisk.length > 0,
+    "no scripts/*.test.mjs was discovered at all; the directory read is stale",
+  );
+  const manifest = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  const scripted =
+    manifest.scripts["test:unit"].match(/scripts\/\S+\.test\.mjs/g) ?? [];
+  assert.deepEqual(
+    onDisk.filter(
+      (file) =>
+        !scripted.includes(file) &&
+        !Object.hasOwn(RELEASE_UNWIRED_SCRIPT_TESTS, file),
+    ),
+    [],
+    "a scripts/*.test.mjs is run by neither pnpm test:unit nor the release unit shard; wire it into package.json's test:unit and expectedReleaseCommands('unit'), or record it in RELEASE_UNWIRED_SCRIPT_TESTS with a reason",
+  );
+  // Both directions, so an exemption cannot outlive its reason.
+  for (const [file, reason] of Object.entries(RELEASE_UNWIRED_SCRIPT_TESTS)) {
+    assert.ok(
+      onDisk.includes(file),
+      `RELEASE_UNWIRED_SCRIPT_TESTS names ${file}, which is not on disk; delete the entry`,
+    );
+    assert.ok(
+      !scripted.includes(file),
+      `RELEASE_UNWIRED_SCRIPT_TESTS names ${file}, but pnpm test:unit runs it; delete the entry`,
+    );
+    assert.ok(
+      typeof reason === "string" && reason.length >= 20,
+      `RELEASE_UNWIRED_SCRIPT_TESTS entry for ${file} carries no written reason`,
+    );
+  }
 });
 
 test("rejects an omitted, reordered, or relabeled canonical command", () => {

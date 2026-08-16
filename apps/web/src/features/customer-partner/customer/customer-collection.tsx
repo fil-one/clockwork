@@ -16,6 +16,12 @@ import {
   type ProjectionFreshness,
 } from "../projection-freshness";
 import {
+  columnSortDirection,
+  columnSortLabel,
+  nextColumnSort,
+  type SortableColumn,
+} from "../sortable-column";
+import {
   collectionPageSizes,
   collectionRisks,
   collectionSorts,
@@ -24,6 +30,8 @@ import {
   paginateRecords,
   parseCollectionState,
   serializeCollectionState,
+  type CollectionSort,
+  type CollectionUrlState,
   type CustomerCollectionRecord,
   type RawCollectionSearchParams,
 } from "./collection-state";
@@ -44,6 +52,7 @@ function optionLabel(value: string): string {
   if (value === "title-asc") return "Title A–Z";
   if (value === "title-desc") return "Title Z–A";
   if (value === "value-desc") return "Highest value";
+  if (value === "value-asc") return "Lowest value";
   return value.charAt(0).toLocaleUpperCase() + value.slice(1);
 }
 
@@ -70,27 +79,74 @@ function recordHref(
   return stateHref(config.path, next, "#selected-record");
 }
 
+/**
+ * Table column index to the pair of sort tokens that column can produce.
+ *
+ * Status and owner are filters on this surface, not orderings -- there is no
+ * `status-asc` for `filterAndSortRecords` to apply -- so their headers stay
+ * inert and carry no `aria-sort`.
+ */
+const sortableColumns: Readonly<
+  Record<number, SortableColumn<CollectionSort>>
+> = {
+  0: { ascending: "title-asc", descending: "title-desc" },
+  3: { ascending: "value-asc", descending: "value-desc", first: "descending" },
+  4: {
+    ascending: "updated-asc",
+    descending: "updated-desc",
+    first: "descending",
+  },
+};
+
 function CollectionTable({
   config,
   records,
   params,
+  state,
 }: {
   config: CustomerCollectionConfig;
   records: readonly CustomerCollectionRecord[];
   params: URLSearchParams;
+  state: CollectionUrlState;
 }) {
+  const headers = [
+    config.recordLabel,
+    common.status,
+    config.ownerLabel,
+    config.valueLabel,
+    "Updated",
+  ];
   return (
     <Table
       caption={`${config.title} results`}
       captionHidden
       className={styles.tableWrap ?? ""}
-      headers={[
-        config.recordLabel,
-        common.status,
-        config.ownerLabel,
-        config.valueLabel,
-        "Updated",
-      ]}
+      columnSort={headers.map((header, index) => {
+        const column = sortableColumns[index];
+        if (!column) return null;
+        return {
+          direction: columnSortDirection(column, state.sort),
+          control: (
+            <Link
+              aria-label={columnSortLabel(column, state.sort, header)}
+              className={styles.sortLink}
+              // A new ordering starts at its own first page; keeping the old
+              // page number would land the reader in the middle of a list
+              // they have not seen the top of.
+              href={stateHref(
+                config.path,
+                serializeCollectionState(state, {
+                  page: 1,
+                  sort: nextColumnSort(column, state.sort),
+                }),
+              )}
+            >
+              {header}
+            </Link>
+          ),
+        };
+      })}
+      headers={headers}
       rowKeys={records.map((record) => record.id)}
       rows={records.map((record) => [
         <>
@@ -443,6 +499,7 @@ export function CustomerCollection({
               config={config}
               records={page.records}
               params={activeParams}
+              state={state}
             />
             <CollectionCards
               config={config}

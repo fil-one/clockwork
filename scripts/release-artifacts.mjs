@@ -104,6 +104,8 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "release-benchmark-unit",
     "dependency-advisory-unit",
     "schema-drift-unit",
+    "traceability-validator-unit",
+    "citation-liveness-unit",
     "demo-reset",
     "demo-reset-production-refusal",
   ]),
@@ -119,6 +121,36 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   demo: Object.freeze(["demo-browser"]),
   proof: Object.freeze(["production-proof-build", "production-browser-proof"]),
 });
+
+/**
+ * `scripts/*.test.mjs` files that are deliberately NOT named by `pnpm test:unit`
+ * and the release `unit` shard, keyed by repository-relative path, valued by the
+ * written reason.
+ *
+ * WHY THIS EXISTS RATHER THAN A BARE LIST OF WIRED FILES. Four `scripts/` test
+ * files have been added to a list-of-wired-files and one has been added to
+ * neither: `scripts/` is not a pnpm workspace package (`pnpm-workspace.yaml`
+ * names `apps/*` and `packages/*`), so turbo cannot discover them and the only
+ * thing that runs them is a hand-maintained enumeration. Two enumerations, in
+ * fact - the package script and `expectedReleaseCommands("unit")` - and they
+ * have drifted before. The binding in `release-artifacts.test.mjs` therefore
+ * DISCOVERS the files on disk instead of restating them, and this map is the
+ * only way to be discovered and not run.
+ *
+ * REFUSED SET, COMPLETE. The discovery binding fails for exactly one thing: a
+ * file matching `scripts/*.test.mjs` that is present on disk, is not named in
+ * `package.json`'s `test:unit`, and has no entry here. It refuses nothing else -
+ * not a test under `apps/` or `packages/` (turbo runs those), not a `.test.ts`
+ * anywhere, not a script without tests, and not a script test that legitimately
+ * belongs to another suite, because that case is one line here plus a reason.
+ * It is enforced in BOTH directions, the same shape as `UNMIRRORED_TABLES` in
+ * `scripts/check-schema-drift.mjs`: an entry naming a file that no longer exists
+ * fails, and an entry naming a file that IS wired fails, so the exemption cannot
+ * outlive its reason.
+ *
+ * Empty today: every `scripts/*.test.mjs` in the tree is wired into both lists.
+ */
+export const RELEASE_UNWIRED_SCRIPT_TESTS = Object.freeze({});
 
 export function releaseDatabaseProjectId({ revision, runId, suite, portBase }) {
   if (!/^(integration|proof)$/.test(String(suite)))
@@ -187,6 +219,8 @@ export function expectedReleaseCommands(name, serial) {
       ["node", "--test", "scripts/benchmark-release.test.mjs"],
       ["node", "--test", "scripts/dependency-advisories.test.mjs"],
       ["node", "--test", "scripts/check-schema-drift.test.mjs"],
+      ["node", "--test", "scripts/validate-traceability.test.mjs"],
+      ["node", "--test", "scripts/check-citation-liveness.test.mjs"],
       ["pnpm", "exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
       ["node", "scripts/verify-demo-reset-safety.mjs"],
     ],

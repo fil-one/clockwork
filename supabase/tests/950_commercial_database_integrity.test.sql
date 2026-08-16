@@ -597,8 +597,20 @@ select is((select sum(amount_minor)::bigint from refunds
   where payment_id = '91000000-0000-4000-8000-000000000002'),
   120000::bigint, 'refund aggregate equals but never exceeds source');
 
--- Finance sees and mutates only cases it owns; audit visibility is actor or
--- applicable-adjustment scoped.
+-- Finance OPENS only cases it owns and can read every case in the queue; audit
+-- visibility is actor or applicable-adjustment scoped.
+--
+-- The read half was flipped by 001401_core_command_row_policies.sql and the old
+-- assertion is preserved below rather than deleted. It read "finance user sees
+-- only its owned collection case", and that ownership lock made
+-- `invoices:evaluate_dunning` fail for a second approver with
+-- `23505 duplicate key value violates unique constraint
+-- "core_collection_cases_invoice_id_key"` -- the prior case was invisible, so
+-- the command took its insert branch. Owning a case is a queue assignment, not
+-- an authority, and cover and handover need it readable. The INSERT assertions
+-- that follow are unchanged and are what still pins ownership: the approver who
+-- opens the case owns it, and `core_protect_collection_case_identity` makes
+-- that immutable.
 insert into core_collection_cases(
   id,invoice_id,account_id,owner_user_id,aging_bucket,next_action_at,status
 ) values
@@ -643,8 +655,8 @@ set local role clockwork_runtime;
 set local search_path = public, extensions;
 select is((select count(*)::integer from core_collection_cases
   where id in ('b1700000-0000-4000-8000-000000000001',
-               'b1700000-0000-4000-8000-000000000002')), 1,
-  'finance user sees only its owned collection case');
+               'b1700000-0000-4000-8000-000000000002')), 2,
+  'finance user sees every case in the collections queue');
 select throws_ok($$
   insert into core_collection_cases(
     id,invoice_id,account_id,owner_user_id,aging_bucket,next_action_at,status

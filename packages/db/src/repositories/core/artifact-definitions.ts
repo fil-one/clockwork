@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Actor } from "@clockwork/contracts";
@@ -12,7 +12,6 @@ import type { RuntimeTransaction } from "../../client";
 import {
   accounts,
   auditEvents,
-  commerceUsers,
   outboxMessages,
   procurementProfiles,
 } from "../../schema";
@@ -254,6 +253,31 @@ function totalForOrder(order: AcceptedOrder) {
   return money({ currency, minor: minor.toString() });
 }
 
+/**
+ * The signer's printed name, and nothing else about them.
+ *
+ * This used to be `commerceUsers.findFirst(id)`, and `commerce_users_read`
+ * (000001_foundation.sql) is `app_is_current_user(id)` -- so on the tenant pool
+ * the query returned a row only when the caller WAS the signer, and every other
+ * caller got COMMERCIAL_ARTIFACT_SIGNER_NOT_FOUND: every amendment raised by
+ * anyone but the original signer, and every order form an operator submits for
+ * a customer. Widening that policy is the wrong repair, because the row carries
+ * `email` and `workos_user_id` and row-level security cannot hand out one
+ * column. `core_commercial_signer` (001401) returns the name and takes the
+ * authority test with it.
+ */
+async function signerName(
+  transaction: RuntimeTransaction,
+  signerUserId: string,
+): Promise<string> {
+  const rows = await transaction.execute<{ name: string | null }>(
+    sql`select public.core_commercial_signer(${signerUserId}::uuid) as name`,
+  );
+  const name = rows[0]?.name;
+  if (!name) throw new Error("COMMERCIAL_ARTIFACT_SIGNER_NOT_FOUND");
+  return name;
+}
+
 export async function orderArtifactDefinition(
   transaction: RuntimeTransaction,
   input: { order: AcceptedOrder; issuedAt: string },
@@ -267,11 +291,8 @@ export async function orderArtifactDefinition(
   const [recipient, policy, signer] = await Promise.all([
     party(transaction, input.order.invoicingAccountId),
     presentationPolicy(transaction, input.order.invoicingAccountId),
-    transaction.query.commerceUsers.findFirst({
-      where: eq(commerceUsers.id, input.order.signerUserId),
-    }),
+    signerName(transaction, input.order.signerUserId),
   ]);
-  if (!signer) throw new Error("COMMERCIAL_ARTIFACT_SIGNER_NOT_FOUND");
   const total = totalForOrder(input.order);
   const definition = CommercialArtifactDefinitionSchema.parse({
     kind: "order_form",
@@ -296,7 +317,7 @@ export async function orderArtifactDefinition(
     totals: { subtotal: total, total },
     paymentTerms: policy.paymentTerms,
     signer: {
-      name: signer.name,
+      name: signer,
       title: input.order.authorityTitle,
       acceptedAt: input.order.acceptedAt,
       authorityAttestation: `I am authorized to bind ${recipient.legalName} to this order form.`,
@@ -324,11 +345,8 @@ export async function amendmentArtifactDefinition(
   const [recipient, policy, signer] = await Promise.all([
     party(transaction, input.order.invoicingAccountId),
     presentationPolicy(transaction, input.order.invoicingAccountId),
-    transaction.query.commerceUsers.findFirst({
-      where: eq(commerceUsers.id, input.order.signerUserId),
-    }),
+    signerName(transaction, input.order.signerUserId),
   ]);
-  if (!signer) throw new Error("COMMERCIAL_ARTIFACT_SIGNER_NOT_FOUND");
   const currency = input.order.lines[0]?.lineTotal.currency;
   if (!currency) throw new Error("COMMERCIAL_ARTIFACT_ORDER_LINES_MISSING");
   const netMinor = input.amendment.deltas.reduce(
@@ -369,7 +387,7 @@ export async function amendmentArtifactDefinition(
         }
       : {}),
     acceptedBy: {
-      name: signer.name,
+      name: signer,
       title: input.order.authorityTitle,
       acceptedAt: input.amendment.acceptedAt,
     },
