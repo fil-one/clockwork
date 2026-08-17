@@ -39,6 +39,7 @@ export interface CollectionDefinition {
   eyebrow: string;
   title: string;
   description: string;
+  rule: string;
   valueHeading: string;
   primaryAction?: { label: string; href: Route };
 }
@@ -49,10 +50,11 @@ export const collectionDefinitions: Record<
 > = {
   agreements: {
     kind: "agreements",
-    eyebrow: "Legal",
+    eyebrow: "Customer workspace · Governing terms",
     title: "Agreements",
     description:
       "Review governing terms, versions, authority evidence, and execution state.",
+    rule: "Executed agreement versions remain immutable; changed terms require a new version.",
     valueHeading: "Term end",
     primaryAction: {
       label: "Review agreement",
@@ -61,44 +63,49 @@ export const collectionDefinitions: Record<
   },
   quotes: {
     kind: "quotes",
-    eyebrow: "Commercial",
+    eyebrow: "Customer workspace · Price and expiry",
     title: "Quotes",
     description:
       "Compare draft, open, accepted, and canceled offers before taking a valid next action.",
+    rule: "Issued quote versions never mutate; a commercial change requires a revised quote.",
     valueHeading: "Estimated spend",
     primaryAction: { label: "Create quote", href: "/quotes/new" },
   },
   orders: {
     kind: "orders",
-    eyebrow: "Commitments",
+    eyebrow: "Customer workspace · Accepted commitments",
     title: "Orders",
     description:
       "Track accepted commitments, purchase orders, service starts, and provisioning.",
+    rule: "Each accepted order pins the exact issued quote and governing agreement versions.",
     valueHeading: "Commitment",
     primaryAction: { label: "Accept an order", href: "/orders/accept" },
   },
   services: {
     kind: "services",
-    eyebrow: "Services",
-    title: "Orders & services",
+    eyebrow: "Customer workspace · Delivery and usage",
+    title: "Active services",
     description:
       "Monitor active capacity, regional delivery, provisioning, and service term state.",
+    rule: "The commitment ledger, not provider meter thresholds, determines overage at the contracted quote rate.",
     valueHeading: "Usage",
   },
   pocs: {
     kind: "pocs",
-    eyebrow: "Evaluation",
+    eyebrow: "Customer workspace · Evaluation controls",
     title: "Proofs of concept",
     description:
       "Review test scope, safeguards, expiry, results, and conversion readiness.",
+    rule: "A proof of concept is a capped, expiring entitlement; conversion creates a paid quote.",
     valueHeading: "Time remaining",
   },
   billing: {
     kind: "billing",
-    eyebrow: "Billing",
+    eyebrow: "Customer workspace · Invoice and payment truth",
     title: "Billing & payments",
     description:
       "Use invoice and provider-confirmed payment truth separately from estimated spend.",
+    rule: "Payment status changes only after the payment provider confirms settlement.",
     valueHeading: "Invoiced amount",
   },
 };

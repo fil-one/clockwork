@@ -98,7 +98,7 @@ export const en = {
   "nav.dashboard": "Overview",
   "nav.agreements": "Agreements",
   "nav.quotes": "Quotes",
-  "nav.orders": "Orders & services",
+  "nav.orders": "Orders",
   "nav.services": "Active services",
   "nav.pocs": "POCs",
   "nav.billing": "Billing",

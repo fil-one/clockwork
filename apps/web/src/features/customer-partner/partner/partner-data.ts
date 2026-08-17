@@ -1,5 +1,7 @@
 import type { Route } from "next";
 
+import { t } from "@/src/i18n/en";
+
 export type PartnerRole = "partner_admin" | "partner_seller";
 export type PartnerRisk = "low" | "medium" | "high";
 export type PartnerStatus =
@@ -47,12 +49,14 @@ export interface PartnerSurfaceConfig {
   eyebrow: string;
   title: string;
   description: string;
+  rule: string;
   noun: string;
   columns: readonly [string, string, string];
   records: readonly PartnerRecord[];
   roles: readonly PartnerRole[];
   primaryAction?: { label: string; href: Route; roles: readonly PartnerRole[] };
   gate?: string;
+  amountColumn?: number;
 }
 
 function partnerRoute(href: string): Route {
@@ -356,20 +360,22 @@ export const partnerSurfaces: Readonly<
   Record<PartnerSurfaceKey, PartnerSurfaceConfig>
 > = {
   portfolio: {
-    eyebrow: "Portfolio",
+    eyebrow: "Partner desk · Named-client position",
     title: "End-client portfolio",
     description:
       "Commercial context, service position, and risk for every named end client.",
+    rule: "Commercial position is scoped to each named end client; Fil One transfer pricing remains partner-private.",
     noun: "end clients",
     columns: ["End client", "Commercial position", "Next milestone"],
     records: portfolio,
     roles: both,
   },
   registrations: {
-    eyebrow: "Pipeline protection",
+    eyebrow: "Partner desk · Pipeline protection",
     title: "Deal registrations",
     description:
       "Register named opportunities and track protection without exposing raw account identifiers.",
+    rule: "A requested protection window becomes effective only when Fil One accepts the registration.",
     noun: "registrations",
     columns: ["Opportunity", "Commercial value", "Decision"],
     records: registrations,
@@ -377,10 +383,11 @@ export const partnerSurfaces: Readonly<
     gate: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision.",
   },
   disputes: {
-    eyebrow: "Evidence and resolution",
+    eyebrow: "Partner desk · Evidence and resolution",
     title: "Registration and billing disputes",
     description:
       "Track disputed claims, evidence deadlines, and the authority responsible for a decision.",
+    rule: "Submitting evidence does not decide a dispute; the recorded decision remains authoritative.",
     noun: "disputes",
     columns: ["Dispute", "Exposure", "Deadline"],
     records: disputes,
@@ -388,10 +395,11 @@ export const partnerSurfaces: Readonly<
     gate: "Final dispute decisions are external to the partner desk and remain with Fil One operations or the billing provider.",
   },
   quotes: {
-    eyebrow: "Resale commercial workflow",
+    eyebrow: "Partner desk · Resale quoting",
     title: "Partner & resale quotes",
     description:
       "Keep transfer economics private while issuing a clear partner-controlled resale price.",
+    rule: "Issued quotes are immutable; an end client on a resale route sees only the partner-set resale price.",
     noun: "quotes",
     columns: ["Quote", "Price boundary", "Expiry"],
     records: quotes,
@@ -403,50 +411,57 @@ export const partnerSurfaces: Readonly<
     },
   },
   billing: {
-    eyebrow: "Invoice and payment truth",
+    eyebrow: "Partner desk · Invoice and payment truth",
     title: "Consolidated billing",
     description:
       "Reconcile partner invoices by end client; payment status remains provider-webhook derived.",
+    rule: "On resale routes, Fil One invoices the partner account at transfer price; payment state changes only from provider truth.",
     noun: "invoices",
     columns: ["Invoice", "Invoice truth", "Payment truth"],
     records: billing,
     roles: admin,
+    amountColumn: 3,
   },
   commissions: {
-    eyebrow: "Collected-revenue basis",
+    eyebrow: "Partner desk · Collected-revenue earnings",
     title: "Commissions and statements",
     description:
       "See accruals, credits, holdbacks, and payouts without confusing estimates with collected revenue.",
+    rule: t("partner.commissions.description"),
     noun: "commission entries",
-    columns: ["Statement", "Collected basis", "Settlement"],
+    columns: ["Statement or accrual", "Amount accrued", "Settlement"],
     records: commissions,
     roles: admin,
+    amountColumn: 3,
   },
   renewals: {
-    eyebrow: "Protected commercial change",
+    eyebrow: "Partner desk · Renewal decisions",
     title: "Partner renewals",
     description:
       "Review the transfer and resale commitment before requesting a renewal change.",
+    rule: "The current term remains authoritative until the server confirms a renewal change.",
     noun: "renewals",
     columns: ["End client", "Renewal economics", "Notice clock"],
     records: renewals,
     roles: admin,
   },
   sandboxes: {
-    eyebrow: "Presales environments",
+    eyebrow: "Partner desk · Presales environments",
     title: "Sandboxes and POCs",
     description:
       "Track capacity caps, success tests, named access, and expiry before commercial conversion.",
+    rule: "Partner sandboxes are zero-price, capped, expiring entitlements on the standard provisioning path.",
     noun: "sandboxes and POCs",
     columns: ["Environment", "Progress", "Expiry"],
     records: sandboxes,
     roles: admin,
   },
   marketplace: {
-    eyebrow: "Provider fulfillment",
+    eyebrow: "Partner desk · Provider fulfillment",
     title: "Marketplace offers",
     description:
       "Follow offer and fulfillment state while preserving each provider as the acceptance source.",
+    rule: "The marketplace provider remains the source of offer acceptance, fulfillment, and payout state.",
     noun: "marketplace offers",
     columns: ["Offer", "Buyer price", "Provider state"],
     records: marketplace,
@@ -454,10 +469,11 @@ export const partnerSurfaces: Readonly<
     gate: "Offer acceptance and payout actions occur in the marketplace provider; Fil One shows synchronized provider truth.",
   },
   brand: {
-    eyebrow: "Partner presentation",
+    eyebrow: "Partner desk · Presentation controls",
     title: "Brand and custom domains",
     description:
       "Manage partner-facing presentation while keeping legal and merchant boundaries explicit.",
+    rule: "Branding never changes the legal entity, merchant of record, or audit identity.",
     noun: "brand settings",
     columns: ["Experience", "Verification", "Boundary"],
     records: brand,
@@ -465,10 +481,11 @@ export const partnerSurfaces: Readonly<
     gate: "DNS changes happen at your provider. Fil One verifies the record but does not navigate or submit changes on your behalf.",
   },
   support: {
-    eyebrow: "Partner-visible cases",
+    eyebrow: "Partner desk · Visible support cases",
     title: "Support",
     description:
       "Follow end-client support work with source-system freshness and visibility boundaries.",
+    rule: "This surface is read-only; replies and attachments stay in the support provider.",
     noun: "support cases",
     columns: ["Case", "Freshness", "Source"],
     records: support,

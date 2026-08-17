@@ -302,7 +302,7 @@ export const AuthenticatedShell: Story = {
             { id: "home", label: "Overview", href: "#", active: true },
             { id: "agreements", label: "Agreements", href: "#" },
             { id: "quotes", label: "Quotes", href: "#", badge: "3" },
-            { id: "orders", label: "Orders & services", href: "#" },
+            { id: "orders", label: "Orders", href: "#" },
           ],
         },
         {

@@ -1,12 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { demoAccountIds } from "@clockwork/testing/personas";
 
 // These journeys change the demo persona header between customer and partner
 // sessions, so keeping this feature file serial avoids cross-route compilation
 // and navigation races in the local Next development server.
 test.describe.configure({ mode: "serial" });
 
-const CUSTOMER_ACCOUNT_ID = "10000000-0000-4000-8000-000000000001";
+const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
 const OFFER = "Enterprise archive capacity";
 const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
 
@@ -82,10 +83,15 @@ test("member keeps read access without owner-only customer actions", async ({
     "/services?q=madrid&status=provisioning&risk=medium&owner=Service%20operations&sort=title_asc&view=compact&page=1&pageSize=5",
   );
   await expect(
-    page.getByRole("heading", { name: "Orders & services" }),
+    page.getByRole("heading", { name: "Active services" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Madrid compliance replica" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "The commitment ledger, not provider meter thresholds, determines overage at the contracted quote rate.",
+    ),
   ).toBeVisible();
   await expect(page).toHaveURL(/q=madrid/);
   await expect(page).toHaveURL(/pageSize=5/);
@@ -331,7 +337,7 @@ test("billing prepares a safe provider handoff while payment truth stays webhook
   // (P0-52). The test asserted the defect, so it changes with the fix: the
   // session is now opened for the account and the invoice actually on screen.
   expect(payment).toEqual({
-    accountId: "10000000-0000-4000-8000-000000000001",
+    accountId: CUSTOMER_ACCOUNT_ID,
     invoiceId: "50000000-0000-4000-8000-000000000014",
   });
 });

@@ -34,12 +34,19 @@
 
 .eyebrow {
   color: var(--web-accent);
-  font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
   font-weight: 700;
-  letter-spacing: 0.1em;
   margin: 0 0 8px;
-  text-transform: uppercase;
+}
+
+.ruleFooter {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--cw-text-sm);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 78ch;
+  padding-top: 14px;
 }
 
 .description {

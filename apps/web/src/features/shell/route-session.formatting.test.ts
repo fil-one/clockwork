@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEMO_PERSONA_HEADER } from "@clockwork/testing/personas";
+import {
+  DEMO_PERSONA_HEADER,
+  demoAccountIds,
+} from "@clockwork/testing/personas";
 
 import type * as AuthSession from "@/src/auth/session";
 import type * as DemoPersona from "@/src/auth/demo-persona";
@@ -67,5 +70,19 @@ describe("route session formatting", () => {
     // answer that is the same fact for everyone, and every surface labels it.
     expect(session.timeZone).toBe("UTC");
     expect(session.locale).toBe("en-US");
+  });
+
+  /**
+   * The non-persona UI shard exercises the role-header fallback. Its session
+   * used legacy `100…` accounts after the explicit demo projection moved to
+   * the catalog's tenant-scoped `110…` accounts, so every customer and partner
+   * collection was empty even though both sides were individually valid.
+   */
+  it("scopes fallback sessions to the accounts that own demo projections", async () => {
+    const customer = await getRouteSession("customer");
+    const partner = await getRouteSession("partner");
+
+    expect(customer.effectiveAccountId).toBe(demoAccountIds.direct);
+    expect(partner.effectiveAccountId).toBe(demoAccountIds.reseller);
   });
 });

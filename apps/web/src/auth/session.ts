@@ -5,7 +5,7 @@ import {
   type SessionResolver,
 } from "@clockwork/api";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
-import type { DemoPersona } from "@clockwork/testing/personas";
+import { demoAccountIds, type DemoPersona } from "@clockwork/testing/personas";
 import {
   DEMO_PERSONA_HEADER,
   demoPersonaCookieName,
@@ -348,8 +348,8 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       (isInternalStaff
         ? "10000000-0000-4000-8000-000000000009"
         : role === "partner_admin" || role === "partner_seller"
-          ? "10000000-0000-4000-8000-000000000002"
-          : "10000000-0000-4000-8000-000000000001");
+          ? demoAccountIds.reseller
+          : demoAccountIds.direct);
     return {
       userId: isInternalStaff
         ? "20000000-0000-4000-8000-000000000001"
