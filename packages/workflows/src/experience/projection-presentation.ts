@@ -308,6 +308,61 @@ export function describeAggregate(
       };
     }
 
+    case "commission_statement": {
+      const grossAccruedMinor = text(state, "grossAccruedMinor");
+      const clawbackMinor = text(state, "clawbackMinor");
+      const holdbackMinor = text(state, "holdbackMinor");
+      const payableMinor = text(state, "payableMinor");
+      const periodStartsOn = text(state, "periodStartsOn");
+      const periodEndsOn = text(state, "periodEndsOn");
+      const lineCount = integer(state, "lineCount");
+      const identifier = reference("STM", state.aggregateId);
+      const period =
+        formatDate(periodStartsOn) && formatDate(periodEndsOn)
+          ? `${formatDate(periodStartsOn)} – ${formatDate(periodEndsOn)}`
+          : "Statement period not recorded";
+      const settlement = `Statement ${titleCase(status ?? "draft")}`;
+      return {
+        reference: identifier,
+        title: `${identifier} · ${period}`,
+        description: `${lineCount ?? 0} collected-revenue ${lineCount === 1 ? "entry" : "entries"} · ${settlement.toLowerCase()}`,
+        context: [
+          { label: "Period", value: period },
+          ...(clawbackMinor
+            ? [
+                {
+                  label: "Clawbacks",
+                  value: formatMoney(clawbackMinor, currency) ?? NOT_RECORDED,
+                },
+              ]
+            : empty),
+          ...(holdbackMinor
+            ? [
+                {
+                  label: "Holdback",
+                  value: formatMoney(holdbackMinor, currency) ?? NOT_RECORDED,
+                },
+              ]
+            : empty),
+          ...(payableMinor
+            ? [
+                {
+                  label: "Payable",
+                  value: formatMoney(payableMinor, currency) ?? NOT_RECORDED,
+                },
+              ]
+            : empty),
+        ],
+        value: formatMoney(grossAccruedMinor, currency) ?? NOT_RECORDED,
+        valueSort: minorUnitsToNumber(grossAccruedMinor),
+        valueLabel: currency ? `Accrued ${currency}` : "Accrued amount",
+        secondary: settlement,
+        term: settlement,
+        dateLabel: formatDate(state.sourceUpdatedAt) ?? NOT_RECORDED,
+        overdue: false,
+      };
+    }
+
     case "agreement": {
       const effectiveOn = text(state, "effectiveOn");
       const termMonths = integer(state, "termMonths");

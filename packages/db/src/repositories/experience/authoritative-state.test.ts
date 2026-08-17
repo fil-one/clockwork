@@ -22,6 +22,7 @@ const tableByType = {
   amendment: "amendments",
   poc: "pocs",
   invoice: "invoices",
+  commission_statement: "core_commission_statements",
   exception_case: "exception_cases",
   approval: "approvals",
   provider_operation: "provider_operations",
@@ -123,6 +124,29 @@ describe("database authoritative state loader", () => {
       version: 4,
       sourceUpdatedAt: now.toISOString(),
     });
+  });
+
+  it("allowlists real commission statement money and settlement status", async () => {
+    const { database, queries } = databaseWithRows([row()]);
+
+    await new DatabaseAuthoritativeStateLoader(database).loadVersion({
+      aggregateType: "commission_statement",
+      aggregateId,
+      requestId: "authoritative-commission-accrual",
+    });
+
+    const sourceQuery = queries.find((query) =>
+      query.includes("from public.core_commission_statements"),
+    );
+    expect(sourceQuery).toContain("s.gross_accrued_minor::text");
+    expect(sourceQuery).toContain("s.clawback_minor::text");
+    expect(sourceQuery).toContain("s.holdback_minor::text");
+    expect(sourceQuery).toContain("s.payable_minor::text");
+    expect(sourceQuery).toContain("s.status");
+    expect(sourceQuery).toContain(
+      "from public.core_commission_statement_lines",
+    );
+    expect(sourceQuery).not.toMatch(/select\s+s\.\*/u);
   });
 
   it("rejects unknown types before opening a database transaction", async () => {

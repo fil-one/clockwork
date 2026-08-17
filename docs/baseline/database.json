@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:57:22Z",
-  "canonicalMigrationCount": 50,
+  "capturedAt": "2026-08-17T01:39:43Z",
+  "canonicalMigrationCount": 52,
   "effectiveSourceInventory": {
     "tables": [
       "private.authorization_secrets",
@@ -1803,13 +1803,13 @@
         "statement": "create policy experience_evidence_service on public.experience_evidence_uploads for all to clockwork_service using (true) with check (true);"
       },
       {
-        "migration": "supabase/migrations/001230_experience_delivery.sql",
+        "migration": "supabase/migrations/001420_partner_projection_admin_channels.sql",
         "name": "experience_projection_read",
         "table": "public.experience_portal_projections",
         "command": "select",
         "roles": ["clockwork_runtime"],
-        "clauses": "for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or (audience <> 'internal' and app_has_account(audience_account_id)) )",
-        "statement": "create policy experience_projection_read on public.experience_portal_projections for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or (audience <> 'internal' and app_has_account(audience_account_id)) );"
+        "clauses": "for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) )",
+        "statement": "create policy experience_projection_read on public.experience_portal_projections for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) );"
       },
       {
         "migration": "supabase/migrations/001230_experience_delivery.sql",
@@ -2829,8 +2829,8 @@
         "statement": "create policy workflow_runs_internal on workflow_runs for all using (app_is_internal()) with check (app_is_internal());"
       }
     ],
-    "policyCreateStatementCount": 306,
-    "policyDropStatementCount": 39,
+    "policyCreateStatementCount": 307,
+    "policyDropStatementCount": 40,
     "functions": [
       "private.canonical_jsonb_text",
       "public.app_context_claims",
@@ -5216,6 +5216,12 @@
       },
       {
         "migration": "supabase/migrations/001418_commission_apportionment_and_tax_share.sql",
+        "templated": false,
+        "kind": "revoke",
+        "statement": "revoke all on function public.validate_commission_source_truth() from public;"
+      },
+      {
+        "migration": "supabase/migrations/001419_commission_clawback_ceiling.sql",
         "templated": false,
         "kind": "revoke",
         "statement": "revoke all on function public.validate_commission_source_truth() from public;"
@@ -11388,6 +11394,65 @@
           "statement": "revoke all on function public.validate_commission_source_truth() from public;"
         }
       ]
+    },
+    {
+      "path": "supabase/migrations/001419_commission_clawback_ceiling.sql",
+      "migrationId": "001419",
+      "owner": "main-release-integration",
+      "sha256": "c766c6a93cd8a5affd368008dc40ebd8cd3fe29104810c1d5aae9bcf34345202",
+      "bytes": 10684,
+      "tables": [],
+      "policyCreates": [],
+      "policyDrops": [],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": ["public.validate_commission_source_truth"],
+      "views": [],
+      "triggerCreates": [],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": [
+        {
+          "kind": "revoke",
+          "statement": "revoke all on function public.validate_commission_source_truth() from public;"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/001420_partner_projection_admin_channels.sql",
+      "migrationId": "001420",
+      "owner": "main-release-integration",
+      "sha256": "929541e0acd1a7bb6fd8379df12bc3625fb514613b38ae375b37d1ec44f0018e",
+      "bytes": 1381,
+      "tables": [],
+      "policyCreates": [
+        {
+          "name": "experience_projection_read",
+          "table": "public.experience_portal_projections",
+          "command": "select",
+          "roles": ["clockwork_runtime"],
+          "clauses": "for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) )",
+          "statement": "create policy experience_projection_read on public.experience_portal_projections for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) );"
+        }
+      ],
+      "policyDrops": [
+        {
+          "name": "experience_projection_read",
+          "table": "public.experience_portal_projections"
+        }
+      ],
+      "rlsTables": [],
+      "forceRlsTables": [],
+      "grants": [],
+      "templatedGrants": [],
+      "functions": [],
+      "views": [],
+      "triggerCreates": [],
+      "dynamicTriggerBindings": [],
+      "triggerDrops": [],
+      "accessControlStatements": []
     }
   ],
   "drizzleSnapshots": [

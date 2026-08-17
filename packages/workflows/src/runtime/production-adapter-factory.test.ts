@@ -304,6 +304,12 @@ describe("production workflow adapter factory", () => {
     expect(bundle.outboxHandlers.has("core.quotes.expire")).toBe(true);
     expect(bundle.outboxHandlers.has("core.orders.create")).toBe(true);
     expect(
+      bundle.outboxHandlers.has("core.commission_statement.generated"),
+    ).toBe(true);
+    expect(bundle.outboxHandlers.has("core.commission_statement.settled")).toBe(
+      true,
+    );
+    expect(
       bundle.outboxHandlers.has("experience.projection_action.applied"),
     ).toBe(true);
     expect(

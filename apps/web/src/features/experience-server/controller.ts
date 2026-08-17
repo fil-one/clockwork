@@ -9,6 +9,7 @@ import {
 } from "@clockwork/documents";
 
 import { WorkosNextSessionResolver } from "@/src/auth/session";
+import { canReadPartnerChannel } from "@/src/features/customer-partner/partner/partner-access";
 import type { SessionResolver } from "@clockwork/api";
 
 import {
@@ -400,6 +401,16 @@ export async function handleExperienceRequest(
           404,
           "ROUTE_NOT_FOUND",
           "Projection route not found",
+        );
+      if (
+        audienceValue === "partner" &&
+        !session.isInternalStaff &&
+        !canReadPartnerChannel(session.roles, channelValue)
+      )
+        throw new ExperienceProblem(
+          403,
+          "PROJECTION_CHANNEL_FORBIDDEN",
+          "The authenticated partner role cannot read this projection channel",
         );
       const url = new URL(request.url);
       const requestedLimit = Number(url.searchParams.get("limit") ?? "25");

@@ -67,6 +67,12 @@ const aggregateConfiguration = {
     internal: "collections",
     resource: "invoices",
   },
+  commission_statement: {
+    customer: null,
+    partner: "commissions",
+    internal: null,
+    resource: null,
+  },
   termination: {
     customer: "services",
     partner: "services",
@@ -349,12 +355,16 @@ function projectAuthoritativeState(input: {
       }),
     );
 
-  const partnerAccountId = input.state.data.partnerAccountId;
+  const partnerAccountId =
+    aggregateType === "commission_statement"
+      ? input.state.accountId
+      : input.state.data.partnerAccountId;
   if (
     configuration.partner &&
     typeof partnerAccountId === "string" &&
     uuidPattern.test(partnerAccountId) &&
-    partnerAccountId !== input.state.accountId
+    (aggregateType === "commission_statement" ||
+      partnerAccountId !== input.state.accountId)
   )
     mutations.push(
       mutationFor({
@@ -395,7 +405,6 @@ const projectableResources = {
 } as const satisfies Readonly<Record<string, AggregateKey>>;
 
 const reportActions = ["create", "issue", "prepare_artifact"] as const;
-
 /**
  * Lifecycle and workflow topics that carry an aggregate the state loader reads.
  *
@@ -442,16 +451,36 @@ const lifecycleEventTopics = {
 function eventDefinitions(): ProjectionDefinition[] {
   const definitions: ProjectionDefinition[] = [];
   const seen = new Set<string>();
-  const add = (topic: string, aggregateType: string) => {
+  const add = (
+    topic: string,
+    aggregateType: string,
+    authoritativeAggregateType?: string,
+  ) => {
     if (seen.has(topic)) return;
     seen.add(topic);
     definitions.push({
       topic,
       eventTypes: [topic],
       aggregateTypes: [aggregateType],
+      ...(authoritativeAggregateType ? { authoritativeAggregateType } : {}),
       project: projectAuthoritativeState,
     });
   };
+
+  // These two audit events predate the dedicated statement projection type
+  // and remain bound to `report_export`. The event type is unambiguous, so the
+  // projection reads the statement row explicitly instead of falling through
+  // to the unrelated report-export table.
+  add(
+    "core.commission_statement.generated",
+    "report_export",
+    "commission_statement",
+  );
+  add(
+    "core.commission_statement.settled",
+    "report_export",
+    "commission_statement",
+  );
 
   for (const [resource, aggregateType] of Object.entries(
     projectableResources,

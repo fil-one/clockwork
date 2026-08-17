@@ -15,12 +15,16 @@ async function projectAggregate(input: {
   aggregateId: string;
   accountId: string | null;
   data: Readonly<Record<string, unknown>>;
+  authoritativeAggregateType?: string;
 }) {
   const definition = createCanonicalPortalProjectionDefinitions().find(
     (candidate) => candidate.topic === input.topic,
   );
   if (!definition) throw new Error(`Expected a ${input.topic} definition`);
   expect(definition.aggregateTypes).toEqual([input.aggregateType]);
+  expect(definition.authoritativeAggregateType).toBe(
+    input.authoritativeAggregateType,
+  );
   return definition.project({
     event: {
       eventId: "70000000-0000-4000-8000-000000000001",
@@ -34,7 +38,7 @@ async function projectAggregate(input: {
       data: {},
     },
     state: {
-      aggregateType: input.aggregateType,
+      aggregateType: input.authoritativeAggregateType ?? input.aggregateType,
       aggregateId: input.aggregateId,
       accountId: input.accountId,
       version: 3,
@@ -73,6 +77,8 @@ describe("canonical portal projection definitions", () => {
     expect(new Set(topics).size).toBe(topics.length);
     expect(topics).toContain("core.quotes.expire");
     expect(topics).toContain("core.orders.create");
+    expect(topics).toContain("core.commission_statement.generated");
+    expect(topics).toContain("core.commission_statement.settled");
     expect(topics.some((topic) => topic.startsWith("experience."))).toBe(false);
     for (const definition of definitions)
       expect(definition.eventTypes).toEqual([definition.topic]);
@@ -81,7 +87,10 @@ describe("canonical portal projection definitions", () => {
   it("registers at least one authoritative topic for every routed aggregate", () => {
     const covered = new Set(
       createCanonicalPortalProjectionDefinitions().flatMap(
-        ({ aggregateTypes }) => aggregateTypes,
+        ({ aggregateTypes, authoritativeAggregateType }) => [
+          ...aggregateTypes,
+          ...(authoritativeAggregateType ? [authoritativeAggregateType] : []),
+        ],
       ),
     );
     for (const aggregate of Object.keys(aggregateConfiguration))
@@ -123,6 +132,64 @@ describe("canonical portal projection definitions", () => {
         status: expectedPublicStatus,
         authoritative: { status: lifecycleStatus },
       });
+    },
+  );
+
+  it.each([
+    ["core.commission_statement.generated", "draft", "draft"],
+    ["core.commission_statement.settled", "paid", "paid"],
+  ] as const)(
+    "projects %s from its real statement row only to the owning partner",
+    async (topic, authoritativeStatus, publicStatus) => {
+      const statementId = "63000000-0000-4000-8000-000000000001";
+      const projections = await projectAggregate({
+        topic,
+        aggregateType: "report_export",
+        authoritativeAggregateType: "commission_statement",
+        aggregateId: statementId,
+        accountId: partnerAccountId,
+        data: {
+          currency: "USD",
+          grossAccruedMinor: "1842000",
+          clawbackMinor: "2860",
+          holdbackMinor: "1000",
+          payableMinor: "1838140",
+          periodStartsOn: "2026-07-01",
+          periodEndsOn: "2026-09-30",
+          lineCount: 34,
+          status: authoritativeStatus,
+        },
+      });
+
+      expect(channelsFor(projections)).toEqual(["partner:commissions"]);
+      expect(projections).toHaveLength(1);
+      expect(projections[0]).toMatchObject({
+        audience: "partner",
+        audienceAccountId: partnerAccountId,
+        subjectAccountId: partnerAccountId,
+        channel: "commissions",
+        recordKey: `commission_statement-${statementId}`,
+        commandResource: null,
+        payload: {
+          id: statementId,
+          name: "STM-63000000 · Jul 1, 2026 – Sep 30, 2026",
+          description: `34 collected-revenue entries · statement ${authoritativeStatus}`,
+          status: publicStatus,
+          statusLabel: publicStatus === "paid" ? "Paid" : "Draft",
+          value: "$18,420.00",
+          valueLabel: "Accrued USD",
+          secondary:
+            authoritativeStatus === "paid"
+              ? "Statement Paid"
+              : "Statement Draft",
+          allowedActions: [],
+        },
+      });
+      expect(
+        projections.some(({ audience }) =>
+          ["customer", "internal"].includes(audience),
+        ),
+      ).toBe(false);
     },
   );
 
@@ -221,6 +288,7 @@ describe("canonical portal projection definitions", () => {
     });
     expect(channelsFor(projections)).toEqual(["internal:approvals"]);
     expect(projections[0]?.payload.secondary).toBe("Decided");
+    expect(projections[0]?.payload.status).toBe("attention");
   });
 
   it("shows a POC and an executed agreement on every audience that holds them", async () => {

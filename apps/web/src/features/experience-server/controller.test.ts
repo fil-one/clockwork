@@ -40,6 +40,16 @@ const customerSession: SessionClaims = {
   recentAuthenticationVerified: true,
 };
 
+const partnerSellerSession: SessionClaims = {
+  ...customerSession,
+  roles: ["partner_seller"],
+};
+
+const partnerAdminSession: SessionClaims = {
+  ...customerSession,
+  roles: ["partner_admin"],
+};
+
 const internalSession: SessionClaims = {
   ...customerSession,
   accountIds: [],
@@ -362,6 +372,65 @@ describe("authoritative artifact requests", () => {
       expect(findArtifact).not.toHaveBeenCalled();
     },
   );
+
+  it("preserves an audited assisted operator read of the target partner commission channel", async () => {
+    const page: ProjectionPage = {
+      items: [],
+      nextCursor: null,
+      generatedAt: "2026-08-16T12:00:00.000Z",
+      freshnessSeconds: 300,
+    };
+    const list = vi.fn(() => Promise.resolve(page));
+    const source = {
+      list,
+      find: vi.fn(),
+      action: vi.fn(),
+    } as unknown as ProjectionSource;
+
+    const response = await handleExperienceRequest(
+      new Request(
+        "https://app.example/api/experience/projections/partner/commissions",
+      ),
+      ["projections", "partner", "commissions"],
+      {
+        repository: repository(),
+        sessionResolver: resolver(assistedSession),
+        projections: source,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: accountB }),
+    );
+  });
+
+  it("keeps unassisted internal staff outside every partner channel", async () => {
+    const list = vi.fn();
+    const source = {
+      list,
+      find: vi.fn(),
+      action: vi.fn(),
+    } as unknown as ProjectionSource;
+
+    const response = await handleExperienceRequest(
+      new Request(
+        "https://app.example/api/experience/projections/partner/commissions",
+      ),
+      ["projections", "partner", "commissions"],
+      {
+        repository: repository(),
+        sessionResolver: resolver(internalSession),
+        projections: source,
+      },
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      code: "ASSISTED_SESSION_REQUIRED",
+    });
+    expect(list).not.toHaveBeenCalled();
+  });
 
   it("rejects an overlong source version before source resolution", async () => {
     const createRenderRequest = vi.fn();
@@ -899,6 +968,78 @@ describe("experience controller security", () => {
     expect(response.status).toBe(403);
     expect(list).not.toHaveBeenCalled();
   });
+
+  it.each(["billing", "commissions"])(
+    "denies a partner seller direct %s API reads before the source runs",
+    async (channel) => {
+      const list = vi.fn();
+      const find = vi.fn();
+      const source = {
+        list,
+        find,
+        action: vi.fn(),
+      } as unknown as ProjectionSource;
+
+      for (const suffix of ["", "/sensitive-record"]) {
+        const segments = ["projections", "partner", channel];
+        if (suffix) segments.push("sensitive-record");
+        const response = await handleExperienceRequest(
+          new Request(
+            `https://app.example/api/experience/projections/partner/${channel}${suffix}`,
+          ),
+          segments,
+          {
+            repository: repository(),
+            sessionResolver: resolver(partnerSellerSession),
+            projections: source,
+          },
+        );
+
+        expect(response.status).toBe(403);
+        expect(await response.json()).toMatchObject({
+          code: "PROJECTION_CHANNEL_FORBIDDEN",
+        });
+      }
+      expect(list).not.toHaveBeenCalled();
+      expect(find).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [partnerSellerSession, "portfolio"],
+    [partnerAdminSession, "commissions"],
+  ] as const)(
+    "allows %s to read the partner %s channel",
+    async (session, channel) => {
+      const page: ProjectionPage = {
+        items: [],
+        nextCursor: null,
+        generatedAt: "2026-08-16T12:00:00.000Z",
+        freshnessSeconds: 300,
+      };
+      const list = vi.fn(() => Promise.resolve(page));
+      const source = {
+        list,
+        find: vi.fn(),
+        action: vi.fn(),
+      } as unknown as ProjectionSource;
+
+      const response = await handleExperienceRequest(
+        new Request(
+          `https://app.example/api/experience/projections/partner/${channel}`,
+        ),
+        ["projections", "partner", channel],
+        {
+          repository: repository(),
+          sessionResolver: resolver(session),
+          projections: source,
+        },
+      );
+
+      expect(response.status).toBe(200);
+      expect(list).toHaveBeenCalledOnce();
+    },
+  );
 
   it("passes a stable cursor/limit and returns source freshness without interception", async () => {
     const page: ProjectionPage = {

@@ -47,7 +47,6 @@ const commissionTopics = {
   "provider.stripe.charge.dispute.updated": "chargeback",
   "provider.stripe.charge.dispute.closed": "chargeback",
 } as const satisfies Readonly<Record<string, PersistedCommissionSourceType>>;
-const commissionStatementTopic = "core.commission_statement.generated";
 
 export const coreWorkflowDispatchPlan = {
   "core.billing.issue-invoice.v1": {
@@ -67,7 +66,11 @@ export const coreWorkflowDispatchPlan = {
     schedules: ["0 6 * * *"],
   },
   "core.commissions.settle.v1": {
-    events: [commissionStatementTopic],
+    // A generated statement is still draft. Settlement begins only after an
+    // approval writer advances it, so the scheduled approved-statement scan is
+    // the owner; consuming generation here used to fail before downstream
+    // projection handlers could publish the statement.
+    events: [],
     schedules: ["0 6 1 */3 *"],
   },
   // Certificate expiry is time-driven only. No commerce event marks the day a
@@ -208,20 +211,6 @@ function handlers(input: {
       });
     });
   }
-  result.set(commissionStatementTopic, async (delivery) => {
-    const event = EventEnvelopeSchema.parse(delivery.payload);
-    if (
-      event.eventType !== commissionStatementTopic ||
-      event.aggregateType !== "report_export"
-    )
-      throw new Error("COMMISSION_STATEMENT_EVENT_BINDING_INVALID");
-    const dispatch = await input.store.buildCommissionSettlementDispatch({
-      statementId: event.aggregateId,
-      context: context(event),
-      idempotencyKey: `${delivery.idempotencyKey}:settle`,
-    });
-    await submit(input.submitter, dispatch);
-  });
   return result;
 }
 

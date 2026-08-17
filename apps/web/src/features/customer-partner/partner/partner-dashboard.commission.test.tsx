@@ -47,6 +47,7 @@ describe("partner dashboard commission position", () => {
       name: "Commission position",
     });
     expect(heading).toBeVisible();
+    expect(screen.getByText("Statement")).toBeVisible();
     expect(screen.getByText("$18,420 accrued")).toBeVisible();
     expect(
       screen.getByText(
