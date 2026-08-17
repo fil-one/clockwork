@@ -117,6 +117,7 @@ export const en = {
   "nav.partner.marketplace": "Marketplace",
   "nav.partner.sandboxes": "Sandboxes & POCs",
   "nav.partner.brand": "Brand & domains",
+  "nav.partner.enablement": "Enablement",
   "nav.partner.support": "Support",
   "nav.internal.home": "Operations",
   "nav.internal.search": "Global search",

@@ -17,6 +17,7 @@ import {
   AppShell as StructuralAppShell,
   ArrowLeftRight,
   BadgeDollarSign,
+  BookOpen,
   BrandLogo,
   Building2,
   Button,
@@ -96,6 +97,7 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/partner/marketplace": <Building2 size={19} strokeWidth={1.8} />,
   "/partner/sandboxes": <SlidersHorizontal size={19} strokeWidth={1.8} />,
   "/partner/brand": <Paintbrush size={19} strokeWidth={1.8} />,
+  "/partner/enablement": <BookOpen size={19} strokeWidth={1.8} />,
   "/partner/support": <CircleHelp size={19} strokeWidth={1.8} />,
   "/internal": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/internal/search": <Search size={19} strokeWidth={1.8} />,
@@ -182,7 +184,7 @@ const navigationSections: Readonly<
     {
       id: "channel",
       label: "nav.group.partner.channel",
-      hrefs: ["/partner/brand", "/partner/support"],
+      hrefs: ["/partner/brand", "/partner/enablement", "/partner/support"],
     },
   ],
   internal: [

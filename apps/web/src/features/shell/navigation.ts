@@ -119,6 +119,7 @@ export const navigation: Readonly<
       label: "nav.partner.brand",
       allowedRoles: ["partner_admin"],
     },
+    { href: "/partner/enablement", label: "nav.partner.enablement" },
     { href: "/partner/support", label: "nav.partner.support" },
   ],
   internal: [

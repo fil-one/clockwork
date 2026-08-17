@@ -29,6 +29,7 @@ const partnerAdminDestinations = [
   "Marketplace",
   "Sandboxes & POCs",
   "Brand & domains",
+  "Enablement",
   "Support",
 ] as const;
 
@@ -256,6 +257,9 @@ test("partner seller navigation and commands exclude admin-only work", async ({
 
   await expect(
     drawer.getByRole("link", { name: "Support", exact: true }),
+  ).toBeVisible();
+  await expect(
+    drawer.getByRole("link", { name: "Enablement", exact: true }),
   ).toBeVisible();
   for (const destination of [
     "Consolidated billing",

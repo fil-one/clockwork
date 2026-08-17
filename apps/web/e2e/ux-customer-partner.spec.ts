@@ -375,6 +375,48 @@ test("partner seller can search the named portfolio but cannot open partner bill
   ).toBeVisible();
 });
 
+test("partner enablement keeps public sharing separate from role-scoped desk work", async ({
+  page,
+}) => {
+  await usePersona(page, "partner_seller");
+  await page.goto("/partner/enablement");
+  const main = page.locator("#main-content");
+  await expect(
+    main.getByRole("heading", { level: 1, name: "Partner enablement" }),
+  ).toBeVisible();
+  const clientSafe = main.getByRole("region", { name: "Share with clients" });
+  await expect(clientSafe.getByRole("link", { name: "Open" })).toHaveCount(3);
+  await expect(clientSafe.getByText(/Nothing in this section/)).toContainText(
+    "transfer pricing, commissions, deal registrations",
+  );
+  const desk = main.getByRole("region", { name: "Internal to your desk" });
+  await expect(desk.getByText("Register an opportunity")).toBeVisible();
+  await expect(desk.getByText("Review commissions")).toHaveCount(0);
+  await expect(
+    main.getByText(/Nothing on this page is a placeholder/),
+  ).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
+for (const viewport of [
+  { width: 1440, height: 1000 },
+  { width: 320, height: 800 },
+]) {
+  test(`partner enablement remains readable at ${viewport.width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await usePersona(page, "partner_admin");
+    await page.goto("/partner/enablement");
+    const main = page.locator("#main-content");
+    await expect(main.getByText("Review commissions")).toBeVisible();
+    await expect(main.getByText("Review consolidated billing")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectAccessible(page);
+  });
+}
+
 test("partner collection state survives reload and browser history", async ({
   page,
 }) => {

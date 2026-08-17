@@ -1,0 +1,147 @@
+.main {
+  display: grid;
+  min-width: 0;
+  gap: 1.75rem;
+  padding: clamp(1.25rem, 4vw, 3.25rem);
+}
+
+.header {
+  padding-bottom: 1.15rem;
+  border-bottom: 2px solid var(--web-accent);
+}
+
+.header h1 {
+  max-width: 32ch;
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: var(--cw-leading-tight);
+}
+
+.header p,
+.sectionHeading p,
+.ledger p,
+.salesKit p,
+.boundary {
+  color: var(--web-muted);
+  line-height: var(--cw-leading-relaxed);
+}
+
+.header p {
+  max-width: 64ch;
+  margin: 0.6rem 0 0;
+  font-size: var(--cw-text-md);
+}
+
+.section {
+  display: grid;
+  min-width: 0;
+  gap: 0.85rem;
+  padding-top: 0.25rem;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionHeading h2,
+.salesKit h2 {
+  margin: 0;
+  font-size: var(--cw-text-xl);
+}
+
+.sectionHeading p {
+  max-width: 58ch;
+  margin: 0.3rem 0 0;
+  font-size: var(--cw-text-sm);
+}
+
+.sectionHeading span {
+  flex: 0 0 auto;
+  color: var(--web-muted);
+  font-family: var(--cw-font-mono);
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.boundary {
+  max-width: 78ch;
+  margin: 0;
+  padding: 0.75rem 0;
+  border-block: 1px solid var(--web-line);
+  font-size: var(--cw-text-sm);
+  font-weight: 700;
+}
+
+.ledger {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--web-line);
+  list-style: none;
+}
+
+.ledger li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--web-line);
+}
+
+.ledger h3 {
+  margin: 0;
+  font-size: var(--cw-text-md);
+}
+
+.ledger p {
+  max-width: 70ch;
+  margin: 0.25rem 0 0;
+  font-size: var(--cw-text-sm);
+}
+
+.ledger a {
+  display: inline-flex;
+  min-width: 4rem;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--web-accent);
+  font-size: var(--cw-text-sm);
+  font-weight: 800;
+}
+
+.salesKit {
+  padding: 1rem 0;
+  border-block: 1px solid var(--web-line);
+}
+
+.salesKit > p:first-child {
+  margin: 0 0 0.25rem;
+  color: var(--web-warm);
+  font-size: var(--cw-text-xs);
+  font-weight: 800;
+}
+
+.salesKit > p:last-child {
+  max-width: 70ch;
+  margin: 0.4rem 0 0;
+  font-size: var(--cw-text-sm);
+}
+
+@media (max-width: 35rem) {
+  .sectionHeading,
+  .ledger li {
+    display: grid;
+    align-items: start;
+  }
+
+  .ledger a {
+    justify-self: start;
+  }
+}
