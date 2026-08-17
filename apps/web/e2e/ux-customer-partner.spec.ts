@@ -364,6 +364,9 @@ test("partner seller can search the named portfolio but cannot open partner bill
   );
   await expect(desk.getByText("Collected commission")).toHaveCount(0);
   await expect(
+    desk.getByRole("heading", { name: "Commission position" }),
+  ).toHaveCount(0);
+  await expect(
     desk.getByRole("rowheader", { name: "Atlas Field Imaging" }),
   ).toBeVisible();
   await expect(
@@ -570,6 +573,14 @@ for (const viewport of [
         level: 1,
         name: "Madrid compliance replica",
       }),
+    ).toBeVisible();
+    const orderLifecycle = page.getByRole("list", { name: "Order lifecycle" });
+    await expect(orderLifecycle).toBeVisible();
+    await expect(
+      orderLifecycle.getByText("Provisioning", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      orderLifecycle.getByText("Not yet recorded.").first(),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
 

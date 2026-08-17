@@ -16,7 +16,11 @@ import {
   type ProjectionChannel,
   type ProjectionRecord,
 } from "./model";
-import { loadPortalRecords, recordRoute } from "./portal-view-loader";
+import {
+  loadPortalRecords,
+  loadTopPortalRecords,
+  recordRoute,
+} from "./portal-view-loader";
 
 function string(value: unknown, field: string): string {
   if (typeof value !== "string" || !value)
@@ -205,6 +209,12 @@ const demoPartner: PartnerDashboardProjection = {
       recordVersion: 2,
     },
   ],
+  commission: {
+    id: "STM-2026-Q3",
+    statement: "Q3 commission statement",
+    accruedAmount: "$18,420 accrued",
+    href: "/partner/commissions?q=STM-2026-Q3",
+  },
   boundary: [
     { label: "Transfer price", value: "Private to Meridian" },
     { label: "Partner price", value: "Controlled by Meridian" },
@@ -791,22 +801,54 @@ function partnerAgreement(
   };
 }
 
+function partnerCommission(
+  record: ProjectionRecord | undefined,
+): PartnerDashboardProjection["commission"] {
+  if (!record) return undefined;
+  const projected = dashboardRecord(record);
+  const accruedAmount = displayed(projected.value);
+  if (!accruedAmount) return undefined;
+  return {
+    id: projected.recordKey,
+    statement: projected.title,
+    accruedAmount,
+    href: route(
+      `/partner/commissions?q=${encodeURIComponent(projected.recordKey)}`,
+      "commission.href",
+    ),
+  };
+}
+
 /** Partner account records route to `portfolio`, never to a `dashboard` row. */
 export async function loadPartnerDashboardProjection(): Promise<PartnerDashboardProjection> {
   if (explicitDashboardDemoEnabled()) return demoPartner;
   const session = await getCommerceSession();
-  const loaded = await loadDashboardChannels(
-    "partner",
-    partnerChannels,
-    session,
-  );
+  const [loaded, commissions] = await Promise.all([
+    loadDashboardChannels("partner", partnerChannels, session),
+    session.roles.includes("partner_admin")
+      ? loadTopPortalRecords(
+          "partner",
+          "commissions",
+          { limit: 1, orderBy: "updated_desc" },
+          session,
+        )
+      : Promise.resolve(null),
+  ]);
   const work = partnerWork(loaded.records);
   const account = channelRecords(loaded.records, "portfolio")[0] ?? null;
+  const commission = partnerCommission(commissions?.records[0]);
   return {
-    generatedAt: loaded.generatedAt,
-    stale: loaded.stale,
+    generatedAt:
+      [loaded.generatedAt, commissions?.generatedAt ?? loaded.generatedAt]
+        .sort()
+        .at(-1) ?? loaded.generatedAt,
+    // A top-one read is intentionally a prefix. It does not make the panel
+    // stale merely because older statements exist; only the selected record's
+    // own projection freshness does.
+    stale: loaded.stale || Boolean(commissions?.records[0]?.stale),
     agreement: partnerAgreement(loaded.records, work, loaded.now),
     work,
+    ...(commission ? { commission } : {}),
     boundary: account ? account.context : [],
   };
 }

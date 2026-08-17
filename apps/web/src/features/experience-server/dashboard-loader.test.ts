@@ -9,6 +9,7 @@ import type * as PortalViewLoader from "./portal-view-loader";
 const mocks = vi.hoisted(() => ({
   getCommerceSession: vi.fn(),
   loadPortalRecords: vi.fn(),
+  loadTopPortalRecords: vi.fn(),
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -17,6 +18,7 @@ vi.mock("@/src/auth/session", () => ({
 vi.mock("./portal-view-loader", async (importOriginal) => ({
   ...(await importOriginal<typeof PortalViewLoader>()),
   loadPortalRecords: mocks.loadPortalRecords,
+  loadTopPortalRecords: mocks.loadTopPortalRecords,
 }));
 
 import {
@@ -185,6 +187,24 @@ const noticeOrder = projection(
   },
 );
 
+const commissionStatement = projection(
+  "commissions",
+  "STM-2026-Q3",
+  3,
+  "2026-07-31T15:00:00.000Z",
+  {
+    title: "Q3 commission statement",
+    description: "34 collections · 2 credits · 1 holdback",
+    status: "pending",
+    statusLabel: "Pending",
+    tone: "warning",
+    value: "$18,420 accrued",
+    term: "Pays after collection truth settles",
+    dateLabel: "Jul 31, 2026",
+    context: [],
+  },
+);
+
 function pageFor(records: readonly ProjectionRecord[]) {
   return {
     records,
@@ -209,9 +229,10 @@ beforeEach(() => {
   mocks.getCommerceSession.mockResolvedValue({
     accountIds: [accountId],
     selectedAccountId: accountId,
-    roles: ["owner"],
+    roles: ["partner_admin"],
   });
   serve({});
+  mocks.loadTopPortalRecords.mockResolvedValue(pageFor([]));
 });
 
 afterEach(() => {
@@ -262,6 +283,7 @@ describe("dashboard demo boundary", () => {
       "Meridian Channel Partner Agreement - v4.1",
     );
     expect(mocks.loadPortalRecords).not.toHaveBeenCalled();
+    expect(mocks.loadTopPortalRecords).not.toHaveBeenCalled();
   });
 });
 
@@ -438,10 +460,63 @@ describe("partner dashboard composition", () => {
     ]);
   });
 
+  it("reads the newest real commission record for a named drill-through", async () => {
+    mocks.loadTopPortalRecords.mockResolvedValue(
+      pageFor([commissionStatement]),
+    );
+
+    const projectionResult = await loadPartnerDashboardProjection();
+
+    expect(mocks.loadTopPortalRecords).toHaveBeenCalledWith(
+      "partner",
+      "commissions",
+      { limit: 1, orderBy: "updated_desc" },
+      expect.objectContaining({ accountIds: [accountId] }),
+    );
+    expect(projectionResult.commission).toEqual({
+      id: "STM-2026-Q3",
+      statement: "Q3 commission statement",
+      accruedAmount: "$18,420 accrued",
+      href: "/partner/commissions?q=STM-2026-Q3",
+    });
+  });
+
+  it("omits a commission position when no sourced amount exists", async () => {
+    mocks.loadTopPortalRecords.mockResolvedValue(
+      pageFor([
+        projection("commissions", "STM-AMOUNT-PENDING", 1, generatedAt, {
+          ...commissionStatement.data,
+          value: NOT_RECORDED,
+        }),
+      ]),
+    );
+
+    const projectionResult = await loadPartnerDashboardProjection();
+
+    expect(projectionResult.commission).toBeUndefined();
+  });
+
+  it("does not read or return commission data for a partner seller", async () => {
+    mocks.getCommerceSession.mockResolvedValue({
+      accountIds: [accountId],
+      selectedAccountId: accountId,
+      roles: ["partner_seller"],
+    });
+    mocks.loadTopPortalRecords.mockResolvedValue(
+      pageFor([commissionStatement]),
+    );
+
+    const projectionResult = await loadPartnerDashboardProjection();
+
+    expect(mocks.loadTopPortalRecords).not.toHaveBeenCalled();
+    expect(projectionResult.commission).toBeUndefined();
+  });
+
   it("renders a partner with no records instead of failing the page", async () => {
     const projectionResult = await loadPartnerDashboardProjection();
 
     expect(projectionResult.work).toEqual([]);
+    expect(projectionResult.commission).toBeUndefined();
     expect(projectionResult.boundary).toEqual([]);
     expect(projectionResult.agreement).toMatchObject({
       label: "No partner agreement term recorded",

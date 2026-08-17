@@ -115,6 +115,61 @@
   gap: 0.75rem;
 }
 
+.commissionPosition {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 0.8fr) auto;
+  align-items: end;
+  gap: 1rem 2rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--web-line);
+}
+
+.commissionPosition h2 {
+  margin: 0;
+  font-size: var(--cw-text-xl);
+}
+
+.commissionPosition p:not(.classifier) {
+  max-width: 56ch;
+  margin: 0.35rem 0 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.commissionPosition dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.commissionPosition dl div {
+  border-left: 2px solid var(--cw-border-strong);
+  padding-left: 0.75rem;
+}
+
+.commissionPosition dt {
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
+  font-weight: 700;
+}
+
+.commissionPosition dd {
+  margin: 0.2rem 0 0;
+  font-size: var(--cw-text-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.commissionPosition a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  color: var(--web-accent);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .ledgerHeading p {
   margin: 0.25rem 0 0;
   color: var(--web-muted);
@@ -204,7 +259,8 @@
 
 @media (max-width: 52rem) {
   .taskHeader,
-  .boundary {
+  .boundary,
+  .commissionPosition {
     grid-template-columns: 1fr;
   }
 
@@ -214,6 +270,10 @@
 
   .authorityFacts {
     grid-template-columns: 1fr;
+  }
+
+  .commissionPosition {
+    align-items: start;
   }
 }
 
@@ -225,6 +285,10 @@
   }
 
   .boundary dl {
+    grid-template-columns: 1fr;
+  }
+
+  .commissionPosition dl {
     grid-template-columns: 1fr;
   }
 }

@@ -8,6 +8,7 @@ import {
   formatSurfaceTimestamp,
   type SurfaceFormatting,
 } from "@/src/features/customer-partner/formatting";
+import { t } from "@/src/i18n/en";
 
 import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
@@ -37,6 +38,12 @@ export interface PartnerDashboardProjection {
     adminOnly: boolean;
     recordVersion: number;
   }[];
+  commission?: {
+    id: string;
+    statement: string;
+    accruedAmount: string;
+    href: Route;
+  };
   boundary: readonly { label: string; value: string }[];
 }
 
@@ -117,6 +124,32 @@ export function PartnerDashboard({
           </div>
         </dl>
       </section>
+
+      {isAdmin && projection.commission ? (
+        <section
+          className={styles.commissionPosition}
+          aria-labelledby="commission-position-title"
+        >
+          <div>
+            <p className={styles.classifier}>Collected-revenue position</p>
+            <h2 id="commission-position-title">Commission position</h2>
+            <p>{t("partner.commissions.description")}</p>
+          </div>
+          <dl>
+            <div>
+              <dt>Accrued amount</dt>
+              <dd>{projection.commission.accruedAmount}</dd>
+            </div>
+            <div>
+              <dt>Statement</dt>
+              <dd>{projection.commission.statement}</dd>
+            </div>
+          </dl>
+          <Link href={projection.commission.href}>
+            Open {projection.commission.statement}
+          </Link>
+        </section>
+      ) : null}
 
       <section
         className={styles.workLedger}
