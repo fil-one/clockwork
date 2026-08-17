@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
+import { demoAccountIds } from "@clockwork/testing/personas";
 
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
@@ -12,6 +13,7 @@ const authMocks = vi.hoisted(() => ({
   resolveProviderAssistedSession: vi.fn(),
   resolveReleaseProofIdentity: vi.fn(),
   resolveWorkosIdentity: vi.fn(),
+  requestHeaders: new Map<string, string>(),
   withAuth: vi.fn(),
 }));
 
@@ -48,7 +50,10 @@ vi.mock("next/headers", () => ({
           ? { value: authMocks.assistedCookie }
           : undefined,
     }),
-  headers: () => Promise.resolve({ get: () => null }),
+  headers: () =>
+    Promise.resolve({
+      get: (name: string) => authMocks.requestHeaders.get(name) ?? null,
+    }),
 }));
 
 vi.mock("@/src/db/service", () => ({
@@ -142,6 +147,7 @@ function staffMembership(): AuthorizedMembership {
 
 describe("WorkOS commerce session mapping", () => {
   beforeEach(() => {
+    authMocks.requestHeaders.clear();
     configuredEnvironment();
     authMocks.assistedCookie = undefined;
     authMocks.withAuth.mockResolvedValue(workosSession());
@@ -215,6 +221,33 @@ describe("WorkOS commerce session mapping", () => {
       profile: { email: "operator@filone.test" },
     });
   });
+
+  /**
+   * The functional browser shard uses these role headers without enabling the
+   * public persona picker. Both fallback identities must still name the same
+   * tenant accounts as the explicit demo projection; the former `100…` IDs
+   * returned valid sessions whose every collection read was empty.
+   */
+  it.each([
+    ["member", demoAccountIds.direct],
+    ["partner_seller", demoAccountIds.reseller],
+  ] as const)(
+    "scopes the %s demo fallback to its projection account",
+    async (role, expectedAccountId) => {
+      vi.stubEnv("WORKOS_API_KEY", "");
+      vi.stubEnv("WORKOS_CLIENT_ID", "");
+      vi.stubEnv("WORKOS_COOKIE_PASSWORD", "");
+      vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+      authMocks.requestHeaders.set("x-clockwork-persona", role);
+
+      await expect(getCommerceSession()).resolves.toMatchObject({
+        roles: [role],
+        selectedAccountId: expectedAccountId,
+        effectiveAccountId: expectedAccountId,
+        accountIds: [expectedAccountId],
+      });
+    },
+  );
 
   it.each(DEMO_PRODUCTION_ENVIRONMENT_KEYS)(
     "cannot enable demo identity when %s marks production",

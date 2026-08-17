@@ -1,7 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { demoAccountIds } from "@clockwork/testing/personas";
 
-const CUSTOMER_ACCOUNT_ID = "10000000-0000-4000-8000-000000000001";
+const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
 const OFFER = "Enterprise archive capacity";
 const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
 
@@ -34,7 +35,7 @@ const journeys = [
     persona: "end client",
     role: "member",
     path: "/services",
-    heading: "Orders & services",
+    heading: "Active services",
   },
   {
     persona: "billing user",

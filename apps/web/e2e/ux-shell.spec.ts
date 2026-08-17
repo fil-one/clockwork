@@ -1,12 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { applyPersona } from "@clockwork/testing/playwright";
+import { demoAccountIds } from "@clockwork/testing/personas";
 
 const customerDestinations = [
   "Overview",
   "Agreements",
   "Quotes",
-  "Orders & services",
+  "Orders",
   "Active services",
   "POCs",
   "Billing",
@@ -347,16 +348,12 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
       exact: true,
     });
     await expectMinimumTarget(organization);
-    await expect(organization).toHaveValue(
-      "10000000-0000-4000-8000-000000000001",
-    );
+    await expect(organization).toHaveValue(demoAccountIds.direct);
     await expectNoHorizontalOverflow(page);
     await applyPersona(page, "partnerAdmin");
-    await organization.selectOption("10000000-0000-4000-8000-000000000002");
+    await organization.selectOption(demoAccountIds.reseller);
     await expect(page).toHaveURL(/\/partner$/);
-    await expect(organization).toHaveValue(
-      "10000000-0000-4000-8000-000000000002",
-    );
+    await expect(organization).toHaveValue(demoAccountIds.reseller);
 
     const header = page.locator("header").filter({ has: organization }).first();
     const box = await header.boundingBox();

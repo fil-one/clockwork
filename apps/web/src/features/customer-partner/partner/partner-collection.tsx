@@ -127,6 +127,9 @@ function RecordsTable({
         };
       })}
       headers={headers}
+      numericColumns={
+        config.amountColumn === undefined ? [] : [config.amountColumn]
+      }
       rowKeys={records.map((record) => record.id)}
       rows={records.map((record) => [
         <RecordTitle record={record} />,
@@ -597,6 +600,7 @@ export function PartnerCollection({
           </nav>
         ) : null}
       </section>
+      <p className={styles.ruleFooter}>{config.rule}</p>
       {surface === "renewals" && canUse ? (
         <RenewalPanel record={config.records[0]} />
       ) : null}

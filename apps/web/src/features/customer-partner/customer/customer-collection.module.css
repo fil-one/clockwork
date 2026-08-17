@@ -130,6 +130,16 @@
   gap: 0.8rem;
 }
 
+.ruleFooter {
+  border-top: 1px solid var(--web-line);
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 78ch;
+  padding-top: 0.9rem;
+}
+
 .resultsToolbar {
   display: flex;
   align-items: end;

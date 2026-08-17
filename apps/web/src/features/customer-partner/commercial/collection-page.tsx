@@ -513,6 +513,7 @@ export function CommercialCollectionPage({
           </div>
         )}
       </section>
+      <p className={styles.ruleFooter}>{definition.rule}</p>
     </main>
   );
 }

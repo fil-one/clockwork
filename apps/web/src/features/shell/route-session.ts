@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { cache } from "react";
 
 import { roles as commerceRoles, type Role } from "@clockwork/contracts";
+import { demoAccountIds } from "@clockwork/testing/personas";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 
 import {
@@ -50,7 +51,7 @@ const demoMemberships: Readonly<
     organizationId: "30000000-0000-4000-8000-000000000001",
     workosOrganizationId: "org_local_northstar",
     organizationName: "Northstar Production",
-    accountId: "10000000-0000-4000-8000-000000000001",
+    accountId: demoAccountIds.direct,
     accountName: "Northstar Archive Labs",
     role: "owner",
     audience: "customer",
@@ -64,7 +65,7 @@ const demoMemberships: Readonly<
     organizationId: "30000000-0000-4000-8000-000000000002",
     workosOrganizationId: "org_local_redwood",
     organizationName: "Redwood Partner",
-    accountId: "10000000-0000-4000-8000-000000000002",
+    accountId: demoAccountIds.reseller,
     accountName: "Redwood Channel Group",
     role: "partner_admin",
     audience: "partner",

@@ -8,8 +8,10 @@ export type CustomerCollectionKey =
 
 export interface CustomerCollectionConfig {
   key: CustomerCollectionKey;
+  eyebrow: string;
   title: string;
   description: string;
+  rule: string;
   searchPlaceholder: string;
   permission: Permission;
   path: string;
@@ -442,6 +444,8 @@ export const customerCollections: Readonly<
   amendments: {
     key: "amendments",
     ...copy.amendments,
+    eyebrow: "Customer workspace · Service changes",
+    rule: "An amendment supersedes changed order lines; it does not create an overlapping service order.",
     permission: "order:write",
     path: "/amendments",
     recordLabel: "Amendment",
@@ -452,6 +456,8 @@ export const customerCollections: Readonly<
   users: {
     key: "users",
     ...copy.users,
+    eyebrow: "Customer workspace · Commerce access",
+    rule: "Commerce access follows the approved account membership recorded for each person.",
     permission: "account:write",
     path: "/account/users",
     recordLabel: "Person",
@@ -462,6 +468,8 @@ export const customerCollections: Readonly<
   procurement: {
     key: "procurement",
     ...copy.procurement,
+    eyebrow: "Customer workspace · Purchasing readiness",
+    rule: "A tax exemption suppresses tax only while it is valid for the applicable jurisdiction.",
     permission: "account:write",
     path: "/account/procurement",
     recordLabel: "Requirement",
@@ -472,6 +480,8 @@ export const customerCollections: Readonly<
   marketplace: {
     key: "marketplace",
     ...copy.marketplace,
+    eyebrow: "Customer workspace · Provider purchases",
+    rule: "The marketplace provider remains the source of offer acceptance and fulfillment.",
     permission: "account:read",
     path: "/marketplace",
     recordLabel: "Offer",
@@ -484,6 +494,8 @@ export const customerCollections: Readonly<
   support: {
     key: "support",
     ...copy.support,
+    eyebrow: "Customer workspace · Provider support",
+    rule: "Support is read-only here; replies and attachments stay in the support provider.",
     permission: "account:read",
     path: "/support",
     recordLabel: "Issue",

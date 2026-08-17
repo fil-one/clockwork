@@ -1,17 +1,19 @@
 import type { BrowserContext, Page } from "@playwright/test";
 
+import { demoAccountIds } from "../personas/catalog";
+
 export const playwrightPersonas = {
   directOwner: {
     role: "owner",
-    accountId: "10000000-0000-4000-8000-000000000001",
+    accountId: demoAccountIds.direct,
   },
   partnerAdmin: {
     role: "partner_admin",
-    accountId: "10000000-0000-4000-8000-000000000002",
+    accountId: demoAccountIds.reseller,
   },
   billing: {
     role: "billing",
-    accountId: "10000000-0000-4000-8000-000000000001",
+    accountId: demoAccountIds.direct,
   },
   internalOperator: {
     role: "internal_operator",

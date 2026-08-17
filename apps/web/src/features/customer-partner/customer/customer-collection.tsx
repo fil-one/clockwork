@@ -341,7 +341,7 @@ export function CustomerCollection({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>Customer workspace</p>
+          <p className={styles.eyebrow}>{config.eyebrow}</p>
           <h1>{config.title}</h1>
           <p className={styles.description}>{config.description}</p>
         </div>
@@ -509,6 +509,8 @@ export function CustomerCollection({
           </>
         )}
       </section>
+
+      <p className={styles.ruleFooter}>{config.rule}</p>
 
       {selected ? (
         <SelectedRecord
