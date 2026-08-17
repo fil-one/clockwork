@@ -99,7 +99,13 @@ function commercial(input: {
   nextAction: string;
   allowedActions?: readonly string[];
 }): Readonly<Record<string, unknown>> {
-  return { ...input, allowedActions: input.allowedActions ?? [] };
+  return {
+    ...input,
+    ...(input.kind === "orders"
+      ? { authoritative: { status: input.status } }
+      : {}),
+    allowedActions: input.allowedActions ?? [],
+  };
 }
 
 function collection(input: {

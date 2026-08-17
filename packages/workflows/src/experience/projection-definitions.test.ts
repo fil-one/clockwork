@@ -91,6 +91,41 @@ describe("canonical portal projection definitions", () => {
       ).toBe(true);
   });
 
+  it.each([
+    ["submitted", "attention"],
+    ["accepted", "accepted"],
+    ["provisioning", "attention"],
+    ["active", "active"],
+    ["amended", "attention"],
+    ["completed", "complete"],
+    ["cancelled", "attention"],
+    ["terminated", "attention"],
+  ] as const)(
+    "preserves authoritative order lifecycle status %s alongside public status %s",
+    async (lifecycleStatus, expectedPublicStatus) => {
+      const projections = await projectAggregate({
+        topic: "core.orders.create",
+        aggregateType: "order",
+        aggregateId: "61000000-0000-4000-8000-000000000001",
+        accountId,
+        data: {
+          status: lifecycleStatus,
+          serviceStartsOn: "2026-08-01",
+          serviceEndsOn: "2027-07-31",
+        },
+      });
+      const customer = projections.find(
+        (projection) => projection.audience === "customer",
+      );
+
+      expect(customer?.payload).toMatchObject({
+        kind: "orders",
+        status: expectedPublicStatus,
+        authoritative: { status: lifecycleStatus },
+      });
+    },
+  );
+
   it("leaves satellite-bound and duplicate-guard topics unregistered", () => {
     const topics = new Set(
       createCanonicalPortalProjectionDefinitions().map(({ topic }) => topic),

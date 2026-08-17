@@ -10,9 +10,11 @@ import {
 
 import { getCommerceSession } from "@/src/auth/session";
 import { getOptionalRuntimeDatabase } from "@/src/db/service";
-import type {
-  CommercialRecord,
-  CollectionKind,
+import {
+  isOrderLifecycleStatus,
+  type CommercialRecord,
+  type CollectionKind,
+  type OrderLifecycleStatus,
 } from "@/src/features/customer-partner/commercial/model";
 import type { PreparedOrderFormLookup } from "@/src/features/customer-partner/commercial/prepared-order-form";
 import type { CustomerCollectionRecord } from "@/src/features/customer-partner/customer/collection-state";
@@ -143,6 +145,20 @@ function contextLine(data: Readonly<Record<string, unknown>>): string {
     .map((entry) => `${entry.label} ${entry.value}`)
     .join(" · ");
   return joined || "Not recorded";
+}
+
+function authoritativeOrderLifecycleStatus(
+  data: Readonly<Record<string, unknown>>,
+): OrderLifecycleStatus | null {
+  const authoritative = data.authoritative;
+  if (
+    !authoritative ||
+    typeof authoritative !== "object" ||
+    Array.isArray(authoritative)
+  )
+    return null;
+  const status = (authoritative as Readonly<Record<string, unknown>>).status;
+  return isOrderLifecycleStatus(status) ? status : null;
 }
 
 function portalAccountId(
@@ -409,6 +425,11 @@ function commercialRecord(
           (item): item is string => typeof item === "string",
         )
       : [],
+    ...(kind === "orders"
+      ? {
+          orderLifecycleStatus: authoritativeOrderLifecycleStatus(data),
+        }
+      : {}),
   };
 }
 

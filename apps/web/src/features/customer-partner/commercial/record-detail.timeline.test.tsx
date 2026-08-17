@@ -35,6 +35,9 @@ function record(kind: CommercialRecord["kind"]): CommercialRecord {
       kind === "orders" ? "/orders/ORD-2026-0112" : "/quotes/Q-2026-0184-v3",
     term: "Aug 1, 2026–Jul 31, 2027",
     nextAction: "Complete provisioning checklist",
+    ...(kind === "orders"
+      ? { orderLifecycleStatus: "provisioning" as const }
+      : {}),
   };
 }
 
