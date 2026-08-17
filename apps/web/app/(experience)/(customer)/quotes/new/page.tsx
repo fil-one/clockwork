@@ -4,9 +4,13 @@ import {
 } from "@/src/features/customer-partner/commercial/quote-builder";
 import {
   firstSearchParam,
+  parseQuotePrefill,
   type RawSearchParams,
 } from "@/src/features/customer-partner/commercial/url-state";
-import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
+import {
+  loadCustomerQuoteOffers,
+  loadPortalRecords,
+} from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
@@ -34,16 +38,24 @@ async function resolveOrigin(
 }
 
 async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
-  const [identity, origin] = await Promise.all([
+  const [identity, origin, offerResult] = await Promise.all([
     getRouteIdentity("customer"),
     resolveOrigin(
       firstSearchParam(params, "revises"),
       firstSearchParam(params, "poc"),
     ),
+    loadCustomerQuoteOffers(),
   ]);
   return (
     <QuoteBuilder
       account={{ id: identity.accountId, name: identity.accountName }}
+      catalogueMode={
+        offerResult.status === "available"
+          ? offerResult.catalogueMode
+          : "authoritative"
+      }
+      initialDraft={parseQuotePrefill(params)}
+      offers={offerResult.status === "available" ? offerResult.offers : []}
       {...(origin ? { origin } : {})}
     />
   );

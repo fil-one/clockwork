@@ -27,6 +27,12 @@ export const navigation: Readonly<
   customer: [
     { href: "/dashboard", label: "nav.dashboard", keywords: ["home"] },
     {
+      href: "/buy",
+      label: "nav.buy",
+      keywords: ["purchase", "pricing", "capacity"],
+      requiredPermission: "quote:write",
+    },
+    {
       href: "/agreements",
       label: "nav.agreements",
       keywords: ["contracts"],

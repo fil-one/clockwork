@@ -8,7 +8,7 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 test.describe.configure({ mode: "serial" });
 
 const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
-const OFFER = "Enterprise archive capacity";
+const OFFER = "Simulated enterprise archive capacity · us-east";
 const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
 
 async function usePersona(page: Page, role: string) {
@@ -97,7 +97,7 @@ test("member keeps read access without owner-only customer actions", async ({
   await expect(page).toHaveURL(/pageSize=5/);
 });
 
-test("owner builds a quote from the session account and issues one protected command", async ({
+test("owner simulates a direct quote command from the session account", async ({
   page,
 }) => {
   await usePersona(page, "owner");
@@ -140,12 +140,10 @@ test("owner builds a quote from the session account and issues one protected com
   await expect(
     page.getByRole("heading", { level: 3, name: "Draft boundary" }),
   ).toBeVisible();
-  const create = page.getByRole("button", { name: "Create priced draft" });
+  const create = page.getByRole("button", { name: "Simulate draft" });
   await create.click();
-  await expect(page.getByText(/Priced draft created/)).toBeVisible();
-  // The created draft is not an open quote: the surface refuses to infer one.
   await expect(
-    page.getByText(/issue it once its document is prepared/),
+    page.getByText(/No quote was saved, priced, or issued/),
   ).toBeVisible();
   await expect(create).toBeDisabled();
 
@@ -170,6 +168,88 @@ test("owner builds a quote from the session account and issues one protected com
   expect(commands[0]?.payload).not.toHaveProperty("partnerAccountId");
   expect(commands[0]?.payload).not.toHaveProperty("endClientAccountId");
   expect(commands[0]?.payload).not.toHaveProperty("marketplaceProvider");
+});
+
+test("Buy keeps its demo and capacity boundaries honest at desktop and mobile", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
+  const commands: Array<Record<string, unknown>> = [];
+  await page.route("**/api/v1/core/commands/quotes", async (route) => {
+    expectProtectedMutation(route);
+    const command = route.request().postDataJSON() as Record<string, unknown>;
+    commands.push(command);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        record: {
+          id: command.id,
+          resource: "quotes",
+          accountId: command.accountId,
+          rowVersion: 1,
+          data: {
+            ...((command.payload as Record<string, unknown>) ?? {}),
+            totalMinor: "120000",
+            currency: "USD",
+            marginFloorResult: "pass",
+          },
+        },
+        auditEventId: "audit-demo-buy",
+        outboxMessageId: "outbox-demo-buy",
+      }),
+    });
+  });
+
+  for (const viewport of [
+    { width: 1440, height: 1000 },
+    { width: 320, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/buy");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Buy storage" }),
+    ).toBeVisible();
+    await expectAccessible(page);
+    await expectNoHorizontalOverflow(page);
+  }
+
+  await page.getByLabel("Committed capacity (TB)").fill("100");
+  await expect(
+    page.getByRole("link", { name: "Continue in a quote" }),
+  ).toHaveAttribute("href", "/quotes/new?capacity=100&term=12");
+  expect(commands).toHaveLength(0);
+
+  await page.getByLabel("Committed capacity (TB)").fill("42");
+  await page.getByRole("button", { name: "Simulate draft" }).click();
+  await expect(
+    page.getByText(/did not save, price, or issue a quote/),
+  ).toBeVisible();
+  expect(commands).toHaveLength(1);
+  expect(commands[0]).toMatchObject({
+    accountId: CUSTOMER_ACCOUNT_ID,
+    action: "create",
+    payload: {
+      route: "direct",
+      lines: [{ quantity: "42", termMonths: 12 }],
+    },
+  });
+  await expect(
+    page.getByRole("link", { name: "Review and accept order" }),
+  ).toHaveCount(0);
+});
+
+test("an explicit missing acceptance quote never falls back to another record", async ({
+  page,
+}) => {
+  await usePersona(page, "owner");
+  await page.goto(
+    "/orders/accept?quote=quote-70000000-0000-4000-8000-000000000099",
+  );
+  await expect(
+    page.getByRole("heading", { name: "No acceptable quote is selected" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Purchase order")).toHaveCount(0);
 });
 
 test("owner reviews persisted agreement identity before the signing handoff", async ({

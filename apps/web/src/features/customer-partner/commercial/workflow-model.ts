@@ -13,6 +13,13 @@ export interface SelectorOption {
   description?: string;
 }
 
+export interface QuoteOfferOption extends SelectorOption {
+  priceBookId: string;
+  sku: string;
+  region: string;
+  currency: "USD" | "EUR" | "GBP";
+}
+
 export interface QuoteDraft {
   account: string;
   offer: string;
@@ -24,21 +31,6 @@ export interface QuoteDraft {
 
 export type QuoteField = keyof QuoteDraft;
 export type QuoteErrors = Partial<Record<QuoteField, string>>;
-
-export const quoteSelectorOptions = {
-  offers: [
-    {
-      id: "44444444-4444-4444-8444-444444444444",
-      label: "Enterprise archive capacity",
-      description: "FIL-ARCHIVE-CAPACITY · USD 2026.3",
-    },
-    {
-      id: "44444444-4444-4444-8444-444444444445",
-      label: "Compliance replica capacity",
-      description: "FIL-REPLICA-CAPACITY · USD 2026.3",
-    },
-  ],
-} as const satisfies Record<string, readonly SelectorOption[]>;
 
 /**
  * This intentionally supersedes the proposed five-route customer control. The
@@ -58,11 +50,18 @@ export function emptyQuoteDraft(accountName: string): QuoteDraft {
   return {
     account: accountName,
     offer: "",
-    region: "us-east",
+    region: "",
     capacity: "",
     termMonths: "",
     expiresAt: "",
   };
+}
+
+export function prefilledQuoteDraft(
+  accountName: string,
+  initial: Partial<Pick<QuoteDraft, "capacity" | "termMonths">>,
+): QuoteDraft {
+  return { ...emptyQuoteDraft(accountName), ...initial };
 }
 
 export function resolveSelectorId(
@@ -81,14 +80,14 @@ export function validateQuoteStage(
   stage: QuoteStage,
   draft: QuoteDraft,
   accounts: readonly SelectorOption[],
+  offers: readonly QuoteOfferOption[],
 ): QuoteErrors {
   const errors: QuoteErrors = {};
   if (stage === 1) {
     if (!resolveSelectorId(draft.account, accounts))
       errors.account = "Choose a customer from the available accounts.";
-    if (!resolveSelectorId(draft.offer, quoteSelectorOptions.offers))
+    if (!resolveSelectorId(draft.offer, offers))
       errors.offer = "Choose an offer from the current price book.";
-    if (!draft.region) errors.region = "Choose the service data region.";
   }
   if (stage === 2) {
     const capacity = Number(draft.capacity);
@@ -119,26 +118,22 @@ export function firstQuoteError(errors: QuoteErrors): QuoteField | undefined {
 export function quotePayload(
   draft: QuoteDraft,
   accounts: readonly SelectorOption[],
+  offers: readonly QuoteOfferOption[],
 ) {
-  const priceBookId = resolveSelectorId(
-    draft.offer,
-    quoteSelectorOptions.offers,
-  );
+  const selectedOfferId = resolveSelectorId(draft.offer, offers);
+  const offer = offers.find((candidate) => candidate.id === selectedOfferId);
   const accountId = resolveSelectorId(draft.account, accounts);
   return {
     accountId,
     payload: {
-      priceBookId,
+      priceBookId: offer?.priceBookId,
       seriesId: uuidV7(),
       route: customerQuoteRoute,
       lines: [
         {
           lineId: uuidV7(),
-          sku:
-            priceBookId === "44444444-4444-4444-8444-444444444445"
-              ? "FIL-REPLICA-CAPACITY"
-              : "FIL-ARCHIVE-CAPACITY",
-          region: draft.region,
+          sku: offer?.sku,
+          region: offer?.region,
           quantity: draft.capacity,
           termMonths: Number(draft.termMonths),
         },

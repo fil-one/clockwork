@@ -122,13 +122,16 @@ async function OrderAcceptanceWorkspace({
     loadPortalRecords("customer", "quotes"),
     loadGoverningAgreement(),
   ]);
-  const selected =
-    (requested
-      ? quotes.records.find((record) => record.recordKey === requested)
-      : undefined) ??
-    quotes.records.find((record) =>
-      acceptableStatuses.includes(text(record.data, "status") ?? ""),
-    );
+  // An explicit quote key is a binding, not a hint. Falling back to the first
+  // acceptable quote when that key has not projected yet can make a reader
+  // attest to a different commercial record than the one their prior step
+  // issued. With no explicit key the existing newest-acceptable behavior
+  // remains available for ordinary entry from the navigation.
+  const selected = requested
+    ? quotes.records.find((record) => record.recordKey === requested)
+    : quotes.records.find((record) =>
+        acceptableStatuses.includes(text(record.data, "status") ?? ""),
+      );
   const quote = selected ? acceptableQuote(selected) : null;
   return (
     <OrderAcceptance

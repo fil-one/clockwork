@@ -16,6 +16,10 @@ import {
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import {
+  ARTIFACT_RETENTION_YEARS,
+  commercialArtifactRetainUntil,
+} from "./artifact-retention";
 import type { LookupPreparedOrderForm } from "./prepared-order-form";
 import { orderReviewSummary } from "./workflow-model";
 
@@ -26,8 +30,6 @@ const reviewLabels = {
   serviceStart: "Service start",
   commitment: "Resulting commitment",
 } as const;
-
-const ARTIFACT_RETENTION_YEARS = 7;
 
 /**
  * Acceptance is two server commands, and the second one's only precondition --
@@ -139,14 +141,6 @@ interface PreparedOrderForm {
    * ever showing the paper is not the ceremony the product runs.
    */
   artifactId: string;
-}
-
-function retainUntil(acceptedAt: string): string {
-  const retention = new Date(acceptedAt);
-  retention.setUTCFullYear(
-    retention.getUTCFullYear() + ARTIFACT_RETENTION_YEARS,
-  );
-  return retention.toISOString();
 }
 
 /**
@@ -488,7 +482,10 @@ export function OrderAcceptance({
           action: creating ? "create" : "prepare_artifact",
           payload: creating
             ? { ...command, orderFormDocumentId: preparedFor.documentId }
-            : { ...command, retainUntil: retainUntil(acceptedAt) },
+            : {
+                ...command,
+                retainUntil: commercialArtifactRetainUntil(acceptedAt),
+              },
         },
         { idempotencyKey },
       );

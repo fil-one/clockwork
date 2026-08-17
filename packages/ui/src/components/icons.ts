@@ -25,6 +25,7 @@ export {
   ScrollText,
   Search,
   Settings,
+  ShoppingCart,
   ShieldCheck,
   SlidersHorizontal,
   Stamp,

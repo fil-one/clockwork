@@ -5,6 +5,7 @@ import {
   collectionUrl,
   filterAndSortRecords,
   parseCollectionState,
+  parseQuotePrefill,
   standardCollectionParams,
 } from "./url-state";
 
@@ -89,5 +90,17 @@ describe("commercial collection URL state", () => {
       page: "2",
       pageSize: "5",
     });
+  });
+
+  it("accepts only builder-valid capacity and term prefill values", () => {
+    expect(parseQuotePrefill({ capacity: "100", term: "12" })).toEqual({
+      capacity: "100",
+      termMonths: "12",
+    });
+    expect(
+      parseQuotePrefill({ capacity: ["250", "10"], term: ["24", "6"] }),
+    ).toEqual({ capacity: "250", termMonths: "24" });
+    expect(parseQuotePrefill({ capacity: "9", term: "61" })).toEqual({});
+    expect(parseQuotePrefill({ capacity: "NaN", term: "12.5" })).toEqual({});
   });
 });

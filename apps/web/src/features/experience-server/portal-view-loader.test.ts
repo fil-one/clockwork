@@ -7,12 +7,20 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   find: vi.fn(),
   findPreparedOrderForm: vi.fn(),
+  findPreparedQuoteArtifact: vi.fn(),
+  findCustomerQuoteCurrency: vi.fn(),
+  findActiveCustomerQuoteOffers: vi.fn(),
   runtimeDatabase: vi.fn(),
+  serviceDatabase: vi.fn(),
   demoPreparedOrderForm: vi.fn(),
 }));
 
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.getCommerceSession,
+  explicitDemoIdentityEnabled: () =>
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER === "demo" &&
+    process.env.VERCEL_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production",
 }));
 vi.mock("./projection-source", () => ({
   configuredProjectionSource: () => ({ list: mocks.list, find: mocks.find }),
@@ -20,6 +28,7 @@ vi.mock("./projection-source", () => ({
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalRuntimeDatabase: mocks.runtimeDatabase,
+  getOptionalServiceDatabase: mocks.serviceDatabase,
 }));
 vi.mock("./demo-order-acceptance", () => ({
   demoOrderAcceptance: () => ({
@@ -28,6 +37,9 @@ vi.mock("./demo-order-acceptance", () => ({
 }));
 vi.mock("@clockwork/db", () => ({
   findPreparedOrderForm: mocks.findPreparedOrderForm,
+  findPreparedQuoteArtifact: mocks.findPreparedQuoteArtifact,
+  findCustomerQuoteCurrency: mocks.findCustomerQuoteCurrency,
+  findActiveCustomerQuoteOffers: mocks.findActiveCustomerQuoteOffers,
   // The transaction wrapper is the authorization boundary, not the thing under
   // test here; it is exercised against a live database by the repositories
   // that use it. What matters at this level is that the read runs *inside* it.
@@ -37,14 +49,22 @@ vi.mock("@clockwork/db", () => ({
     _options: unknown,
     operation: (transaction: unknown) => unknown,
   ) => operation({ authorized: true }),
+  withInternalTransaction: (
+    _database: unknown,
+    _requestId: unknown,
+    operation: (transaction: unknown) => unknown,
+  ) => operation({ internal: true }),
 }));
 
 import {
   loadCommercialRecord,
+  loadBuyQuoteProjection,
+  loadCustomerQuoteOffers,
   loadCustomerCollectionRecords,
   loadPartnerRecords,
   loadPortalRecords,
   loadPreparedOrderForm,
+  loadPreparedQuoteArtifact,
   loadTopPortalRecords,
   recordRoute,
   MAX_PROJECTION_PAGES,
@@ -100,10 +120,107 @@ function returns(records: readonly ProjectionRecord[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  delete process.env.CLOCKWORK_EXPERIENCE_ADAPTER;
+  delete process.env.VERCEL_ENV;
+  delete process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV;
   mocks.getCommerceSession.mockResolvedValue({
     accountIds: [accountId],
     selectedAccountId: accountId,
     roles: ["partner_admin"],
+  });
+});
+
+describe("customer quote offer catalogue", () => {
+  beforeEach(() => {
+    process.env.AUTHORIZATION_CONTEXT_SECRET = "x".repeat(48);
+    mocks.runtimeDatabase.mockReturnValue({ runtime: true });
+    mocks.serviceDatabase.mockReturnValue({ service: true });
+    mocks.findCustomerQuoteCurrency.mockResolvedValue("USD");
+    mocks.getCommerceSession.mockResolvedValue({
+      accountIds: [accountId],
+      selectedAccountId: accountId,
+      roles: ["owner"],
+    });
+  });
+
+  it("maps every compatible active row without exposing confidential price data", async () => {
+    mocks.findActiveCustomerQuoteOffers.mockResolvedValue([
+      {
+        price_book_id: "60000000-0000-4000-8000-000000000001",
+        price_book_name: "Northstar USD 2026",
+        currency: "USD",
+        version: 1,
+        sku: "LOCKED-STORAGE-TB",
+        approved_claim: "Immutable capacity",
+        region: "us-east-2",
+      },
+      {
+        price_book_id: "60000000-0000-4000-8000-000000000009",
+        price_book_name: "Northstar Compliance 2026",
+        currency: "USD",
+        version: 2,
+        sku: "LOCKED-COMPLIANCE-TB",
+        approved_claim: "Immutable capacity",
+        region: "us-east-2",
+      },
+    ]);
+
+    const result = await loadCustomerQuoteOffers();
+
+    expect(mocks.findCustomerQuoteCurrency).toHaveBeenCalledWith(
+      { authorized: true },
+      { accountId },
+    );
+    const activeOfferCalls = mocks.findActiveCustomerQuoteOffers.mock
+      .calls as unknown as Array<[unknown, { currency: string; now: unknown }]>;
+    expect(activeOfferCalls).toHaveLength(1);
+    expect(activeOfferCalls[0]?.[0]).toEqual({ internal: true });
+    expect(activeOfferCalls[0]?.[1].currency).toBe("USD");
+    expect(activeOfferCalls[0]?.[1].now).toBeInstanceOf(Date);
+    expect(result).toMatchObject({
+      status: "available",
+      catalogueMode: "authoritative",
+    });
+    if (result.status !== "available") throw new Error("catalogue unavailable");
+    expect(result.offers).toHaveLength(2);
+    expect(new Set(result.offers.map((offer) => offer.label)).size).toBe(2);
+    expect(result.offers[0]?.label).not.toContain(
+      "60000000-0000-4000-8000-000000000001",
+    );
+    expect(JSON.stringify(result.offers)).not.toContain("unit_amount_minor");
+  });
+
+  it("uses demo identifiers only behind the explicit safe demo adapter", async () => {
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+
+    const result = await loadCustomerQuoteOffers();
+
+    expect(result).toMatchObject({
+      status: "available",
+      catalogueMode: "simulated",
+    });
+    expect(mocks.findCustomerQuoteCurrency).not.toHaveBeenCalled();
+    expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
+  });
+
+  it("never falls back to demo offers when the authoritative databases are missing", async () => {
+    mocks.serviceDatabase.mockReturnValue(undefined);
+
+    await expect(loadCustomerQuoteOffers()).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
+  });
+
+  it("refuses simulated offers when a deployment marker identifies production", async () => {
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+    process.env.VERCEL_ENV = "production";
+    mocks.serviceDatabase.mockReturnValue(undefined);
+
+    await expect(loadCustomerQuoteOffers()).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
   });
 });
 
@@ -777,5 +894,89 @@ describe("prepared order form", () => {
       status: "unavailable",
     });
     expect(mocks.findPreparedOrderForm).not.toHaveBeenCalled();
+  });
+});
+
+describe("Buy quote bridge", () => {
+  const quoteId = "60000000-0000-4000-8000-000000000001";
+  const documentId = "80000000-0000-4000-8000-000000000001";
+  const artifactId = "80000000-0000-4000-8000-0000000000a1";
+
+  beforeEach(() => {
+    process.env.AUTHORIZATION_CONTEXT_SECRET = "x".repeat(48);
+    delete process.env.CLOCKWORK_EXPERIENCE_ADAPTER;
+    mocks.runtimeDatabase.mockReturnValue({ db: {} });
+  });
+
+  it("reads the stored direct-quote artifact inside the authorized transaction", async () => {
+    mocks.findPreparedQuoteArtifact.mockResolvedValue({
+      quoteId,
+      documentId,
+      artifactId,
+    });
+
+    await expect(loadPreparedQuoteArtifact(quoteId)).resolves.toEqual({
+      status: "stored",
+      documentId,
+      artifactId,
+    });
+    expect(mocks.findPreparedQuoteArtifact).toHaveBeenCalledWith(
+      { authorized: true },
+      { quoteId },
+    );
+  });
+
+  it("does not pretend the demo can issue its simulated draft", async () => {
+    process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
+
+    await expect(loadPreparedQuoteArtifact(quoteId)).resolves.toEqual({
+      status: "unavailable",
+    });
+    expect(mocks.findPreparedQuoteArtifact).not.toHaveBeenCalled();
+  });
+
+  it("confirms only the exact authoritative issued quote projection", async () => {
+    mocks.find.mockResolvedValue(
+      projection({
+        audience: "customer",
+        aggregateId: quoteId,
+        recordKey: `quote-${quoteId}`,
+        version: 2,
+        data: {
+          authoritative: {
+            status: "issued",
+            totalMinor: "120000",
+            currency: "USD",
+            marginFloorResult: "pass",
+          },
+        },
+      }),
+    );
+
+    await expect(loadBuyQuoteProjection(quoteId)).resolves.toEqual({
+      status: "found",
+      quoteStatus: "issued",
+      rowVersion: 2,
+      totalMinor: "120000",
+      currency: "USD",
+      marginResult: "pass",
+    });
+    expect(mocks.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audience: "customer",
+        channel: "quotes",
+        recordKey: `quote-${quoteId}`,
+      }),
+    );
+  });
+
+  it("keeps an absent exact projection pending instead of choosing another quote", async () => {
+    mocks.find.mockRejectedValue(
+      new ExperienceProblem(404, "PROJECTION_NOT_FOUND", "not found"),
+    );
+
+    await expect(loadBuyQuoteProjection(quoteId)).resolves.toEqual({
+      status: "pending",
+    });
   });
 });
