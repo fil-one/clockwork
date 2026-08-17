@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:57:22Z",
+  "capturedAt": "2026-08-17T01:39:43Z",
   "authority": "Canonical migration SQL is authoritative. The latest Drizzle snapshot supplies detailed machine-readable columns, types, nullability, defaults, keys, constraints, and indexes for represented objects; canonicalSqlObjects supplies the complete SQL-derived identity and access-control inventory, including objects absent from the snapshot.",
   "snapshot": {
     "path": "packages/db/drizzle/meta/0008_snapshot.json",
@@ -19843,13 +19843,13 @@
         "statement": "create policy experience_evidence_service on public.experience_evidence_uploads for all to clockwork_service using (true) with check (true);"
       },
       {
-        "migration": "supabase/migrations/001230_experience_delivery.sql",
+        "migration": "supabase/migrations/001420_partner_projection_admin_channels.sql",
         "name": "experience_projection_read",
         "table": "public.experience_portal_projections",
         "command": "select",
         "roles": ["clockwork_runtime"],
-        "clauses": "for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or (audience <> 'internal' and app_has_account(audience_account_id)) )",
-        "statement": "create policy experience_projection_read on public.experience_portal_projections for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or (audience <> 'internal' and app_has_account(audience_account_id)) );"
+        "clauses": "for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) )",
+        "statement": "create policy experience_projection_read on public.experience_portal_projections for select to clockwork_runtime using ( ( audience = 'internal' and experience_session_is_internal() and ( experience_session_assisted_account() is null or subject_account_id = experience_session_assisted_account() ) and ( (channel = 'approvals' and ( experience_session_has_role('legal_approver') or experience_session_has_role('finance_approver') or experience_session_has_role('destructive_action_approver') )) or (channel <> 'approvals' and experience_session_has_role('internal_operator')) ) ) or ( audience <> 'internal' and app_has_account(audience_account_id) and ( audience <> 'partner' or channel not in ('billing', 'commissions', 'renewals', 'sandboxes', 'brand') or experience_session_has_role('partner_admin') or ( experience_session_is_internal() and experience_session_assisted_account() = audience_account_id ) ) ) );"
       },
       {
         "migration": "supabase/migrations/001230_experience_delivery.sql",

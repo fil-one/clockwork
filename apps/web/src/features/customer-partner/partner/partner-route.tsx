@@ -3,12 +3,17 @@ import type { ReactNode } from "react";
 import { getRouteSession } from "@/src/features/shell/route-session";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 
-import { PartnerCollection } from "./partner-collection";
+import {
+  PartnerCollection,
+  PartnerSurfacePermission,
+} from "./partner-collection";
 import { partnerSurfaces, type PartnerSurfaceKey } from "./partner-data";
 import {
   NoPartnerMembership,
   partnerRouteMembership,
 } from "./partner-membership";
+import { roleCanUseSurface } from "./partner-rules";
+import { canReadPartnerChannel } from "./partner-access";
 
 export async function PartnerCollectionRoute({
   surface,
@@ -24,11 +29,18 @@ export async function PartnerCollectionRoute({
   const session = await getRouteSession("partner");
   const partnerMembership = partnerRouteMembership(session);
   if (!partnerMembership) return <NoPartnerMembership />;
+  const config = partnerSurfaces[surface];
+  const assistedInternal = Boolean(session.assistedSession);
+  if (
+    !canReadPartnerChannel(session.roles, surface, assistedInternal) ||
+    (!assistedInternal && !roleCanUseSurface(session.roles, config.roles))
+  )
+    return <PartnerSurfacePermission />;
   const projection = await loadPartnerRecords(surface);
   return (
     <PartnerCollection
       surface={surface}
-      config={{ ...partnerSurfaces[surface], records: projection.records }}
+      config={{ ...config, records: projection.records }}
       roles={session.roles}
       partnerName={partnerMembership.accountName}
       // The loader has always returned these. This route dropped them and

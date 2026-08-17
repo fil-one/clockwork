@@ -145,6 +145,53 @@ describe("projection materializer", () => {
     });
   });
 
+  it("uses an explicit authoritative aggregate override for a legacy event binding", async () => {
+    const { source, persistence, definition, spies } = dependencies({});
+    spies.load.mockResolvedValue({
+      aggregateType: "commission_statement",
+      aggregateId,
+      accountId,
+      version: 3,
+      sourceHash: "c".repeat(64),
+      sourceUpdatedAt: now.toISOString(),
+      data: { status: "draft", grossAccruedMinor: "12500" },
+    });
+    const overridden: ProjectionDefinition = {
+      ...definition,
+      aggregateTypes: ["report_export"],
+      authoritativeAggregateType: "commission_statement",
+    };
+    const materializer = new ProjectionMaterializer(
+      source,
+      persistence,
+      new Map([[topic, overridden]]),
+      () => now,
+    );
+
+    await materializer.handle(delivery({ aggregateType: "report_export" }));
+
+    expect(spies.load).toHaveBeenCalledWith({
+      aggregateType: "commission_statement",
+      aggregateId,
+      minimumVersion: 3,
+      requestId: "outbox:projection-materializer-0001",
+    });
+    const persisted = spies.materialize.mock.calls[0]?.[0];
+    if (!persisted) throw new Error("Expected materialization input");
+    expect(persisted).toMatchObject({
+      aggregateType: "commission_statement",
+      aggregateId,
+    });
+    expect(persisted.projections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          aggregateType: "commission_statement",
+          aggregateId,
+        }),
+      ]),
+    );
+  });
+
   it("preserves authoritative source identity for an empty projection set", async () => {
     const { source, persistence, definition, spies } = dependencies({
       sourceVersion: 5,

@@ -261,23 +261,16 @@ describe("authoritative core outbox joins", () => {
     });
   });
 
-  it("submits persisted commission statement lines including signed holdback release", async () => {
+  it("leaves generated draft statements to projection and scheduled approved settlement", () => {
     const test = fixture();
-    const payload = event({
-      eventType: "core.commission_statement.generated",
-      aggregateType: "report_export",
-      aggregateId: statementId,
+    expect(test.handlers.has("core.commission_statement.generated")).toBe(
+      false,
+    );
+    expect(coreWorkflowDispatchPlan["core.commissions.settle.v1"]).toEqual({
+      events: [],
+      schedules: ["0 6 1 */3 *"],
     });
-
-    await test.handlers.get("core.commission_statement.generated")?.(
-      delivery(payload, "core.commission_statement.generated"),
-    );
-
-    expect(test.submit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        taskId: "core.commissions.settle.v1",
-        idempotencyKey: "outbox:60000000-0000-4000-8000-000000000001:settle",
-      }),
-    );
+    expect(test.buildCommissionSettlementDispatch).not.toHaveBeenCalled();
+    expect(test.submit).not.toHaveBeenCalled();
   });
 });

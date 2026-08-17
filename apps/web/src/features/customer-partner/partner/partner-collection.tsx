@@ -40,7 +40,7 @@ import styles from "./partner.module.css";
 const copy = customerPartnerCopy.common;
 const partnerCopy = customerPartnerCopy.partner;
 
-function PermissionView() {
+export function PartnerSurfacePermission() {
   return (
     <div className={styles.state}>
       <ApplicationStatePanel
@@ -566,7 +566,7 @@ export function PartnerCollection({
           </p>
         </div>
         {!canUse ? (
-          <PermissionView />
+          <PartnerSurfacePermission />
         ) : noMatch ? (
           <div className={styles.state}>
             <ApplicationStatePanel

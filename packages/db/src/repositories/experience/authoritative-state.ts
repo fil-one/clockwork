@@ -14,6 +14,7 @@ export const authoritativeAggregateTypes = [
   "amendment",
   "poc",
   "invoice",
+  "commission_statement",
   "exception_case",
   "approval",
   "provider_operation",
@@ -221,6 +222,30 @@ const authoritativeQueries: Record<AuthoritativeAggregateType, QueryFactory> = {
            ) as safe_payload
     from public.invoices i
     where i.id = ${aggregateId}::uuid
+    limit 2
+  `,
+  commission_statement: (aggregateId) => sql`
+    select s.id as aggregate_id,
+           s.partner_account_id as account_id,
+           s.row_version as aggregate_version,
+           s.updated_at as source_updated_at,
+           jsonb_build_object(
+             'currency', s.currency,
+             'grossAccruedMinor', s.gross_accrued_minor::text,
+             'clawbackMinor', s.clawback_minor::text,
+             'holdbackMinor', s.holdback_minor::text,
+             'payableMinor', s.payable_minor::text,
+             'periodStartsOn', s.period_starts_on::text,
+             'periodEndsOn', s.period_ends_on::text,
+             'status', s.status,
+             'lineCount', (
+               select count(*)::integer
+               from public.core_commission_statement_lines l
+               where l.statement_id = s.id
+             )
+           ) as safe_payload
+    from public.core_commission_statements s
+    where s.id = ${aggregateId}::uuid
     limit 2
   `,
   exception_case: (aggregateId) => sql`

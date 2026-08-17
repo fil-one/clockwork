@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-16T21:57:22Z",
+  "capturedAt": "2026-08-17T01:39:43Z",
   "taskIds": [
     "core.billing.issue-invoice.v1",
     "core.billing.sync-overage.v1",
@@ -247,7 +247,6 @@
       "termination.teardown_confirmed"
     ],
     "coreMappedTopics": [
-      "core.commission_statement.generated",
       "core.invoice.draft_ready",
       "core.invoices.create",
       "order.provisioning_confirmed",
@@ -317,7 +316,6 @@
       "core.accounts.update",
       "core.amendments.create",
       "core.amendments.prepare_artifact",
-      "core.commission_statement.generated",
       "core.credit_notes.issue",
       "core.invoice.draft_ready",
       "core.invoices.create",
@@ -361,8 +359,8 @@
       "termination.deletion_certificate_requested",
       "termination.teardown_confirmed"
     ],
-    "staticallyComposableTopicCount": 54,
-    "handlerContributionCount": 56,
+    "staticallyComposableTopicCount": 53,
+    "handlerContributionCount": 55,
     "handlerSources": [
       {
         "category": "lifecycle",
@@ -384,7 +382,6 @@
         "category": "core",
         "source": "packages/workflows/src/core/outbox-handlers.ts",
         "topics": [
-          "core.commission_statement.generated",
           "core.invoice.draft_ready",
           "core.invoices.create",
           "order.provisioning_confirmed",
@@ -545,8 +542,8 @@
       },
       {
         "taskId": "core.commissions.settle.v1",
-        "events": ["core.commission_statement.generated"],
-        "eventsExpression": "[commissionStatementTopic]",
+        "events": [],
+        "eventsExpression": "[]",
         "schedules": ["0 6 1 */3 *"],
         "source": "packages/workflows/src/core/outbox-handlers.ts",
         "registeredTriggerSchedule": true,

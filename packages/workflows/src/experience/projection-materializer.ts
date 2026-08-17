@@ -65,6 +65,12 @@ export interface ProjectionDefinition {
   topic: string;
   eventTypes: readonly string[];
   aggregateTypes: readonly string[];
+  /**
+   * Reads a canonical aggregate whose type differs from a legacy audit binding.
+   * The event aggregate remains checked above; only the authoritative source
+   * and resulting projection identity use this explicit override.
+   */
+  authoritativeAggregateType?: string;
   project(input: {
     event: AuthoritativeOutboxEvent;
     state: AuthoritativeProjectionState;
@@ -191,9 +197,10 @@ function validateMutation(mutation: PortalProjectionMutation): void {
 function validateState(
   state: AuthoritativeProjectionState,
   event: AuthoritativeOutboxEvent,
+  authoritativeAggregateType: string,
 ): void {
   if (
-    state.aggregateType !== event.aggregateType ||
+    state.aggregateType !== authoritativeAggregateType ||
     state.aggregateId !== event.aggregateId
   )
     throw new Error("PROJECTION_AUTHORITATIVE_BINDING_INVALID");
@@ -250,14 +257,16 @@ export class ProjectionMaterializer {
       !definition.aggregateTypes.includes(event.aggregateType)
     )
       throw new Error("PROJECTION_EVENT_BINDING_INVALID");
+    const authoritativeAggregateType =
+      definition.authoritativeAggregateType ?? event.aggregateType;
     const state = await this.source.load({
-      aggregateType: event.aggregateType,
+      aggregateType: authoritativeAggregateType,
       aggregateId: event.aggregateId,
       minimumVersion: event.aggregateVersion,
       requestId: input.idempotencyKey,
     });
     if (!state) throw new Error("PROJECTION_AUTHORITATIVE_STATE_NOT_FOUND");
-    validateState(state, event);
+    validateState(state, event, authoritativeAggregateType);
     const mutations = await definition.project({ event, state });
     const identities = new Set<string>();
     const projections = mutations.map((mutation) => {
@@ -284,7 +293,7 @@ export class ProjectionMaterializer {
     return this.persistence.materialize({
       eventId: event.eventId,
       eventType: event.eventType,
-      aggregateType: event.aggregateType,
+      aggregateType: state.aggregateType,
       aggregateId: event.aggregateId,
       aggregateVersion: event.aggregateVersion,
       sourceVersion: state.version,
