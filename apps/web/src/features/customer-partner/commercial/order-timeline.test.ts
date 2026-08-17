@@ -2,17 +2,28 @@ import { describe, expect, it } from "vitest";
 
 import type { ProjectedArtifact } from "@/src/features/experience-server/artifact-delivery-list";
 
-import type { CommercialRecord } from "./model";
+import type { CommercialRecord, OrderLifecycleStatus } from "./model";
 import { orderTimeline } from "./order-timeline";
 
-function order(status: string, term = "Aug 1, 2026–Jul 31, 2027") {
+function publicOrderStatus(status: OrderLifecycleStatus | null): string {
+  if (status === "accepted" || status === "active") return status;
+  if (status === "completed") return "complete";
+  return "attention";
+}
+
+function order(
+  lifecycleStatus: OrderLifecycleStatus | null,
+  term = "Aug 1, 2026–Jul 31, 2027",
+) {
   return {
     id: "ORD-2026-0112",
     kind: "orders",
     title: "Madrid compliance replica",
     description: "120 TB · EU West · direct",
-    status,
-    statusLabel: status,
+    // This is the lossy status the production presentation renders. The
+    // timeline must never try to reconstruct lifecycle position from it.
+    status: publicOrderStatus(lifecycleStatus),
+    statusLabel: publicOrderStatus(lifecycleStatus),
     tone: "neutral",
     risk: "low",
     owner: "Service operations",
@@ -23,6 +34,7 @@ function order(status: string, term = "Aug 1, 2026–Jul 31, 2027") {
     href: "/orders/ORD-2026-0112",
     term,
     nextAction: "Review order",
+    orderLifecycleStatus: lifecycleStatus,
   } satisfies CommercialRecord;
 }
 
@@ -35,8 +47,14 @@ describe("orderTimeline", () => {
       ["complete", "complete", "current", "upcoming", "upcoming"],
     ],
     ["active", ["complete", "complete", "complete", "current", "upcoming"]],
+    ["amended", ["complete", "complete", "complete", "current", "upcoming"]],
     ["completed", ["complete", "complete", "complete", "complete", "complete"]],
-  ])("maps %s through the recorded lifecycle", (status, expected) => {
+    ["cancelled", ["complete", "upcoming", "upcoming", "upcoming", "upcoming"]],
+    [
+      "terminated",
+      ["complete", "complete", "complete", "complete", "complete"],
+    ],
+  ] as const)("maps %s through the recorded lifecycle", (status, expected) => {
     expect(orderTimeline(order(status), []).map((item) => item.status)).toEqual(
       expected,
     );
@@ -59,7 +77,7 @@ describe("orderTimeline", () => {
   });
 
   it("leaves unsourced stages and timestamps unrecorded", () => {
-    const timeline = orderTimeline(order("submitted", "Not recorded"), []);
+    const timeline = orderTimeline(order(null, "Not recorded"), []);
     const serialized = JSON.stringify(timeline);
 
     expect(timeline.slice(1).map((item) => item.description)).toEqual([
@@ -72,9 +90,16 @@ describe("orderTimeline", () => {
     expect(serialized).not.toMatch(/notif|inventory|provisioned item/i);
   });
 
-  it("does not infer how far an order progressed before cancellation", () => {
-    expect(
-      orderTimeline(order("cancelled"), []).map((item) => item.status),
-    ).toEqual(["complete", "upcoming", "upcoming", "upcoming", "upcoming"]);
+  it("does not fall back to a plausible public display status", () => {
+    const record = order(null);
+    record.status = "active";
+
+    expect(orderTimeline(record, []).map((item) => item.status)).toEqual([
+      "upcoming",
+      "upcoming",
+      "upcoming",
+      "upcoming",
+      "upcoming",
+    ]);
   });
 });

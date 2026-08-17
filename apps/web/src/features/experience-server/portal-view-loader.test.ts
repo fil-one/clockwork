@@ -236,8 +236,9 @@ interface FindInput {
 
 interface StoredRow {
   accountId: string;
-  channel: string;
+  channel: ProjectionRecord["channel"];
   recordKey: string;
+  aggregateType?: string;
   data: Readonly<Record<string, unknown>>;
 }
 
@@ -293,9 +294,10 @@ function storeContaining(rows: readonly StoredRow[]) {
     return Promise.resolve(
       projection({
         audience: "customer",
-        channel: "quotes",
+        channel: row.channel,
         recordKey: input.recordKey,
         accountId: input.accountId,
+        aggregateType: row.aggregateType ?? "quote",
         data: row.data,
       }),
     );
@@ -325,6 +327,85 @@ describe("commercial record detail reads", () => {
 
     expect(record?.title).toBe("Q-MINE-0001 title");
     expect(record?.href).toBe("/quotes/Q-MINE-0001");
+  });
+
+  it.each([
+    ["submitted", "attention"],
+    ["accepted", "accepted"],
+    ["provisioning", "attention"],
+    ["active", "active"],
+    ["amended", "attention"],
+    ["completed", "complete"],
+    ["cancelled", "attention"],
+    ["terminated", "attention"],
+  ] as const)(
+    "carries authoritative order state %s beside public presentation state %s",
+    async (authoritativeStatus, publicStatus) => {
+      const recordKey = `ORDER-${authoritativeStatus}`;
+      storeContaining([
+        {
+          accountId,
+          aggregateType: "order",
+          channel: "orders",
+          recordKey,
+          data: commercialPayload(recordKey, {
+            authoritative: { status: authoritativeStatus },
+            kind: "orders",
+            status: publicStatus,
+            statusLabel: publicStatus,
+          }),
+        },
+      ]);
+
+      const record = await loadCommercialRecord("orders", recordKey);
+
+      expect(record?.status).toBe(publicStatus);
+      expect(record?.orderLifecycleStatus).toBe(authoritativeStatus);
+    },
+  );
+
+  it.each([
+    ["missing", undefined],
+    ["null", null],
+    ["array", []],
+    ["missing status", {}],
+    ["non-string status", { status: 3 }],
+    ["unknown status", { status: "attention" }],
+  ])("fails safe for %s authoritative order state", async (_label, value) => {
+    const recordKey = "ORDER-MALFORMED";
+    storeContaining([
+      {
+        accountId,
+        aggregateType: "order",
+        channel: "orders",
+        recordKey,
+        data: commercialPayload(recordKey, {
+          authoritative: value,
+          kind: "orders",
+          status: "attention",
+          statusLabel: "Attention",
+        }),
+      },
+    ]);
+
+    const record = await loadCommercialRecord("orders", recordKey);
+
+    expect(record).toHaveProperty("orderLifecycleStatus", null);
+  });
+
+  it("does not attach order lifecycle state to another commercial kind", async () => {
+    storeContaining([
+      {
+        ...mine,
+        data: commercialPayload("Q-MINE-0001", {
+          authoritative: { status: "accepted" },
+        }),
+      },
+    ]);
+
+    const record = await loadCommercialRecord("quotes", "Q-MINE-0001");
+
+    expect(record).not.toHaveProperty("orderLifecycleStatus");
   });
 
   it("resolves to null for a reference that does not exist", async () => {

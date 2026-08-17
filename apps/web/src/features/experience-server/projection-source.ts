@@ -129,6 +129,9 @@ function customerRecords(): DemoRecord[] {
     updatedAt: record.updatedAt,
     data: {
       ...record,
+      ...(record.kind === "orders"
+        ? { authoritative: { status: record.status } }
+        : {}),
       allowedActions:
         record.kind === "quotes" && record.status === "open"
           ? ["accept", "expire"]

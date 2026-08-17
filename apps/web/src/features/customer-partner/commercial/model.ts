@@ -11,6 +11,27 @@ export type CollectionKind = (typeof collectionKinds)[number];
 export type CommercialRisk = "low" | "medium" | "high";
 export type CommercialTone = "neutral" | "success" | "warning" | "danger";
 
+export const orderLifecycleStatuses = [
+  "submitted",
+  "accepted",
+  "provisioning",
+  "active",
+  "amended",
+  "completed",
+  "cancelled",
+  "terminated",
+] as const;
+export type OrderLifecycleStatus = (typeof orderLifecycleStatuses)[number];
+
+export function isOrderLifecycleStatus(
+  value: unknown,
+): value is OrderLifecycleStatus {
+  return (
+    typeof value === "string" &&
+    (orderLifecycleStatuses as readonly string[]).includes(value)
+  );
+}
+
 export interface CommercialRecord {
   id: string;
   kind: CollectionKind;
@@ -32,6 +53,8 @@ export interface CommercialRecord {
   projectionId?: string;
   aggregateId?: string;
   allowedActions?: readonly string[];
+  /** Present only for orders whose authoritative payload carries a known state. */
+  orderLifecycleStatus?: OrderLifecycleStatus | null;
 }
 
 export interface CollectionDefinition {

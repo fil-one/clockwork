@@ -2,7 +2,7 @@ import type { TimelineItem } from "@clockwork/ui";
 
 import type { ProjectedArtifact } from "@/src/features/experience-server/artifact-delivery-list";
 
-import type { CommercialRecord } from "./model";
+import type { CommercialRecord, OrderLifecycleStatus } from "./model";
 
 const NOT_YET_RECORDED = "Not yet recorded.";
 
@@ -16,11 +16,10 @@ const orderProgress = {
   terminated: 4,
 } as const;
 
-function progressFor(status: string): number | null {
+function progressFor(status: OrderLifecycleStatus | null): number | null {
+  if (status === null) return null;
   if (status === "cancelled") return 0;
-  return status in orderProgress
-    ? orderProgress[status as keyof typeof orderProgress]
-    : null;
+  return orderProgress[status];
 }
 
 function stageStatus(
@@ -50,13 +49,14 @@ export function orderTimeline(
   record: CommercialRecord,
   artifacts: readonly ProjectedArtifact[],
 ): readonly TimelineItem[] {
-  const progress = progressFor(record.status);
+  const lifecycleStatus = record.orderLifecycleStatus ?? null;
+  const progress = progressFor(lifecycleStatus);
   const closed =
-    record.status === "completed" ||
-    record.status === "terminated" ||
-    record.status === "cancelled";
+    lifecycleStatus === "completed" ||
+    lifecycleStatus === "terminated" ||
+    lifecycleStatus === "cancelled";
   const termEnded =
-    record.status === "completed" || record.status === "terminated";
+    lifecycleStatus === "completed" || lifecycleStatus === "terminated";
   const orderForm = artifacts.find(
     (artifact) => artifact.kind === "order_form" && artifact.state === "stored",
   );
