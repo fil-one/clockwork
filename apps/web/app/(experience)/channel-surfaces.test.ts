@@ -286,7 +286,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
     // `/internal/billing-reconciliation` reads `core_three_way_tie_out` and the
     // `reconciliation` exception queue; `/internal/unhandled-errors` reads the
     // durable runtime-failure audit events. Neither is a projection channel and
-    // neither could be: the materializer writes no row for either.
+    // neither could be: the materializer writes no row for either. Revenue
+    // reads reporting views, while status reads service status endpoints and
+    // the two operator recovery readers; those are deliberately not channels.
     unchanneled: [
       "/internal/assisted",
       "/internal/billing-reconciliation",
@@ -294,7 +296,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/migrations",
       "/internal/price-books",
       "/internal/recovery",
+      "/internal/revenue",
       "/internal/search",
+      "/internal/status",
       "/internal/unhandled-errors",
       "/internal/webhook-replay",
     ],

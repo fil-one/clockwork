@@ -105,6 +105,22 @@ describe("audience-aware shell commands", () => {
     expect(hrefs).toContain("/internal/provisioning");
     expect(hrefs).toContain("/internal/gates");
     expect(hrefs).toContain("/internal/reports");
+    expect(hrefs).toContain("/internal/revenue");
+    expect(hrefs).toContain("/internal/billing-reconciliation");
+    expect(hrefs).toContain("/internal/status");
+    expect(hrefs).toContain("/internal/unhandled-errors");
+  });
+
+  it("keeps finance navigation behind report read and recovery behind system operate", () => {
+    const financeHrefs = getCommandItems(
+      "internal",
+      ["finance_approver"],
+      providerContext,
+    ).flatMap((item) => (item.href ? [item.href] : []));
+    expect(financeHrefs).toContain("/internal/billing-reconciliation");
+    expect(financeHrefs).toContain("/internal/revenue");
+    expect(financeHrefs).not.toContain("/internal/unhandled-errors");
+    expect(financeHrefs).not.toContain("/internal/status");
   });
 
   it("marks section roots only on their exact page", () => {

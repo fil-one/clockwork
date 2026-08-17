@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
 
-import { fallbackGates } from "./data";
+import { fallbackGateFreshness, fallbackGates } from "./data";
 import { GateRegister, presentGeneratedGate } from "./gates";
 
 describe("truthful external-gate administration", () => {
@@ -43,6 +43,19 @@ describe("truthful external-gate administration", () => {
   it("keeps all twelve gate paths visible in the explicit demo registry", () => {
     expect(fallbackGates).toHaveLength(12);
     expect(new Set(fallbackGates.map((gate) => gate.id)).size).toBe(12);
+  });
+
+  it("labels every fallback row as not read instead of fabricating freshness", () => {
+    expect(fallbackGates.map((gate) => gate.freshness)).toEqual(
+      Array.from({ length: fallbackGates.length }, () => fallbackGateFreshness),
+    );
+    expect(
+      fallbackGates
+        .flatMap((gate) => [gate.freshness, gate.activationTest])
+        .join(" "),
+    ).not.toMatch(
+      /(?:updated|reviewed|tested) (?:today|yesterday|\d+ (?:minutes?|hours?) ago)|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i,
+    );
   });
 
   it("never presents configured active as effective active without eligibility", () => {

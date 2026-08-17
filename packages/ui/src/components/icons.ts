@@ -27,6 +27,7 @@ export {
   ShieldCheck,
   SlidersHorizontal,
   Stamp,
+  TriangleAlert,
   Users,
   WalletCards,
   Webhook,

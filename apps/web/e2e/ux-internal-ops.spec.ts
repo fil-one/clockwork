@@ -36,6 +36,10 @@ const INTERNAL_DESTINATIONS = [
   "Recovery",
   "Migrations",
   "Reports",
+  "Revenue & channel",
+  "Billing reconciliation",
+  "Integration status",
+  "Unhandled errors",
   "External gates",
   "Assisted mode",
 ] as const;
@@ -223,6 +227,25 @@ test.describe("internal operator operations journey", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  test("reads all three generated status endpoints through the application origin", async ({
+    page,
+  }) => {
+    await page.goto("/internal/status");
+    for (const lane of ["core", "lifecycle", "system"]) {
+      await expect(
+        page.getByRole("heading", { level: 3, name: lane }),
+      ).toBeVisible();
+    }
+    await expect(page.getByText(/^Read at .* in this page load$/)).toHaveCount(
+      3,
+    );
+    await expect(
+      page.getByText("This status endpoint did not return a readable result."),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectAxeClean(page);
+  });
+
   test("uses a full-page queue detail on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/internal/queues/EXC-COL-008");
@@ -374,6 +397,8 @@ test.describe("internal responsive and accessibility coverage", () => {
         heading: "Operational queues",
       },
       { path: "/internal/reports", heading: "Operational reports" },
+      { path: "/internal/revenue", heading: "Revenue & channel" },
+      { path: "/internal/status", heading: "Integration status" },
     ] as const;
 
     for (const viewport of INTERNAL_VIEWPORTS) {
@@ -410,7 +435,13 @@ test.describe("internal responsive and accessibility coverage", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const path of ["/internal", "/internal/queues", "/internal/reports"]) {
+    for (const path of [
+      "/internal",
+      "/internal/queues",
+      "/internal/reports",
+      "/internal/revenue",
+      "/internal/status",
+    ]) {
       await page.goto(path);
       await expectAxeClean(page);
     }

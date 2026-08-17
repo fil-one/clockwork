@@ -161,6 +161,26 @@ export const navigation: Readonly<
       requiredPermission: "report:read",
     },
     {
+      href: "/internal/revenue",
+      label: "nav.internal.revenue",
+      requiredPermission: "report:read",
+    },
+    {
+      href: "/internal/billing-reconciliation",
+      label: "nav.internal.billingReconciliation",
+      requiredPermission: "report:read",
+    },
+    {
+      href: "/internal/status",
+      label: "nav.internal.status",
+      requiredPermission: "system:operate",
+    },
+    {
+      href: "/internal/unhandled-errors",
+      label: "nav.internal.unhandledErrors",
+      requiredPermission: "system:operate",
+    },
+    {
       href: "/internal/agreements",
       label: "nav.internal.agreements",
       allowedRoles: ["legal_approver"],
