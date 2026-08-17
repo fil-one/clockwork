@@ -88,6 +88,7 @@ describe("audience-aware shell commands", () => {
     expect(hrefs).not.toContain("/partner/renewals");
     expect(hrefs).not.toContain("/partner/sandboxes");
     expect(hrefs).not.toContain("/partner/brand");
+    expect(hrefs).toContain("/partner/enablement");
     expect(hrefs).toContain("/partner/quotes/new");
     expect(hrefs).toContain("/partner/support");
   });

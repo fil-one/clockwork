@@ -1,42 +1,14 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ApplicationStatePanel, buttonClassName } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 import { getRouteSession } from "@/src/features/shell/route-session";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 
 import { PartnerCollection } from "./partner-collection";
 import { partnerSurfaces, type PartnerSurfaceKey } from "./partner-data";
-import styles from "./partner.module.css";
-
-/**
- * An identity with no partner membership for the selected organization is a
- * permission outcome, not a failure. Throwing here would reach the route error
- * boundary, whose only offer is a retry that re-throws.
- */
-function NoPartnerMembership() {
-  return (
-    <main className={styles.main} id="main-content">
-      <div className={styles.state}>
-        <ApplicationStatePanel
-          state="permission"
-          title={t("partner.access.title")}
-          description={t("partner.access.description")}
-          action={
-            <Link
-              className={buttonClassName({ variant: "secondary" })}
-              href="/choose-organization"
-            >
-              {t("partner.access.action")}
-            </Link>
-          }
-        />
-      </div>
-    </main>
-  );
-}
+import {
+  NoPartnerMembership,
+  partnerRouteMembership,
+} from "./partner-membership";
 
 export async function PartnerCollectionRoute({
   surface,
@@ -50,9 +22,7 @@ export async function PartnerCollectionRoute({
   actions?: ReactNode;
 }) {
   const session = await getRouteSession("partner");
-  const partnerMembership = session.memberships.find(
-    (membership) => membership.accountId === session.effectiveAccountId,
-  );
+  const partnerMembership = partnerRouteMembership(session);
   if (!partnerMembership) return <NoPartnerMembership />;
   const projection = await loadPartnerRecords(surface);
   return (

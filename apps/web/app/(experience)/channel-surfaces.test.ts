@@ -250,7 +250,7 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/partner/sandboxes",
       "/partner/support",
     ],
-    unchanneled: ["/partner/quotes/new"],
+    unchanneled: ["/partner/enablement", "/partner/quotes/new"],
     ambiguous: [],
   },
   internal: {

@@ -3,6 +3,7 @@ export {
   ArrowLeftRight,
   BadgeDollarSign,
   Bell,
+  BookOpen,
   Building2,
   ChartNoAxesCombined,
   ChevronDown,
