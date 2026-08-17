@@ -259,8 +259,7 @@
 
 @media (max-width: 52rem) {
   .taskHeader,
-  .boundary,
-  .commissionPosition {
+  .boundary {
     grid-template-columns: 1fr;
   }
 
@@ -271,8 +270,14 @@
   .authorityFacts {
     grid-template-columns: 1fr;
   }
+}
 
+/* The application rail leaves less than the viewport width for the dashboard.
+ * Stack the three-part money position before its fixed minimum columns can
+ * widen the page at compact desktop widths. */
+@media (max-width: 70rem) {
   .commissionPosition {
+    grid-template-columns: 1fr;
     align-items: start;
   }
 }

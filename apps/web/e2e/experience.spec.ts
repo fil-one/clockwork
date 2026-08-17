@@ -217,6 +217,7 @@ test("redirect signing creates an envelope without activating the agreement", as
 test("billing prepares a Stripe handoff while payment truth remains webhook-derived", async ({
   page,
 }) => {
+  await page.setExtraHTTPHeaders({ "x-clockwork-persona": "billing" });
   let payment: Record<string, unknown> | undefined;
   await page.route("**/api/v1/core/payment-sessions", async (route) => {
     const request = route.request();
@@ -252,8 +253,8 @@ test("billing prepares a Stripe handoff while payment truth remains webhook-deri
     page.getByRole("link", { name: "Continue to secure Stripe payment" }),
   ).toHaveAttribute("href", "https://invoice.stripe.com/i/acct_demo/in_demo");
   expect(payment).toEqual({
-    accountId: "11111111-1111-4111-8111-111111111111",
-    invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    accountId: CUSTOMER_ACCOUNT_ID,
+    invoiceId: "50000000-0000-4000-8000-000000000014",
   });
 });
 

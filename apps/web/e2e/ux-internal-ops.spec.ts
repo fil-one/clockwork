@@ -103,8 +103,8 @@ test.describe("internal operator operations journey", () => {
     await expect(table).toBeVisible();
     // Header row plus one row per authorized projection record. The workspace
     // reads the session-scoped queue projection, so a fixture never adds rows.
-    await expect(table.getByRole("row")).toHaveCount(4);
-    await expect(page.getByText("3 results")).toBeVisible();
+    await expect(table.getByRole("row")).toHaveCount(7);
+    await expect(page.getByText("6 results")).toBeVisible();
     await expect(table.getByText("EXC-COL-008").first()).toBeVisible();
     // The projection carries no risk, age, or backup for these records, and the
     // surface says so instead of filling in a plausible value.
@@ -294,17 +294,18 @@ test.describe("finance approver journey", () => {
   test("labels renewal and report values by their truth state", async ({
     page,
   }) => {
-    // NOTE: these two surfaces render module-level fixtures rather than the
-    // session projection, so this asserts the value-state labeling they do
-    // guarantee. The projection-backed "no invented rows" guarantee is covered
-    // by the queue and search tests above. See the reported defect.
+    // Both surfaces read the session projection. This assertion pins the
+    // explicit distinction between renewal planning and recorded invoice
+    // truth; neither is presented as payment or collected revenue.
     await page.goto("/internal/renewals");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Renewal exposure" }),
+      page.getByRole("heading", { level: 1, name: "Renewal notice windows" }),
     ).toBeVisible();
-    await expect(page.getByText("Exposure is planning data.")).toBeVisible();
     await expect(
-      page.getByText(/not an invoice, payment, or collected-revenue total/),
+      page.getByText("No exposure estimate is shown here."),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/not a forecast, a payment, or collected revenue/),
     ).toBeVisible();
 
     await page.goto("/internal/reports");
@@ -312,7 +313,7 @@ test.describe("finance approver journey", () => {
       page.getByRole("heading", { level: 1, name: "Operational reports" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Pending reconciliation").first(),
+      page.getByText("No variance or reconciliation state is shown."),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });

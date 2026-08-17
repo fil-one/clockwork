@@ -5,6 +5,8 @@ test("@smoke renders the customer experience and its API lane mounts", async ({
   page,
   request,
 }) => {
+  expect(process.env.CLOCKWORK_EXPERIENCE_ADAPTER).toBe("demo");
+  expect(process.env.CLOCKWORK_EVIDENCE_ADAPTER).toBe("demo");
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Welcome back",

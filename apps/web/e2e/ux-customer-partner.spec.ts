@@ -540,66 +540,28 @@ test("partner collection state survives reload and browser history", async ({
   await expect(search).toHaveValue("Halcyon");
 });
 
-/**
- * This test used to drive the same persona and assert the builder rendered
- * `Halcyon Research Cooperative` and `Meridian Channel Group`. Both were
- * fabrications from P0-62: a pre-filled end client and a merchant of record
- * belonging to no one, shown to whoever signed in. The test asserted the defect
- * as correct, so it had to change with the fix.
- *
- * The persona matters. `partner_seller` is the REFERRAL partner, and a referral
- * quote is not the partner's to write: Fil One is merchant of record, and
- * `core_partner_can_append_commercial_audit` admits a partner-written quote
- * audit only where `merchant_of_record = 'partner'`. Composing the builder here
- * would compose a submission the database refuses, so the route names the
- * boundary instead of posting into it.
- */
-test("a referral partner is told the resale quote is not theirs to write", async ({
-  page,
-}) => {
-  await usePersona(page, "partner_seller");
-  await page.goto("/partner/quotes/new");
-  await expect(
-    page.getByRole("heading", {
-      name: "Fil One writes the quote on a referral agreement",
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Open deal registrations" }),
-  ).toBeVisible();
-  // The builder must not be composed at all, rather than composed and refused
-  // at submit.
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
-  ).toBeHidden();
-});
-
-test("a resale partner sees its own merchant boundary and an empty draft", async ({
-  page,
-}) => {
-  await usePersona(page, "partner_admin");
-  await page.goto("/partner/quotes/new");
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
-  ).toBeVisible();
-  const summary = page.getByRole("complementary", { name: "Quote summary" });
-  await expect(
-    page.getByRole("region", { name: /Resale|Two-tier distributor/u }),
-  ).toContainText("route is fixed when this quote is issued");
-  // The merchant of record is resolved from the session, so the fabricated
-  // party must appear nowhere and the acting partner's own name must.
-  await expect(summary.getByText("Meridian Channel Group")).toBeHidden();
-  await expect(summary.getByText(/Merchant of record:/)).toBeVisible();
-  await expect(summary.getByText(/Route attribution:/)).toContainText(
-    "is the sourced partner because this route binds an approved deal registration",
-  );
-  await expect(
-    page.locator('input[name="attribution"], input[name="influenceBps"]'),
-  ).toHaveCount(0);
-  // The draft starts empty: nothing is chosen on the partner's behalf.
-  await expect(summary.getByText("Offer: Not selected")).toBeVisible();
-  await expect(summary.getByText("End client: Not selected")).toBeVisible();
-});
+for (const role of ["partner_seller", "partner_admin"] as const) {
+  test(`${role} cannot compose a quote from presentation-only demo agreement data`, async ({
+    page,
+  }) => {
+    await usePersona(page, role);
+    await page.goto("/partner/quotes/new");
+    await expect(
+      page.getByRole("heading", {
+        name: "No complete partner agreement is on file for this account",
+      }),
+    ).toBeVisible();
+    // The local demo projection is presentation data, not authority to invent
+    // a transfer tier, registration, or price-book relationship. Persisted
+    // route consequences remain covered by the builder's component tests.
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
+    ).toBeHidden();
+    await expect(
+      page.locator('input[name="attribution"], input[name="influenceBps"]'),
+    ).toHaveCount(0);
+  });
+}
 
 test("registration credit is status-derived and cannot be manually tagged", async ({
   page,
