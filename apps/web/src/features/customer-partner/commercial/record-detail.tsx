@@ -5,12 +5,14 @@ import type { ReactNode } from "react";
 import {
   ApplicationStatePanel,
   Breadcrumbs,
+  Timeline,
   buttonClassName,
 } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 import type { CommercialRecord } from "./model";
+import { orderTimeline } from "./order-timeline";
 import { PaymentHandoff } from "./payment-handoff";
 import { validQuoteActions, type QuoteStatus } from "./workflow-model";
 import { ArtifactDeliveryList } from "@/src/features/experience-server/artifact-delivery-list";
@@ -354,6 +356,19 @@ export async function CommercialRecordDetail({
             <h2 id="term-title">{customerPartnerCopy.common.termState}</h2>
             <p className={styles.description}>{record.term}</p>
           </section>
+          {record.kind === "orders" ? (
+            <section
+              className={`${styles.panel} ${styles.section}`}
+              aria-labelledby="order-progress-title"
+            >
+              <h2 id="order-progress-title">Order progress</h2>
+              <Timeline
+                className={styles.orderTimeline ?? ""}
+                items={orderTimeline(record, artifacts)}
+                label="Order lifecycle"
+              />
+            </section>
+          ) : null}
           <section
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="artifact-title"

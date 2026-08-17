@@ -507,6 +507,10 @@ th[aria-sort="descending"] .sortLink::after {
   overflow-wrap: anywhere;
 }
 
+.orderTimeline {
+  margin-top: 18px;
+}
+
 .chain,
 .audit {
   display: grid;
