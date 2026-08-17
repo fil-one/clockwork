@@ -69,9 +69,6 @@ export const customerPartnerCopy = {
     serviceRollup: "Service term rollup",
     metricsTitle: "Decisions at a glance",
     activityTitle: "Recent activity",
-    chartTitle: "Committed capacity compared with use",
-    chartFreshness: "Updated 18 minutes ago from metering data",
-    chartComparison: "Compared with the previous 30-day period",
     accountTitle: "Account settings",
     accountDescription:
       "Manage your organization, people, and purchasing requirements.",

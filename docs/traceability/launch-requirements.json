@@ -2755,8 +2755,16 @@
       "api": ["reports"],
       "database": ["core_revenue_forecast"],
       "workflowProvider": ["report export"],
-      "portalDocument": ["revenue forecast"],
-      "tests": ["report SQL tests"],
+      "portalDocument": [
+        "apps/web/src/features/internal-ops/revenue/revenue-repository.ts#readRevenueWorkspace",
+        "apps/web/src/features/internal-ops/revenue/revenue-view.tsx#RevenueView"
+      ],
+      "tests": [
+        "report SQL tests",
+        "apps/web/src/features/internal-ops/revenue/model.test.ts",
+        "apps/web/src/features/internal-ops/revenue/revenue-repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/revenue/revenue-view.test.tsx"
+      ],
       "externalGates": ["EXT-COMMERCIAL-01"],
       "backlog": [],
       "status": "implemented",
@@ -2865,11 +2873,17 @@
         "packages/db/src/repositories/core/database-finance.ts#readReportView"
       ],
       "workflowProvider": [],
-      "portalDocument": [],
+      "portalDocument": [
+        "apps/web/src/features/internal-ops/revenue/revenue-repository.ts#readRevenueWorkspace",
+        "apps/web/src/features/internal-ops/revenue/revenue-view.tsx#RevenueView"
+      ],
       "tests": [
         "supabase/tests/1396_reporting_layer_completion.test.sql",
         "supabase/tests/1397_report_reach_and_partner_credit.test.sql",
-        "packages/db/src/repositories/core/core-reports.integration.test.ts"
+        "packages/db/src/repositories/core/core-reports.integration.test.ts",
+        "apps/web/src/features/internal-ops/revenue/model.test.ts",
+        "apps/web/src/features/internal-ops/revenue/revenue-repository.integration.test.ts",
+        "apps/web/src/features/internal-ops/revenue/revenue-view.test.tsx"
       ],
       "externalGates": ["EXT-COMMERCIAL-01", "EXT-TAX-01"],
       "backlog": [],

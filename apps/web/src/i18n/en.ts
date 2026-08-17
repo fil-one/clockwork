@@ -128,6 +128,10 @@ export const en = {
   "nav.internal.webhookReplay": "Webhook replay",
   "nav.internal.migrations": "Migrations",
   "nav.internal.reports": "Reports",
+  "nav.internal.revenue": "Revenue & channel",
+  "nav.internal.billingReconciliation": "Billing reconciliation",
+  "nav.internal.status": "Integration status",
+  "nav.internal.unhandledErrors": "Unhandled errors",
   "nav.internal.agreements": "Agreement versions",
   "nav.internal.approvals": "Approval review",
   "nav.internal.priceBooks": "Price books",
@@ -367,9 +371,9 @@ export const en = {
   "internal.title": "Commerce operations",
   "internal.description":
     "One operating record for accounts, exceptions, approvals, recoveries, renewals, and reconciliation.",
-  "internal.search.title": "Global search & account timeline",
+  "internal.search.title": "Global search",
   "internal.search.description":
-    "Find any account or artifact and follow the append-only chain with actual and effective actors.",
+    "Find accounts and operational records, grouped by record type.",
   "internal.assisted.title": "Assisted execution",
   "internal.assisted.description":
     "Run every customer or partner action with a reason, preserved actor identity, and the same contract-backed workflow.",

@@ -285,6 +285,10 @@ export interface GateRecord {
   rowVersion?: number;
 }
 
+/** Static demo rows never claim to have been refreshed by a live registry. */
+export const fallbackGateFreshness =
+  "Fallback record — not read from the gate registry";
+
 export const fallbackGates: readonly GateRecord[] = [
   {
     id: "EXT-ACC-01",
@@ -295,7 +299,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Hosted credential suite not run",
     severity: "Launch blocker",
     state: "Blocked",
-    freshness: "No production evidence",
+    freshness: fallbackGateFreshness,
     reason:
       "Scoped hosted credentials and a passing callback test are required.",
     configuredState: "pending",
@@ -312,7 +316,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Golden quote fixtures pass; approval missing",
     severity: "Launch blocker",
     state: "Blocked",
-    freshness: "Awaiting dated approval",
+    freshness: fallbackGateFreshness,
     reason: "A named approver and current pricing evidence are required.",
     configuredState: "review",
     effectiveState: "blocked",
@@ -328,7 +332,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Simulator passed; production credentials not tested",
     severity: "Path blocker",
     state: "Blocked",
-    freshness: "Updated 16 minutes ago",
+    freshness: fallbackGateFreshness,
     reason:
       "Scoped production credentials and named provider choices are required.",
   },
@@ -338,10 +342,11 @@ export const fallbackGates: readonly GateRecord[] = [
     title: "Product provisioning contract",
     owner: "Provisioning lead",
     capability: "Paid service activation",
-    activationTest: "Replay-safe simulator passed Jul 31 at 11:42",
+    activationTest:
+      "Replay-safe simulator result is part of the fallback record",
     severity: "Path blocker",
     state: "Blocked",
-    freshness: "Updated 18 minutes ago",
+    freshness: fallbackGateFreshness,
     reason: "Authenticated product boundary is pending.",
   },
   {
@@ -353,7 +358,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Version fixtures pass; production hash not supplied",
     severity: "Launch blocker",
     state: "Blocked",
-    freshness: "Reviewed today at 10:20",
+    freshness: fallbackGateFreshness,
     reason: "Final hashes, thresholds, and policy versions are pending.",
   },
   {
@@ -362,10 +367,11 @@ export const fallbackGates: readonly GateRecord[] = [
     title: "Tax and accounting policy",
     owner: "Finance controller",
     capability: "Country billing and tax calculation",
-    activationTest: "US, ES, and UK fixtures passed Jul 30",
+    activationTest:
+      "US, ES, and UK fixture result is part of the fallback record",
     severity: "Path blocker",
     state: "Review",
-    freshness: "Reviewed yesterday",
+    freshness: fallbackGateFreshness,
     reason: "Accountant approval is required before activation.",
   },
   {
@@ -377,7 +383,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Neutral-token visual scan passed",
     severity: "High",
     state: "Review",
-    freshness: "Updated 2 hours ago",
+    freshness: fallbackGateFreshness,
     reason: "Approved assets and usage rules are pending.",
   },
   {
@@ -389,7 +395,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Local callback test passed; DNS test not run",
     severity: "Launch blocker",
     state: "Blocked",
-    freshness: "Updated 34 minutes ago",
+    freshness: fallbackGateFreshness,
     reason: "Production DNS, TLS, and sender records are not verified.",
   },
   {
@@ -401,7 +407,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Fictional rota coverage passed",
     severity: "Path blocker",
     state: "Blocked",
-    freshness: "Updated 1 hour ago",
+    freshness: fallbackGateFreshness,
     reason:
       "Primary, backup, finance, legal, and destructive actors must be named.",
   },
@@ -414,7 +420,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Two-person simulation passed; automation disabled",
     severity: "Launch blocker",
     state: "Pending",
-    freshness: "Tested today at 09:15",
+    freshness: fallbackGateFreshness,
     reason:
       "Recent-authentication and provider authority tests remain pending.",
   },
@@ -427,7 +433,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Provider-boundary replay not run",
     severity: "Path blocker",
     state: "Blocked",
-    freshness: "No provider evidence",
+    freshness: fallbackGateFreshness,
     reason: "Marketplace identity and settlement replay must pass.",
     configuredState: "pending",
     effectiveState: "blocked",
@@ -443,7 +449,7 @@ export const fallbackGates: readonly GateRecord[] = [
     activationTest: "Local rehearsal passed; production evidence missing",
     severity: "Launch blocker",
     state: "Blocked",
-    freshness: "Awaiting production rehearsal",
+    freshness: fallbackGateFreshness,
     reason:
       "A dated production-shaped rehearsal and rollback owner are required.",
     configuredState: "review",
