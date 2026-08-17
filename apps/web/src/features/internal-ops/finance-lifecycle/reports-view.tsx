@@ -23,6 +23,8 @@ import styles from "./finance-lifecycle.module.css";
 const copy = lifecycleCopy.reports;
 
 function label(name: string): string {
+  const override = copy.labels[name as keyof typeof copy.labels];
+  if (override) return override;
   return name
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

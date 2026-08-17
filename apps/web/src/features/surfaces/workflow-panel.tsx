@@ -710,6 +710,7 @@ export function WorkflowPanel({
   const [confirmations, setConfirmations] = useState(0);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const commandKeyRef = useRef<string | null>(null);
 
   /**
    * The fields are built before the rest of the panel so their own `required`
@@ -821,21 +822,29 @@ export function WorkflowPanel({
           evidenceDocumentId: value(data, "evidenceDocumentId"),
         });
       } else if (workflow === "account") {
-        result = await sendCoreCommand({
-          resource: "accounts",
-          id: value(data, "accountId"),
-          accountId: value(data, "accountId"),
-          action: "update",
-          expectedVersion: Number(value(data, "rowVersion")),
-          payload: {
-            legalName: value(data, "legalName"),
-            invoiceDeliveryEmail: value(data, "invoiceDeliveryEmail"),
-            billingContact: {
-              name: value(data, "billingContactName"),
-              email: value(data, "billingContactEmail"),
+        commandKeyRef.current ??= crypto.randomUUID();
+        const accountResult = await sendCoreCommand(
+          {
+            resource: "accounts",
+            id: value(data, "accountId"),
+            accountId: value(data, "accountId"),
+            action: "update",
+            expectedVersion: Number(value(data, "rowVersion")),
+            payload: {
+              legalName: value(data, "legalName"),
+              invoiceDeliveryEmail: value(data, "invoiceDeliveryEmail"),
+              billingContact: {
+                name: value(data, "billingContactName"),
+                email: value(data, "billingContactEmail"),
+              },
             },
           },
-        });
+          { idempotencyKey: commandKeyRef.current },
+        );
+        commandKeyRef.current = null;
+        setSuccess(
+          `Account ${accountResult.record.id} updated at row version ${accountResult.record.rowVersion}.`,
+        );
       } else if (workflow === "invite") {
         result = await inviteOrganizationMember({
           organizationId: value(data, "organizationId"),
@@ -892,11 +901,13 @@ export function WorkflowPanel({
           `No command is wired for the ${String(unhandled)} workflow, so nothing was sent.`,
         );
       }
-      setSuccess(
-        workflow === "reports"
-          ? "Report loaded from source records."
-          : "Request accepted. The server record is now the source of truth.",
-      );
+      if (workflow !== "account") {
+        setSuccess(
+          workflow === "reports"
+            ? "Report loaded from source records."
+            : "Request accepted. The server record is now the source of truth.",
+        );
+      }
     } catch (caught) {
       /*
        * An `unavailable` command used to be reported as "Development
@@ -1025,6 +1036,7 @@ export function WorkflowPanel({
               footer={
                 <Button
                   variant="danger"
+                  disabled={pending}
                   onClick={() => {
                     setConfirmations((count) => count + 1);
                     formRef.current?.requestSubmit();
@@ -1066,6 +1078,7 @@ export function WorkflowPanel({
               setError("");
               setSuccess("");
               setReportResult(null);
+              commandKeyRef.current = null;
               // The reset restores each select to its default, so the tracked
               // decision has to follow or the confirmation step goes stale.
               setDecision(defaultDecision(workflow));

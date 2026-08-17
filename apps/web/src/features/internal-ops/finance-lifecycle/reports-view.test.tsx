@@ -2,6 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { coreReportNames } from "@clockwork/contracts";
+
 import { reportNames } from "@/src/features/contracts/commerce-client";
 
 import type { SurfaceProvenance } from "./provenance";
@@ -60,6 +62,10 @@ function recordedExports() {
 }
 
 describe("ReportsView report filter", () => {
+  it("uses the contract catalogue as the web export registry", () => {
+    expect(reportNames).toBe(coreReportNames);
+  });
+
   it("offers every report in the registry plus the unfiltered option", () => {
     renderView();
 
@@ -67,6 +73,22 @@ describe("ReportsView report filter", () => {
       .getAllByRole("option")
       .map((option) => (option as HTMLOptionElement).value);
     expect(options).toEqual(["", ...reportNames]);
+  });
+
+  it("offers an export control for every contract report with honest money labels", () => {
+    renderView();
+
+    expect(screen.getAllByRole("button", { name: "Export CSV" })).toHaveLength(
+      coreReportNames.length,
+    );
+    for (const heading of [
+      "ARR & MRR",
+      "Billing & collections",
+      "Commission settlement",
+    ])
+      expect(
+        screen.getByRole("heading", { level: 3, name: heading }),
+      ).toBeVisible();
   });
 
   /**

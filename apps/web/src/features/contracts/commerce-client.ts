@@ -1,17 +1,17 @@
 import { createClockworkClient } from "@clockwork/api/client";
+import { coreReportNames, type CoreReportName } from "@clockwork/contracts";
 
-export const reportNames = [
-  "revenue_forecast",
-  "capacity_planning",
-  "renewal_churn_exposure",
-  "partner_performance",
-  "funnel_cycle_time",
-  "margin_poc_cost",
-  "three_way_tie_out",
-  "weekly_scorecard",
-] as const;
-
-export type ReportName = (typeof reportNames)[number];
+/**
+ * Compatibility names for the web surfaces, bound to the contract catalogue.
+ *
+ * These used to be a fourth hand-written report vocabulary and silently left
+ * three contract reports out of both operator export surfaces. Keep the local
+ * names while making the contract tuple the value and type authority.
+ */
+export { coreReportNames };
+export type { CoreReportName };
+export const reportNames = coreReportNames;
+export type ReportName = CoreReportName;
 export interface ReportResult {
   items: Record<string, unknown>[];
   nextCursor: string | null;
