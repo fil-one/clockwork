@@ -1,4 +1,43 @@
+import { merchantOfRecord } from "@clockwork/domain/core";
+
 import type { PartnerRole, PartnerStatus } from "./partner-data";
+
+export type AttributionRoute = Parameters<typeof merchantOfRecord>[0];
+
+/**
+ * Explains the commercial consequence of the persisted route without creating
+ * a separate attribution fact. Partner routes reach quoting only with an
+ * approved registration, while merchant ownership is derived by the same
+ * domain rule used when the quote commercial profile is persisted.
+ */
+export function attributionStatement(
+  route: AttributionRoute,
+  partner: string,
+): string {
+  const merchant = merchantOfRecord(route);
+  const merchantName =
+    merchant === "fil_one"
+      ? "Fil One"
+      : merchant === "partner"
+        ? partner
+        : "The marketplace";
+  const attribution =
+    route === "direct" || route === "marketplace"
+      ? "No partner attribution applies to this route."
+      : `${partner} is the sourced partner because this route binds an approved deal registration.`;
+  return `${attribution} Merchant of record: ${merchantName}.`;
+}
+
+/**
+ * The registration projection uses `accepted` for the repository's `approved`
+ * outcome. Only that outcome can state sourced credit: the repository derives
+ * approved => sourced and every other persisted status => none.
+ */
+export function registrationCreditLabel(status: PartnerStatus): string {
+  if (status === "accepted") return "Attribution: sourced";
+  if (status === "pending") return "Attribution: decision pending";
+  return "Attribution: no sourced credit recorded";
+}
 
 export type PartnerQuoteAction =
   "edit" | "issue" | "cancel" | "revise" | "download";

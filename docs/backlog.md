@@ -1632,6 +1632,13 @@ silently deleted, because the closure is part of the record.
   are deliberately absent from the admitted verbs, and the 3-business-day
   escalation the spec gives it has no owner in code. The service catalogue says
   this in place so the absence cannot read as an oversight.
+- **Influenced attribution and registration-dispute writes remain unbuilt.** The
+  partner portal derives its sourced-credit label from accepted registration
+  status and explains the agreement-derived route; it does not read or fabricate
+  a `core_deal_registration_attributions` row. That table remains schema-only,
+  and no portal control captures `influence_bps`, opens a dispute, or decides
+  one. Those writes need the dispute-owner workflow and its evidence boundary,
+  rather than a manual tag added to the quote or registration page.
 - **The customer quote builder still ships fixture selector UUIDs in the client
   bundle.** The partner builder's P0-62 fix did not cover it, and P0-50's
   no-fixture-UUID bundle proof was scoped to the ten workflow mounts, not this

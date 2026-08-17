@@ -158,6 +158,16 @@ describe("what the partner quote builder states before anyone types", () => {
     expect(screen.queryByRole("radio")).toBeNull();
   });
 
+  it("states sourced attribution from the persisted resale route without a capture control", () => {
+    render(<ResaleQuoteBuilder context={redwood} />);
+    const summary = quoteSummary();
+    expect(summary).toHaveTextContent(
+      "Route attribution: Redwood Channel Group is the sourced partner because this route binds an approved deal registration. Merchant of record: Redwood Channel Group.",
+    );
+    expect(screen.queryByRole("textbox", { name: /attribution/i })).toBeNull();
+    expect(screen.queryByRole("spinbutton", { name: /influence/i })).toBeNull();
+  });
+
   it("shows one partner nothing belonging to the other", async () => {
     const user = userEvent.setup();
     // The two selectors belong to different stages, so each is read where it
