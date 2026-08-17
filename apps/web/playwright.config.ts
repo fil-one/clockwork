@@ -53,6 +53,11 @@ const demoSuite = Boolean(demoPassword);
 
 export default defineConfig({
   testDir: "./e2e",
+  // Every ordinary local browser run starts and finishes with the canonical
+  // file-backed demo state. This keeps a prior interrupted mutation from
+  // changing the next release proof. The password-gated demo shard owns its
+  // own lifecycle and is deliberately excluded.
+  ...(demoSuite ? {} : { globalSetup: "./e2e/local-demo.setup.ts" }),
   // Production proof owns its migrated database, signed session cookies, and
   // provider fake through the dedicated proof configuration.
   testIgnore: "production-proof.spec.ts",
@@ -78,9 +83,8 @@ export default defineConfig({
     command: `pnpm dev --hostname 127.0.0.1 --port ${port}`,
     url: demoSuite
       ? `http://127.0.0.1:${port}/demo/access`
-      : `http://127.0.0.1:${port}`,
-    reuseExistingServer:
-      !process.env.CI && !process.env.CLOCKWORK_RELEASE_SHARD,
+      : `http://127.0.0.1:${port}/developers/openapi.json`,
+    reuseExistingServer: process.env.CLOCKWORK_REUSE_TEST_SERVER === "1",
     timeout: 120_000,
     ...(demoSuite
       ? {
@@ -91,7 +95,15 @@ export default defineConfig({
             CLOCKWORK_DEMO_ACCESS_PASSWORD: demoPassword,
           },
         }
-      : {}),
+      : {
+          // Functional and visual journeys deliberately drive the local demo
+          // projections. Naming both adapters here keeps `pnpm verify` explicit
+          // without enabling the separately gated public demo deployment.
+          env: {
+            CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
+            CLOCKWORK_EVIDENCE_ADAPTER: "demo",
+          },
+        }),
   },
   projects: [
     {

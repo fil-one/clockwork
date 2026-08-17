@@ -36,6 +36,35 @@ const commercialSurfaces = [
   },
 ] as const;
 
+const adoptionSurfaces = [
+  {
+    name: "customer-buy",
+    path: "/buy",
+    heading: "Buy storage",
+    persona: "owner",
+  },
+  {
+    name: "partner-enablement",
+    path: "/partner/enablement",
+    heading: "Partner enablement",
+    persona: "partner_admin",
+  },
+] as const;
+
+const mobileRailSurfaces = [
+  {
+    name: "partner-agreement-clock",
+    path: "/partner",
+    heading: "Partner desk",
+    persona: "partner_admin",
+  },
+  {
+    name: "operator-priority-work",
+    path: "/internal/queues",
+    heading: "Operational queues",
+  },
+] as const;
+
 async function expectNoHorizontalOverflow(page: Page) {
   await expect
     .poll(() =>
@@ -110,6 +139,71 @@ for (const surface of commercialSurfaces) {
     await expect(
       page.getByRole("heading", { level: 1, name: surface.heading }),
     ).toBeVisible();
+    await page.addStyleTag({
+      content: "nextjs-portal { display: none !important; }",
+    });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page).toHaveScreenshot(`${surface.name}-320.png`, {
+      animations: "disabled",
+      fullPage: true,
+      maxDiffPixelRatio: 0.01,
+    });
+  });
+}
+
+for (const surface of adoptionSurfaces) {
+  for (const viewport of [
+    { label: "1440", width: 1440, height: 1000 },
+    { label: "320", width: 320, height: 800 },
+  ] as const) {
+    test(`visual ${surface.name} at ${viewport.label}px`, async ({ page }) => {
+      await page.setExtraHTTPHeaders({
+        "x-clockwork-persona": surface.persona,
+      });
+      await page.setViewportSize(viewport);
+      await page.goto(surface.path);
+      await expect(page.locator(".experience-shell")).toHaveAttribute(
+        "data-hydrated",
+        "true",
+      );
+      await expect(
+        page.getByRole("heading", { level: 1, name: surface.heading }),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectAxeClean(page);
+      await page.addStyleTag({
+        content: "nextjs-portal { display: none !important; }",
+      });
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page).toHaveScreenshot(
+        `${surface.name}${viewport.label === "320" ? "-320" : ""}.png`,
+        {
+          animations: "disabled",
+          fullPage: true,
+          maxDiffPixelRatio: 0.01,
+        },
+      );
+    });
+  }
+}
+
+for (const surface of mobileRailSurfaces) {
+  test(`visual ${surface.name} at 320px`, async ({ page }) => {
+    if ("persona" in surface)
+      await page.setExtraHTTPHeaders({
+        "x-clockwork-persona": surface.persona,
+      });
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(surface.path);
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+    await expect(
+      page.getByRole("heading", { level: 1, name: surface.heading }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectAxeClean(page);
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",
     });

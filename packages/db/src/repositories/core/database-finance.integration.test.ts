@@ -351,7 +351,11 @@ afterAll(async () => {
   await client.end();
 });
 
-describe("database core direct-owner artifact chain", () => {
+// This group drives multi-command quote, artifact, order, provisioning, and
+// amendment transactions. Under the repository-wide parallel test gate those
+// legal chains can cross Vitest's 5-second unit default without being stalled.
+const slowIntegration = { timeout: 15_000 };
+describe("database core direct-owner artifact chain", slowIntegration, () => {
   it("rejects a partner artifact request for an unrelated commercial audience", async () => {
     const partnerAccountId = "10000000-0000-4000-8000-000000000002";
     const partnerUserId = ids.user.parse(

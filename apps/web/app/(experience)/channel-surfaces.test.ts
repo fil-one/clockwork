@@ -236,14 +236,13 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
     ambiguous: [],
   },
   partner: {
-    backed: ["billing", "portfolio", "quotes"],
+    backed: ["billing", "commissions", "portfolio", "quotes"],
     // Five channels the materializer writes for partners with nowhere to read
     // them: a partner-visible agreement, amendment, order, POC or termination
     // row is projected and then unreachable.
     unmounted: ["agreements", "amendments", "orders", "pocs", "services"],
     unbacked: [
       "/partner/brand",
-      "/partner/commissions",
       "/partner/disputes",
       "/partner/marketplace",
       "/partner/registrations",
