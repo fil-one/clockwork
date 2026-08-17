@@ -19,6 +19,7 @@ import styles from "./commercial.module.css";
 import { SearchableSelector } from "./searchable-selector";
 import {
   emptyQuoteDraft,
+  customerQuoteRoute,
   firstQuoteError,
   quotePayload,
   quoteSelectorOptions,
@@ -59,18 +60,6 @@ function regionLabel(value: string) {
       "us-east": "US East · Virginia",
       "eu-west": "EU West · Madrid",
       "uk-south": "UK South · London",
-    }[value] ?? labelFor(value)
-  );
-}
-
-function routeLabel(value: string) {
-  return (
-    {
-      direct: "Direct",
-      referral: "Partner referral",
-      resale: "Partner resale",
-      distributor: "Distributor / two-tier",
-      marketplace: "Marketplace",
     }[value] ?? labelFor(value)
   );
 }
@@ -119,17 +108,9 @@ function Summary({ draft }: { draft: QuoteDraft }) {
           <dt>Term and route</dt>
           <dd>
             {draft.termMonths ? `${draft.termMonths} months` : "Not set"} ·{" "}
-            {routeLabel(draft.route)}
+            Direct
           </dd>
         </div>
-        {draft.route === "direct" ? null : (
-          <div>
-            <dt>End client / partner</dt>
-            <dd>
-              {labelFor(draft.endClient)} · {labelFor(draft.partner)}
-            </dd>
-          </div>
-        )}
         <div>
           <dt>Expiry</dt>
           <dd>{expiryLabel(draft.expiresAt)}</dd>
@@ -209,7 +190,7 @@ export function QuoteBuilder({
    * successful issue. `update()` clears it again, so editing after a
    * successful create -- which invalidates the created draft's inputs -- re-arms.
    * A form still holding exactly `emptyQuoteDraft(account.name)`, including its
-   * `us-east` and `direct` defaults, is never armed, so opening the builder and
+   * `us-east` default, is never armed, so opening the builder and
    * changing your mind costs nothing.
    */
   const pristine = useMemo(() => emptyQuoteDraft(account.name), [account.name]);
@@ -467,21 +448,37 @@ export function QuoteBuilder({
                     value={draft.termMonths}
                   />
                 </Field>
-                <Field error={errors.route} id="route" label="Commercial route">
-                  <select
-                    aria-describedby={errors.route ? "route-error" : undefined}
-                    aria-invalid={Boolean(errors.route) || undefined}
-                    id="route"
-                    onChange={(event) => update("route", event.target.value)}
-                    value={draft.route}
-                  >
-                    <option value="direct">Direct</option>
-                    <option value="referral">Partner referral</option>
-                    <option value="resale">Partner resale</option>
-                    <option value="distributor">Distributor / two-tier</option>
-                    <option value="marketplace">Marketplace</option>
-                  </select>
-                </Field>
+                <fieldset
+                  className={`${styles.routeChoices} ${styles.spanTwo}`}
+                >
+                  <legend>Commercial route</legend>
+                  <label className={styles.routeChoice}>
+                    <input
+                      checked
+                      name="route"
+                      readOnly
+                      type="radio"
+                      value={customerQuoteRoute}
+                    />
+                    <span>
+                      <strong>Direct</strong>
+                      <span>
+                        Fil One contracts with and invoices this customer at the
+                        server-priced amount.
+                      </span>
+                    </span>
+                  </label>
+                  <p className={styles.description}>
+                    This customer workspace creates direct quotes only. Partner
+                    quotes use the agreement-bound partner workspace, and
+                    marketplace purchases remain on their provider-backed
+                    surface.
+                  </p>
+                  <p className={styles.routeRule}>
+                    The commercial route is fixed when this quote is issued;
+                    changing it later means issuing a revised quote.
+                  </p>
+                </fieldset>
                 <Field
                   error={errors.expiresAt}
                   id="expiresAt"
@@ -500,26 +497,6 @@ export function QuoteBuilder({
                     value={draft.expiresAt}
                   />
                 </Field>
-                {draft.route === "direct" ? null : (
-                  <>
-                    <SearchableSelector
-                      error={errors.endClient}
-                      id="endClient"
-                      label="End client"
-                      onChange={(value) => update("endClient", value)}
-                      options={quoteSelectorOptions.endClients}
-                      value={draft.endClient}
-                    />
-                    <SearchableSelector
-                      error={errors.partner}
-                      id="partner"
-                      label="Partner"
-                      onChange={(value) => update("partner", value)}
-                      options={quoteSelectorOptions.partners}
-                      value={draft.partner}
-                    />
-                  </>
-                )}
               </div>
             </fieldset>
           ) : null}
@@ -548,9 +525,7 @@ export function QuoteBuilder({
                 </li>
                 <li>
                   <span>Route and expiry</span>
-                  <strong>
-                    {routeLabel(draft.route)} · {expiryLabel(draft.expiresAt)}
-                  </strong>
+                  <strong>Direct · {expiryLabel(draft.expiresAt)}</strong>
                 </li>
               </ul>
             </section>

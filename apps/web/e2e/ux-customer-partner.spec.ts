@@ -127,9 +127,11 @@ test("owner builds a quote from the session account and issues one protected com
   await expect(
     page.getByRole("heading", {
       level: 2,
-      name: "Capacity, term, route, end client or partner, and expiry",
+      name: "Capacity, term, direct route, and expiry",
     }),
   ).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Direct/u })).toBeChecked();
+  await expect(page.getByRole("radio")).toHaveCount(1);
   await page.getByLabel("Committed capacity (TB)").fill("120");
   await page.getByLabel("Term (months)").fill("12");
   await page.getByLabel("Quote expiry").fill("2026-09-30T17:00");
@@ -165,6 +167,9 @@ test("owner builds a quote from the session account and issues one protected com
       ],
     },
   });
+  expect(commands[0]?.payload).not.toHaveProperty("partnerAccountId");
+  expect(commands[0]?.payload).not.toHaveProperty("endClientAccountId");
+  expect(commands[0]?.payload).not.toHaveProperty("marketplaceProvider");
 });
 
 test("owner reviews persisted agreement identity before the signing handoff", async ({
@@ -255,6 +260,11 @@ test("order acceptance requires an explicit attestation before it binds", async 
   await page.goto("/orders/accept");
   await page.getByRole("textbox", { name: "Purchase order" }).fill("PO-77120");
   await page.getByRole("textbox", { name: "Service start" }).fill("2026-09-01");
+  await page.getByRole("textbox", { name: "Service end" }).fill("2027-08-31");
+  await expect(page.getByText(/retained for 7 years/u)).toBeVisible();
+  await expect(
+    page.getByText(/does not replace or change those pinned terms/u),
+  ).toBeVisible();
   await page
     .getByRole("textbox", { name: "Authority title" })
     .fill("Director of Infrastructure");
@@ -490,6 +500,9 @@ test("a resale partner sees its own merchant boundary and an empty draft", async
     page.getByRole("heading", { level: 1, name: "Create a partner quote" }),
   ).toBeVisible();
   const summary = page.getByRole("complementary", { name: "Quote summary" });
+  await expect(
+    page.getByRole("region", { name: /Resale|Two-tier distributor/u }),
+  ).toContainText("route is fixed when this quote is issued");
   // The merchant of record is resolved from the session, so the fabricated
   // party must appear nowhere and the acting partner's own name must.
   await expect(summary.getByText("Meridian Channel Group")).toBeHidden();

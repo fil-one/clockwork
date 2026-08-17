@@ -670,8 +670,8 @@ export function OrderAcceptance({
                     <input
                       aria-describedby={
                         validationError?.id === "po-number"
-                          ? "order-validation"
-                          : undefined
+                          ? "po-terms-note order-validation"
+                          : "po-terms-note"
                       }
                       aria-invalid={
                         validationError?.id === "po-number" || undefined
@@ -684,6 +684,19 @@ export function OrderAcceptance({
                       required
                       value={poNumber}
                     />
+                    <p className={styles.description} id="po-terms-note">
+                      {customerPartnerCopy.commercial.orderTermsHelp
+                        .replace("{quoteReference}", quote.reference)
+                        .replace("{quoteVersion}", quote.version)
+                        .replace(
+                          "{agreementTitle}",
+                          agreement?.title ?? "unrecorded governing agreement",
+                        )
+                        .replace(
+                          "{agreementVersion}",
+                          agreement?.version ?? "not recorded",
+                        )}
+                    </p>
                   </div>
                   <div className={styles.field}>
                     <label htmlFor="service-start">Service start</label>
@@ -796,6 +809,12 @@ export function OrderAcceptance({
                   </li>
                 ))}
               </ul>
+              <p className={styles.description}>
+                {customerPartnerCopy.commercial.orderArtifactRetention.replace(
+                  "{years}",
+                  String(ARTIFACT_RETENTION_YEARS),
+                )}
+              </p>
               <label className={styles.check} htmlFor="order-confirmation">
                 <input
                   aria-describedby={

@@ -220,6 +220,14 @@ export function quoteRouteLabel(route: QuoteRoute): string {
   return routeLabels[route];
 }
 
+export function partnerRouteConsequence(route: QuoteRoute): string {
+  if (route === "referral")
+    return "Fil One is merchant of record, contracts with and invoices the named end client, and pays commission under the persisted referral agreement.";
+  if (route === "distributor")
+    return "This route is available only because the account's saved transfer tier is distributor. The quote records the partner as merchant of record and Fil One prices it at that saved transfer tier.";
+  return "The partner is merchant of record to the named end client. Fil One prices and invoices the partner account at its saved transfer tier; the partner sets the resale price.";
+}
+
 /** Who invoices the end client, as the command's own route rule decides it. */
 export function merchantOfRecordName(
   context: Pick<PartnerQuoteContext, "route" | "partnerAccountName">,

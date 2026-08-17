@@ -19,6 +19,7 @@ import { t } from "@/src/i18n/en";
 import {
   emptyResaleQuoteDraft,
   merchantOfRecordName,
+  partnerRouteConsequence,
   partnerPricedRoute,
   quotableOffers,
   quoteReviewSummary,
@@ -276,6 +277,23 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           </li>
         ))}
       </ol>
+
+      <section
+        aria-labelledby="partner-route-consequence"
+        className={styles.routeConsequence}
+      >
+        <div>
+          <p className={styles.classifier}>Agreement-bound route</p>
+          <h2 id="partner-route-consequence">
+            {quoteRouteLabel(context.route)}
+          </h2>
+        </div>
+        <p>{partnerRouteConsequence(context.route)}</p>
+        <p>
+          The commercial route is fixed when this quote is issued; changing it
+          later means issuing a revised quote.
+        </p>
+      </section>
 
       <div className={styles.workflowGrid}>
         <form
