@@ -1,6 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { coreReportNames } from "@clockwork/contracts";
 
 import { surfaceWorkflows } from "./surface-catalog";
 import { WorkflowPanel } from "./workflow-panel";
@@ -31,17 +39,32 @@ function response(status = 200) {
       status === 200
         ? {
             record: {
-              id: "88888888-8888-4888-8888-888888888888",
-              resource: "quotes",
-              rowVersion: 1,
+              id: routeContext.accountId,
+              resource: "accounts",
+              rowVersion: 8,
               data: {},
+              createdAt: "2026-08-16T12:00:00.000Z",
+              updatedAt: "2026-08-16T12:00:00.000Z",
             },
             auditEventId: "audit-1",
-            outboxEventId: "outbox-1",
+            outboxMessageId: "outbox-1",
           }
         : { error: "conflict" },
     ),
     { status, headers: { "content-type": "application/json" } },
+  );
+}
+
+async function fillAccountUpdate(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText("Legal name"), "Northstar Ltd");
+  await user.type(
+    screen.getByLabelText("Invoice delivery email"),
+    "ap@northstar.test",
+  );
+  await user.type(screen.getByLabelText("Billing contact name"), "Maya Chen");
+  await user.type(
+    screen.getByLabelText("Billing contact email"),
+    "maya@northstar.test",
   );
 }
 
@@ -228,7 +251,9 @@ describe("generated-client commerce workflows", () => {
     render(<WorkflowPanel context={{}} workflow="reports" surface="reports" />);
 
     const report = screen.getByLabelText("Report");
-    expect(report.querySelectorAll("option")).toHaveLength(8);
+    expect(report.querySelectorAll("option")).toHaveLength(
+      coreReportNames.length,
+    );
     await user.selectOptions(report, "weekly_scorecard");
     await user.click(screen.getByRole("button", { name: "View report" }));
     expect(
@@ -369,19 +394,12 @@ describe("route-resolved record identifiers", () => {
     expect(rowVersion).not.toHaveAttribute("readonly");
     await user.clear(rowVersion);
     await user.type(rowVersion, "7");
-    await user.type(screen.getByLabelText("Legal name"), "Northstar Ltd");
-    await user.type(
-      screen.getByLabelText("Invoice delivery email"),
-      "ap@northstar.test",
-    );
-    await user.type(screen.getByLabelText("Billing contact name"), "Maya Chen");
-    await user.type(
-      screen.getByLabelText("Billing contact email"),
-      "maya@northstar.test",
-    );
+    await fillAccountUpdate(user);
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
     expect(
-      await screen.findByText(/server record is now the source of truth/i),
+      await screen.findByText(
+        `Account ${routeContext.accountId} updated at row version 8.`,
+      ),
     ).toBeVisible();
 
     const firstCall = fetchMock.mock.calls.at(0);
@@ -393,6 +411,114 @@ describe("route-resolved record identifiers", () => {
       accountId: routeContext.accountId,
       expectedVersion: 7,
     });
+  });
+
+  it("reuses one account command key when an uncertain attempt is retried", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response(503))
+      .mockResolvedValueOnce(response());
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="account"
+        surface="account"
+      />,
+    );
+
+    await fillAccountUpdate(user);
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(await screen.findByRole("alert")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    expect(await screen.findByText(/updated at row version 8/u)).toBeVisible();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const first = fetchMock.mock.calls[0]?.[0] as Request;
+    const second = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(first.headers.get("idempotency-key")).toBeTruthy();
+    expect(second.headers.get("idempotency-key")).toBe(
+      first.headers.get("idempotency-key"),
+    );
+  });
+
+  it("starts a new account command key after a successful command", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{ accountId: routeContext.accountId }}
+        workflow="account"
+        surface="account"
+      />,
+    );
+
+    await fillAccountUpdate(user);
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await screen.findByText(/updated at row version 8/u);
+    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    const first = fetchMock.mock.calls[0]?.[0] as Request;
+    const second = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(first.headers.get("idempotency-key")).toBeTruthy();
+    expect(second.headers.get("idempotency-key")).not.toBe(
+      first.headers.get("idempotency-key"),
+    );
+  });
+
+  it("disables a destructive confirmation while its submission is pending", async () => {
+    let resolveFetch: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <WorkflowPanel
+        context={{ caseId: routeContext.caseId }}
+        workflow="approval"
+        surface="approvals"
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Decision"), "rejected");
+    await user.type(
+      screen.getByLabelText("Decision reason"),
+      "Policy evidence conflicts with the request.",
+    );
+    await user.type(
+      screen.getByLabelText("Evidence document ID"),
+      "90000000-0000-4000-8000-000000000001",
+    );
+    const submit = screen.getByRole("button", { name: "Submit securely" });
+    await user.click(submit);
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", {
+      name: "Confirm and submit",
+    });
+    const form = submit.closest("form");
+    if (!form) throw new Error("Workflow form was not rendered.");
+
+    fireEvent.submit(form);
+    await waitFor(() => expect(confirm).toBeDisabled());
+
+    resolveFetch?.(
+      Response.json({
+        caseId: routeContext.caseId,
+        status: "rejected",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Submitting securely…")).toBeNull(),
+    );
   });
 
   /**

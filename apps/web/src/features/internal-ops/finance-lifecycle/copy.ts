@@ -94,6 +94,11 @@ export const lifecycleCopy = {
     catalogueHeading: "Supported exports",
     catalogueDescription:
       "The report registry in the commerce contract. Each one is generated on request; this page holds no cached result and states no freshness for one.",
+    labels: {
+      arr_mrr: "ARR & MRR",
+      billing_collections: "Billing & collections",
+      commission_settlement: "Commission settlement",
+    },
     noVarianceTitle: "No variance or reconciliation state is shown.",
     noVarianceBody:
       "The report_export projection carries the report name, its status and its document. It carries no freshness, variance or reconciliation state, so none is displayed.",
