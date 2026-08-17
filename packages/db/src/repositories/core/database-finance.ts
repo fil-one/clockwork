@@ -8017,26 +8017,49 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "Commission clawbacks cannot exceed persisted collected revenue",
         );
     }
-    const [row] = await transaction
-      .insert(commissionAccruals)
-      .values({
-        id: input.id,
-        partnerAccountId: accrual.partnerAccountId,
-        invoiceId: accrual.invoiceId,
-        sourceType: context.sourceType,
-        sourceId: context.sourceId,
-        adjustmentSourceId: context.adjustmentSourceId,
-        rateBps: context.rateBps,
-        holdbackBps: context.holdbackBps,
-        currency: accrual.payable.currency,
-        netCollectedRevenueMinor: BigInt(accrual.netCollectedRevenue.minor),
-        amountMinor: BigInt(accrual.grossCommission.minor),
-        holdbackMinor: BigInt(accrual.holdback.minor),
-        period: accrual.period,
-        status: "accrued",
-      })
-      .onConflictDoNothing()
-      .returning();
+    let row: typeof commissionAccruals.$inferSelect | undefined;
+    try {
+      [row] = await transaction
+        .insert(commissionAccruals)
+        .values({
+          id: input.id,
+          partnerAccountId: accrual.partnerAccountId,
+          invoiceId: accrual.invoiceId,
+          sourceType: context.sourceType,
+          sourceId: context.sourceId,
+          adjustmentSourceId: context.adjustmentSourceId,
+          rateBps: context.rateBps,
+          holdbackBps: context.holdbackBps,
+          currency: accrual.payable.currency,
+          netCollectedRevenueMinor: BigInt(accrual.netCollectedRevenue.minor),
+          amountMinor: BigInt(accrual.grossCommission.minor),
+          holdbackMinor: BigInt(accrual.holdback.minor),
+          period: accrual.period,
+          status: "accrued",
+        })
+        .onConflictDoNothing()
+        .returning();
+    } catch (error) {
+      const wrapped = error as {
+        code?: unknown;
+        message?: unknown;
+        cause?: unknown;
+      };
+      const databaseError =
+        wrapped.cause && typeof wrapped.cause === "object"
+          ? (wrapped.cause as { code?: unknown; message?: unknown })
+          : wrapped;
+      if (
+        databaseError.code === "23514" &&
+        databaseError.message ===
+          "commission clawbacks must not exceed the accrual they reverse"
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Commission clawbacks cannot exceed persisted collected revenue",
+        );
+      throw error;
+    }
     if (!row)
       throw new CoreServiceError(
         "DUPLICATE",

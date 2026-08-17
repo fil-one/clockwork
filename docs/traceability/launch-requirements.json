@@ -2383,14 +2383,21 @@
       "requirement": "Accrue referral commission on net collected revenue with clawbacks/holdback, issue quarterly statements, and pay from QBO.",
       "domain": ["commissions"],
       "api": ["commission/accounting commands"],
-      "database": ["commission records"],
+      "database": [
+        "commission records",
+        "supabase/migrations/001419_commission_clawback_ceiling.sql#validate_commission_source_truth"
+      ],
       "workflowProvider": ["settlement/QBO"],
       "portalDocument": ["commission statement"],
-      "tests": ["commission integration"],
+      "tests": [
+        "commission integration",
+        "supabase/tests/1419_commission_clawback_ceiling.test.sql",
+        "packages/db/src/repositories/core/commission-clawback-race.integration.test.ts"
+      ],
       "externalGates": ["EXT-TAX-01", "EXT-PROVIDER-01"],
       "backlog": [],
       "status": "external-gated",
-      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. Live normative behavior remains disabled only for exact registered inputs EXT-TAX-01, EXT-PROVIDER-01; the gate register supplies the absent input and activation test."
+      "rationale": "Repository controls, deterministic simulation, fail-closed enforcement, and acceptance tests are complete. The commission source-truth trigger serializes cumulative clawbacks at the payment accrual, counts signed credit-note voids as restored headroom, and refuses an over-ceiling write; pgTAP covers the sequential boundary and a two-connection integration test proves the former race fails through the real repository path with a readable domain error. Live normative behavior remains disabled only for exact registered inputs EXT-TAX-01, EXT-PROVIDER-01; the gate register supplies the absent input and activation test."
     },
     {
       "id": "SPEC-14-08",
