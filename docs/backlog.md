@@ -1430,10 +1430,12 @@ here, and reintroducing either fails a named test.
 
 ### Still open
 
-- **The commission clawback ceiling is an unlocked read-then-write**
-  (`database-finance.ts`), so concurrent clawbacks can exceed collected revenue.
-  Untouched by any merged work-stream; the commission lane in flight owns
-  adjacent code and this ceiling is not asserted fixed here.
+- **The commission clawback ceiling is an unlocked read-then-write
+  `[RESOLVED]`.** `001419_commission_clawback_ceiling.sql` serializes every
+  reversal at its original payment accrual and enforces the cumulative ceiling
+  in the database, net of signed credit-note voids. The two-connection race test
+  proves one of two concurrent over-ceiling reversals is refused and that the
+  refusal reaches callers as a readable `DatabaseCoreError`.
 - **Contractual renewal price protection is captured and validated but never
   enforced by any pricing path.** See the residue below: the enforcement was
   written, adopted, and then deliberately reverted.
