@@ -45,6 +45,32 @@ describe("three-stage quote builder", () => {
     expect(screen.getByLabelText("Customer account")).toHaveValue(account.name);
   });
 
+  it("shows the only route this customer-scoped command can submit", async () => {
+    const user = userEvent.setup();
+    render(<QuoteBuilder account={account} />);
+
+    await completeStageOne(user);
+
+    const route = screen.getByRole("radio", { name: /Direct/u });
+    expect(route).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(
+      screen.getByText(/customer workspace creates direct quotes only/u),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/route is fixed when this quote is issued/u),
+    ).toBeVisible();
+    for (const unavailable of [
+      "Partner referral",
+      "Partner resale",
+      "Distributor / two-tier",
+      "Marketplace",
+    ])
+      expect(
+        screen.queryByRole("radio", { name: unavailable }),
+      ).not.toBeInTheDocument();
+  });
+
   it("names the record a forward link opened the draft from", () => {
     render(
       <QuoteBuilder
@@ -85,7 +111,7 @@ describe("three-stage quote builder", () => {
     await completeStageOne(user);
     expect(
       screen.getByRole("heading", {
-        name: "Capacity, term, route, end client or partner, and expiry",
+        name: "Capacity, term, direct route, and expiry",
       }),
     ).toBeVisible();
     await completeStageTwo(user);

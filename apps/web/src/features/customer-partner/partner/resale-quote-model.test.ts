@@ -4,6 +4,7 @@ import {
   defaultQuoteExpiry,
   emptyResaleQuoteDraft,
   merchantOfRecordName,
+  partnerRouteConsequence,
   quotableOffers,
   quoteExpiryLeadDays,
   quoteReviewSummary,
@@ -201,6 +202,19 @@ describe("partner quote workflow validation", () => {
     );
     expect(errors).toEqual({});
     expect(merchantOfRecordName(referral)).toBe("Fil One");
+  });
+
+  it("describes resale and distributor routes from their enforced merchant and tier rules", () => {
+    expect(partnerRouteConsequence("resale")).toContain(
+      "partner is merchant of record",
+    );
+    expect(partnerRouteConsequence("resale")).toContain("saved transfer tier");
+    expect(partnerRouteConsequence("distributor")).toContain(
+      "saved transfer tier is distributor",
+    );
+    expect(partnerRouteConsequence("distributor")).toContain(
+      "partner as merchant of record",
+    );
   });
 
   it("creates a review summary stating the acting partner as merchant of record", () => {

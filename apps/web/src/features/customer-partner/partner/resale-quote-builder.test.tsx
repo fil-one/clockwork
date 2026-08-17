@@ -132,6 +132,32 @@ describe("what the partner quote builder states before anyone types", () => {
     expect(summary).not.toHaveTextContent(blueHarbor.partnerAccountId);
   });
 
+  it("renders the persisted route as a consequence, never an editable choice", () => {
+    const resale = render(<ResaleQuoteBuilder context={redwood} />);
+    const resaleBoundary = screen.getByRole("region", {
+      name: "Resale",
+    });
+    expect(resaleBoundary).toHaveTextContent(
+      "partner is merchant of record to the named end client",
+    );
+    expect(resaleBoundary).toHaveTextContent(
+      "route is fixed when this quote is issued",
+    );
+    expect(screen.queryByRole("radio")).toBeNull();
+    resale.unmount();
+
+    render(
+      <ResaleQuoteBuilder context={{ ...redwood, route: "distributor" }} />,
+    );
+    const distributorBoundary = screen.getByRole("region", {
+      name: "Two-tier distributor",
+    });
+    expect(distributorBoundary).toHaveTextContent(
+      "saved transfer tier is distributor",
+    );
+    expect(screen.queryByRole("radio")).toBeNull();
+  });
+
   it("shows one partner nothing belonging to the other", async () => {
     const user = userEvent.setup();
     // The two selectors belong to different stages, so each is read where it

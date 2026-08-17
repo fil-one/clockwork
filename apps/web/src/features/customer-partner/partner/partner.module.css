@@ -244,6 +244,25 @@
 .pageHeader > :first-child {
   max-width: 50rem;
 }
+
+.routeConsequence {
+  border-block: 1px solid var(--web-line);
+  display: grid;
+  gap: 0.75rem 1.5rem;
+  grid-template-columns: minmax(12rem, 0.55fr) repeat(2, minmax(0, 1fr));
+  padding-block: 1rem;
+}
+
+.routeConsequence h2,
+.routeConsequence p {
+  margin: 0;
+}
+
+.routeConsequence > p {
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+  line-height: 1.5;
+}
 .pageHeader h1 {
   margin: 0;
   max-width: 32ch;
@@ -830,6 +849,9 @@ th[aria-sort="descending"] .sortButton::after {
   .pageHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .routeConsequence {
+    grid-template-columns: 1fr;
   }
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));

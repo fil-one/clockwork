@@ -19,9 +19,6 @@ export interface QuoteDraft {
   region: string;
   capacity: string;
   termMonths: string;
-  route: string;
-  endClient: string;
-  partner: string;
   expiresAt: string;
 }
 
@@ -41,25 +38,20 @@ export const quoteSelectorOptions = {
       description: "FIL-REPLICA-CAPACITY · USD 2026.3",
     },
   ],
-  endClients: [
-    {
-      id: "33333333-3333-4333-8333-333333333333",
-      label: "Halcyon Research Cooperative",
-      description: "End client · United States",
-    },
-  ],
-  partners: [
-    {
-      id: "22222222-2222-4222-8222-222222222222",
-      label: "Meridian Channel Group",
-      description: "Authorized reseller",
-    },
-  ],
 } as const satisfies Record<string, readonly SelectorOption[]>;
 
 /**
+ * This intentionally supersedes the proposed five-route customer control. The
+ * customer quote path can satisfy the direct-route boundary; partner resale and
+ * distributor quotes derive their route from a persisted agreement, referral
+ * has no quote to build, and marketplace purchasing has its own provider-backed
+ * surface. Offering those routes here composed requests the server must refuse.
+ */
+export const customerQuoteRoute = "direct" as const;
+
+/**
  * A draft carries no commercial facts of its own. Only the account, which the
- * session already fixes, and the two select defaults are seeded; every priced
+ * session already fixes, and the region default is seeded; every priced
  * value is entered against the current price book.
  */
 export function emptyQuoteDraft(accountName: string): QuoteDraft {
@@ -69,9 +61,6 @@ export function emptyQuoteDraft(accountName: string): QuoteDraft {
     region: "us-east",
     capacity: "",
     termMonths: "",
-    route: "direct",
-    endClient: "",
-    partner: "",
     expiresAt: "",
   };
 }
@@ -108,17 +97,6 @@ export function validateQuoteStage(
     const term = Number(draft.termMonths);
     if (!Number.isInteger(term) || term < 1 || term > 60)
       errors.termMonths = "Enter a term between 1 and 60 months.";
-    if (!draft.route) errors.route = "Choose a commercial route.";
-    if (
-      draft.route !== "direct" &&
-      !resolveSelectorId(draft.endClient, quoteSelectorOptions.endClients)
-    )
-      errors.endClient = "Choose the end client for this routed quote.";
-    if (
-      ["resale", "referral", "distributor"].includes(draft.route) &&
-      !resolveSelectorId(draft.partner, quoteSelectorOptions.partners)
-    )
-      errors.partner = "Choose the partner responsible for this route.";
     const expiry = new Date(draft.expiresAt);
     if (!draft.expiresAt || Number.isNaN(expiry.valueOf()))
       errors.expiresAt = "Enter the date and time when this quote expires.";
@@ -133,9 +111,6 @@ export function firstQuoteError(errors: QuoteErrors): QuoteField | undefined {
     "region",
     "capacity",
     "termMonths",
-    "route",
-    "endClient",
-    "partner",
     "expiresAt",
   ];
   return order.find((field) => Boolean(errors[field]));
@@ -150,22 +125,12 @@ export function quotePayload(
     quoteSelectorOptions.offers,
   );
   const accountId = resolveSelectorId(draft.account, accounts);
-  const endClientAccountId = resolveSelectorId(
-    draft.endClient,
-    quoteSelectorOptions.endClients,
-  );
-  const partnerAccountId = resolveSelectorId(
-    draft.partner,
-    quoteSelectorOptions.partners,
-  );
   return {
     accountId,
     payload: {
       priceBookId,
       seriesId: uuidV7(),
-      route: draft.route,
-      ...(endClientAccountId ? { endClientAccountId } : {}),
-      ...(partnerAccountId ? { partnerAccountId } : {}),
+      route: customerQuoteRoute,
       lines: [
         {
           lineId: uuidV7(),

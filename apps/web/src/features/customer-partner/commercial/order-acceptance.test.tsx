@@ -91,6 +91,19 @@ describe("order acceptance", () => {
     expect(screen.getByLabelText("Authority title")).toHaveValue("");
   });
 
+  it("states that the purchase order cannot replace the pinned quote and agreement terms", () => {
+    renderSurface();
+
+    const purchaseOrder = screen.getByLabelText("Purchase order");
+    expect(purchaseOrder).toHaveAccessibleDescription(
+      /accepted quote Q-2026-0165-v2 version 2 and Cloud Service Agreement version 3.2/u,
+    );
+    expect(purchaseOrder).toHaveAccessibleDescription(
+      /does not replace or change those pinned terms/u,
+    );
+    expect(screen.getByText(/retained for 7 years/u)).toBeVisible();
+  });
+
   it("announces the first missing acceptance input and moves focus to it", async () => {
     const user = userEvent.setup();
     renderSurface();
@@ -317,6 +330,20 @@ describe("order acceptance two-pass bridge", () => {
     expect(commandCall(0).command.payload).not.toHaveProperty(
       "orderFormDocumentId",
     );
+  });
+
+  it("uses the same seven-year retention rule the ceremony states", async () => {
+    renderSurface();
+    fillAcceptanceInputs();
+
+    await submitFirstPass();
+
+    const payload = commandCall(0).command.payload;
+    const acceptedAt = new Date(String(payload.acceptedAt));
+    const retainUntil = new Date(String(payload.retainUntil));
+    expect(retainUntil.getUTCFullYear()).toBe(acceptedAt.getUTCFullYear() + 7);
+    expect(retainUntil.getUTCMonth()).toBe(acceptedAt.getUTCMonth());
+    expect(retainUntil.getUTCDate()).toBe(acceptedAt.getUTCDate());
   });
 
   /**

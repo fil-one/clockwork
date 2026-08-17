@@ -633,6 +633,56 @@ th[aria-sort="descending"] .sortLink::after {
   grid-column: 1 / -1;
 }
 
+.routeChoices {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.routeChoices legend {
+  color: var(--color-text-muted);
+  font-size: var(--cw-text-sm);
+  font-weight: 700;
+  padding: 0;
+}
+
+.routeChoice {
+  align-items: start;
+  border-block: 1px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-block: 12px;
+}
+
+.routeChoice input {
+  margin-top: 3px;
+  min-height: auto;
+  width: auto;
+}
+
+.routeChoice span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.routeChoice span span,
+.routeRule {
+  color: var(--color-text-muted);
+  font-size: var(--cw-text-sm);
+  line-height: 1.5;
+}
+
+.routeRule {
+  border-top: 1px solid var(--color-border);
+  margin: 0;
+  padding-top: 10px;
+}
+
 .fieldError {
   color: var(--web-danger);
   font-size: var(--cw-text-sm);

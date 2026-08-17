@@ -109,7 +109,7 @@ export const customerPartnerCopy = {
   commercial: {
     quoteStages: [
       "Offer and region",
-      "Capacity, term, route, end client or partner, and expiry",
+      "Capacity, term, direct route, and expiry",
       "Review and issue",
     ],
     quoteSummary: "Quote summary",
@@ -120,6 +120,10 @@ export const customerPartnerCopy = {
     orderReview: "Review resulting commitment",
     orderConfirmation:
       "I reviewed the accepted quote, governing agreement, purchase order, service start, and resulting commitment.",
+    orderTermsHelp:
+      "Order terms come from accepted quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
+    orderArtifactRetention:
+      "The rendered order form and its acceptance evidence are retained for {years} years from the recorded acceptance instant.",
     estimatedSpend: "Estimated spend",
     invoiceTruth: "Invoiced amount",
     paymentTruth: "Payment status",

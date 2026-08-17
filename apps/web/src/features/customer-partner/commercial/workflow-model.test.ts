@@ -26,9 +26,6 @@ const validDraft: QuoteDraft = {
   region: "us-east",
   capacity: "120",
   termMonths: "12",
-  route: "direct",
-  endClient: "",
-  partner: "",
   // A datetime-local field carries no offset, so 17:00 means 17:00 wherever the
   // seller is. The expected instant is built from the same local parts rather
   // than pinned to one machine's offset.
@@ -39,7 +36,7 @@ describe("quote workflow model", () => {
   it("exposes exactly three ordered creation stages", () => {
     expect(quoteStageLabels).toEqual([
       "Offer and region",
-      "Capacity, term, route, end client or partner, and expiry",
+      "Capacity, term, direct route, and expiry",
       "Review and issue",
     ]);
   });
@@ -84,20 +81,7 @@ describe("quote workflow model", () => {
     expect(firstQuoteError(errors)).toBe("capacity");
   });
 
-  it("requires named commercial parties for a resale route", () => {
-    const errors = validateQuoteStage(
-      2,
-      {
-        ...validDraft,
-        route: "resale",
-      },
-      accounts,
-    );
-    expect(errors.endClient).toBeTruthy();
-    expect(errors.partner).toBeTruthy();
-  });
-
-  it("submits IDs and the established quote payload shape", () => {
+  it("submits a direct-only customer payload with no partner fixture identities", () => {
     const result = quotePayload(validDraft, accounts);
     expect(result.accountId).toBe("10000000-0000-4000-8000-000000000001");
     expect(result.payload).toMatchObject({
@@ -113,6 +97,9 @@ describe("quote workflow model", () => {
         },
       ],
     });
+    expect(result.payload).not.toHaveProperty("endClientAccountId");
+    expect(result.payload).not.toHaveProperty("partnerAccountId");
+    expect(result.payload).not.toHaveProperty("marketplaceProvider");
   });
 
   it("exposes actions valid for each server quote status only", () => {
