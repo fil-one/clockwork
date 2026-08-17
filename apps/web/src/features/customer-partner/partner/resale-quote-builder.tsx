@@ -31,6 +31,7 @@ import {
   type QuoteValidation,
   type ResaleQuoteDraft,
 } from "./resale-quote-model";
+import { attributionStatement } from "./partner-rules";
 import styles from "./partner.module.css";
 
 export type MissingQuoteInput =
@@ -560,6 +561,10 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             <li>
               <strong>{customerPartnerCopy.partner.merchantOfRecord}:</strong>{" "}
               {merchantOfRecordName(context)}
+            </li>
+            <li>
+              <strong>Route attribution:</strong>{" "}
+              {attributionStatement(context.route, context.partnerAccountName)}
             </li>
           </ul>
           <details className={styles.technical}>

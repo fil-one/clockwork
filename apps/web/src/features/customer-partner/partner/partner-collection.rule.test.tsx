@@ -46,4 +46,29 @@ describe("partner collection truth copy", () => {
       within(table).getByText("$18,420 accrued").closest("td"),
     ).toHaveClass("cw-table__numeric");
   });
+
+  it("annotates registration credit from status and names the unavailable write boundary", () => {
+    render(
+      <PartnerCollection
+        config={partnerSurfaces.registrations}
+        formatting={formatting}
+        freshness={fresh}
+        partnerName="Aurora Systems"
+        roles={["partner_admin"]}
+        surface="registrations"
+      />,
+    );
+
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("Attribution: sourced")).toBeVisible();
+    expect(
+      within(table).getByText("Attribution: decision pending"),
+    ).toBeVisible();
+    expect(
+      within(table).getByText("Attribution: no sourced credit recorded"),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/influenced-credit and dispute decisions/),
+    ).toHaveTextContent("cannot be recorded here");
+  });
 });

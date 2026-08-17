@@ -34,7 +34,7 @@ import {
   type PartnerQueryKey,
   type PartnerSort,
 } from "./partner-query";
-import { roleCanUseSurface } from "./partner-rules";
+import { registrationCreditLabel, roleCanUseSurface } from "./partner-rules";
 import styles from "./partner.module.css";
 
 const copy = customerPartnerCopy.common;
@@ -89,11 +89,13 @@ const sortableColumns: Readonly<Record<number, SortableColumn<PartnerSort>>> = {
 function RecordsTable({
   config,
   records,
+  surface,
   sort,
   onSort,
 }: {
   config: PartnerSurfaceConfig;
   records: readonly PartnerRecord[];
+  surface: PartnerSurfaceKey;
   sort: PartnerSort;
   onSort: (next: PartnerSort) => void;
 }) {
@@ -143,13 +145,26 @@ function RecordsTable({
           <span className={styles.meta}>{record.owner}</span>
         </>,
         <strong>{record.value}</strong>,
-        record.secondary,
+        <>
+          {record.secondary}
+          {surface === "registrations" ? (
+            <span className={styles.meta}>
+              {registrationCreditLabel(record.status)}
+            </span>
+          ) : null}
+        </>,
       ])}
     />
   );
 }
 
-function RecordCards({ records }: { records: readonly PartnerRecord[] }) {
+function RecordCards({
+  records,
+  surface,
+}: {
+  records: readonly PartnerRecord[];
+  surface: PartnerSurfaceKey;
+}) {
   return (
     <div className={styles.mobileCards}>
       {records.map((record) => (
@@ -170,6 +185,11 @@ function RecordCards({ records }: { records: readonly PartnerRecord[] }) {
             <div>
               <span>Next milestone</span>
               <strong>{record.secondary}</strong>
+              {surface === "registrations" ? (
+                <span className={styles.meta}>
+                  {registrationCreditLabel(record.status)}
+                </span>
+              ) : null}
             </div>
             <div>
               <span>Owner</span>
@@ -569,9 +589,10 @@ export function PartnerCollection({
               config={config}
               onSort={(next) => setQuery("sort", next)}
               records={page.records}
+              surface={surface}
               sort={state.sort}
             />
-            <RecordCards records={page.records} />
+            <RecordCards records={page.records} surface={surface} />
           </>
         )}
         {canUse && !noMatch ? (

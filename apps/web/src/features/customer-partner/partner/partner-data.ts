@@ -380,7 +380,7 @@ export const partnerSurfaces: Readonly<
     columns: ["Opportunity", "Commercial value", "Decision"],
     records: registrations,
     roles: both,
-    gate: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision.",
+    gate: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision. This page derives sourced credit from an accepted registration, but influenced-credit and dispute decisions cannot be recorded here.",
   },
   disputes: {
     eyebrow: "Partner desk · Evidence and resolution",

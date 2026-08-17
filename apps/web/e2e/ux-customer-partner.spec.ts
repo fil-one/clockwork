@@ -510,9 +510,31 @@ test("a resale partner sees its own merchant boundary and an empty draft", async
   // party must appear nowhere and the acting partner's own name must.
   await expect(summary.getByText("Meridian Channel Group")).toBeHidden();
   await expect(summary.getByText(/Merchant of record:/)).toBeVisible();
+  await expect(summary.getByText(/Route attribution:/)).toContainText(
+    "is the sourced partner because this route binds an approved deal registration",
+  );
+  await expect(
+    page.locator('input[name="attribution"], input[name="influenceBps"]'),
+  ).toHaveCount(0);
   // The draft starts empty: nothing is chosen on the partner's behalf.
   await expect(summary.getByText("Offer: Not selected")).toBeVisible();
   await expect(summary.getByText("End client: Not selected")).toBeVisible();
+});
+
+test("registration credit is status-derived and cannot be manually tagged", async ({
+  page,
+}) => {
+  await usePersona(page, "partner_seller");
+  await page.goto("/partner/registrations");
+  await expect(
+    page.getByText("Attribution: no sourced credit recorded").first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/influenced-credit and dispute decisions/),
+  ).toContainText("cannot be recorded here");
+  await expect(
+    page.locator('input[name="attribution"], input[name="influenceBps"]'),
+  ).toHaveCount(0);
 });
 
 test("partner admin reviews financial boundaries before any renewal request", async ({

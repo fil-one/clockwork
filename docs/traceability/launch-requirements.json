@@ -2310,12 +2310,22 @@
       "api": ["deal-registration commands"],
       "database": ["registrations", "exclusions", "disputes"],
       "workflowProvider": ["exception queue"],
-      "portalDocument": ["partner registration/dispute"],
-      "tests": ["partner tests"],
+      "portalDocument": [
+        "partner registration/dispute",
+        "apps/web/src/features/customer-partner/partner/partner-rules.ts#registrationCreditLabel",
+        "apps/web/src/features/customer-partner/partner/partner-collection.tsx#PartnerCollection"
+      ],
+      "tests": [
+        "partner tests",
+        "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+        "apps/web/src/features/customer-partner/partner/partner-collection.rule.test.tsx",
+        "apps/web/src/features/customer-partner/partner/attribution.wiring.test.ts",
+        "apps/web/e2e/ux-customer-partner.spec.ts"
+      ],
       "externalGates": ["EXT-COMMERCIAL-01", "EXT-APPROVERS-01"],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Deal-registration clocks, exclusions, credit, expiry, extensions, dispute ownership, and tie-break routing are encoded and tested. EXT-COMMERCIAL-01 and EXT-APPROVERS-01 remain only for approved live policy values and enrollments."
+      "rationale": "Deal-registration clocks, exclusions, credit, expiry, extensions, dispute ownership, and tie-break routing are encoded and tested. The partner registration ledger now labels sourced credit only from accepted status and names influenced-credit and dispute writes as unavailable there; it does not fabricate an attribution row. EXT-COMMERCIAL-01 and EXT-APPROVERS-01 remain only for approved live policy values and enrollments."
     },
     {
       "id": "SPEC-14-03",
@@ -2325,12 +2335,22 @@
       "api": ["order commands"],
       "database": ["order sourcing", "attribution records"],
       "workflowProvider": [],
-      "portalDocument": ["partner reports"],
-      "tests": ["chain tests"],
+      "portalDocument": [
+        "partner reports",
+        "apps/web/src/features/customer-partner/partner/partner-rules.ts#attributionStatement",
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.tsx#ResaleQuoteBuilder"
+      ],
+      "tests": [
+        "chain tests",
+        "apps/web/src/features/customer-partner/partner/partner-rules.test.ts",
+        "apps/web/src/features/customer-partner/partner/resale-quote-builder.test.tsx",
+        "apps/web/src/features/customer-partner/partner/attribution.wiring.test.ts",
+        "apps/web/e2e/ux-customer-partner.spec.ts"
+      ],
       "externalGates": [],
       "backlog": [],
       "status": "implemented",
-      "rationale": "Repository implementation and direct acceptance tests are complete; no external input remains for this repository requirement."
+      "rationale": "Repository implementation and direct acceptance tests are complete. The partner resale builder now explains sourced attribution from its persisted agreement-derived route and the domain merchant-of-record rule without exposing a manual tagging control; no external input remains for this repository requirement."
     },
     {
       "id": "SPEC-14-04",

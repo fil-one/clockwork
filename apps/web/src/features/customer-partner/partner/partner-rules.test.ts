@@ -1,12 +1,68 @@
 import { describe, expect, it } from "vitest";
 
+import { merchantOfRecord } from "@clockwork/domain/core";
+
 import {
+  attributionStatement,
   currentPartnerRole,
   partnerRoleSummary,
+  registrationCreditLabel,
   renewalReviewSummary,
   roleCanUseSurface,
   validPartnerQuoteActions,
+  type AttributionRoute,
 } from "./partner-rules";
+
+const attributionCases: readonly [
+  AttributionRoute,
+  string,
+  "Fil One" | "Aurora Systems" | "The marketplace",
+][] = [
+  ["direct", "No partner attribution applies", "Fil One"],
+  ["referral", "Aurora Systems is the sourced partner", "Fil One"],
+  ["resale", "Aurora Systems is the sourced partner", "Aurora Systems"],
+  ["distributor", "Aurora Systems is the sourced partner", "Aurora Systems"],
+  ["marketplace", "No partner attribution applies", "The marketplace"],
+];
+
+describe("structural partner attribution", () => {
+  it.each(attributionCases)(
+    "derives the %s statement and merchant from enforced route truth",
+    (route, credit, merchantName) => {
+      const statement = attributionStatement(route, "Aurora Systems");
+      expect(statement).toContain(credit);
+      expect(statement).toContain(`Merchant of record: ${merchantName}`);
+      expect(merchantOfRecord(route)).toBe(
+        merchantName === "Fil One"
+          ? "fil_one"
+          : merchantName === "Aurora Systems"
+            ? "partner"
+            : "marketplace",
+      );
+    },
+  );
+
+  it("claims sourced credit only for the accepted projection of an approved registration", () => {
+    expect(registrationCreditLabel("accepted")).toBe("Attribution: sourced");
+    expect(registrationCreditLabel("pending")).toBe(
+      "Attribution: decision pending",
+    );
+    for (const status of [
+      "active",
+      "attention",
+      "draft",
+      "open",
+      "canceled",
+      "paid",
+      "blocked",
+      "complete",
+    ] as const) {
+      expect(registrationCreditLabel(status)).toBe(
+        "Attribution: no sourced credit recorded",
+      );
+    }
+  });
+});
 
 describe("partner role behavior", () => {
   it("prefers partner_admin when multiple partner roles exist", () => {
