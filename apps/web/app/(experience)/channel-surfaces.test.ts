@@ -228,6 +228,7 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/account/notifications",
       "/account/offboarding",
       "/agreements/execute",
+      "/buy",
       "/orders/accept",
       "/quotes/new",
       "/states",

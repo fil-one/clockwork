@@ -1639,10 +1639,13 @@ silently deleted, because the closure is part of the record.
   and no portal control captures `influence_bps`, opens a dispute, or decides
   one. Those writes need the dispute-owner workflow and its evidence boundary,
   rather than a manual tag added to the quote or registration page.
-- **The customer quote builder still ships fixture selector UUIDs in the client
-  bundle.** The partner builder's P0-62 fix did not cover it, and P0-50's
-  no-fixture-UUID bundle proof was scoped to the ten workflow mounts, not this
-  surface.
+- **The customer quote catalogue boundary is now split by source.** In
+  authoritative mode, `/quotes/new` and `/buy` receive the selected account's
+  complete currency-compatible active rate-card set from the server; the live
+  integration drives `quotes:create` with every returned book/SKU/region tuple.
+  Fixture UUIDs remain only in the server-only explicit-demo catalogue consumed
+  by the command echo simulator, whose UI says that no quote is priced, saved,
+  or issued. Missing production database composition never falls back to it.
 - **`main` carries no branch protection**, so no status check gates a merge even
   once Actions can run. Requiring it needs organization administration this
   account does not hold; it is a named input of `EXT-ACC-01`. See P0-48.

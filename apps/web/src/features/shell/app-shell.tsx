@@ -40,6 +40,7 @@ import {
   Search,
   ScrollText,
   Settings,
+  ShoppingCart,
   ShieldCheck,
   TriangleAlert,
   SlidersHorizontal,
@@ -76,6 +77,7 @@ const audienceHome: Readonly<Record<ExperienceAudience, Route>> = {
 
 const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/dashboard": <LayoutDashboard size={19} strokeWidth={1.8} />,
+  "/buy": <ShoppingCart size={19} strokeWidth={1.8} />,
   "/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/quotes": <ScrollText size={19} strokeWidth={1.8} />,
   "/orders": <PackageCheck size={19} strokeWidth={1.8} />,
@@ -141,7 +143,7 @@ const navigationSections: Readonly<
     {
       id: "pricing",
       label: "nav.group.pricing",
-      hrefs: ["/quotes", "/pocs", "/marketplace"],
+      hrefs: ["/buy", "/quotes", "/pocs", "/marketplace"],
     },
     {
       id: "legal",

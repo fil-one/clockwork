@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { QuoteBuilder } from "./quote-builder";
+import {
+  authoritativeQuoteOffer,
+  authoritativeQuoteOffers,
+} from "./quote-offer.test-fixture";
 
 const sendCoreCommand = vi.fn<(input: unknown) => Promise<unknown>>();
 vi.mock("@/src/features/contracts/commerce-client", () => ({
@@ -23,7 +27,7 @@ function unloadWouldWarn(): boolean {
 async function enterAQuote(user: ReturnType<typeof userEvent.setup>) {
   await user.type(
     screen.getByLabelText("Offer"),
-    "Enterprise archive capacity",
+    authoritativeQuoteOffer.label,
   );
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.type(screen.getByLabelText("Committed capacity (TB)"), "120");
@@ -45,7 +49,13 @@ afterEach(() => sendCoreCommand.mockReset());
  */
 describe("quote builder unsaved-work protection", () => {
   it("guards neither reload nor cancel while the form holds only its defaults", () => {
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
 
     expect(unloadWouldWarn()).toBe(false);
     expect(
@@ -55,7 +65,13 @@ describe("quote builder unsaved-work protection", () => {
 
   it("guards a reload as soon as one field is filled in", async () => {
     const user = userEvent.setup();
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
 
     await user.type(screen.getByLabelText("Offer"), "Enterprise");
 
@@ -64,7 +80,13 @@ describe("quote builder unsaved-work protection", () => {
 
   it("asks before the header link throws two stages of entry away", async () => {
     const user = userEvent.setup();
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
     await enterAQuote(user);
 
     await user.click(screen.getByRole("button", { name: "Cancel and return" }));
@@ -80,7 +102,13 @@ describe("quote builder unsaved-work protection", () => {
   it("stops guarding once the server has the draft", async () => {
     const user = userEvent.setup();
     sendCoreCommand.mockResolvedValue({});
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
     await enterAQuote(user);
     expect(unloadWouldWarn()).toBe(true);
 
@@ -99,7 +127,13 @@ describe("quote builder unsaved-work protection", () => {
   it("keeps guarding when the server refused the draft", async () => {
     const user = userEvent.setup();
     sendCoreCommand.mockRejectedValue(new Error("Rate card is not activated"));
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
     await enterAQuote(user);
 
     await user.click(
@@ -114,7 +148,13 @@ describe("quote builder unsaved-work protection", () => {
   it("guards again when the reader edits after a successful create", async () => {
     const user = userEvent.setup();
     sendCoreCommand.mockResolvedValue({});
-    render(<QuoteBuilder account={account} />);
+    render(
+      <QuoteBuilder
+        account={account}
+        catalogueMode="authoritative"
+        offers={authoritativeQuoteOffers}
+      />,
+    );
     await enterAQuote(user);
     await user.click(
       screen.getByRole("button", { name: "Create priced draft" }),

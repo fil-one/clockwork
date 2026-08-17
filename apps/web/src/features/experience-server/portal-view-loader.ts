@@ -2,14 +2,25 @@ import "server-only";
 
 import type { Route } from "next";
 
-import { uuidV7 } from "@clockwork/contracts";
+import { hasPermission, uuidV7 } from "@clockwork/contracts";
 import {
+  findActiveCustomerQuoteOffers,
+  findCustomerQuoteCurrency,
   findPreparedOrderForm,
+  findPreparedQuoteArtifact,
   withAuthorizedTransaction,
+  withInternalTransaction,
 } from "@clockwork/db";
 
-import { getCommerceSession } from "@/src/auth/session";
-import { getOptionalRuntimeDatabase } from "@/src/db/service";
+import {
+  explicitDemoIdentityEnabled,
+  getCommerceSession,
+} from "@/src/auth/session";
+import {
+  getOptionalRuntimeDatabase,
+  getOptionalServiceDatabase,
+} from "@/src/db/service";
+import type { QuoteOfferOption } from "@/src/features/customer-partner/commercial/workflow-model";
 import {
   isOrderLifecycleStatus,
   type CommercialRecord,
@@ -17,6 +28,10 @@ import {
   type OrderLifecycleStatus,
 } from "@/src/features/customer-partner/commercial/model";
 import type { PreparedOrderFormLookup } from "@/src/features/customer-partner/commercial/prepared-order-form";
+import type {
+  BuyQuoteProjectionLookup,
+  PreparedQuoteArtifactLookup,
+} from "@/src/features/customer-partner/commercial/prepared-quote-artifact";
 import type { CustomerCollectionRecord } from "@/src/features/customer-partner/customer/collection-state";
 import type { CustomerCollectionKey } from "@/src/features/customer-partner/customer/customer-data";
 import type {
@@ -34,6 +49,7 @@ import {
 } from "./model";
 import { authorizationContext } from "./authorization";
 import { demoOrderAcceptance } from "./demo-order-acceptance";
+import { simulatedCustomerQuoteOffers } from "./demo-quote-offers";
 import {
   configuredProjectionSource,
   projectionInput,
@@ -172,6 +188,77 @@ function portalAccountId(
     session.accountIds[0] ??
     null
   );
+}
+
+export type CustomerQuoteOffersLookup =
+  | {
+      status: "available";
+      catalogueMode: "authoritative" | "simulated";
+      offers: readonly QuoteOfferOption[];
+    }
+  | { status: "unavailable" }
+  | { status: "forbidden" };
+
+/**
+ * Loads only rate cards the selected account can actually quote against.
+ * Account visibility and currency are read on the tenant pool; price-book
+ * metadata is read on the service pool only after that scoped fact exists.
+ * No price amount crosses this boundary.
+ */
+export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLookup> {
+  if (explicitDemoIdentityEnabled())
+    return {
+      status: "available",
+      catalogueMode: "simulated",
+      offers: simulatedCustomerQuoteOffers,
+    };
+  const session = await getCommerceSession();
+  const permitted = session.roles.some((role) =>
+    hasPermission(role, "quote:write"),
+  );
+  if (!permitted) return { status: "forbidden" };
+  const accountId = portalAccountId("customer", session);
+  const runtime = getOptionalRuntimeDatabase();
+  const service = getOptionalServiceDatabase();
+  const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
+  if (!accountId || !runtime || !service || !secret || secret.length < 32)
+    return { status: "unavailable" };
+  const currency = await withAuthorizedTransaction(
+    runtime,
+    authorizationContext(session, `quote-offer-account:${uuidV7()}`),
+    { secret },
+    (transaction) => findCustomerQuoteCurrency(transaction, { accountId }),
+  );
+  if (!currency) return { status: "forbidden" };
+  const rows = await withInternalTransaction(
+    service,
+    `quote-offers:${uuidV7()}`,
+    (transaction) =>
+      findActiveCustomerQuoteOffers(transaction, {
+        currency,
+        now: new Date(),
+      }),
+  );
+  const offers = rows.map((row) => ({
+    id: `${row.price_book_id}:${row.sku}:${row.region}`,
+    priceBookId: row.price_book_id,
+    sku: row.sku,
+    region: row.region,
+    currency: row.currency,
+    label: `${row.approved_claim} · ${row.sku} · ${row.region} · ${row.price_book_name} v${row.version}`,
+    description: `${row.currency} · active price-book version ${row.version}`,
+  }));
+  if (
+    new Set(offers.map((offer) => offer.id)).size !== offers.length ||
+    new Set(offers.map((offer) => offer.label.toLocaleLowerCase())).size !==
+      offers.length
+  )
+    throw new Error("Active quote catalogue contains ambiguous offers");
+  return {
+    status: "available",
+    catalogueMode: "authoritative",
+    offers,
+  };
 }
 
 export const PROJECTION_PAGE_SIZE = 100;
@@ -387,6 +474,89 @@ export async function loadPreparedOrderForm(
         artifactId: prepared.artifactId,
       }
     : { status: "pending" };
+}
+
+/** The stored direct-quote document between prepare and issue. */
+export async function loadPreparedQuoteArtifact(
+  quoteId: string,
+): Promise<PreparedQuoteArtifactLookup> {
+  if (process.env.CLOCKWORK_EXPERIENCE_ADAPTER?.trim() === "demo")
+    return { status: "unavailable" };
+  const database = getOptionalRuntimeDatabase();
+  const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
+  if (!database || !secret || secret.length < 32)
+    return { status: "unavailable" };
+  const session = await getCommerceSession();
+  const prepared = await withAuthorizedTransaction(
+    database,
+    authorizationContext(session, `prepared-quote-artifact:${uuidV7()}`),
+    { secret },
+    (transaction) => findPreparedQuoteArtifact(transaction, { quoteId }),
+  );
+  return prepared
+    ? {
+        status: "stored",
+        documentId: prepared.documentId,
+        artifactId: prepared.artifactId,
+      }
+    : { status: "pending" };
+}
+
+function optionalProjectionText(
+  data: Readonly<Record<string, unknown>>,
+  key: string,
+): string | undefined {
+  const value = data[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+/**
+ * Confirms the exact quote projection used for the order handoff. Looking up
+ * by `recordKey`, rather than reading the collection and falling back, makes a
+ * delayed materializer an honest pending state instead of a different quote.
+ */
+export async function loadBuyQuoteProjection(
+  quoteId: string,
+): Promise<BuyQuoteProjectionLookup> {
+  const session = await getCommerceSession();
+  let record: ProjectionRecord;
+  try {
+    record = await configuredProjectionSource().find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId: portalAccountId("customer", session),
+      recordKey: `quote-${quoteId}`,
+      now: new Date(),
+    });
+  } catch (error) {
+    if (isProjectionAbsent(error)) return { status: "pending" };
+    throw error;
+  }
+  if (record.aggregateId !== quoteId) return { status: "pending" };
+  const authoritative = record.data.authoritative;
+  if (
+    !authoritative ||
+    typeof authoritative !== "object" ||
+    Array.isArray(authoritative)
+  )
+    return { status: "pending" };
+  const facts = authoritative as Readonly<Record<string, unknown>>;
+  const currency = optionalProjectionText(facts, "currency");
+  const supportedCurrency =
+    currency === "USD" || currency === "EUR" || currency === "GBP"
+      ? currency
+      : undefined;
+  const totalMinor = optionalProjectionText(facts, "totalMinor");
+  const marginResult = optionalProjectionText(facts, "marginFloorResult");
+  return {
+    status: "found",
+    quoteStatus: optionalProjectionText(facts, "status") ?? "unknown",
+    rowVersion: record.version,
+    ...(totalMinor && /^-?\d+$/.test(totalMinor) ? { totalMinor } : {}),
+    ...(supportedCurrency ? { currency: supportedCurrency } : {}),
+    ...(marginResult ? { marginResult } : {}),
+  };
 }
 
 function commercialRecord(

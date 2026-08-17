@@ -16,6 +16,11 @@ export const standardCollectionParams = [
 export type StandardCollectionParam = (typeof standardCollectionParams)[number];
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
+export interface QuotePrefill {
+  capacity?: string;
+  termMonths?: string;
+}
+
 export interface CollectionState {
   q: string;
   status: string;
@@ -56,6 +61,26 @@ export function firstSearchParam(
   key: string,
 ): string | undefined {
   return first(input[key]).trim() || undefined;
+}
+
+/**
+ * The Buy handoff may seed only values the quote builder itself accepts. A bad
+ * or repeated query value is ignored rather than echoed into a money-bearing
+ * form as if the application had validated it.
+ */
+export function parseQuotePrefill(input: RawSearchParams): QuotePrefill {
+  const capacityInput = first(input.capacity).trim();
+  const capacity = Number(capacityInput);
+  const termInput = first(input.term).trim();
+  const term = Number(termInput);
+  return {
+    ...(capacityInput && Number.isFinite(capacity) && capacity >= 10
+      ? { capacity: String(capacity) }
+      : {}),
+    ...(termInput && Number.isInteger(term) && term >= 1 && term <= 60
+      ? { termMonths: String(term) }
+      : {}),
+  };
 }
 
 function positiveInt(value: string, fallback: number): number {

@@ -5,13 +5,17 @@ import {
   firstQuoteError,
   orderReviewSummary,
   quotePayload,
-  quoteSelectorOptions,
+  prefilledQuoteDraft,
   quoteStageLabels,
   resolveSelectorId,
   validQuoteActions,
   validateQuoteStage,
   type QuoteDraft,
 } from "./workflow-model";
+import {
+  authoritativeQuoteOffer,
+  authoritativeQuoteOffers,
+} from "./quote-offer.test-fixture";
 
 const accounts = [
   {
@@ -22,8 +26,8 @@ const accounts = [
 
 const validDraft: QuoteDraft = {
   account: "Northstar Archive Labs",
-  offer: "Enterprise archive capacity",
-  region: "us-east",
+  offer: authoritativeQuoteOffer.label,
+  region: "us-east-2",
   capacity: "120",
   termMonths: "12",
   // A datetime-local field carries no offset, so 17:00 means 17:00 wherever the
@@ -41,16 +45,28 @@ describe("quote workflow model", () => {
     ]);
   });
 
+  it("prefills capacity and term without changing the customer route", () => {
+    expect(
+      prefilledQuoteDraft("Northstar Archive Labs", {
+        capacity: "100",
+        termMonths: "12",
+      }),
+    ).toEqual({
+      ...validDraft,
+      offer: "",
+      region: "",
+      capacity: "100",
+      expiresAt: "",
+    });
+  });
+
   it("resolves human-readable searchable selector values to existing IDs", () => {
     expect(resolveSelectorId("Northstar Archive Labs", accounts)).toBe(
       "10000000-0000-4000-8000-000000000001",
     );
     expect(
-      resolveSelectorId(
-        "44444444-4444-4444-8444-444444444444",
-        quoteSelectorOptions.offers,
-      ),
-    ).toBe("44444444-4444-4444-8444-444444444444");
+      resolveSelectorId(authoritativeQuoteOffer.id, authoritativeQuoteOffers),
+    ).toBe(authoritativeQuoteOffer.id);
     expect(resolveSelectorId("Unknown account", accounts)).toBeUndefined();
   });
 
@@ -74,6 +90,7 @@ describe("quote workflow model", () => {
         expiresAt: "",
       },
       accounts,
+      authoritativeQuoteOffers,
     );
     expect(errors.capacity).toContain("at least 10 TB");
     expect(errors.termMonths).toContain("between 1 and 60");
@@ -82,16 +99,16 @@ describe("quote workflow model", () => {
   });
 
   it("submits a direct-only customer payload with no partner fixture identities", () => {
-    const result = quotePayload(validDraft, accounts);
+    const result = quotePayload(validDraft, accounts, authoritativeQuoteOffers);
     expect(result.accountId).toBe("10000000-0000-4000-8000-000000000001");
     expect(result.payload).toMatchObject({
-      priceBookId: "44444444-4444-4444-8444-444444444444",
+      priceBookId: authoritativeQuoteOffer.priceBookId,
       route: "direct",
       expiresAt: new Date(2026, 7, 31, 17, 0).toISOString(),
       lines: [
         {
-          sku: "FIL-ARCHIVE-CAPACITY",
-          region: "us-east",
+          sku: authoritativeQuoteOffer.sku,
+          region: authoritativeQuoteOffer.region,
           quantity: "120",
           termMonths: 12,
         },
@@ -100,6 +117,28 @@ describe("quote workflow model", () => {
     expect(result.payload).not.toHaveProperty("endClientAccountId");
     expect(result.payload).not.toHaveProperty("partnerAccountId");
     expect(result.payload).not.toHaveProperty("marketplaceProvider");
+  });
+
+  it("maps same-claim same-region labels to the chosen book and SKU", () => {
+    const otherOffer = {
+      ...authoritativeQuoteOffer,
+      id: "60000000-0000-4000-8000-000000000009:LOCKED-COMPLIANCE-TB:us-east-2",
+      priceBookId: "60000000-0000-4000-8000-000000000009",
+      sku: "LOCKED-COMPLIANCE-TB",
+      label:
+        "Fictional immutable storage capacity · LOCKED-COMPLIANCE-TB · us-east-2 · Compliance USD 2026 v2",
+    } as const;
+    const result = quotePayload(
+      { ...validDraft, offer: otherOffer.label },
+      accounts,
+      [authoritativeQuoteOffer, otherOffer],
+    );
+
+    expect(result.payload.priceBookId).toBe(otherOffer.priceBookId);
+    expect(result.payload.lines[0]).toMatchObject({
+      sku: otherOffer.sku,
+      region: otherOffer.region,
+    });
   });
 
   it("exposes actions valid for each server quote status only", () => {

@@ -96,6 +96,7 @@ export const en = {
     "Switch organizations or ask an owner to update your commerce role.",
   "session.permission.action": "Return to dashboard",
   "nav.dashboard": "Overview",
+  "nav.buy": "Buy",
   "nav.agreements": "Agreements",
   "nav.quotes": "Quotes",
   "nav.orders": "Orders",
