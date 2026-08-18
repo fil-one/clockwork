@@ -6,6 +6,8 @@ import type { DealRegistrationContext } from "./deal-registration-model";
 
 const sendCoreCommand =
   vi.fn<(input: unknown, options?: unknown) => Promise<unknown>>();
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/src/features/contracts/commerce-client", () => ({
   sendCoreCommand: (input: unknown, options?: unknown) =>
     sendCoreCommand(input, options),
@@ -23,6 +25,7 @@ const context: DealRegistrationContext = {
 };
 
 beforeEach(() => {
+  refresh.mockReset();
   sendCoreCommand.mockReset();
   sendCoreCommand.mockResolvedValue({});
 });
@@ -73,6 +76,7 @@ describe("deal registration", () => {
       "role",
       "status",
     );
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   /**

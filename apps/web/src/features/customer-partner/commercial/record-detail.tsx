@@ -30,23 +30,47 @@ function detailLabel(record: CommercialRecord) {
 }
 
 function commercialSummary(record: CommercialRecord) {
-  return [
+  const summary = [
     { label: "Record", value: record.title },
     { label: "Authoritative status", value: record.statusLabel },
     { label: record.valueLabel, value: record.value },
     { label: "Owner", value: record.owner },
     { label: "Term / timing", value: record.term },
-    { label: "Projection version", value: record.version ?? "Unavailable" },
+  ];
+  if (!record.version) return summary;
+  return [
+    ...summary,
+    {
+      label:
+        record.kind === "agreements"
+          ? "Agreement version"
+          : record.kind === "quotes"
+            ? "Quote revision"
+            : "Version",
+      value: record.version,
+    },
   ];
 }
 
-function artifactChain(record: CommercialRecord) {
-  return [
-    ["Persisted record", record.id],
-    ["Projection version", record.version ?? "Unavailable"],
+function artifactChain(record: CommercialRecord, recordKey: string) {
+  const chain = [
+    ["Customer reference", record.reference ?? recordKey],
     ["Source update", record.dateLabel],
     ["Next valid task", record.nextAction],
   ];
+  return record.version
+    ? [
+        [
+          record.kind === "agreements"
+            ? "Agreement version"
+            : record.kind === "quotes"
+              ? "Quote revision"
+              : "Version",
+          record.version,
+        ],
+        ...chain,
+      ]
+    : chain;
 }
 
 /**
@@ -106,10 +130,12 @@ function nextStep(
       label: "Request an amendment",
     };
   if (record.kind === "agreements")
-    return {
-      href: `/agreements/execute?agreement=${reference}`,
-      label: "Execute a new agreement",
-    };
+    return record.allowedActions?.includes("execute_agreement")
+      ? {
+          href: `/agreements/execute?agreement=${reference}`,
+          label: "Execute a new agreement",
+        }
+      : null;
   if (record.kind === "services")
     return {
       href: `/account/offboarding?service=${reference}`,
@@ -193,8 +219,10 @@ function UnreadableRecord() {
  */
 function payableInvoice(
   record: CommercialRecord,
+  recordKey: string,
   accountId: string | undefined,
   canMutate: boolean,
+  guidedDemo: boolean,
 ): ReactNode {
   if (record.kind !== "billing" || record.status !== "open") return null;
   if (!canMutate)
@@ -222,7 +250,9 @@ function payableInvoice(
       accountId={accountId}
       amountLabel={record.value}
       dueLabel={record.dateLabel}
+      guidedDemo={guidedDemo}
       invoiceId={record.aggregateId}
+      recordKey={recordKey}
     />
   );
 }
@@ -246,6 +276,7 @@ export async function CommercialRecordDetail({
   id,
   accountId,
   canMutate = false,
+  guidedDemo = false,
   record,
   actions,
 }: {
@@ -267,6 +298,7 @@ export async function CommercialRecordDetail({
    */
   accountId?: string;
   canMutate?: boolean;
+  guidedDemo?: boolean;
   record: CommercialRecord | null;
   /**
    * Server-backed action for this record, supplied by the route so the panel
@@ -280,7 +312,7 @@ export async function CommercialRecordDetail({
   // produced the identical string and only read as though something differed.
   const backHref: Route = `/${record.kind}`;
   const summary = commercialSummary(record);
-  const chain = artifactChain(record);
+  const chain = artifactChain(record, id);
   const artifacts = await loadRecordArtifacts("customer", record.kind, id);
   return (
     <main className={styles.main} id="main-content">
@@ -312,7 +344,10 @@ export async function CommercialRecordDetail({
             {record.statusLabel}
           </span>
           <DetailActions canMutate={canMutate} record={record} recordKey={id} />
-          {record.kind === "agreements" && record.aggregateId ? (
+          {record.kind === "agreements" &&
+          record.aggregateId &&
+          canMutate &&
+          record.allowedActions?.includes("execute_agreement") ? (
             <Link
               className={styles.primary}
               href={`/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}`}
@@ -412,7 +447,7 @@ export async function CommercialRecordDetail({
 
         <div className={styles.stack}>
           {actions}
-          {payableInvoice(record, accountId, canMutate)}
+          {payableInvoice(record, id, accountId, canMutate, guidedDemo)}
           <section
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="audit-title"
@@ -438,9 +473,15 @@ export async function CommercialRecordDetail({
                   </dd>
                 </div>
                 <div>
-                  <dt>Row version</dt>
+                  <dt>Projection identifier</dt>
                   <dd>
-                    <code>{record.version ?? "Unavailable"}</code>
+                    <code>{record.projectionId ?? "Unavailable"}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Projection row version</dt>
+                  <dd>
+                    <code>{record.projectionVersion ?? "Unavailable"}</code>
                   </dd>
                 </div>
               </dl>

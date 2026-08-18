@@ -2,15 +2,19 @@ import "server-only";
 
 import type { DatabaseExternalGateService } from "@clockwork/db";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 import {
   fallbackGates,
   type GateRecord,
 } from "@/src/features/internal-ops/administration-safety/data";
 import { presentGeneratedGate } from "@/src/features/internal-ops/administration-safety/gates";
+import { readDemoExternalGates } from "./demo-gate-state";
 
 export type GateRecordSource =
-  "System gate registry" | "Fail-closed operational fallback";
+  | "System gate registry"
+  | "Demonstration gate registry"
+  | "Fail-closed operational fallback";
 
 export interface GateRecordResult {
   gates: readonly GateRecord[];
@@ -52,6 +56,19 @@ export async function loadConfiguredGateRecords(
     input.runtimeEnvironment ??
     process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ??
     "local";
+  if (!service && demoDeployIdentityEnabled(process.env))
+    try {
+      return {
+        gates: (
+          await readDemoExternalGates({
+            ...(input.now ? { now: input.now } : {}),
+          })
+        ).map((gate) => presentGeneratedGate(gate)),
+        source: "Demonstration gate registry",
+      };
+    } catch {
+      return failClosed(runtimeEnvironment);
+    }
   if (!service) return failClosed(runtimeEnvironment);
   try {
     return {

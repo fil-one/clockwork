@@ -70,16 +70,16 @@ export type SurfaceKey =
  * - `offboarding` -> `/account/offboarding` (`OffboardingWorkflow`), which
  *   lists the account's live orders rather than asking for an order id;
  * - `payment` -> `PaymentHandoff` on `/billing/[id]`;
- * - `pricebook` -> `/internal/price-books` (`PriceBookAdministration`) for the
- *   activation lifecycle only, and with a caveat worth reading: that surface
- *   sends `request_activation`, `activate` and `retire`, not `create`. The
- *   deleted branch could send `create`, so this is the one supersession that is
- *   not a superset. It goes anyway because the branch was reachable from no
- *   route, asked an operator to type a price-book UUID, and could not send
- *   `add_rate` -- so the book it created carried no rate card and could price
- *   nothing. Creating a priced book has no surface today and did not have one
- *   before; books arrive through `supabase/seed.sql` and migrations. That gap
- *   is real and belongs to whoever builds price-book authoring;
+ * - `pricebook` -> `/internal/price-books` (`PriceBookAdministration`), which
+ *   now owns the complete operator lifecycle. Its two-step authoring form sends
+ *   `create` for version metadata and then `add_rate` for the first validated
+ *   rate card; the same surface sends `request_activation`, `activate`, and
+ *   `retire` under the finance and two-authority gates. The deleted branch was
+ *   reachable from no route, asked an operator to type a price-book UUID, and
+ *   could create only an empty book that could price nothing. The replacement
+ *   is therefore the routed, actionable superset and remains intentionally
+ *   outside `surfaceWorkflows` because it is a dedicated component rather than
+ *   a `WorkflowPanel` branch;
  * - `assisted` -> `startAssistedSession`, after which the operator works
  *   through the customer surfaces on the identical records (spec principle 9),
  *   rather than through a parallel operator-only form;

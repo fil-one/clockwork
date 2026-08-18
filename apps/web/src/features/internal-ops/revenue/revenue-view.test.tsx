@@ -61,6 +61,7 @@ describe("revenue view", () => {
     ).toBeVisible();
     expect(screen.getByText(/not probability-weighted/i)).toBeVisible();
     expect(screen.getAllByText(/not gross/i).length).toBeGreaterThan(0);
-    expect(screen.getByText("merchant_of_record.v1")).toBeVisible();
+    expect(screen.getByText("Merchant of record · v1")).toBeVisible();
+    expect(screen.getByText("Aug 2026")).toBeVisible();
   });
 });

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { basisLabel, formatMinor, stageLabel } from "./model";
+import {
+  basisLabel,
+  businessLabel,
+  formatMinor,
+  monthLabel,
+  stageLabel,
+} from "./model";
 
 describe("revenue presentation", () => {
   it("keeps units and basis explicit", () => {
@@ -13,5 +19,13 @@ describe("revenue presentation", () => {
   it("does not describe pipeline as weighted", () => {
     expect(stageLabel("pipeline")).toBe("Pipeline");
     expect(stageLabel("committed_backlog")).toBe("Contracted backlog");
+  });
+
+  it("presents storage tokens as business labels", () => {
+    expect(businessLabel("merchant_of_record.v1")).toBe(
+      "Merchant of record · v1",
+    );
+    expect(businessLabel("resale")).toBe("Resale");
+    expect(monthLabel("2026-08-01")).toBe("Aug 2026");
   });
 });

@@ -34,6 +34,10 @@ import {
 import type { DemoCreatedOrder } from "./demo-portal-records";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { ExperienceProblem } from "./model";
+import type {
+  DemoCreatedQuote,
+  DemoQuoteCommercialArtifactRequest,
+} from "./demo-quote-flow";
 import {
   demoProjectionRecordId,
   demoProjectionRecordVersion,
@@ -100,8 +104,12 @@ export interface DemoCommercialArtifactRequest {
  */
 export interface DemoOrderAcceptanceState extends DemoAdapterState {
   readonly commercialArtifactRequests?: Readonly<
-    Record<string, DemoCommercialArtifactRequest>
+    Record<
+      string,
+      DemoCommercialArtifactRequest | DemoQuoteCommercialArtifactRequest
+    >
   >;
+  readonly createdQuotes?: Readonly<Record<string, DemoCreatedQuote>>;
   readonly createdOrders?: Readonly<Record<string, DemoCreatedOrder>>;
   readonly acceptedQuoteOrders?: Readonly<Record<string, string>>;
   readonly orderCommandReceipts?: Readonly<
@@ -146,6 +154,8 @@ export interface DemoAcceptanceQuote {
   readonly agreementEffectiveOn: string;
   /** The priced lines, taken from the very document lines the demo prints. */
   readonly lineItems: readonly DocumentLineItem[];
+  /** Present for quotes created during this demo; it is the issued authority. */
+  readonly snapshot?: QuoteSnapshot;
 }
 
 const directBuyer = demoPersonas.directBuyer;
@@ -286,6 +296,7 @@ function demoQuoteSnapshot(
   quote: DemoAcceptanceQuote,
   now: Date,
 ): QuoteSnapshot {
+  if (quote.snapshot) return quote.snapshot;
   const lines = quote.lineItems.map(pricedLine);
   const draft = createQuoteDraft({
     id: demoQuoteId(quote),
@@ -532,16 +543,68 @@ function domainRefusal(error: unknown): never {
  * naming a record the projection does not serve is a fixture error and says so.
  */
 function demoQuoteId(quote: DemoAcceptanceQuote): string {
+  if (quote.snapshot) return quote.snapshot.id;
   const id = demoProjectionRecordId("customer", "quotes", quote.recordKey);
   if (!id)
     throw new Error(`DEMO_ACCEPTANCE_QUOTE_NOT_PROJECTED:${quote.recordKey}`);
   return id;
 }
 
-function selectQuote(command: DemoOrderCommand): DemoAcceptanceQuote {
-  const quote = demoAcceptanceQuoteBook.find(
-    (candidate) => demoQuoteId(candidate) === command.quoteId,
-  );
+function createdAcceptanceQuote(
+  created: DemoCreatedQuote,
+): DemoAcceptanceQuote {
+  const quote = created.snapshot;
+  if (quote.status !== "issued" || !quote.issuedAt)
+    throw new ExperienceProblem(
+      404,
+      "DEMO_QUOTE_NOT_ACCEPTABLE",
+      "Only an issued quote can be accepted",
+    );
+  return {
+    recordKey: `quote-${quote.id}`,
+    displayNumber: created.displayNumber,
+    revision: quote.revision,
+    accountId: quote.accountId,
+    buyerDomain: created.buyerDomain,
+    locale: created.locale,
+    paymentTermsDays: created.paymentTermsDays,
+    priceBook: quote.priceBook.id,
+    ownerUserId: quote.createdBy,
+    createdAt: quote.createdAt,
+    issuedAt: quote.issuedAt,
+    expiresAt: quote.expiresAt,
+    agreementId: created.agreementId,
+    agreementVersion: created.agreementVersion,
+    agreementEffectiveOn: created.agreementEffectiveOn,
+    lineItems: quote.lines.map((line) => ({
+      id: line.id,
+      description: line.sku,
+      detail: `${line.region}; ${line.termMonths} month term`,
+      quantity: line.quantity,
+      unitLabel: line.unit,
+      unitPrice: {
+        currency: line.unitPrice.currency,
+        minorUnits: line.unitPrice.minor,
+      },
+      amount: {
+        currency: line.lineTotal.currency,
+        minorUnits: line.lineTotal.minor,
+      },
+    })),
+    snapshot: quote,
+  };
+}
+
+function selectQuote(
+  state: DemoOrderAcceptanceState,
+  command: DemoOrderCommand,
+): DemoAcceptanceQuote {
+  const created = state.createdQuotes?.[command.quoteId];
+  const quote = created
+    ? createdAcceptanceQuote(created)
+    : demoAcceptanceQuoteBook.find(
+        (candidate) => demoQuoteId(candidate) === command.quoteId,
+      );
   if (!quote)
     throw new ExperienceProblem(
       404,
@@ -563,6 +626,7 @@ function selectQuote(command: DemoOrderCommand): DemoAcceptanceQuote {
  * which is the sentinel on the prepare pass — exactly as `mutateOrder` does it.
  */
 function derive(
+  state: DemoOrderAcceptanceState,
   session: SessionClaims,
   command: DemoOrderCommand,
   orderFormDocumentId: string,
@@ -573,7 +637,7 @@ function derive(
   definition: CommercialArtifactDefinition;
   sourceHash: string;
 } {
-  const quote = selectQuote(command);
+  const quote = selectQuote(state, command);
   if (command.signerUserId !== session.userId)
     throw new ExperienceProblem(
       422,
@@ -645,6 +709,7 @@ function prepareInState(
       "Commercial artifact retention must follow acceptance",
     );
   const { order, definition, sourceHash } = derive(
+    state,
     session,
     command,
     PREPARE_SENTINEL_DOCUMENT_ID,
@@ -654,7 +719,11 @@ function prepareInState(
     `artifact-request:order:${order.id}:order_form:${sourceHash}`,
   );
   const existing = state.commercialArtifactRequests?.[id];
-  if (existing) return { state, record: existing, changed: false };
+  if (existing) {
+    if (existing.subjectType !== "order")
+      throw new Error("DEMO_ORDER_ARTIFACT_ID_COLLISION");
+    return { state, record: existing, changed: false };
+  }
   const record: DemoCommercialArtifactRequest = {
     id,
     documentId: demoUuid(`order-form-document:${id}`),
@@ -725,6 +794,7 @@ function createInState(
       "The order form document is required to create an order",
     );
   const { quote, order, sourceHash } = derive(
+    state,
     session,
     command,
     documentId,
@@ -804,7 +874,9 @@ function createInState(
     "quotes",
     quote.recordKey,
   );
-  if (seededVersion === undefined)
+  const sourceVersion =
+    seededVersion ?? state.createdQuotes?.[quoteId]?.rowVersion;
+  if (sourceVersion === undefined)
     throw new Error(`DEMO_ACCEPTANCE_QUOTE_NOT_PROJECTED:${quote.recordKey}`);
   return {
     state: {
@@ -817,7 +889,7 @@ function createInState(
       projectionOverrides: {
         ...state.projectionOverrides,
         [quoteId]: {
-          version: (currentOverride?.version ?? seededVersion) + 1,
+          version: (currentOverride?.version ?? sourceVersion) + 1,
           updatedAt: now.toISOString(),
           data: {
             ...(currentOverride?.data ?? {}),
@@ -900,7 +972,8 @@ export class DemoOrderAcceptance {
     const prepared = preparedId
       ? committed.commercialArtifactRequests?.[preparedId]
       : undefined;
-    if (!prepared) throw new Error("DEMO_ORDER_PREPARE_COMMIT_MISSING");
+    if (!prepared || prepared.subjectType !== "order")
+      throw new Error("DEMO_ORDER_PREPARE_COMMIT_MISSING");
     return prepared;
   }
 
@@ -1066,7 +1139,12 @@ export class DemoOrderAcceptance {
   public async artifactRequests(): Promise<
     readonly DemoCommercialArtifactRequest[]
   > {
-    return Object.values((await this.#read()).commercialArtifactRequests ?? {});
+    return Object.values(
+      (await this.#read()).commercialArtifactRequests ?? {},
+    ).filter(
+      (candidate): candidate is DemoCommercialArtifactRequest =>
+        candidate.subjectType === "order",
+    );
   }
 
   public async createdOrders(): Promise<readonly DemoCreatedOrder[]> {

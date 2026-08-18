@@ -67,7 +67,7 @@ export const correctionCopy = {
   recorded: (reference: string) => `Recorded. Reference ${reference}.`,
   refusals: {
     ACCOUNT_UNRESOLVED:
-      "This invoice's billing account could not be resolved from your projection scope, so no correction can be bound to it. The account is joined through the invoice's order; that order is not in your orders channel.",
+      "This invoice is not linked to an account available in your current workspace. Open its order or switch accounts before recording a correction.",
     AMOUNT_INVALID:
       "Enter the amount as a positive whole number of minor units.",
     AMOUNT_EXCEEDS_INVOICE:

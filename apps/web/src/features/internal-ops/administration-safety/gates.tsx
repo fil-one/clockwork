@@ -10,6 +10,11 @@ import {
   updateGeneratedExternalGate,
   type GeneratedExternalGate,
 } from "@/src/features/contracts/external-gates-client";
+import {
+  runDemoExternalGateActivationTest,
+  updateDemoExternalGate,
+} from "@/src/features/internal-ops/gates/demo-gate-actions";
+import type { GateRecordSource } from "@/src/features/internal-ops/gates/server-gate-loader";
 
 import { adminSafetyCopy } from "./copy";
 import type { GateGroup, GateRecord } from "./data";
@@ -103,9 +108,11 @@ export function presentGeneratedGate(gate: GeneratedExternalGate): GateRecord {
 function GateControls({
   gate,
   onUpdated,
+  demo,
 }: {
   gate: GateRecord;
   onUpdated: (gate: GeneratedExternalGate) => void;
+  demo: boolean;
 }) {
   const [owner, setOwner] = useState(gate.owner);
   const [inputRequired, setInputRequired] = useState(gate.inputRequired ?? "");
@@ -152,15 +159,28 @@ function GateControls({
     event.preventDefault();
     if (!requireRowVersion()) return;
     operate(() =>
-      updateGeneratedExternalGate(gate.id as GeneratedExternalGate["gateKey"], {
-        expectedRowVersion: gate.rowVersion as number,
-        owner,
-        inputRequired,
-        configuredStatus:
-          configuredStatus as GeneratedExternalGate["configuredStatus"],
-        reviewOn: reviewOn || null,
-        statusReason: reason,
-      }),
+      demo
+        ? updateDemoExternalGate(gate.id as GeneratedExternalGate["gateKey"], {
+            expectedRowVersion: gate.rowVersion as number,
+            owner,
+            inputRequired,
+            configuredStatus:
+              configuredStatus as GeneratedExternalGate["configuredStatus"],
+            reviewOn: reviewOn || null,
+            statusReason: reason,
+          })
+        : updateGeneratedExternalGate(
+            gate.id as GeneratedExternalGate["gateKey"],
+            {
+              expectedRowVersion: gate.rowVersion as number,
+              owner,
+              inputRequired,
+              configuredStatus:
+                configuredStatus as GeneratedExternalGate["configuredStatus"],
+              reviewOn: reviewOn || null,
+              statusReason: reason,
+            },
+          ),
     );
   };
 
@@ -234,10 +254,15 @@ function GateControls({
             onClick={() => {
               if (!requireRowVersion()) return;
               operate(() =>
-                runGeneratedExternalGateActivationTest(
-                  gate.id as GeneratedExternalGate["gateKey"],
-                  gate.rowVersion as number,
-                ),
+                demo
+                  ? runDemoExternalGateActivationTest(
+                      gate.id as GeneratedExternalGate["gateKey"],
+                      gate.rowVersion as number,
+                    )
+                  : runGeneratedExternalGateActivationTest(
+                      gate.id as GeneratedExternalGate["gateKey"],
+                      gate.rowVersion as number,
+                    ),
               );
             }}
           >
@@ -266,7 +291,7 @@ export function GateRegister({
 }: {
   roles: readonly string[];
   gates: readonly GateRecord[];
-  source: "System gate registry" | "Fail-closed operational fallback";
+  source: GateRecordSource;
 }) {
   const mayOperate = canDecide(roles, "assisted");
   const [displayGates, setDisplayGates] = useState(gates);
@@ -351,12 +376,13 @@ export function GateRegister({
                       ]}
                     />
                     {mayOperate &&
-                    source === "System gate registry" &&
+                    source !== "Fail-closed operational fallback" &&
                     gate.rowVersion ? (
                       <GateControls
                         key={`${gate.id}:${gate.rowVersion}`}
                         gate={gate}
                         onUpdated={updateGate}
+                        demo={source === "Demonstration gate registry"}
                       />
                     ) : null}
                   </div>,

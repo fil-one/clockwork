@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireRecentAuthentication: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
+  classifyDemoReconciliationVariance: vi.fn(),
   record: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -16,6 +17,9 @@ vi.mock("@/src/db/service", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("./disposition-store", () => ({
   recordVarianceDisposition: mocks.record,
+}));
+vi.mock("../demo-operator-state", () => ({
+  classifyDemoReconciliationVariance: mocks.classifyDemoReconciliationVariance,
 }));
 
 import { classifyReconciliationVariance } from "./actions";
@@ -52,6 +56,10 @@ beforeEach(() => {
   mocks.record.mockResolvedValue({
     caseId,
     classification: "delivery_timing",
+    rowVersion: 2,
+    blocksClose: false,
+  });
+  mocks.classifyDemoReconciliationVariance.mockResolvedValue({
     rowVersion: 2,
     blocksClose: false,
   });
@@ -111,6 +119,38 @@ describe("input the store must never see", () => {
 });
 
 describe("authorization is re-checked at execution", () => {
+  it("persists an authorized classification in the exact demo", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+    mocks.getOptionalServiceDatabase.mockReturnValue(undefined);
+
+    try {
+      await expect(classifyReconciliationVariance(form())).resolves.toEqual({
+        ok: true,
+        blocksClose: false,
+      });
+      expect(mocks.classifyDemoReconciliationVariance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          caseId,
+          expectedRowVersion: 1,
+          classification: "delivery_timing",
+          actorId: operator.userId,
+        }),
+      );
+      expect(mocks.record).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).toHaveBeenCalledWith(
+        "/internal/billing-reconciliation",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("refuses when recent authentication has lapsed", async () => {
     mocks.requireRecentAuthentication.mockRejectedValue(new Error("stale"));
     expect(await classifyReconciliationVariance(form())).toEqual({

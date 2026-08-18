@@ -16,7 +16,7 @@ const data: OperationsHomeData = {
     {
       label: "Queue work",
       value: "2 cases",
-      detail: "1 case is marked high risk by the projection.",
+      detail: "1 case needs priority attention.",
       channel: "queues",
       generatedAt: "2026-08-15T09:14:00.000Z",
       stale: false,
@@ -39,14 +39,14 @@ const data: OperationsHomeData = {
 };
 
 describe("OperationsHome", () => {
-  it("states the instant each channel read was generated", () => {
+  it("presents readable update times for each work area", () => {
     render(<OperationsHome data={data} />);
 
     expect(
-      screen.getByText("2026-08-15T09:14:00.000Z", { selector: "time" }),
+      screen.getByText("Aug 15, 2026, 9:14 AM UTC", { selector: "time" }),
     ).toBeVisible();
     expect(
-      screen.getAllByText("2026-08-15T09:15:00.000Z", { selector: "time" })
+      screen.getAllByText("Aug 15, 2026, 9:15 AM UTC", { selector: "time" })
         .length,
     ).toBeGreaterThan(0);
   });

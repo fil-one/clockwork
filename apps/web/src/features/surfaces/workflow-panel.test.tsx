@@ -10,6 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { coreReportNames } from "@clockwork/contracts";
 
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+
 import { surfaceWorkflows } from "./surface-catalog";
 import { WorkflowPanel } from "./workflow-panel";
 
@@ -55,6 +58,26 @@ function response(status = 200) {
   );
 }
 
+function accountReadResponse(rowVersion = 7) {
+  return new Response(
+    JSON.stringify({
+      items: [
+        {
+          id: routeContext.accountId,
+          resource: "accounts",
+          accountId: routeContext.accountId,
+          rowVersion,
+          data: {},
+          createdAt: "2026-08-16T12:00:00.000Z",
+          updatedAt: "2026-08-16T12:00:00.000Z",
+        },
+      ],
+      nextCursor: null,
+    }),
+    { headers: { "content-type": "application/json" } },
+  );
+}
+
 async function fillAccountUpdate(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("Legal name"), "Northstar Ltd");
   await user.type(
@@ -69,6 +92,7 @@ async function fillAccountUpdate(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  refresh.mockClear();
   document.cookie = `clockwork-csrf=${csrfToken}; path=/`;
   vi.restoreAllMocks();
 });
@@ -308,7 +332,6 @@ describe("route-resolved record identifiers", () => {
     expect(
       await screen.findByText(/server record is now the source of truth/i),
     ).toBeVisible();
-
     const firstCall = fetchMock.mock.calls.at(0);
     if (!firstCall) throw new Error("Renewal request was not captured.");
     const request = firstCall[0] as Request;
@@ -357,6 +380,7 @@ describe("route-resolved record identifiers", () => {
     expect(
       await screen.findByText(/server record is now the source of truth/i),
     ).toBeVisible();
+    expect(refresh).toHaveBeenCalledOnce();
 
     const firstCall = fetchMock.mock.calls.at(0);
     if (!firstCall) throw new Error("Invite request was not captured.");
@@ -370,15 +394,11 @@ describe("route-resolved record identifiers", () => {
     });
   });
 
-  /**
-   * The row version is deliberately not a `WorkflowRecordContext` key. It is
-   * compared against the core account aggregate's own `row_version`, which only
-   * an authoritative read of the account produces; the projection row version a
-   * route could reach is a different counter. Until that read exists the panel
-   * shows the guess rather than dressing a wrong number as a resolved one.
-   */
-  it("shows the account row version as a stated guess and posts what is shown", async () => {
-    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+  it("reads the core account version and never asks the reader to guess it", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(accountReadResponse(7))
+      .mockResolvedValueOnce(response());
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
     render(
@@ -389,20 +409,15 @@ describe("route-resolved record identifiers", () => {
       />,
     );
 
-    const rowVersion = screen.getByLabelText("Current row version");
-    expect(rowVersion).toHaveValue(1);
-    expect(rowVersion).not.toHaveAttribute("readonly");
-    await user.clear(rowVersion);
-    await user.type(rowVersion, "7");
+    expect(screen.queryByLabelText("Current row version")).toBeNull();
     await fillAccountUpdate(user);
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(
-      await screen.findByText(
-        `Account ${routeContext.accountId} updated at row version 8.`,
-      ),
-    ).toBeVisible();
+    expect(await screen.findByText("Account settings saved.")).toBeVisible();
+    expect(screen.queryByText(routeContext.accountId)).toBeNull();
+    expect(screen.queryByText(/row version/iu)).toBeNull();
+    expect(refresh).toHaveBeenCalledOnce();
 
-    const firstCall = fetchMock.mock.calls.at(0);
+    const firstCall = fetchMock.mock.calls.at(1);
     if (!firstCall) throw new Error("Account update was not captured.");
     await expect(
       (firstCall[0] as Request).clone().json(),
@@ -416,7 +431,9 @@ describe("route-resolved record identifiers", () => {
   it("reuses one account command key when an uncertain attempt is retried", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
+      .mockResolvedValueOnce(accountReadResponse(7))
       .mockResolvedValueOnce(response(503))
+      .mockResolvedValueOnce(accountReadResponse(7))
       .mockResolvedValueOnce(response());
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -432,11 +449,11 @@ describe("route-resolved record identifiers", () => {
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
     expect(await screen.findByRole("alert")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(await screen.findByText(/updated at row version 8/u)).toBeVisible();
+    expect(await screen.findByText("Account settings saved.")).toBeVisible();
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const first = fetchMock.mock.calls[0]?.[0] as Request;
-    const second = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const first = fetchMock.mock.calls[1]?.[0] as Request;
+    const second = fetchMock.mock.calls[3]?.[0] as Request;
     expect(first.headers.get("idempotency-key")).toBeTruthy();
     expect(second.headers.get("idempotency-key")).toBe(
       first.headers.get("idempotency-key"),
@@ -444,7 +461,13 @@ describe("route-resolved record identifiers", () => {
   });
 
   it("starts a new account command key after a successful command", async () => {
-    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(response()));
+    const fetchMock = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        (input as Request).method === "GET"
+          ? accountReadResponse(7)
+          : response(),
+      ),
+    );
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
     render(
@@ -457,12 +480,12 @@ describe("route-resolved record identifiers", () => {
 
     await fillAccountUpdate(user);
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    await screen.findByText(/updated at row version 8/u);
+    await screen.findByText("Account settings saved.");
     await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
 
-    const first = fetchMock.mock.calls[0]?.[0] as Request;
-    const second = fetchMock.mock.calls[1]?.[0] as Request;
+    const first = fetchMock.mock.calls[1]?.[0] as Request;
+    const second = fetchMock.mock.calls[3]?.[0] as Request;
     expect(first.headers.get("idempotency-key")).toBeTruthy();
     expect(second.headers.get("idempotency-key")).not.toBe(
       first.headers.get("idempotency-key"),

@@ -18,7 +18,7 @@ import { readGeneratedLaneStatus } from "@/src/features/contracts/status-client"
 import { IntegrationStatusView } from "./status-view";
 
 describe("integration status view", () => {
-  it("uses the generated status reader and labels capped operational counts", async () => {
+  it("uses the generated status reader and presents operator-facing counts", async () => {
     render(
       <IntegrationStatusView
         queues={{
@@ -35,7 +35,10 @@ describe("integration status view", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Integration status" }),
     ).toBeVisible();
-    expect(screen.getAllByText(/first 100 records read/i)).toHaveLength(4);
+    expect(
+      screen.getAllByText("Items currently waiting for operator attention"),
+    ).toHaveLength(4);
+    expect(screen.queryByText(/first 100 records read/i)).toBeNull();
     expect(await screen.findByText("Service store")).toBeVisible();
     expect(readGeneratedLaneStatus).toHaveBeenCalledTimes(3);
     expect(readGeneratedLaneStatus).toHaveBeenCalledWith(

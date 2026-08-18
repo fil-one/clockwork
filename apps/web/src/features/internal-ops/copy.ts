@@ -7,15 +7,15 @@ export const internalOpsCopy = {
     eyebrow: "Internal operations",
     title: "Operational health",
     description:
-      "What each operator channel returned for this session, counted from the read rather than described.",
-    generated: "Newest projection generated",
+      "The work that needs attention across approvals, collections, provisioning, renewals, and reporting.",
+    generated: "Updated",
     staleSuffix: "stale",
     stale: (channels: string) =>
-      `At least one record is past its refresh window in: ${channels}. Verify anything you act on against the source record.`,
-    healthHeading: "Channel signals",
+      `Refresh needed for ${channels}. Open the workspace before making a decision.`,
+    healthHeading: "Work overview",
     healthDescription:
-      "One row per operator channel: what it holds, when it was generated, and where to act on it.",
-    tableLabel: "Operator channel signals",
+      "Prioritized work across the teams you support, with a direct path to each workspace.",
+    tableLabel: "Operational work overview",
     openQueue: "Open my queue",
   },
   assisted: {

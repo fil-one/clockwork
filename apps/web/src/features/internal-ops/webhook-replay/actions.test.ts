@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getOptionalRuntimeDatabase: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
   construct: vi.fn(),
+  replayDemoWebhook: vi.fn(),
   replay: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -27,6 +28,9 @@ vi.mock("@clockwork/api", () => ({
 
     public replay = mocks.replay;
   },
+}));
+vi.mock("../demo-operator-state", () => ({
+  replayDemoWebhook: mocks.replayDemoWebhook,
 }));
 
 import { replayWebhookEvent } from "./actions";
@@ -72,6 +76,10 @@ beforeEach(() => {
     replayed: true,
     workflowRunId: "60000000-0000-4000-8000-000000000001",
   });
+  mocks.replayDemoWebhook.mockResolvedValue({
+    started: true,
+    workflowRunId: "60000000-0000-4000-8000-000000000002",
+  });
 });
 
 describe("webhook replay action", () => {
@@ -92,6 +100,40 @@ describe("webhook replay action", () => {
         reason: "INC-4021 duplicate delivery, safe to replay",
       }),
     );
+  });
+
+  it("starts a persisted replay in the exact demo without provider databases", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+    vi.stubEnv("AUTHORIZATION_CONTEXT_SECRET", "");
+    mocks.getOptionalRuntimeDatabase.mockReturnValue(undefined);
+    mocks.getOptionalServiceDatabase.mockReturnValue(undefined);
+
+    try {
+      await expect(replayWebhookEvent(form())).resolves.toEqual({
+        ok: true,
+        started: true,
+        workflowRunId: "60000000-0000-4000-8000-000000000002",
+      });
+      expect(mocks.replayDemoWebhook).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: "stripe",
+          providerEventId: "evt_1",
+          actorId: operator.userId,
+        }),
+      );
+      expect(mocks.replay).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).toHaveBeenCalledWith(
+        "/internal/webhook-replay",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("reports an already-running replay as its own outcome", async () => {

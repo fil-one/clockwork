@@ -4,11 +4,14 @@ export const QUEUE_COPY = {
   title: "Operational queues",
   description:
     "Prioritized policy, provider, and lifecycle work with clear ownership and evidence.",
-  freshness: "Projection generated",
+  freshness: "Updated",
   staleTitle: "Data may be stale.",
   staleDescription:
     "At least one record is past its refresh window. Decisions should be verified against the source.",
-  staleAction: "Refresh projection",
+  staleAction: "Refresh data",
+  staleRefreshing: "Refreshing…",
+  staleRetry: "Try refresh again",
+  staleRefreshFailed: "Data refresh failed. Try again.",
   savedViewsLabel: "Saved queue views",
   filtersTitle: "Filter queue",
   filtersDescription: "Technical identifiers are searchable.",

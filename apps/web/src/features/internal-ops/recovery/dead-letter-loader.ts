@@ -7,6 +7,9 @@ import {
 } from "@clockwork/db";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+
+import { readDemoDeadLetters } from "../demo-operator-state";
 
 import { recoveryCopy } from "./copy";
 
@@ -33,6 +36,23 @@ export async function loadDeadLetterOperations(input: {
   sources?: readonly DeadLetterSource[];
 }): Promise<DeadLetterResult> {
   const database = getOptionalServiceDatabase();
+  if (!database && demoDeployIdentityEnabled(process.env)) {
+    try {
+      return {
+        operations: await readDemoDeadLetters({
+          ...(input.sources ? { sources: input.sources } : {}),
+        }),
+        source: recoveryCopy.sourceLabel.demo,
+        readable: true,
+      };
+    } catch {
+      return {
+        operations: [],
+        source: recoveryCopy.sourceLabel.unavailable,
+        readable: false,
+      };
+    }
+  }
   if (!database)
     return {
       operations: [],

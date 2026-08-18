@@ -5,6 +5,7 @@ import {
   getRouteRoles,
 } from "@/src/features/shell/route-session";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 export default async function Page({
   params,
@@ -26,6 +27,7 @@ export default async function Page({
       <CommercialRecordDetail
         accountId={identity.accountId}
         canMutate={canPay}
+        guidedDemo={demoDeployIdentityEnabled(process.env)}
         id={id}
         record={record}
       />

@@ -411,18 +411,19 @@ describe("self-serve Buy", () => {
     );
   });
 
-  it("stops the server-computed demo path after the simulated draft", async () => {
+  it("runs the authoritative quote journey in the full demo", async () => {
     renderBuy({ catalogueMode: "simulated", mode: "demo" });
 
-    const user = userEvent.setup();
-    await user.type(screen.getByLabelText("Committed capacity (TB)"), "42");
-    await user.click(screen.getByRole("button", { name: "Simulate draft" }));
+    await buy();
 
-    expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(1);
-    expect(mocks.fetch).not.toHaveBeenCalled();
     expect(
-      screen.getByText(/did not save, price, or issue a quote/u),
-    ).toBeVisible();
+      mocks.sendCoreCommand.mock.calls.map(([command]) => command.action),
+    ).toEqual(["create", "prepare_artifact", "issue"]);
+    expect(mocks.fetch).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByRole("link", { name: "Review and accept order" }),
+    ).toHaveAttribute("href", `/orders/accept?quote=quote-${currentQuoteId()}`);
+    expect(screen.queryByText(/simulated|did not save/iu)).toBeNull();
   });
 
   it("keeps a server pricing exception as a saved draft", async () => {

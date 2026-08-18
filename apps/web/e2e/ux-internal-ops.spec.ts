@@ -295,30 +295,22 @@ test.describe("finance approver journey", () => {
     await expect(page.getByText("No decision recorded")).toBeVisible();
   });
 
-  test("labels renewal and report values by their truth state", async ({
+  test("presents renewal and reporting work as product workflows", async ({
     page,
   }) => {
-    // Both surfaces read the session projection. This assertion pins the
-    // explicit distinction between renewal planning and recorded invoice
-    // truth; neither is presented as payment or collected revenue.
     await page.goto("/internal/renewals");
     await expect(
       page.getByRole("heading", { level: 1, name: "Renewal notice windows" }),
     ).toBeVisible();
-    await expect(
-      page.getByText("No exposure estimate is shown here."),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/not a forecast, a payment, or collected revenue/),
-    ).toBeVisible();
+    await expect(page.getByText("Data provenance")).toHaveCount(0);
+    await expect(page.getByText(/server pages?/)).toHaveCount(0);
 
     await page.goto("/internal/reports");
     await expect(
       page.getByRole("heading", { level: 1, name: "Operational reports" }),
     ).toBeVisible();
-    await expect(
-      page.getByText("No variance or reconciliation state is shown."),
-    ).toBeVisible();
+    await expect(page.getByText("Data provenance")).toHaveCount(0);
+    await expect(page.getByText(/server pages?/)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 });

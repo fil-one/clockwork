@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { hasPermission } from "@clockwork/contracts";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordUnhandledErrorDecision } from "./decision-store";
 import { decisionReasonLimits, isContainmentReference } from "./model";
+import { decideDemoRuntimeFailure } from "../demo-operator-state";
 
 export interface UnhandledErrorDecisionResult {
   ok: boolean;
@@ -63,8 +65,10 @@ export async function decideUnhandledError(
   if (containmentReference && !isContainmentReference(containmentReference))
     return { ok: false, code: "UNHANDLED_ERROR_EVIDENCE_INVALID" };
 
+  const demoEnabled = demoDeployIdentityEnabled(process.env);
   const database = getOptionalServiceDatabase();
-  if (!database) return { ok: false, code: "UNHANDLED_ERROR_UNAVAILABLE" };
+  if (!database && !demoEnabled)
+    return { ok: false, code: "UNHANDLED_ERROR_UNAVAILABLE" };
 
   let session;
   try {
@@ -77,6 +81,30 @@ export async function decideUnhandledError(
     session.isInternalStaff &&
     session.roles.some((role) => hasPermission(role, "system:operate"));
   if (!permitted) return { ok: false, code: "UNHANDLED_ERROR_FORBIDDEN" };
+
+  if (demoEnabled && !database) {
+    try {
+      const recorded = await decideDemoRuntimeFailure({
+        auditEventId,
+        decision,
+        reason,
+        ...(containmentReference ? { containmentReference } : {}),
+        actorId: session.userId,
+      });
+      revalidatePath("/internal/unhandled-errors");
+      return { ok: true, recordVersion: recorded.recordVersion };
+    } catch (error) {
+      return {
+        ok: false,
+        code:
+          error instanceof Error &&
+          error.message === "UNHANDLED_ERROR_NOT_FOUND"
+            ? "UNHANDLED_ERROR_NOT_FOUND"
+            : "UNHANDLED_ERROR_FAILED",
+      };
+    }
+  }
+  if (!database) return { ok: false, code: "UNHANDLED_ERROR_UNAVAILABLE" };
 
   try {
     const recorded = await recordUnhandledErrorDecision(database, {

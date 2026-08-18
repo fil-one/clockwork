@@ -34,8 +34,7 @@ import type { QuoteOfferOption } from "./workflow-model";
 
 export type BuyMode = "authoritative" | "demo";
 
-type BuyPhase =
-  "configure" | "working" | "demo_draft" | "pricing_review" | "ready" | "error";
+type BuyPhase = "configure" | "working" | "pricing_review" | "ready" | "error";
 
 const defaultPollAttempts = 15;
 const defaultPollIntervalMs = 1_000;
@@ -152,8 +151,6 @@ async function readBuyQuoteProjection(input: {
 
 export function SelfServeBuy({
   account,
-  catalogueMode,
-  mode,
   offers,
   pollAttempts = defaultPollAttempts,
   pollIntervalMs = defaultPollIntervalMs,
@@ -268,14 +265,7 @@ export function SelfServeBuy({
       const created = await sendCoreCommand(commandRef.current, {
         idempotencyKey: createKeyRef.current,
       });
-      setPrice(catalogueMode === "authoritative" ? serverPrice(created) : null);
-      if (mode === "demo") {
-        setPhase("demo_draft");
-        setMessage(
-          "This demo returned a simulated draft-command response. It did not save, price, or issue a quote, so there is no order to accept.",
-        );
-        return;
-      }
+      setPrice(serverPrice(created));
       const rowVersion = Number(
         (created as { record?: { rowVersion?: unknown } }).record?.rowVersion,
       );
@@ -361,29 +351,17 @@ export function SelfServeBuy({
         <p className={styles.context}>Customer workspace · Direct purchase</p>
         <h1>Buy storage</h1>
         <p>
-          Configure one direct 12-month quote.
-          {catalogueMode === "simulated"
-            ? " The demo echoes a simulated draft and stops before issuance."
-            : " The server prices the draft and issues it only after its customer document is stored and bound."}
+          Configure one direct 12-month quote. The server prices the draft and
+          issues it only after its customer document is stored and bound.
         </p>
       </header>
-
-      {catalogueMode === "simulated" ? (
-        <p className={styles.rule} role="status">
-          Demo catalogue · the offer and draft-command response are simulated.
-          No authoritative price book is read and no quote is saved, priced, or
-          issued.
-        </p>
-      ) : null}
 
       <ol aria-label="Purchase path" className={styles.steps}>
         <li aria-current={phase === "configure" ? "step" : undefined}>
           Configure
         </li>
         <li aria-current={phase === "working" ? "step" : undefined}>
-          {catalogueMode === "simulated"
-            ? "Simulated draft"
-            : "Server price and document"}
+          Server price and document
         </li>
         <li aria-current={phase === "ready" ? "step" : undefined}>
           Accept order
@@ -436,10 +414,8 @@ export function SelfServeBuy({
           />
           <p className={styles.rule}>
             Self-serve is below 100 TB. The 100 TB line is this page&apos;s
-            routing choice, not a pricing rule.
-            {catalogueMode === "simulated"
-              ? " This demo does not calculate a real price."
-              : " Every quote is priced by the server."}
+            routing choice, not a pricing rule. Every quote is priced by the
+            server.
           </p>
           <dl className={styles.terms}>
             <div>
@@ -489,7 +465,7 @@ export function SelfServeBuy({
               >
                 Open priced draft
               </Link>
-            ) : phase === "demo_draft" ? null : (
+            ) : (
               <button
                 className={styles.primary}
                 disabled={
@@ -504,9 +480,7 @@ export function SelfServeBuy({
                   ? "Pricing and preparing…"
                   : phase === "error"
                     ? "Try again"
-                    : catalogueMode === "simulated"
-                      ? "Simulate draft"
-                      : "Price and prepare quote"}
+                    : "Price and prepare quote"}
               </button>
             )}
           </div>

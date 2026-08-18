@@ -29,10 +29,8 @@ import {
   demoUuid,
   type DemoArtifactFixture,
 } from "./demo-artifact-catalog";
-import {
-  demoOrderAcceptance,
-  type DemoCommercialArtifactRequest,
-} from "./demo-order-acceptance";
+import type { DemoCommercialArtifactRequest } from "./demo-order-acceptance";
+import type { DemoQuoteCommercialArtifactRequest } from "./demo-quote-flow";
 import { configuredDemoStateStore } from "./demo-state-store";
 import {
   configuredEvidenceGateway,
@@ -94,7 +92,10 @@ interface DemoRenderRequestEntry {
  */
 interface DemoExperienceState extends DemoAdapterState {
   readonly commercialArtifactRequests?: Readonly<
-    Record<string, DemoCommercialArtifactRequest>
+    Record<
+      string,
+      DemoCommercialArtifactRequest | DemoQuoteCommercialArtifactRequest
+    >
   >;
   readonly esignCorrelations?: Readonly<Record<string, DemoEsignCorrelation>>;
   readonly evidenceUploads?: Readonly<Record<string, DemoEvidenceUpload>>;
@@ -813,9 +814,12 @@ export class DemoExperienceRepository implements ExperienceRepository {
     kind: ArtifactKind,
     subjectId: string,
   ): Promise<ResolvedArtifactSource | undefined> {
-    if (kind === "order_form") {
-      const request = (await demoOrderAcceptance().artifactRequests()).find(
-        (candidate) => candidate.subjectId === subjectId,
+    if (kind === "order_form" || kind === "direct_quote") {
+      const request = Object.values(
+        (await this.#read()).commercialArtifactRequests ?? {},
+      ).find(
+        (candidate) =>
+          candidate.subjectId === subjectId && candidate.documentKind === kind,
       );
       if (request) return (await this.#preparedArtifact(request.id))?.source;
     }
@@ -946,8 +950,10 @@ export class DemoExperienceRepository implements ExperienceRepository {
     // composed it, which is what the download route resolves for those.
     const deliveryId =
       demoArtifactBySubject(input.request.kind, input.request.subjectId)?.id ??
-      (await demoOrderAcceptance().artifactRequests()).find(
-        (candidate) => candidate.subjectId === input.request.subjectId,
+      Object.values((await this.#read()).commercialArtifactRequests ?? {}).find(
+        (candidate) =>
+          candidate.subjectId === input.request.subjectId &&
+          candidate.documentKind === input.request.kind,
       )?.id;
     if (!deliveryId)
       throw new ExperienceProblem(
@@ -1015,10 +1021,12 @@ export class DemoExperienceRepository implements ExperienceRepository {
    * over `core_commercial_artifact_requests.source_definition`. Only the row
    * comes from somewhere else.
    */
-  async #preparedArtifact(
-    id: string,
-  ): Promise<
-    | { source: ResolvedArtifactSource; request: DemoCommercialArtifactRequest }
+  async #preparedArtifact(id: string): Promise<
+    | {
+        source: ResolvedArtifactSource;
+        request:
+          DemoCommercialArtifactRequest | DemoQuoteCommercialArtifactRequest;
+      }
     | undefined
   > {
     const request = (await this.#read()).commercialArtifactRequests?.[id];
@@ -1046,7 +1054,9 @@ export class DemoExperienceRepository implements ExperienceRepository {
     requestId: string,
   ): Promise<ArtifactDownloadRecord> {
     const prepared =
-      kind === "order_form" ? await this.#preparedArtifact(id) : undefined;
+      kind === "order_form" || kind === "direct_quote"
+        ? await this.#preparedArtifact(id)
+        : undefined;
     if (prepared)
       return this.#download(session, prepared.source, requestId, {
         id,
@@ -1107,30 +1117,49 @@ export class DemoExperienceRepository implements ExperienceRepository {
       internalScopeId: source.subjectId,
       source: `demo-render:${entry.id}`,
     });
+    const representation: ArtifactRepresentation = {
+      id: entry.id,
+      kind: source.kind,
+      subjectType: source.subjectType,
+      subjectId: source.subjectId,
+      accountId: source.accountId,
+      audience: source.audience,
+      audienceAccountId: source.audienceAccountId,
+      // A commercial definition's `displayDocumentId` is printable paper
+      // identity (`ORD-…`), not the UUID of the immutable document row. The
+      // persisted demo request carries that UUID just like production does;
+      // publish it when this artifact came from a two-pass order prepare.
+      documentId: entry.documentId ?? source.input.documentId,
+      version: rendered.version,
+      sourceHash: source.sourceHash,
+      contentHash: rendered.contentHash,
+      mimeType: "application/pdf",
+      byteLength: String(rendered.bytes.byteLength),
+      filename: rendered.fileName,
+      retainUntil: entry.retainUntil,
+      createdAt: entry.createdAt,
+      downloadHref: `/api/experience/artifacts/${source.kind}/${entry.id}`,
+    };
+    await this.#store.update((current) => {
+      const state = current as DemoExperienceState;
+      const prior = state.artifactDeliveries?.[entry.id];
+      if (
+        prior?.contentHash === representation.contentHash &&
+        prior.sourceHash === representation.sourceHash &&
+        prior.documentId === representation.documentId
+      )
+        return state;
+      return {
+        ...state,
+        revision: state.revision + 1,
+        artifactDeliveries: {
+          ...state.artifactDeliveries,
+          [entry.id]: representation,
+        },
+      } satisfies DemoExperienceState;
+    });
     return {
-      representation: {
-        id: entry.id,
-        kind: source.kind,
-        subjectType: source.subjectType,
-        subjectId: source.subjectId,
-        accountId: source.accountId,
-        audience: source.audience,
-        audienceAccountId: source.audienceAccountId,
-        // A commercial definition's `displayDocumentId` is printable paper
-        // identity (`ORD-…`), not the UUID of the immutable document row. The
-        // persisted demo request carries that UUID just like production does;
-        // publish it when this artifact came from a two-pass order prepare.
-        documentId: entry.documentId ?? source.input.documentId,
-        version: rendered.version,
-        sourceHash: source.sourceHash,
-        contentHash: rendered.contentHash,
-        mimeType: "application/pdf",
-        byteLength: String(rendered.bytes.byteLength),
-        filename: rendered.fileName,
-        retainUntil: entry.retainUntil,
-        createdAt: entry.createdAt,
-        downloadHref: `/api/experience/artifacts/${source.kind}/${entry.id}`,
-      },
+      representation,
       storageKey: stored.storageKey,
       storageVersionId: stored.storageVersionId,
     };

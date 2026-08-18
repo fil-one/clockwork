@@ -49,7 +49,8 @@ import {
 } from "./model";
 import { authorizationContext } from "./authorization";
 import { demoOrderAcceptance } from "./demo-order-acceptance";
-import { simulatedCustomerQuoteOffers } from "./demo-quote-offers";
+import { demoCustomerQuoteOffers } from "./demo-quote-offers";
+import { configuredDemoStateStore } from "./demo-state-store";
 import {
   configuredProjectionSource,
   projectionInput,
@@ -209,8 +210,8 @@ export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLook
   if (explicitDemoIdentityEnabled())
     return {
       status: "available",
-      catalogueMode: "simulated",
-      offers: simulatedCustomerQuoteOffers,
+      catalogueMode: "authoritative",
+      offers: demoCustomerQuoteOffers(await configuredDemoStateStore().read()),
     };
   const session = await getCommerceSession();
   const permitted = session.roles.some((role) =>
@@ -559,6 +560,32 @@ export async function loadBuyQuoteProjection(
   };
 }
 
+function displayVersionValue(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : undefined;
+}
+
+function commercialDisplayVersion(
+  data: Readonly<Record<string, unknown>>,
+  kind: CollectionKind,
+): string | undefined {
+  const direct = displayVersionValue(data.version);
+  if (direct) return direct;
+  if (kind !== "quotes") return undefined;
+  const authoritative = data.authoritative;
+  if (
+    !authoritative ||
+    typeof authoritative !== "object" ||
+    Array.isArray(authoritative)
+  )
+    return undefined;
+  return displayVersionValue(
+    (authoritative as Readonly<Record<string, unknown>>).revision,
+  );
+}
+
 function commercialRecord(
   record: ProjectionRecord,
   kind: CollectionKind,
@@ -566,6 +593,8 @@ function commercialRecord(
   const data = record.data;
   if (text(data, "kind") !== kind)
     throw new Error("Commercial projection channel binding is invalid");
+  const displayVersion = commercialDisplayVersion(data, kind);
+  const reference = optionalProjectionText(data, "reference");
   return {
     id: text(data, "id"),
     kind,
@@ -587,7 +616,9 @@ function commercialRecord(
     href: recordRoute(kind, record.recordKey),
     term: text(data, "term"),
     nextAction: text(data, "nextAction"),
-    version: String(record.version),
+    ...(displayVersion ? { version: displayVersion } : {}),
+    ...(reference ? { reference } : {}),
+    projectionVersion: record.version,
     projectionId: record.id,
     aggregateId: record.aggregateId,
     allowedActions: Array.isArray(data.allowedActions)

@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 
-import { plural } from "@/src/i18n/en";
-
 import { lifecycleCopy } from "./copy";
 import type { SurfaceProvenance } from "./provenance";
+import { formatOperationalTimestamp } from "../presentation";
 import styles from "./finance-lifecycle.module.css";
 
 export type { SurfaceProvenance };
@@ -19,28 +18,33 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
         <strong>
           {provenance.stale
             ? lifecycleCopy.projectionStale
-            : lifecycleCopy.projectionCurrent}{" "}
-          <time dateTime={provenance.generatedAt}>
-            {provenance.generatedAt}
-          </time>
+            : lifecycleCopy.projectionCurrent}
         </strong>
-        {lifecycleCopy.sourcePrefix} internal {provenance.channel} channel ·{" "}
-        {plural(
-          provenance.pagesRead,
-          "{count} server page",
-          "{count} server pages",
-        )}{" "}
-        · {plural(provenance.recordCount, "{count} record", "{count} records")}
+        <span>
+          Updated{" "}
+          <time dateTime={provenance.generatedAt}>
+            {formatOperationalTimestamp(provenance.generatedAt)}
+          </time>
+        </span>
       </div>
     );
   if (provenance.kind === "read")
     return (
       <div className={styles.freshness} aria-label={lifecycleCopy.provenance}>
-        <strong>
-          {lifecycleCopy.readAtLoad}{" "}
-          <time dateTime={provenance.readAt}>{provenance.readAt}</time>
-        </strong>
-        {lifecycleCopy.sourcePrefix} {provenance.source}
+        <strong>{lifecycleCopy.readAtLoad}</strong>
+        <span>
+          Updated{" "}
+          <time dateTime={provenance.readAt}>
+            {formatOperationalTimestamp(provenance.readAt)}
+          </time>
+        </span>
+      </div>
+    );
+  if (provenance.kind === "guided")
+    return (
+      <div className={styles.freshness} aria-label={lifecycleCopy.provenance}>
+        <strong>Guided demo workspace</strong>
+        <span>Changes can be reset from Demo controls.</span>
       </div>
     );
   if (provenance.kind === "unreadable")
@@ -51,7 +55,7 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
         role="alert"
       >
         <strong>{lifecycleCopy.readFailed}</strong>
-        {lifecycleCopy.sourcePrefix} {provenance.source}
+        <span>Refresh the page or try again shortly.</span>
       </div>
     );
   return (
@@ -61,7 +65,7 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
       role="alert"
     >
       <strong>{lifecycleCopy.notWired}</strong>
-      {provenance.detail}
+      <span>This workflow is not enabled for the current environment.</span>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
@@ -9,6 +10,10 @@ import {
   CommerceApiError,
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
+import type {
+  PriceBookAvailability,
+  PriceBookSource,
+} from "@/src/features/internal-ops/price-books/server-price-book-loader";
 
 import { adminSafetyCopy } from "./copy";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
@@ -30,6 +35,20 @@ const stateLabel = {
   active: "Active",
   retired: "Retired",
 } as const;
+
+function formString(values: FormData, name: string): string {
+  const value = values.get(name);
+  return typeof value === "string" ? value : "";
+}
+
+function currencyMinor(value: string): string | undefined {
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/u.exec(value.trim());
+  if (!match?.[1]) return undefined;
+  return (
+    BigInt(match[1]) * 100n +
+    BigInt((match[2] ?? "").padEnd(2, "0") || "0")
+  ).toString();
+}
 
 function decisionsFor(
   book: PriceBookAdministrationRecord,
@@ -67,14 +86,17 @@ export function PriceBookAdministration({
   userId,
   books,
   source,
+  availability,
   readAt,
 }: {
   roles: readonly string[];
   userId: string;
   books: readonly PriceBookAdministrationRecord[];
-  source: string;
+  source: PriceBookSource;
+  availability: PriceBookAvailability;
   readAt: string;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("All");
   const [state, setState] = useState("All");
@@ -88,7 +110,22 @@ export function PriceBookAdministration({
     message: string;
   } | null>(null);
   const [pending, setPending] = useState(false);
+  const [authoringPending, setAuthoringPending] = useState(false);
+  const [draft, setDraft] = useState<{
+    id: string;
+    rowVersion: number;
+    currency: "EUR" | "GBP" | "USD";
+  } | null>(null);
+  const [authoringMessage, setAuthoringMessage] = useState("");
   const permitted = canDecide(roles, "finance");
+  const authoringAvailable = permitted && availability !== "unavailable";
+  const sourceLabel =
+    source === "Deterministic demo fixture" ? "Guided demo data" : source;
+  const updatedLabel = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(readAt));
 
   const currencies = useMemo(
     () => [...new Set(books.map((book) => book.currency))].sort(),
@@ -135,6 +172,7 @@ export function PriceBookAdministration({
       });
       setReason("");
       setSummary(null);
+      router.refresh();
     } catch (error) {
       setOutcome({
         tone: "problem",
@@ -159,16 +197,290 @@ export function PriceBookAdministration({
 
       <section
         className={styles.panel}
+        aria-labelledby="price-book-author-title"
+      >
+        <div className={styles.panelHeading}>
+          <div>
+            <h2 id="price-book-author-title">Author a priced draft</h2>
+            <p>
+              Create the version metadata, then add its first validated rate
+              card. An empty draft can never be proposed for activation.
+            </p>
+          </div>
+          <StatusPill
+            state={authoringAvailable ? "Finance authority" : "Unavailable"}
+          />
+        </div>
+        {!draft ? (
+          <form
+            className={styles.panelBody}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!authoringAvailable) return;
+              const values = new FormData(event.currentTarget);
+              const id = crypto.randomUUID();
+              const currency = formString(values, "currency") as
+                "EUR" | "GBP" | "USD";
+              setAuthoringPending(true);
+              setAuthoringMessage("");
+              void sendCoreCommand({
+                resource: "price_books",
+                id,
+                action: "create",
+                payload: {
+                  name: formString(values, "name").trim(),
+                  currency,
+                  effectiveFrom: formString(values, "effectiveFrom"),
+                  version: Number(values.get("version")),
+                },
+              })
+                .then(() => {
+                  setDraft({ id, rowVersion: 1, currency });
+                  setAuthoringMessage(
+                    "Draft metadata recorded. Add its first rate card next.",
+                  );
+                  router.refresh();
+                })
+                .catch((error: unknown) => {
+                  setAuthoringMessage(
+                    error instanceof CommerceApiError
+                      ? error.message
+                      : "The draft was not created. Nothing changed.",
+                  );
+                })
+                .finally(() => setAuthoringPending(false));
+            }}
+          >
+            <div className={styles.metaGrid}>
+              <label className={styles.field}>
+                Price-book name
+                <input name="name" required minLength={3} maxLength={120} />
+              </label>
+              <label className={styles.field}>
+                Currency
+                <select name="currency" defaultValue="USD">
+                  <option>USD</option>
+                  <option>EUR</option>
+                  <option>GBP</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                Version
+                <input name="version" type="number" min={1} step={1} required />
+              </label>
+              <label className={styles.field}>
+                Effective from
+                <input name="effectiveFrom" type="date" required />
+              </label>
+            </div>
+            <p className={styles.resultMeta}>
+              This first step creates a draft only. It cannot price a quote
+              until the next step adds a complete rate card and finance later
+              completes the two-authority activation.
+            </p>
+            <div className={styles.actions}>
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!authoringAvailable || authoringPending}
+              >
+                {authoringPending
+                  ? "Creating draft…"
+                  : "Create draft and continue"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form
+            className={styles.panelBody}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const values = new FormData(event.currentTarget);
+              const minor = (name: string) => formString(values, name);
+              const unitPriceMinor = currencyMinor(minor("unitPrice"));
+              const floorPriceMinor = currencyMinor(minor("floorPrice"));
+              const overageRateMinor = currencyMinor(minor("overageRate"));
+              if (!unitPriceMinor || !floorPriceMinor || !overageRateMinor) {
+                setAuthoringMessage(
+                  `Enter each ${draft.currency} price with no more than two decimal places.`,
+                );
+                return;
+              }
+              setAuthoringPending(true);
+              setAuthoringMessage("");
+              void sendCoreCommand({
+                resource: "price_books",
+                id: draft.id,
+                action: "add_rate",
+                expectedVersion: draft.rowVersion,
+                payload: {
+                  sku: minor("sku").trim(),
+                  region: minor("region").trim(),
+                  unit: minor("unit").trim(),
+                  approvedClaim: minor("approvedClaim").trim(),
+                  unitPrice: {
+                    currency: draft.currency,
+                    minor: unitPriceMinor,
+                  },
+                  floorPrice: {
+                    currency: draft.currency,
+                    minor: floorPriceMinor,
+                  },
+                  overageRate: {
+                    currency: draft.currency,
+                    minor: overageRateMinor,
+                  },
+                  minimumQuantity: minor("minimumQuantity"),
+                  egressTreatment: minor("egressTreatment").trim(),
+                  commitType: minor("commitType"),
+                  stripeTaxCode: minor("stripeTaxCode").trim(),
+                  qboIncomeAccount: minor("qboIncomeAccount").trim(),
+                  partnerTransferPrices: {},
+                },
+              })
+                .then(() => {
+                  setSelectedId(draft.id);
+                  setDraft(null);
+                  setAuthoringMessage(
+                    "Priced draft created. Review it below before proposing activation.",
+                  );
+                  router.refresh();
+                })
+                .catch((error: unknown) => {
+                  setAuthoringMessage(
+                    error instanceof CommerceApiError
+                      ? error.message
+                      : "The rate card was not added. The draft remains unchanged.",
+                  );
+                })
+                .finally(() => setAuthoringPending(false));
+            }}
+          >
+            <TechnicalEvidence
+              identifiers={[{ label: "Draft ID", value: draft.id }]}
+            />
+            <div className={styles.metaGrid}>
+              <label className={styles.field}>
+                SKU
+                <input name="sku" required maxLength={80} />
+              </label>
+              <label className={styles.field}>
+                Region
+                <input name="region" required maxLength={80} />
+              </label>
+              <label className={styles.field}>
+                Unit
+                <input
+                  name="unit"
+                  defaultValue="TB-month"
+                  required
+                  maxLength={40}
+                />
+              </label>
+              <label className={styles.field}>
+                Minimum quantity
+                <input name="minimumQuantity" defaultValue="1" required />
+              </label>
+              <label className={styles.field}>
+                Unit price · {draft.currency}
+                <input
+                  name="unitPrice"
+                  inputMode="decimal"
+                  required
+                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  placeholder="150.00"
+                />
+              </label>
+              <label className={styles.field}>
+                Floor price · {draft.currency}
+                <input
+                  name="floorPrice"
+                  inputMode="decimal"
+                  required
+                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  placeholder="100.00"
+                />
+              </label>
+              <label className={styles.field}>
+                Overage rate · {draft.currency}
+                <input
+                  name="overageRate"
+                  inputMode="decimal"
+                  required
+                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  placeholder="180.00"
+                />
+              </label>
+              <label className={styles.field}>
+                Commitment model
+                <select name="commitType" defaultValue="term_drawdown">
+                  <option value="term_drawdown">Term drawdown</option>
+                  <option value="period_allowance">Period allowance</option>
+                </select>
+              </label>
+              <label className={styles.field}>
+                Egress treatment
+                <input name="egressTreatment" defaultValue="metered" required />
+              </label>
+              <label className={styles.field}>
+                Stripe tax code
+                <input
+                  name="stripeTaxCode"
+                  placeholder="e.g. txcd_10103000"
+                  required
+                />
+              </label>
+              <label className={styles.field}>
+                QBO income account
+                <input
+                  name="qboIncomeAccount"
+                  defaultValue="4000-Storage"
+                  required
+                />
+              </label>
+            </div>
+            <label className={styles.field}>
+              Approved commercial claim
+              <textarea name="approvedClaim" required maxLength={500} />
+            </label>
+            <div className={styles.actions}>
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={authoringPending}
+              >
+                {authoringPending ? "Validating rate…" : "Add first rate card"}
+              </button>
+            </div>
+          </form>
+        )}
+        {authoringMessage ? (
+          <p className={styles.resultMeta} role="status" aria-live="polite">
+            {authoringMessage}
+          </p>
+        ) : null}
+      </section>
+
+      <section
+        className={styles.panel}
         aria-labelledby="price-book-versions-title"
       >
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="price-book-versions-title">Version scan</h2>
+            <h2 id="price-book-versions-title">Price book versions</h2>
             <p>
-              {source} · Read at {readAt}
+              {sourceLabel} · Updated {updatedLabel} UTC
             </p>
           </div>
-          <StatusPill state={books.length ? "Fresh" : "Unavailable"} />
+          <StatusPill
+            state={
+              availability === "unavailable"
+                ? "Unavailable"
+                : availability === "empty"
+                  ? "Empty"
+                  : "Fresh"
+            }
+          />
         </div>
         <div
           className={styles.toolbar}
@@ -247,7 +559,11 @@ export function PriceBookAdministration({
                 : "Decided",
           ])}
           emptyState={
-            books.length ? activationCopy.noMatches : activationCopy.unreadable
+            books.length
+              ? activationCopy.noMatches
+              : availability === "empty"
+                ? activationCopy.empty
+                : activationCopy.unreadable
           }
         />
       </section>

@@ -1,6 +1,9 @@
+import { createHash } from "node:crypto";
+
 import { createDemoCommerceHandlers } from "@clockwork/testing/demo-handlers";
 import { DEMO_ORIGIN } from "@clockwork/testing/demo-seed";
 import type { SessionClaims } from "@clockwork/api";
+import { hasPermission } from "@clockwork/contracts";
 import { getResponse } from "msw";
 
 import {
@@ -8,6 +11,7 @@ import {
   demoAccessCookieName,
   verifyDemoAccessCookie,
 } from "@/src/auth/demo-access";
+import { ExperienceProblem } from "@/src/features/experience-server/model";
 
 // The same generated-contract simulators the browser suites run against, served
 // from the server so nothing intercepts requests in a prospect's browser. The
@@ -18,21 +22,100 @@ const handlers = [...createDemoCommerceHandlers()];
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
- * The one command lane the demo runs rather than simulates.
- *
- * Every other operation here echoes a contract-shaped response, which is right
- * for a demo: it proves the wire shape without pretending a decision was made.
- * Order acceptance is different, because the decision IS the demonstration. The
- * echo answered `orders:prepare_artifact` with the payload it was handed, so no
- * order form was ever composed, no binding was ever recorded, and the second
- * pass had nothing to quote -- the prospect reached a permanent wait. The demo
- * order lane runs the product's own `acceptOrder` over seeded records instead,
- * and the CSRF and replay evidence the simulators demand is demanded here too.
+ * Stateful demo command lanes run the product's own domain behavior over
+ * resettable demo records. Each lane keeps the same identity, authorization,
+ * origin, CSRF, and replay boundary as its production-shaped endpoint. Routes
+ * that remain on the generated handlers are deterministic contract simulations;
+ * their responses must not imply that a durable decision or provider action ran.
  */
 function isOrderCommand(request: Request, url: URL): boolean {
   return (
     request.method === "POST" &&
     url.pathname.replace(/^\/api/, "") === "/v1/core/commands/orders"
+  );
+}
+
+function isPriceBookCommand(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    url.pathname.replace(/^\/api/, "") === "/v1/core/commands/price_books"
+  );
+}
+
+function isDealRegistrationCommand(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    url.pathname.replace(/^\/api/, "") ===
+      "/v1/core/commands/deal_registrations"
+  );
+}
+
+function isQuoteCommand(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    url.pathname.replace(/^\/api/, "") === "/v1/core/commands/quotes"
+  );
+}
+
+function demoPartnerBrandAccountId(
+  request: Request,
+  url: URL,
+): string | undefined {
+  if (request.method !== "POST") return undefined;
+  const match =
+    /^\/api\/v1\/lifecycle\/partners\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/domains$/iu.exec(
+      url.pathname,
+    );
+  return match?.[1];
+}
+
+function isDemoPartnerRenewalPath(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    /^\/api\/v1\/lifecycle\/renewals\/demo-partner-renewal-ec-00(?:38|41|47)\/(?:requests|declines)$/u.test(
+      url.pathname,
+    )
+  );
+}
+
+function isDemoCustomerAccountControl(request: Request, url: URL): boolean {
+  if (
+    request.method === "GET" &&
+    url.pathname === "/api/v1/core/records/accounts"
+  )
+    return true;
+  if (
+    request.method === "POST" &&
+    url.pathname === "/api/v1/core/commands/accounts"
+  )
+    return true;
+  if (
+    request.method === "PUT" &&
+    url.pathname === "/api/v1/notifications/preferences"
+  )
+    return true;
+  if (
+    request.method === "POST" &&
+    /^\/api\/v1\/lifecycle\/organizations\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/invites$/iu.test(
+      url.pathname,
+    )
+  )
+    return true;
+  return (
+    request.method === "PUT" &&
+    /^\/api\/v1\/lifecycle\/accounts\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/procurement-profile$/iu.test(
+      url.pathname,
+    )
+  );
+}
+
+function isDemoInvoicePayment(request: Request, url: URL): boolean {
+  return (
+    request.method === "POST" &&
+    (url.pathname === "/api/demo/payments/sessions" ||
+      /^\/api\/demo\/payments\/sessions\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/complete$/iu.test(
+        url.pathname,
+      ))
   );
 }
 
@@ -134,6 +217,24 @@ function immutableSession(session: SessionClaims): SessionClaims {
       ? { impersonation: Object.freeze({ ...session.impersonation }) }
       : {}),
   });
+}
+
+async function demoCoreSession(
+  request: Request,
+): Promise<
+  { readonly session: SessionClaims } | { readonly response: Response }
+> {
+  try {
+    const { WorkosNextSessionResolver } = await import("@/src/auth/session");
+    const session = await new WorkosNextSessionResolver({
+      requireBoundSession: true,
+    }).resolve(request);
+    return session
+      ? { session: immutableSession(session) }
+      : { response: demoIdentityProblem(request, false) };
+  } catch {
+    return { response: demoIdentityProblem(request, true) };
+  }
 }
 
 function securityProblem(
@@ -283,8 +384,162 @@ function validateOrderIdempotency(request: Request): Response | undefined {
   return undefined;
 }
 
+function queueRefreshProblem(
+  request: Request,
+  status: number,
+  code: string,
+  detail: string,
+): Response {
+  return Response.json(
+    {
+      type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
+      title: "Queue refresh refused",
+      status,
+      detail,
+      code,
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: status >= 500,
+    },
+    {
+      status,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+/**
+ * Next may materialize an empty incoming POST as a non-null ReadableStream.
+ * Classify the encoded request metadata rather than consuming that stream:
+ * doing so preserves the destination's no-body/no-buffer guarantee while
+ * accepting the deployed adapter's explicit zero-length representation.
+ */
+function queueRefreshIsBodyless(request: Request): boolean {
+  if (request.headers.has("transfer-encoding")) return false;
+  const contentLength = request.headers.get("content-length");
+  return contentLength === null ? request.body === null : contentLength === "0";
+}
+
+function quoteRoutingProblem(
+  request: Request,
+  code: "AMBIGUOUS_QUOTE_AUTHORITY" | "QUOTE_AUTHORITY_FORBIDDEN",
+  detail: string,
+): Response {
+  return Response.json(
+    {
+      type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
+      title: "Quote command refused",
+      status: 403,
+      detail,
+      code,
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: false,
+    },
+    {
+      status: 403,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+/** Destination security for the demo-only operational queue refresh. */
+export async function handleDemoQueueProjectionRefresh(
+  request: Request,
+): Promise<Response> {
+  if (new URL(request.url).pathname !== "/api/demo/projections/queues/refresh")
+    return queueRefreshProblem(
+      request,
+      404,
+      "DEMO_QUEUE_REFRESH_NOT_FOUND",
+      "This demo operation is not available at the requested path.",
+    );
+  const demoAccessSecret = demoAccessConfiguration(process.env);
+  if (
+    demoAccessSecret &&
+    !(await verifyDemoAccessCookie(
+      cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+      demoAccessSecret,
+    ))
+  )
+    return demoAccessProblem(request);
+  if (request.method !== "POST")
+    return queueRefreshProblem(
+      request,
+      405,
+      "METHOD_NOT_ALLOWED",
+      "Queue refresh requires POST.",
+    );
+  const proofFailure = validateMutationProof(request);
+  if (proofFailure) return proofFailure;
+  const idempotencyFailure = validateOrderIdempotency(request);
+  if (idempotencyFailure) return idempotencyFailure;
+  if (!queueRefreshIsBodyless(request))
+    return queueRefreshProblem(
+      request,
+      422,
+      "INVALID_DEMO_QUEUE_REFRESH",
+      "Queue refresh does not accept a request body.",
+    );
+  const identity = await demoCoreSession(request);
+  if ("response" in identity) return identity.response;
+  if (
+    !identity.session.isInternalStaff ||
+    !identity.session.roles.some((role) =>
+      hasPermission(role, "system:operate"),
+    )
+  )
+    return queueRefreshProblem(
+      request,
+      403,
+      "QUEUE_REFRESH_FORBIDDEN",
+      "Internal system-operation authority is required.",
+    );
+  const requestDigest = createHash("sha256")
+    .update(request.method)
+    .update("\0")
+    .update(new URL(request.url).pathname)
+    .update("\0")
+    .update(new Uint8Array())
+    .digest("hex");
+  try {
+    const { refreshDemoQueueProjections } =
+      await import("@/src/features/experience-server/projection-source");
+    const result = await refreshDemoQueueProjections({
+      actorId: identity.session.userId,
+      idempotencyKey: request.headers.get("idempotency-key")?.trim() ?? "",
+      requestDigest,
+    });
+    return Response.json(result, {
+      headers: {
+        "cache-control": "private, no-store",
+        "idempotency-replayed": String(result.replayed),
+      },
+    });
+  } catch (error) {
+    return error instanceof ExperienceProblem
+      ? queueRefreshProblem(request, error.status, error.code, error.message)
+      : queueRefreshProblem(
+          request,
+          500,
+          "DEMO_QUEUE_REFRESH_FAILED",
+          "The demo queue refresh could not be recorded.",
+        );
+  }
+}
+
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  const partnerBrandAccountId = demoPartnerBrandAccountId(request, url);
+  const partnerRenewalPath = isDemoPartnerRenewalPath(request, url);
+  const customerAccountControl = isDemoCustomerAccountControl(request, url);
+  const demoInvoicePayment = isDemoInvoicePayment(request, url);
   const demoAccessSecret = demoAccessConfiguration(process.env);
   if (
     demoAccessSecret &&
@@ -303,30 +558,97 @@ export async function handle(request: Request): Promise<Response> {
     const proofFailure = validateMutationProof(request);
     if (proofFailure) return proofFailure;
   }
-  if (isOrderCommand(request, url)) {
-    const idempotencyFailure = validateOrderIdempotency(request);
-    if (idempotencyFailure) return idempotencyFailure;
+  if (
+    isOrderCommand(request, url) ||
+    isPriceBookCommand(request, url) ||
+    isDealRegistrationCommand(request, url) ||
+    isQuoteCommand(request, url) ||
+    partnerBrandAccountId ||
+    partnerRenewalPath ||
+    customerAccountControl ||
+    demoInvoicePayment
+  ) {
+    if (request.method !== "GET") {
+      const idempotencyFailure = validateOrderIdempotency(request);
+      if (idempotencyFailure) return idempotencyFailure;
+    }
     // Resolve identity from this exact request before its body is consumed or
     // the command lane is loaded. Raw API routes do not rely on Next's ambient
     // cookies()/headers() request store: serverless connection teardown and
     // deferred module loading must not be able to detach authorization from
     // the bytes the destination executes.
-    let session: SessionClaims | null;
-    try {
-      const { WorkosNextSessionResolver } = await import("@/src/auth/session");
-      session = await new WorkosNextSessionResolver({
-        requireBoundSession: true,
-      }).resolve(request);
-    } catch {
-      return demoIdentityProblem(request, true);
+    const identity = await demoCoreSession(request);
+    if ("response" in identity) return identity.response;
+    if (demoInvoicePayment) {
+      const lane =
+        await import("@/src/features/experience-server/demo-invoice-payment");
+      return lane.handleDemoInvoicePayment(request, identity.session);
     }
-    if (!session) return demoIdentityProblem(request, false);
+    if (customerAccountControl) {
+      const lane =
+        await import("@/src/features/experience-server/demo-account-controls");
+      return lane.handleDemoCustomerAccountControl(request, identity.session);
+    }
+    if (partnerBrandAccountId) {
+      const lane =
+        await import("@/src/features/customer-partner/partner/demo-partner-brand");
+      return lane.handleDemoPartnerBrand(
+        request,
+        identity.session,
+        partnerBrandAccountId,
+      );
+    }
+    if (partnerRenewalPath) {
+      const lane =
+        await import("@/src/features/customer-partner/partner/demo-partner-renewal");
+      const target = lane.demoPartnerRenewalOrderId(url.pathname);
+      if (!target) throw new Error("Demo renewal route drifted after matching");
+      return lane.handleDemoPartnerRenewal(request, identity.session, target);
+    }
+    if (isPriceBookCommand(request, url)) {
+      const lane =
+        await import("@/src/features/internal-ops/price-books/demo-price-book-command");
+      return lane.handleDemoPriceBookCommand(request, identity.session);
+    }
+    if (isDealRegistrationCommand(request, url)) {
+      const lane =
+        await import("@/src/features/customer-partner/partner/demo-deal-registration");
+      return lane.handleDemoDealRegistrationCommand(request, identity.session);
+    }
+    if (isQuoteCommand(request, url)) {
+      const partnerRoles = identity.session.roles.filter(
+        (role) => role === "partner_admin" || role === "partner_seller",
+      );
+      if (partnerRoles.length > 0) {
+        if (
+          identity.session.isInternalStaff ||
+          partnerRoles.length !== identity.session.roles.length
+        )
+          return quoteRoutingProblem(
+            request,
+            "AMBIGUOUS_QUOTE_AUTHORITY",
+            "A mixed or internal session cannot enter the partner quote lane.",
+          );
+        const lane =
+          await import("@/src/features/customer-partner/partner/demo-partner-quote");
+        return lane.handleDemoPartnerQuoteCommand(request, identity.session);
+      }
+      if (identity.session.isInternalStaff)
+        return quoteRoutingProblem(
+          request,
+          "QUOTE_AUTHORITY_FORBIDDEN",
+          "Internal sessions cannot create customer demo quotes.",
+        );
+      const lane =
+        await import("@/src/features/experience-server/demo-quote-command");
+      return lane.handleDemoQuoteCommand(request, identity.session);
+    }
     // Loaded on demand, the way this route already loads its two apps: the
     // order lane pulls in the domain, the document renderer and the demo state
     // store, and no other request needs any of them.
     const lane =
       await import("@/src/features/experience-server/demo-order-command");
-    return lane.handleDemoOrderCommand(request, immutableSession(session));
+    return lane.handleDemoOrderCommand(request, identity.session);
   }
   const simulated = new URL(
     `${url.pathname.replace(/^\/api/, "") || "/"}${url.search}`,

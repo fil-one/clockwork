@@ -11,7 +11,7 @@ vi.mock("@/src/features/contracts/commerce-client", () => ({
 import { QuoteBuilder } from "./quote-builder";
 import { authoritativeQuoteOffers } from "./quote-offer.test-fixture";
 
-it("keeps the explicit demo builder operable without claiming a saved priced quote", async () => {
+it("creates a persisted priced draft through the explicit demo builder", async () => {
   const user = userEvent.setup();
   mocks.sendCoreCommand.mockResolvedValue({
     record: { rowVersion: 1, data: { route: "direct" } },
@@ -36,14 +36,11 @@ it("keeps the explicit demo builder operable without claiming a saved priced quo
   await user.type(screen.getByLabelText("Term (months)"), "12");
   await user.type(screen.getByLabelText("Quote expiry"), "2026-08-31T17:00");
   await user.click(screen.getByRole("button", { name: "Continue" }));
-  await user.click(screen.getByRole("button", { name: "Simulate draft" }));
+  await user.click(screen.getByRole("button", { name: "Create priced draft" }));
 
   expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(1);
   expect(
-    await screen.findByText(/No quote was saved, priced, or issued/u),
-  ).toBeVisible();
-  expect(screen.queryByRole("link", { name: /Open quote/u })).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Create priced draft" }),
-  ).toBeNull();
+    await screen.findByRole("link", { name: /Open the created draft/u }),
+  ).toHaveAttribute("href", expect.stringMatching(/^\/quotes\/quote-/u));
+  expect(screen.queryByText(/simulated|No quote was saved/iu)).toBeNull();
 });

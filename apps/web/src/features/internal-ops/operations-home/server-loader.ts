@@ -88,7 +88,7 @@ export async function loadOperationsHome(
     {
       label: "Queue work",
       value: plural(queues.recordCount, "case", "cases"),
-      detail: `${plural(highRiskQueues, "case is", "cases are")} marked high risk by the projection.`,
+      detail: `${plural(highRiskQueues, "case needs", "cases need")} priority attention.`,
       channel: "queues",
       generatedAt: queues.generatedAt,
       stale: queues.stale,
@@ -122,7 +122,7 @@ export async function loadOperationsHome(
       label: "Renewal notice",
       value: plural(noticeDue, "order", "orders"),
       detail:
-        "Orders whose contractual notice date has passed or falls inside 30 days. No exposure estimate is available from any projection.",
+        "Orders whose contractual notice date has passed or falls inside 30 days.",
       channel: "orders",
       generatedAt: orders.generatedAt,
       stale: orders.stale,

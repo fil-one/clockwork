@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { isValidElement, useRef, useState, type ReactNode } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
@@ -12,6 +13,7 @@ import {
   downloadReportCsv,
   inviteOrganizationMember,
   publishAgreementTemplate,
+  readCoreAccount,
   readReport,
   registerPartnerDomain,
   reportNames,
@@ -50,9 +52,9 @@ import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
  * `row_version` (`database-finance.ts`, `input.expectedVersion !==
  * prior.rowVersion`), which is a different counter from the
  * `experience_projections.row_version` a route can reach. The version has to
- * arrive on the same authoritative read that supplies the values being edited,
- * and no surface performs that read yet, so nothing here could have populated
- * it honestly.
+ * arrive from an authoritative account read. The submit path performs that
+ * read immediately before the update, so a reader never has to see or guess
+ * the concurrency token and a stale write still fails closed.
  */
 export interface WorkflowRecordContext {
   accountId?: string;
@@ -503,28 +505,6 @@ function mutationFields({
           resolved={context.accountId}
           required
         />
-        {/*
-         * The one field on this form that is not a record identity and not the
-         * reader's answer either. `expectedVersion` is compared against the
-         * account aggregate's own `row_version`, which arrives with an
-         * authoritative read of the account -- the same read that would supply
-         * the current legal name and billing contact this form leaves blank.
-         * No surface performs that read, so there is no version to carry and
-         * `WorkflowRecordContext` deliberately has no key for one: a route
-         * could only offer the projection row's version, which is a different
-         * counter and would be a wrong number under a right name. Until the
-         * read exists this stays a visible, labelled guess that the server
-         * rejects when it is stale, which is the failure the reader can act on.
-         */}
-        <Input
-          label="Current row version"
-          name="rowVersion"
-          type="number"
-          min="1"
-          defaultValue="1"
-          required
-          help="No surface reads the account's current row version yet, so this is a guess the server will reject if the account has moved on."
-        />
         <Input label="Legal name" name="legalName" required />
         <Input
           label="Invoice delivery email"
@@ -701,6 +681,7 @@ export function WorkflowPanel({
    */
   context: WorkflowRecordContext;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -823,13 +804,15 @@ export function WorkflowPanel({
         });
       } else if (workflow === "account") {
         commandKeyRef.current ??= crypto.randomUUID();
-        const accountResult = await sendCoreCommand(
+        const accountId = value(data, "accountId");
+        const current = await readCoreAccount(accountId);
+        await sendCoreCommand(
           {
             resource: "accounts",
-            id: value(data, "accountId"),
-            accountId: value(data, "accountId"),
+            id: accountId,
+            accountId,
             action: "update",
-            expectedVersion: Number(value(data, "rowVersion")),
+            expectedVersion: current.rowVersion,
             payload: {
               legalName: value(data, "legalName"),
               invoiceDeliveryEmail: value(data, "invoiceDeliveryEmail"),
@@ -842,9 +825,8 @@ export function WorkflowPanel({
           { idempotencyKey: commandKeyRef.current },
         );
         commandKeyRef.current = null;
-        setSuccess(
-          `Account ${accountResult.record.id} updated at row version ${accountResult.record.rowVersion}.`,
-        );
+        setSuccess("Account settings saved.");
+        router.refresh();
       } else if (workflow === "invite") {
         result = await inviteOrganizationMember({
           organizationId: value(data, "organizationId"),
@@ -905,8 +887,19 @@ export function WorkflowPanel({
         setSuccess(
           workflow === "reports"
             ? "Report loaded from source records."
-            : "Request accepted. The server record is now the source of truth.",
+            : workflow === "brand"
+              ? "Brand settings saved. DNS verification is pending at your provider."
+              : workflow === "renewal" && surface === "partnerRenewals"
+                ? "Renewal decision saved. The portfolio record now shows the pending outcome."
+                : "Request accepted. The server record is now the source of truth.",
         );
+        if (
+          workflow === "brand" ||
+          workflow === "invite" ||
+          workflow === "procurement" ||
+          (workflow === "renewal" && surface === "partnerRenewals")
+        )
+          router.refresh();
       }
     } catch (caught) {
       /*

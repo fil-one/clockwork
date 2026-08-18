@@ -2,11 +2,14 @@
 
 import { DatabaseSystemRecoveryCommandExecutor } from "@clockwork/db";
 import type { DeadLetterSource } from "@clockwork/db";
+import { hasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
+import { decideDemoDeadLetter } from "../demo-operator-state";
 import { redriveRetriedWork } from "./redrive";
 
 export interface RecoveryDecisionResult {
@@ -48,8 +51,10 @@ export async function decideDeadLetterOperation(
   if (reason.length < 8)
     return { ok: false, code: "SYSTEM_RECOVERY_REASON_REQUIRED" };
 
+  const demoEnabled = demoDeployIdentityEnabled(process.env);
   const database = getOptionalServiceDatabase();
-  if (!database) return { ok: false, code: "SYSTEM_RECOVERY_UNAVAILABLE" };
+  if (!database && !demoEnabled)
+    return { ok: false, code: "SYSTEM_RECOVERY_UNAVAILABLE" };
 
   let session;
   try {
@@ -57,6 +62,36 @@ export async function decideDeadLetterOperation(
   } catch {
     return { ok: false, code: "SYSTEM_RECOVERY_RECENT_AUTH_REQUIRED" };
   }
+  if (demoEnabled && !database) {
+    const permitted =
+      session.isInternalStaff &&
+      session.roles.some((role) => hasPermission(role, "system:operate"));
+    if (!permitted)
+      return { ok: false, code: "SYSTEM_RECOVERY_PERMISSION_REVOKED" };
+    try {
+      const result = await decideDemoDeadLetter({
+        source,
+        id,
+        action,
+        reason,
+        actorId: session.userId,
+      });
+      revalidatePath("/internal/recovery");
+      return action === "retry"
+        ? { ok: true, redriveSubmitted: result.redriveSubmitted }
+        : { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        code:
+          error instanceof Error &&
+          error.message === "DEAD_LETTER_OPERATION_NOT_FOUND"
+            ? "DEAD_LETTER_OPERATION_NOT_FOUND"
+            : "SYSTEM_RECOVERY_FAILED",
+      };
+    }
+  }
+  if (!database) return { ok: false, code: "SYSTEM_RECOVERY_UNAVAILABLE" };
   const requestId = `experience:recovery:${crypto.randomUUID()}`;
   const result = await new DatabaseSystemRecoveryCommandExecutor({
     database,

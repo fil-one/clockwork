@@ -12,7 +12,7 @@ export const revenueCopy = {
     label: "Revenue report coverage",
     forecast: {
       title: "Forecast rows",
-      detail: "All rows read from core_revenue_forecast",
+      detail: "Quotes and orders included in the current forecast",
     },
     remaining: {
       title: "Remaining backlog rows",
@@ -20,7 +20,7 @@ export const revenueCopy = {
     },
     recurring: {
       title: "Recurring contracts",
-      detail: "Distinct order rows read from core_arr_mrr",
+      detail: "Active contracts included in ARR and MRR",
     },
   },
   unreadable: {
@@ -36,7 +36,7 @@ export const revenueCopy = {
   stage: {
     heading: "Forecast by stage",
     subheading:
-      "All forecast rows, separated into contracted backlog and unaccepted quote pipeline.",
+      "Contracted backlog and unaccepted quote pipeline. Pipeline shows full issued value and is not probability-weighted.",
     caption: "Forecast totals by stage, currency, and revenue basis",
     empty: "No forecast rows were returned.",
     columns: [

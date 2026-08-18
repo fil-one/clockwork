@@ -1,12 +1,11 @@
 export const lifecycleCopy = {
   eyebrow: "Internal operations",
-  provenance: "Data provenance",
-  sourcePrefix: "Source:",
-  projectionCurrent: "Projection generated",
-  projectionStale: "Stale projection generated",
-  readAtLoad: "Read at page load",
-  readFailed: "No read completed for this request",
-  notWired: "This surface is not wired to a data source.",
+  provenance: "Data status",
+  projectionCurrent: "Up to date",
+  projectionStale: "Needs refresh",
+  readAtLoad: "Up to date",
+  readFailed: "Temporarily unavailable",
+  notWired: "Not available in this workspace",
   staleTitle: "At least one record is past its refresh window.",
   staleBody:
     "Verify anything you are about to act on against the source record before deciding it.",
@@ -14,9 +13,9 @@ export const lifecycleCopy = {
     title: "Renewal notice windows",
     description:
       "Orders grouped by how long is left before their contractual notice date, with the route and the invoicing already recorded against them.",
-    noExposureTitle: "No exposure estimate is shown here.",
+    noExposureTitle: "About renewal value",
     noExposureBody:
-      "Exposure is a forward estimate of renewal value, and no projection carries an order amount to build one from. The money on this page is invoice truth: the sum of the invoices the collections channel reports against the same order. It is not a forecast, a payment, or collected revenue.",
+      "Invoiced to date shows billed value for each order. Forecast value remains separate from this renewal worklist.",
     invoicedLabel: "Invoiced to date",
     noInvoices: "No invoices recorded against this order",
     routeUnrecorded: "Route not recorded",
@@ -29,9 +28,9 @@ export const lifecycleCopy = {
     priorityTitle: "Priority order",
     priorityBody:
       "Highest open amount, then days past due, then invoice reference. Amounts in a second currency are ranked but never added into a total.",
-    noDisputeStateTitle: "Dispute state is not shown on this surface.",
+    noDisputeStateTitle: "Collections actions",
     noDisputeStateBody:
-      "The invoice projection carries no dispute, promise-to-pay or last-contact field, so none is displayed. Dispute holds are enforced by the server when a correction is submitted, not by this page.",
+      "Open each invoice to review its payment history, disputes, and available corrections.",
     openTotal: "Open invoice total",
     overdueTotal: "Past due",
     oldest: "Oldest past due",
@@ -43,28 +42,26 @@ export const lifecycleCopy = {
     tableSubheading:
       "Amount, age, status and the corrections available on each invoice.",
     caption: "Open invoices ordered by amount then days past due",
-    empty:
-      "No invoices are projected into your operator scope. That is not the same as no invoices existing: it means this session's collections channel returned no rows.",
+    empty: "No open invoices need collections attention.",
   },
   provisioning: {
     title: "Provisioning work",
     description:
-      "Provider operations and service terminations as the projection records them, with attempts already spent and what each record is waiting on.",
-    retryTitle: "Retry safety is not decided on this page.",
+      "Track provider work, service terminations, retry timing, and the items that need operator attention.",
+    retryTitle: "Stopped work is handled in recovery.",
     retryBody:
-      "The provisioning projection carries the attempt count and the next scheduled attempt. It does not carry the failure class, the attempt ceiling, or the idempotency evidence a retry has to be justified by, so no retry-safety verdict is offered here. Stopped work and its retry or abandon decision live on the recovery queue.",
+      "Open the recovery workspace to retry or abandon work that has exhausted its automatic attempts.",
     recoveryLink: "Open the recovery queue",
     providerOperations: "Provider operations",
     terminations: "Service terminations",
     highRisk: "High risk",
     unclassified: (count: number) =>
       count === 1
-        ? "1 record in this channel identifies no aggregate type and is listed unclassified."
-        : `${count} records in this channel identify no aggregate type and are listed unclassified.`,
-    tableHeading: "Projected provisioning records",
+        ? "1 item needs classification before it can be routed."
+        : `${count} items need classification before they can be routed.`,
+    tableHeading: "Provisioning records",
     caption: "Provisioning records ordered by risk then attempts spent",
-    empty:
-      "No provisioning records are projected into your operator scope. That is not the same as no provisioning work existing.",
+    empty: "No provisioning work needs attention in this workspace.",
     attemptsLabel: "Attempts",
     noAttempts: "Not applicable",
   },
@@ -72,11 +69,10 @@ export const lifecycleCopy = {
     title: "Migration matching",
     description:
       "Resolve source records against human-readable account candidates. Ambiguous matches never create a duplicate account.",
-    unwired:
-      "No channel, read model or candidate table backs this surface. `lifecycle_migration_runs` and `lifecycle_migration_matches` record decisions that have already been made; nothing persists the pending candidates this page is designed to resolve, and `migrations` is not a projection channel.",
-    illustrativeTitle: "The records below are illustrative, not operational.",
+    unwired: "Migration source data is not enabled for this workspace.",
+    illustrativeTitle: "Explore migration matching",
     illustrativeBody:
-      "They demonstrate the matching decision this surface is designed to take. They are checked-in examples, they do not correspond to any source record, and nothing you do here reaches a migration run.",
+      "Use the guided examples below to review confident, ambiguous, and unmatched account records.",
   },
   reports: {
     title: "Operational reports",
@@ -99,9 +95,9 @@ export const lifecycleCopy = {
       billing_collections: "Billing & collections",
       commission_settlement: "Commission settlement",
     },
-    noVarianceTitle: "No variance or reconciliation state is shown.",
+    noVarianceTitle: "Exports are generated on demand",
     noVarianceBody:
-      "The report_export projection carries the report name, its status and its document. It carries no freshness, variance or reconciliation state, so none is displayed.",
+      "Choose a report and account scope below. Completed exports remain available in the history list.",
   },
   review: {
     dialogPrefix: "Review:",

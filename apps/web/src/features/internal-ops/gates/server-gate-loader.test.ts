@@ -13,6 +13,14 @@ const securitySpies = vi.hoisted(() => ({
   requestHeadersAccess: vi.fn(),
 }));
 
+const demoSpies = vi.hoisted(() => ({
+  readDemoExternalGates: vi.fn(),
+}));
+
+vi.mock("./demo-gate-state", () => ({
+  readDemoExternalGates: demoSpies.readDemoExternalGates,
+}));
+
 vi.mock("next/headers", () => ({
   cookies: securitySpies.cookieAccess,
   headers: securitySpies.requestHeadersAccess,
@@ -48,6 +56,26 @@ const gate = {
 describe("external-gate server loader credential containment", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it("returns writable gate records only for the exact demo identity", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+    demoSpies.readDemoExternalGates.mockResolvedValue([gate]);
+
+    const result = await loadConfiguredGateRecords(undefined, {
+      now: new Date("2026-08-18T12:00:00.000Z"),
+    });
+    expect(result).toMatchObject({
+      source: "Demonstration gate registry",
+      gates: [{ gateKey: "EXT-ACC-01", rowVersion: 1 }],
+    });
+    expect(demoSpies.readDemoExternalGates).toHaveBeenCalledTimes(1);
   });
 
   it.each([

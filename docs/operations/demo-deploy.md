@@ -157,16 +157,33 @@ something that has actually broken here:
       route must become unavailable after reload. This cleanup is mandatory on
       draft and production because both deploys share the site's Blob state.
 
-6. **"Sign this agreement"** reaches the ceremony and returns. This depends on
-   `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS` containing the site's **own** origin —
-   the ceremony URL is same-origin and the client refuses any signing URL
-   outside that list. Being `NEXT_PUBLIC`, it is baked at build time, so
-   correcting it requires a rebuild, not just an environment change.
-7. **The devtools console** carries at most the Zod `eval` line, which is
-   cosmetic and documented in `apps/web/proxy.ts`. Anything mentioning
-   `script-src-elem` means the vendored Next patch in `patches/` was dropped —
-   see `patches/README.md`. Repeated `/api/telemetry` 403s mean no ingest secret
-   is set; harmless, fail-closed, but noisy for a technical prospect.
+6. **Finance can author and activate a price book.** As Mateo Silva, create a
+   draft, add its first rate card, propose activation, and use the seeded
+   independent proposal to exercise the second-authority activation decision.
+   The new and activated versions must remain visible after refresh.
+7. **Queue refresh changes the page.** As Ada Mercer, open `/internal/queues`,
+   choose **Refresh data**, and confirm the stale warning and refresh button
+   disappear. This is a secured persisted refresh, not a page reload.
+8. **Partner work persists.** As Priya Nair, register a deal, create a priced
+   partner quote, and request a renewal. Each result must appear in its
+   collection and remain after a fresh page read.
+9. **Customer settings persist.** As Mara Voss, change a notification choice,
+   reload the page, and confirm the stored choice remains. Account, member, and
+   procurement updates follow the same resettable demo-state boundary.
+10. **Sandbox payment completes without moving money.** As Theo Grant, open the
+    overdue invoice, acknowledge the demo-only payment boundary, complete the
+    sandbox checkout, and return to a visibly paid invoice with its demo
+    receipt. The real Stripe session path must never run in the demo.
+11. **"Sign this agreement"** reaches the ceremony and returns. This depends on
+    `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS` containing the site's **own** origin —
+    the ceremony URL is same-origin and the client refuses any signing URL
+    outside that list. Being `NEXT_PUBLIC`, it is baked at build time, so
+    correcting it requires a rebuild, not just an environment change.
+12. **The devtools console** carries at most the Zod `eval` line, which is
+    cosmetic and documented in `apps/web/proxy.ts`. Anything mentioning
+    `script-src-elem` means the vendored Next patch in `patches/` was dropped —
+    see `patches/README.md`. Repeated `/api/telemetry` 403s mean no ingest
+    secret is set; harmless, fail-closed, but noisy for a technical prospect.
 
 One environment trap: `CLOCKWORK_DEMO_STATE_STORE=memory` breaks order
 acceptance in a production build, because the API route and the page bundles get

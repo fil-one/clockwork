@@ -5,7 +5,7 @@ import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
-import { plural } from "@/src/i18n/en";
+import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
 import styles from "./internal-projection-page.module.css";
 
 function value(
@@ -50,19 +50,11 @@ export async function InternalProjectionPage({
           className={projection.stale ? styles.stale : styles.freshness}
           role={projection.stale ? "alert" : "status"}
         >
-          {projection.stale
-            ? "Some records are stale"
-            : "Projection is current"}{" "}
-          · Updated{" "}
+          {projection.stale ? "Some records need a refresh" : "Up to date"} ·
+          Updated{" "}
           <time dateTime={projection.generatedAt}>
-            {projection.generatedAt}
-          </time>{" "}
-          ·{" "}
-          {plural(
-            projection.pagesRead,
-            "{count} server page",
-            "{count} server pages",
-          )}
+            {formatOperationalTimestamp(projection.generatedAt)}
+          </time>
         </p>
       </header>
       {projection.records.length === 0 ? (
@@ -73,15 +65,9 @@ export async function InternalProjectionPage({
       ) : (
         <Table
           className={styles.records ?? ""}
-          caption={`${title} · session-scoped records`}
+          caption={title}
           captionHidden
-          headers={[
-            "Record",
-            "Status",
-            "Owner",
-            "Next task",
-            "Version-bound actions",
-          ]}
+          headers={["Record", "Status", "Owner", "Next task", "Actions"]}
           rowKeys={projection.records.map((record) => record.id)}
           rows={projection.records.map((record) => [
             <>

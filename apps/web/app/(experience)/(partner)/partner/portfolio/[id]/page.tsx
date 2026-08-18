@@ -1,4 +1,6 @@
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { PartnerPortfolioDetail } from "@/src/features/customer-partner/partner/partner-detail";
+import { demoPartnerPortfolioRenewalContext } from "@/src/features/customer-partner/partner/demo-partner-renewal";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
@@ -16,27 +18,27 @@ export default async function Page({
    * client's account identifier -- the account any renewal on this page is
    * about, and not one the partner can read anywhere on screen.
    *
-   * The order is a different matter, and it is why this panel still refuses.
-   * `POST /v1/lifecycle/renewals/{orderId}/...` binds on the order, and this
-   * surface carries no order: the portfolio channel projects accounts, and
-   * partner-visible orders live on the `orders` channel that no route here
-   * reads. Resolving that is the systemic wiring another work-stream owns. What
-   * is fixed is that the panel now says the order is missing and posts nothing,
-   * instead of asking a partner to type an order identifier they have never
-   * been shown and silently doing nothing when they cannot.
+   * `POST /v1/lifecycle/renewals/{orderId}/...` still binds on the order rather
+   * than the projected account. The guided demo resolves that hidden binding
+   * from its fixed partner relationship below; production refuses the action
+   * unless its authorized record loader supplies an account and leaves the
+   * missing order inert rather than asking a partner to guess it.
    */
   const portfolio = await loadPortalRecords("partner", "portfolio");
   const record = portfolio.records.find(
     (candidate) => candidate.recordKey === id,
   );
+  const renewalContext = demoDeployIdentityEnabled(process.env)
+    ? demoPartnerPortfolioRenewalContext(id)
+    : record?.aggregateId
+      ? { accountId: record.aggregateId }
+      : {};
   return (
     <PartnerPortfolioDetail
       actions={
         <SurfaceActionGate audience="partner" requiredPermission="order:write">
           <WorkflowPanel
-            context={
-              record?.aggregateId ? { accountId: record.aggregateId } : {}
-            }
+            context={renewalContext ?? {}}
             workflow="renewal"
             surface="partnerRenewals"
           />

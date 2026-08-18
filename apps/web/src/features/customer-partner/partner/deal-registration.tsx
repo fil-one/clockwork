@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
@@ -102,6 +103,7 @@ export function DealRegistration({
 }
 
 function RegistrationForm({ context }: { context: DealRegistrationContext }) {
+  const router = useRouter();
   const [draft, setDraft] = useState<DealRegistrationDraft>(
     emptyDealRegistrationDraft,
   );
@@ -180,8 +182,9 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
         { idempotencyKey: submission.idempotencyKey },
       );
       setRegistered(
-        "Registration submitted. Fil One channel operations decides it; house-account and prior-deal exclusions are resolved against the unified account records, not against anything stated here.",
+        "Registration submitted and added to the decision queue below. Fil One channel operations decides it; house-account and prior-deal exclusions are resolved against the unified account records, not against anything stated here.",
       );
+      router.refresh();
     } catch (error) {
       setFailure(
         error instanceof Error

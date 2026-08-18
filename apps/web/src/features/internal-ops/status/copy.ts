@@ -2,9 +2,9 @@ export const integrationStatusCopy = {
   page: {
     title: "Integration status",
     description:
-      "Configuration reported by each generated service status endpoint, plus the stopped work already recorded in the recovery queues.",
+      "Availability of commerce services and any stopped integration work that needs attention.",
   },
-  source: "dead-letter and webhook replay read models",
+  source: "recovery and webhook processing queues",
   sourceUnavailable: "One or more operational queue reads are unavailable",
   queues: {
     label: "Stopped work coverage",
@@ -12,7 +12,7 @@ export const integrationStatusCopy = {
     provisioning: "Provisioning failures",
     workflow: "Workflow failures",
     webhook: "Webhook callbacks",
-    denominator: "Counted within the first 100 records read from each queue",
+    denominator: "Items currently waiting for operator attention",
     unreadable:
       "At least one queue could not be read. A zero on this page is not evidence that the unreadable queue is empty.",
     recoveryLink: "Open recovery",
@@ -21,9 +21,9 @@ export const integrationStatusCopy = {
   lanes: {
     heading: "Service configuration",
     detail:
-      "Fetched from /v1/core/status, /v1/lifecycle/status, and /v1/system/status through this application origin.",
+      "Current availability of core commerce, lifecycle, and system services.",
     loading: "Reading service status…",
-    unavailable: "This status endpoint did not return a readable result.",
-    readAt: (instant: string) => `Read at ${instant} in this page load`,
+    unavailable: "This service status check did not return a readable result.",
+    readAt: (instant: string) => `Updated ${instant}`,
   },
 } as const;

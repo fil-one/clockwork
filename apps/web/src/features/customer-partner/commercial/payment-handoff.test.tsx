@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ createInvoicePaymentSession: vi.fn() }));
 
@@ -24,6 +24,7 @@ import { PaymentHandoff } from "./payment-handoff";
 const invoice = {
   accountId: "11111111-1111-4111-8111-111111111111",
   invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  recordKey: "invoice-meridian-overdue",
   amountLabel: "$15,400.00",
   dueLabel: "Aug 12, 2026",
 };
@@ -38,6 +39,11 @@ async function prepare() {
 
 beforeEach(() => {
   mocks.createInvoicePaymentSession.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  document.cookie = "clockwork-csrf=; Max-Age=0; path=/";
 });
 
 describe("the payment boundary", () => {
@@ -88,5 +94,104 @@ describe("the payment boundary", () => {
     expect(
       screen.getByRole("button", { name: /Prepare secure/u }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("the guided demo payment sandbox", () => {
+  beforeEach(() => {
+    document.cookie = "clockwork-csrf=12345678901234567890123456789012; path=/";
+  });
+
+  it("uses only same-origin demo mutations and returns to the paid invoice", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          provider: "demo_sandbox",
+          sessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          invoiceId: invoice.invoiceId,
+          status: "requires_customer_action",
+          paymentAttemptId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          receiptId: null,
+          completedAt: null,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          provider: "demo_sandbox",
+          sessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          invoiceId: invoice.invoiceId,
+          status: "paid",
+          paymentAttemptId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          receiptId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          completedAt: "2026-08-18T18:00:00.000Z",
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(<PaymentHandoff {...invoice} guidedDemo />);
+
+    expect(screen.getByText(/never contacts Stripe/u)).toBeVisible();
+    expect(screen.getByText(/no money moves/u)).toBeVisible();
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: "Start demo sandbox checkout" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Complete demo payment" }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Demo payment complete",
+    );
+    expect(
+      screen.getByRole("link", { name: "Return to paid invoice" }),
+    ).toHaveAttribute("href", "/billing/invoice-meridian-overdue");
+    expect(mocks.createInvoicePaymentSession).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/demo/payments/sessions");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "/api/demo/payments/sessions/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/complete",
+    );
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init?.credentials).toBe("same-origin");
+      expect(new Headers(init?.headers).get("x-csrf-token")).toBe(
+        "12345678901234567890123456789012",
+      );
+      expect(new Headers(init?.headers).get("idempotency-key")).toHaveLength(
+        36,
+      );
+    }
+  });
+
+  it("refuses a sandbox response bound to another invoice", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json({
+            provider: "demo_sandbox",
+            sessionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            invoiceId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+            status: "requires_customer_action",
+            paymentAttemptId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            receiptId: null,
+            completedAt: null,
+          }),
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<PaymentHandoff {...invoice} guidedDemo />);
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(
+      screen.getByRole("button", { name: "Start demo sandbox checkout" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "different invoice",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Complete demo payment" }),
+    ).toBeNull();
   });
 });

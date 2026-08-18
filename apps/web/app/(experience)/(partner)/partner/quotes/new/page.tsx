@@ -6,6 +6,7 @@ import {
   withInternalTransaction,
 } from "@clockwork/db";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
@@ -20,6 +21,8 @@ import {
   type OfferOption,
   type QuoteRoute,
 } from "@/src/features/customer-partner/partner/resale-quote-model";
+import { demoPartnerQuoteContext } from "@/src/features/customer-partner/partner/demo-partner-quote";
+import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
@@ -240,6 +243,17 @@ async function ResaleQuoteWorkspace() {
     getRouteIdentity("partner"),
     getRouteSession("partner"),
   ]);
+  if (demoDeployIdentityEnabled(process.env)) {
+    const context = demoPartnerQuoteContext(
+      await configuredDemoStateStore().read(),
+      identity.accountId,
+      identity.accountName,
+    );
+    if (!context) return <NothingToQuote missing="agreement" />;
+    if (!partnerPricedRoute(context.route))
+      return <NothingToQuote missing="referralRoute" />;
+    return <ResaleQuoteBuilder context={context} />;
+  }
   const truth = await loadPartnerTruth(identity.accountId, {
     userId: identity.userId,
     roles: session.roles,

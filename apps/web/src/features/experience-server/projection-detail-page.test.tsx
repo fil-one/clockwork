@@ -158,7 +158,7 @@ describe("projection detail task hierarchy", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Source refresh is overdue",
+      "Operational data needs a refresh",
     );
     expect(
       screen.getByRole("list", { name: "Commercial promise chain" }),
@@ -173,9 +173,7 @@ describe("projection detail task hierarchy", () => {
       "Service term12 months · expires Aug 4, 2026",
     );
     expect(ledger).toHaveTextContent("TimingExpires Aug 4");
-    expect(ledger).toHaveTextContent(
-      "Next binding stepRenewal notice opens Nov 1",
-    );
+    expect(ledger).toHaveTextContent("Next stepRenewal notice opens Nov 1");
     expect(ledger).toHaveTextContent("Read only");
   });
 

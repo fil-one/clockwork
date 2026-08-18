@@ -56,11 +56,13 @@ export function AssistedMode({
   accounts,
   actor,
   sessionActive = false,
+  guidedDemo = false,
 }: {
   roles: readonly string[];
   accounts: readonly SelectOption[];
   actor: string;
   sessionActive?: boolean;
+  guidedDemo?: boolean;
 }) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [reason, setReason] = useState("");
@@ -97,6 +99,54 @@ export function AssistedMode({
           The effective account remains locked to {account.label}. Use the
           active-session banner to exit before starting a different assisted
           session.
+        </section>
+      </AdministrationPage>
+    );
+
+  if (guidedDemo)
+    return (
+      <AdministrationPage {...adminSafetyCopy.assisted}>
+        <section className={styles.panel} aria-labelledby="assisted-demo-title">
+          <div className={styles.panelHeading}>
+            <div>
+              <h2 id="assisted-demo-title">Assisted identity boundary</h2>
+              <p>
+                Review the actor and effective-account separation used by the
+                production workflow.
+              </p>
+            </div>
+            <StatusPill state="Read only" />
+          </div>
+          <div className={styles.panelBody}>
+            <dl className={styles.metaGrid}>
+              <div>
+                <dt>Effective account example</dt>
+                <dd>{account.label}</dd>
+              </div>
+              <div>
+                <dt>Authenticated staff actor</dt>
+                <dd>{actor}</dd>
+              </div>
+              <div>
+                <dt>Session requirement</dt>
+                <dd>Provider-backed identity and service database</dd>
+              </div>
+              <div>
+                <dt>Audit boundary</dt>
+                <dd>Immutable actor, effective account, reason, and expiry</dd>
+              </div>
+            </dl>
+            <TechnicalEvidence
+              identifiers={[
+                { label: "Effective account ID", value: account.id },
+              ]}
+            />
+            <div className={styles.roleNotice} role="note">
+              <strong>No assisted session is created in this demo.</strong>
+              The production action is unavailable until the identity provider
+              can bind the staff actor to a time-limited server session.
+            </div>
+          </div>
         </section>
       </AdministrationPage>
     );
@@ -240,16 +290,18 @@ export function AssistedMode({
           />
           <section className={styles.handoff} role="note">
             <strong>
-              {ready
-                ? "Assisted action not submitted"
-                : "Assisted action remains blocked"}
+              {ready && guidedDemo
+                ? "Assisted review complete"
+                : ready
+                  ? "Assisted action not submitted"
+                  : "Assisted action remains blocked"}
             </strong>
             <p>
-              Start the time-limited server session to preserve the staff actor
-              and re-evaluate account, role, commercial, screening, credit,
-              retention, and provider gates before every mutation.
+              {guidedDemo
+                ? "The guided demo records no effective-account session. A provider-backed identity and service database are required before staff can act for a customer."
+                : "Start the time-limited server session to preserve the staff actor and re-evaluate account, role, commercial, screening, credit, retention, and provider gates before every mutation."}
             </p>
-            {ready ? (
+            {ready && !guidedDemo ? (
               <form action={startAssistedSession}>
                 <input
                   type="hidden"

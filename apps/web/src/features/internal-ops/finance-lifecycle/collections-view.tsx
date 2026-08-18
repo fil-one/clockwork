@@ -109,11 +109,6 @@ export function CollectionsView({
         </div>
       ) : null}
 
-      <div className={styles.notice} role="note">
-        <strong>{copy.noDisputeStateTitle}</strong>
-        <span>{copy.noDisputeStateBody}</span>
-      </div>
-
       <section className={styles.section} aria-labelledby="collections-table">
         <header className={styles.sectionHeader}>
           <div>

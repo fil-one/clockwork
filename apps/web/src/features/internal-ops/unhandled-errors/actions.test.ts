@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireRecentAuthentication: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
+  decideDemoRuntimeFailure: vi.fn(),
   record: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -16,6 +17,9 @@ vi.mock("@/src/db/service", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("./decision-store", () => ({
   recordUnhandledErrorDecision: mocks.record,
+}));
+vi.mock("../demo-operator-state", () => ({
+  decideDemoRuntimeFailure: mocks.decideDemoRuntimeFailure,
 }));
 
 import { decideUnhandledError } from "./actions";
@@ -55,6 +59,7 @@ beforeEach(() => {
     decision: "contain",
     recordVersion: 1,
   });
+  mocks.decideDemoRuntimeFailure.mockResolvedValue({ recordVersion: 1 });
 });
 
 describe("input the store must never see", () => {
@@ -185,6 +190,37 @@ describe("input the store must never see", () => {
 });
 
 describe("authorization is re-checked at execution", () => {
+  it("persists an authorized incident decision in the exact demo", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+    mocks.getOptionalServiceDatabase.mockReturnValue(undefined);
+
+    try {
+      await expect(decideUnhandledError(form())).resolves.toEqual({
+        ok: true,
+        recordVersion: 1,
+      });
+      expect(mocks.decideDemoRuntimeFailure).toHaveBeenCalledWith(
+        expect.objectContaining({
+          auditEventId: anchor,
+          decision: "contain",
+          actorId: operator.userId,
+        }),
+      );
+      expect(mocks.record).not.toHaveBeenCalled();
+      expect(mocks.revalidatePath).toHaveBeenCalledWith(
+        "/internal/unhandled-errors",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("refuses when recent authentication has lapsed", async () => {
     mocks.requireRecentAuthentication.mockRejectedValue(new Error("stale"));
     expect(await decideUnhandledError(form())).toEqual({

@@ -1,5 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/src/features/internal-ops/gates/demo-gate-actions", () => ({
+  updateDemoExternalGate: vi.fn(),
+  runDemoExternalGateActivationTest: vi.fn(),
+}));
 
 import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
 
@@ -153,6 +158,18 @@ describe("truthful external-gate administration", () => {
     expect(within(brand).getByText("EXT-DOMAIN-01 gate")).toBeVisible();
     expect(within(brand).getByText("EXT-BRAND-01 gate")).toBeVisible();
     expect(screen.getAllByText("Update or test gate")).toHaveLength(3);
+  });
+
+  it("exposes the same persisted controls for the demonstration registry", () => {
+    render(
+      <GateRegister
+        roles={["internal_operator"]}
+        gates={[presentGeneratedGate(generated("EXT-PROVIDER-01"))]}
+        source="Demonstration gate registry"
+      />,
+    );
+    expect(screen.getByText("Update or test gate")).toBeVisible();
+    expect(screen.getByText("Demonstration gate registry")).toBeVisible();
   });
 
   it("keeps configured active blocked when no activation test exists", () => {

@@ -2,6 +2,7 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { formatMoney } from "@/src/features/shared/format";
 
+import { demoUuid } from "./demo-artifact-catalog";
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 
 /**
@@ -28,14 +29,24 @@ const REFERRAL = demoAccountIds.referral;
 const RESELLER = demoAccountIds.reseller;
 const DISTRIBUTOR = demoAccountIds.distributor;
 const END_CLIENT = demoAccountIds.endClient;
+const UK_END_CLIENT = demoAccountIds.ukEndClient;
 
 const updatedAt = "2026-07-31T15:00:00.000Z";
+const MERIDIAN_ORDER_ID = demoUuid("subject:order:ORD-2026-0098");
+const MERIDIAN_INVOICE_ID = demoUuid("subject:invoice:INV-2026-0781");
+const RENEWAL_REPORT_ID = demoUuid("subject:report_export:RPT-2026-07");
+const RENEWAL_REPORT_DOCUMENT_ID = demoUuid(
+  "document:report_export:RPT-2026-07",
+);
 
 export interface DemoPortalRecord {
   readonly audience: ExperienceAudience;
   readonly channel: ProjectionChannel;
   readonly key: string;
   readonly accountId: string | null;
+  /** The domain aggregate, distinct from the materialized projection row. */
+  readonly aggregateType?: string;
+  readonly aggregateId?: string;
   readonly version: number;
   readonly updatedAt: string;
   readonly data: Readonly<Record<string, unknown>>;
@@ -143,8 +154,20 @@ function record(
   key: string,
   accountId: string | null,
   data: Readonly<Record<string, unknown>>,
+  aggregate?: { readonly type: string; readonly id: string },
 ): DemoPortalRecord {
-  return { audience, channel, key, accountId, version: 1, updatedAt, data };
+  return {
+    audience,
+    channel,
+    key,
+    accountId,
+    ...(aggregate
+      ? { aggregateType: aggregate.type, aggregateId: aggregate.id }
+      : {}),
+    version: 1,
+    updatedAt,
+    data,
+  };
 }
 
 /* --------------------------------------------------------------------------
@@ -204,6 +227,10 @@ const directJourney: readonly DemoPortalRecord[] = [
       term: "Service period Jun 1–30, 2026",
       nextAction: "Retry payment or change the payment method",
     }),
+    {
+      type: "invoice",
+      id: demoUuid("subject:invoice:INV-MER-0042"),
+    },
   ),
   record(
     "customer",
@@ -647,8 +674,9 @@ function internal(
   channel: ProjectionChannel,
   key: string,
   data: Readonly<Record<string, unknown>>,
+  aggregate?: { readonly type: string; readonly id: string },
 ): DemoPortalRecord {
-  return record("internal", channel, key, null, data);
+  return record("internal", channel, key, null, data, aggregate);
 }
 
 const internalBook: readonly DemoPortalRecord[] = [
@@ -715,48 +743,67 @@ const internalBook: readonly DemoPortalRecord[] = [
     ],
     allowedActions: ["review_exception"],
   }),
-  internal("dashboard", "meridian-archive", {
-    title: "Meridian Archive Labs, Inc.",
-    name: "Meridian Archive Labs, Inc.",
-    description: "Direct buyer · US · USD · one overdue invoice",
-    statusLabel: "Attention · overdue invoice",
-    status: "attention",
-    risk: "medium",
-    owner: "Ada Mercer",
-    nextAction: "Confirm the ACH retry before the renewal notice opens",
-    context: [
-      { label: "Relationship", value: "Direct" },
-      { label: "Annual value", value: "USD 184,800.00" },
-    ],
-  }),
-  internal("dashboard", "cobalt-orchard", {
-    title: "Cobalt Orchard GmbH",
-    name: "Cobalt Orchard GmbH",
-    description: "Distributor end client · DE · EUR · onboarding",
-    statusLabel: "Onboarding · provisioning recovery",
-    status: "pending",
-    risk: "high",
-    owner: "Ada Mercer",
-    nextAction: "Verify actual and effective actors on the account timeline",
-    context: [
-      { label: "Relationship", value: "Two-tier end client" },
-      { label: "Distributor", value: "Harborline Distribution Ltd" },
-    ],
-  }),
-  internal("dashboard", "ember-peak", {
-    title: "Ember Peak Systems Ltd",
-    name: "Ember Peak Systems Ltd",
-    description: "Reseller · GB · GBP · agreement notice window opens tomorrow",
-    statusLabel: "Attention · notice window",
-    status: "attention",
-    risk: "medium",
-    owner: "Ada Mercer",
-    nextAction: "Confirm the partner agreement renewal path",
-    context: [
-      { label: "Relationship", value: "Reseller" },
-      { label: "End clients", value: "2 named" },
-    ],
-  }),
+  internal(
+    "dashboard",
+    "meridian-archive",
+    {
+      title: "Meridian Archive Labs, Inc.",
+      name: "Meridian Archive Labs, Inc.",
+      reference: "Meridian Archive Labs, Inc.",
+      description: "Direct buyer · US · USD · one overdue invoice",
+      statusLabel: "Attention · overdue invoice",
+      status: "attention",
+      risk: "medium",
+      owner: "Ada Mercer",
+      nextAction: "Confirm the ACH retry before the renewal notice opens",
+      context: [
+        { label: "Relationship", value: "Direct" },
+        { label: "Annual value", value: "USD 184,800.00" },
+      ],
+    },
+    { type: "account", id: DIRECT },
+  ),
+  internal(
+    "dashboard",
+    "cobalt-orchard",
+    {
+      title: "Cobalt Orchard GmbH",
+      name: "Cobalt Orchard GmbH",
+      reference: "Cobalt Orchard GmbH",
+      description: "Distributor end client · DE · EUR · onboarding",
+      statusLabel: "Onboarding · provisioning recovery",
+      status: "pending",
+      risk: "high",
+      owner: "Ada Mercer",
+      nextAction: "Verify actual and effective actors on the account timeline",
+      context: [
+        { label: "Relationship", value: "Two-tier end client" },
+        { label: "Distributor", value: "Harborline Distribution Ltd" },
+      ],
+    },
+    { type: "account", id: UK_END_CLIENT },
+  ),
+  internal(
+    "dashboard",
+    "ember-peak",
+    {
+      title: "Ember Peak Systems Ltd",
+      name: "Ember Peak Systems Ltd",
+      reference: "Ember Peak Systems Ltd",
+      description:
+        "Reseller · GB · GBP · agreement notice window opens tomorrow",
+      statusLabel: "Attention · notice window",
+      status: "attention",
+      risk: "medium",
+      owner: "Ada Mercer",
+      nextAction: "Confirm the partner agreement renewal path",
+      context: [
+        { label: "Relationship", value: "Reseller" },
+        { label: "End clients", value: "2 named" },
+      ],
+    },
+    { type: "account", id: RESELLER },
+  ),
   internal("agreements", "AGR-2026-0042", {
     title: "Cloud Service Agreement · Meridian",
     name: "Cloud Service Agreement · Meridian",
@@ -785,31 +832,76 @@ const internalBook: readonly DemoPortalRecord[] = [
       { label: "Annual value", value: "USD 184,800.00" },
     ],
   }),
-  internal("orders", "ORD-2026-0098", {
-    title: "Northstar primary archive · Meridian",
-    name: "Northstar primary archive · Meridian",
-    description: "PO-NA-1048 · 500 TB · US East · direct",
-    statusLabel: "Active",
-    status: "active",
-    risk: "low",
-    owner: "Ada Mercer",
-    nextAction: "Renewal notice opens Nov 1",
-    context: [
-      { label: "Account", value: "Meridian Archive Labs, Inc." },
-      { label: "Service term", value: "Jan 1–Dec 31, 2026" },
-    ],
-  }),
-  internal("collections", "INV-2026-0781", {
-    title: "July committed capacity · Meridian",
-    name: "July committed capacity · Meridian",
-    description: "Open invoice · gross of determined Washington sales tax",
-    statusLabel: "Open · due Aug 8",
-    status: "open",
-    risk: "medium",
-    owner: "Amina Cole",
-    nextAction: "Watch for the provider payment webhook",
-    context: [{ label: "Account", value: "Meridian Archive Labs, Inc." }],
-  }),
+  internal(
+    "orders",
+    "ORD-2026-0098",
+    {
+      title: "Northstar primary archive · Meridian",
+      name: "Northstar primary archive · Meridian",
+      description: "PO-NA-1048 · 500 TB · US East · direct",
+      statusLabel: "Active",
+      status: "active",
+      risk: "low",
+      owner: "Ada Mercer",
+      nextAction: "Renewal notice opens Nov 1",
+      context: [
+        { label: "Account", value: "Meridian Archive Labs, Inc." },
+        { label: "Service term", value: "Jan 1–Dec 31, 2026" },
+      ],
+      authoritative: {
+        invoicingAccountId: DIRECT,
+        sourcing: "direct",
+        status: "active",
+        serviceStartsOn: "2026-01-01",
+        serviceEndsOn: "2026-12-31",
+        noticeOn: "2026-11-01",
+      },
+    },
+    { type: "order", id: MERIDIAN_ORDER_ID },
+  ),
+  internal(
+    "collections",
+    "INV-2026-0781",
+    {
+      title: "July committed capacity · Meridian",
+      name: "July committed capacity · Meridian",
+      reference: "INV-2026-0781",
+      description: "Open invoice · gross of determined Washington sales tax",
+      statusLabel: "Open · due Aug 8",
+      status: "open",
+      risk: "medium",
+      owner: "Amina Cole",
+      dateLabel: "Due Aug 8, 2026",
+      nextAction: "Watch for the provider payment webhook",
+      context: [{ label: "Account", value: "Meridian Archive Labs, Inc." }],
+      authoritative: {
+        orderId: MERIDIAN_ORDER_ID,
+        status: "open",
+        dueAt: "2026-08-08T23:59:59.000Z",
+      },
+      allowedActions: ["evaluate_dunning"],
+    },
+    { type: "invoice", id: MERIDIAN_INVOICE_ID },
+  ),
+  internal(
+    "reports",
+    "RPT-2026-07",
+    {
+      title: "Renewal and churn exposure · July 2026",
+      reference: "RPT-2026-07",
+      description: "Current commerce records at the generation timestamp",
+      status: "complete",
+      statusLabel: "Complete",
+      owner: "Revenue operations",
+      authoritative: {
+        report: "renewal_churn_exposure",
+        documentId: RENEWAL_REPORT_DOCUMENT_ID,
+        status: "complete",
+      },
+      allowedActions: [],
+    },
+    { type: "report_export", id: RENEWAL_REPORT_ID },
+  ),
 ];
 
 /**

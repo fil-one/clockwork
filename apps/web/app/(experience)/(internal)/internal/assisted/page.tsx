@@ -3,6 +3,7 @@ import { accounts as demoAccounts } from "@/src/features/internal-ops/administra
 import { loadAssistedAccountOptions } from "@/src/features/internal-ops/assisted-session/account-options";
 import { getRouteSession } from "@/src/features/shell/route-session";
 import { getServiceDatabase } from "@/src/db/service";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 export default async function Page() {
   const session = await getRouteSession("internal");
@@ -18,6 +19,7 @@ export default async function Page() {
       accounts={accounts}
       actor={`${session.profile.name} · ${session.profile.email}`}
       sessionActive={Boolean(session.assistedSession)}
+      guidedDemo={demoDeployIdentityEnabled(process.env)}
     />
   );
 }

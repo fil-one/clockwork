@@ -56,7 +56,7 @@ export function ProvisioningView({
         <article className={styles.summaryCard}>
           <p>{copy.highRisk}</p>
           <strong>{summary.highRisk}</strong>
-          <span>Records the projection already marks high risk</span>
+          <span>Items that need immediate operator attention</span>
         </article>
       </section>
 

@@ -553,6 +553,15 @@ describe("grouped global search", () => {
     expect(record.status).toBe("Available");
   });
 
+  it("formats the update time when it is the only available subtitle", () => {
+    const record = searchRecordFromProjection(
+      projection("orders", "ORD-1", { title: "Archive renewal" }),
+      "Orders",
+    );
+    expect(record.subtitle).toBe("Updated Jul 31, 2026, 3:42 PM UTC");
+    expect(record.subtitle).not.toContain("2026-07-31T");
+  });
+
   it("wraps keyboard navigation in both directions", () => {
     expect(nextSearchIndex(-1, "ArrowDown", 3)).toBe(0);
     expect(nextSearchIndex(2, "ArrowDown", 3)).toBe(0);
@@ -585,7 +594,8 @@ describe("grouped global search", () => {
       searchRecordFromProjection(
         projection("quotes", "quote-9f2", { title: "Committed capacity" }),
         "Quotes",
+        "meridian-archive",
       ).href,
-    ).toBe("/internal/queues");
+    ).toBe("/internal/accounts/meridian-archive");
   });
 });

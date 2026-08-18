@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { getRouteSession } from "@/src/features/shell/route-session";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
+import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 
 import {
   PartnerCollection,
@@ -14,6 +16,13 @@ import {
 } from "./partner-membership";
 import { roleCanUseSurface } from "./partner-rules";
 import { canReadPartnerChannel } from "./partner-access";
+import { demoCreatedRegistrations } from "./demo-deal-registration";
+import { demoCreatedPartnerQuotes } from "./demo-partner-quote";
+import { demoPartnerBrandRecords } from "./demo-partner-brand";
+import {
+  demoPartnerCollectionRenewalContext,
+  demoPartnerRenewalRecords,
+} from "./demo-partner-renewal";
 
 export async function PartnerCollectionRoute({
   surface,
@@ -37,10 +46,39 @@ export async function PartnerCollectionRoute({
   )
     return <PartnerSurfacePermission />;
   const projection = await loadPartnerRecords(surface);
+  const demoState = demoDeployIdentityEnabled(process.env)
+    ? await configuredDemoStateStore().read()
+    : undefined;
+  const projectedRecords =
+    demoState && surface === "renewals"
+      ? demoPartnerRenewalRecords(
+          demoState,
+          partnerMembership.accountId,
+          projection.records,
+        )
+      : projection.records;
+  const createdRecords = !demoState
+    ? []
+    : surface === "registrations"
+      ? demoCreatedRegistrations(demoState, partnerMembership.accountId)
+      : surface === "quotes"
+        ? demoCreatedPartnerQuotes(demoState, partnerMembership.accountId)
+        : surface === "brand"
+          ? demoPartnerBrandRecords(demoState, partnerMembership.accountId)
+          : [];
+  const renewalContext =
+    demoState && surface === "renewals" && projectedRecords[0]
+      ? demoPartnerCollectionRenewalContext(
+          projectedRecords[0].recordKey ?? projectedRecords[0].id,
+        )
+      : undefined;
   return (
     <PartnerCollection
       surface={surface}
-      config={{ ...config, records: projection.records }}
+      config={{
+        ...config,
+        records: [...createdRecords, ...projectedRecords],
+      }}
       roles={session.roles}
       partnerName={partnerMembership.accountName}
       // The loader has always returned these. This route dropped them and
@@ -57,6 +95,7 @@ export async function PartnerCollectionRoute({
         stale: projection.stale,
       }}
       formatting={{ locale: session.locale, timeZone: session.timeZone }}
+      {...(renewalContext ? { renewalContext } : {})}
       {...(actions ? { actions } : {})}
     />
   );

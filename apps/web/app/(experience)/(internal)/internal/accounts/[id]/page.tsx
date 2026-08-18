@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { AccountDerivationSection } from "@/src/features/experience-server/account-derivation-section";
 import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
@@ -19,6 +22,7 @@ export default async function Page({
   const record = accounts.records.find(
     (candidate) => candidate.recordKey === id,
   );
+  const guidedDemo = demoDeployIdentityEnabled(process.env);
   return (
     <ProjectionDetailPage
       audience="internal"
@@ -28,13 +32,17 @@ export default async function Page({
       description="Assisted access remains restricted to the persisted effective account."
       actions={
         <SurfaceActionGate audience="internal" requiredPermission="report:read">
-          <WorkflowPanel
-            context={
-              record?.aggregateId ? { accountId: record.aggregateId } : {}
-            }
-            workflow="reports"
-            surface="reports"
-          />
+          {guidedDemo ? (
+            <Link href="/internal/reports">Open reports workspace</Link>
+          ) : (
+            <WorkflowPanel
+              context={
+                record?.aggregateId ? { accountId: record.aggregateId } : {}
+              }
+              workflow="reports"
+              surface="reports"
+            />
+          )}
         </SurfaceActionGate>
       }
       supporting={<AccountDerivationSection recordKey={id} />}

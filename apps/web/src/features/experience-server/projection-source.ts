@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
 import {
@@ -16,6 +18,11 @@ import { formatMoney } from "@/src/features/shared/format";
 
 import { resolveScopedAccount } from "./authorization";
 import {
+  demoMemberInvites,
+  demoProcurementProfile,
+} from "./demo-account-controls";
+import { demoInvoicePayments } from "./demo-invoice-payment";
+import {
   demoInvoiceFigures,
   demoRecordArtifacts,
   demoUuid,
@@ -29,6 +36,7 @@ import {
   DEMO_DEFAULT_PARTNER_ACCOUNT,
   type DemoCreatedOrder,
 } from "./demo-portal-records";
+import type { DemoCreatedQuote } from "./demo-quote-flow";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
@@ -93,6 +101,9 @@ interface DemoRecord {
   key: string;
   audience: ExperienceAudience;
   channel: ProjectionChannel;
+  /** Domain identity; projection identity remains `id`. */
+  aggregateType?: string;
+  aggregateId?: string;
   /**
    * The account the record belongs to, mirroring `audience_account_id`. Null
    * only for the internal audience, which the persisted query scopes with
@@ -101,6 +112,8 @@ interface DemoRecord {
   accountId: string | null;
   version: number;
   updatedAt: string;
+  /** Whether freshness follows the request clock or the source transition. */
+  freshnessMode: "request" | "source";
   data: Readonly<Record<string, unknown>>;
 }
 
@@ -125,8 +138,11 @@ function customerRecords(): DemoRecord[] {
       record.id,
       DEMO_DEFAULT_CUSTOMER_ACCOUNT,
     ),
-    version: Number(record.version ?? "1"),
+    // Commercial `record.version` is a display value (for example agreement
+    // semantic version 3.2), not the projection's optimistic row version.
+    version: 1,
     updatedAt: record.updatedAt,
+    freshnessMode: "request",
     data: {
       ...record,
       ...(record.kind === "orders"
@@ -135,7 +151,15 @@ function customerRecords(): DemoRecord[] {
       allowedActions:
         record.kind === "quotes" && record.status === "open"
           ? ["accept", "expire"]
-          : [],
+          : record.kind === "agreements" && record.status === "review"
+            ? ["execute_agreement"]
+            : record.kind === "pocs" && record.status === "complete"
+              ? ["convert_poc"]
+              : record.kind === "orders" && record.status === "active"
+                ? ["request_renewal", "request_teardown"]
+                : record.kind === "services" && record.status === "active"
+                  ? ["request_teardown"]
+                  : [],
     },
   }));
 }
@@ -146,11 +170,13 @@ function partnerRecords(): DemoRecord[] {
   for (const [channel, surface] of Object.entries(partnerSurfaces)) {
     for (const record of surface.records) {
       index += 1;
+      const issuedQuote = channel === "quotes" && record.status === "open";
       records.push({
         id: `50000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
         key: record.id,
         audience: "partner",
         channel: channel as ProjectionChannel,
+        ...(channel === "quotes" ? { aggregateType: "quote" } : {}),
         accountId: ownerOf(
           "partner",
           channel,
@@ -159,7 +185,18 @@ function partnerRecords(): DemoRecord[] {
         ),
         version: 1,
         updatedAt: "2026-07-31T16:00:00.000Z",
-        data: { ...record, allowedActions: [] },
+        freshnessMode: "request",
+        data: {
+          ...record,
+          ...(channel === "quotes"
+            ? {
+                authoritative: {
+                  status: issuedQuote ? "issued" : record.status,
+                },
+              }
+            : {}),
+          allowedActions: issuedQuote ? ["prepare_artifact"] : [],
+        },
       });
     }
   }
@@ -185,6 +222,7 @@ function customerCollectionRecords(): DemoRecord[] {
         ),
         version: record.recordVersion ?? 1,
         updatedAt: record.updatedAt,
+        freshnessMode: "request",
         data: { ...record, allowedActions: [] },
       });
     }
@@ -198,9 +236,15 @@ function additionalRecords(): DemoRecord[] {
     key: record.key,
     audience: record.audience,
     channel: record.channel,
+    ...(record.aggregateType ? { aggregateType: record.aggregateType } : {}),
+    ...(record.aggregateId ? { aggregateId: record.aggregateId } : {}),
     accountId: record.accountId,
     version: record.version,
     updatedAt: record.updatedAt,
+    freshnessMode:
+      record.audience === "internal" && record.channel === "queues"
+        ? "source"
+        : "request",
     data: record.data,
   }));
 }
@@ -253,7 +297,7 @@ function internalRecords(): DemoRecord[] {
         statusLabel: "Awaiting approval",
         owner: "Finance review",
         nextAction: "Compare exception evidence with policy",
-        allowedActions: ["approve_exception"],
+        allowedActions: ["approve_exception", "reject_exception"],
       },
     },
     {
@@ -276,6 +320,7 @@ function internalRecords(): DemoRecord[] {
     accountId: null,
     version: 1,
     updatedAt,
+    freshnessMode: record.channel === "queues" ? "source" : "request",
     data: record.data,
   }));
 }
@@ -314,12 +359,225 @@ function createdOrderRecords(state: DemoAdapterState): DemoRecord[] {
       key: record.key,
       audience: record.audience,
       channel: record.channel,
+      aggregateType: "order",
+      aggregateId: order.id,
       accountId: record.accountId,
       version: record.version,
       updatedAt: record.updatedAt,
+      freshnessMode: "source",
       data: record.data,
     };
   });
+}
+
+/** Quotes created by the direct-buy command, projected into the customer ledger. */
+function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
+  const created = (
+    state as { createdQuotes?: Readonly<Record<string, DemoCreatedQuote>> }
+  ).createdQuotes;
+  if (!created) return [];
+  return Object.values(created).map((quote) => {
+    const snapshot = quote.snapshot;
+    const issued = snapshot.status === "issued";
+    const presentationStatus = issued ? "open" : snapshot.status;
+    return {
+      id: demoUuid(`projection:quote:${snapshot.id}`),
+      key: `quote-${snapshot.id}`,
+      audience: "customer",
+      channel: "quotes",
+      aggregateType: "quote",
+      aggregateId: snapshot.id,
+      accountId: snapshot.accountId,
+      version: quote.rowVersion,
+      updatedAt: quote.updatedAt,
+      freshnessMode: "source",
+      data: {
+        kind: "quotes",
+        id: `quote-${snapshot.id}`,
+        title: `Direct capacity quote · ${quote.displayNumber}`,
+        description: `${snapshot.lines.length} priced ${snapshot.lines.length === 1 ? "line" : "lines"} · direct purchase`,
+        reference: quote.displayNumber,
+        status: presentationStatus,
+        statusLabel: issued ? "Issued · ready for acceptance" : "Draft",
+        tone: issued ? "warning" : "neutral",
+        risk:
+          snapshot.marginResult === "exception_required" ||
+          snapshot.marginResult === "rejected"
+            ? "high"
+            : "low",
+        owner: "Buyer workspace",
+        value: formatMoney(snapshot.total.minor, snapshot.total.currency),
+        valueLabel: "Quoted total",
+        dateLabel: `Expires ${snapshot.expiresAt.slice(0, 10)}`,
+        term: `Net ${quote.paymentTermsDays} · agreement version ${quote.agreementVersion}`,
+        nextAction: issued
+          ? "Review and accept the issued quote"
+          : "Prepare and issue the quote document",
+        allowedActions: issued ? ["accept", "expire"] : [],
+        totalMinor: snapshot.total.minor,
+        currency: snapshot.total.currency,
+        marginResult: snapshot.marginResult,
+        buyerDomain: quote.buyerDomain,
+        agreementId: quote.agreementId,
+        agreementVersion: quote.agreementVersion,
+        agreementEffectiveOn: quote.agreementEffectiveOn,
+        paymentTermsDays: quote.paymentTermsDays,
+        authoritative: {
+          status: snapshot.status,
+          revision: snapshot.revision,
+          accountId: snapshot.accountId,
+          priceBookId: snapshot.priceBook.id,
+          priceBookVersion: snapshot.priceBook.version,
+        },
+      },
+    };
+  });
+}
+
+function accountControlRecords(state: DemoAdapterState): DemoRecord[] {
+  const accounts = new Set(
+    demoRecords
+      .filter((record) => record.audience === "customer" && record.accountId)
+      .map((record) => record.accountId as string),
+  );
+  return [...accounts].flatMap((accountId) => {
+    const invites = demoMemberInvites(state, accountId).map(
+      (invite): DemoRecord => ({
+        id: demoUuid(`member-invite-projection:${invite.id}`),
+        key: `invite-${invite.id}`,
+        audience: "customer",
+        channel: "users",
+        aggregateType: "organization_invite",
+        aggregateId: invite.id,
+        accountId,
+        version: 1,
+        updatedAt: invite.createdAt,
+        freshnessMode: "source",
+        data: {
+          id: `invite-${invite.id}`,
+          title: invite.email,
+          description: `Pending ${invite.role} invitation`,
+          status: "pending",
+          statusLabel: "Invitation pending",
+          risk: "low",
+          owner: invite.email,
+          value: invite.role,
+          valueSort: 1,
+          updatedLabel: "Invited recently",
+          context: [
+            { label: "Expires", value: invite.expiresAt },
+            { label: "Organization", value: invite.organizationId },
+          ],
+          allowedActions: [],
+        },
+      }),
+    );
+    const profile = demoProcurementProfile(state, accountId);
+    return [
+      ...invites,
+      ...(profile
+        ? [
+            {
+              id: demoUuid(`procurement-profile-projection:${accountId}`),
+              key: "PROC-AP",
+              audience: "customer" as const,
+              channel: "procurement" as const,
+              aggregateType: "procurement_profile",
+              aggregateId: accountId,
+              accountId,
+              version: profile.rowVersion,
+              updatedAt: profile.updatedAt,
+              freshnessMode: "source" as const,
+              data: {
+                id: "PROC-AP",
+                title: "Accounts payable routing",
+                description:
+                  "Routes invoices and credits to the verified billing inbox.",
+                status: "active",
+                statusLabel: "Verified",
+                risk: "low",
+                owner: profile.apContact.name,
+                value: profile.invoiceDeliveryEmail,
+                valueSort: profile.poRequired ? 2 : 1,
+                updatedLabel: "Updated recently",
+                context: [
+                  { label: "AP contact", value: profile.apContact.email },
+                  {
+                    label: "Purchase order",
+                    value: profile.poRequired ? "Required" : "Not required",
+                  },
+                ],
+                allowedActions: [],
+              },
+            },
+          ]
+        : []),
+    ];
+  });
+}
+
+function demoRecordsForState(state: DemoAdapterState): DemoRecord[] {
+  const controls = accountControlRecords(state);
+  const replaced = new Set(
+    controls.map(
+      (record) =>
+        `${record.audience}:${record.channel}:${record.accountId}:${record.key}`,
+    ),
+  );
+  return [
+    ...demoRecords.filter(
+      (record) =>
+        !replaced.has(
+          `${record.audience}:${record.channel}:${record.accountId}:${record.key}`,
+        ),
+    ),
+    ...controls,
+    ...createdOrderRecords(state),
+    ...createdQuoteRecords(state),
+  ];
+}
+
+function applyInvoicePayment(
+  record: DemoRecord,
+  state: DemoAdapterState,
+): DemoRecord {
+  const payment = demoInvoicePayments(state).find(
+    (candidate) =>
+      candidate.status === "paid" &&
+      candidate.recordKey === record.key &&
+      candidate.accountId === record.accountId,
+  );
+  if (!payment?.receiptId || !payment.completedAt) return record;
+  const authoritative =
+    record.data.authoritative &&
+    typeof record.data.authoritative === "object" &&
+    !Array.isArray(record.data.authoritative)
+      ? (record.data.authoritative as Readonly<Record<string, unknown>>)
+      : {};
+  return {
+    ...record,
+    version: record.version + 1,
+    updatedAt: payment.completedAt,
+    freshnessMode: "source",
+    data: {
+      ...record.data,
+      status: "paid",
+      statusLabel: "Paid · demo sandbox",
+      tone: "success",
+      risk: "low",
+      description: `Demo receipt ${payment.receiptId} · sandbox only · no money moved`,
+      nextAction: "Reset the demo to restore this open invoice",
+      allowedActions: [],
+      authoritative: {
+        ...authoritative,
+        status: "paid",
+        provider: "demo_sandbox",
+        paymentAttemptId: payment.paymentAttemptId,
+        receiptId: payment.receiptId,
+        completedAt: payment.completedAt,
+      },
+    },
+  };
 }
 
 /**
@@ -402,6 +660,12 @@ async function taxedBillingData(
   const gross = formatMoney(figures.grossMinor, figures.currency);
   const tax = formatMoney(figures.taxMinor, figures.currency);
   const net = formatMoney(figures.netMinor, figures.currency);
+  const existingAuthoritative =
+    record.data.authoritative &&
+    typeof record.data.authoritative === "object" &&
+    !Array.isArray(record.data.authoritative)
+      ? (record.data.authoritative as Readonly<Record<string, unknown>>)
+      : {};
   return {
     ...record.data,
     value: gross,
@@ -409,6 +673,11 @@ async function taxedBillingData(
     invoicedNetOfTax: net,
     taxDetermined: tax,
     taxTreatment: figures.summary,
+    authoritative: {
+      ...existingAuthoritative,
+      amountMinor: figures.grossMinor,
+      currency: figures.currency,
+    },
   };
 }
 
@@ -433,11 +702,13 @@ function asProjection(
   data: Readonly<Record<string, unknown>>,
   now: Date,
 ): ProjectionRecord {
+  const sourceUpdatedAt =
+    record.freshnessMode === "request" ? now.toISOString() : record.updatedAt;
   return {
     id: record.id,
     recordKey: record.key,
-    aggregateType: record.channel,
-    aggregateId: record.id,
+    aggregateType: record.aggregateType ?? record.channel,
+    aggregateId: record.aggregateId ?? record.id,
     // The record's own account, not the caller's. The two are equal after the
     // scope filter; stamping the caller's was how another account's record used
     // to arrive labelled as the reader's own.
@@ -445,10 +716,141 @@ function asProjection(
     audience: record.audience,
     channel: record.channel,
     version: record.version,
-    sourceUpdatedAt: record.updatedAt,
-    projectedAt: record.updatedAt,
-    stale: now.getTime() - Date.parse(record.updatedAt) > 300_000,
+    sourceUpdatedAt,
+    projectedAt: now.toISOString(),
+    stale: now.getTime() - Date.parse(sourceUpdatedAt) > 300_000,
     data,
+  };
+}
+
+function actionRequestDigest(input: ProjectionActionInput): string {
+  return createHash("sha256")
+    .update(input.projectionId)
+    .update("\0")
+    .update(input.action)
+    .update("\0")
+    .update(String(input.expectedVersion))
+    .update("\0")
+    .update(JSON.stringify(input.payload))
+    .digest("hex");
+}
+
+function actionReceiptId(input: ProjectionActionInput): string {
+  return demoUuid(
+    `projection-action:${input.session.userId}:${input.idempotencyKey}`,
+  );
+}
+
+function appliedActionData(
+  current: Readonly<Record<string, unknown>>,
+  action: string,
+): Readonly<Record<string, unknown>> {
+  const authoritative =
+    current.authoritative &&
+    typeof current.authoritative === "object" &&
+    !Array.isArray(current.authoritative)
+      ? (current.authoritative as Readonly<Record<string, unknown>>)
+      : {};
+  const transition: Readonly<
+    Record<
+      string,
+      {
+        readonly status: string;
+        readonly statusLabel: string;
+        readonly nextAction: string;
+        readonly authoritativeStatus?: string;
+      }
+    >
+  > = {
+    accept: {
+      status: "accepted",
+      statusLabel: "Accepted",
+      nextAction: "Continue through the recorded order acceptance",
+      authoritativeStatus: "accepted",
+    },
+    expire: {
+      status: "expired",
+      statusLabel: "Expired",
+      nextAction: "Create a revised quote when the buyer is ready",
+      authoritativeStatus: "expired",
+    },
+    prepare_artifact: {
+      status: "ready",
+      statusLabel: "Document prepared",
+      nextAction: "Review the prepared commercial document",
+    },
+    review_exception: {
+      status: "complete",
+      statusLabel: "Review recorded",
+      nextAction: "No further review is due",
+    },
+    approve_exception: {
+      status: "approved",
+      statusLabel: "Approved",
+      nextAction: "Continue through the authorized downstream workflow",
+      authoritativeStatus: "approved",
+    },
+    reject_exception: {
+      status: "rejected",
+      statusLabel: "Rejected",
+      nextAction: "Return the request to its owner",
+      authoritativeStatus: "rejected",
+    },
+    evaluate_dunning: {
+      status: "open",
+      statusLabel: "Dunning evaluated",
+      nextAction: "Review the recorded collections case",
+    },
+    replay_provider_event: {
+      status: "recovering",
+      statusLabel: "Provider replay recorded",
+      nextAction: "Monitor provisioning completion",
+      authoritativeStatus: "recovering",
+    },
+    execute_agreement: {
+      status: "active",
+      statusLabel: "Executed",
+      nextAction: "Use this version for new commitments",
+      authoritativeStatus: "active",
+    },
+    convert_poc: {
+      status: "converted",
+      statusLabel: "Converted to paid quote",
+      nextAction: "Review the issued conversion quote",
+      authoritativeStatus: "converted",
+    },
+    request_renewal: {
+      status: "renewal_requested",
+      statusLabel: "Renewal requested",
+      nextAction: "Review the renewal quote when issued",
+      authoritativeStatus: "renewal_requested",
+    },
+    request_teardown: {
+      status: "offboarding_requested",
+      statusLabel: "Offboarding requested",
+      nextAction: "Await the two-person retention review",
+      authoritativeStatus: "offboarding_requested",
+    },
+  };
+  const selected = transition[action] ?? {
+    status: "complete",
+    statusLabel: "Action complete",
+    nextAction: "No further action is due",
+  };
+  return {
+    ...current,
+    status: selected.status,
+    statusLabel: selected.statusLabel,
+    nextAction: selected.nextAction,
+    allowedActions: [],
+    ...(selected.authoritativeStatus
+      ? {
+          authoritative: {
+            ...authoritative,
+            status: selected.authoritativeStatus,
+          },
+        }
+      : {}),
   };
 }
 
@@ -474,14 +876,16 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection cursor is invalid",
       );
     const state = await this.stateStore.read();
-    const selected = [...demoRecords, ...createdOrderRecords(state)]
+    const selected = demoRecordsForState(state)
       .filter(
         (record) =>
           record.audience === input.audience &&
           record.channel === input.channel &&
           withinAccount(record, input.accountId),
       )
-      .map((record) => applyDemoState(record, state));
+      .map((record) =>
+        applyInvoicePayment(applyDemoState(record, state), state),
+      );
     // Only an explicit `orderBy` sorts. The fixtures' own declaration order is
     // what the demo tour and its screenshots were built against, and quietly
     // re-sorting every unordered read to match the database's keyset would
@@ -527,7 +931,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     // telling them apart would be an enumeration oracle for another tenant's
     // references.
     const state = await this.stateStore.read();
-    const record = [...demoRecords, ...createdOrderRecords(state)].find(
+    const record = demoRecordsForState(state).find(
       (item) =>
         item.audience === input.audience &&
         item.channel === input.channel &&
@@ -540,12 +944,37 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "PROJECTION_NOT_FOUND",
         "Projection record not found",
       );
-    return projectRecord(applyDemoState(record, state), input.now);
+    return projectRecord(
+      applyInvoicePayment(applyDemoState(record, state), state),
+      input.now,
+    );
   }
 
   public async action(
     input: ProjectionActionInput,
   ): Promise<ProjectionActionReceipt> {
+    const receiptId = actionReceiptId(input);
+    const requestDigest = actionRequestDigest(input);
+    const resultReference = `demo-action:${requestDigest}`;
+    const replay = (
+      existing: ProjectionActionReceipt,
+    ): ProjectionActionReceipt => {
+      if (
+        existing.projectionId !== input.projectionId ||
+        existing.action !== input.action ||
+        existing.expectedVersion !== input.expectedVersion ||
+        existing.resultReference !== resultReference
+      )
+        throw new ExperienceProblem(
+          409,
+          "IDEMPOTENCY_CONFLICT",
+          "The idempotency key is already bound to another projection action",
+        );
+      return { ...existing, commandReplayed: true };
+    };
+    const existing = (await this.stateStore.read()).actionReceipts[receiptId];
+    if (existing) return replay(existing);
+
     const record = await this.find({
       session: input.session,
       audience: input.audience,
@@ -575,24 +1004,31 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "ACTION_FORBIDDEN",
         "Action is not allowed for this record",
       );
+    const completedAt = new Date().toISOString();
     const receipt: ProjectionActionReceipt = {
-      id: uuidV7(),
+      id: receiptId,
       projectionId: record.id,
       aggregateType: record.aggregateType,
       aggregateId: record.aggregateId,
       action: input.action,
       expectedVersion: input.expectedVersion,
-      status: "queued",
-      resultReference: null,
+      status: "applied",
+      resultReference,
       resultCode: null,
-      authoritativeVersion: null,
-      commandReplayed: null,
-      createdAt: new Date().toISOString(),
-      completedAt: null,
+      authoritativeVersion: record.version + 1,
+      commandReplayed: false,
+      createdAt: completedAt,
+      completedAt,
       auditEventId: uuidV7(),
       outboxMessageId: uuidV7(),
     };
+    let returned = receipt;
     await this.stateStore.update((state) => {
+      const concurrent = state.actionReceipts[receiptId];
+      if (concurrent) {
+        returned = replay(concurrent);
+        return state;
+      }
       const currentOverride = state.projectionOverrides[record.id];
       const currentVersion = currentOverride?.version ?? record.version;
       if (currentVersion !== input.expectedVersion)
@@ -601,30 +1037,33 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
           "VERSION_CONFLICT",
           "Projection record changed",
         );
+      const authoritativeVersion = currentVersion + 1;
+      const appliedReceipt = {
+        ...receipt,
+        authoritativeVersion,
+      };
+      returned = appliedReceipt;
       return {
         ...state,
         revision: state.revision + 1,
         projectionOverrides: {
           ...state.projectionOverrides,
           [record.id]: {
-            version: currentVersion + 1,
-            updatedAt: receipt.createdAt,
-            data: {
-              ...(currentOverride?.data ?? {}),
-              status: "pending",
-              statusLabel: "Action queued",
-              nextAction: `${input.action} queued`,
-              allowedActions: [],
-            },
+            version: authoritativeVersion,
+            updatedAt: completedAt,
+            data: appliedActionData(
+              { ...record.data, ...(currentOverride?.data ?? {}) },
+              input.action,
+            ),
           },
         },
         actionReceipts: {
           ...state.actionReceipts,
-          [receipt.id]: receipt,
+          [receiptId]: appliedReceipt,
         },
       };
     });
-    return receipt;
+    return returned;
   }
 
   public async receipt(
@@ -648,6 +1087,117 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       );
     return receipt;
   }
+}
+
+export interface DemoQueueRefreshResult {
+  readonly refreshedAt: string;
+  readonly refreshedRecords: number;
+  readonly replayed: boolean;
+}
+
+/**
+ * Advances the freshness of every seeded internal queue projection atomically.
+ *
+ * The caller owns request authentication and the exact request-byte digest.
+ * This store boundary owns durable replay and never persists the raw
+ * idempotency key. A reset clears both queue overrides and the receipt because
+ * both live in the existing demo projection override collection.
+ */
+export async function refreshDemoQueueProjections(input: {
+  readonly actorId: string;
+  readonly idempotencyKey: string;
+  readonly requestDigest: string;
+  readonly now?: Date;
+  readonly stateStore?: DemoAdapterStateStore;
+}): Promise<DemoQueueRefreshResult> {
+  const actorId = input.actorId.trim();
+  const idempotencyKey = input.idempotencyKey.trim();
+  if (
+    !actorId ||
+    !idempotencyKey ||
+    !/^[0-9a-f]{64}$/u.test(input.requestDigest)
+  )
+    throw new ExperienceProblem(
+      422,
+      "INVALID_DEMO_QUEUE_REFRESH",
+      "Queue refresh identity, idempotency, and request digest are required",
+    );
+  const store = input.stateStore ?? configuredDemoStateStore();
+  const receiptKey = `demo-queue-refresh-receipt:${createHash("sha256")
+    .update(actorId)
+    .update("\0")
+    .update(idempotencyKey)
+    .digest("hex")}`;
+  const refreshedAt = (input.now ?? new Date()).toISOString();
+  if (!Number.isFinite(Date.parse(refreshedAt)))
+    throw new ExperienceProblem(
+      422,
+      "INVALID_DEMO_QUEUE_REFRESH",
+      "Queue refresh time is invalid",
+    );
+  const queueRecords = demoRecords.filter(
+    (record) => record.audience === "internal" && record.channel === "queues",
+  );
+  if (queueRecords.length === 0)
+    throw new Error("The demo queue fixture contains no refreshable records");
+
+  let result: DemoQueueRefreshResult = {
+    refreshedAt,
+    refreshedRecords: queueRecords.length,
+    replayed: false,
+  };
+  await store.update((state) => {
+    const previousReceipt = state.projectionOverrides[receiptKey];
+    if (previousReceipt) {
+      const data = previousReceipt.data;
+      if (
+        data.kind !== "queue_refresh_receipt" ||
+        data.actorId !== actorId ||
+        data.requestDigest !== input.requestDigest ||
+        typeof data.refreshedAt !== "string" ||
+        !Number.isInteger(data.refreshedRecords) ||
+        Number(data.refreshedRecords) <= 0
+      )
+        throw new ExperienceProblem(
+          409,
+          "IDEMPOTENCY_CONFLICT",
+          "The idempotency key is already bound to another queue refresh",
+        );
+      result = {
+        refreshedAt: data.refreshedAt,
+        refreshedRecords: Number(data.refreshedRecords),
+        replayed: true,
+      };
+      return state;
+    }
+
+    const overrides = { ...state.projectionOverrides };
+    for (const record of queueRecords) {
+      const current = overrides[record.id];
+      overrides[record.id] = {
+        version: (current?.version ?? record.version) + 1,
+        updatedAt: refreshedAt,
+        data: current?.data ?? {},
+      };
+    }
+    overrides[receiptKey] = {
+      version: 1,
+      updatedAt: refreshedAt,
+      data: {
+        kind: "queue_refresh_receipt",
+        actorId,
+        requestDigest: input.requestDigest,
+        refreshedAt,
+        refreshedRecords: queueRecords.length,
+      },
+    };
+    return {
+      ...state,
+      revision: state.revision + 1,
+      projectionOverrides: overrides,
+    };
+  });
+  return result;
 }
 
 export function configuredProjectionSource(): ProjectionSource {

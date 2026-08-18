@@ -8,23 +8,23 @@ import { containmentReferenceLimit, decisionReasonLimits } from "./model";
  */
 export const unhandledErrorsCopy = {
   page: {
-    title: "Unhandled runtime failures",
+    title: "Runtime incidents",
     description:
-      "The durable record behind docs/operations/unhandled-errors.md: what failed, where, how often, and what evidence survived the write.",
+      "Review repeated system failures, inspect the evidence that was captured, and record containment or release decisions.",
   },
   summary: {
     label: "Failure signatures",
     signatures: {
       title: "Signatures",
-      detail: "Distinct event, code and aggregate combinations",
+      detail: "Distinct failure patterns requiring review",
     },
     occurrences: {
       title: "Occurrences",
-      detail: "Audit rows read for those signatures",
+      detail: "Recorded events across those patterns",
     },
     diagnosable: {
       title: "With a cause",
-      detail: "Signatures whose latest failure kept a provider message",
+      detail: "Patterns with a provider explanation available",
     },
   },
   diagnosis: {
@@ -51,18 +51,15 @@ export const unhandledErrorsCopy = {
   },
   unreadable: {
     read_failed: {
-      title: "The audit trail could not be read.",
-      detail:
-        "A service connection was available and the read raised. Nothing is listed because no read completed, which is a different state from a quiet system. Check the database and this surface's query before concluding there have been no failures.",
+      title: "Runtime incidents are temporarily unavailable.",
+      detail: "Refresh the page or try again shortly.",
     },
     no_connection: {
-      title: "This surface has no service connection.",
-      detail:
-        "No read was attempted, because no service database is configured for this deployment. Nothing is listed, and that is not a statement about the system's health. Configure the service connection, then reload.",
+      title: "Runtime incidents are not available in this workspace.",
+      detail: "No incident data is connected to the current environment.",
     },
   } as Readonly<Record<string, { title: string; detail: string }>>,
-  unwiredDetail:
-    "No service database is configured for this deployment, so no audit read was attempted.",
+  unwiredDetail: "Runtime incident data is not enabled for this workspace.",
   table: {
     heading: "Failure signatures",
     subheading:
@@ -75,8 +72,7 @@ export const unhandledErrorsCopy = {
      * a claim about the system; it can only report what is on the trail for the
      * types it reads, and it says which claim it is making.
      */
-    empty: (types: number) =>
-      `No audit event of the ${types} types this surface reads is on the trail. That is a statement about those ${types} types and nothing wider: a failure that appends none of them would not appear here either.`,
+    empty: (_types: number) => "No runtime incidents need attention.",
     count: (count: number) =>
       `${count} ${count === 1 ? "signature" : "signatures"}`,
     columns: {

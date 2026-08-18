@@ -1,7 +1,53 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CommerceApiError } from "./commerce-client";
-import { sendCoreCommand } from "./commerce-client";
+import { readCoreAccount, sendCoreCommand } from "./commerce-client";
+
+describe("core account version read", () => {
+  it("returns the one exactly scoped account aggregate", async () => {
+    const accountId = "11111111-1111-4111-8111-111111111111";
+    const fetchImplementation = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        Response.json({
+          items: [
+            {
+              id: accountId,
+              resource: "accounts",
+              accountId,
+              rowVersion: 7,
+              data: {},
+              createdAt: "2026-08-18T12:00:00.000Z",
+              updatedAt: "2026-08-18T12:00:00.000Z",
+            },
+          ],
+          nextCursor: null,
+        }),
+      ),
+    );
+
+    await expect(
+      readCoreAccount(accountId, {
+        baseUrl: "https://clockwork.test/api",
+        fetchImplementation,
+      }),
+    ).resolves.toMatchObject({ id: accountId, rowVersion: 7 });
+    const request = fetchImplementation.mock.calls[0]?.[0] as Request;
+    expect(request.method).toBe("GET");
+    expect(request.url).toContain("/v1/core/records/accounts");
+    expect(request.url).toContain(`accountId=${accountId}`);
+  });
+
+  it("refuses an ambiguous or mismatched account read", async () => {
+    const accountId = "11111111-1111-4111-8111-111111111111";
+    await expect(
+      readCoreAccount(accountId, {
+        baseUrl: "https://clockwork.test/api",
+        fetchImplementation: () =>
+          Promise.resolve(Response.json({ items: [], nextCursor: null })),
+      }),
+    ).rejects.toMatchObject({ status: 409, code: "conflict" });
+  });
+});
 
 describe("commerce command error mapping", () => {
   it("shows the server's safe domain rejection instead of a generic form error", async () => {

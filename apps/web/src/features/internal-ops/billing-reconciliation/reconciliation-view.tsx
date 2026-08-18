@@ -4,6 +4,7 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import { formatOperationalTimestamp } from "../presentation";
 import { reconciliationCopy } from "./copy";
 import {
   blockingVariances,
@@ -14,8 +15,7 @@ import {
 } from "./model";
 import { VarianceDisposition } from "./variance-disposition";
 
-const { page, summary, provenance, unreadable, periods, variances } =
-  reconciliationCopy;
+const { page, summary, unreadable, periods, variances } = reconciliationCopy;
 
 export function ReconciliationView({
   workspace,
@@ -62,17 +62,6 @@ export function ReconciliationView({
           <span>{unreadable.detail}</span>
         </div>
       )}
-
-      <section
-        className={styles.notice}
-        role="note"
-        aria-label={provenance.heading}
-      >
-        <strong>{provenance.heading}</strong>
-        <span>{provenance.tieOut}</span>
-        <span>{provenance.variances}</span>
-        <span>{provenance.closing}</span>
-      </section>
 
       <section className={styles.section} aria-labelledby="tie-out-periods">
         <header className={styles.sectionHeader}>
@@ -171,8 +160,12 @@ export function ReconciliationView({
                 </span>
               </div>,
               variance.ownerEmail ?? variance.ownerUserId.slice(0, 8),
-              <time dateTime={variance.openedAt}>{variance.openedAt}</time>,
-              <time dateTime={variance.targetAt}>{variance.targetAt}</time>,
+              <time dateTime={variance.openedAt}>
+                {formatOperationalTimestamp(variance.openedAt)}
+              </time>,
+              <time dateTime={variance.targetAt}>
+                {formatOperationalTimestamp(variance.targetAt)}
+              </time>,
               variance.latestClassification ? (
                 <div className={styles.primaryCell}>
                   <strong>
