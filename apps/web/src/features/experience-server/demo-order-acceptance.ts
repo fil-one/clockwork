@@ -1,7 +1,9 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import type { SessionClaims } from "@clockwork/api";
-import { MinorUnitSchema } from "@clockwork/contracts";
+import { MinorUnitSchema, uuidV7 } from "@clockwork/contracts";
 import {
   commercialArtifactSourceHash,
   CommercialArtifactDefinitionSchema,
@@ -32,7 +34,10 @@ import {
 import type { DemoCreatedOrder } from "./demo-portal-records";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { ExperienceProblem } from "./model";
-import { demoProjectionRecordId } from "./projection-source";
+import {
+  demoProjectionRecordId,
+  demoProjectionRecordVersion,
+} from "./projection-source";
 
 /**
  * The demo's order acceptance.
@@ -98,6 +103,10 @@ export interface DemoOrderAcceptanceState extends DemoAdapterState {
     Record<string, DemoCommercialArtifactRequest>
   >;
   readonly createdOrders?: Readonly<Record<string, DemoCreatedOrder>>;
+  readonly acceptedQuoteOrders?: Readonly<Record<string, string>>;
+  readonly orderCommandReceipts?: Readonly<
+    Record<string, DemoOrderCommandReceipt>
+  >;
 }
 
 /* --------------------------------------------------------------------------
@@ -466,6 +475,26 @@ export interface DemoOrderCommand {
   readonly orderFormDocumentId?: string;
 }
 
+export interface DemoOrderCommandResult {
+  readonly status: "artifact_requested" | "accepted";
+  readonly rowVersion: 1;
+  readonly data: Readonly<Record<string, string>>;
+  readonly auditEventId: string;
+  readonly outboxEventId: string;
+}
+
+interface DemoOrderCommandReceipt {
+  readonly userId: string;
+  readonly requestHash: string;
+  readonly result: DemoOrderCommandResult;
+  readonly createdAt: string;
+}
+
+export interface DemoOrderCommandExecution {
+  readonly result: DemoOrderCommandResult;
+  readonly replayed: boolean;
+}
+
 function signerNameFor(session: SessionClaims): string {
   const persona = Object.values(demoPersonas).find(
     (candidate) => candidate.userId === session.userId,
@@ -597,6 +626,237 @@ function derive(
 
 const PREPARE_SENTINEL_DOCUMENT_ID = "00000000-0000-4000-8000-000000000000";
 
+function prepareInState(
+  state: DemoOrderAcceptanceState,
+  session: SessionClaims,
+  command: DemoOrderCommand,
+  now: Date,
+): {
+  readonly state: DemoOrderAcceptanceState;
+  readonly record: DemoCommercialArtifactRequest;
+  readonly changed: boolean;
+} {
+  const retainUntil =
+    command.retainUntil ?? defaultRetainUntil(command.acceptedAt);
+  if (Date.parse(retainUntil) <= Date.parse(command.acceptedAt))
+    throw new ExperienceProblem(
+      422,
+      "INVALID_STATE",
+      "Commercial artifact retention must follow acceptance",
+    );
+  const { order, definition, sourceHash } = derive(
+    session,
+    command,
+    PREPARE_SENTINEL_DOCUMENT_ID,
+    now,
+  );
+  const id = demoUuid(
+    `artifact-request:order:${order.id}:order_form:${sourceHash}`,
+  );
+  const existing = state.commercialArtifactRequests?.[id];
+  if (existing) return { state, record: existing, changed: false };
+  const record: DemoCommercialArtifactRequest = {
+    id,
+    documentId: demoUuid(`order-form-document:${id}`),
+    subjectType: "order",
+    subjectId: order.id,
+    commercialAccountId: order.accountId,
+    audienceAccountId: order.invoicingAccountId,
+    audience: "end_client",
+    documentKind: "order_form",
+    sourceHash,
+    definition,
+    retainUntil,
+    requestedBy: session.userId,
+    createdAt: now.toISOString(),
+  };
+  return {
+    state: {
+      ...state,
+      commercialArtifactRequests: {
+        ...state.commercialArtifactRequests,
+        [id]: record,
+      },
+    },
+    record,
+    changed: true,
+  };
+}
+
+function acceptedOrderIdForQuote(
+  state: DemoOrderAcceptanceState,
+  quoteId: string,
+  quoteRecordKey: string,
+): string | undefined {
+  return (
+    state.acceptedQuoteOrders?.[quoteId] ??
+    Object.values(state.createdOrders ?? {}).find(
+      (candidate) => candidate.quoteRecordKey === quoteRecordKey,
+    )?.id
+  );
+}
+
+function sameCreatedOrder(
+  left: DemoCreatedOrder,
+  right: DemoCreatedOrder,
+): boolean {
+  const { immutableAt: leftImmutableAt, ...leftComparable } = left;
+  const { immutableAt: rightImmutableAt, ...rightComparable } = right;
+  void leftImmutableAt;
+  void rightImmutableAt;
+  return JSON.stringify(leftComparable) === JSON.stringify(rightComparable);
+}
+
+function createInState(
+  state: DemoOrderAcceptanceState,
+  session: SessionClaims,
+  command: DemoOrderCommand,
+  now: Date,
+): {
+  readonly state: DemoOrderAcceptanceState;
+  readonly order: DemoCreatedOrder;
+  readonly changed: boolean;
+} {
+  const documentId = command.orderFormDocumentId;
+  if (!documentId)
+    throw new ExperienceProblem(
+      422,
+      "INVALID_STATE",
+      "The order form document is required to create an order",
+    );
+  const { quote, order, sourceHash } = derive(
+    session,
+    command,
+    documentId,
+    now,
+  );
+  const request = Object.values(state.commercialArtifactRequests ?? {}).find(
+    (candidate) =>
+      candidate.documentId === documentId &&
+      candidate.subjectType === "order" &&
+      candidate.subjectId === order.id &&
+      candidate.documentKind === "order_form" &&
+      candidate.sourceHash === sourceHash,
+  );
+  if (!request)
+    throw new ExperienceProblem(
+      409,
+      "COMMERCIAL_ARTIFACT_BINDING_INVALID",
+      "The order form was not prepared for this order and these entries. Prepare it again before accepting.",
+    );
+
+  const quoteId = demoQuoteId(quote);
+  const acceptedOrderId = acceptedOrderIdForQuote(
+    state,
+    quoteId,
+    quote.recordKey,
+  );
+  if (acceptedOrderId && acceptedOrderId !== order.id)
+    throw new ExperienceProblem(
+      409,
+      "DEMO_QUOTE_ALREADY_ACCEPTED",
+      "This quote has already been accepted into an order",
+    );
+
+  const total = order.lines.reduce(
+    (sum, line) => sum + BigInt(line.lineTotal.minor),
+    0n,
+  );
+  const created: DemoCreatedOrder = {
+    id: order.id,
+    quoteRecordKey: quote.recordKey,
+    accountId: order.accountId,
+    audienceAccountId: order.invoicingAccountId,
+    orderFormDocumentId: documentId,
+    artifactRequestId: request.id,
+    poNumber: order.poNumber ?? "Not recorded",
+    authorityTitle: order.authorityTitle,
+    signerName: signerNameFor(session),
+    serviceStartsOn: order.serviceStartsOn,
+    serviceEndsOn: order.serviceEndsOn ?? order.serviceStartsOn,
+    acceptedAt: order.acceptedAt,
+    // A server fact, keyed on this call's own instant — never on the
+    // documentary `acceptedAt` the client stated.
+    immutableAt: now.toISOString(),
+    currency: order.lines[0]?.lineTotal.currency ?? "USD",
+    totalMinor: total.toString(),
+    agreementReference: `${order.agreementId}-v${order.agreementVersion}`,
+    quoteReference: quote.displayNumber,
+  };
+  const existing = state.createdOrders?.[order.id];
+  if (existing && !sameCreatedOrder(existing, created))
+    throw new ExperienceProblem(
+      409,
+      "DEMO_ORDER_ID_CONFLICT",
+      "This order identifier is already bound to different acceptance entries",
+    );
+  const stored = existing ?? created;
+  const indexIsCurrent = state.acceptedQuoteOrders?.[quoteId] === stored.id;
+  const currentOverride = state.projectionOverrides[quoteId];
+  const projectionIsAccepted =
+    currentOverride?.data.status === "accepted" &&
+    Array.isArray(currentOverride.data.allowedActions) &&
+    currentOverride.data.allowedActions.length === 0;
+  if (existing && indexIsCurrent && projectionIsAccepted)
+    return { state, order: existing, changed: false };
+  const seededVersion = demoProjectionRecordVersion(
+    "customer",
+    "quotes",
+    quote.recordKey,
+  );
+  if (seededVersion === undefined)
+    throw new Error(`DEMO_ACCEPTANCE_QUOTE_NOT_PROJECTED:${quote.recordKey}`);
+  return {
+    state: {
+      ...state,
+      createdOrders: { ...state.createdOrders, [stored.id]: stored },
+      acceptedQuoteOrders: {
+        ...state.acceptedQuoteOrders,
+        [quoteId]: stored.id,
+      },
+      projectionOverrides: {
+        ...state.projectionOverrides,
+        [quoteId]: {
+          version: (currentOverride?.version ?? seededVersion) + 1,
+          updatedAt: now.toISOString(),
+          data: {
+            ...(currentOverride?.data ?? {}),
+            status: "accepted",
+            statusLabel: "Accepted · order created",
+            tone: "success",
+            nextAction: `Track order ${stored.id}`,
+            allowedActions: [],
+          },
+        },
+      },
+    },
+    order: stored,
+    changed: true,
+  };
+}
+
+function receiptKey(userId: string, idempotencyKey: string): string {
+  return createHash("sha256")
+    .update(userId)
+    .update("\0/v1/core/commands/orders\0")
+    .update(idempotencyKey)
+    .digest("hex");
+}
+
+function assertIdempotencyInput(
+  idempotencyKey: string,
+  requestHash: string,
+): void {
+  if (idempotencyKey.length < 16 || idempotencyKey.length > 255)
+    throw new ExperienceProblem(
+      422,
+      "IDEMPOTENCY_KEY_REQUIRED",
+      "A valid idempotency-key header is required",
+    );
+  if (!/^[0-9a-f]{64}$/u.test(requestHash))
+    throw new Error("DEMO_ORDER_REQUEST_HASH_INVALID");
+}
+
 export class DemoOrderAcceptance {
   readonly #store: DemoAdapterStateStore;
 
@@ -626,54 +886,22 @@ export class DemoOrderAcceptance {
     command: DemoOrderCommand,
     now = new Date(),
   ): Promise<DemoCommercialArtifactRequest> {
-    const retainUntil =
-      command.retainUntil ?? defaultRetainUntil(command.acceptedAt);
-    if (Date.parse(retainUntil) <= Date.parse(command.acceptedAt))
-      throw new ExperienceProblem(
-        422,
-        "INVALID_STATE",
-        "Commercial artifact retention must follow acceptance",
-      );
-    const { order, definition, sourceHash } = derive(
-      session,
-      command,
-      PREPARE_SENTINEL_DOCUMENT_ID,
-      now,
-    );
-    // The persisted table is unique on the request identity and replays the row
-    // it finds, so the demo derives its identifier from the same values and
-    // does the same. A resubmitted prepare is therefore idempotent here too.
-    const id = demoUuid(
-      `artifact-request:order:${order.id}:order_form:${sourceHash}`,
-    );
-    const record: DemoCommercialArtifactRequest = {
-      id,
-      documentId: demoUuid(`order-form-document:${id}`),
-      subjectType: "order",
-      subjectId: order.id,
-      commercialAccountId: order.accountId,
-      audienceAccountId: order.invoicingAccountId,
-      audience: "end_client",
-      documentKind: "order_form",
-      sourceHash,
-      definition,
-      retainUntil,
-      requestedBy: session.userId,
-      createdAt: now.toISOString(),
-    };
+    let preparedId: string | undefined;
     const committed = (await this.#store.update((current) => {
       const state = current as DemoOrderAcceptanceState;
-      if (state.commercialArtifactRequests?.[id]) return state;
+      const transition = prepareInState(state, session, command, now);
+      preparedId = transition.record.id;
+      if (!transition.changed) return state;
       return {
-        ...state,
+        ...transition.state,
         revision: state.revision + 1,
-        commercialArtifactRequests: {
-          ...state.commercialArtifactRequests,
-          [id]: record,
-        },
       } satisfies DemoOrderAcceptanceState;
     })) as DemoOrderAcceptanceState;
-    return committed.commercialArtifactRequests?.[id] ?? record;
+    const prepared = preparedId
+      ? committed.commercialArtifactRequests?.[preparedId]
+      : undefined;
+    if (!prepared) throw new Error("DEMO_ORDER_PREPARE_COMMIT_MISSING");
+    return prepared;
   }
 
   /**
@@ -687,72 +915,124 @@ export class DemoOrderAcceptance {
     command: DemoOrderCommand,
     now = new Date(),
   ): Promise<DemoCreatedOrder> {
-    const documentId = command.orderFormDocumentId;
-    if (!documentId)
-      throw new ExperienceProblem(
-        422,
-        "INVALID_STATE",
-        "The order form document is required to create an order",
-      );
-    const { quote, order, sourceHash } = derive(
-      session,
-      command,
-      documentId,
-      now,
-    );
-    const state = await this.#read();
-    const request = Object.values(state.commercialArtifactRequests ?? {}).find(
-      (candidate) =>
-        candidate.documentId === documentId &&
-        candidate.subjectType === "order" &&
-        candidate.subjectId === order.id &&
-        candidate.documentKind === "order_form" &&
-        candidate.sourceHash === sourceHash,
-    );
-    if (!request)
-      throw new ExperienceProblem(
-        409,
-        "COMMERCIAL_ARTIFACT_BINDING_INVALID",
-        "The order form was not prepared for this order and these entries. Prepare it again before accepting.",
-      );
-    const existing = state.createdOrders?.[order.id];
-    if (existing) return existing;
-    const total = order.lines.reduce(
-      (sum, line) => sum + BigInt(line.lineTotal.minor),
-      0n,
-    );
-    const created: DemoCreatedOrder = {
-      id: order.id,
-      quoteRecordKey: quote.recordKey,
-      accountId: order.accountId,
-      audienceAccountId: order.invoicingAccountId,
-      orderFormDocumentId: documentId,
-      artifactRequestId: request.id,
-      poNumber: order.poNumber ?? "Not recorded",
-      authorityTitle: order.authorityTitle,
-      signerName: signerNameFor(session),
-      serviceStartsOn: order.serviceStartsOn,
-      serviceEndsOn: order.serviceEndsOn ?? order.serviceStartsOn,
-      acceptedAt: order.acceptedAt,
-      // A server fact, keyed on this call's own instant — never on the
-      // documentary `acceptedAt` the client stated. `mutateOrder` draws the
-      // same line, and it is the line the clock-gap regression exists to hold.
-      immutableAt: now.toISOString(),
-      currency: order.lines[0]?.lineTotal.currency ?? "USD",
-      totalMinor: total.toString(),
-      agreementReference: `${order.agreementId}-v${order.agreementVersion}`,
-      quoteReference: quote.displayNumber,
-    };
+    let orderId: string | undefined;
     const committed = (await this.#store.update((current) => {
       const value = current as DemoOrderAcceptanceState;
-      if (value.createdOrders?.[order.id]) return value;
+      const transition = createInState(value, session, command, now);
+      orderId = transition.order.id;
+      if (!transition.changed) return value;
       return {
-        ...value,
+        ...transition.state,
         revision: value.revision + 1,
-        createdOrders: { ...value.createdOrders, [order.id]: created },
       } satisfies DemoOrderAcceptanceState;
     })) as DemoOrderAcceptanceState;
-    return committed.createdOrders?.[order.id] ?? created;
+    const created = orderId ? committed.createdOrders?.[orderId] : undefined;
+    if (!created) throw new Error("DEMO_ORDER_CREATE_COMMIT_MISSING");
+    return created;
+  }
+
+  /**
+   * The HTTP command path's durable idempotency boundary. The domain mutation
+   * and its completed receipt are committed in one store update; there is no
+   * claim/complete gap in which a serverless process can lose the response
+   * after creating an order. The receipt is scoped to the acting user and this
+   * command route, and binds the key to the exact request-byte hash.
+   */
+  public async execute(input: {
+    readonly session: SessionClaims;
+    readonly action: "prepare_artifact" | "create";
+    readonly command: DemoOrderCommand;
+    readonly idempotencyKey: string;
+    readonly requestHash: string;
+    readonly now?: Date;
+  }): Promise<DemoOrderCommandExecution> {
+    assertIdempotencyInput(input.idempotencyKey, input.requestHash);
+    const key = receiptKey(input.session.userId, input.idempotencyKey);
+    const now = input.now ?? new Date();
+    const candidateAuditEventId = uuidV7();
+    const candidateOutboxEventId = uuidV7();
+    const committed = (await this.#store.update((current) => {
+      const state = current as DemoOrderAcceptanceState;
+      const existing = state.orderCommandReceipts?.[key];
+      if (existing) {
+        if (
+          existing.userId !== input.session.userId ||
+          existing.requestHash !== input.requestHash
+        )
+          throw new ExperienceProblem(
+            409,
+            "IDEMPOTENCY_KEY_CONFLICT",
+            "The idempotency key was already used for a different request",
+          );
+        return state;
+      }
+
+      let nextState: DemoOrderAcceptanceState;
+      let result: DemoOrderCommandResult;
+      if (input.action === "prepare_artifact") {
+        const transition = prepareInState(
+          state,
+          input.session,
+          input.command,
+          now,
+        );
+        nextState = transition.state;
+        result = {
+          status: "artifact_requested",
+          rowVersion: 1,
+          data: {
+            orderFormDocumentId: transition.record.documentId,
+            artifactRequestId: transition.record.id,
+            sourceHash: transition.record.sourceHash,
+            retainUntil: transition.record.retainUntil,
+          },
+          auditEventId: candidateAuditEventId,
+          outboxEventId: candidateOutboxEventId,
+        };
+      } else {
+        const transition = createInState(
+          state,
+          input.session,
+          input.command,
+          now,
+        );
+        nextState = transition.state;
+        result = {
+          status: "accepted",
+          rowVersion: 1,
+          data: {
+            quoteId: input.command.quoteId,
+            orderFormDocumentId: transition.order.orderFormDocumentId,
+            serviceStartsOn: transition.order.serviceStartsOn,
+            serviceEndsOn: transition.order.serviceEndsOn,
+            acceptedAt: transition.order.acceptedAt,
+            immutableAt: transition.order.immutableAt,
+          },
+          auditEventId: candidateAuditEventId,
+          outboxEventId: candidateOutboxEventId,
+        };
+      }
+      const receipt: DemoOrderCommandReceipt = {
+        userId: input.session.userId,
+        requestHash: input.requestHash,
+        result,
+        createdAt: now.toISOString(),
+      };
+      return {
+        ...nextState,
+        revision: state.revision + 1,
+        orderCommandReceipts: {
+          ...state.orderCommandReceipts,
+          [key]: receipt,
+        },
+      } satisfies DemoOrderAcceptanceState;
+    })) as DemoOrderAcceptanceState;
+    const receipt = committed.orderCommandReceipts?.[key];
+    if (!receipt) throw new Error("DEMO_ORDER_COMMAND_RECEIPT_MISSING");
+    return {
+      result: receipt.result,
+      replayed: receipt.result.auditEventId !== candidateAuditEventId,
+    };
   }
 
   /**

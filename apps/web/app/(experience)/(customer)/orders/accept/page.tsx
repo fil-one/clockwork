@@ -1,6 +1,5 @@
 import {
   OrderAcceptance,
-  type AcceptableQuote,
   type GoverningAgreement,
 } from "@/src/features/customer-partner/commercial/order-acceptance";
 import {
@@ -17,10 +16,9 @@ import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
 import { lookupPreparedOrderForm } from "./actions";
+import { selectAcceptanceQuote, toAcceptableQuote } from "./select-quote";
 
 type Data = Readonly<Record<string, unknown>>;
-
-const acceptableStatuses = ["issued", "accepted", "open"];
 
 /**
  * How many agreements the governing-agreement probe asks for.
@@ -38,19 +36,6 @@ const AGREEMENT_PROBE_LIMIT = 25;
 function text(data: Data, key: string): string | undefined {
   const value = data[key];
   return typeof value === "string" && value.trim() ? value : undefined;
-}
-
-function acceptableQuote(record: ProjectionRecord): AcceptableQuote {
-  const data = record.data;
-  return {
-    id: record.aggregateId,
-    reference: record.recordKey,
-    title: text(data, "title") ?? record.recordKey,
-    version: text(data, "version") ?? String(record.version),
-    scope: text(data, "description") ?? "Scope not recorded",
-    spend: text(data, "value") ?? "Not priced",
-    acceptedLabel: text(data, "dateLabel") ?? "Acceptance date not recorded",
-  };
 }
 
 function activeAgreement(
@@ -127,12 +112,8 @@ async function OrderAcceptanceWorkspace({
   // attest to a different commercial record than the one their prior step
   // issued. With no explicit key the existing newest-acceptable behavior
   // remains available for ordinary entry from the navigation.
-  const selected = requested
-    ? quotes.records.find((record) => record.recordKey === requested)
-    : quotes.records.find((record) =>
-        acceptableStatuses.includes(text(record.data, "status") ?? ""),
-      );
-  const quote = selected ? acceptableQuote(selected) : null;
+  const selected = selectAcceptanceQuote(quotes.records, requested);
+  const quote = selected ? toAcceptableQuote(selected) : null;
   return (
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}

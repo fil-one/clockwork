@@ -1,8 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { handle } from "./demo-app";
+import { demoMutationOriginAllowed, handle } from "./demo-app";
 
 const csrfToken = "12345678901234567890123456789012";
+const orderProofHeaders = {
+  origin: "https://demo.clockwork.test",
+  cookie: `clockwork-csrf=${csrfToken}`,
+  "x-csrf-token": csrfToken,
+};
+
+beforeEach(() => {
+  vi.stubEnv("APP_ORIGIN", "https://demo.clockwork.test");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function commandRequest(headers: Record<string, string>): Request {
   return new Request(
@@ -115,7 +128,7 @@ describe("demo commerce api", () => {
         headers: {
           "content-type": "application/json",
           "idempotency-key": "demo-order-command-1",
-          "x-csrf-token": csrfToken,
+          ...orderProofHeaders,
         },
         body: JSON.stringify({
           id: "88888888-8888-4888-8888-888888888888",
@@ -144,6 +157,90 @@ describe("demo commerce api", () => {
     expect(response.status).toBe(403);
   });
 
+  it("requires the order command origin to match the configured app", async () => {
+    const response = await handle(
+      new Request("https://demo.clockwork.test/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "demo-order-command-2",
+          ...orderProofHeaders,
+          origin: "https://attacker.example",
+        },
+        body: JSON.stringify({ id: "x", action: "create", payload: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ORIGIN_REJECTED",
+    });
+  });
+
+  it("accepts the actual same-origin host for local and deploy-preview requests", async () => {
+    const response = await handle(
+      new Request("http://127.0.0.1:3317/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "demo-order-command-local-1",
+          ...orderProofHeaders,
+          host: "127.0.0.1:3317",
+          origin: "http://127.0.0.1:3317",
+        },
+        body: JSON.stringify({
+          id: "88888888-8888-4888-8888-888888888888",
+          accountId: "11111111-1111-4111-8111-111111111111",
+          action: "accept",
+          payload: {},
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ACTION_NOT_ALLOWED",
+    });
+  });
+
+  it("requires the order command CSRF header to match its cookie", async () => {
+    const response = await handle(
+      new Request("https://demo.clockwork.test/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "demo-order-command-3",
+          ...orderProofHeaders,
+          "x-csrf-token": "abcdefabcdefabcdefabcdefabcdefab",
+        },
+        body: JSON.stringify({ id: "x", action: "create", payload: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "CSRF_REJECTED",
+    });
+  });
+
+  it("validates order idempotency evidence before entering the lane", async () => {
+    const response = await handle(
+      new Request("https://demo.clockwork.test/api/v1/core/commands/orders", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...orderProofHeaders,
+        },
+        body: JSON.stringify({ id: "x", action: "create", payload: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "IDEMPOTENCY_KEY_REQUIRED",
+    });
+  });
+
   it("reports an operation the demo does not simulate as problem details", async () => {
     const response = await handle(
       new Request("https://demo.clockwork.test/api/v1/system/nothing-here"),
@@ -157,5 +254,73 @@ describe("demo commerce api", () => {
       code: "DEMO_OPERATION_UNAVAILABLE",
       retryable: false,
     });
+  });
+});
+
+describe("demo order mutation origin resolution", () => {
+  const base = {
+    configuredOrigin: "https://clockwork.example",
+    host: "internal-next:3000",
+    forwardedHost: null,
+    forwardedProtocol: null,
+    requestProtocol: "http",
+  } as const;
+
+  it("allows the configured canonical origin", () => {
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "https://clockwork.example",
+      }),
+    ).toBe(true);
+  });
+
+  it("uses the served Host when Next rewrites the internal request URL", () => {
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "http://127.0.0.1:3317",
+        host: "127.0.0.1:3317",
+      }),
+    ).toBe(true);
+  });
+
+  it("uses a strict forwarded host and protocol for deploy previews", () => {
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "https://deploy-preview-42--clockwork.netlify.app",
+        forwardedHost: "deploy-preview-42--clockwork.netlify.app",
+        forwardedProtocol: "https",
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects malformed forwarded hosts and attacker origins", () => {
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "https://deploy-preview-42--clockwork.netlify.app",
+        forwardedHost:
+          "deploy-preview-42--clockwork.netlify.app, attacker.example",
+        forwardedProtocol: "https",
+      }),
+    ).toBe(false);
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "https://clockwork.example",
+        forwardedHost: "clockwork.example/attacker",
+        forwardedProtocol: "https",
+      }),
+    ).toBe(false);
+    expect(
+      demoMutationOriginAllowed({
+        ...base,
+        origin: "https://attacker.example",
+        forwardedHost: "deploy-preview-42--clockwork.netlify.app",
+        forwardedProtocol: "https",
+      }),
+    ).toBe(false);
   });
 });

@@ -83,10 +83,10 @@ function nextStep(
   const reference = encodeURIComponent(recordKey);
   if (record.kind === "quotes") {
     const actions = validQuoteActions(record.status as QuoteStatus);
-    if (actions.includes("create_order"))
+    if (actions.includes("accept"))
       return {
         href: `/orders/accept?quote=${reference}`,
-        label: "Review resulting order",
+        label: "Review and accept order",
       };
     if (actions.includes("edit"))
       return {

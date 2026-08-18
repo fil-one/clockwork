@@ -804,6 +804,11 @@ describe("order acceptance review panel", () => {
     expect(summary).not.toBeNull();
     expect(summary).toHaveTextContent("Service start2026-08-15");
     expect(summary).toHaveTextContent("Service end2027-08-14");
+    expect(
+      screen.getByRole("checkbox", {
+        name: /service start, service end, and resulting commitment/u,
+      }),
+    ).toBeVisible();
   });
 });
 

@@ -1,5 +1,9 @@
 import type { SessionClaims } from "@clockwork/api";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
+import {
+  createPristineDemoAdapterState,
+  type DemoAdapterStateStore,
+} from "@clockwork/testing/demo-state";
 import { demoAccountIds, demoPersonas } from "@clockwork/testing/personas";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -12,9 +16,15 @@ import {
   DemoOrderAcceptance,
   type DemoOrderCommand,
 } from "./demo-order-acceptance";
-import { demoCreatedOrderRecord } from "./demo-portal-records";
+import {
+  demoAdditionalRecords,
+  demoCreatedOrderRecord,
+} from "./demo-portal-records";
 import { ExperienceProblem } from "./model";
-import { demoProjectionRecordId } from "./projection-source";
+import {
+  demoProjectionRecordId,
+  ExplicitDemoProjectionSource,
+} from "./projection-source";
 
 const persona = demoPersonas.directBuyer;
 
@@ -67,9 +77,11 @@ function command(overrides: Partial<DemoOrderCommand> = {}): DemoOrderCommand {
 }
 
 let acceptance: DemoOrderAcceptance;
+let store: DemoAdapterStateStore;
 
 beforeEach(() => {
-  acceptance = new DemoOrderAcceptance(createMemoryDemoStore());
+  store = createMemoryDemoStore();
+  acceptance = new DemoOrderAcceptance(store);
 });
 
 async function walk(overrides: Partial<DemoOrderCommand> = {}) {
@@ -124,6 +136,112 @@ describe("the demo two-pass acceptance", () => {
     const x = await acceptance.create(session, second, now);
     const y = await acceptance.create(session, second, now);
     expect(y).toEqual(x);
+  });
+
+  it("persists an exact command response and refuses key reuse for different request bytes", async () => {
+    const first = command();
+    const input = {
+      session,
+      action: "prepare_artifact" as const,
+      command: first,
+      idempotencyKey: "demo-prepare-command-0001",
+      requestHash: "a".repeat(64),
+      now,
+    };
+    const initial = await acceptance.execute(input);
+    const replay = await acceptance.execute(input);
+
+    expect(initial.replayed).toBe(false);
+    expect(replay).toEqual({ result: initial.result, replayed: true });
+    await expect(
+      acceptance.execute({ ...input, requestHash: "b".repeat(64) }),
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_CONFLICT", status: 409 });
+  });
+
+  it("allows exactly one order per source quote under concurrent creates", async () => {
+    const first = command({ orderId: orderId("0011") });
+    const second = command({ orderId: orderId("0012") });
+    const [firstForm, secondForm] = await Promise.all([
+      acceptance.prepare(session, first, now),
+      acceptance.prepare(session, second, now),
+    ]);
+
+    const attempts = await Promise.allSettled([
+      acceptance.create(
+        session,
+        { ...first, orderFormDocumentId: firstForm.documentId },
+        now,
+      ),
+      acceptance.create(
+        session,
+        { ...second, orderFormDocumentId: secondForm.documentId },
+        now,
+      ),
+    ]);
+
+    expect(
+      attempts.filter((attempt) => attempt.status === "fulfilled"),
+    ).toHaveLength(1);
+    const rejected = attempts.find((attempt) => attempt.status === "rejected");
+    if (!rejected || rejected.status !== "rejected")
+      throw new Error("one concurrent create should have been rejected");
+    const rejection: unknown = rejected.reason;
+    expect(rejection).toMatchObject({ code: "DEMO_QUOTE_ALREADY_ACCEPTED" });
+    await expect(acceptance.createdOrders()).resolves.toHaveLength(1);
+  });
+
+  it("drops quote-consumption and idempotency state on demo reset", async () => {
+    const first = command({ orderId: orderId("0021") });
+    const firstExecution = await acceptance.execute({
+      session,
+      action: "prepare_artifact",
+      command: first,
+      idempotencyKey: "demo-reset-command-0001",
+      requestHash: "c".repeat(64),
+      now,
+    });
+    const documentId = firstExecution.result.data.orderFormDocumentId;
+    if (!documentId) throw new Error("prepare did not return a document");
+    await acceptance.create(
+      session,
+      { ...first, orderFormDocumentId: documentId },
+      now,
+    );
+
+    await store.replace(createPristineDemoAdapterState());
+
+    const afterReset = await acceptance.execute({
+      session,
+      action: "prepare_artifact",
+      command: first,
+      idempotencyKey: "demo-reset-command-0001",
+      requestHash: "c".repeat(64),
+      now,
+    });
+    expect(afterReset.replayed).toBe(false);
+    await expect(acceptance.createdOrders()).resolves.toEqual([]);
+    await expect(
+      new ExplicitDemoProjectionSource(store).find({
+        session,
+        audience: "customer",
+        channel: "quotes",
+        accountId: demoAccountIds.direct,
+        recordKey: renewalQuoteKey(),
+        now,
+      }),
+    ).resolves.toMatchObject({
+      data: { status: "open", allowedActions: ["accept", "expire"] },
+    });
+
+    const second = command({ orderId: orderId("0022") });
+    const secondForm = await acceptance.prepare(session, second, now);
+    await expect(
+      acceptance.create(
+        session,
+        { ...second, orderFormDocumentId: secondForm.documentId },
+        now,
+      ),
+    ).resolves.toMatchObject({ id: orderId("0022") });
   });
 
   /**
@@ -342,6 +460,53 @@ describe("the created order", () => {
       demoAccountIds.endClient,
     );
   });
+
+  it("atomically consumes the source quote projection", async () => {
+    const source = new ExplicitDemoProjectionSource(store);
+    const recordKey = renewalQuoteKey();
+    const initial = await source.find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId: demoAccountIds.direct,
+      recordKey,
+      now,
+    });
+
+    const { created } = await walk();
+    const accepted = await source.find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId: demoAccountIds.direct,
+      recordKey,
+      now,
+    });
+
+    expect(accepted.version).toBe(initial.version + 1);
+    expect(accepted.data).toMatchObject({
+      status: "accepted",
+      statusLabel: "Accepted · order created",
+      tone: "success",
+      nextAction: `Track order ${created.id}`,
+      allowedActions: [],
+    });
+    await expect(
+      source.action({
+        session,
+        projectionId: accepted.id,
+        recordKey: accepted.recordKey,
+        audience: accepted.audience,
+        channel: accepted.channel,
+        accountId: demoAccountIds.direct,
+        action: "accept",
+        expectedVersion: accepted.version,
+        idempotencyKey: "demo-repeat-acceptance-0001",
+        payload: {},
+        requestId: "demo-repeat-acceptance-request",
+      }),
+    ).rejects.toMatchObject({ code: "ACTION_FORBIDDEN", status: 403 });
+  });
 });
 
 /**
@@ -349,6 +514,22 @@ describe("the created order", () => {
  * ledger cannot start.
  */
 describe("the acceptance book", () => {
+  it("projects the guided renewal's commercial identity beside its row identity", () => {
+    const projected = demoAdditionalRecords.find(
+      (record) =>
+        record.channel === "quotes" && record.key === "quote-direct-renewal-v2",
+    );
+
+    expect(projected).toMatchObject({
+      key: "quote-direct-renewal-v2",
+      version: 1,
+      data: {
+        reference: "Q-2026-0312",
+        authoritative: { revision: 2 },
+      },
+    });
+  });
+
   it("names only quotes the demo projection actually serves", () => {
     for (const quote of demoAcceptanceQuoteBook)
       expect(

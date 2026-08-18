@@ -128,7 +128,35 @@ something that has actually broken here:
    does not imply packaged success.
 5. **Quote → order acceptance completes**, past the order form and onto a
    created order. This was a permanent dead end before it was fixed; it is the
-   flagship journey.
+   flagship journey. Run the reproducible path, not an arbitrary acceptable
+   quote:
+
+   1. From `/demo`, choose **Start as Mara Voss**. She lands on `/dashboard`.
+      Open **Demo controls** and follow **Review the issued version and proceed
+      to acceptance.** to `/quotes/quote-direct-renewal-v2`.
+   2. Confirm the record says **Annual renewal · committed capacity** and
+      **Issued · awaiting acceptance**. Choose **Review and accept order**. The
+      destination must be `/orders/accept?quote=quote-direct-renewal-v2`, and
+      its promise chain must name **Accepted quote Q-2026-0312 · version 2**;
+      the route key and projection-row version are not the commercial quote
+      identity.
+   3. Enter **Purchase order** `PO-DEMO-0312`, **Service start** `2027-01-01`,
+      **Service end** `2027-12-31`, and **Authority title**
+      `Operations Director`. Check the confirmation that names both ends of the
+      service term, then choose **Accept order and create commitment**.
+   4. Wait for **Open the order form**. Open it and verify the response is a
+      real PDF (`application/pdf`, beginning `%PDF-`) that carries the entered
+      PO and service term. Then choose **Create the order and commitment**.
+   5. Confirm **Order created. Its commitment and provisioning state are now
+      authoritative.**, follow **Open the created order**, and verify the
+      resulting record says **Committed capacity · PO-DEMO-0312** and **Active ·
+      accepted in this session**. Reopen `/quotes/quote-direct-renewal-v2`: it
+      must now say **Accepted · order created** and must not offer **Review and
+      accept order** again.
+   6. Use **Restore demo data** and confirm **Reset demo**. The created-order
+      route must become unavailable after reload. This cleanup is mandatory on
+      draft and production because both deploys share the site's Blob state.
+
 6. **"Sign this agreement"** reaches the ceremony and returns. This depends on
    `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS` containing the site's **own** origin —
    the ceremony URL is same-origin and the client refuses any signing URL
