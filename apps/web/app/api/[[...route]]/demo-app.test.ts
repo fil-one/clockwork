@@ -413,6 +413,8 @@ describe("demo commerce api", () => {
   });
 
   it("routes exact demo sandbox payment paths after identity and mutation proof", async () => {
+    const rawBody =
+      '{"accountId":"11111111-1111-4111-8111-111111111111", "invoiceId":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"}';
     const input = new Request(
       "https://demo.clockwork.test/api/demo/payments/sessions",
       {
@@ -422,13 +424,15 @@ describe("demo commerce api", () => {
           "idempotency-key": "demo-sandbox-payment-0001",
           ...orderProofHeaders,
         },
-        body: JSON.stringify({
-          accountId: "11111111-1111-4111-8111-111111111111",
-          invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-        }),
+        body: rawBody,
       },
     );
-    const bodyRead = vi.spyOn(input, "arrayBuffer");
+    paymentMocks.handle.mockImplementationOnce(async (request: Request) => {
+      expect(request).toBe(input);
+      expect(request.bodyUsed).toBe(false);
+      expect(await request.text()).toBe(rawBody);
+      return Response.json({ provider: "demo_sandbox", status: "paid" });
+    });
     sessionMocks.resolve.mockImplementationOnce((request: Request) => {
       expect(request).toBe(input);
       expect(request.bodyUsed).toBe(false);
@@ -452,7 +456,7 @@ describe("demo commerce api", () => {
         userId: "22222222-2222-4222-8222-222222222222",
       }),
     );
-    expect(bodyRead).not.toHaveBeenCalled();
+    expect(input.bodyUsed).toBe(true);
   });
 
   it("refuses cross-origin sandbox completion and does not match lookalikes", async () => {

@@ -30,9 +30,19 @@ describe("request telemetry proxy", () => {
       "/api/v1",
       "/api/experience/projections/customer/quotes",
       "/api/experience",
+      "/api/demo/payments",
+      "/api/demo/payments/sessions",
     ])
       expect(matcher.test(path), path).toBe(false);
-    for (const path of ["/customer", "/api/telemetry", "/api/experiential"])
+    for (const path of [
+      "/customer",
+      "/api/telemetry",
+      "/api/experiential",
+      "/api/demo/reset",
+      "/api/demo/projections/queues/refresh",
+      "/api/demo/paymentss",
+      "/api/demo/payments-x",
+    ])
       expect(matcher.test(path), path).toBe(true);
   });
 
