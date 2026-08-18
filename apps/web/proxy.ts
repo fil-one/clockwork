@@ -330,17 +330,6 @@ export default async function proxy(
     // namespace outside AuthKit lets lanes add Stripe/e-sign routes without a
     // shared proxy edit; Hono still requires verifier-backed handlers.
     const isWebhook = request.nextUrl.pathname.startsWith("/api/v1/webhooks/");
-    // Netlify's edge handoff drops a request body when middleware overrides
-    // request headers. Demo mutations enforce their own origin, CSRF,
-    // permission and idempotency proofs in the destination handler; webhooks
-    // authenticate their exact raw bytes there. Preserve those bodies with an
-    // unmodified pass-through. Documents still receive the forwarded CSP
-    // nonce, and the response continues to carry the proxy's correlation and
-    // security headers below.
-    const preserveRequestBody =
-      request.method !== "GET" &&
-      request.method !== "HEAD" &&
-      (demoDeployIdentity || isWebhook);
     let response: NextResponse;
     if (releaseProof) {
       if (request.nextUrl.origin !== releaseProof.origin) {
@@ -373,9 +362,7 @@ export default async function proxy(
           ? authResponse
           : authResponse instanceof Response
             ? new NextResponse(authResponse.body, authResponse)
-            : preserveRequestBody
-              ? NextResponse.next()
-              : NextResponse.next({ request: { headers: forwardedHeaders } });
+            : NextResponse.next({ request: { headers: forwardedHeaders } });
     }
     if (!request.cookies.has("clockwork-csrf"))
       response.cookies.set(
@@ -437,11 +424,12 @@ export default async function proxy(
 // replace them with a sign-in page. Every exemption names a static asset path.
 export const config = {
   matcher: [
-    // The two demo form posts are excluded because forwarding a request through
-    // `NextResponse.next({ request: { headers } })` drops the body on the deploy
-    // platform's edge middleware, which left the password unreadable and the
-    // gate unpassable. Each handler performs its own exact-origin check, so
-    // neither is relying on this middleware.
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete).*)",
+    // Netlify's Next edge handoff can consume raw request bodies even when the
+    // middleware returns an unmodified pass-through. Every body-bearing v1
+    // operation hashes its exact raw bytes for idempotency or signature
+    // verification, so the entire namespace goes directly to the self-
+    // contained Hono/demo composition boundary. Demo form handlers likewise
+    // enforce their own origin checks.
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/v1(?:/|$)).*)",
   ],
 };

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
+import type { UserInfo } from "@workos-inc/authkit-nextjs";
 
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
@@ -92,13 +93,13 @@ function configuredEnvironment() {
   );
 }
 
-function workosSession(email = "owner@customer.example") {
+function workosSession(email = "owner@customer.example"): UserInfo {
   return {
     sessionId: fixture.sessionId,
     organizationId: fixture.workosOrganizationId,
     user: { id: fixture.workosUserId, email },
     accessToken: "access-token-deterministic-001",
-  };
+  } as unknown as UserInfo;
 }
 
 function commerceIdentity(overrides: Record<string, unknown> = {}) {
@@ -154,7 +155,10 @@ describe("WorkOS commerce session mapping", () => {
     authMocks.resolveWorkosIdentity.mockResolvedValue(commerceIdentity());
     authMocks.listAuthorizedMemberships.mockResolvedValue([membership()]);
     authMocks.checkRecentAuth.mockResolvedValue({ isStale: false });
-    authMocks.getTokenClaims.mockResolvedValue({ amr: ["pwd", "mfa"] });
+    authMocks.getTokenClaims.mockResolvedValue({
+      amr: ["pwd", "mfa"],
+      auth_time: Math.floor(Date.now() / 1000),
+    });
   });
 
   afterEach(() => {
@@ -198,6 +202,40 @@ describe("WorkOS commerce session mapping", () => {
       providerBacked: true,
       authenticationSource: "workos",
     });
+  });
+
+  it("maps a request-bound verified AuthKit session without middleware state", async () => {
+    const resolver = new WorkosNextSessionResolver({
+      requireBoundSession: true,
+    });
+    const request = new Request("https://commerce.clockwork.test/v1/orders");
+    resolver.bindVerifiedSession(request, workosSession());
+
+    await expect(resolver.resolve(request)).resolves.toMatchObject({
+      userId: fixture.commerceUserId,
+      organizationId: fixture.commerceOrganizationId,
+      accountIds: [fixture.accountId],
+      recentAuthenticationVerified: true,
+      authenticationSource: "workos",
+    });
+    expect(authMocks.withAuth).not.toHaveBeenCalled();
+    expect(authMocks.checkRecentAuth).not.toHaveBeenCalled();
+    // The binding is single-use and tied to this exact Request object.
+    await expect(resolver.resolve(request)).resolves.toBeNull();
+  });
+
+  it("preserves middleware-backed resolution outside the strict API boundary", async () => {
+    const resolver = new WorkosNextSessionResolver();
+
+    await expect(
+      resolver.resolve(
+        new Request("https://commerce.clockwork.test/api/experience/customer"),
+      ),
+    ).resolves.toMatchObject({
+      userId: fixture.commerceUserId,
+      authenticationSource: "workos",
+    });
+    expect(authMocks.withAuth).toHaveBeenCalledOnce();
   });
 
   it("does not invent a named local identity unless the demo adapter is explicit", async () => {

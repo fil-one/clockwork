@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProblemDetailsSchema } from "@clockwork/contracts";
@@ -16,7 +17,9 @@ const telemetrySecret = "proxy-telemetry-ingest-secret-of-ample-length";
 vi.stubEnv("CLOCKWORK_TELEMETRY_INGEST_SECRET", telemetrySecret);
 vi.stubEnv("NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS", "https://esign.example.test");
 
-const { default: proxy } = await import("../proxy");
+const proxyModule = await import("../proxy");
+const proxy = proxyModule.default;
+const proxyConfig = proxyModule.config;
 
 function event() {
   const pending: Promise<unknown>[] = [];
@@ -84,28 +87,23 @@ afterEach(() => {
 });
 
 describe("content security policy", () => {
-  it("preserves deployed demo mutation bodies at the edge handoff", async () => {
-    const built = await productionProxy();
-    const scheduled = event();
-    const response = await built(
-      new NextRequest(
-        "https://demo.clockwork.test/api/v1/core/commands/orders",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "prepare_artifact" }),
-        },
-      ),
-      scheduled.value as never,
-    );
-    await Promise.all(scheduled.pending);
+  it("keeps the complete exact-byte v1 API boundary outside the proxy", () => {
+    const matches = (pathname: string) =>
+      unstable_doesMiddlewareMatch({
+        config: proxyConfig,
+        url: `https://demo.clockwork.test${pathname}`,
+      });
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("x-middleware-next")).toBe("1");
-    expect(response.headers.get("x-middleware-override-headers")).toBeNull();
-    expect(response.headers.get("x-request-id")).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
-    );
+    expect(matches("/api/v1")).toBe(false);
+    expect(matches("/api/v1/")).toBe(false);
+    expect(matches("/api/v1/core/commands/orders")).toBe(false);
+    expect(matches("/api/v1/core/commands/quotes")).toBe(false);
+    expect(matches("/api/v1/webhooks")).toBe(false);
+    expect(matches("/api/v1/webhooks/stripe")).toBe(false);
+    // Similar prefixes are not part of the v1 namespace.
+    expect(matches("/api/v1x/core/commands/orders")).toBe(true);
+    expect(matches("/customer/dashboard")).toBe(true);
+    expect(matches("/brand/clockwork.svg")).toBe(false);
   });
 
   it("serves a nonce policy on the response and forwards it to the renderer", async () => {

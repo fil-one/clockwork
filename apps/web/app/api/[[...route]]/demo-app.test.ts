@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  demoAccessCookieName,
+  issueDemoAccessCookie,
+} from "@/src/auth/demo-access";
+
 import { demoMutationOriginAllowed, handle } from "./demo-app";
 
 const csrfToken = "12345678901234567890123456789012";
@@ -37,8 +42,8 @@ describe("demo commerce api", () => {
   it("answers a mutation that carries replay and CSRF evidence", async () => {
     const response = await handle(
       commandRequest({
+        ...orderProofHeaders,
         "idempotency-key": "demo-quote-command-1",
-        "x-csrf-token": csrfToken,
       }),
     );
 
@@ -49,19 +54,65 @@ describe("demo commerce api", () => {
   });
 
   it("refuses a mutation with no idempotency key", async () => {
-    const response = await handle(
-      commandRequest({ "x-csrf-token": csrfToken }),
-    );
+    const response = await handle(commandRequest(orderProofHeaders));
 
     expect(response.status).toBe(403);
   });
 
   it("refuses a mutation with no CSRF token", async () => {
     const response = await handle(
-      commandRequest({ "idempotency-key": "demo-quote-command-2" }),
+      commandRequest({
+        origin: orderProofHeaders.origin,
+        cookie: orderProofHeaders.cookie,
+        "idempotency-key": "demo-quote-command-2",
+      }),
     );
 
     expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "CSRF_REJECTED",
+    });
+  });
+
+  it("requires origin validation for non-order demo mutations", async () => {
+    const response = await handle(
+      commandRequest({
+        ...orderProofHeaders,
+        origin: "https://attacker.example",
+        "idempotency-key": "demo-quote-command-3",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ORIGIN_REJECTED",
+    });
+  });
+
+  it("requires the configured signed grant for every demo API request", async () => {
+    const password = "demo-app-boundary-test-password";
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("CLOCKWORK_DEMO_ACCESS_PASSWORD", password);
+    const url = "https://demo.clockwork.test/api/v1/system/nothing-here";
+
+    const denied = await handle(new Request(url));
+    expect(denied.status).toBe(403);
+    await expect(denied.json()).resolves.toMatchObject({
+      code: "DEMO_ACCESS_REQUIRED",
+    });
+
+    const grant = await issueDemoAccessCookie(password);
+    const allowed = await handle(
+      new Request(url, {
+        headers: { cookie: `${demoAccessCookieName}=${grant.value}` },
+      }),
+    );
+    expect(allowed.status).toBe(404);
+    await expect(allowed.json()).resolves.toMatchObject({
+      code: "DEMO_OPERATION_UNAVAILABLE",
+    });
   });
 
   it("serves the active agreement template the click-through surface verifies", async () => {
@@ -96,7 +147,7 @@ describe("demo commerce api", () => {
         headers: {
           "content-type": "application/json",
           "idempotency-key": "demo-payment-session-1",
-          "x-csrf-token": csrfToken,
+          ...orderProofHeaders,
         },
         body: JSON.stringify({
           accountId: "11111111-1111-4111-8111-111111111111",
@@ -252,6 +303,27 @@ describe("demo commerce api", () => {
     );
     await expect(response.json()).resolves.toMatchObject({
       code: "DEMO_OPERATION_UNAVAILABLE",
+      retryable: false,
+    });
+  });
+
+  it("fails demo webhooks closed without buffering unsigned provider bytes", async () => {
+    const request = new Request(
+      "https://demo.clockwork.test/api/v1/webhooks/stripe",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: "provider-event" }),
+      },
+    );
+    const bodyRead = vi.spyOn(request, "arrayBuffer");
+
+    const response = await handle(request);
+
+    expect(response.status).toBe(503);
+    expect(bodyRead).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      code: "DEMO_WEBHOOK_UNAVAILABLE",
       retryable: false,
     });
   });

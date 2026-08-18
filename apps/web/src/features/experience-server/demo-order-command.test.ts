@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  demoAccessCookieName,
+  issueDemoAccessCookie,
+} from "@/src/auth/demo-access";
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
@@ -18,7 +23,10 @@ import { handleDemoOrderCommand } from "./demo-order-command";
 const accountId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
 
-function request(idempotencyKey = "demo-order-command-0001"): Request {
+function request(
+  idempotencyKey = "demo-order-command-0001",
+  headers: Readonly<Record<string, string>> = {},
+): Request {
   return new Request(
     "https://demo.clockwork.test/api/v1/core/commands/orders",
     {
@@ -26,6 +34,7 @@ function request(idempotencyKey = "demo-order-command-0001"): Request {
       headers: {
         "content-type": "application/json",
         "idempotency-key": idempotencyKey,
+        ...headers,
       },
       body: JSON.stringify({
         id: "33333333-3333-4333-8333-333333333333",
@@ -72,7 +81,41 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("the demo order command boundary", () => {
+  it("rechecks the configured demo access grant when the proxy is bypassed", async () => {
+    const password = "demo-order-boundary-test-password";
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("CLOCKWORK_DEMO_ACCESS_PASSWORD", password);
+    const deniedRequest = request();
+    const deniedBodyRead = vi.spyOn(deniedRequest, "arrayBuffer");
+
+    const denied = await handleDemoOrderCommand(deniedRequest);
+
+    expect(denied.status).toBe(403);
+    await expect(denied.json()).resolves.toMatchObject({
+      code: "DEMO_ACCESS_REQUIRED",
+    });
+    expect(deniedBodyRead).not.toHaveBeenCalled();
+    expect(mocks.getCommerceSession).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
+
+    const grant = await issueDemoAccessCookie(password);
+    const allowed = await handleDemoOrderCommand(
+      request("demo-order-command-0002", {
+        cookie: `${demoAccessCookieName}=${grant.value}`,
+      }),
+    );
+
+    expect(allowed.status).toBe(200);
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+  });
+
   it("requires order:write even when the account is in session scope", async () => {
     mocks.getCommerceSession.mockResolvedValue({
       ...(await mocks.getCommerceSession()),
@@ -121,5 +164,27 @@ describe("the demo order command boundary", () => {
       code: "IDEMPOTENCY_KEY_REQUIRED",
     });
     expect(mocks.execute).not.toHaveBeenCalled();
+  });
+
+  it("labels only the JSON parse itself as an invalid request body", async () => {
+    const malformed = new Request(
+      "https://demo.clockwork.test/api/v1/core/commands/orders",
+      {
+        method: "POST",
+        headers: { "idempotency-key": "demo-order-malformed-0001" },
+        body: "{",
+      },
+    );
+    const response = await handleDemoOrderCommand(malformed);
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "INVALID_BODY",
+      detail: "The request body is not JSON.",
+    });
+
+    mocks.execute.mockRejectedValueOnce(new SyntaxError("downstream failure"));
+    await expect(handleDemoOrderCommand(request())).rejects.toThrow(
+      "downstream failure",
+    );
   });
 });

@@ -34,13 +34,14 @@ import { resolveWorkosIdentity } from "@clockwork/db";
 import {
   checkRecentAuth,
   getTokenClaims,
+  type UserInfo,
   withAuth,
 } from "@workos-inc/authkit-nextjs";
 import { cookies, headers } from "next/headers";
 
 import { getServiceDatabase } from "@/src/db/service";
 
-const configured = () =>
+export const workosAuthenticationConfigured = () =>
   Boolean(
     process.env.WORKOS_API_KEY &&
     process.env.WORKOS_CLIENT_ID &&
@@ -74,7 +75,7 @@ export function explicitDemoIdentityEnabled(
 
 function assertAuthenticationConfiguration() {
   if (
-    !configured() &&
+    !workosAuthenticationConfigured() &&
     !releaseProofConfiguration() &&
     process.env.NODE_ENV === "production" &&
     !explicitDemoIdentityEnabled()
@@ -282,7 +283,7 @@ export async function requireRecentAuthentication(maxAge = 300) {
       throw new Error("Sensitive action requires recent authentication");
     return;
   }
-  if (!configured()) {
+  if (!workosAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
         "Authentication is unavailable without an explicit non-production demo adapter",
@@ -307,7 +308,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       requestOrigin: headerStore.get("x-clockwork-proof-origin") ?? undefined,
     });
   }
-  if (!configured()) {
+  if (!workosAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
         "Authentication is unavailable without an explicit non-production demo adapter",
@@ -374,6 +375,16 @@ export async function getCommerceSession(): Promise<CommerceSession> {
   }
 
   const session = await withAuth({ ensureSignedIn: true });
+  const assistedCookie = (await cookies()).get(
+    assistedSessionCookieName,
+  )?.value;
+  return workosCommerceSession(session, assistedCookie);
+}
+
+async function workosCommerceSession(
+  session: UserInfo,
+  assistedCookie: string | undefined,
+): Promise<CommerceSession> {
   if (!session.organizationId)
     throw new Error("Organization selection is required");
   const database = getServiceDatabase();
@@ -397,9 +408,6 @@ export async function getCommerceSession(): Promise<CommerceSession> {
   )
     throw new Error("Selected WorkOS membership does not match commerce scope");
 
-  const assistedCookie = (await cookies()).get(
-    assistedSessionCookieName,
-  )?.value;
   let assistedSession: AssistedSessionView | undefined;
   if (assistedCookie && identity.isInternalStaff) {
     try {
@@ -474,7 +482,14 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       policyOrganizations.includes(organizationId),
     );
   assertPrivilegedMfa(normalizedRoles, mfaVerified);
-  const recentAuthentication = await checkRecentAuth({ maxAge: 300 });
+  const recentClaims = await getTokenClaims<{ auth_time?: unknown }>(
+    session.accessToken,
+  ).catch(() => undefined);
+  const authTime = recentClaims?.auth_time;
+  const recentAuthenticationVerified =
+    typeof authTime === "number" &&
+    Number.isFinite(authTime) &&
+    Math.floor(Date.now() / 1000) - authTime <= 300;
   const accountIds = activeAssistedSession
     ? [activeAssistedSession.targetAccountId]
     : isInternalStaff
@@ -489,7 +504,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
     roles: normalizedRoles,
     isInternalStaff,
     mfaVerified,
-    recentAuthenticationVerified: !recentAuthentication.isStale,
+    recentAuthenticationVerified,
     authenticationSessionId: session.sessionId,
     profile: {
       name: activeAssistedSession?.actualActorName ?? selected.userName,
@@ -528,6 +543,17 @@ export async function getCommerceSession(): Promise<CommerceSession> {
 }
 
 export class WorkosNextSessionResolver implements SessionResolver {
+  readonly #verifiedSessions = new WeakMap<Request, UserInfo>();
+  readonly #requireBoundSession: boolean;
+
+  public constructor(options: { requireBoundSession?: boolean } = {}) {
+    this.#requireBoundSession = options.requireBoundSession ?? false;
+  }
+
+  public bindVerifiedSession(request: Request, session: UserInfo): void {
+    this.#verifiedSessions.set(request, session);
+  }
+
   public async resolve(request: Request): Promise<SessionClaims | null> {
     assertAuthenticationConfiguration();
     if (
@@ -549,7 +575,7 @@ export class WorkosNextSessionResolver implements SessionResolver {
         requestOrigin: requestUrl.origin,
       });
     }
-    if (!configured()) {
+    if (!workosAuthenticationConfigured()) {
       if (!explicitDemoIdentityEnabled())
         throw new Error(
           "Authentication is unavailable without an explicit non-production demo adapter",
@@ -569,6 +595,16 @@ export class WorkosNextSessionResolver implements SessionResolver {
       }
       return new LocalSessionResolver().resolve(request);
     }
-    return getCommerceSession();
+    const verified = this.#verifiedSessions.get(request);
+    this.#verifiedSessions.delete(request);
+    if (verified)
+      return workosCommerceSession(
+        verified,
+        cookieValue(request.headers.get("cookie"), assistedSessionCookieName),
+      );
+    // `/api/experience/*` still runs behind AuthKit's proxy and legitimately
+    // resolves the trusted request-scoped middleware session. Only the raw-body
+    // Hono boundary opts into strict request binding.
+    return this.#requireBoundSession ? null : getCommerceSession();
   }
 }

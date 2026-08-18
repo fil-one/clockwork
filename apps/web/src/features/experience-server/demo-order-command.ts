@@ -5,6 +5,12 @@ import { createHash } from "node:crypto";
 import { hasPermission, uuidV7 } from "@clockwork/contracts";
 
 import {
+  demoAccessConfiguration,
+  demoAccessCookieName,
+  verifyDemoAccessCookie,
+} from "@/src/auth/demo-access";
+
+import {
   demoOrderAcceptance,
   type DemoOrderCommand,
 } from "./demo-order-acceptance";
@@ -56,6 +62,16 @@ function problem(
       },
     },
   );
+}
+
+function cookieValue(cookie: string | null, name: string): string | undefined {
+  for (const part of cookie?.split(";") ?? []) {
+    const separator = part.indexOf("=");
+    if (separator < 1) continue;
+    if (part.slice(0, separator).trim() === name)
+      return part.slice(separator + 1).trim();
+  }
+  return undefined;
 }
 
 function record(value: unknown): Readonly<Record<string, unknown>> {
@@ -193,6 +209,19 @@ export async function handleDemoOrderCommand(
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
+    const demoAccessSecret = demoAccessConfiguration(process.env);
+    if (
+      demoAccessSecret &&
+      !(await verifyDemoAccessCookie(
+        cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+        demoAccessSecret,
+      ))
+    )
+      throw new ExperienceProblem(
+        403,
+        "DEMO_ACCESS_REQUIRED",
+        "A valid demo access grant is required",
+      );
     const requestUrl = new URL(request.url);
     // Read the serverless request body exactly once. Some deployment adapters
     // do not preserve the original stream after a clone is drained, even
@@ -206,7 +235,19 @@ export async function handleDemoOrderCommand(
       .update(requestUrl.search)
       .update(requestBody)
       .digest("hex");
-    const body = record(JSON.parse(new TextDecoder().decode(requestBody)));
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(new TextDecoder().decode(requestBody));
+    } catch (error) {
+      if (error instanceof SyntaxError)
+        throw new ExperienceProblem(
+          422,
+          "INVALID_BODY",
+          "The request body is not JSON.",
+        );
+      throw error;
+    }
+    const body = record(parsedBody);
     const action = requiredText(body, "action");
     if (action !== "prepare_artifact" && action !== "create")
       throw new ExperienceProblem(
@@ -273,14 +314,6 @@ export async function handleDemoOrderCommand(
           ? "Request body is invalid"
           : "The order command was refused",
         error.message,
-        requestId,
-      );
-    if (error instanceof SyntaxError)
-      return problem(
-        422,
-        "INVALID_BODY",
-        "Request body is invalid",
-        "The request body is not JSON.",
         requestId,
       );
     throw error;
