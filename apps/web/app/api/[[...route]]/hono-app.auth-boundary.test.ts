@@ -127,6 +127,9 @@ describe("the direct WorkOS API boundary", () => {
     expect((authRequest as Request).body).toBeNull();
     expect((authRequest as Request).headers.get("x-workos-session")).toBeNull();
     expect(mocks.resolvedRequests).toHaveLength(1);
+    expect(response.headers.get("traceparent")).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/u,
+    );
   });
 
   it("returns a problem response instead of redirecting an unauthenticated API caller", async () => {
@@ -222,6 +225,9 @@ describe("the direct WorkOS API boundary", () => {
     expect(response.headers.get("vary")).toContain("Cookie");
     expect(response.headers.get("x-workos-session")).toBeNull();
     expect(response.headers.get("x-not-allowlisted")).toBeNull();
+    expect(response.headers.get("traceparent")).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/u,
+    );
   });
 
   it("binds the sealed user to the verified access-token subject", async () => {

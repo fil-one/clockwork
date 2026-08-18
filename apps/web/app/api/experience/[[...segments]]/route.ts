@@ -1,5 +1,8 @@
 import { uuidV7 } from "@clockwork/contracts";
-import { parseTraceparent } from "@clockwork/integrations/telemetry";
+import {
+  formatTraceparent,
+  parseTraceparent,
+} from "@clockwork/integrations/telemetry";
 
 import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
 import { WorkosNextSessionResolver } from "@/src/auth/session";
@@ -42,10 +45,22 @@ async function handle(request: Request, context: RouteContext) {
           "http.route": "/api/experience/{resource}",
         },
         ...(parent ? { parent } : {}),
-        operation: () =>
-          handleExperienceRequest(authenticatedRequest, segments, {
-            sessionResolver,
-          }),
+        operation: async () => {
+          const context = runtimeBoundaryInstrumentation.currentContext();
+          const response = await handleExperienceRequest(
+            authenticatedRequest,
+            segments,
+            {
+              sessionResolver,
+            },
+          );
+          // These routes bypass the proxy to preserve raw request bodies, so
+          // the API boundary itself must publish the span clients use to join
+          // response evidence to exported telemetry.
+          if (context)
+            response.headers.set("traceparent", formatTraceparent(context));
+          return response;
+        },
       });
     },
   });

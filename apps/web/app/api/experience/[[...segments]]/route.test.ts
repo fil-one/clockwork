@@ -150,6 +150,26 @@ describe("experience API direct authentication boundary", () => {
     await expect(response.json()).resolves.toMatchObject({
       sessionUserId: authorization.userId,
     });
+    expect(response.headers.get("traceparent")).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/u,
+    );
+  });
+
+  it("returns the authoritative API span while preserving upstream trace identity", async () => {
+    const traceId = "1234567890abcdef1234567890abcdef";
+    const upstream = `00-${traceId}-1234567890abcdef-01`;
+    const response = await GET(
+      new Request(
+        "https://app.example/api/experience/projections/customer/quotes",
+        { headers: { traceparent: upstream } },
+      ),
+      context(),
+    );
+
+    expect(response.headers.get("traceparent")).toMatch(
+      new RegExp(`^00-${traceId}-[0-9a-f]{16}-01$`, "u"),
+    );
+    expect(response.headers.get("traceparent")).not.toBe(upstream);
   });
 
   it("preserves a distinctive mutation body until the controller reads it", async () => {
@@ -174,6 +194,9 @@ describe("experience API direct authentication boundary", () => {
     expect(mocks.boundRequests).toHaveLength(1);
     expect(mocks.resolvedRequests).toEqual(mocks.boundRequests);
     await expect(response.json()).resolves.toMatchObject({ body: rawBody });
+    expect(response.headers.get("traceparent")).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/u,
+    );
   });
 
   it("rejects an internal AuthKit header before dispatch", async () => {
@@ -215,6 +238,9 @@ describe("experience API direct authentication boundary", () => {
     expect(response.headers.get("x-workos-session")).toBeNull();
     expect(response.headers.get("x-not-allowlisted")).toBeNull();
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("traceparent")).toMatch(
+      /^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/u,
+    );
   });
 
   it("replaces the proxy password gate for a direct demo request", async () => {

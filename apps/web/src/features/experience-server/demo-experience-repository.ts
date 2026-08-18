@@ -93,6 +93,9 @@ interface DemoRenderRequestEntry {
  * build still parses. A reset drops them with everything else.
  */
 interface DemoExperienceState extends DemoAdapterState {
+  readonly commercialArtifactRequests?: Readonly<
+    Record<string, DemoCommercialArtifactRequest>
+  >;
   readonly esignCorrelations?: Readonly<Record<string, DemoEsignCorrelation>>;
   readonly evidenceUploads?: Readonly<Record<string, DemoEvidenceUpload>>;
   readonly renderRequests?: Readonly<Record<string, DemoRenderRequestEntry>>;
@@ -1018,9 +1021,7 @@ export class DemoExperienceRepository implements ExperienceRepository {
     | { source: ResolvedArtifactSource; request: DemoCommercialArtifactRequest }
     | undefined
   > {
-    const request = (await demoOrderAcceptance().artifactRequests()).find(
-      (candidate) => candidate.id === id,
-    );
+    const request = (await this.#read()).commercialArtifactRequests?.[id];
     if (!request) return undefined;
     return {
       request,
@@ -1049,6 +1050,7 @@ export class DemoExperienceRepository implements ExperienceRepository {
     if (prepared)
       return this.#download(session, prepared.source, requestId, {
         id,
+        documentId: prepared.request.documentId,
         createdAt: prepared.request.createdAt,
         retainUntil: prepared.request.retainUntil,
       });
@@ -1075,7 +1077,12 @@ export class DemoExperienceRepository implements ExperienceRepository {
     session: SessionClaims,
     source: ResolvedArtifactSource,
     requestId: string,
-    entry: { id: string; createdAt: string; retainUntil: string },
+    entry: {
+      id: string;
+      documentId?: string;
+      createdAt: string;
+      retainUntil: string;
+    },
   ): Promise<ArtifactDownloadRecord> {
     assertDemoArtifactScope(session, source);
     const rendered = await renderAuthorizedCommerceDocument(source.input, {
@@ -1109,7 +1116,11 @@ export class DemoExperienceRepository implements ExperienceRepository {
         accountId: source.accountId,
         audience: source.audience,
         audienceAccountId: source.audienceAccountId,
-        documentId: source.input.documentId,
+        // A commercial definition's `displayDocumentId` is printable paper
+        // identity (`ORD-…`), not the UUID of the immutable document row. The
+        // persisted demo request carries that UUID just like production does;
+        // publish it when this artifact came from a two-pass order prepare.
+        documentId: entry.documentId ?? source.input.documentId,
         version: rendered.version,
         sourceHash: source.sourceHash,
         contentHash: rendered.contentHash,

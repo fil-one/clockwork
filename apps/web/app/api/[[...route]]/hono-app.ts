@@ -44,6 +44,7 @@ import {
 } from "@clockwork/integrations";
 import {
   denialSpanAttributes,
+  formatTraceparent,
   parseTraceparent,
 } from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
@@ -594,9 +595,10 @@ export async function handle(request: Request): Promise<Response> {
         },
         ...(parent ? { parent } : {}),
         onResult: denialSpanAttributes,
-        operation: () => {
+        operation: async () => {
+          const context = runtimeBoundaryInstrumentation.currentContext();
           const dispatch = () => Promise.resolve(api.fetch(apiRequest));
-          return isWebhook
+          const response = await (isWebhook
             ? runtimeBoundaryInstrumentation.webhook({
                 name: "webhook.request",
                 correlation: { requestId },
@@ -608,7 +610,10 @@ export async function handle(request: Request): Promise<Response> {
                 onResult: denialSpanAttributes,
                 operation: dispatch,
               })
-            : dispatch();
+            : dispatch());
+          if (context)
+            response.headers.set("traceparent", formatTraceparent(context));
+          return response;
         },
       });
     },
