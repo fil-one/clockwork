@@ -1,5 +1,10 @@
 import { uuidV7 } from "@clockwork/contracts";
 import {
+  denialSpanAttributes,
+  formatTraceparent,
+  parseTraceparent,
+} from "@clockwork/integrations/telemetry";
+import {
   applyResponseHeaders,
   authkit,
   getTokenClaims,
@@ -20,6 +25,7 @@ import {
   type WorkosNextSessionResolver,
   workosAuthenticationConfigured,
 } from "./session";
+import { runtimeBoundaryInstrumentation } from "@/src/telemetry/runtime";
 
 const apiRequestIdPattern = /^[A-Za-z0-9._:-]{8,128}$/u;
 
@@ -119,6 +125,8 @@ export interface RawApiBoundaryInput {
   readonly authenticationRequired?: boolean;
   /** Direct demo API routes must replace the password gate the proxy provided. */
   readonly requireDemoAccess?: boolean;
+  /** Stable low-cardinality route used by the replacement server span. */
+  readonly telemetryRoute: string;
 }
 
 /**
@@ -130,10 +138,10 @@ export interface RawApiBoundaryInput {
  * the session. Release-proof and explicit demo identity continue to resolve
  * inside `WorkosNextSessionResolver`, using this request's own origin/cookies.
  */
-export async function withRawApiAuthentication(
+async function authenticateRawApiRequest(
   input: RawApiBoundaryInput,
+  id: string,
 ): Promise<Response> {
-  const id = requestId(input.request);
   for (const name of input.request.headers.keys())
     if (isAuthkitRequestHeader(name))
       return authenticationProblem({
@@ -270,4 +278,33 @@ export async function withRawApiAuthentication(
   finalResponse.headers.set("cache-control", "private, no-store");
   finalResponse.headers.set("x-request-id", id);
   return finalResponse;
+}
+
+export function withRawApiAuthentication(
+  input: RawApiBoundaryInput,
+): Promise<Response> {
+  const id = requestId(input.request);
+  const parent = parseTraceparent(input.request.headers.get("traceparent"));
+  return runtimeBoundaryInstrumentation.server({
+    name: "server.request",
+    correlation: { requestId: id },
+    attributes: {
+      "clockwork.operation": "server.request",
+      "http.request.method": input.request.method,
+      "http.route": input.telemetryRoute,
+    },
+    ...(parent ? { parent } : {}),
+    onResult: denialSpanAttributes,
+    operation: async () => {
+      const context = runtimeBoundaryInstrumentation.currentContext();
+      const response = await authenticateRawApiRequest(input, id);
+      // The proxy used to publish its server span as the response traceparent.
+      // Raw-body routes bypass it, so this replacement boundary publishes the
+      // same semantic context. The nested API span records this span as its
+      // parent, giving OTLP correlation both a span record and a child link.
+      if (context)
+        response.headers.set("traceparent", formatTraceparent(context));
+      return response;
+    },
+  });
 }

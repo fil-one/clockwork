@@ -42,11 +42,7 @@ import {
   WorkosRegistrationBootstrapVerifier,
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
-import {
-  denialSpanAttributes,
-  formatTraceparent,
-  parseTraceparent,
-} from "@clockwork/integrations/telemetry";
+import { denialSpanAttributes } from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
 import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
@@ -573,18 +569,18 @@ export async function handle(request: Request): Promise<Response> {
   url.pathname = url.pathname.replace(/^\/api/, "") || "/";
   const isWebhook = url.pathname.startsWith("/v1/webhooks/");
   const isRegistration = isAnonymousRegistration(request, url.pathname);
+  const route = isWebhook
+    ? "/v1/webhooks/{provider}"
+    : url.pathname.startsWith("/v1/")
+      ? "/v1/{lane}/{resource}"
+      : "/{resource}";
   return withRawApiAuthentication({
     request,
     targetUrl: url,
     sessionResolver,
     authenticationRequired: !isWebhook && !isRegistration,
+    telemetryRoute: route,
     dispatch: (apiRequest, requestId) => {
-      const parent = parseTraceparent(apiRequest.headers.get("traceparent"));
-      const route = isWebhook
-        ? "/v1/webhooks/{provider}"
-        : url.pathname.startsWith("/v1/")
-          ? "/v1/{lane}/{resource}"
-          : "/{resource}";
       return runtimeBoundaryInstrumentation.api({
         name: "api.request",
         correlation: { requestId },
@@ -593,12 +589,10 @@ export async function handle(request: Request): Promise<Response> {
           "http.request.method": apiRequest.method,
           "http.route": route,
         },
-        ...(parent ? { parent } : {}),
         onResult: denialSpanAttributes,
-        operation: async () => {
-          const context = runtimeBoundaryInstrumentation.currentContext();
+        operation: () => {
           const dispatch = () => Promise.resolve(api.fetch(apiRequest));
-          const response = await (isWebhook
+          return isWebhook
             ? runtimeBoundaryInstrumentation.webhook({
                 name: "webhook.request",
                 correlation: { requestId },
@@ -610,10 +604,7 @@ export async function handle(request: Request): Promise<Response> {
                 onResult: denialSpanAttributes,
                 operation: dispatch,
               })
-            : dispatch());
-          if (context)
-            response.headers.set("traceparent", formatTraceparent(context));
-          return response;
+            : dispatch();
         },
       });
     },

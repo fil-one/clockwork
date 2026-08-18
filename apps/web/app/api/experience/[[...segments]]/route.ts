@@ -1,8 +1,4 @@
 import { uuidV7 } from "@clockwork/contracts";
-import {
-  formatTraceparent,
-  parseTraceparent,
-} from "@clockwork/integrations/telemetry";
 
 import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
 import { WorkosNextSessionResolver } from "@/src/auth/session";
@@ -32,10 +28,8 @@ async function handle(request: Request, context: RouteContext) {
     request,
     sessionResolver,
     requireDemoAccess: true,
+    telemetryRoute: "/api/experience/{resource}",
     dispatch: (authenticatedRequest) => {
-      const parent = parseTraceparent(
-        authenticatedRequest.headers.get("traceparent"),
-      );
       return runtimeBoundaryInstrumentation.api({
         name: "api.request",
         correlation: { requestId: correlationId(authenticatedRequest) },
@@ -44,23 +38,10 @@ async function handle(request: Request, context: RouteContext) {
           "http.request.method": authenticatedRequest.method,
           "http.route": "/api/experience/{resource}",
         },
-        ...(parent ? { parent } : {}),
-        operation: async () => {
-          const context = runtimeBoundaryInstrumentation.currentContext();
-          const response = await handleExperienceRequest(
-            authenticatedRequest,
-            segments,
-            {
-              sessionResolver,
-            },
-          );
-          // These routes bypass the proxy to preserve raw request bodies, so
-          // the API boundary itself must publish the span clients use to join
-          // response evidence to exported telemetry.
-          if (context)
-            response.headers.set("traceparent", formatTraceparent(context));
-          return response;
-        },
+        operation: () =>
+          handleExperienceRequest(authenticatedRequest, segments, {
+            sessionResolver,
+          }),
       });
     },
   });
