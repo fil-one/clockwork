@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { hasPermission } from "@clockwork/contracts";
 
-import {
-  getCommerceSession,
-  requireRecentAuthentication,
-} from "@/src/auth/session";
+import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordVarianceDisposition } from "./disposition-store";
@@ -77,8 +74,9 @@ export async function classifyReconciliationVariance(
   const database = getOptionalServiceDatabase();
   if (!database) return { ok: false, code: "RECONCILIATION_UNAVAILABLE" };
 
+  let session;
   try {
-    await requireRecentAuthentication();
+    session = await requireRecentAuthentication();
   } catch {
     return { ok: false, code: "RECONCILIATION_RECENT_AUTH_REQUIRED" };
   }
@@ -88,7 +86,6 @@ export async function classifyReconciliationVariance(
   // the workflow recovery around it to commerce operations (`system:operate`).
   // Requiring one of them would refuse the other, which is a control blocking
   // legitimate work rather than a control.
-  const session = await getCommerceSession();
   const permitted =
     session.isInternalStaff &&
     session.roles.some(

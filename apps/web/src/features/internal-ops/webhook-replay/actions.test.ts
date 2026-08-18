@@ -3,7 +3,6 @@ import { ids, MoneySchema } from "@clockwork/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getCommerceSession: vi.fn(),
   requireRecentAuthentication: vi.fn(),
   getOptionalRuntimeDatabase: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
@@ -13,7 +12,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: mocks.getCommerceSession,
   requireRecentAuthentication: mocks.requireRecentAuthentication,
 }));
 vi.mock("@/src/db/service", () => ({
@@ -69,8 +67,7 @@ beforeEach(() => {
   process.env.TAX_PROVIDER_TOKEN = "tax-token";
   mocks.getOptionalRuntimeDatabase.mockReturnValue({});
   mocks.getOptionalServiceDatabase.mockReturnValue({});
-  mocks.requireRecentAuthentication.mockResolvedValue(undefined);
-  mocks.getCommerceSession.mockResolvedValue(operator);
+  mocks.requireRecentAuthentication.mockResolvedValue(operator);
   mocks.replay.mockResolvedValue({
     replayed: true,
     workflowRunId: "60000000-0000-4000-8000-000000000001",
@@ -121,12 +118,12 @@ describe("webhook replay action", () => {
       ok: false,
       code: "WEBHOOK_REPLAY_REASON_REQUIRED",
     });
-    expect(mocks.getCommerceSession).not.toHaveBeenCalled();
+    expect(mocks.requireRecentAuthentication).not.toHaveBeenCalled();
     expect(mocks.replay).not.toHaveBeenCalled();
   });
 
   it("refuses a caller without system:operate", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       ...operator,
       roles: ["billing"],
       isInternalStaff: false,

@@ -424,12 +424,27 @@ export default async function proxy(
 // replace them with a sign-in page. Every exemption names a static asset path.
 export const config = {
   matcher: [
-    // Netlify's Next edge handoff can consume raw request bodies even when the
-    // middleware returns an unmodified pass-through. Every body-bearing v1
-    // operation hashes its exact raw bytes for idempotency or signature
-    // verification, so the entire namespace goes directly to the self-
-    // contained Hono/demo composition boundary. Demo form handlers likewise
-    // enforce their own origin checks.
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/v1(?:/|$)).*)",
+    {
+      // Netlify's Next edge handoff can consume raw request bodies even when
+      // middleware returns an unmodified pass-through. Both API namespaces go
+      // directly to self-authenticating route boundaries. Server Actions also
+      // bypass this proxy, then authenticate from their sealed session or demo
+      // grant and enforce release-proof origin at the destination.
+      source:
+        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)).*)",
+      missing: [
+        { type: "header", key: "next-action" },
+        {
+          type: "header",
+          key: "content-type",
+          value: "multipart/form-data.*",
+        },
+        {
+          type: "header",
+          key: "content-type",
+          value: "application/x-www-form-urlencoded.*",
+        },
+      ],
+    },
   ],
 };

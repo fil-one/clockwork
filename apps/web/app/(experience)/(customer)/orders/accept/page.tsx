@@ -15,7 +15,6 @@ import {
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
-import { lookupPreparedOrderForm } from "./actions";
 import { selectAcceptanceQuote, toAcceptableQuote } from "./select-quote";
 
 type Data = Readonly<Record<string, unknown>>;
@@ -90,11 +89,10 @@ async function loadGoverningAgreement(): Promise<
  * `COMMERCIAL_ARTIFACT_BINDING_INVALID`; waiting for anything else here is
  * waiting for ever.
  *
- * The binding between the two passes lives on the artifact request, which
- * `lookupPreparedOrderForm` reads under the reader's own authorization. The
- * identifier it is asked about is minted client-side for a command that has
- * created nothing yet, so no server render can hold it and the question has to
- * be asked rather than answered in advance.
+ * The binding between the two passes lives on the artifact request. The
+ * prepare response returns that request's identifier, and the client polls its
+ * authorization-scoped, bodyless artifact representation GET; no server render
+ * can answer the question in advance.
  */
 async function OrderAcceptanceWorkspace({
   params,
@@ -118,7 +116,6 @@ async function OrderAcceptanceWorkspace({
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}
       agreement={governingAgreement(agreements.records)}
-      lookupOrderForm={lookupPreparedOrderForm}
       // A truncated read is a prefix, not the set: the quote this page
       // selected and the agreement it bound may both be wrong, and the reader
       // is the one committing money on them.

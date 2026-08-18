@@ -24,16 +24,6 @@ import {
   DatabaseWebhookDeduplicator,
   type DatabaseLifecyclePolicies,
 } from "@clockwork/db";
-import { uuidV7 } from "@clockwork/contracts";
-import {
-  applyResponseHeaders,
-  authkit,
-  getTokenClaims,
-  isAuthkitRequestHeader,
-  partitionAuthkitHeaders,
-  type UserInfo,
-} from "@workos-inc/authkit-nextjs";
-import { NextRequest, NextResponse } from "next/server";
 import {
   DnsTxtDomainOwnershipVerifier,
   EsignWebhookVerifier,
@@ -58,11 +48,8 @@ import {
 } from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
-import { releaseProofConfiguration } from "@/src/auth/release-proof";
-import {
-  WorkosNextSessionResolver,
-  workosAuthenticationConfigured,
-} from "@/src/auth/session";
+import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
+import { WorkosNextSessionResolver } from "@/src/auth/session";
 import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
@@ -129,7 +116,6 @@ const esignSigningOrigins = configuredEnvironment("ESIGN_SIGNING_ORIGINS")
 const provisioningWebhookSecret = configuredEnvironment(
   "PROVISIONING_WEBHOOK_SECRET",
 );
-const apiRequestIdPattern = /^[A-Za-z0-9._:-]{8,128}$/u;
 // Every marketplace and every support provider signs with its own secret. A
 // single shared key would let any one integration sign for another provider's
 // resources, so a provider without its own configured secret is not wired up at
@@ -575,235 +561,56 @@ const api = createApiApp({
     : {}),
 });
 
-function apiAuthenticationProblem(input: {
-  readonly requestId: string;
-  readonly status: 401 | 403 | 503;
-  readonly code:
-    | "AUTHENTICATION_REQUIRED"
-    | "AUTHENTICATION_NOT_CONFIGURED"
-    | "AUTHKIT_UNAVAILABLE"
-    | "AUTHKIT_IDENTITY_MISMATCH"
-    | "AUTHKIT_HEADER_REJECTED"
-    | "ORGANIZATION_SELECTION_REQUIRED";
-  readonly title: string;
-  readonly detail: string;
-}): NextResponse {
-  return NextResponse.json(
-    {
-      type: `https://clockwork.test/problems/${input.code
-        .toLowerCase()
-        .replaceAll("_", "-")}`,
-      title: input.title,
-      status: input.status,
-      detail: input.detail,
-      code: input.code,
-      requestId: input.requestId,
-      retryable: input.status === 503,
-    },
-    {
-      status: input.status,
-      headers: {
-        "cache-control": "private, no-store",
-        "content-type": "application/problem+json",
-        "x-request-id": input.requestId,
-        "x-content-type-options": "nosniff",
-      },
-    },
-  );
-}
-
-function withAuthkitResponseHeaders(
-  response: Response,
-  headers: Headers,
-): NextResponse {
-  return applyResponseHeaders(
-    new NextResponse(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    }),
-    headers,
-  );
-}
-
 function isAnonymousRegistration(request: Request, pathname: string): boolean {
   return (
     request.method === "POST" && pathname === "/v1/lifecycle/registrations"
   );
 }
 
-function rewriteApiRequest(request: Request, url: URL): Request {
-  const init: RequestInit & { duplex?: "half" } = {
-    method: request.method,
-    headers: new Headers(request.headers),
-    signal: request.signal,
-  };
-  // Passing a Request object as `RequestInit` is not a supported raw-body
-  // forwarding mechanism in the Netlify/Node fetch implementation: its body
-  // is silently omitted. Move the untouched stream explicitly and let Hono be
-  // the first component that interprets those bytes.
-  if (request.body) {
-    init.body = request.body;
-    init.duplex = "half";
-  }
-  return new Request(url, init);
-}
-
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
   url.pathname = url.pathname.replace(/^\/api/, "") || "/";
-  const suppliedRequestId = request.headers.get("x-request-id");
-  const requestId =
-    suppliedRequestId && apiRequestIdPattern.test(suppliedRequestId)
-      ? suppliedRequestId
-      : uuidV7();
-  for (const name of request.headers.keys())
-    if (isAuthkitRequestHeader(name))
-      return apiAuthenticationProblem({
-        requestId,
-        status: 403,
-        code: "AUTHKIT_HEADER_REJECTED",
-        title: "Authentication header rejected",
-        detail: "Internal AuthKit headers cannot be supplied by an API caller.",
-      });
-
   const isWebhook = url.pathname.startsWith("/v1/webhooks/");
   const isRegistration = isAnonymousRegistration(request, url.pathname);
-  const releaseProof = releaseProofConfiguration();
-  const workosConfigured = workosAuthenticationConfigured();
-  if (
-    !isWebhook &&
-    !isRegistration &&
-    !releaseProof &&
-    !workosConfigured &&
-    process.env.NODE_ENV === "production"
-  )
-    return apiAuthenticationProblem({
-      requestId,
-      status: 503,
-      code: "AUTHENTICATION_NOT_CONFIGURED",
-      title: "Authentication is not configured",
-      detail: "This API cannot accept authenticated requests right now.",
-    });
-  let verifiedWorkosSession: UserInfo | undefined;
-  let authkitResponseHeaders: Headers | undefined;
-  if (!isWebhook && !isRegistration && !releaseProof && workosConfigured) {
-    // AuthKit verifies and, when necessary, refreshes the sealed WorkOS cookie
-    // on a header-only request. The original request body is never cloned,
-    // buffered or consumed at this boundary; Hono remains its only reader.
-    const authHeaders = new Headers(request.headers);
-    authHeaders.set("x-request-id", requestId);
-    const authRequest = new NextRequest(request.url, {
-      method: request.method,
-      headers: authHeaders,
-    });
-    let verified: Awaited<ReturnType<typeof authkit>>;
-    try {
-      verified = await authkit(authRequest, {
-        redirectUri:
-          process.env.WORKOS_REDIRECT_URI ??
-          "http://localhost:3000/auth/callback",
+  return withRawApiAuthentication({
+    request,
+    targetUrl: url,
+    sessionResolver,
+    authenticationRequired: !isWebhook && !isRegistration,
+    dispatch: (apiRequest, requestId) => {
+      const parent = parseTraceparent(apiRequest.headers.get("traceparent"));
+      const route = isWebhook
+        ? "/v1/webhooks/{provider}"
+        : url.pathname.startsWith("/v1/")
+          ? "/v1/{lane}/{resource}"
+          : "/{resource}";
+      return runtimeBoundaryInstrumentation.api({
+        name: "api.request",
+        correlation: { requestId },
+        attributes: {
+          "clockwork.operation": "api.request",
+          "http.request.method": apiRequest.method,
+          "http.route": route,
+        },
+        ...(parent ? { parent } : {}),
+        onResult: denialSpanAttributes,
+        operation: () => {
+          const dispatch = () => Promise.resolve(api.fetch(apiRequest));
+          return isWebhook
+            ? runtimeBoundaryInstrumentation.webhook({
+                name: "webhook.request",
+                correlation: { requestId },
+                attributes: {
+                  "clockwork.operation": "webhook.request",
+                  "http.request.method": apiRequest.method,
+                  "http.route": "/v1/webhooks/{provider}",
+                },
+                onResult: denialSpanAttributes,
+                operation: dispatch,
+              })
+            : dispatch();
+        },
       });
-    } catch {
-      // A returned empty/expired session is an authentication failure below.
-      // An exception means AuthKit could not make a trustworthy decision
-      // (configuration, key discovery, or refresh infrastructure), so expose a
-      // bounded retryable problem instead of leaking a generic framework 500.
-      return apiAuthenticationProblem({
-        requestId,
-        status: 503,
-        code: "AUTHKIT_UNAVAILABLE",
-        title: "Authentication is temporarily unavailable",
-        detail: "The authentication service could not verify this request.",
-      });
-    }
-    authkitResponseHeaders = partitionAuthkitHeaders(
-      authRequest,
-      verified.headers,
-    ).responseHeaders;
-    if (!verified.session.user)
-      return withAuthkitResponseHeaders(
-        apiAuthenticationProblem({
-          requestId,
-          status: 401,
-          code: "AUTHENTICATION_REQUIRED",
-          title: "Authentication required",
-          detail: "A valid WorkOS session is required for this API route.",
-        }),
-        authkitResponseHeaders,
-      );
-    if (!verified.session.organizationId)
-      return withAuthkitResponseHeaders(
-        apiAuthenticationProblem({
-          requestId,
-          status: 403,
-          code: "ORGANIZATION_SELECTION_REQUIRED",
-          title: "Organization selection required",
-          detail: "Select a WorkOS organization before using this API route.",
-        }),
-        authkitResponseHeaders,
-      );
-    const tokenClaims = await getTokenClaims<{ sub?: unknown }>(
-      verified.session.accessToken,
-    ).catch(() => undefined);
-    if (
-      typeof tokenClaims?.sub !== "string" ||
-      tokenClaims.sub !== verified.session.user.id
-    )
-      return withAuthkitResponseHeaders(
-        apiAuthenticationProblem({
-          requestId,
-          status: 401,
-          code: "AUTHKIT_IDENTITY_MISMATCH",
-          title: "Authenticated identity is invalid",
-          detail:
-            "The WorkOS session user does not match the verified access token.",
-        }),
-        authkitResponseHeaders,
-      );
-    verifiedWorkosSession = verified.session;
-  }
-  const parent = parseTraceparent(request.headers.get("traceparent"));
-  const route = isWebhook
-    ? "/v1/webhooks/{provider}"
-    : url.pathname.startsWith("/v1/")
-      ? "/v1/{lane}/{resource}"
-      : "/{resource}";
-  const response = await runtimeBoundaryInstrumentation.api({
-    name: "api.request",
-    correlation: { requestId },
-    attributes: {
-      "clockwork.operation": "api.request",
-      "http.request.method": request.method,
-      "http.route": route,
-    },
-    ...(parent ? { parent } : {}),
-    onResult: denialSpanAttributes,
-    operation: () => {
-      const apiRequest = rewriteApiRequest(request, url);
-      apiRequest.headers.set("x-request-id", requestId);
-      if (verifiedWorkosSession)
-        sessionResolver.bindVerifiedSession(apiRequest, verifiedWorkosSession);
-      const dispatch = () => Promise.resolve(api.fetch(apiRequest));
-      return isWebhook
-        ? runtimeBoundaryInstrumentation.webhook({
-            name: "webhook.request",
-            correlation: { requestId },
-            attributes: {
-              "clockwork.operation": "webhook.request",
-              "http.request.method": request.method,
-              "http.route": "/v1/webhooks/{provider}",
-            },
-            onResult: denialSpanAttributes,
-            operation: dispatch,
-          })
-        : dispatch();
     },
   });
-  const finalResponse = authkitResponseHeaders
-    ? withAuthkitResponseHeaders(response, authkitResponseHeaders)
-    : response;
-  if (!authkitResponseHeaders)
-    finalResponse.headers.set("cache-control", "private, no-store");
-  return finalResponse;
 }

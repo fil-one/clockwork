@@ -87,11 +87,12 @@ afterEach(() => {
 });
 
 describe("content security policy", () => {
-  it("keeps the complete exact-byte v1 API boundary outside the proxy", () => {
-    const matches = (pathname: string) =>
+  it("keeps self-authenticating APIs and body-bearing actions outside the proxy", () => {
+    const matches = (pathname: string, headers?: Record<string, string>) =>
       unstable_doesMiddlewareMatch({
         config: proxyConfig,
         url: `https://demo.clockwork.test${pathname}`,
+        ...(headers ? { headers } : {}),
       });
 
     expect(matches("/api/v1")).toBe(false);
@@ -100,9 +101,28 @@ describe("content security policy", () => {
     expect(matches("/api/v1/core/commands/quotes")).toBe(false);
     expect(matches("/api/v1/webhooks")).toBe(false);
     expect(matches("/api/v1/webhooks/stripe")).toBe(false);
+    expect(matches("/api/experience")).toBe(false);
+    expect(matches("/api/experience/projections/customer/quotes")).toBe(false);
     // Similar prefixes are not part of the v1 namespace.
     expect(matches("/api/v1x/core/commands/orders")).toBe(true);
+    expect(matches("/api/experiential")).toBe(true);
     expect(matches("/customer/dashboard")).toBe(true);
+    expect(
+      matches("/customer/dashboard", { "content-type": "application/json" }),
+    ).toBe(true);
+    expect(
+      matches("/internal/recovery", { "next-action": "a".repeat(40) }),
+    ).toBe(false);
+    expect(
+      matches("/internal/recovery", {
+        "content-type": "multipart/form-data; boundary=clockwork",
+      }),
+    ).toBe(false);
+    expect(
+      matches("/internal/recovery", {
+        "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+      }),
+    ).toBe(false);
     expect(matches("/brand/clockwork.svg")).toBe(false);
   });
 

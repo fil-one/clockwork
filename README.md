@@ -254,7 +254,7 @@ list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
 Testing is deterministic by construction: the clock is fixed at
 `2026-07-31T16:00:00Z`, demo identifiers and `.test` domains are stable, and
 provider fakes reproduce error and replay timing. At the reviewed SHA, the
-tracked tree contains 1,050 `.ts`/`.tsx` files, 393 TypeScript/JavaScript
+tracked tree contains 1,049 `.ts`/`.tsx` files, 393 TypeScript/JavaScript
 test/spec files, and 45 pgTAP SQL suites; nine of the test/spec files are
 Playwright specs. Reproduce those source counts with `git ls-files` rather than
 treating them as executed-test totals.

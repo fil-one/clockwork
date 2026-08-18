@@ -32,13 +32,18 @@ import {
 } from "@/src/features/internal-ops/assisted-session/repository";
 import { resolveWorkosIdentity } from "@clockwork/db";
 import {
-  checkRecentAuth,
   getTokenClaims,
+  refreshSession,
   type UserInfo,
   withAuth,
 } from "@workos-inc/authkit-nextjs";
 import { cookies, headers } from "next/headers";
 
+import {
+  demoAccessConfiguration,
+  demoAccessCookieName,
+  verifyDemoAccessCookie,
+} from "@/src/auth/demo-access";
 import { getServiceDatabase } from "@/src/db/service";
 
 export const workosAuthenticationConfigured = () =>
@@ -52,6 +57,8 @@ export const assistedSessionCookieName = "clockwork-assisted-session";
 
 export interface CommerceSession extends SessionClaims {
   authenticationSessionId?: string;
+  authenticationProviderUserId?: string;
+  authenticationProviderImpersonator?: boolean;
   profile: { name: string; email: string };
   memberships: readonly AuthorizedMembership[];
   selectedAccountId?: string;
@@ -173,6 +180,70 @@ function cookieValue(header: string | null, name: string): string | undefined {
     .join("=");
 }
 
+type RequestHeaders = Pick<Headers, "get">;
+
+/**
+ * Fetch actions carry their reference in `next-action`; a native form action
+ * carries it in a multipart body instead. Both forms deliberately bypass the
+ * proxy on Netlify, where entering the proxy consumes the body before Next can
+ * decode it. Treat both as direct destination requests, never as requests that
+ * inherited a trusted proxy header.
+ */
+function isDirectServerAction(headersList: RequestHeaders): boolean {
+  if (headersList.get("next-action")) return true;
+  const contentType = headersList.get("content-type")?.toLowerCase() ?? "";
+  return (
+    contentType.startsWith("multipart/form-data") ||
+    contentType.startsWith("application/x-www-form-urlencoded")
+  );
+}
+
+/** A configured shared demo never synthesizes identity without its grant. */
+async function demoAccessGranted(value: string | undefined): Promise<boolean> {
+  const secret = demoAccessConfiguration(process.env);
+  return (
+    !secret || Boolean(value && (await verifyDemoAccessCookie(value, secret)))
+  );
+}
+
+/**
+ * Release-proof page renders receive a proxy-overwritten origin header. A
+ * skipped Server Action cannot trust that header because a caller can supply
+ * it directly, so it re-establishes the browser's canonical Origin and Host at
+ * the destination.
+ */
+function releaseProofRequestOrigin(
+  headersList: RequestHeaders,
+  configuredOrigin: string,
+): string | undefined {
+  if (!isDirectServerAction(headersList))
+    return headersList.get("x-clockwork-proof-origin") ?? undefined;
+  const canonical = new URL(configuredOrigin);
+  const origin = headersList.get("origin");
+  const host = headersList.get("host")?.trim().toLowerCase();
+  const fetchSite = headersList.get("sec-fetch-site")?.trim().toLowerCase();
+  return origin === canonical.origin &&
+    host === canonical.host.toLowerCase() &&
+    (!fetchSite || fetchSite === "same-origin")
+    ? canonical.origin
+    : undefined;
+}
+
+/**
+ * AuthKit's `withAuth` intentionally refuses a request that did not traverse
+ * its proxy. Server Actions skip that proxy to preserve their body, so they
+ * authenticate from the sealed cookie through AuthKit's public refresh path;
+ * `refreshSession` also writes the rotated cookie through Next's cookie store.
+ */
+export async function getVerifiedWorkosSession(): Promise<UserInfo> {
+  const requestHeaders = await headers();
+  const resolved = isDirectServerAction(requestHeaders)
+    ? await refreshSession()
+    : await withAuth();
+  if (!resolved.user) throw new Error("WorkOS authentication is required");
+  return resolved;
+}
+
 async function getReleaseProofCommerceSession(input: {
   proofCookie: string | undefined;
   assistedCookie: string | undefined;
@@ -275,24 +346,11 @@ function demoPersonaSession(persona: DemoPersona): CommerceSession {
   };
 }
 
-export async function requireRecentAuthentication(maxAge = 300) {
-  assertAuthenticationConfiguration();
-  if (releaseProofConfiguration()) {
-    const session = await getCommerceSession();
-    if (!session.recentAuthenticationVerified)
-      throw new Error("Sensitive action requires recent authentication");
-    return;
-  }
-  if (!workosAuthenticationConfigured()) {
-    if (!explicitDemoIdentityEnabled())
-      throw new Error(
-        "Authentication is unavailable without an explicit non-production demo adapter",
-      );
-    return;
-  }
-  const recent = await checkRecentAuth({ maxAge });
-  if (recent.isStale)
+export async function requireRecentAuthentication(): Promise<CommerceSession> {
+  const session = await getCommerceSession();
+  if (!session.recentAuthenticationVerified)
     throw new Error("Sensitive action requires recent authentication");
+  return session;
 }
 
 export async function getCommerceSession(): Promise<CommerceSession> {
@@ -302,10 +360,13 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       cookies(),
       headers(),
     ]);
+    const configuration = releaseProofConfiguration();
     return getReleaseProofCommerceSession({
       proofCookie: cookieStore.get(releaseProofCookieName)?.value,
       assistedCookie: cookieStore.get(assistedSessionCookieName)?.value,
-      requestOrigin: headerStore.get("x-clockwork-proof-origin") ?? undefined,
+      requestOrigin: configuration
+        ? releaseProofRequestOrigin(headerStore, configuration.origin)
+        : undefined,
     });
   }
   if (!workosAuthenticationConfigured()) {
@@ -313,6 +374,11 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       throw new Error(
         "Authentication is unavailable without an explicit non-production demo adapter",
       );
+    const cookieStore = await cookies();
+    if (
+      !(await demoAccessGranted(cookieStore.get(demoAccessCookieName)?.value))
+    )
+      throw new Error("A valid demo access grant is required");
     const requestHeaders = await headers();
     // A demo deploy signs in as a catalog persona. The header still decides
     // first, so a role-driven suite keeps the identity it has always had and a
@@ -374,7 +440,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
     };
   }
 
-  const session = await withAuth({ ensureSignedIn: true });
+  const session = await getVerifiedWorkosSession();
   const assistedCookie = (await cookies()).get(
     assistedSessionCookieName,
   )?.value;
@@ -506,6 +572,8 @@ async function workosCommerceSession(
     mfaVerified,
     recentAuthenticationVerified,
     authenticationSessionId: session.sessionId,
+    authenticationProviderUserId: session.user.id,
+    authenticationProviderImpersonator: Boolean(session.impersonator),
     profile: {
       name: activeAssistedSession?.actualActorName ?? selected.userName,
       email: actorEmail,
@@ -580,6 +648,12 @@ export class WorkosNextSessionResolver implements SessionResolver {
         throw new Error(
           "Authentication is unavailable without an explicit non-production demo adapter",
         );
+      if (
+        !(await demoAccessGranted(
+          cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+        ))
+      )
+        return null;
       // The chosen persona is the identity for API calls too. Without it the
       // signed-in name on the page and the actor the commerce API records would
       // disagree, and a signing return would never match its correlation.

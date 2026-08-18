@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  fetch: vi.fn(),
   refresh: vi.fn(),
   sendCoreCommand: vi.fn(),
-  lookupOrderForm: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -17,7 +17,6 @@ vi.mock("@/src/features/contracts/commerce-client", () => ({
 }));
 
 import { OrderAcceptance, type AcceptableQuote } from "./order-acceptance";
-import type { LookupPreparedOrderForm } from "./prepared-order-form";
 
 const account = {
   id: "10000000-0000-4000-8000-000000000001",
@@ -33,10 +32,6 @@ const quote: AcceptableQuote = {
   acceptedLabel: "Accepted Jul 25",
 };
 
-const lookupOrderForm = mocks.lookupOrderForm as unknown as ReturnType<
-  typeof vi.fn<LookupPreparedOrderForm>
->;
-
 function renderSurface(
   overrides: Partial<Parameters<typeof OrderAcceptance>[0]> = {},
 ) {
@@ -44,7 +39,6 @@ function renderSurface(
     <OrderAcceptance
       account={account}
       agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
-      lookupOrderForm={lookupOrderForm}
       quote={quote}
       signerUserId="20000000-0000-4000-8000-000000000002"
       {...overrides}
@@ -53,14 +47,20 @@ function renderSurface(
 }
 
 beforeEach(() => {
-  mocks.sendCoreCommand.mockResolvedValue({});
-  // The renderer has not finished. Every test that needs a document says so.
-  lookupOrderForm.mockResolvedValue({ status: "pending" });
+  vi.stubGlobal("fetch", mocks.fetch);
+  mocks.fetch.mockResolvedValue(
+    new Response(JSON.stringify({ code: "ARTIFACT_NOT_FOUND" }), {
+      status: 404,
+      headers: { "content-type": "application/problem+json" },
+    }),
+  );
+  mocks.sendCoreCommand.mockResolvedValue(prepareResponse("demo"));
 });
 
 afterEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("order acceptance", () => {
@@ -276,11 +276,32 @@ function preparedOrderId(): string {
  * projection-derived prop did not have.
  */
 function storeOrderForm() {
-  lookupOrderForm.mockResolvedValue({
-    status: "stored",
-    documentId: orderFormDocumentId,
-    artifactId: orderFormArtifactId,
-  });
+  mocks.fetch.mockImplementation(() => Promise.resolve(storedArtifact()));
+}
+
+function prepareResponse(shape: "production" | "demo") {
+  return {
+    record: {
+      data:
+        shape === "production"
+          ? { artifactRequest: { requestId: orderFormArtifactId } }
+          : { artifactRequestId: orderFormArtifactId },
+    },
+  };
+}
+
+function storedArtifact(overrides: Record<string, unknown> = {}): Response {
+  return new Response(
+    JSON.stringify({
+      id: orderFormArtifactId,
+      kind: "order_form",
+      subjectType: "order",
+      subjectId: preparedOrderId(),
+      documentId: orderFormDocumentId,
+      ...overrides,
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
 }
 
 function commandCall(index: number) {
@@ -309,10 +330,8 @@ function commandCall(index: number) {
  * match is an order that has *already* been created, bound to a different
  * order identifier and to entries this reader never typed.
  *
- * So the bridge now asks the server about the order it actually prepared. Every
- * assertion below fails against the merged code, which has no lookup to call:
- * `lookupOrderForm` is never invoked, no document ever arrives, and the create
- * pass is unreachable however long the poll runs.
+ * So the bridge now asks the server about the artifact request the prepare
+ * response actually returned.
  */
 describe("order acceptance two-pass bridge", () => {
   beforeEach(() => {
@@ -331,6 +350,118 @@ describe("order acceptance two-pass bridge", () => {
       "orderFormDocumentId",
     );
   });
+
+  it.each(["production", "demo"] as const)(
+    "polls the bodyless artifact GET for the %s prepare response",
+    async (shape) => {
+      mocks.sendCoreCommand.mockResolvedValueOnce(prepareResponse(shape));
+      mocks.fetch.mockImplementation(() => Promise.resolve(storedArtifact()));
+      renderSurface();
+      fillAcceptanceInputs();
+
+      await submitFirstPass();
+      await elapse(2_000);
+
+      expect(mocks.fetch).toHaveBeenCalledWith(
+        `/api/experience/artifacts/order_form/${orderFormArtifactId}?representation=json`,
+        {
+          method: "GET",
+          cache: "no-store",
+          credentials: "same-origin",
+          headers: { accept: "application/json" },
+        },
+      );
+      expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
+    },
+  );
+
+  it.each([
+    ["kind", { kind: "invoice" }],
+    ["subject type", { subjectType: "quote" }],
+    ["artifact id", { id: "80000000-0000-4000-8000-0000000000b2" }],
+    ["order subject", { subjectId: "50000000-0000-4000-8000-000000000099" }],
+    ["document id", { documentId: "not-a-uuid" }],
+  ])(
+    "refuses a stored representation with a mismatched %s",
+    async (_, mismatch) => {
+      mocks.sendCoreCommand.mockResolvedValueOnce(
+        prepareResponse("production"),
+      );
+      mocks.fetch.mockImplementation(() =>
+        Promise.resolve(storedArtifact(mismatch)),
+      );
+      renderSurface();
+      fillAcceptanceInputs();
+
+      await submitFirstPass();
+      await elapse(2_000);
+
+      expect(mocks.fetch).toHaveBeenCalled();
+      expect(
+        screen.getByText(/cannot confirm whether the order form was rendered/),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("button", { name: createLabel }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("keeps polling when the bodyless artifact GET reports pending", async () => {
+    mocks.sendCoreCommand.mockResolvedValueOnce(prepareResponse("demo"));
+    renderSurface();
+    fillAcceptanceInputs();
+
+    await submitFirstPass();
+    await elapse(2_000);
+
+    expect(mocks.fetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: acceptLabel })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /order form requested/i,
+    );
+  });
+
+  it.each([
+    ["missing", {}],
+    [
+      "malformed",
+      { record: { data: { artifactRequestId: "../server-action" } } },
+    ],
+  ])(
+    "fails closed when the prepare response has a %s artifact request id",
+    async (_, response) => {
+      mocks.sendCoreCommand.mockResolvedValueOnce(response);
+      renderSurface();
+      fillAcceptanceInputs();
+
+      await submitFirstPass();
+
+      expect(mocks.fetch).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(/cannot confirm whether the order form was rendered/),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("button", { name: createLabel }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([401, 403])(
+    "stops polling when the artifact GET returns %s",
+    async (status) => {
+      mocks.fetch.mockResolvedValue(new Response(null, { status }));
+      renderSurface();
+      fillAcceptanceInputs();
+
+      await submitFirstPass();
+      await elapse(2_000);
+
+      expect(mocks.fetch).toHaveBeenCalledOnce();
+      expect(
+        screen.getByText(/cannot confirm whether the order form was rendered/),
+      ).toBeVisible();
+    },
+  );
 
   it("uses the same seven-year retention rule the ceremony states", async () => {
     renderSurface();
@@ -380,9 +511,10 @@ describe("order acceptance two-pass bridge", () => {
     await submitFirstPass();
     await elapse(3_000);
 
-    expect(lookupOrderForm).toHaveBeenCalled();
-    for (const call of lookupOrderForm.mock.calls)
-      expect(call[0]).toBe(preparedOrderId());
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      `/api/experience/artifacts/order_form/${orderFormArtifactId}?representation=json`,
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
     expect(screen.getByRole("button", { name: acceptLabel })).toBeDisabled();
   });
 
@@ -561,7 +693,7 @@ describe("order acceptance two-pass bridge", () => {
     fillAcceptanceInputs();
     await submitFirstPass();
 
-    lookupOrderForm.mockResolvedValue({ status: "unavailable" });
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 503 }));
     await elapse(2_000);
 
     expect(
@@ -572,12 +704,12 @@ describe("order acceptance two-pass bridge", () => {
   });
 
   /** A dropped request costs one attempt, never the whole acceptance. */
-  it("keeps waiting when one lookup fails", async () => {
+  it("keeps waiting when one artifact GET fails", async () => {
     renderSurface();
     fillAcceptanceInputs();
     await submitFirstPass();
 
-    lookupOrderForm.mockRejectedValueOnce(new Error("network"));
+    mocks.fetch.mockRejectedValueOnce(new Error("network"));
     await elapse(2_000);
     storeOrderForm();
     await elapse(2_000);
@@ -760,7 +892,7 @@ describe("order acceptance binds the form to the order it was prepared for", () 
     await settled(() => release({}));
     await elapse(30_000);
 
-    expect(lookupOrderForm).not.toHaveBeenCalled();
+    expect(mocks.fetch).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
     expect(
       screen.queryByRole("button", { name: recheckLabel }),

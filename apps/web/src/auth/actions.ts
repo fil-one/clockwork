@@ -1,11 +1,7 @@
 "use server";
 
 import { hasPermission, ids } from "@clockwork/contracts";
-import {
-  signOut,
-  switchToOrganization,
-  withAuth,
-} from "@workos-inc/authkit-nextjs";
+import { signOut, switchToOrganization } from "@workos-inc/authkit-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -44,16 +40,15 @@ export async function switchCommerceAccount(requestedAccountId: string) {
   }
   if (
     commerceSession.authenticationSource !== "workos" ||
+    !commerceSession.authenticationProviderUserId ||
+    commerceSession.authenticationProviderImpersonator ||
     commerceSession.assistedSession
   )
     return { ok: false as const };
-  const auth = await withAuth({ ensureSignedIn: true });
-  if (auth.impersonator)
-    throw new Error("Exit assisted access before switching organizations");
   let membership;
   try {
     membership = await resolveAuthorizedAccountSwitch(getServiceDatabase(), {
-      workosUserId: auth.user.id,
+      workosUserId: commerceSession.authenticationProviderUserId,
       requestedAccountId: accountId,
       requestId: requestId("organization-switch"),
     });
@@ -72,8 +67,7 @@ export async function chooseCommerceAccount(formData: FormData) {
 }
 
 export async function startAssistedSession(formData: FormData) {
-  await requireRecentAuthentication();
-  const session = await getCommerceSession();
+  const session = await requireRecentAuthentication();
   if (
     !session.isInternalStaff ||
     !session.roles.some((role) =>
@@ -130,12 +124,10 @@ export async function exitAssistedSession() {
 }
 
 export async function exitProviderAssistedSession() {
-  const auth = await withAuth({ ensureSignedIn: true });
-  if (!auth.impersonator)
-    throw new Error("No provider assisted session is active");
   const session = await getCommerceSession();
   if (
     session.authenticationSource !== "workos" ||
+    !session.authenticationProviderImpersonator ||
     session.assistedSessionProvider !== "workos" ||
     !session.assistedSession ||
     !session.authenticationSessionId

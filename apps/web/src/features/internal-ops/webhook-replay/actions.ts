@@ -4,10 +4,7 @@ import { DatabaseCoreFinanceService } from "@clockwork/api";
 import { hasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
-import {
-  getCommerceSession,
-  requireRecentAuthentication,
-} from "@/src/auth/session";
+import { requireRecentAuthentication } from "@/src/auth/session";
 import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
@@ -67,13 +64,13 @@ export async function replayWebhookEvent(
   if (!database || !pricingDatabase || !authorizationSecret)
     return { ok: false, code: "WEBHOOK_REPLAY_UNAVAILABLE" };
 
+  let session;
   try {
-    await requireRecentAuthentication();
+    session = await requireRecentAuthentication();
   } catch {
     return { ok: false, code: "WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED" };
   }
 
-  const session = await getCommerceSession();
   const permitted =
     session.isInternalStaff &&
     session.roles.some((role) => hasPermission(role, "system:operate"));

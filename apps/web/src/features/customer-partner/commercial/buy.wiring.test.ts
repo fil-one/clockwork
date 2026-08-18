@@ -13,8 +13,8 @@ describe("self-serve Buy route wiring", () => {
     const source = readFileSync(route, "utf8");
     expect(source).toContain('requiredPermission="quote:write"');
     expect(source).toContain("explicitDemoIdentityEnabled()");
-    expect(source).toContain("lookupPreparedQuoteArtifact");
-    expect(source).toContain("lookupBuyQuoteProjection");
+    expect(source).not.toContain("lookupPreparedQuoteArtifact");
+    expect(source).not.toContain("lookupBuyQuoteProjection");
     expect(source).toContain("<SelfServeBuy");
   });
 });

@@ -6,7 +6,6 @@ import type { UserInfo } from "@workos-inc/authkit-nextjs";
 
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
-  checkRecentAuth: vi.fn(),
   getTokenClaims: vi.fn(),
   listAuthorizedMemberships: vi.fn(),
   listAuthorizedMembershipsForUser: vi.fn(),
@@ -15,12 +14,14 @@ const authMocks = vi.hoisted(() => ({
   resolveReleaseProofIdentity: vi.fn(),
   resolveWorkosIdentity: vi.fn(),
   requestHeaders: new Map<string, string>(),
+  requestCookies: new Map<string, string>(),
+  refreshSession: vi.fn(),
   withAuth: vi.fn(),
 }));
 
 vi.mock("@workos-inc/authkit-nextjs", () => ({
-  checkRecentAuth: authMocks.checkRecentAuth,
   getTokenClaims: authMocks.getTokenClaims,
+  refreshSession: authMocks.refreshSession,
   withAuth: authMocks.withAuth,
 }));
 
@@ -49,7 +50,9 @@ vi.mock("next/headers", () => ({
       get: (name: string) =>
         name === "clockwork-assisted-session" && authMocks.assistedCookie
           ? { value: authMocks.assistedCookie }
-          : undefined,
+          : authMocks.requestCookies.has(name)
+            ? { value: authMocks.requestCookies.get(name) }
+            : undefined,
     }),
   headers: () =>
     Promise.resolve({
@@ -62,10 +65,15 @@ vi.mock("@/src/db/service", () => ({
 }));
 
 import type { AuthorizedMembership } from "./identity-repository";
-import { createReleaseProofCookieValue } from "./release-proof";
+import { demoAccessCookieName, issueDemoAccessCookie } from "./demo-access";
+import {
+  createReleaseProofCookieValue,
+  releaseProofCookieName,
+} from "./release-proof";
 import {
   explicitDemoIdentityEnabled,
   getCommerceSession,
+  requireRecentAuthentication,
   WorkosNextSessionResolver,
 } from "./session";
 
@@ -149,12 +157,13 @@ function staffMembership(): AuthorizedMembership {
 describe("WorkOS commerce session mapping", () => {
   beforeEach(() => {
     authMocks.requestHeaders.clear();
+    authMocks.requestCookies.clear();
     configuredEnvironment();
     authMocks.assistedCookie = undefined;
     authMocks.withAuth.mockResolvedValue(workosSession());
+    authMocks.refreshSession.mockResolvedValue(workosSession());
     authMocks.resolveWorkosIdentity.mockResolvedValue(commerceIdentity());
     authMocks.listAuthorizedMemberships.mockResolvedValue([membership()]);
-    authMocks.checkRecentAuth.mockResolvedValue({ isStale: false });
     authMocks.getTokenClaims.mockResolvedValue({
       amr: ["pwd", "mfa"],
       auth_time: Math.floor(Date.now() / 1000),
@@ -219,7 +228,6 @@ describe("WorkOS commerce session mapping", () => {
       authenticationSource: "workos",
     });
     expect(authMocks.withAuth).not.toHaveBeenCalled();
-    expect(authMocks.checkRecentAuth).not.toHaveBeenCalled();
     // The binding is single-use and tied to this exact Request object.
     await expect(resolver.resolve(request)).resolves.toBeNull();
   });
@@ -236,6 +244,32 @@ describe("WorkOS commerce session mapping", () => {
       authenticationSource: "workos",
     });
     expect(authMocks.withAuth).toHaveBeenCalledOnce();
+  });
+
+  it("authenticates a skipped fetch action from the sealed cookie refresh path", async () => {
+    authMocks.requestHeaders.set("next-action", "a".repeat(40));
+    authMocks.requestHeaders.set("origin", "https://commerce.clockwork.test");
+    authMocks.requestHeaders.set("host", "commerce.clockwork.test");
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      userId: fixture.commerceUserId,
+      authenticationSource: "workos",
+    });
+    expect(authMocks.refreshSession).toHaveBeenCalledOnce();
+    expect(authMocks.withAuth).not.toHaveBeenCalled();
+  });
+
+  it("requires a resolved WorkOS user on the direct action path", async () => {
+    authMocks.requestHeaders.set(
+      "content-type",
+      "multipart/form-data; boundary=x",
+    );
+    authMocks.refreshSession.mockResolvedValue({ user: null });
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "WorkOS authentication is required",
+    );
+    expect(authMocks.resolveWorkosIdentity).not.toHaveBeenCalled();
   });
 
   it("does not invent a named local identity unless the demo adapter is explicit", async () => {
@@ -257,6 +291,35 @@ describe("WorkOS commerce session mapping", () => {
       authenticationSource: "local",
       providerBacked: false,
       profile: { email: "operator@filone.test" },
+    });
+  });
+
+  it("does not synthesize demo identity without the configured access grant", async () => {
+    vi.stubEnv("WORKOS_API_KEY", "");
+    vi.stubEnv("WORKOS_CLIENT_ID", "");
+    vi.stubEnv("WORKOS_COOKIE_PASSWORD", "");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("CLOCKWORK_DEMO_ACCESS_PASSWORD", "demo-session-test-password");
+    authMocks.requestHeaders.set("x-clockwork-persona", "owner");
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "A valid demo access grant is required",
+    );
+    await expect(
+      new WorkosNextSessionResolver().resolve(
+        new Request("https://demo.clockwork.test/api/experience/projections", {
+          headers: { "x-clockwork-persona": "owner" },
+        }),
+      ),
+    ).resolves.toBeNull();
+
+    const grant = await issueDemoAccessCookie("demo-session-test-password");
+    authMocks.requestCookies.set(demoAccessCookieName, grant.value);
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      roles: ["owner"],
+      authenticationSource: "local",
     });
   });
 
@@ -456,6 +519,74 @@ describe("WorkOS commerce session mapping", () => {
       ),
     ).rejects.toThrow("Release-proof authentication is unavailable");
     expect(authMocks.resolveReleaseProofIdentity).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-establishes release-proof origin at a skipped action destination", async () => {
+    const secret = "proof-action-secret-at-least-thirty-two-bytes";
+    const origin = "http://localhost:3200";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("WORKOS_API_KEY", "");
+    vi.stubEnv("WORKOS_CLIENT_ID", "");
+    vi.stubEnv("WORKOS_COOKIE_PASSWORD", "");
+    vi.stubEnv("CLOCKWORK_RELEASE_PROOF", "1");
+    vi.stubEnv("CLOCKWORK_PROOF_AUTH_SECRET", secret);
+    vi.stubEnv("APP_ORIGIN", origin);
+    const payload = {
+      sessionId: "12000000-0000-4000-8000-000000000002",
+      expiresAt: "2030-07-31T16:15:00.000Z",
+      nonce: "0123456789abcdef0123456789abcdef",
+    };
+    authMocks.requestCookies.set(
+      releaseProofCookieName,
+      createReleaseProofCookieValue(payload, secret),
+    );
+    authMocks.resolveReleaseProofIdentity.mockResolvedValue({
+      sessionId: payload.sessionId,
+      selected: membership(),
+      memberships: [membership()],
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    authMocks.requestHeaders.set("next-action", "b".repeat(40));
+    authMocks.requestHeaders.set("host", "localhost:3200");
+    authMocks.requestHeaders.set("origin", origin);
+    authMocks.requestHeaders.set("sec-fetch-site", "same-origin");
+    // A direct caller can supply this header, so it must have no authority on
+    // the skipped path.
+    authMocks.requestHeaders.set(
+      "x-clockwork-proof-origin",
+      "https://attacker.example",
+    );
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      authenticationSessionId: payload.sessionId,
+    });
+
+    authMocks.requestHeaders.set("origin", "https://attacker.example");
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Release-proof authentication is unavailable",
+    );
+    authMocks.requestHeaders.set("origin", origin);
+    authMocks.requestHeaders.set("host", "attacker.example");
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Release-proof authentication is unavailable",
+    );
+    authMocks.requestHeaders.set("host", "localhost:3200");
+    authMocks.requestHeaders.set("sec-fetch-site", "cross-site");
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Release-proof authentication is unavailable",
+    );
+  });
+
+  it("returns the session that satisfied recent authentication", async () => {
+    await expect(requireRecentAuthentication()).resolves.toMatchObject({
+      userId: fixture.commerceUserId,
+      recentAuthenticationVerified: true,
+    });
+    authMocks.getTokenClaims.mockResolvedValue({ amr: ["mfa"], auth_time: 0 });
+    await expect(requireRecentAuthentication()).rejects.toThrow(
+      "Sensitive action requires recent authentication",
+    );
   });
 
   it("denies a privileged role when the selected organization lacks MFA policy", async () => {
