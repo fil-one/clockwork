@@ -19,6 +19,6 @@ The historically named consolidation lanes used non-overlapping ranges:
 commercial integrity `001000`–`001099`, runtime operations `001100`–`001199`,
 and experience release `001200`–`001299`; consolidated release-integrity work
 uses `001300`. Those ranges and migrations remain immutable. Future shared
-corrections are forward-only on `main`. The repository-qualified Drizzle
-authoring artifact is `0004_nosy_valkyrie` for 116 tables; reviewed Supabase SQL
-remains the execution authority.
+corrections are forward-only on `main`. The current Drizzle authoring snapshot
+is `0009_early_vanisher` for 128 modeled tables; reviewed Supabase SQL remains
+the execution authority.

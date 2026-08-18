@@ -20,6 +20,7 @@ export const productionTaskImporters: readonly TriggerTaskImporter[] = [
   () => import("../renewals/tasks"),
   () => import("../system/tasks"),
   () => import("../system/gate-activation-tasks"),
+  () => import("../webhook-replay/tasks"),
 ];
 
 /** Trigger task modules are evaluated only after the durable runtime is active. */

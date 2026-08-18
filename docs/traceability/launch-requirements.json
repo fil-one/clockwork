@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contract": "commerce_platform_spec.md",
-  "contractSha256": "21521f3f7c555f83da8631367599dbb38e5e64b98e68b31a42e7229403ed5586",
+  "contractSha256": "3dd76c47fa02be99dbab40832bdee412b939eba4984ad0c78f0444fce4301e05",
   "statusPolicy": {
     "generatedFrom": "commerce_platform_spec.md",
     "requirementCount": 312,
@@ -99,12 +99,12 @@
       "all registered EXT-* gates": "ALL_REGISTERED_EXTERNAL_GATES"
     },
     "notes": [
-      "The §22 five-lane plan and three historically named RC lanes are retained as provenance; main is the only active integration branch, repository qualification is complete, and this state does not declare an RC or launch.",
+      "The §22 five-lane plan and three historically named RC lanes are retained as provenance; main is the only active integration branch, the current implementation is post-merge and pre-qualification, and this state does not declare an RC or launch.",
       "Instance 1 baseline JSON blobs remain immutable in Git history and the verified pre-consolidation bundle; the checked-in manifests are the reproducible final consolidated-main inventory used for comparison. Final commit-addressed SHA, non-RC archival tag, all-refs bundle, restore output, and full timing transcript are emitted post-commit in the tag annotation and ignored archive manifest.",
       "The canonical contract distinguishes the generated /v1 Hono contract from its browser-visible /api/v1 Next.js mount.",
       "The canonical contract uses numeric(38,18), aligns Object Lock classes with ADR 0007, and includes all fifteen immutable artifact kinds.",
       "Human design approval is a future user-entered RC/launch decision, is not claimed, and does not block repository qualification.",
-      "Evidence citations: every requirement row edited from this point forward must cite `path#symbol` in its implementation and tests columns, where the path exists in the repository and the symbol is declared in that file. Pre-existing prose citations are grandfathered and are converted row by row; `pnpm check:traceability` enforces the grammar and `pnpm check:citation-liveness` reports symbols with no non-test reference outside their defining file."
+      "Evidence citations: every requirement row edited from this point forward must cite `path#symbol` in its implementation and tests columns, where the path exists in the repository and the symbol is declared in that file. Pre-existing prose citations are grandfathered and are converted row by row; `pnpm check:traceability` enforces the grammar and `pnpm check:citation-liveness` gates syntax-resolved non-test implementation use while explicitly not claiming whole-program reachability."
     ]
   },
   "requirements": [
@@ -2736,7 +2736,7 @@
         "packages/db/src/repositories/system/exception-routing.ts#DatabaseExceptionRosterAdminService"
       ],
       "workflowProvider": [
-        "packages/workflows/src/exceptions/index.ts#validateQueuePolicies"
+        "packages/workflows/src/exceptions/index.ts#exceptionTaskIds"
       ],
       "portalDocument": [
         "apps/web/app/(experience)/(internal)/internal/queues/[id]/page.tsx"
@@ -3672,22 +3672,27 @@
       "api": ["packages/api/src/webhooks.ts#verifyAndClaimWebhook"],
       "database": [
         "packages/db/src/repositories/webhooks.ts#DatabaseWebhookDeduplicator",
-        "packages/db/src/repositories/system/webhook-replay.ts#DatabaseWebhookReplayReadModel"
+        "packages/db/src/repositories/system/webhook-replay.ts#DatabaseWebhookReplayReadModel",
+        "packages/db/src/repositories/system/webhook-replay.ts#DatabaseWebhookReplayTaskStore"
       ],
       "workflowProvider": [
-        "packages/integrations/src/core/stripe/webhooks.ts#StripeFinancialWebhookVerifier"
+        "packages/integrations/src/core/stripe/webhooks.ts#StripeFinancialWebhookVerifier",
+        "packages/workflows/src/trigger/discovery.ts#productionTaskImporters",
+        "packages/workflows/src/webhook-replay/runtime.ts#ProductionWebhookReplayHandler"
       ],
       "portalDocument": [
         "apps/web/src/features/internal-ops/webhook-replay/actions.ts#replayWebhookEvent"
       ],
       "tests": [
         "packages/integrations/src/core/stripe/webhooks.test.ts",
-        "packages/db/src/repositories/core/webhook-replay-refusal.test.ts"
+        "packages/db/src/repositories/system/webhook-replay.integration.test.ts",
+        "packages/workflows/src/webhook-replay/runtime.test.ts",
+        "packages/workflows/src/webhook-replay/outbox.test.ts"
       ],
       "externalGates": ["EXT-ACC-01", "EXT-PROVIDER-01"],
-      "backlog": ["P0-56"],
-      "status": "partial",
-      "rationale": "Raw-body signature verification before acknowledgment and provider/event dedupe are implemented and tested: `verifyAndClaimWebhook` claims each delivery through `DatabaseWebhookDeduplicator`, so a provider redelivery is a recorded no-op rather than a second projection, and out-of-order arrival is tolerated by the watermarked projections that consume the inbox. Controlled replay as an operator capability is not delivered: no registered task re-runs a stored verified payload, so `replayWebhookEvent` fails closed with a typed refusal that leaves the inbox row and its dedupe marker untouched — pinned by `webhook-replay-refusal.test.ts`, whose AST tripwire also demands the refusal be deleted on the day the task is registered. P0-56 holds that residue. Related gate references EXT-ACC-01, EXT-PROVIDER-01 identify later production inputs and are unchanged by this."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "Raw-body signature verification before acknowledgment and provider/event dedupe are implemented and tested: `verifyAndClaimWebhook` claims each delivery through `DatabaseWebhookDeduplicator`, so a provider redelivery is a recorded no-op rather than a second projection, and out-of-order arrival is tolerated by the watermarked projections that consume the inbox. Controlled replay is worker-backed: the operator command retains the inbox processed marker, creates an audited workflow run and outbox message atomically, and the registered `webhook-replay:v1` task loads the stored verified payload under the service role. Provider, event ID, payload hash, and claim token are rebound before the original projection logic runs; active requests dedupe and retry/completion updates are fenced. The queue contains only the workflow-run reference. Related gate references EXT-ACC-01 and EXT-PROVIDER-01 identify production activation inputs and are unchanged by this."
     },
     {
       "id": "SPEC-18-INV-07",
@@ -3845,7 +3850,8 @@
       "workflowProvider": [
         "scripts/release-suites.mjs",
         "scripts/validate-traceability.mjs#checkCitationGrammar",
-        "scripts/check-citation-liveness.mjs",
+        "scripts/check-citation-liveness.mjs#analyzeCitationLiveness",
+        "scripts/release-artifacts.mjs#RELEASE_SUITE_ASSERTIONS",
         "packages/testing/src"
       ],
       "portalDocument": [
@@ -3865,9 +3871,9 @@
         "supabase/tests/000_schema.test.sql"
       ],
       "externalGates": [],
-      "backlog": ["P0-71"],
-      "status": "partial",
-      "rationale": "The listed product toolchain is in use as declared, and since P0-71 the validation toolchain also includes this ledger's own evidence checkers: `checkCitationGrammar` enforces that a `path#symbol` citation names a real file declaring that symbol and that a path citation exists on disk, running inside `verify:static` on every ledger change, and `check-citation-liveness.mjs` reports cited symbols with no non-test reference outside their defining file; both checkers' own tests run in root `test:unit`. The row is held partial deliberately while P0-71 remains open, and the gap is named rather than implied: the liveness half reports without gating — it is deliberately outside `verify:static` because its false-positive behaviour is documented in its own header — so no gate yet enforces that a cited symbol is reachable, and the citation corpus is still mostly grandfathered prose, converted row by row. The row returns to implemented when P0-71 closes."
+      "backlog": [],
+      "status": "implemented",
+      "rationale": "The listed product toolchain is in use as declared, and the validation toolchain checks this ledger's own evidence. `checkCitationGrammar` requires a `path#symbol` citation to name a real file declaring that symbol. `analyzeCitationLiveness` requires syntax-resolved non-test implementation use: its TypeScript/JavaScript import/export binding graph rejects comments, strings, unused bindings, overload-only declarations, lexical shadows and unrelated same-name declarations, while its SQL path removes comments before its narrower lexical check. Both run in `verify:static`; the release static assertion inventory binds each to its own command, the baseline qualification inventory runs both, and their regression suites run in root `test:unit`. The real ledger passes without a liveness exception. The gate explicitly does not claim whole-program entrypoint reachability or semantic sufficiency, and grandfathered prose continues to convert row by row rather than being misrepresented as checked."
     },
     {
       "id": "SPEC-18-VAL-02",

@@ -97,6 +97,7 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "generated-dry-run",
     "qualification-inventory",
     "traceability",
+    "citation-liveness",
   ]),
   unit: Object.freeze([
     "workspace-unit",
@@ -106,6 +107,9 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "schema-drift-unit",
     "traceability-validator-unit",
     "citation-liveness-unit",
+    "database-test-runner-unit",
+    "secretlint-config-unit",
+    "demo-deploy-environment-unit",
     "demo-reset",
     "demo-reset-production-refusal",
   ]),
@@ -207,6 +211,7 @@ export function expectedReleaseCommands(name, serial) {
       ["node", "scripts/check-generated-dry-run.mjs"],
       ["node", "scripts/validate-release-test-inventory.mjs"],
       ["pnpm", "check:traceability"],
+      ["pnpm", "check:citation-liveness"],
     ],
     unit: [
       turboCommand("test:unit", serial, [
@@ -221,6 +226,9 @@ export function expectedReleaseCommands(name, serial) {
       ["node", "--test", "scripts/check-schema-drift.test.mjs"],
       ["node", "--test", "scripts/validate-traceability.test.mjs"],
       ["node", "--test", "scripts/check-citation-liveness.test.mjs"],
+      ["node", "--test", "scripts/run-db-tests.test.mjs"],
+      ["node", "--test", "scripts/secretlint-config.test.mjs"],
+      ["node", "--test", "scripts/check-demo-deploy-environment.test.mjs"],
       ["pnpm", "exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
       ["node", "scripts/verify-demo-reset-safety.mjs"],
     ],

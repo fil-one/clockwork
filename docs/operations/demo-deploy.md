@@ -29,8 +29,8 @@ changes nothing on the live site.
 From the repository root, on `main`, with a clean tree:
 
 ```sh
-CI=1 NETLIFY_AUTH_TOKEN=nfp_if4DBUaRcnmfdH8VK5GR1P3dceNtJw8y1cf2 \
-  npx -y netlify-cli@latest deploy --build --prod \
+CI=1 NETLIFY_AUTH_TOKEN="${NETLIFY_AUTH_TOKEN:?set NETLIFY_AUTH_TOKEN}" \
+  pnpm exec netlify deploy --build --prod \
   --site e6b53765-8195-4fd4-b1c9-48a5ca8ef0b7 \
   --filter @clockwork/web
 ```
@@ -47,9 +47,14 @@ What each piece does:
 - `--filter @clockwork/web` selects the web app in the monorepo. Without it the
   CLI stops on an interactive project picker; `CI=1` suppresses the rest of the
   prompts.
-- The token is a Netlify personal access token, stored here deliberately
-  (private repository, James's call). If it stops working, create a new one at
-  Netlify → User settings → Applications → Personal access tokens.
+- The Netlify CLI invocation, Next.js build plugin, Node, and pnpm versions are
+  pinned in this command, `package.json`, `netlify.toml`, and the root toolchain
+  files. Use the checked-in command; do not substitute an unpinned
+  `npx ...@latest` invocation.
+- The token is a Netlify personal access token supplied through the process
+  environment only; it is never written to this repository or a local `.env`. If
+  it stops working, create a new one at Netlify → User settings → Applications →
+  Personal access tokens.
 
 ## Environment
 

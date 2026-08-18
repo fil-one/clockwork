@@ -14,6 +14,7 @@ import {
 } from "@/src/auth/demo-persona";
 import { WebVitals } from "@/src/features/performance/web-vitals";
 import { parseTraceparent } from "@/src/features/performance/client-telemetry";
+import { publicMetadataOrigin } from "@/src/features/shell/public-origin";
 import {
   DemoPersonaSwitcher,
   type DemoJourneyView,
@@ -33,12 +34,11 @@ function demoJourneyView(persona: DemoPersonaKey): DemoJourneyView | undefined {
 const description =
   "Agreements, services, billing, and partner commerce in one dependable chain.";
 
-// Link unfurlers resolve the Open Graph image against this origin. The AuthKit
-// redirect URI is already the deployed public origin, so no second setting is
-// introduced; a malformed value falls back to the local development origin.
-const publicOrigin =
-  /^https?:\/\/[^/]+/.exec(process.env.WORKOS_REDIRECT_URI ?? "")?.[0] ??
-  "http://localhost:3000";
+// Link unfurlers resolve the Open Graph image against the canonical public
+// origin. Ordinary WorkOS deployments can derive the same origin from their
+// callback; the standalone demo has no WorkOS settings and therefore uses its
+// explicit canonical origin rather than leaking localhost into social cards.
+const publicOrigin = publicMetadataOrigin(process.env);
 
 // The icon, apple-icon, and opengraph-image files in this directory supply the
 // link tags and og:image through the Next file convention.

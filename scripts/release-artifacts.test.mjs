@@ -655,7 +655,14 @@ test("rejects an omitted, reordered, or relabeled canonical command", () => {
     ),
   );
   assert.ok(issues.some((issue) => issue.includes("command manifest differs")));
-  assert.ok(issues.some((issue) => issue.includes("executed 8 of 9")));
+  const staticAssertionCount = RELEASE_SUITE_ASSERTIONS.static.length;
+  assert.ok(
+    issues.some((issue) =>
+      issue.includes(
+        `executed ${staticAssertionCount - 1} of ${staticAssertionCount}`,
+      ),
+    ),
+  );
   assert.ok(issues.some((issue) => issue.includes("assertion step 1 differs")));
   assert.ok(issues.some((issue) => issue.includes("fingerprint differs")));
 });
@@ -1196,6 +1203,10 @@ const checkedInWorkflow = await readFile(
   new URL("../.github/workflows/ci.yml", import.meta.url),
   "utf8",
 );
+const checkedInCodeowners = await readFile(
+  new URL("../.github/CODEOWNERS", import.meta.url),
+  "utf8",
+);
 const workflowShards = [
   ...checkedInWorkflow.matchAll(
     /-\s+shard:\s*(\S+)\s*\n\s*port:\s*(\d+)\s*\n\s*runner:\s*(\S+)/g,
@@ -1205,6 +1216,102 @@ const workflowShards = [
   port: Number.parseInt(port, 10),
   runner,
 }));
+
+const codeownerRules = new Map(
+  checkedInCodeowners
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => {
+      const [pattern, ...owners] = line.split(/\s+/);
+      return [pattern, owners];
+    }),
+);
+
+test("routes review of repository governance and release controls", () => {
+  const owners = [
+    "@jameskurz-filecoin",
+    "@alanshaw",
+    "@bajtos",
+    "@relotnek",
+    "@hannahhoward",
+  ];
+  const requiredPatterns = [
+    "/.github/CODEOWNERS",
+    "/.github/",
+    "/.github/workflows/",
+    "/.env.example",
+    "/.gitignore",
+    "/.node-version",
+    "/.nvmrc",
+    "/.npmrc",
+    "/.prettierignore",
+    "/.secretlintignore",
+    "/.secretlintrc.json",
+    "/dependency-cruiser.config.mjs",
+    "/eslint.config.mjs",
+    "/lefthook.yml",
+    "/LICENSE",
+    "/netlify.toml",
+    "/package.json",
+    "/pnpm-lock.yaml",
+    "/pnpm-workspace.yaml",
+    "/prettier.config.mjs",
+    "/trigger.config.ts",
+    "/tsconfig.base.json",
+    "/tsconfig.json",
+    "/turbo.json",
+    "/patches/",
+    "/apps/",
+    "/packages/",
+    "/scripts/",
+    "/supabase/",
+    "/scripts/release-artifacts.mjs",
+    "/scripts/release-artifacts.test.mjs",
+    "/scripts/release-suites.mjs",
+    "/scripts/validate-release-join.mjs",
+    "/scripts/benchmark-release.mjs",
+    "/scripts/benchmark-release.test.mjs",
+    "/supabase/config.toml",
+    "/supabase/migrations/",
+    "/packages/api/src/generated/",
+    "/commerce_platform_spec.md",
+    "/docs/traceability/",
+  ];
+
+  assert.equal(
+    codeownerRules.size,
+    requiredPatterns.length,
+    "CODEOWNERS contains an unreviewed broad or duplicate rule",
+  );
+  for (const pattern of requiredPatterns)
+    assert.deepEqual(
+      codeownerRules.get(pattern),
+      owners,
+      `${pattern} must retain its verified repository owners`,
+    );
+  assert.equal(
+    [...codeownerRules.keys()].some((pattern) =>
+      ["*", "**", "/", "/**"].includes(pattern),
+    ),
+    false,
+    "CODEOWNERS must stay scoped to named control surfaces",
+  );
+});
+
+test("keeps the aggregate release gate attached to every release shard", () => {
+  const gate = checkedInWorkflow.match(/\n {2}release-gate:\n([\s\S]*)$/)?.[1];
+  assert.ok(gate, "the workflow has no aggregate release-gate job");
+  assert.match(gate, /if:\s*always\(\)/);
+  assert.match(gate, /needs:\s*\[release-shards\]/);
+  assert.match(
+    gate,
+    /RELEASE_SHARDS_RESULT:\s*\$\{\{ needs\.release-shards\.result \}\}/,
+  );
+  assert.match(gate, /test "\$RELEASE_SHARDS_RESULT" = "success"/);
+  assert.match(gate, /node scripts\/validate-release-join\.mjs/);
+  assert.match(gate, /node --test scripts\/release-artifacts\.test\.mjs/);
+});
 
 test("runs every release suite as its own CI shard, in order", () => {
   assert.ok(

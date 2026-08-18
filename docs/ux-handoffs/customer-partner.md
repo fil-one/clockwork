@@ -1,8 +1,8 @@
 # Customer and partner UX handoff
 
 Current disposition: historical provenance. The UX implementation and its
-authoritative data/action joins are repository-qualified on `main`; this is not
-an active lane or RC/launch record.
+authoritative data/action joins were considered repository-qualified when this
+handoff was written; the current backlog controls present status.
 
 ## Scope
 

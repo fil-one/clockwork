@@ -1,8 +1,9 @@
 # Runtime operations Instance 3 handoff — 2026-07-31
 
 Current disposition: historical provenance. This lane and its cross-lane joins
-are integrated and repository-qualified on `main`; lane-local limitations below
-do not describe current gaps and this handoff does not declare an RC/launch.
+were considered integrated and repository-qualified when this handoff was
+written; the current backlog controls present status, and this handoff does not
+declare an RC/launch.
 
 This is the uniquely named integration handoff for branch
 `rc/runtime-operations`. It does not edit commercial-core, web, UI, document,

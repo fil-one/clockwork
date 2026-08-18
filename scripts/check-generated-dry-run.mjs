@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
@@ -58,11 +58,28 @@ try {
       process.env.DIRECT_DATABASE_URL ??
       "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
   };
-  execFileSync("pnpm", ["--filter", "@clockwork/db", "generate"], {
-    cwd: workspace,
-    env: drizzleEnvironment,
-    stdio: "inherit",
-  });
+  const drizzleGeneration = spawnSync(
+    "pnpm",
+    ["--filter", "@clockwork/db", "generate"],
+    {
+      cwd: workspace,
+      env: drizzleEnvironment,
+      encoding: "utf8",
+    },
+  );
+  process.stdout.write(drizzleGeneration.stdout ?? "");
+  process.stderr.write(drizzleGeneration.stderr ?? "");
+  if (
+    drizzleGeneration.status !== 0 ||
+    drizzleGeneration.signal !== null ||
+    /(?:^|\n)Error:/u.test(
+      `${drizzleGeneration.stdout ?? ""}\n${drizzleGeneration.stderr ?? ""}`,
+    )
+  ) {
+    throw new Error(
+      `Drizzle generation failed${drizzleGeneration.signal ? ` with signal ${drizzleGeneration.signal}` : ` with status ${drizzleGeneration.status ?? "unknown"}`}`,
+    );
+  }
 
   const committedDirectoryFiles = (
     await Promise.all(

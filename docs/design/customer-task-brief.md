@@ -1,7 +1,7 @@
 # Customer experience brief
 
-Status: repository-qualified implementation; any human design approval is a
-future launch-only decision and is not claimed here
+Status: post-merge, pre-qualification implementation; any human design approval
+is a future launch-only decision and is not claimed here
 
 ## Decision frame
 

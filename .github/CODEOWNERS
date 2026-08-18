@@ -1,0 +1,54 @@
+# Repository governance and release-control ownership.
+#
+# Every named owner below is a current fil-one/clockwork write or admin
+# collaborator. Organization teams were not visible to the auditing account,
+# so this file deliberately uses verified individual identities. These rules
+# route review; protected-branch settings must enforce approval separately.
+
+/.github/CODEOWNERS @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.github/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.github/workflows/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+
+/.env.example @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.gitignore @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.node-version @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.nvmrc @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.npmrc @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.prettierignore @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.secretlintignore @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/.secretlintrc.json @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/dependency-cruiser.config.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/eslint.config.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/lefthook.yml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/LICENSE @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/netlify.toml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/package.json @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/pnpm-lock.yaml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/pnpm-workspace.yaml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/prettier.config.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/trigger.config.ts @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/tsconfig.base.json @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/tsconfig.json @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/turbo.json @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/patches/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+
+# Production application, library, automation, and database changes all need a
+# named reviewer. These are intentionally directory-scoped rather than a `*`
+# catch-all so ordinary prose and design assets do not create review noise.
+/apps/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/packages/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/supabase/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+
+/scripts/release-artifacts.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/release-artifacts.test.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/release-suites.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/validate-release-join.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/benchmark-release.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/scripts/benchmark-release.test.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+
+/supabase/config.toml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/supabase/migrations/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/packages/api/src/generated/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/commerce_platform_spec.md @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
+/docs/traceability/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward

@@ -1,8 +1,8 @@
 # Lifecycle platform handoff
 
 Current disposition: historical provenance. This lane and its integration
-expectations are represented and repository-qualified on `main`; lane-local
-limitations below do not describe current gaps or an RC/launch.
+expectations were considered represented and repository-qualified when this
+handoff was written; the current backlog controls present gaps and status.
 
 ## Branch and foundation
 

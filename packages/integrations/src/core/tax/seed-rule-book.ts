@@ -1,6 +1,6 @@
 import { parseTaxRuleBook, type TaxRuleBook } from "@clockwork/domain/core";
 
-import seed from "./seed-rule-book.json";
+import seed from "./seed-rule-book.json" with { type: "json" };
 
 /**
  * The seeded rule book the fake and the demo determine against.

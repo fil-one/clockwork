@@ -116,6 +116,7 @@ import {
   withInternalTransaction,
 } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { DatabaseWebhookReplayTaskStore } from "../system/webhook-replay";
 import { createAcceptedOrderProvisioningAttempt } from "../lifecycle/accepted-order-provisioning";
 import {
   amendmentArtifactDefinition,
@@ -420,36 +421,6 @@ export class DatabaseCoreError extends Error {
   }
 }
 
-/**
- * Identifier a webhook replay would have to enqueue under, one per provider.
- * Exported so the test that guards the refusal below and any future task
- * registration derive the string from the same place.
- */
-export function webhookReplayTaskIdentifier(provider: string): string {
-  return `webhook-replay:${provider}`;
-}
-
-/**
- * Raised when an operator asks for a webhook replay. No durable task is
- * registered under the identifier a replay would enqueue, so the command
- * refuses instead of reporting a success that nothing acts on.
- *
- * It is a DatabaseCoreError so that every consumer already treats it as a
- * failure: the API surface renders INVALID_STATE as a non-retryable 422 whose
- * detail names the missing identifier, and the operator server action reports
- * `ok: false`. When the task is registered, delete this and restore the
- * enqueue -- the accompanying test fails until you do.
- */
-export class WebhookReplayTaskNotRegisteredError extends DatabaseCoreError {
-  public constructor(public readonly taskIdentifier: string) {
-    super(
-      "INVALID_STATE",
-      `Webhook replay is unavailable: no durable task is registered under "${taskIdentifier}", so a replay would clear the processed marker on the inbox row and enqueue nothing. The inbox row was left untouched. Register the task in @clockwork/workflows before enabling this command`,
-    );
-    this.name = "WebhookReplayTaskNotRegisteredError";
-  }
-}
-
 type CoreResourceName = DatabaseCoreResourceName;
 type CoreRecord = DatabaseCoreRecord;
 type CoreMutation = DatabaseCoreMutation;
@@ -601,6 +572,7 @@ interface CoreFinanceService {
     provider: string;
     eventId: string;
     actor: Actor;
+    reason: string;
     requestId: string;
   }): Promise<{ replayed: boolean; workflowRunId: string }>;
 }
@@ -8534,25 +8506,32 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     provider: string;
     eventId: string;
     actor: Actor;
+    reason: string;
     requestId: string;
   }): Promise<{ replayed: boolean; workflowRunId: string }> {
-    // FAIL CLOSED. A replay is only a replay if something re-processes the
-    // stored bytes. No durable task is registered under this identifier --
-    // packages/workflows/src/trigger/discovery.ts imports thirteen production
-    // task modules and none declares it, and the only readers of workflow_runs
-    // filter on identifiers that exclude it. Enqueuing the row anyway reported
-    // success while nothing ran, and clearing processed_at/processing_error on
-    // the inbox row destroyed the dedupe guard, so a provider redelivery of the
-    // same event was claimed instead of rejected and the projection re-entered.
-    //
-    // The repair is to register the task in @clockwork/workflows and then
-    // restore the enqueue here. Until that exists the command refuses and
-    // touches nothing: the refusal is raised before any transaction is opened,
-    // so the inbox row is not mutated on this path.
-    return Promise.reject(
-      new WebhookReplayTaskNotRegisteredError(
-        webhookReplayTaskIdentifier(input.provider),
-      ),
-    );
+    return new DatabaseWebhookReplayTaskStore(this.options.pricingDatabase)
+      .request({
+        provider: input.provider,
+        providerEventId: input.eventId,
+        requestedBy: input.actor,
+        reason: input.reason,
+        requestId: input.requestId,
+      })
+      .then((result) => {
+        if (result.status === "not_found")
+          throw new CoreServiceError(
+            "NOT_FOUND",
+            "Verified provider event was not found",
+          );
+        if (result.status === "ingress_in_progress")
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "The original provider delivery is still being processed",
+          );
+        return {
+          replayed: result.status === "started",
+          workflowRunId: result.workflowRunId,
+        };
+      });
   }
 }

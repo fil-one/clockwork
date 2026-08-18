@@ -144,7 +144,7 @@ export const CITATION_COVERAGE = Object.freeze({
   doesNotCover: [
     "prose citations: they are GRANDFATHERED and not checked at all - see CITATION_GRANDFATHERING",
     "whether a path that exists has anything to do with the requirement that cites it",
-    "whether a declared symbol is the one the row means, or is referenced, or is reachable from production - `pnpm check:citation-liveness` covers the reference half, badly enough that it is not in verify:static",
+    "whether a declared symbol is the one the row means or is reachable from a production entrypoint - `pnpm check:citation-liveness` gates syntax-resolved implementation use but does not claim whole-program reachability",
     "symbol declarations the regex cannot see: re-exports through barrels, object-literal members, declaration merging, anything constructed dynamically",
     "API route paths, package specifiers and module shorthands, which are classified as prose",
   ],
@@ -193,7 +193,7 @@ export const CITATION_GRANDFATHERING = Object.freeze({
  * not wait on the note.
  */
 export const CITATION_POLICY_NOTE =
-  "Evidence citations: every requirement row edited from this point forward must cite `path#symbol` in its implementation and tests columns, where the path exists in the repository and the symbol is declared in that file. Pre-existing prose citations are grandfathered and are converted row by row; `pnpm check:traceability` enforces the grammar and `pnpm check:citation-liveness` reports cited symbols that nothing references outside their own declaration and outside test files.";
+  "Evidence citations: every requirement row edited from this point forward must cite `path#symbol` in its implementation and tests columns, where the path exists in the repository and the symbol is declared in that file. Pre-existing prose citations are grandfathered and are converted row by row; `pnpm check:traceability` enforces the grammar and `pnpm check:citation-liveness` gates syntax-resolved non-test implementation use while explicitly not claiming whole-program reachability.";
 
 function escapeRegExp(value) {
   return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);

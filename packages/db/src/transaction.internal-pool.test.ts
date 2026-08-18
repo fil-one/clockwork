@@ -119,7 +119,24 @@ describe("internal transactions refuse any pool that is not the service pool", (
     expect(runtime.opened).toEqual([]);
   });
 
-  it("admits the service pool and the local superuser both roles are granted to", async () => {
+  it("refuses every other named role without opening a transaction", async () => {
+    for (const role of ["clockwork_readonly", "billing_worker", "postgres"]) {
+      const other = pool(role);
+      vi.stubEnv("NODE_ENV", "production");
+      try {
+        await expect(
+          withInternalTransaction(other.db, `req-${role}`, () =>
+            Promise.resolve("ran"),
+          ),
+        ).rejects.toBeInstanceOf(InternalTransactionPoolError);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+      expect(other.opened).toEqual([]);
+    }
+  });
+
+  it("admits the service pool and admits the local superuser outside production", async () => {
     const service = pool("clockwork_service.projectref");
     const local = pool("postgres");
 

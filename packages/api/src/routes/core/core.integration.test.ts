@@ -585,10 +585,32 @@ describe("core-finance API", () => {
         }),
         "x-clockwork-recent-auth": "false",
       },
+      body: JSON.stringify({ reason: "INC-9003 validate recent auth" }),
     });
     expect(denied.status).toBe(403);
     await expect(denied.json()).resolves.toMatchObject({
       code: "RECENT_AUTHENTICATION_REQUIRED",
     });
+
+    const accepted = await app.request("/v1/core/replays/stripe/evt_2", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "core-replay-accepted-0001",
+        persona: "internal_operator",
+      }),
+      body: JSON.stringify({ reason: "INC-9003 recover verified delivery" }),
+    });
+    expect(accepted.status).toBe(200);
+    await expect(accepted.json()).resolves.toMatchObject({ replayed: true });
+
+    const invalidReason = await app.request("/v1/core/replays/stripe/evt_3", {
+      method: "POST",
+      headers: mutationHeaders({
+        key: "core-replay-invalid-reason-0001",
+        persona: "internal_operator",
+      }),
+      body: JSON.stringify({ reason: "short" }),
+    });
+    expect(invalidReason.status).toBe(422);
   });
 });

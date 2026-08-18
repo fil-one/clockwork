@@ -23,9 +23,10 @@ cloud-marketplace paths). A third, the **internal back office**, sees everything
 and can perform any customer or partner action on their behalf, always
 identified as the internal actor.
 
-The full product behavior is specified in
-[`commerce_platform_spec.md`](commerce_platform_spec.md) — that document is
-controlling, and this repository implements it.
+The intended product behavior is specified in
+[`commerce_platform_spec.md`](commerce_platform_spec.md). That document is the
+controlling design, while [`docs/backlog.md`](docs/backlog.md) records the
+implementation and qualification gaps that remain in the repository.
 
 ---
 
@@ -209,25 +210,26 @@ of prospects that exists in no commit. The route and command are in
 
 Everything is a workspace-root `pnpm` script; Turborepo fans them out.
 
-| Command                   | What it does                                                                                   |
-| ------------------------- | ---------------------------------------------------------------------------------------------- |
-| `pnpm dev`                | Run every workspace dev task in parallel                                                       |
-| `pnpm build`              | Production build of all workspaces                                                             |
-| `pnpm typecheck`          | Strict TypeScript across the monorepo                                                          |
-| `pnpm lint`               | ESLint with `--max-warnings=0` (runs Next.js typegen first)                                    |
-| `pnpm format` / `:check`  | Prettier write / verify                                                                        |
-| `pnpm boundaries`         | dependency-cruiser module-boundary enforcement                                                 |
-| `pnpm generate`           | Regenerate `openapi.json`, `schema.d.ts`, and the typed API client                             |
-| `pnpm check:generated`    | Fail if generated artifacts drift from the routes                                              |
-| `pnpm check:traceability` | Validate `docs/traceability/launch-requirements.json` against its schema                       |
-| `pnpm scan:secrets`       | secretlint over the whole tree                                                                 |
-| `pnpm audit:dependencies` | `pnpm audit --audit-level=high`                                                                |
-| `pnpm test:unit`          | Unit suites plus the release-script tests                                                      |
-| `pnpm test:integration`   | Integration suites (need the local database)                                                   |
-| `pnpm db:test`            | pgTAP tests against the rebuilt database                                                       |
-| `pnpm test:storybook`     | Storybook component tests                                                                      |
-| `pnpm test:e2e`           | Playwright end-to-end, after `pnpm playwright:install` (`test:e2e:smoke` for the smoke subset) |
-| `pnpm release:parallel`   | The full release suite orchestrator (`:serial`, `:plan`, `:debug`)                             |
+| Command                        | What it does                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                     | Run every workspace dev task in parallel                                                          |
+| `pnpm build`                   | Production build of all workspaces                                                                |
+| `pnpm typecheck`               | Strict TypeScript across the monorepo                                                             |
+| `pnpm lint`                    | ESLint with `--max-warnings=0` (runs Next.js typegen first)                                       |
+| `pnpm format` / `:check`       | Prettier write / verify                                                                           |
+| `pnpm boundaries`              | dependency-cruiser module-boundary enforcement                                                    |
+| `pnpm generate`                | Regenerate `openapi.json`, `schema.d.ts`, and the typed API client                                |
+| `pnpm check:generated`         | Fail if generated artifacts drift from the routes                                                 |
+| `pnpm check:traceability`      | Validate `docs/traceability/launch-requirements.json` against its schema                          |
+| `pnpm check:citation-liveness` | Require every `path#symbol` ledger citation to have a syntax-resolved non-test implementation use |
+| `pnpm scan:secrets`            | secretlint over the whole tree                                                                    |
+| `pnpm audit:dependencies`      | `pnpm audit --audit-level=high`                                                                   |
+| `pnpm test:unit`               | Unit suites plus the release-script tests                                                         |
+| `pnpm test:integration`        | Integration suites (need the local database)                                                      |
+| `pnpm db:test`                 | pgTAP tests against the rebuilt database                                                          |
+| `pnpm test:storybook`          | Storybook component tests                                                                         |
+| `pnpm test:e2e`                | Playwright end-to-end, after `pnpm playwright:install` (`test:e2e:smoke` for the smoke subset)    |
+| `pnpm release:parallel`        | The full release suite orchestrator (`:serial`, `:plan`, `:debug`)                                |
 
 ## Verification and CI
 
@@ -235,7 +237,7 @@ Four gates compose the full check, and each one is runnable on its own:
 
 ```sh
 pnpm verify:static     # typecheck, format, lint, boundaries, secrets, audit,
-                       # generated-artifact drift, traceability
+                       # generated drift, traceability grammar + citation liveness
 pnpm verify:database   # db reset, pgTAP, unit + integration tests
 pnpm verify:build      # application and Storybook builds
 pnpm verify:ui         # Storybook component tests and Playwright e2e
@@ -251,9 +253,11 @@ list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
 
 Testing is deterministic by construction: the clock is fixed at
 `2026-07-31T16:00:00Z`, demo identifiers and `.test` domains are stable, and
-provider fakes reproduce error and replay timing. The tree carries 244 test
-files among its 785 TypeScript sources, plus 22 pgTAP suites and 14 Playwright
-specs.
+provider fakes reproduce error and replay timing. At the reviewed SHA, the
+tracked tree contains 1,046 `.ts`/`.tsx` files, 390 TypeScript/JavaScript
+test/spec files, and 45 pgTAP SQL suites; nine of the test/spec files are
+Playwright specs. Reproduce those source counts with `git ls-files` rather than
+treating them as executed-test totals.
 
 ## Conventions that matter
 
@@ -275,30 +279,33 @@ specs.
 
 ## Documentation map
 
-| Path                                                       | What you'll find                                                                                                                                    |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`commerce_platform_spec.md`](commerce_platform_spec.md)   | The controlling specification: lifecycle, domain model, pricing, billing, partner layer, architecture                                               |
-| [`docs/foundation-handoff.md`](docs/foundation-handoff.md) | **Start here as a contributor** — toolchain, commands, ownership, generated artifacts                                                               |
-| [`docs/adr/`](docs/adr/)                                   | Eight ADRs recording the fixed architecture decisions                                                                                               |
-| [`docs/operations/`](docs/operations/)                     | Runbooks: disaster recovery, webhook replay, dead-letter recovery, billing reconciliation, migration, offboarding, release orchestration, telemetry |
-| [`docs/external-gates.md`](docs/external-gates.md)         | The complete register of external inputs gating production activation                                                                               |
-| [`docs/launch-checklist.md`](docs/launch-checklist.md)     | What must be true before launch                                                                                                                     |
-| [`docs/design/`](docs/design/)                             | The experience system, task briefs, and the accessibility report                                                                                    |
-| [`docs/baseline/`](docs/baseline/)                         | Machine-readable baseline manifests used by release qualification                                                                                   |
+| Path                                                                           | What you'll find                                                                                                                                    |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`commerce_platform_spec.md`](commerce_platform_spec.md)                       | The controlling specification: lifecycle, domain model, pricing, billing, partner layer, architecture                                               |
+| [`docs/foundation-handoff.md`](docs/foundation-handoff.md)                     | **Start here as a contributor** — toolchain, commands, ownership, generated artifacts                                                               |
+| [`docs/adr/`](docs/adr/)                                                       | Nine ADRs recording the fixed architecture decisions                                                                                                |
+| [`docs/operations/`](docs/operations/)                                         | Runbooks: disaster recovery, webhook replay, dead-letter recovery, billing reconciliation, migration, offboarding, release orchestration, telemetry |
+| [`docs/external-gates.md`](docs/external-gates.md)                             | The complete register of external inputs gating production activation                                                                               |
+| [`docs/launch-checklist.md`](docs/launch-checklist.md)                         | What must be true before launch                                                                                                                     |
+| [`docs/design/`](docs/design/)                                                 | The experience system, task briefs, and the accessibility report                                                                                    |
+| [`docs/baseline/`](docs/baseline/)                                             | Historical machine-readable qualification snapshots; their embedded capture commit and timestamp determine which repository state they describe     |
+| [`docs/adjacent-service-integration.md`](docs/adjacent-service-integration.md) | Required Fil One/Clockwork ownership, identifier, event, migration, reconciliation, and rollback boundary; design only, not implemented wireup      |
 
 ## Project status
 
-The implementation is **repository-qualified on `main`**: the product behavior
-in the specification is built, not deferred. What remains gated is external —
-provider credentials, counsel/commercial/tax inputs, the provisioning API,
-domains, brand, approvers, and teardown authority. Those are tracked
-individually in [`docs/external-gates.md`](docs/external-gates.md), and features
-activate as their exact registered inputs arrive.
+The implementation is **post-merge and pre-qualification on `main`**. The
+canonical [`docs/backlog.md`](docs/backlog.md) records the repository-controlled
+P0 findings that must close before Clockwork can be described as
+repository-qualified. Production activation also depends on the provider, legal,
+commercial, tax, domain, brand, approval, migration, and teardown inputs tracked
+in [`docs/external-gates.md`](docs/external-gates.md).
 
 This is not a release candidate or a launch declaration. `main` is the only
 active branch.
 
 ## License
 
-No license file is present in this repository, so default copyright applies and
-no rights are granted for external use.
+Clockwork is available under the evaluation-only terms in [`LICENSE`](LICENSE).
+Those terms permit review, audit, evaluation, and due diligence; they do not
+grant production, service, distribution, derivative-work, sublicensing, or
+trademark rights.

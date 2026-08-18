@@ -4,93 +4,93 @@ export const goldenPdfs: Readonly<
   Record<DocumentKind, { bytes: number; contentHash: string; pages: number }>
 > = {
   amendment: {
-    bytes: 17679,
+    bytes: 17816,
     contentHash:
-      "10e85309c8b39adf65385f9afee2f1571be98b8856d4619f0b2fb3b4082fa9b4",
+      "0a4e4dce24534c7160451370948c0727970bfc82e7c1cbb765164e094678ff83",
     pages: 2,
   },
   commission_statement: {
-    bytes: 19260,
+    bytes: 19391,
     contentHash:
-      "90d70b5ebf95964cf05249812e298c91cdd64f98607b77d03044d2ccea766da1",
+      "66de69cf887b5dcfa5d098668c6bb62d96b19ed3d599edfce73395e0b21970b8",
     pages: 2,
   },
   decline_confirmation: {
-    bytes: 15789,
+    bytes: 15903,
     contentHash:
-      "06f66f65e972f18f335a3eb743f60fc3641a38c7df2ca9ecf5a20b733bf5933e",
+      "b9975b3a0d24ca8a1adaec471f3bb617e8a58a07322c780fe80c467316d1dc55",
     pages: 1,
   },
   deletion_certificate: {
-    bytes: 17992,
+    bytes: 18141,
     contentHash:
-      "04ad6574f5627eca9ff212d80a90521a54cbf5e40ba54ac5c3ba69b130d691fb",
+      "b87158e682fcee0d158b9c4864e0f767145c074308db8298314c749523ce1935",
     pages: 2,
   },
   direct_quote: {
-    bytes: 22254,
+    bytes: 22459,
     contentHash:
-      "e5c6acbd055c29cad970e52d8bdfd8160c02836e13d0ed907296670911d66cc7",
+      "efa529d7aa9bbdb6f6004888f5c197aa5b30865979434d09ca6a0f0fe6e00f54",
     pages: 3,
   },
   invoice_companion: {
-    bytes: 18113,
+    bytes: 18264,
     contentHash:
-      "bb68052bf50a82c0335ea19fae08eed899995b296e17b065a416b699a6b4180c",
+      "4bf10c86ff2755ec6afc88a84e43d93d54aff102ea5deb763233a158ecf3adf1",
     pages: 2,
   },
   order_form: {
-    bytes: 18695,
+    bytes: 18854,
     contentHash:
-      "25ade831ebb717ac4df1bbf4a941d0261cb43763ecde07a1efc8cf760002e42d",
+      "43fbde02b72a6453f9e87b01967045a33cc9578f192dab55a7e60c0cf99e12e2",
     pages: 2,
   },
   partner_resale_quote: {
-    bytes: 9039,
+    bytes: 9117,
     contentHash:
-      "87d2cb968c1929e2a643e4ad6e37b3f5df906fe62a8e1c1c15c5bc0e9a707036",
+      "17fdaace1498fbbaf001dcac1f4306e88488349cf1946de86b11ed78d9bf171d",
     pages: 2,
   },
   partner_transfer_quote: {
-    bytes: 18390,
+    bytes: 18542,
     contentHash:
-      "0eb5876fc0f08643089eaf574fea9757ea27a385cd3d6a08bb2ab8c50674e4da",
+      "81d42417bc5b8ca1fd9cacc471583a01b8764587a54e1a6a8e63aed28c0568fa",
     pages: 2,
   },
   poc_final_report: {
-    bytes: 18649,
+    bytes: 18773,
     contentHash:
-      "95ee7a2193b650fbcf25dcbed12c778eebefe53fd8c0daa4f6df34edfde726e9",
+      "2bada72745510786b85e111370177053689829e7be204ffc1753998877dac3c1",
     pages: 2,
   },
   poc_summary: {
-    bytes: 18597,
+    bytes: 18737,
     contentHash:
-      "20446fcfeb3e28ec6959d5c300d401b4ee6f4563e2ce35f4ca55a19fda37e340",
+      "d4e21268fa215325f5c8698e8925ff899de250e8a1dcbd3c2661bd2b97f620b0",
     pages: 2,
   },
   receipt: {
-    bytes: 18155,
+    bytes: 18332,
     contentHash:
-      "243b0f9f7c54a4592a88d08d7642832fd0adc4546bcc1f5025545a969f8f216e",
+      "5455bee9220fb14b0442b35a315f7d795642060d14a898d2229c0235d879bb42",
     pages: 2,
   },
   reconciliation_report: {
-    bytes: 43116,
+    bytes: 43444,
     contentHash:
-      "c8c099a0361ce505713a8c8698a79153758f7dc82d8e9d3f83f90cb71fc5a503",
+      "15c45dd02e47dab9ef790d1921e1bbfd3fc9ac195714d1352a8131f48ec6bc56",
     pages: 12,
   },
   renewal_confirmation: {
-    bytes: 15729,
+    bytes: 15843,
     contentHash:
-      "18a24d506521af8457b4ad0d8a04fff86ed43da77da5891fc2718050caf81319",
+      "14713cf0a746d566379255d986a9f8879dca3763726af496f8c5103e778a405d",
     pages: 1,
   },
   report_export: {
-    bytes: 42653,
+    bytes: 42973,
     contentHash:
-      "7db124d29a0b2c3e8cdca3de562aeeea02ffecb81f35d71b65fb9dd3cf7bf5a3",
+      "cc251aeeef2452493ef408ec5e6015fc56921bdda950f30681aaa4ccd418f368",
     pages: 12,
   },
 };

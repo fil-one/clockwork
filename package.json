@@ -25,7 +25,7 @@
     "scan:secrets": "secretlint \"**/*\" --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore",
     "audit:dependencies": "pnpm audit --audit-level=high",
     "test": "turbo run test:unit test:integration",
-    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs scripts/benchmark-release.test.mjs scripts/dependency-advisories.test.mjs scripts/check-schema-drift.test.mjs scripts/validate-traceability.test.mjs scripts/check-citation-liveness.test.mjs",
+    "test:unit": "turbo run test:unit && node --test scripts/release-artifacts.test.mjs scripts/benchmark-release.test.mjs scripts/dependency-advisories.test.mjs scripts/check-schema-drift.test.mjs scripts/validate-traceability.test.mjs scripts/check-citation-liveness.test.mjs scripts/run-db-tests.test.mjs scripts/secretlint-config.test.mjs scripts/check-demo-deploy-environment.test.mjs",
     "test:integration": "turbo run test:integration",
     "test:db": "pnpm db:test",
     "test:db:populated-upgrade": "node scripts/qualify-populated-upgrade.mjs",
@@ -40,9 +40,9 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset --local",
     "db:diff": "supabase db diff --local",
-    "db:test": "supabase test db",
+    "db:test": "node scripts/run-db-tests.mjs",
     "prepare": "lefthook install",
-    "verify:static": "turbo run typecheck format:check lint boundaries scan:secrets audit:dependencies && pnpm check:generated && pnpm check:traceability",
+    "verify:static": "turbo run typecheck format:check lint boundaries scan:secrets audit:dependencies && pnpm check:generated && pnpm check:traceability && pnpm check:citation-liveness",
     "verify:database": "pnpm db:reset && pnpm check:schema-drift && pnpm db:test && pnpm test",
     "verify:build": "turbo run build build:storybook",
     "verify:ui": "turbo run test:storybook test:e2e",
@@ -56,6 +56,8 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
+    "@netlify/plugin-nextjs": "5.15.13",
+    "@secretlint/secretlint-rule-pattern": "13.0.4",
     "@secretlint/secretlint-rule-preset-recommend": "13.0.4",
     "@trigger.dev/sdk": "4.5.9",
     "@types/node": "24.13.3",
@@ -64,6 +66,7 @@
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import": "2.32.0",
     "lefthook": "2.1.10",
+    "netlify-cli": "27.1.1",
     "prettier": "3.9.6",
     "prettier-plugin-tailwindcss": "0.8.1",
     "secretlint": "13.0.4",
@@ -77,11 +80,13 @@
     "auditConfig": {
       "ignoreGhsas": [
         "GHSA-w3rx-r6r6-pgpr",
-        "GHSA-5p2g-fcmc-qvqq"
+        "GHSA-5p2g-fcmc-qvqq",
+        "GHSA-jmr9-qjv8-65gv"
       ]
     },
     "overrides": {
       "@esbuild-kit/core-utils@3.3.2>esbuild": "0.25.12",
+      "netlify-cli@27.1.1>@opentelemetry/api": "1.8.0",
       "@trigger.dev/core@4.5.9>@opentelemetry/api-logs": "0.221.0",
       "@trigger.dev/core@4.5.9>@opentelemetry/core": "2.10.0",
       "@trigger.dev/core@4.5.9>@opentelemetry/exporter-logs-otlp-http": "0.221.0",

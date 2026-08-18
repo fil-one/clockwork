@@ -39,19 +39,29 @@ acknowledged. Replay never bypasses that boundary.
 
 Replay from `/internal/webhook-replay`, which lists the stopped callbacks and
 takes the reason with the decision. It is backed by
-`POST /v1/core/replays/{provider}/{eventId}`. The route requires
-`system:operate` and recent authentication and idempotently returns its workflow
-run. The processor reads the stored verified event; it does not accept amended
-bytes. Verify payment, invoice, receipt, credit, refund, dispute, commission,
-and reconciliation projections together.
+`POST /v1/core/replays/{provider}/{eventId}` with a JSON `reason`. The route
+requires `system:operate` and recent authentication and idempotently returns its
+workflow run. The atomic command retains the inbox processed marker, leases the
+event against redelivery, and writes an audit/outbox record. The registered
+`webhook-replay:v1` worker receives only the workflow-run ID and reads the
+stored verified event; it does not accept amended bytes. Verify payment,
+invoice, receipt, credit, refund, dispute, commission, and reconciliation
+projections together.
+
+If the original HTTP consumer still owns a live inbox lease, replay refuses and
+the event is not listed as stopped work. If a replay worker crashes, a later
+attempt in the same Trigger run may resume it; after lease expiry an operator
+request fences the orphan and creates a fresh run. Replaying an already
+processed event never replaces its original processing timestamp or turns a
+later replay failure into an original-delivery failure.
 
 ### E-sign and WorkOS
 
-Ask the configured sandbox or production provider to redeliver the original
-signed event, or recover the durable consumer of the already verified inbox
-record. E-sign completion is valid only when envelope binding, exact document
-hash, signed PDF, and completion certificate agree. WorkOS identity or role
-events only link or revoke identities; they never grant a commerce role by
+Use the same internal replay surface to recover the durable consumer of the
+already verified inbox record. A provider redelivery remains a fallback when no
+replay is active. E-sign completion is valid only when envelope binding, exact
+document hash, signed PDF, and completion certificate agree. WorkOS identity or
+role events only link or revoke identities; they never grant a commerce role by
 themselves.
 
 ### Provisioning

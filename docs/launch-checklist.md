@@ -4,11 +4,15 @@ This checklist is the human release record for a staged Clockwork activation. It
 does not authorize a production deployment by itself. Every checked item
 requires an evidence link or immutable artifact reference, and every required
 approval field must contain a real named person before a launch decision. It is
-not a prerequisite for the repository-complete consolidated-main handoff.
+not a current qualification result.
 
-Repository qualification is complete. Unchecked items below require future live
-production/staging inputs, elapsed operation, or named human authority; they are
-not hidden repository work and do not make this consolidation an RC.
+The checked entries and fixed hashes below preserve a historical qualification
+record. They do not establish the status of the current `main` branch. Current
+status is **post-merge and pre-qualification**: the canonical
+[`backlog.md`](./backlog.md) records open repository-controlled work, including
+P0-56, P0-71, and the section titled "Open residue from the ten merged
+work-streams." Unchecked external activation items remain necessary as well, but
+they are not substitutes for closing repository-controlled findings.
 
 ## Release identity
 
@@ -31,7 +35,7 @@ not hidden repository work and do not make this consolidation an RC.
 | Checklist opened at (UTC)        | **PENDING user/release owner entry**                                                                            |
 | Proposed activation window (UTC) | **PENDING external launch decision**                                                                            |
 
-## Release gate
+## Historical release gate record
 
 - [x] The repository-qualified clean-checkout harness completed
       `pnpm install --frozen-lockfile` on the pinned Node 24 and pnpm 10

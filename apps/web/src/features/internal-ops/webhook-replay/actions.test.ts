@@ -92,6 +92,7 @@ describe("webhook replay action", () => {
         provider: "stripe",
         eventId: "evt_1",
         actor: { kind: "user", id: operator.userId },
+        reason: "INC-4021 duplicate delivery, safe to replay",
       }),
     );
   });
@@ -213,20 +214,13 @@ describe("webhook replay action", () => {
     });
   });
 
-  // The repository refuses this command on purpose: no durable task is
-  // registered under `webhook-replay:<provider>`, so a replay would clear the
-  // inbox dedupe marker and enqueue nothing. Composition no longer throwing
-  // must not turn that refusal into a success the operator acts on.
-  it("surfaces the unregistered-task refusal as a failure, not a silent success", async () => {
+  it("surfaces a durable replay failure rather than reporting a silent success", async () => {
     delete process.env.TAX_PROVIDER_BASE_URL;
     delete process.env.TAX_PROVIDER_TOKEN;
     mocks.replay.mockRejectedValue(
-      Object.assign(
-        new Error(
-          'Webhook replay is unavailable: no durable task is registered under "webhook-replay:stripe"',
-        ),
-        { code: "INVALID_STATE" },
-      ),
+      Object.assign(new Error("WEBHOOK_REPLAY_OUTBOX_UNAVAILABLE"), {
+        code: "INVALID_STATE",
+      }),
     );
 
     const result = await replayWebhookEvent(form());

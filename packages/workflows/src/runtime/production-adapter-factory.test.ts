@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { createRuntimeDatabase } from "@clockwork/db";
+import { createRuntimeDatabase, WEBHOOK_REPLAY_TASK_ID } from "@clockwork/db";
 import {
   evaluateExternalGate,
   type ExternalGateRecord,
@@ -522,6 +522,14 @@ describe("every lifecycle registry identifier reaches tasks.trigger", () => {
       )
       .map(({ id }) => id);
     expect(registered.sort()).toEqual([...lifecycleWorkflowRegistry].sort());
+  });
+
+  it("registers the worker-backed webhook replay task exactly once", () => {
+    expect(
+      sdk.registrations.filter(
+        (registration) => registration.id === WEBHOOK_REPLAY_TASK_ID,
+      ),
+    ).toHaveLength(1);
   });
 
   it("submits every event-driven identifier through the production bundle", () => {

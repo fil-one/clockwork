@@ -62,6 +62,12 @@ import {
   TriggerLifecycleTaskSubmitter,
   type LifecycleTaskSubmissionPort,
 } from "../system/lifecycle-task-dispatch";
+import {
+  createWebhookReplayOutboxHandler,
+  TriggerWebhookReplayTaskSubmitter,
+  type WebhookReplayTaskSubmitter,
+} from "../webhook-replay/outbox";
+import { ProductionWebhookReplayHandler } from "../webhook-replay/runtime";
 import type {
   ProductionWorkflowAdapterBundle,
   ProductionWorkflowAdapterFactory,
@@ -193,6 +199,7 @@ export interface ProductionWorkflowProviderFactoryOptions {
    * effect inline -- the only caller is the outbox dispatcher's cron.
    */
   lifecycleTaskSubmitter?: LifecycleTaskSubmissionPort;
+  webhookReplayTaskSubmitter?: WebhookReplayTaskSubmitter;
   exceptionRouting?: WorkflowExceptionRouting;
   outboxHandlers?: ReadonlyMap<string, OutboxTopicHandler>;
   deletionCertificates?: {
@@ -465,6 +472,17 @@ export function createProductionWorkflowAdapterFactory(
           ...(options.clock ? { clock: options.clock } : {}),
         }),
       ];
+      if (outboxHandlers.has("system.webhook_replay.requested"))
+        throw new Error(
+          "WORKFLOW_PROVIDER_DUPLICATE:system.webhook_replay.requested",
+        );
+      outboxHandlers.set(
+        "system.webhook_replay.requested",
+        createWebhookReplayOutboxHandler(
+          options.webhookReplayTaskSubmitter ??
+            new TriggerWebhookReplayTaskSubmitter(),
+        ),
+      );
       const scheduledTopic = "core.schedule.dispatch.v1";
       if (outboxHandlers.has(scheduledTopic))
         throw new Error(`WORKFLOW_PROVIDER_DUPLICATE:${scheduledTopic}`);
@@ -524,6 +542,15 @@ export function createProductionWorkflowAdapterFactory(
         workosIdentity: new WorkosIdentityAdapter(
           providers.workos.value.client,
         ),
+        webhookReplayHandler: new ProductionWebhookReplayHandler({
+          database: db,
+          authorizationSecret: options.authorizationSecret,
+          tax: providers.tax.value.provider,
+          exceptionRouting: new DatabasePersistedWorkflowExceptionRouting(
+            db,
+            options.clock,
+          ),
+        }),
         ...(options.deletionCertificates
           ? {
               deletionCertificates: {

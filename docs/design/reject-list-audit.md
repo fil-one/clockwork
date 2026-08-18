@@ -1,8 +1,8 @@
 # Task review and reject-list audit
 
-Status: repository-qualified automated and visual evidence; any explicit human
-design decision is future launch-only, nonblocking for consolidation, and not
-claimed here
+Status: historical automated and visual evidence for a post-merge,
+pre-qualification implementation; any explicit human design decision is future
+launch-only and is not claimed here
 
 ## Representative task review
 

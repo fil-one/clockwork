@@ -1,7 +1,8 @@
 # Design shell handoff
 
-Current disposition: historical provenance. The shell is integrated and
-repository-qualified on `main`; this is not an active lane or RC/launch record.
+Current disposition: historical provenance. The shell was considered integrated
+and repository-qualified when this handoff was written; the current backlog
+controls present status.
 
 ## Outcome
 
