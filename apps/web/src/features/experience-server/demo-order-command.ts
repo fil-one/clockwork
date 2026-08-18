@@ -194,13 +194,19 @@ export async function handleDemoOrderCommand(
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
     const requestUrl = new URL(request.url);
+    // Read the serverless request body exactly once. Some deployment adapters
+    // do not preserve the original stream after a clone is drained, even
+    // though the browser's request bytes and content type are valid. Hash and
+    // parse the same immutable byte array so the idempotency binding cannot
+    // disagree with the command we execute.
+    const requestBody = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
       .update(request.method)
       .update(requestUrl.pathname.replace(/^\/api/u, ""))
       .update(requestUrl.search)
-      .update(new Uint8Array(await request.clone().arrayBuffer()))
+      .update(requestBody)
       .digest("hex");
-    const body = record(await request.json());
+    const body = record(JSON.parse(new TextDecoder().decode(requestBody)));
     const action = requiredText(body, "action");
     if (action !== "prepare_artifact" && action !== "create")
       throw new ExperienceProblem(

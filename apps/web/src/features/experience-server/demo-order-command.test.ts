@@ -89,9 +89,15 @@ describe("the demo order command boundary", () => {
   });
 
   it("passes an exact request hash into the durable command execution", async () => {
-    const response = await handleDemoOrderCommand(request());
+    const input = request();
+    const clone = vi.spyOn(input, "clone");
+    const arrayBuffer = vi.spyOn(input, "arrayBuffer");
+
+    const response = await handleDemoOrderCommand(input);
 
     expect(response.status).toBe(200);
+    expect(clone).not.toHaveBeenCalled();
+    expect(arrayBuffer).toHaveBeenCalledTimes(1);
     expect(response.headers.get("idempotency-replayed")).toBe("true");
     const execution = mocks.execute.mock.calls[0]?.[0] as unknown;
     expect(execution).toMatchObject({
