@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getCommerceSession: vi.fn(),
   requireRecentAuthentication: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
   record: vi.fn(),
@@ -9,7 +8,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: mocks.getCommerceSession,
   requireRecentAuthentication: mocks.requireRecentAuthentication,
 }));
 vi.mock("@/src/db/service", () => ({
@@ -50,8 +48,7 @@ function form(overrides: Record<string, string> = {}): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getOptionalServiceDatabase.mockReturnValue({});
-  mocks.requireRecentAuthentication.mockResolvedValue(undefined);
-  mocks.getCommerceSession.mockResolvedValue(operator);
+  mocks.requireRecentAuthentication.mockResolvedValue(operator);
   mocks.record.mockResolvedValue({
     caseId,
     classification: "delivery_timing",
@@ -130,7 +127,7 @@ describe("authorization is re-checked at execution", () => {
    */
   it("admits both the finance approver and the internal operator", async () => {
     for (const role of ["internal_operator", "finance_approver"]) {
-      mocks.getCommerceSession.mockResolvedValue({
+      mocks.requireRecentAuthentication.mockResolvedValue({
         ...operator,
         roles: [role],
       });
@@ -142,7 +139,7 @@ describe("authorization is re-checked at execution", () => {
   });
 
   it("refuses a role holding neither permission", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       ...operator,
       roles: ["legal_approver"],
     });
@@ -154,7 +151,7 @@ describe("authorization is re-checked at execution", () => {
   });
 
   it("refuses a tenant session that somehow holds billing:approve", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       ...operator,
       isInternalStaff: false,
       roles: ["owner"],

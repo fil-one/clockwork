@@ -1,11 +1,21 @@
 import "server-only";
 
-import { uuidV7 } from "@clockwork/contracts";
+import { createHash } from "node:crypto";
+
+import type { SessionClaims } from "@clockwork/api";
+import { hasPermission, uuidV7 } from "@clockwork/contracts";
+
+import {
+  demoAccessConfiguration,
+  demoAccessCookieName,
+  verifyDemoAccessCookie,
+} from "@/src/auth/demo-access";
 
 import {
   demoOrderAcceptance,
   type DemoOrderCommand,
 } from "./demo-order-acceptance";
+import { idempotencyKey } from "./authorization";
 import { ExperienceProblem } from "./model";
 
 /**
@@ -53,6 +63,16 @@ function problem(
       },
     },
   );
+}
+
+function cookieValue(cookie: string | null, name: string): string | undefined {
+  for (const part of cookie?.split(";") ?? []) {
+    const separator = part.indexOf("=");
+    if (separator < 1) continue;
+    if (part.slice(0, separator).trim() === name)
+      return part.slice(separator + 1).trim();
+  }
+  return undefined;
 }
 
 function record(value: unknown): Readonly<Record<string, unknown>> {
@@ -187,10 +207,49 @@ function commandFrom(
 
 export async function handleDemoOrderCommand(
   request: Request,
+  session: SessionClaims,
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
-    const body = record(await request.json());
+    const demoAccessSecret = demoAccessConfiguration(process.env);
+    if (
+      demoAccessSecret &&
+      !(await verifyDemoAccessCookie(
+        cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+        demoAccessSecret,
+      ))
+    )
+      throw new ExperienceProblem(
+        403,
+        "DEMO_ACCESS_REQUIRED",
+        "A valid demo access grant is required",
+      );
+    const requestUrl = new URL(request.url);
+    // Read the serverless request body exactly once. Some deployment adapters
+    // do not preserve the original stream after a clone is drained, even
+    // though the browser's request bytes and content type are valid. Hash and
+    // parse the same immutable byte array so the idempotency binding cannot
+    // disagree with the command we execute.
+    const requestBody = new Uint8Array(await request.arrayBuffer());
+    const requestHash = createHash("sha256")
+      .update(request.method)
+      .update(requestUrl.pathname.replace(/^\/api/u, ""))
+      .update(requestUrl.search)
+      .update(requestBody)
+      .digest("hex");
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(new TextDecoder().decode(requestBody));
+    } catch (error) {
+      if (error instanceof SyntaxError)
+        throw new ExperienceProblem(
+          422,
+          "INVALID_BODY",
+          "The request body is not JSON.",
+        );
+      throw error;
+    }
+    const body = record(parsedBody);
     const action = requiredText(body, "action");
     if (action !== "prepare_artifact" && action !== "create")
       throw new ExperienceProblem(
@@ -199,12 +258,12 @@ export async function handleDemoOrderCommand(
         `orders does not accept the action ${JSON.stringify(action)}`,
       );
     const command = commandFrom(body, record(body.payload));
-    // Imported here rather than at module scope: the session module pulls in
-    // the hosted identity provider's Next integration, and a malformed command
-    // must be answerable without it -- which is also what lets this lane be
-    // exercised without standing an identity provider up.
-    const { getCommerceSession } = await import("@/src/auth/session");
-    const session = await getCommerceSession();
+    if (!session.roles.some((role) => hasPermission(role, "order:write")))
+      throw new ExperienceProblem(
+        403,
+        "ORDER_AUTHORITY_FORBIDDEN",
+        "The acting user cannot accept orders",
+      );
     if (
       !session.accountIds.includes(command.accountId) &&
       session.impersonation?.accountId !== command.accountId
@@ -215,33 +274,14 @@ export async function handleDemoOrderCommand(
         "The order account is outside the authorized scope",
       );
     const acceptance = demoOrderAcceptance();
-    // The prepare pass writes no order, so the record it reports is the one
-    // `artifactRequestResult` reports on the authoritative path: the order the
-    // pass named, in `artifact_requested`, at row version 1.
-    const result =
-      action === "prepare_artifact"
-        ? await acceptance.prepare(session, command).then((prepared) => ({
-            status: "artifact_requested" as const,
-            rowVersion: 1,
-            data: {
-              orderFormDocumentId: prepared.documentId,
-              artifactRequestId: prepared.id,
-              sourceHash: prepared.sourceHash,
-              retainUntil: prepared.retainUntil,
-            },
-          }))
-        : await acceptance.create(session, command).then((order) => ({
-            status: "accepted" as const,
-            rowVersion: 1,
-            data: {
-              quoteId: command.quoteId,
-              orderFormDocumentId: order.orderFormDocumentId,
-              serviceStartsOn: order.serviceStartsOn,
-              serviceEndsOn: order.serviceEndsOn,
-              acceptedAt: order.acceptedAt,
-              immutableAt: order.immutableAt,
-            },
-          }));
+    const execution = await acceptance.execute({
+      session,
+      action,
+      command,
+      idempotencyKey: idempotencyKey(request),
+      requestHash,
+    });
+    const result = execution.result;
     return Response.json(
       {
         record: {
@@ -251,10 +291,15 @@ export async function handleDemoOrderCommand(
           rowVersion: result.rowVersion,
           data: { status: result.status, ...result.data },
         },
-        auditEventId: uuidV7(),
-        outboxEventId: uuidV7(),
+        auditEventId: result.auditEventId,
+        outboxEventId: result.outboxEventId,
       },
-      { headers: { "cache-control": "private, no-store" } },
+      {
+        headers: {
+          "cache-control": "private, no-store",
+          "idempotency-replayed": execution.replayed ? "true" : "false",
+        },
+      },
     );
   } catch (error) {
     if (error instanceof ExperienceProblem)
@@ -265,14 +310,6 @@ export async function handleDemoOrderCommand(
           ? "Request body is invalid"
           : "The order command was refused",
         error.message,
-        requestId,
-      );
-    if (error instanceof SyntaxError)
-      return problem(
-        422,
-        "INVALID_BODY",
-        "Request body is invalid",
-        "The request body is not JSON.",
         requestId,
       );
     throw error;

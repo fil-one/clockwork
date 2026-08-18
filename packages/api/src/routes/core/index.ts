@@ -144,6 +144,14 @@ const replayRoute = createRoute({
       provider: z.string().min(1),
       eventId: z.string().min(1),
     }),
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({ reason: z.string().trim().min(8).max(2_000) }),
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -648,12 +656,14 @@ export function registerCoreRoutes(
     );
     requireRecentAuthentication(context);
     const params = context.req.valid("param");
+    const body = context.req.valid("json");
     try {
       return context.json(
         await dependencies(routeDependencies).service.replay({
           provider: params.provider,
           eventId: params.eventId,
           actor: authorizationActor(authorization),
+          reason: body.reason,
           requestId: context.get("requestContext").requestId,
         }),
         200,

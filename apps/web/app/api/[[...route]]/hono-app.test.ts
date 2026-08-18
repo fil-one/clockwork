@@ -3,11 +3,23 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 // The real resolver pulls in @workos-inc/authkit-nextjs, which needs the Next
 // server runtime. Composition is what is under test here, not the session.
 vi.mock("@/src/auth/session", () => ({
+  workosAuthenticationConfigured: () => false,
   WorkosNextSessionResolver: class {
     public resolve() {
       return Promise.resolve(undefined);
     }
   },
+}));
+
+vi.mock("@workos-inc/authkit-nextjs", () => ({
+  authkit: vi.fn(),
+  getTokenClaims: vi.fn(),
+  isAuthkitRequestHeader: (name: string) => name.startsWith("x-workos-"),
+  partitionAuthkitHeaders: (_request: Request, _headers: Headers) => ({
+    requestHeaders: new Headers(),
+    responseHeaders: new Headers(),
+  }),
+  applyResponseHeaders: (response: Response) => response,
 }));
 
 let handle: (request: Request) => Promise<Response>;

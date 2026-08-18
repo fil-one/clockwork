@@ -4,10 +4,7 @@ import { DatabaseCoreFinanceService } from "@clockwork/api";
 import { hasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
-import {
-  getCommerceSession,
-  requireRecentAuthentication,
-} from "@/src/auth/session";
+import { requireRecentAuthentication } from "@/src/auth/session";
 import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
@@ -67,13 +64,13 @@ export async function replayWebhookEvent(
   if (!database || !pricingDatabase || !authorizationSecret)
     return { ok: false, code: "WEBHOOK_REPLAY_UNAVAILABLE" };
 
+  let session;
   try {
-    await requireRecentAuthentication();
+    session = await requireRecentAuthentication();
   } catch {
     return { ok: false, code: "WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED" };
   }
 
-  const session = await getCommerceSession();
   const permitted =
     session.isInternalStaff &&
     session.roles.some((role) => hasPermission(role, "system:operate"));
@@ -89,13 +86,10 @@ export async function replayWebhookEvent(
     // `validateTaxId` instead of refusing to exist, which keeps the refusal on
     // the two commands that can write a `tax_minor` and off this one.
     //
-    // Replay still fails, and deliberately: the repository refuses with
-    // INVALID_STATE because no durable task is registered under
-    // `webhook-replay:<provider>`. That refusal lands in the catch below as
-    // WEBHOOK_REPLAY_FAILED -- a real failure the operator sees, not a silent
-    // success -- and it is the refusal to keep. What changed is only that the
-    // operator now reaches it for the true reason rather than for a missing
-    // tax endpoint the command never needed.
+    // The repository persists the operator reason and queues only a trusted
+    // workflow-run reference. The worker reloads the signature-verified payload
+    // from the service database; neither this action nor Trigger receives bytes
+    // an operator could amend.
     const result = await new DatabaseCoreFinanceService({
       database,
       pricingDatabase,
@@ -105,6 +99,7 @@ export async function replayWebhookEvent(
       provider,
       eventId: providerEventId,
       actor: { kind: "user", id: session.userId },
+      reason,
       requestId: `experience:webhook-replay:${crypto.randomUUID()}`,
     });
     revalidatePath("/internal/webhook-replay");

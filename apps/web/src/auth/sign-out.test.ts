@@ -65,6 +65,7 @@ describe("signOutCommerceSession", () => {
       expect.arrayContaining([
         "clockwork-assisted-session",
         "clockwork-demo-persona",
+        "__Host-clockwork-proof",
       ]),
     );
   });

@@ -246,6 +246,12 @@ const steps = [
     dependsOn: installed,
   },
   {
+    id: "citation-liveness",
+    program: "pnpm",
+    arguments: ["check:citation-liveness"],
+    dependsOn: installed,
+  },
+  {
     id: "generated-drift",
     program: "pnpm",
     arguments: ["check:generated"],

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getCommerceSession: vi.fn(),
   requireRecentAuthentication: vi.fn(),
   getOptionalServiceDatabase: vi.fn(),
   record: vi.fn(),
@@ -9,7 +8,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: mocks.getCommerceSession,
   requireRecentAuthentication: mocks.requireRecentAuthentication,
 }));
 vi.mock("@/src/db/service", () => ({
@@ -51,8 +49,7 @@ function form(overrides: Record<string, string> = {}): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getOptionalServiceDatabase.mockReturnValue({});
-  mocks.requireRecentAuthentication.mockResolvedValue(undefined);
-  mocks.getCommerceSession.mockResolvedValue(operator);
+  mocks.requireRecentAuthentication.mockResolvedValue(operator);
   mocks.record.mockResolvedValue({
     auditEventId: anchor,
     decision: "contain",
@@ -202,7 +199,7 @@ describe("authorization is re-checked at execution", () => {
    * role has since changed is refused even though the button reached it.
    */
   it("refuses a session whose role no longer holds system:operate", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       ...operator,
       roles: ["finance_approver"],
     });
@@ -214,7 +211,7 @@ describe("authorization is re-checked at execution", () => {
   });
 
   it("refuses a session that is not internal staff", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       ...operator,
       isInternalStaff: false,
     });

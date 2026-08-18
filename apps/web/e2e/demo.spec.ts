@@ -18,6 +18,74 @@ function configuredPassword(): string {
 
 const password = configuredPassword();
 
+/**
+ * The demo Playwright project deliberately runs against `next dev`. A page can
+ * finish its document load before the dev runtime connects; capturing in that
+ * interval lets Chromium's full-page metrics retain the wordmark's 3,863px
+ * intrinsic width even after the stylesheet visibly clamps it. Waiting for the
+ * runtime's connection event isolates screenshots from that development-only
+ * bootstrap without sleeping or retrying the assertion.
+ */
+function nextDevRuntimeReady(page: Page) {
+  return page.waitForEvent("console", {
+    predicate: (message) => message.text() === "[HMR] connected",
+  });
+}
+
+async function expectVisualLayoutReady(page: Page, viewportWidth: number) {
+  const wordmark = page.locator("img.cw-brand-logo[data-mark='wordmark']");
+  await expect(wordmark).toBeVisible();
+  await wordmark.evaluate(async (image) => {
+    if (!(image instanceof HTMLImageElement))
+      throw new Error("The demo wordmark must render as an image.");
+    await image.decode();
+  });
+  await page.evaluate(() => document.fonts.ready);
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async (expectedWidth) => {
+          const measure = () => {
+            const main = document.querySelector("main#main-content");
+            const logo = document.querySelector<HTMLImageElement>(
+              "img.cw-brand-logo[data-mark='wordmark']",
+            );
+            const stylesLoaded = [...document.styleSheets].every(
+              (sheet) => !sheet.href || sheet.ownerNode?.isConnected,
+            );
+            return {
+              stylesLoaded,
+              viewportWidth: document.documentElement.clientWidth,
+              documentWidth: document.documentElement.scrollWidth,
+              mainDisplay: main ? getComputedStyle(main).display : "missing",
+              logoWidth: logo?.getBoundingClientRect().width ?? 0,
+            };
+          };
+
+          const first = measure();
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+          const second = measure();
+          const ready = (value: ReturnType<typeof measure>) =>
+            value.stylesLoaded &&
+            value.viewportWidth === expectedWidth &&
+            value.documentWidth === expectedWidth &&
+            value.mainDisplay === "grid" &&
+            value.logoWidth > 0 &&
+            value.logoWidth <= 120;
+          return (
+            ready(first) &&
+            ready(second) &&
+            first.logoWidth === second.logoWidth
+          );
+        }, viewportWidth),
+      { message: "demo CSS and viewport metrics must settle before capture" },
+    )
+    .toBe(true);
+}
+
 async function expectAxeClean(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
@@ -35,6 +103,38 @@ async function passGate(page: Page, next = "/demo") {
   const field = await openGate(page, next);
   await field.fill(password);
   await page.getByRole("button", { name: "Continue" }).click();
+}
+
+/**
+ * Resets the same durable demo store the panel resets, but without navigating.
+ * The flagship journey uses this once before it begins so a prior interrupted
+ * local run cannot decide which orders it sees. Its visible final reset still
+ * goes through the panel, exactly as the deployment runbook instructs.
+ */
+async function resetDemoData(page: Page) {
+  const result = await page.evaluate(async () => {
+    const token =
+      document.cookie
+        .split(";")
+        .map((part) => part.trim().split("="))
+        .find(([key]) => key === "clockwork-csrf")
+        ?.slice(1)
+        .join("=") ?? "";
+    const response = await fetch("/api/demo/reset", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { "x-csrf-token": token } : {}),
+      },
+      body: "{}",
+      cache: "no-store",
+    });
+    return { ok: response.ok, status: response.status };
+  });
+  expect(result, "demo reset must accept the gated browser session").toEqual({
+    ok: true,
+    status: 200,
+  });
 }
 
 test.describe("demo access gate", () => {
@@ -112,6 +212,160 @@ test.describe("demo landing", () => {
   });
 });
 
+test.describe("direct buyer flagship journey", () => {
+  test("carries the guided renewal through its bound PDF and created order", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Mara Voss" }).click();
+      await expect(page).toHaveURL(/\/dashboard$/u);
+      await expect(page.locator(".experience-shell")).toHaveAttribute(
+        "data-hydrated",
+        "true",
+      );
+
+      await page.getByRole("button", { name: "Open demo controls" }).click();
+      const panel = page.getByRole("complementary", { name: "Demo controls" });
+      await expect(panel.getByLabel("Signed in as")).toBeVisible();
+      await panel
+        .getByRole("link", {
+          name: "Review the issued version and proceed to acceptance.",
+        })
+        .click();
+      await expect(page).toHaveURL(/\/quotes\/quote-direct-renewal-v2$/u);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /Annual renewal · committed capacity/u,
+        }),
+      ).toBeVisible();
+      await expect(
+        page
+          .locator("main#main-content > header")
+          .getByText("Issued · awaiting acceptance", { exact: true }),
+      ).toBeVisible();
+
+      await page.getByRole("link", { name: "Review and accept order" }).click();
+      await expect(page).toHaveURL(
+        /\/orders\/accept\?quote=quote-direct-renewal-v2$/u,
+      );
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Review resulting commitment",
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Accepted quote Q-2026-0312 · version 2"),
+      ).toBeVisible();
+
+      await page
+        .getByRole("textbox", { name: "Purchase order" })
+        .fill("PO-DEMO-0312");
+      await page
+        .getByRole("textbox", { name: "Service start" })
+        .fill("2027-01-01");
+      await page
+        .getByRole("textbox", { name: "Service end" })
+        .fill("2027-12-31");
+      await page
+        .getByRole("textbox", { name: "Authority title" })
+        .fill("Operations Director");
+      await page
+        .getByRole("checkbox", {
+          name: /service start, service end, and resulting commitment/u,
+        })
+        .check();
+      await page
+        .getByRole("button", { name: "Accept order and create commitment" })
+        .click();
+
+      const orderForm = page.getByRole("link", { name: "Open the order form" });
+      await expect(orderForm).toBeVisible({ timeout: 20_000 });
+      const orderFormHref = await orderForm.getAttribute("href");
+      expect(orderFormHref).toMatch(
+        /^\/api\/experience\/artifacts\/order_form\//u,
+      );
+      if (!orderFormHref)
+        throw new Error("the rendered order form has no href");
+      const pdf = await page.request.get(orderFormHref);
+      expect(pdf.status()).toBe(200);
+      expect(pdf.headers()["content-type"]).toContain("application/pdf");
+      expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+      await page
+        .getByRole("button", { name: "Create the order and commitment" })
+        .click();
+      await expect(
+        page.getByText(
+          "Order created. Its commitment and provisioning state are now authoritative.",
+        ),
+      ).toBeVisible();
+      const createdOrder = page.getByRole("link", {
+        name: "Open the created order",
+      });
+      const createdOrderHref = await createdOrder.getAttribute("href");
+      expect(createdOrderHref).toMatch(/^\/orders\/order-[0-9a-f-]+$/u);
+      if (!createdOrderHref)
+        throw new Error("the created-order confirmation has no href");
+      // Creation refreshes the server projection behind this client component,
+      // which can replace the success link after its authoritative href has
+      // been read. Open that exact offered destination instead of racing the
+      // refresh against a click on a detached DOM node.
+      await page.goto(createdOrderHref);
+      await expect(page).toHaveURL(/\/orders\/order-[0-9a-f-]+$/u);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /Committed capacity · PO-DEMO-0312/u,
+        }),
+      ).toBeVisible();
+      await expect(
+        page
+          .locator("main#main-content > header")
+          .getByText("Active · accepted in this session", { exact: true }),
+      ).toBeVisible();
+
+      await page.goto("/quotes/quote-direct-renewal-v2");
+      await expect(
+        page
+          .locator("main#main-content > header")
+          .getByText("Accepted · order created", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Review and accept order" }),
+      ).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Open demo controls" }).click();
+      await page
+        .getByRole("complementary", { name: "Demo controls" })
+        .getByRole("button", { name: "Restore demo data" })
+        .click();
+      const confirm = page.getByRole("dialog");
+      await confirm.getByRole("button", { name: "Reset demo" }).click();
+      await expect(
+        page
+          .locator("main#main-content > header")
+          .getByText("Issued · awaiting acceptance", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Review and accept order" }),
+      ).toBeVisible();
+      await page.goto(createdOrderHref);
+      await expect(
+        page.getByRole("heading", { name: "That page is not available" }),
+      ).toBeVisible();
+    } finally {
+      // Keep cleanup best-effort so it never hides the journey's own failure.
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+});
+
 // The demo pages live behind the password gate, so their baselines are taken
 // here rather than in visual.spec.ts, which drives the ungated server.
 for (const viewport of [
@@ -119,12 +373,14 @@ for (const viewport of [
   { label: "320", width: 320, height: 800 },
 ] as const) {
   test(`visual demo access at ${viewport.label}`, async ({ page }) => {
+    const runtimeReady = nextDevRuntimeReady(page);
     await page.setViewportSize(viewport);
     await openGate(page);
+    await runtimeReady;
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",
     });
-    await page.evaluate(() => document.fonts.ready);
+    await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
       { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
@@ -132,13 +388,15 @@ for (const viewport of [
   });
 
   test(`visual demo landing at ${viewport.label}`, async ({ page }) => {
+    const runtimeReady = nextDevRuntimeReady(page);
     await page.setViewportSize(viewport);
     await passGate(page);
     await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
+    await runtimeReady;
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",
     });
-    await page.evaluate(() => document.fonts.ready);
+    await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-landing${viewport.label === "320" ? "-320" : ""}.png`,
       { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
@@ -172,17 +430,20 @@ test.describe("demo reset", () => {
     await panel.getByRole("button", { name: "Restore demo data" }).click();
     const confirm = page.getByRole("dialog");
     await expect(confirm).toBeVisible();
-    await confirm.getByRole("button", { name: "Reset demo" }).click();
+    await Promise.all([
+      page.waitForEvent("framenavigated", {
+        predicate: (frame) => frame === page.mainFrame(),
+      }),
+      confirm.getByRole("button", { name: "Reset demo" }).click(),
+    ]);
 
     // The action clears local state and then reloads, so the probe disappears
-    // once the reload settles rather than on the click itself.
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          window.localStorage.getItem("clockwork-demo:probe"),
-        ),
-      )
-      .toBeNull();
+    // once the main-frame navigation settles rather than on the click itself.
+    expect(
+      await page.evaluate(() =>
+        window.localStorage.getItem("clockwork-demo:probe"),
+      ),
+    ).toBeNull();
     await expect(page.locator(".experience-shell")).toBeVisible();
   });
 });

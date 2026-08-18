@@ -344,6 +344,20 @@ export function demoProjectionRecordId(
   )?.id;
 }
 
+/** The seeded version used before a durable demo override exists. */
+export function demoProjectionRecordVersion(
+  audience: ExperienceAudience,
+  channel: ProjectionChannel,
+  recordKey: string,
+): number | undefined {
+  return demoRecords.find(
+    (record) =>
+      record.audience === audience &&
+      record.channel === channel &&
+      record.key === recordKey,
+  )?.version;
+}
+
 function applyDemoState(
   record: DemoRecord,
   state: DemoAdapterState,

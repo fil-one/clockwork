@@ -141,23 +141,29 @@ named.
   or retry-masked provider/build failure. This marker had regressed and was
   re-earned in `0f68e36`: the audit found 10 live advisories, 6 high. Upgrading
   `hono` to 4.12.34 and overriding `js-yaml` and `nanoid` closes 8. The
-  remaining 2 are `image-size`, where every published version is vulnerable and
-  npm reports the patched range as `<0.0.0`, reached only through Storybook
-  build tooling; they are accepted in `pnpm.auditConfig.ignoreGhsas` with a
-  written reason and bound by a test that fails if the manifest silences an
-  advisory with no reason, if a new high advisory appears, or if `image-size`
-  publishes above the 2.0.2 that justified the acceptance. A dependency marker
-  is a claim about a moving external set, so it is true as of the last run and
-  not durably.
+  remaining build-path exceptions are the 2 `image-size` advisories, where every
+  published version is vulnerable and npm reports the patched range as `<0.0.0`,
+  reached only through Storybook build tooling, plus `extract-zip` through the
+  pinned Netlify CLI's local zipped-function emulator. The deployment workflow
+  does not accept or extract untrusted function archives, and npm likewise
+  reports no patched `extract-zip` release. They are accepted in
+  `pnpm.auditConfig.ignoreGhsas` with a written reason and bound by a test that
+  fails if the manifest silences an advisory with no reason, if a new high
+  advisory appears, or if either package publishes above the version that
+  justified the acceptance. A dependency marker is a claim about a moving
+  external set, so it is true as of the last run and not durably.
 - **P0-15 — Release-gate closure `[COMPLETE]`:** all repository-controlled
   frozen-install, static, database, unit, integration, provider-replay,
   document, migration, telemetry-redaction, security, build, browser, visual,
   accessibility, and demo-safety gates are represented by accepted evidence.
   Failed isolated browser diagnostics remain visible, and their replacement pass
   at `9464bab` executed all 79 Playwright tests without retry masking.
-- **P0-16 — Canonical generated artifacts `[COMPLETE]`:** Drizzle
-  `0004_nosy_valkyrie` covers 116 tables and OpenAPI exposes 56 paths, including
-  seven experience paths; schema/client generation and drift checks pass.
+- **P0-16 — Canonical generated artifacts `[COMPLETE]`:** the current Drizzle
+  authoring snapshot `0009_early_vanisher` covers 128 modeled tables and OpenAPI
+  exposes 58 paths, including seven experience paths. Reviewed Supabase SQL
+  remains canonical; schema/client generation and drift checks pass, and the
+  disposable generator now fails on error output even when a generator exits
+  zero.
 - **P0-17 — Authoritative order transitions and offboarding `[COMPLETE]`:**
   provider-confirmed lifecycle transitions, recoverable cancellation/final
   billing, and two-person teardown replace direct caller-controlled status
@@ -567,33 +573,28 @@ name.
   test at all; it now has 23.
 
 - **P0-56 — Operator webhook replay clears the processed marker and enqueues a
-  task no worker implements `[OPEN]`:** the damage is stopped; the capability is
-  not delivered, and this entry stays open on purpose rather than being flipped
-  on a refusal. The entry was exact — replay nulled `processedAt` and enqueued
-  `webhook-replay:<provider>`, which no task implements, so an incident was
-  closed as handled while nothing ran and the row lost its dedupe guard, letting
-  a provider redelivery re-enter the projection. `ea4ab89` made the command
-  **fail closed**: it does not touch the inbox row, and
-  `packages/db/src/repositories/core/webhook-replay-refusal.test.ts` requires a
-  typed error naming the missing task identifier and requires that no
-  transaction is opened, so the dedupe marker survives. `bd42c1b` rebuilt the
-  tripwire in the same file on the TypeScript AST — it now catches a task id
-  written as a literal, as a constant reference, or as a factory argument, which
-  the previous regex missed — and it asserts the identifier is **absent** from
-  the production registry, so the day someone registers the task the suite says
-  to delete the refusal.
+  task no worker implements `[COMPLETE]`:** the registered `webhook-replay:v1`
+  task now executes the stored verified payload. The command serializes on the
+  inbox row, retains `processedAt`, leases failed/unprocessed rows against
+  provider redelivery, deduplicates an active replay, and atomically writes the
+  workflow run plus audit/outbox request. The queue receives only the
+  workflow-run ID. The service-role worker binds that run back to provider,
+  event ID, hash, and claim token before applying the same Stripe, WorkOS,
+  e-sign, provisioning, marketplace, or support projection used by ingress. A
+  live HTTP-ingress lease is neither stolen nor shown as stopped work. Retry,
+  crash recovery, expiry replacement, and completion use one inbox-then-run lock
+  order and remain fenced to the Trigger run and rotated claim token. A final
+  failure releases a failed inbox with operator-safe text but preserves an
+  original success timestamp/error state. The database integration test proves
+  the payload stays out of the queue, expiry races do not deadlock, and a stale
+  completion cannot close the run.
 
-  What remains: no task re-runs the stored verified payload, so an operator
-  facing a stuck provider event still has no working replay and the runbook step
-  in `docs/operations/webhook-replay.md` is not executable from the surface.
-  Registering it belongs to the workflows lane and was deliberately not taken by
-  the security lane. A separate composition defect on the same surface —
+  A separate composition defect on the same surface —
   `webhook-replay/actions.ts` composing `requiredTaxProvider()`, which throws at
   composition, so an unwired `EXT-TAX-01` refused every replay before this
-  entry's refusal could even run — was fixed in `5c0f727`: the action now
+  earlier refusal could even run — was fixed in `5c0f727`: the action now
   composes `composedTaxProvider()`, which refuses `calculate` without detonating
-  the composition, verified at the emitted-JS level of a production build. That
-  was never this entry, and its fix delivers no replay.
+  the composition, verified at the emitted-JS level of a production build.
 
 - **P0-57 — `mfaVerified` records an environment allow-list, not a second factor
   `[COMPLETE]`:** closed in `ea4ab89`. The boolean tested whether an
@@ -878,14 +879,14 @@ name.
   intervened. Gated at both layers. Spec §21.
 
 - **P0-71 — The traceability ledger cites unreachable code as evidence
-  `[OPEN]`:** largely delivered, open on a narrower residue than it was filed
-  with, and its prescribed remedy was wrong — the fifth wrong remedy in this
-  audit. The prescribed rule, "every cited symbol resolves to a definition
-  reachable from production", was tested before implementation against nine
-  symbols it would have called dead, and every one had a genuine in-module call
-  site; measured at the time, the ledger held 2,264 citations, none in
-  `path#symbol` form and 1,777 of them prose labels with no symbol in them to
-  resolve. The rule was unimplementable as written and wrong where it could run.
+  `[COMPLETE]`:** delivered with a narrower, enforceable claim than the
+  prescribed remedy. The prescribed rule, "every cited symbol resolves to a
+  definition reachable from production", was tested before implementation
+  against private helpers it would have called dead even though their declaring
+  modules genuinely call them. Whole-program reachability also requires an
+  agreed production-entrypoint set the repository does not define. The gate
+  therefore claims syntax-resolved implementation use, not entrypoint
+  reachability or semantic sufficiency.
 
   What shipped instead, in `5c0f727` and wired into the gates in `8c53747`:
   `scripts/validate-traceability.mjs` now enforces a citation grammar — a
@@ -901,16 +902,21 @@ name.
   run by no gate because `scripts/` is not a workspace package, were wired into
   root `test:unit` in `8c53747`.
 
-  What remains open, exactly: the liveness half reports without gating —
-  `check-citation-liveness.mjs` is deliberately outside `verify:static` because
-  its false-positive behaviour is documented in its own header — so no gate yet
-  enforces that a cited symbol is reachable; the prose corpus is grandfathered
-  and converts row by row, with progress readable as `citationGrammar.symbol`
-  over `citationGrammar.total` in every run's report; and no CI has ever
-  executed any of it, which is P0-48's remainder, not this entry's. This entry
-  closes when the liveness check either earns a place in a gate or is retired
-  with a recorded decision; `SPEC-18-VAL-01` holds the ledger-side reference
-  until then.
+  The liveness half now earns its required-gate position. TypeScript and
+  JavaScript citations resolve through a syntax-aware import/export binding
+  graph; comments, strings, unused import/re-export bindings, overload
+  declarations, lexical shadows and unrelated same-name declarations do not make
+  a dead symbol look live. SQL citations use a deliberately narrower
+  comment-stripped lexical check. Regression tests hold each prior false-green
+  mode, private in-module use, test-only use, exception expiry and the real
+  ledger. `verify:static`, the release static shard and the baseline
+  qualification inventory all run `pnpm check:citation-liveness`; the release
+  assertion inventory binds the command to the shard. The improved gate found
+  one genuinely test-only workflow citation in `SPEC-16-11`, which now cites the
+  production-used `exceptionTaskIds` instead. The grandfathered prose corpus
+  still converts row by row and whole-program reachability remains an explicit
+  non-claim; neither makes this executable liveness gate report-only. No hosted
+  CI has executed it, which remains P0-48's concern rather than this entry's.
 
 ### Corrections to markers recorded before this audit
 
@@ -920,19 +926,17 @@ the same way the marker it corrects did, and six of the ten now have. What
 follows is the surviving set; the corrections that are now spent say so rather
 than being carried forward.
 
-- **P0-02 `[COMPLETE]` still claims "zero unmapped or internally partial
-  requirements", and that is still false — now by three rows rather than twelve,
-  each held partial on purpose.** The twelve `partial` rows the audit found all
-  pointed at P0-42 through P0-46 and were re-derived in `5c0f727` against what
-  those closures actually shipped, with `path#symbol` citations the validator
-  now checks; the two rationales the audit had already caught as stale
-  (`SPEC-10-02`'s and `SPEC-18-API-08`'s) were rewritten with the rest. What
-  remains is deliberate: three rows are held `partial` as the ledger-side
-  mapping for the backlog entries still open — `SPEC-18-INV-06` (P0-56, the
-  operator replay refuses), `SPEC-08-DOC-04` (P0-68, portal order acceptance
-  cannot complete), and `SPEC-18-VAL-01` (P0-71, citation liveness reports
-  without gating). The row count and the specification hash do check out. This
-  marker cannot be honestly re-asserted until those three close.
+- **P0-02 `[COMPLETE]` now has zero unmapped or internally partial
+  requirements.** The twelve `partial` rows the audit found all pointed at P0-42
+  through P0-46 and were re-derived in `5c0f727` against what those closures
+  actually shipped, with `path#symbol` citations the validator now checks; the
+  two rationales the audit had already caught as stale (`SPEC-10-02`'s and
+  `SPEC-18-API-08`'s) were rewritten with the rest. `SPEC-08-DOC-04` returned to
+  `implemented` when P0-68 closed; `SPEC-18-INV-06` returned when P0-56
+  delivered durable replay; and `SPEC-18-VAL-01` returned when P0-71's
+  citation-liveness checker became a required static and release gate. The row
+  count and specification hash check out. Hosted CI observation remains the
+  external P0-48 gate rather than an internal traceability gap.
 
 - **P0-04 and P0-15 `[COMPLETE]` rest on evidence captured before the tree
   changed, and the drift is now much larger than the audit measured.** The cited
@@ -997,12 +1001,12 @@ than being carried forward.
   the P1 derivation view, both of which the audit had already marked resolved
   and whose caveats — that P0-56 made the replay control report success without
   doing anything, and that P0-49 made the derivation view report every amended
-  order as unamended — are respectively now-refused-instead-of-lying and fixed.
-  The P1 runbook correction is spent too, in the good direction: all six named
-  runbooks now have operator surfaces — `6cf5f26` added
-  `/internal/unhandled-errors` and `/internal/billing-reconciliation`, the
-  residue this correction carried — while its narrower point survives and is
-  restated where it belongs: the finance-lifecycle review action at
+  order as unamended — are now both fixed. The P1 runbook correction is spent
+  too, in the good direction: all six named runbooks now have operator surfaces
+  — `6cf5f26` added `/internal/unhandled-errors` and
+  `/internal/billing-reconciliation`, the residue this correction carried —
+  while its narrower point survives and is restated where it belongs: the
+  finance-lifecycle review action at
   `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx` is
   still review-only and applies nothing.
 
@@ -1316,9 +1320,7 @@ a desired capability.
   `.../internal/webhook-replay/page.tsx` covers replay. The entry's counts were
   stale when it was written and are staler now: `main` has seventeen internal
   pages, not fifteen, and `docs/operations` holds eighteen procedures, not
-  thirteen. Two caveats on the surface rather than the entry: the replay control
-  now **refuses** rather than reporting a success it did not achieve (P0-56), so
-  the surface is honest but that one action does not work; and the reason this
+  thirteen. One caveat on the surface rather than the entry: the reason this
   surface stays usable in an incident is that unrouted outbox rows are _not_
   dead-lettered, which is a contract and not an omission — see the refuted
   section before changing it.
@@ -1339,8 +1341,7 @@ a desired capability.
   `/internal/unhandled-errors` — behind `system:operate`, reading the durable
   `audit_events` failure stream with persisted decisions — and
   `/internal/billing-reconciliation`, the two this entry had recorded as the
-  residue. Two caveats survive: the webhook-replay surface can inspect but not
-  replay (P0-56), and the finance-lifecycle pages are not closure —
+  residue. One caveat survives: the finance-lifecycle pages are not closure —
   `apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx` is
   review-only and applies nothing.
 
@@ -1513,8 +1514,8 @@ that left it, and each has been re-checked against the tree by the pass that
 wrote this revision — entries a later work-stream closed say so instead of being
 silently deleted, because the closure is part of the record.
 
-- **The webhook-replay task is still unregistered** and the operator command
-  still fails closed. See P0-56.
+- **The webhook-replay task is registered and worker-backed.** P0-56 records the
+  durable claim, stored-payload binding, retry, and completion evidence.
 - **`GuardedProviderJsonTransport` is composed on exactly one path.** The ws5
   commit body records it as still uncomposed; the tree contradicts that —
   `packages/workflows/src/runtime/environment-production-adapters.ts:530` wraps

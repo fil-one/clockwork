@@ -224,7 +224,13 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Replay claimed idempotently */
                 200: {

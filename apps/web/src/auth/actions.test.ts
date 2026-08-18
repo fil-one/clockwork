@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   requireRecentAuthentication: vi.fn(),
   signOut: vi.fn(),
   switchToOrganization: vi.fn(),
-  withAuth: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -30,7 +29,6 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   signOut: mocks.signOut,
   switchToOrganization: mocks.switchToOrganization,
-  withAuth: mocks.withAuth,
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -67,11 +65,14 @@ describe("organization-switch authorization", () => {
     mocks.assistedCookie = undefined;
     mocks.getCommerceSession.mockResolvedValue({
       authenticationSource: "workos",
+      authenticationProviderUserId: "user_workos_selected",
       assistedSession: undefined,
     });
-    mocks.withAuth.mockResolvedValue({
-      sessionId: "auth-session-001",
-      user: { id: "user_workos_selected" },
+    mocks.requireRecentAuthentication.mockResolvedValue({
+      userId: "20000000-0000-4000-8000-000000000001",
+      authenticationSessionId: "auth-session-001",
+      isInternalStaff: true,
+      roles: ["internal_operator"],
     });
     mocks.resolveAuthorizedAccountSwitch.mockResolvedValue({
       workosOrganizationId: "org_authorized",
@@ -91,7 +92,6 @@ describe("organization-switch authorization", () => {
     });
     expect(mocks.getCommerceSession).toHaveBeenCalledTimes(1);
     expect(mocks.cookieDelete).not.toHaveBeenCalled();
-    expect(mocks.withAuth).not.toHaveBeenCalled();
     expect(mocks.switchToOrganization).not.toHaveBeenCalled();
   });
 
@@ -104,7 +104,6 @@ describe("organization-switch authorization", () => {
     expect(mocks.cookieDelete).toHaveBeenCalledWith(
       "clockwork-assisted-session",
     );
-    expect(mocks.withAuth).not.toHaveBeenCalled();
   });
 
   it("denies an active assisted session even if its cookie was concurrently cleared", async () => {
@@ -116,7 +115,21 @@ describe("organization-switch authorization", () => {
     await expect(switchCommerceAccount(accountId)).resolves.toEqual({
       ok: false,
     });
-    expect(mocks.withAuth).not.toHaveBeenCalled();
+  });
+
+  it("denies provider impersonation even without a durable assisted row", async () => {
+    mocks.getCommerceSession.mockResolvedValue({
+      authenticationSource: "workos",
+      authenticationProviderUserId: "target_workos_user",
+      authenticationProviderImpersonator: true,
+      assistedSession: undefined,
+    });
+
+    await expect(switchCommerceAccount(accountId)).resolves.toEqual({
+      ok: false,
+    });
+    expect(mocks.resolveAuthorizedAccountSwitch).not.toHaveBeenCalled();
+    expect(mocks.switchToOrganization).not.toHaveBeenCalled();
   });
 
   it("truthfully denies organization switching for release-proof auth", async () => {
@@ -128,7 +141,6 @@ describe("organization-switch authorization", () => {
     await expect(switchCommerceAccount(accountId)).resolves.toEqual({
       ok: false,
     });
-    expect(mocks.withAuth).not.toHaveBeenCalled();
   });
 
   it("switches only to the WorkOS organization returned by server membership resolution", async () => {
@@ -159,18 +171,11 @@ describe("organization-switch authorization", () => {
   });
 
   it("durably ends provider authorization before AuthKit revokes the session", async () => {
-    mocks.withAuth.mockResolvedValue({
-      sessionId: "auth-session-001",
-      user: { id: "target_workos_user" },
-      impersonator: {
-        email: "iris@filone.com",
-        reason: "Customer requested assisted checkout",
-      },
-    });
     mocks.getCommerceSession.mockResolvedValue({
       userId: "20000000-0000-4000-8000-000000000001",
       authenticationSessionId: "auth-session-001",
       authenticationSource: "workos",
+      authenticationProviderImpersonator: true,
       assistedSessionProvider: "workos",
       assistedSession: {
         id: "12000000-0000-4000-8000-000000000001",
@@ -197,7 +202,7 @@ describe("organization-switch authorization", () => {
   });
 
   it("cannot start a second assisted mode while any provider-backed mode is active", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
+    mocks.requireRecentAuthentication.mockResolvedValue({
       userId: "20000000-0000-4000-8000-000000000001",
       authenticationSessionId: "auth-session-001",
       isInternalStaff: true,
@@ -213,6 +218,7 @@ describe("organization-switch authorization", () => {
     await expect(startAssistedSession(form)).rejects.toThrow(
       "Assisted-action authority is required",
     );
+    expect(mocks.getCommerceSession).not.toHaveBeenCalled();
     expect(mocks.createAssistedSession).not.toHaveBeenCalled();
   });
 });

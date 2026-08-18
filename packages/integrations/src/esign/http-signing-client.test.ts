@@ -141,6 +141,55 @@ describe("HTTP e-sign signing client", () => {
     );
   });
 
+  it("cancels a chunked response when it crosses the transport bound", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(700_000));
+        controller.enqueue(new Uint8Array(700_000));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { status: 200 })),
+    });
+
+    await expect(client.createEnvelope(input())).rejects.toThrow(
+      "exceeded the maximum size",
+    );
+    expect(cancelled).toBe(true);
+  });
+
+  it("keeps the timeout active after headers while the body stalls", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const client = new HttpEsignSigningClient({
+      baseUrl: "https://api.provider.example/",
+      apiKey: "secret-test-key",
+      signingOrigins: ["https://sign.provider.example"],
+      timeoutMs: 100,
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { status: 200 })),
+    });
+
+    await expect(client.createEnvelope(input())).rejects.toThrow(
+      "E-sign envelope request timed out",
+    );
+    expect(cancelled).toBe(true);
+  });
+
   it("refuses a declared length beyond the bound before reading the body", async () => {
     const body = vi.fn();
     const client = new HttpEsignSigningClient({

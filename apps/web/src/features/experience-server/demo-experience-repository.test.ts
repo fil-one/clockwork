@@ -14,6 +14,8 @@ import {
 } from "./demo-experience-repository";
 import { DemoEvidenceGateway } from "./evidence-gateway";
 import { ExperienceProblem } from "./model";
+import { DemoOrderAcceptance } from "./demo-order-acceptance";
+import { demoProjectionRecordId } from "./projection-source";
 
 const session: SessionClaims = {
   userId: "21000000-0000-4000-8000-000000000001",
@@ -285,6 +287,59 @@ describe("demo document artifacts", () => {
     roles: ["internal_operator"],
     isInternalStaff: true,
   };
+
+  it("publishes the stored UUID for a prepared order form, not its printable reference", async () => {
+    const store = createMemoryDemoStore();
+    const acceptance = new DemoOrderAcceptance(store);
+    const quoteId = demoProjectionRecordId(
+      "customer",
+      "quotes",
+      "quote-direct-renewal-v2",
+    );
+    if (!quoteId) throw new Error("The demo renewal quote is missing");
+    const prepared = await acceptance.prepare(
+      session,
+      {
+        orderId: "70000000-0000-4000-8000-000000000091",
+        accountId,
+        quoteId,
+        signerUserId: session.userId,
+        authorityTitle: "Operations Director",
+        authorityAttested: true,
+        poNumber: "PO-DEMO-DOCUMENT-IDENTITY",
+        serviceStartsOn: "2027-01-01",
+        serviceEndsOn: "2027-12-31",
+        acceptedAt: now.toISOString(),
+        orderLineIds: ["90000000-0000-4000-8000-000000000091"],
+      },
+      now,
+    );
+    const subject = new DemoExperienceRepository(
+      store,
+      () => new DemoEvidenceGateway(),
+    );
+
+    const { representation } = await subject.findArtifact(
+      session,
+      "order_form",
+      prepared.id,
+      "request-prepared-order-form",
+    );
+
+    expect(representation).toMatchObject({
+      id: prepared.id,
+      kind: "order_form",
+      subjectType: "order",
+      subjectId: prepared.subjectId,
+      documentId: prepared.documentId,
+    });
+    expect(representation.documentId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
+    );
+    expect(representation.documentId).not.toBe(
+      prepared.definition.displayDocumentId,
+    );
+  }, 30_000);
 
   it("renders every catalogued kind through the shared renderer", async () => {
     const subject = repository();

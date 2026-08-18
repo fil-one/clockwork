@@ -424,11 +424,27 @@ export default async function proxy(
 // replace them with a sign-in page. Every exemption names a static asset path.
 export const config = {
   matcher: [
-    // The two demo form posts are excluded because forwarding a request through
-    // `NextResponse.next({ request: { headers } })` drops the body on the deploy
-    // platform's edge middleware, which left the password unreadable and the
-    // gate unpassable. Each handler performs its own exact-origin check, so
-    // neither is relying on this middleware.
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete).*)",
+    {
+      // Netlify's Next edge handoff can consume raw request bodies even when
+      // middleware returns an unmodified pass-through. Both API namespaces go
+      // directly to self-authenticating route boundaries. Server Actions also
+      // bypass this proxy, then authenticate from their sealed session or demo
+      // grant and enforce release-proof origin at the destination.
+      source:
+        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)).*)",
+      missing: [
+        { type: "header", key: "next-action" },
+        {
+          type: "header",
+          key: "content-type",
+          value: "multipart/form-data.*",
+        },
+        {
+          type: "header",
+          key: "content-type",
+          value: "application/x-www-form-urlencoded.*",
+        },
+      ],
+    },
   ],
 };

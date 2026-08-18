@@ -12,6 +12,7 @@ import {
   DatabaseWorkosOrganizationProvisioningStore,
   DatabaseWorkflowExceptionPort,
   DatabaseWorkflowRunStore,
+  DatabaseWebhookReplayTaskStore,
 } from "@clockwork/db";
 import type { ExternalCapability } from "@clockwork/domain/system";
 import type {
@@ -58,6 +59,11 @@ import {
   DatabaseLifecycleTaskRuntime,
   type LifecycleTaskHandler,
 } from "./database-lifecycle";
+import {
+  configureWebhookReplayRuntime,
+  DatabaseWebhookReplayRuntime,
+  type WebhookReplayHandler,
+} from "../webhook-replay/runtime";
 
 export interface ProductionWorkflowRuntimeInput {
   db: RuntimeDatabase;
@@ -75,6 +81,7 @@ export interface ProductionWorkflowRuntimeInput {
   lifecycleHandlers: ReadonlyMap<string, LifecycleTaskHandler>;
   outboxHandlers: ReadonlyMap<string, OutboxTopicHandler>;
   workosIdentity: WorkosIdentityPort;
+  webhookReplayHandler: WebhookReplayHandler;
   deletionCertificates?: {
     evidence: EvidenceStoragePort;
     issuer: DeletionCertificateParty;
@@ -180,6 +187,7 @@ export function createProductionWorkflowRuntime(
       `WORKFLOW_PROVIDER_NOT_CONFIGURED:lifecycle:${missingLifecycleHandlers.join(",")}`,
     );
   requireConfigured(input.workosIdentity, "workos_identity");
+  requireConfigured(input.webhookReplayHandler, "webhook_replay");
   const outboxHandlers = new Map(input.outboxHandlers);
   if (outboxHandlers.has("organization.created"))
     throw new Error("WORKFLOW_PROVIDER_DUPLICATE:organization.created");
@@ -260,6 +268,10 @@ export function createProductionWorkflowRuntime(
     outboxHandlers,
     input.instrumentation,
   );
+  const webhookReplay = new DatabaseWebhookReplayRuntime(
+    new DatabaseWebhookReplayTaskStore(input.db, input.clock),
+    input.webhookReplayHandler,
+  );
   return {
     core,
     lifecycle,
@@ -270,6 +282,7 @@ export function createProductionWorkflowRuntime(
       configureCoreScheduleOccurrenceStore(schedules);
       configureLifecycleTaskRuntime(lifecycle, input.instrumentation);
       configureOutboxDispatcher(outbox);
+      configureWebhookReplayRuntime(webhookReplay);
       if (input.gateActivationExecutor)
         configureExternalGateActivationExecutor(input.gateActivationExecutor);
     },

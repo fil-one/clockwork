@@ -1,12 +1,21 @@
 import { createDemoCommerceHandlers } from "@clockwork/testing/demo-handlers";
 import { DEMO_ORIGIN } from "@clockwork/testing/demo-seed";
+import type { SessionClaims } from "@clockwork/api";
 import { getResponse } from "msw";
+
+import {
+  demoAccessConfiguration,
+  demoAccessCookieName,
+  verifyDemoAccessCookie,
+} from "@/src/auth/demo-access";
 
 // The same generated-contract simulators the browser suites run against, served
 // from the server so nothing intercepts requests in a prospect's browser. The
 // handlers already require an idempotency key and a CSRF token on every
-// mutation, and the proxy mints the clockwork-csrf cookie the client reads.
+// mutation, and the browser document boundary mints the clockwork-csrf cookie
+// the client reads.
 const handlers = [...createDemoCommerceHandlers()];
+const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * The one command lane the demo runs rather than simulates.
@@ -27,24 +36,297 @@ function isOrderCommand(request: Request, url: URL): boolean {
   );
 }
 
-function missingMutationProof(request: Request): boolean {
-  return !(
-    request.headers.get("idempotency-key") &&
-    request.headers.get("x-csrf-token")
+function isWebhookRequest(url: URL): boolean {
+  const pathname = url.pathname.replace(/^\/api/u, "");
+  return pathname === "/v1/webhooks" || pathname.startsWith("/v1/webhooks/");
+}
+
+function unavailableDemoWebhook(request: Request): Response {
+  return Response.json(
+    {
+      type: "https://clockwork.test/problems/demo-webhook-unavailable",
+      title: "Provider webhooks are unavailable in the demo",
+      status: 503,
+      detail:
+        "The demo has no provider signing secret and cannot verify this callback.",
+      code: "DEMO_WEBHOOK_UNAVAILABLE",
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: false,
+    },
+    {
+      status: 503,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
   );
+}
+
+function cookieValue(cookie: string | null, name: string): string | undefined {
+  for (const part of cookie?.split(";") ?? []) {
+    const separator = part.indexOf("=");
+    if (separator < 1) continue;
+    if (part.slice(0, separator).trim() === name)
+      return part.slice(separator + 1).trim();
+  }
+  return undefined;
+}
+
+function demoAccessProblem(request: Request): Response {
+  return Response.json(
+    {
+      type: "https://clockwork.test/problems/demo-access-required",
+      title: "Demo access is required",
+      status: 403,
+      detail: "A valid demo access grant is required.",
+      code: "DEMO_ACCESS_REQUIRED",
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: false,
+    },
+    {
+      status: 403,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+function demoIdentityProblem(request: Request, unavailable: boolean): Response {
+  const status = unavailable ? 503 : 401;
+  return Response.json(
+    {
+      type: `https://clockwork.test/problems/demo-identity-${unavailable ? "unavailable" : "required"}`,
+      title: unavailable
+        ? "Demo identity is temporarily unavailable"
+        : "Demo identity is required",
+      status,
+      detail: unavailable
+        ? "The demo could not establish an identity for this request."
+        : "A valid demo identity is required for this operation.",
+      code: unavailable
+        ? "DEMO_IDENTITY_UNAVAILABLE"
+        : "DEMO_IDENTITY_REQUIRED",
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: unavailable,
+    },
+    {
+      status,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+function immutableSession(session: SessionClaims): SessionClaims {
+  return Object.freeze({
+    ...session,
+    accountIds: Object.freeze([...session.accountIds]),
+    roles: Object.freeze([...session.roles]),
+    ...(session.impersonation
+      ? { impersonation: Object.freeze({ ...session.impersonation }) }
+      : {}),
+  });
+}
+
+function securityProblem(
+  request: Request,
+  code: "ORIGIN_REJECTED" | "CSRF_REJECTED",
+): Response {
+  const origin = code === "ORIGIN_REJECTED";
+  return Response.json(
+    {
+      type: `https://clockwork.test/problems/${origin ? "origin" : "csrf"}`,
+      title: origin ? "Origin rejected" : "CSRF validation failed",
+      status: 403,
+      detail: origin
+        ? "The request origin is not allowed."
+        : "Provide the double-submit CSRF token.",
+      code,
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: false,
+    },
+    {
+      status: 403,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+function normalizedHost(value: string | null): string | undefined {
+  if (
+    !value ||
+    value !== value.trim() ||
+    value.length > 253 ||
+    /[,/@\\?#\s]/u.test(value)
+  )
+    return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(`http://${value}`);
+  } catch {
+    return undefined;
+  }
+  if (parsed.host.toLowerCase() !== value.toLowerCase()) return undefined;
+  const hostname = parsed.hostname;
+  if (hostname.startsWith("["))
+    return /^\[[0-9a-f:.]+\]$/iu.test(hostname) ? parsed.host : undefined;
+  if (/^\d+(?:\.\d+){3}$/u.test(hostname)) {
+    const octets = hostname.split(".").map(Number);
+    return octets.every((octet) => octet >= 0 && octet <= 255)
+      ? parsed.host
+      : undefined;
+  }
+  const labels = hostname.split(".");
+  if (
+    labels.some(
+      (label) => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/iu.test(label),
+    )
+  )
+    return undefined;
+  return parsed.host;
+}
+
+export function demoMutationOriginAllowed(input: {
+  readonly origin: string | null;
+  readonly configuredOrigin: string;
+  readonly host: string | null;
+  readonly forwardedHost: string | null;
+  readonly forwardedProtocol: string | null;
+  readonly requestProtocol: string;
+}): boolean {
+  const canonicalOrigin = new URL(input.configuredOrigin).origin;
+  const suppliedHost = input.forwardedHost ?? input.host;
+  const host = normalizedHost(suppliedHost);
+  if (suppliedHost !== null && !host) return false;
+  if (
+    input.forwardedProtocol !== null &&
+    input.forwardedProtocol !== "http" &&
+    input.forwardedProtocol !== "https"
+  )
+    return false;
+  if (input.origin === canonicalOrigin) return true;
+  if (!host) return false;
+  const protocol = input.forwardedProtocol ?? input.requestProtocol;
+  if (protocol !== "http" && protocol !== "https") return false;
+  return input.origin === `${protocol}://${host}`;
+}
+
+function validateMutationProof(request: Request): Response | undefined {
+  const configuredOrigin =
+    process.env.APP_ORIGIN ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3000";
+  if (
+    !demoMutationOriginAllowed({
+      origin: request.headers.get("origin"),
+      configuredOrigin,
+      host: request.headers.get("host"),
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      forwardedProtocol: request.headers.get("x-forwarded-proto"),
+      requestProtocol: new URL(request.url).protocol.slice(0, -1),
+    })
+  )
+    return securityProblem(request, "ORIGIN_REJECTED");
+  const headerToken = request.headers.get("x-csrf-token");
+  const cookieToken = cookieValue(
+    request.headers.get("cookie"),
+    "clockwork-csrf",
+  );
+  if (
+    !headerToken ||
+    !cookieToken ||
+    headerToken.length < 32 ||
+    headerToken !== cookieToken
+  )
+    return securityProblem(request, "CSRF_REJECTED");
+  return undefined;
+}
+
+function validateOrderIdempotency(request: Request): Response | undefined {
+  const idempotencyKey = request.headers.get("idempotency-key")?.trim();
+  if (
+    !idempotencyKey ||
+    idempotencyKey.length < 16 ||
+    idempotencyKey.length > 255
+  )
+    return Response.json(
+      {
+        type: "https://clockwork.test/problems/idempotency",
+        title: "Idempotency key required",
+        status: 422,
+        detail: "A valid idempotency-key header is required",
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        requestId: request.headers.get("x-request-id") ?? "demo",
+        retryable: false,
+      },
+      {
+        status: 422,
+        headers: {
+          "cache-control": "private, no-store",
+          "content-type": "application/problem+json",
+          "x-content-type-options": "nosniff",
+        },
+      },
+    );
+  return undefined;
 }
 
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  const demoAccessSecret = demoAccessConfiguration(process.env);
+  if (
+    demoAccessSecret &&
+    !(await verifyDemoAccessCookie(
+      cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+      demoAccessSecret,
+    ))
+  )
+    return demoAccessProblem(request);
+  // These paths bypass the proxy so a deployment adapter cannot disturb the
+  // exact bytes a real signature verifier needs. The demo intentionally has no
+  // verifier or provider secret, so fail closed before reading the body or
+  // offering it to a generated simulator.
+  if (isWebhookRequest(url)) return unavailableDemoWebhook(request);
+  if (!safeMethods.has(request.method)) {
+    const proofFailure = validateMutationProof(request);
+    if (proofFailure) return proofFailure;
+  }
   if (isOrderCommand(request, url)) {
-    if (missingMutationProof(request))
-      return Response.json({ error: "forbidden" }, { status: 403 });
+    const idempotencyFailure = validateOrderIdempotency(request);
+    if (idempotencyFailure) return idempotencyFailure;
+    // Resolve identity from this exact request before its body is consumed or
+    // the command lane is loaded. Raw API routes do not rely on Next's ambient
+    // cookies()/headers() request store: serverless connection teardown and
+    // deferred module loading must not be able to detach authorization from
+    // the bytes the destination executes.
+    let session: SessionClaims | null;
+    try {
+      const { WorkosNextSessionResolver } = await import("@/src/auth/session");
+      session = await new WorkosNextSessionResolver({
+        requireBoundSession: true,
+      }).resolve(request);
+    } catch {
+      return demoIdentityProblem(request, true);
+    }
+    if (!session) return demoIdentityProblem(request, false);
     // Loaded on demand, the way this route already loads its two apps: the
     // order lane pulls in the domain, the document renderer and the demo state
     // store, and no other request needs any of them.
     const lane =
       await import("@/src/features/experience-server/demo-order-command");
-    return lane.handleDemoOrderCommand(request);
+    return lane.handleDemoOrderCommand(request, immutableSession(session));
   }
   const simulated = new URL(
     `${url.pathname.replace(/^\/api/, "") || "/"}${url.search}`,
@@ -66,7 +348,10 @@ export async function handle(request: Request): Promise<Response> {
       ...(body === undefined ? {} : { body }),
     }),
   );
-  if (response) return response;
+  if (response) {
+    response.headers.set("cache-control", "private, no-store");
+    return response;
+  }
   return Response.json(
     {
       type: "https://clockwork.test/problems/demo-operation-unavailable",

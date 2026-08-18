@@ -1,8 +1,8 @@
 # UX final integration handoff
 
 Current disposition: historical provenance. The complete UX history and later
-authoritative joins are represented and repository-qualified on `main`; this is
-not an active lane or RC/launch record.
+authoritative joins were considered represented and repository-qualified when
+this handoff was written; the current backlog controls present status.
 
 ## Provenance and merge order
 

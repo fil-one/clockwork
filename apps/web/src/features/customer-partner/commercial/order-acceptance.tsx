@@ -20,7 +20,7 @@ import {
   ARTIFACT_RETENTION_YEARS,
   commercialArtifactRetainUntil,
 } from "./artifact-retention";
-import type { LookupPreparedOrderForm } from "./prepared-order-form";
+import type { PreparedOrderFormLookup } from "./prepared-order-form";
 import { orderReviewSummary } from "./workflow-model";
 
 const reviewLabels = {
@@ -40,8 +40,9 @@ const reviewLabels = {
  * `orders.order_form_document_id` is written only by the create branch this
  * document is the precondition *for*. So the prop was null for ever and the
  * bridge polled a value the server could not produce. The question is now put
- * to a server action that reads the artifact request, which is where the
- * document and the order it was prepared for are actually bound together.
+ * to the bodyless artifact representation GET, keyed by the artifact request
+ * the prepare command returns. That request is where the document and the
+ * order it was prepared for are actually bound together.
  *
  * The phase, not the presence of a message, is what says whether a further
  * pass is available. A control disabled on `Boolean(message)` stays disabled
@@ -97,8 +98,8 @@ type AcceptancePhase =
  * The same bounded discipline `awaitReceipt` uses for projection actions:
  * a fixed number of attempts, success only on the terminal condition, and a
  * recheck affordance rather than a spinner that never resolves. What is polled
- * differs -- a server action here, an action receipt there -- so the loop is
- * not shared; the rules are.
+ * differs -- a bodyless artifact representation here, an action receipt there
+ * -- so the loop is not shared; the rules are.
  */
 const ORDER_FORM_POLL_ATTEMPTS = 15;
 const ORDER_FORM_POLL_INTERVAL_MS = 1_000;
@@ -143,6 +144,73 @@ interface PreparedOrderForm {
   artifactId: string;
 }
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Both API compositions return the request they actually persisted. The
+ * production repository nests the generated contract and the demo adapter
+ * keeps its compact compatibility field. Refuse every other shape, including
+ * path-like strings, before constructing a URL from it.
+ */
+function preparedArtifactRequestId(result: unknown): string | null {
+  const data = record(record(result)?.record)?.data;
+  const dataRecord = record(data);
+  const production = record(dataRecord?.artifactRequest)?.requestId;
+  const demo = dataRecord?.artifactRequestId;
+  const candidate = typeof production === "string" ? production : demo;
+  return typeof candidate === "string" && uuidPattern.test(candidate)
+    ? candidate
+    : null;
+}
+
+/**
+ * Reads the public, authorization-scoped representation without a request
+ * body. A not-yet-stored canonical artifact intentionally presents as 404 on
+ * this endpoint, so only that status means pending. A successful response is
+ * accepted only when all identifiers preserve the prepare-pass binding.
+ */
+async function readPreparedOrderForm(
+  artifactRequestId: string,
+  orderId: string,
+): Promise<PreparedOrderFormLookup> {
+  const response = await fetch(
+    `/api/experience/artifacts/order_form/${encodeURIComponent(artifactRequestId)}?representation=json`,
+    {
+      method: "GET",
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+    },
+  );
+  if (response.status === 404) return { status: "pending" };
+  if (response.status === 401 || response.status === 403)
+    return { status: "forbidden" };
+  if (response.status === 503) return { status: "unavailable" };
+  if (!response.ok) throw new Error("The order form lookup failed");
+  const representation = record(await response.json().catch(() => null));
+  if (
+    representation?.kind !== "order_form" ||
+    representation.subjectType !== "order" ||
+    representation.id !== artifactRequestId ||
+    representation.subjectId !== orderId ||
+    typeof representation.documentId !== "string" ||
+    !uuidPattern.test(representation.documentId)
+  )
+    return { status: "unavailable" };
+  return {
+    status: "stored",
+    documentId: representation.documentId,
+    artifactId: artifactRequestId,
+  };
+}
+
 /**
  * The bound inputs, as one comparable value.
  *
@@ -168,20 +236,12 @@ export function OrderAcceptance({
   signerUserId,
   quote,
   agreement,
-  lookupOrderForm,
   partialRead = false,
 }: {
   account: { id: string; name: string };
   signerUserId: string;
   quote: AcceptableQuote | null;
   agreement: GoverningAgreement | null;
-  /**
-   * Asks the server whether the order form this session prepared has been
-   * stored yet. Supplied by the route as a server action, and injected rather
-   * than imported so this component stays renderable -- and testable -- with
-   * no server boundary in the way.
-   */
-  lookupOrderForm: LookupPreparedOrderForm;
   /**
    * Set when a channel read stopped at the page ceiling. The quote this page
    * selected and the agreement it bound were then chosen from a prefix, and
@@ -237,7 +297,11 @@ export function OrderAcceptance({
    * order, the service period, the signing title and the acceptance instant.
    * Nothing typed into a freshly loaded form reproduces them.
    */
-  const preparedRef = useRef<{ orderId: string; fields: string } | null>(null);
+  const preparedRef = useRef<{
+    orderId: string;
+    fields: string;
+    artifactRequestId: string | null;
+  } | null>(null);
   /** Supersedes an in-flight poll when the reader rechecks or resubmits. */
   const pollRef = useRef(0);
   /**
@@ -350,16 +414,30 @@ export function OrderAcceptance({
    * is spent and the loop continues, so a transient failure costs one attempt
    * rather than the whole acceptance.
    */
-  const awaitOrderForm = async (orderId: string) => {
+  const awaitOrderForm = async (
+    orderId: string,
+    artifactRequestId: string | null,
+  ) => {
     const token = pollRef.current + 1;
     pollRef.current = token;
     setPhase("awaiting_form");
+    // There is no safe alternate transport for a prepare response that does
+    // not identify its persisted request. In particular, do not fall back to a
+    // Server Action POST: that body crosses the same Netlify middleware
+    // boundary this GET exists to avoid.
+    if (!artifactRequestId) {
+      setPhase("form_unavailable");
+      return;
+    }
     for (let attempt = 0; attempt < ORDER_FORM_POLL_ATTEMPTS; attempt += 1) {
       await new Promise((resolve) =>
         setTimeout(resolve, ORDER_FORM_POLL_INTERVAL_MS),
       );
       if (pollRef.current !== token) return;
-      const answer = await lookupOrderForm(orderId).catch(() => null);
+      const answer = await readPreparedOrderForm(
+        artifactRequestId,
+        orderId,
+      ).catch(() => null);
       if (pollRef.current !== token) return;
       if (!answer) continue;
       if (answer.status === "stored") {
@@ -472,7 +550,7 @@ export function OrderAcceptance({
         serviceEndsOn: serviceEnd,
         orderLineIds: orderLineIdsRef.current,
       };
-      await sendCoreCommand(
+      const result = await sendCoreCommand(
         {
           resource: "orders",
           id: orderId,
@@ -511,10 +589,11 @@ export function OrderAcceptance({
       preparedRef.current = {
         orderId,
         fields: boundFields(poNumber, serviceStart, serviceEnd, authorityTitle),
+        artifactRequestId: preparedArtifactRequestId(result),
       };
       // Bridge to the second pass here rather than making the reader navigate
       // away and re-key the form.
-      await awaitOrderForm(orderId);
+      await awaitOrderForm(orderId, preparedRef.current.artifactRequestId);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : t("orders.accept.failed"),
@@ -888,7 +967,12 @@ export function OrderAcceptance({
               {rechecking && awaitingOrderId ? (
                 <button
                   className={styles.secondary}
-                  onClick={() => void awaitOrderForm(awaitingOrderId)}
+                  onClick={() =>
+                    void awaitOrderForm(
+                      awaitingOrderId,
+                      preparedRef.current?.artifactRequestId ?? null,
+                    )
+                  }
                   type="button"
                 >
                   Check for the order form again

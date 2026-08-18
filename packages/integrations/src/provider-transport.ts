@@ -64,6 +64,57 @@ function safeProviderCode(value: unknown, fallback: string): string {
     : fallback;
 }
 
+async function boundedResponseText(
+  response: Response,
+  provider: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  let rejectAborted!: (reason: DOMException) => void;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectAborted = reject;
+  });
+  const abort = () =>
+    rejectAborted(new DOMException("The operation was aborted", "AbortError"));
+  signal.addEventListener("abort", abort, { once: true });
+  if (signal.aborted) abort();
+  try {
+    while (true) {
+      const { done, value } = await Promise.race([reader.read(), aborted]);
+      if (done) break;
+      length += value.byteLength;
+      if (length > MAX_RESPONSE_BYTES)
+        throw new ProviderTransportError(
+          "permanent",
+          "PROVIDER_RESPONSE_TOO_LARGE",
+          `${provider} response exceeded the maximum size`,
+        );
+      chunks.push(value);
+    }
+  } catch (error) {
+    if (
+      signal.aborted ||
+      (error instanceof ProviderTransportError &&
+        error.code === "PROVIDER_RESPONSE_TOO_LARGE")
+    )
+      void reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    signal.removeEventListener("abort", abort);
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 /**
  * Small authenticated JSON boundary used by provider-specific adapters. Paths
  * are code-owned, redirects are forbidden, responses are bounded, and caller
@@ -143,26 +194,96 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
       );
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    let response: Response;
     try {
-      response = await this.fetcher(endpoint, {
-        method: "POST",
-        redirect: "error",
-        signal: controller.signal,
-        headers: {
-          accept: "application/json",
-          authorization: `Bearer ${this.options.bearerToken}`,
-          "content-type": "application/json",
-          "user-agent": "clockwork-commerce/1",
-          "x-clockwork-provider": this.options.provider,
-          "x-clockwork-operation": input.operation,
-          ...(input.idempotencyKey
-            ? { "idempotency-key": input.idempotencyKey }
-            : {}),
-        },
-        body: JSON.stringify(input.body),
-      });
+      let response: Response;
+      try {
+        response = await this.fetcher(endpoint, {
+          method: "POST",
+          redirect: "error",
+          signal: controller.signal,
+          headers: {
+            accept: "application/json",
+            authorization: `Bearer ${this.options.bearerToken}`,
+            "content-type": "application/json",
+            "user-agent": "clockwork-commerce/1",
+            "x-clockwork-provider": this.options.provider,
+            "x-clockwork-operation": input.operation,
+            ...(input.idempotencyKey
+              ? { "idempotency-key": input.idempotencyKey }
+              : {}),
+          },
+          body: JSON.stringify(input.body),
+        });
+      } catch (cause) {
+        const timeout = controller.signal.aborted;
+        throw new ProviderTransportError(
+          "transient",
+          timeout ? "PROVIDER_TIMEOUT" : "PROVIDER_NETWORK_ERROR",
+          timeout
+            ? `${this.options.provider} request timed out`
+            : `${this.options.provider} request failed`,
+          undefined,
+          { cause },
+        );
+      }
+      const declaredLength = Number(response.headers.get("content-length"));
+      if (
+        Number.isFinite(declaredLength) &&
+        declaredLength > MAX_RESPONSE_BYTES
+      )
+        throw new ProviderTransportError(
+          "permanent",
+          "PROVIDER_RESPONSE_TOO_LARGE",
+          `${this.options.provider} response exceeded the maximum size`,
+        );
+      // Do not call `response.text()` here. A provider can omit Content-Length or
+      // use chunked transfer encoding; buffering first and checking afterward
+      // turns the advertised limit into an unbounded allocation. The request
+      // deadline remains active until this stream has completed.
+      const text = await boundedResponseText(
+        response,
+        this.options.provider,
+        controller.signal,
+      );
+      let payload: unknown;
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (cause) {
+        throw new ProviderTransportError(
+          response.ok ? "permanent" : "transient",
+          "PROVIDER_RESPONSE_INVALID",
+          `${this.options.provider} returned invalid JSON`,
+          undefined,
+          { cause },
+        );
+      }
+      if (!response.ok) {
+        const retryAfterSeconds = Number(response.headers.get("retry-after"));
+        const transient = response.status === 429 || response.status >= 500;
+        throw new ProviderTransportError(
+          transient ? "transient" : "permanent",
+          safeProviderCode(payload, `PROVIDER_HTTP_${response.status}`),
+          safeProviderMessage(
+            payload,
+            `${this.options.provider} rejected the request`,
+          ),
+          Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
+            ? retryAfterSeconds * 1_000
+            : undefined,
+        );
+      }
+      const parsed = input.response.safeParse(payload);
+      if (!parsed.success)
+        throw new ProviderTransportError(
+          "permanent",
+          "PROVIDER_RESPONSE_SCHEMA_INVALID",
+          `${this.options.provider} returned an invalid response`,
+          undefined,
+          { cause: parsed.error },
+        );
+      return parsed.data;
     } catch (cause) {
+      if (cause instanceof ProviderTransportError) throw cause;
       const timeout = controller.signal.aborted;
       throw new ProviderTransportError(
         "transient",
@@ -176,57 +297,6 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
     } finally {
       clearTimeout(timer);
     }
-    const declaredLength = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES)
-      throw new ProviderTransportError(
-        "permanent",
-        "PROVIDER_RESPONSE_TOO_LARGE",
-        `${this.options.provider} response exceeded the maximum size`,
-      );
-    const text = await response.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES)
-      throw new ProviderTransportError(
-        "permanent",
-        "PROVIDER_RESPONSE_TOO_LARGE",
-        `${this.options.provider} response exceeded the maximum size`,
-      );
-    let payload: unknown;
-    try {
-      payload = text ? JSON.parse(text) : {};
-    } catch (cause) {
-      throw new ProviderTransportError(
-        response.ok ? "permanent" : "transient",
-        "PROVIDER_RESPONSE_INVALID",
-        `${this.options.provider} returned invalid JSON`,
-        undefined,
-        { cause },
-      );
-    }
-    if (!response.ok) {
-      const retryAfterSeconds = Number(response.headers.get("retry-after"));
-      const transient = response.status === 429 || response.status >= 500;
-      throw new ProviderTransportError(
-        transient ? "transient" : "permanent",
-        safeProviderCode(payload, `PROVIDER_HTTP_${response.status}`),
-        safeProviderMessage(
-          payload,
-          `${this.options.provider} rejected the request`,
-        ),
-        Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
-          ? retryAfterSeconds * 1_000
-          : undefined,
-      );
-    }
-    const parsed = input.response.safeParse(payload);
-    if (!parsed.success)
-      throw new ProviderTransportError(
-        "permanent",
-        "PROVIDER_RESPONSE_SCHEMA_INVALID",
-        `${this.options.provider} returned an invalid response`,
-        undefined,
-        { cause: parsed.error },
-      );
-    return parsed.data;
   }
 }
 

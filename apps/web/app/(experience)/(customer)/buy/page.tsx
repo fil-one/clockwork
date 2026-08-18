@@ -4,11 +4,6 @@ import { loadCustomerQuoteOffers } from "@/src/features/experience-server/portal
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
-import {
-  lookupBuyQuoteProjection,
-  lookupPreparedQuoteArtifact,
-} from "./actions";
-
 export const dynamic = "force-dynamic";
 
 async function BuyWorkspace() {
@@ -25,8 +20,6 @@ async function BuyWorkspace() {
           ? offerResult.catalogueMode
           : "authoritative"
       }
-      lookupArtifact={lookupPreparedQuoteArtifact}
-      lookupProjection={lookupBuyQuoteProjection}
       mode={mode}
       offers={offerResult.status === "available" ? offerResult.offers : []}
     />

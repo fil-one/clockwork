@@ -1,6 +1,5 @@
 import {
   OrderAcceptance,
-  type AcceptableQuote,
   type GoverningAgreement,
 } from "@/src/features/customer-partner/commercial/order-acceptance";
 import {
@@ -16,11 +15,9 @@ import {
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
-import { lookupPreparedOrderForm } from "./actions";
+import { selectAcceptanceQuote, toAcceptableQuote } from "./select-quote";
 
 type Data = Readonly<Record<string, unknown>>;
-
-const acceptableStatuses = ["issued", "accepted", "open"];
 
 /**
  * How many agreements the governing-agreement probe asks for.
@@ -38,19 +35,6 @@ const AGREEMENT_PROBE_LIMIT = 25;
 function text(data: Data, key: string): string | undefined {
   const value = data[key];
   return typeof value === "string" && value.trim() ? value : undefined;
-}
-
-function acceptableQuote(record: ProjectionRecord): AcceptableQuote {
-  const data = record.data;
-  return {
-    id: record.aggregateId,
-    reference: record.recordKey,
-    title: text(data, "title") ?? record.recordKey,
-    version: text(data, "version") ?? String(record.version),
-    scope: text(data, "description") ?? "Scope not recorded",
-    spend: text(data, "value") ?? "Not priced",
-    acceptedLabel: text(data, "dateLabel") ?? "Acceptance date not recorded",
-  };
 }
 
 function activeAgreement(
@@ -105,11 +89,10 @@ async function loadGoverningAgreement(): Promise<
  * `COMMERCIAL_ARTIFACT_BINDING_INVALID`; waiting for anything else here is
  * waiting for ever.
  *
- * The binding between the two passes lives on the artifact request, which
- * `lookupPreparedOrderForm` reads under the reader's own authorization. The
- * identifier it is asked about is minted client-side for a command that has
- * created nothing yet, so no server render can hold it and the question has to
- * be asked rather than answered in advance.
+ * The binding between the two passes lives on the artifact request. The
+ * prepare response returns that request's identifier, and the client polls its
+ * authorization-scoped, bodyless artifact representation GET; no server render
+ * can answer the question in advance.
  */
 async function OrderAcceptanceWorkspace({
   params,
@@ -127,17 +110,12 @@ async function OrderAcceptanceWorkspace({
   // attest to a different commercial record than the one their prior step
   // issued. With no explicit key the existing newest-acceptable behavior
   // remains available for ordinary entry from the navigation.
-  const selected = requested
-    ? quotes.records.find((record) => record.recordKey === requested)
-    : quotes.records.find((record) =>
-        acceptableStatuses.includes(text(record.data, "status") ?? ""),
-      );
-  const quote = selected ? acceptableQuote(selected) : null;
+  const selected = selectAcceptanceQuote(quotes.records, requested);
+  const quote = selected ? toAcceptableQuote(selected) : null;
   return (
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}
       agreement={governingAgreement(agreements.records)}
-      lookupOrderForm={lookupPreparedOrderForm}
       // A truncated read is a prefix, not the set: the quote this page
       // selected and the agreement it bound may both be wrong, and the reader
       // is the one committing money on them.

@@ -1,15 +1,26 @@
-# Consolidated `main` repository-qualification report
+# Historical consolidated `main` repository-qualification report
 
 Date: 2026-08-01
 
 Branch: `main`
 
-Decision: **repository-qualified consolidation; explicitly not an RC or launch**
+Historical decision recorded on 2026-08-01: **repository-qualified
+consolidation; explicitly not an RC or launch**
 
-All repository-controlled work across P0/P1 is complete. The only remaining work
-is the exact production input and live evidence in `docs/external-gates.md`.
-Repository qualification does not activate a capability, authorize deployment,
-contact an external party, or infer human design approval.
+This document preserves the evidence and decision recorded on 2026-08-01. It is
+not evidence that the current `main` branch is repository-qualified. The current
+status is **post-merge and pre-qualification**: the canonical
+[`backlog.md`](./backlog.md) records open repository-controlled work, including
+P0-56, P0-71, and the section titled "Open residue from the ten merged
+work-streams." Those items are independent of the production inputs and live
+evidence tracked in [`external-gates.md`](./external-gates.md).
+
+At the time of this historical decision, the report asserted that all
+repository-controlled P0/P1 work was complete and only the production inputs and
+live evidence in `docs/external-gates.md` remained. Later review invalidated
+that assertion for the current repository state. Repository qualification does
+not activate a capability, authorize deployment, contact an external party, or
+infer human design approval.
 
 ## Correction recorded 2026-08-01
 
@@ -33,10 +44,12 @@ closed these:
 - the Fil One marks and palette are integrated, and the discount matrix with
   computed margin impact was added.
 
-Seven findings remain open. They are P0-40 through P0-46 in `docs/backlog.md`,
-and fifteen ledger requirements now carry `partial`. The ledger `reviewState` is
-`post-merge-pre-qualification`. The counts under "Traceability disposition"
-below describe the tagged commit and no longer describe `main`.
+At this point in the historical review, seven findings remained open. They were
+P0-40 through P0-46 in `docs/backlog.md`, and fifteen ledger requirements
+carried `partial`. The ledger `reviewState` was `post-merge-pre-qualification`.
+Those finding numbers and the counts under "Traceability disposition" below
+describe the historical repository state; consult the current backlog for the
+present qualification blockers.
 
 ## Commit-addressed identity
 

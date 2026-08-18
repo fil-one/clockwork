@@ -8,3 +8,4 @@ pnpm-lock.yaml
 # to the repository root and `.next-*/**` alone would match nothing there.
 **/.next-*/**
 deno.lock
+.github/CODEOWNERS

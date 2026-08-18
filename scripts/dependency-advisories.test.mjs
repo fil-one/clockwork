@@ -23,6 +23,10 @@ const acceptedHighAdvisories = new Map([
     "GHSA-5p2g-fcmc-qvqq",
     "image-size JXL/HEIF infinite loop: same package, same absent patched range, same build-only reach.",
   ],
+  [
+    "GHSA-jmr9-qjv8-65gv",
+    "extract-zip symlink traversal: every published version (<=2.0.1) is vulnerable and npm reports the patched range as `<0.0.0`, so no upgrade exists. Reached through the pinned netlify-cli > @netlify/dev > @netlify/functions-dev local zipped-function emulator; Clockwork's deploy workflow builds and publishes the repository and does not extract untrusted function archives.",
+  ],
 ]);
 
 // Transitives we do not control directly, held at a fixed version by the
@@ -39,8 +43,11 @@ const catalogFloors = [{ name: "hono", minimum: "4.12.34" }];
 // The accepted advisories are accepted only because the package has no fixed
 // release at all. That is a fact about the registry, not about this repository,
 // so it is checked against the registry rather than asserted once and trusted:
-// the day image-size publishes anything above this, the acceptance expires.
-const unpatchedPackages = [{ name: "image-size", highestPublished: "2.0.2" }];
+// the day either package publishes anything above this, the acceptance expires.
+const unpatchedPackages = [
+  { name: "image-size", highestPublished: "2.0.2" },
+  { name: "extract-zip", highestPublished: "2.0.1" },
+];
 
 function compareSemver(left, right) {
   const parse = (value) => value.split(".").map((part) => Number(part));

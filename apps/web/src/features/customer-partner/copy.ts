@@ -119,7 +119,7 @@ export const customerPartnerCopy = {
     agreementReview: "Review and accept agreement",
     orderReview: "Review resulting commitment",
     orderConfirmation:
-      "I reviewed the accepted quote, governing agreement, purchase order, service start, and resulting commitment.",
+      "I reviewed the accepted quote, governing agreement, purchase order, service start, service end, and resulting commitment.",
     orderTermsHelp:
       "Order terms come from accepted quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
     orderArtifactRetention:

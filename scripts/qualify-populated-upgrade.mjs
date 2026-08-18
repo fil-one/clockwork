@@ -74,7 +74,12 @@ function requireSuccess(command, args, options = {}) {
 
 function reset(version) {
   const args = ["exec", "supabase", "db", "reset", "--local"];
-  if (version) args.push("--version", version);
+  // The canonical seed evolves with the head schema. Replaying it against a
+  // historical migration can fail on tables or columns that did not exist at
+  // that version and turn this upgrade rehearsal into a test of the wrong
+  // artifact. Historical resets therefore skip the head seed and load the
+  // deliberately version-compatible fixture below.
+  if (version) args.push("--version", version, "--no-seed");
   if (supabaseWorkdir) args.push("--workdir", supabaseWorkdir);
   const result = requireSuccess("pnpm", args);
   process.stdout.write(result.stdout);
@@ -114,10 +119,76 @@ function loadLegacyFixture(sourceUpdatedAt) {
   psql(`
 begin;
 set local session_replication_role = replica;
-update public.accounts
-set row_version = 7,
-    updated_at = '2026-07-31 16:00:00.123456+00'
-where id = '${ACCOUNT_ID}';
+insert into public.accounts (
+  id, legal_name, relationship_roles, registered_address, billing_contact,
+  ap_contact, invoice_delivery_email, domain, country, currency,
+  screening_status, row_version, updated_at
+) values (
+  '${ACCOUNT_ID}', 'Populated upgrade fixture', array['direct_client'],
+  '{"line1":"1 Upgrade Way","city":"Boston","postalCode":"02108","country":"US"}',
+  '{"name":"Upgrade Billing","email":"billing@upgrade.test"}',
+  '{"name":"Upgrade AP","email":"ap@upgrade.test"}',
+  'ap@upgrade.test', 'upgrade.test', 'US', 'USD', 'clear', 7,
+  '2026-07-31 16:00:00.123456+00'
+);
+insert into public.commerce_users (
+  id, workos_user_id, email, name, is_internal_staff, mfa_enrolled
+) values (
+  '${USER_ID}', 'populated_upgrade_owner', 'owner@upgrade.test',
+  'Upgrade Owner', false, true
+);
+insert into public.quotes (
+  id, account_id, price_book_id, series_id, revision, status, currency,
+  total_minor, margin_floor_result, expires_at, created_by,
+  rendered_document_id, immutable_at
+) values (
+  '70000000-0000-4000-8000-000000000001', '${ACCOUNT_ID}',
+  '60000000-0000-4000-8000-000000000001',
+  '70100000-0000-4000-8000-000000000001', 1, 'accepted', 'USD',
+  180000, 'pass', '2026-08-31 16:00:00+00', '${USER_ID}',
+  '40000000-0000-4000-8000-000000000003',
+  '2026-01-01 16:00:00+00'
+);
+insert into public.orders (
+  id, quote_id, agreement_id, account_id, invoicing_account_id, sourcing,
+  po_number, signer_user_id, authority_title, authority_attested, status,
+  service_starts_on, service_ends_on, notice_on, order_form_document_id,
+  immutable_at
+) values (
+  '80000000-0000-4000-8000-000000000001',
+  '70000000-0000-4000-8000-000000000001',
+  '51000000-0000-4000-8000-000000000001', '${ACCOUNT_ID}', '${ACCOUNT_ID}',
+  'direct', 'PO-UPGRADE', '${USER_ID}', 'Upgrade Owner', true, 'amended',
+  '2026-01-01', '2026-12-31', '2026-11-01',
+  '40000000-0000-4000-8000-000000000004',
+  '2026-01-01 16:00:00+00'
+);
+insert into public.order_lines (
+  id, order_id, quote_line_id, sku, quantity, unit_price_minor,
+  overage_rate_minor
+) values (
+  '81000000-0000-4000-8000-000000000001',
+  '80000000-0000-4000-8000-000000000001',
+  '71000000-0000-4000-8000-000000000001',
+  'LOCKED-STORAGE-TB', 1, 15000, 18000
+);
+insert into public.core_order_line_snapshots (
+  id, order_line_id, snapshot, snapshot_hash
+) values (
+  '81100000-0000-4000-8000-000000000001',
+  '81000000-0000-4000-8000-000000000001',
+  '{"id":"81000000-0000-4000-8000-000000000001","quoteLineId":"71000000-0000-4000-8000-000000000001","sku":"LOCKED-STORAGE-TB","region":"us-east-2","quantity":"1","termMonths":12,"unitPrice":{"currency":"USD","minor":"15000"},"overageRate":{"currency":"USD","minor":"18000"},"lineTotal":{"currency":"USD","minor":"180000"},"commitType":"term_drawdown","stripeTaxCode":"txcd_demo","qboIncomeAccount":"4000-Storage"}',
+  '002c45d1dd255fba9878cd04a4f4d69d8922bf1b818504c09de72871b962085c'
+);
+insert into public.invoices (
+  id, order_id, account_id, stripe_invoice_id, currency, amount_minor,
+  po_number, status, due_at
+) values (
+  '90000000-0000-4000-8000-000000000001',
+  '80000000-0000-4000-8000-000000000001', '${ACCOUNT_ID}',
+  'in_populated_upgrade_fixture', 'USD', 180000, 'PO-UPGRADE', 'open',
+  '2026-08-31 16:00:00+00'
+);
 insert into public.experience_portal_projections (
   id, audience, audience_account_id, subject_account_id, channel, record_key,
   aggregate_type, aggregate_id, command_resource, payload, source_hash,
@@ -232,9 +303,9 @@ function queryJson(sql) {
   return JSON.parse(output);
 }
 
-// The drill only proves anything if the seed actually replayed against
-// PRE_UPGRADE_VERSION and stopped there. amount_paid_minor arrives in
-// 001340_invoice_partial_payments.sql, four migrations later, so its absence
+// The drill only proves anything if the reset stopped at PRE_UPGRADE_VERSION
+// and the version-compatible fixture populated it. amount_paid_minor arrives
+// in 001340_invoice_partial_payments.sql, four migrations later, so its absence
 // names the schema under test out loud instead of trusting the reset.
 function assertPreUpgradeSchema() {
   const state = queryJson(`
@@ -521,8 +592,8 @@ try {
   databaseVerified = true;
 
   reset(PRE_UPGRADE_VERSION);
-  assertPreUpgradeSchema();
   loadLegacyFixture("2026-07-31 16:00:00.123+00");
+  assertPreUpgradeSchema();
   const { locks } = applyMigration();
   assertUpgradeLockFootprint(locks);
   assertMatchedUpgrade();
@@ -534,8 +605,8 @@ try {
   );
 
   reset(PRE_UPGRADE_VERSION);
-  assertPreUpgradeSchema();
   loadLegacyFixture("2026-07-31 16:00:00.124+00");
+  assertPreUpgradeSchema();
   const { result: failedMigration } = applyMigration({ expectFailure: true });
   assert.notEqual(
     failedMigration.status,

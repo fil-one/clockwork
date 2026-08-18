@@ -1,9 +1,10 @@
 # Clockwork Commerce Platform: Production Build Specification
 
-**Status:** Approved production target with repository-qualified implementation
-on `main`; production activation remains governed by the checked-in external
-gate register and future launch checklist. This is not an RC, launch, or human
-design approval. Revised after three-lens adversarial review
+**Status:** Approved production target with a post-merge, pre-qualification
+implementation on `main`; repository-controlled gaps remain authoritative in
+`docs/backlog.md`, and production activation remains governed by the checked-in
+external gate register and future launch checklist. This is not an RC, launch,
+or human design approval. Revised after three-lens adversarial review
 (commercial/finance, buyer/legal/partner, engineering delivery) and aligned to
 the five-Codex production plan on July 31, 2026. **Author:** James Kurz, drafted
 with Claude. **Date:** July 31, 2026. **Source concept:** "The Frictionless
@@ -37,9 +38,9 @@ that looks and works like a mature cloud vendor's is proof of engineering
 quality. Every enterprise meeting and partner briefing demos the portal. The
 target is a complete and polished release; §22 records the historical five-lane
 and three-lane consolidation topology, while `main` is the only active branch.
-The implementation is repository-qualified. Features remain activation-gated
-only for exact registered external inputs; internal implementation is not
-deferred.
+The implementation is not yet repository-qualified. The canonical backlog
+records the remaining repository-controlled work; independently, features stay
+fail-closed until their exact registered external inputs are activated.
 
 The platform is international by design. Spain and the UK are the first non-US
 markets, not special cases: currency, tax, agreement variants, and residency are
@@ -921,24 +922,40 @@ replacement for authorization in the API and domain layers.
 
 ### Public API contract
 
-The generated Hono/OpenAPI contract uses `/v1` as its prefix. The standalone
-Next.js application mounts that contract beneath `/api`, so browser-visible
-production URLs use `/api/v1`. In the list below, paths are shown as their
-browser-visible mounted URLs; after the first explicit prefix, unprefixed paths
-are relative to `/api/v1`:
+The generated OpenAPI 3.1 document at
+`packages/api/src/generated/openapi.json` is the contract authority. At the
+reviewed SHA it contains 58 paths and 59 operations across two mounted
+surfaces:
 
-- `/api/v1/auth`, `/organizations`, `/memberships`, `/accounts`, and
-  `/procurement-profiles`;
-- `/agreements`, `/agreement-templates`, `/acceptances`, and `/notices`;
-- `/price-books`, `/quotes`, `/orders`, `/amendments`, and `/entitlements`;
-- `/usage`, `/commitments`, `/invoices`, `/payments`, `/credits`, `/refunds`,
-  and `/disputes`;
-- `/partners`, `/registrations`, `/commissions`, `/distributors`, and
-  `/marketplaces`;
-- `/pocs`, `/renewals`, `/terminations`, and `/certificates`;
-- `/exceptions`, `/approvals`, and `/notifications`;
-- `/reports`, `/exports`, and `/reconciliations`; and
-- `/admin/*` for back-office assisted operations.
+- 52 Hono operations use the `/v1` prefix and are mounted by the standalone
+  Next.js application beneath `/api`, producing browser-visible `/api/v1/...`
+  URLs. Their route families are `/core` (generic commands, records, reports,
+  artifacts, replays, payment sessions, and status), `/lifecycle`
+  (registration, account selection, agreements, POCs, renewals, termination,
+  provisioning recovery, exceptions, and migration), `/notifications`,
+  `/system` (external gates, exception routing, and status), and `/webhooks`.
+- Seven experience-projection and artifact operations are Next.js controllers
+  mounted directly beneath `/api/experience/...`; they are included in the same
+  generated document but are not Hono `/api/v1` routes.
+
+The contract does not currently define concrete resource paths such as
+`/api/v1/quotes` or `/api/v1/orders`; commerce access is represented by the
+generic `/api/v1/core/commands/{resource}` and
+`/api/v1/core/records/{resource}` operations plus the named lifecycle routes.
+Generated clients must follow the committed OpenAPI document rather than infer
+paths from the domain model.
+
+Authentication is enforced in the runtime handlers but is not yet fully
+described per operation in OpenAPI. Seven experience operations declare the
+interactive `experienceSession` cookie scheme. Of the 52 operations without an
+OpenAPI security requirement, runtime classification identifies 42 that require
+a browser session plus permission/account scope, six provider-signed webhooks,
+one registration bootstrap-token operation, and three status operations whose
+handlers authenticate nobody. No machine credential that an external
+integrator can issue, list, revoke, and present exists yet. The developer
+reference exposes and tests this classification, but the public contract is not
+machine-integration-ready until the intended integration operations and their
+security schemes are represented directly in OpenAPI.
 
 Provider callbacks use `/v1/webhooks/*` in the Hono/OpenAPI contract and enter
 the deployed application through `/api/v1/webhooks/workos`,
@@ -1098,15 +1115,15 @@ invoiced in GBP with a bank-transfer path.
 | Teardown invariant                                                  | Automation is complete behind a feature flag and two-person approval; production activation requires explicit authorization                                           | Written product/security/legal decision                          |
 | Stripe-to-QBO                                                       | AR at issuance for terms is mandatory; auto-charge may post by payout summary                                                                                          | Connector selection, accounts, and accountant approval           |
 | Existing-base migration                                             | Complete dry-run, review, execution, and recovery tooling ships behind a feature flag                                                                                   | Production source access, authorization, and migration window    |
-| White-label, marketplaces, distributor, embedded signing, SSO, support | Fully implemented and tested; production features activate independently after their accounts, domains, policies, branding, or enrollments pass activation tests     | Feature-specific external inputs only                            |
+| White-label, marketplaces, distributor, embedded signing, SSO, support | Implemented surfaces and deterministic tests exist; production activation and any repository residue remain governed by the backlog, provider composition, and feature-specific gates | Repository backlog plus feature-specific external inputs        |
 
-Only genuine external dependencies may remain gated: managed provider accounts
-and scoped credentials; counsel-approved text, thresholds, retention and
-screening rules; final price/margin/claims and credit data; provider selection;
-the product provisioning API; tax/accounting decisions; production domains and
-email records; brand assets; named approvers; production migration access and
-window; and explicit teardown authorization. Every gate has an ID, owner/input,
-affected feature, simulator coverage, activation test, and launch severity in
+Repository work and external dependencies are tracked separately. The former is
+authoritative in `docs/backlog.md`; the latter includes managed provider
+accounts and scoped credentials, counsel-approved text and policy, signed
+commercial and tax inputs, the product provisioning API, production domains,
+brand approval, named operators, production migration access, and explicit
+teardown authorization. Every external gate has an ID, owner/input, affected
+feature, simulator coverage, activation test, and launch severity in
 `docs/external-gates.md`.
 
 ---
@@ -1188,8 +1205,8 @@ The release scope includes embedded signing, SSO, white-label, AWS/Azure/GCP
 marketplaces, two-tier distributor settlement, support visibility,
 existing-base migration tooling, automated teardown, and the complete report
 suite. Presence of a schema, fake, route shell, candidate task, or renderer did
-not by itself establish completion; the repository-qualified traceability
-ledger and backlog are the current status authority. A feature can remain
+not by itself establish completion; the traceability ledger and backlog are the
+current status authority. A feature can remain
 disabled only for a registered external
 account, credential, legal/commercial decision, production data set, or explicit
 authorization, and every disabled feature requires a simulator and activation

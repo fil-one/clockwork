@@ -68,58 +68,68 @@ export class HttpEsignSigningClient implements EsignSigningClient {
     const fetchImplementation = this.configuration.fetchImplementation ?? fetch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    let response: Response;
     try {
-      response = await fetchImplementation(
-        new URL("v1/envelopes", this.endpoint),
-        {
-          method: "POST",
-          redirect: "error",
-          signal: controller.signal,
-          headers: {
-            accept: "application/json",
-            authorization: `Bearer ${this.configuration.apiKey}`,
-            "content-type": "application/json",
-            "idempotency-key": input.idempotencyKey,
+      let response: Response;
+      try {
+        response = await fetchImplementation(
+          new URL("v1/envelopes", this.endpoint),
+          {
+            method: "POST",
+            redirect: "error",
+            signal: controller.signal,
+            headers: {
+              accept: "application/json",
+              authorization: `Bearer ${this.configuration.apiKey}`,
+              "content-type": "application/json",
+              "idempotency-key": input.idempotencyKey,
+            },
+            body: JSON.stringify({
+              externalReference: input.externalReference,
+              accountId: input.accountId,
+              documentId: input.documentId,
+              documentBase64: Buffer.from(input.documentBytes).toString(
+                "base64",
+              ),
+              documentSha256: input.documentSha256,
+              signerEmail: input.signerEmail.toLowerCase(),
+              mode: input.mode,
+              returnUrl: input.returnUrl,
+            }),
           },
-          body: JSON.stringify({
-            externalReference: input.externalReference,
-            accountId: input.accountId,
-            documentId: input.documentId,
-            documentBase64: Buffer.from(input.documentBytes).toString("base64"),
-            documentSha256: input.documentSha256,
-            signerEmail: input.signerEmail.toLowerCase(),
-            mode: input.mode,
-            returnUrl: input.returnUrl,
-          }),
-        },
-      );
-    } catch (cause) {
-      throw new Error(
-        controller.signal.aborted
-          ? "E-sign envelope request timed out"
-          : "E-sign envelope request failed",
-        { cause },
-      );
+        );
+      } catch (cause) {
+        throw new Error(
+          controller.signal.aborted
+            ? "E-sign envelope request timed out"
+            : "E-sign envelope request failed",
+          { cause },
+        );
+      }
+      try {
+        if (!response.ok)
+          throw new Error(
+            `E-sign envelope request failed with status ${response.status}`,
+          );
+        const result = CreateEnvelopeResponseSchema.parse(
+          parseBoundedJson(await boundedText(response, controller.signal)),
+        );
+        const signingUrl = new URL(result.signingUrl);
+        if (
+          signingUrl.protocol !== "https:" ||
+          signingUrl.username ||
+          signingUrl.password ||
+          !this.signingOrigins.has(signingUrl.origin)
+        )
+          throw new Error("E-sign provider returned an untrusted signing URL");
+        return { ...result, signingUrl: signingUrl.toString() };
+      } catch (cause) {
+        if (controller.signal.aborted)
+          throw new Error("E-sign envelope request timed out", { cause });
+        throw cause;
+      }
     } finally {
       clearTimeout(timer);
     }
-    if (!response.ok)
-      throw new Error(
-        `E-sign envelope request failed with status ${response.status}`,
-      );
-    const result = CreateEnvelopeResponseSchema.parse(
-      parseBoundedJson(await boundedText(response)),
-    );
-    const signingUrl = new URL(result.signingUrl);
-    if (
-      signingUrl.protocol !== "https:" ||
-      signingUrl.username ||
-      signingUrl.password ||
-      !this.signingOrigins.has(signingUrl.origin)
-    )
-      throw new Error("E-sign provider returned an untrusted signing URL");
-    return { ...result, signingUrl: signingUrl.toString() };
   }
 }
 
@@ -128,14 +138,50 @@ export class HttpEsignSigningClient implements EsignSigningClient {
  * refuses an oversized payload before it is read, and the read itself is
  * measured because content-length is provider-supplied and optional.
  */
-async function boundedText(response: Response): Promise<string> {
+async function boundedText(
+  response: Response,
+  signal: AbortSignal,
+): Promise<string> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES)
     throw new Error("E-sign envelope response exceeded the maximum size");
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_RESPONSE_BYTES)
-    throw new Error("E-sign envelope response exceeded the maximum size");
-  return text;
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  let rejectAborted!: (reason: DOMException) => void;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectAborted = reject;
+  });
+  const abort = () =>
+    rejectAborted(new DOMException("The operation was aborted", "AbortError"));
+  signal.addEventListener("abort", abort, { once: true });
+  if (signal.aborted) abort();
+  try {
+    while (true) {
+      const { done, value } = await Promise.race([reader.read(), aborted]);
+      if (done) break;
+      length += value.byteLength;
+      if (length > MAX_RESPONSE_BYTES) {
+        void reader.cancel().catch(() => {});
+        throw new Error("E-sign envelope response exceeded the maximum size");
+      }
+      chunks.push(value);
+    }
+  } catch (error) {
+    if (signal.aborted) void reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    signal.removeEventListener("abort", abort);
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 function parseBoundedJson(text: string): unknown {

@@ -122,6 +122,9 @@ describe("shell overlay dismissal", () => {
    * nowhere, so the order is pinned here: every drawer link hands its href to
    * the router, and only then does the drawer close.
    */
+  // This assertion deliberately opens and dismisses every internal drawer
+  // destination. Its measured runtime is longer than Vitest's 5-second
+  // single-interaction default even though every bounded wait succeeds.
   it("routes from every drawer link before the drawer closes", async () => {
     const user = userEvent.setup();
     renderShell();
@@ -156,7 +159,7 @@ describe("shell overlay dismissal", () => {
       expect(push).toHaveBeenCalledWith(href);
       await closed();
     }
-  });
+  }, 15_000);
 
   it("closes the profile popover on Escape and returns focus to the trigger", async () => {
     const user = userEvent.setup();

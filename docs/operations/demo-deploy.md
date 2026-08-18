@@ -29,8 +29,8 @@ changes nothing on the live site.
 From the repository root, on `main`, with a clean tree:
 
 ```sh
-CI=1 NETLIFY_AUTH_TOKEN=nfp_if4DBUaRcnmfdH8VK5GR1P3dceNtJw8y1cf2 \
-  npx -y netlify-cli@latest deploy --build --prod \
+CI=1 NETLIFY_AUTH_TOKEN="${NETLIFY_AUTH_TOKEN:?set NETLIFY_AUTH_TOKEN}" \
+  pnpm exec netlify deploy --build --prod \
   --site e6b53765-8195-4fd4-b1c9-48a5ca8ef0b7 \
   --filter @clockwork/web
 ```
@@ -47,9 +47,14 @@ What each piece does:
 - `--filter @clockwork/web` selects the web app in the monorepo. Without it the
   CLI stops on an interactive project picker; `CI=1` suppresses the rest of the
   prompts.
-- The token is a Netlify personal access token, stored here deliberately
-  (private repository, James's call). If it stops working, create a new one at
-  Netlify → User settings → Applications → Personal access tokens.
+- The Netlify CLI invocation, Next.js build plugin, Node, and pnpm versions are
+  pinned in this command, `package.json`, `netlify.toml`, and the root toolchain
+  files. Use the checked-in command; do not substitute an unpinned
+  `npx ...@latest` invocation.
+- The token is a Netlify personal access token supplied through the process
+  environment only; it is never written to this repository or a local `.env`. If
+  it stops working, create a new one at Netlify → User settings → Applications →
+  Personal access tokens.
 
 ## Environment
 
@@ -123,7 +128,35 @@ something that has actually broken here:
    does not imply packaged success.
 5. **Quote → order acceptance completes**, past the order form and onto a
    created order. This was a permanent dead end before it was fixed; it is the
-   flagship journey.
+   flagship journey. Run the reproducible path, not an arbitrary acceptable
+   quote:
+
+   1. From `/demo`, choose **Start as Mara Voss**. She lands on `/dashboard`.
+      Open **Demo controls** and follow **Review the issued version and proceed
+      to acceptance.** to `/quotes/quote-direct-renewal-v2`.
+   2. Confirm the record says **Annual renewal · committed capacity** and
+      **Issued · awaiting acceptance**. Choose **Review and accept order**. The
+      destination must be `/orders/accept?quote=quote-direct-renewal-v2`, and
+      its promise chain must name **Accepted quote Q-2026-0312 · version 2**;
+      the route key and projection-row version are not the commercial quote
+      identity.
+   3. Enter **Purchase order** `PO-DEMO-0312`, **Service start** `2027-01-01`,
+      **Service end** `2027-12-31`, and **Authority title**
+      `Operations Director`. Check the confirmation that names both ends of the
+      service term, then choose **Accept order and create commitment**.
+   4. Wait for **Open the order form**. Open it and verify the response is a
+      real PDF (`application/pdf`, beginning `%PDF-`) that carries the entered
+      PO and service term. Then choose **Create the order and commitment**.
+   5. Confirm **Order created. Its commitment and provisioning state are now
+      authoritative.**, follow **Open the created order**, and verify the
+      resulting record says **Committed capacity · PO-DEMO-0312** and **Active ·
+      accepted in this session**. Reopen `/quotes/quote-direct-renewal-v2`: it
+      must now say **Accepted · order created** and must not offer **Review and
+      accept order** again.
+   6. Use **Restore demo data** and confirm **Reset demo**. The created-order
+      route must become unavailable after reload. This cleanup is mandatory on
+      draft and production because both deploys share the site's Blob state.
+
 6. **"Sign this agreement"** reaches the ceremony and returns. This depends on
    `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS` containing the site's **own** origin —
    the ceremony URL is same-origin and the client refuses any signing URL

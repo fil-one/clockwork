@@ -3,11 +3,11 @@
 # package.json declares packageManager pnpm@10.34.5, so the platform provisions
 # pnpm and installs from the lockfile before this command runs.
 [build]
-  command = "pnpm exec turbo run build --filter=@clockwork/web"
+  command = "node scripts/check-demo-deploy-environment.mjs && pnpm exec turbo run build --filter=@clockwork/web"
   publish = "apps/web/.next"
 
 [build.environment]
-  NODE_VERSION = "24"
+  NODE_VERSION = "24.18.1"
   TURBO_TELEMETRY_DISABLED = "1"
 
 [[plugins]]

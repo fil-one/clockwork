@@ -24,7 +24,6 @@ import {
   DatabaseWebhookDeduplicator,
   type DatabaseLifecyclePolicies,
 } from "@clockwork/db";
-import { uuidV7 } from "@clockwork/contracts";
 import {
   DnsTxtDomainOwnershipVerifier,
   EsignWebhookVerifier,
@@ -43,12 +42,10 @@ import {
   WorkosRegistrationBootstrapVerifier,
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
-import {
-  denialSpanAttributes,
-  parseTraceparent,
-} from "@clockwork/integrations/telemetry";
+import { denialSpanAttributes } from "@clockwork/integrations/telemetry";
 import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
 
+import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
 import { WorkosNextSessionResolver } from "@/src/auth/session";
 import {
   getOptionalRuntimeDatabase,
@@ -495,8 +492,11 @@ const supportWebhook =
         deduplicator: webhookDeduplicator,
       }
     : undefined;
+const sessionResolver = new WorkosNextSessionResolver({
+  requireBoundSession: true,
+});
 const api = createApiApp({
-  sessionResolver: new WorkosNextSessionResolver(),
+  sessionResolver,
   ...(trustedOriginResolver ? { trustedOriginResolver } : {}),
   ...(idempotencyStore ? { idempotencyStore } : {}),
   ...(coreService
@@ -558,42 +558,55 @@ const api = createApiApp({
     : {}),
 });
 
+function isAnonymousRegistration(request: Request, pathname: string): boolean {
+  return (
+    request.method === "POST" && pathname === "/v1/lifecycle/registrations"
+  );
+}
+
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
   url.pathname = url.pathname.replace(/^\/api/, "") || "/";
-  const requestId = request.headers.get("x-request-id") ?? uuidV7();
-  const parent = parseTraceparent(request.headers.get("traceparent"));
-  const route = url.pathname.startsWith("/v1/webhooks/")
+  const isWebhook = url.pathname.startsWith("/v1/webhooks/");
+  const isRegistration = isAnonymousRegistration(request, url.pathname);
+  const route = isWebhook
     ? "/v1/webhooks/{provider}"
     : url.pathname.startsWith("/v1/")
       ? "/v1/{lane}/{resource}"
       : "/{resource}";
-  return runtimeBoundaryInstrumentation.api({
-    name: "api.request",
-    correlation: { requestId },
-    attributes: {
-      "clockwork.operation": "api.request",
-      "http.request.method": request.method,
-      "http.route": route,
-    },
-    ...(parent ? { parent } : {}),
-    onResult: denialSpanAttributes,
-    operation: () => {
-      const dispatch = () =>
-        Promise.resolve(api.fetch(new Request(url, request)));
-      return url.pathname.startsWith("/v1/webhooks/")
-        ? runtimeBoundaryInstrumentation.webhook({
-            name: "webhook.request",
-            correlation: { requestId },
-            attributes: {
-              "clockwork.operation": "webhook.request",
-              "http.request.method": request.method,
-              "http.route": "/v1/webhooks/{provider}",
-            },
-            onResult: denialSpanAttributes,
-            operation: dispatch,
-          })
-        : dispatch();
+  return withRawApiAuthentication({
+    request,
+    targetUrl: url,
+    sessionResolver,
+    authenticationRequired: !isWebhook && !isRegistration,
+    telemetryRoute: route,
+    dispatch: (apiRequest, requestId) => {
+      return runtimeBoundaryInstrumentation.api({
+        name: "api.request",
+        correlation: { requestId },
+        attributes: {
+          "clockwork.operation": "api.request",
+          "http.request.method": apiRequest.method,
+          "http.route": route,
+        },
+        onResult: denialSpanAttributes,
+        operation: () => {
+          const dispatch = () => Promise.resolve(api.fetch(apiRequest));
+          return isWebhook
+            ? runtimeBoundaryInstrumentation.webhook({
+                name: "webhook.request",
+                correlation: { requestId },
+                attributes: {
+                  "clockwork.operation": "webhook.request",
+                  "http.request.method": apiRequest.method,
+                  "http.route": "/v1/webhooks/{provider}",
+                },
+                onResult: denialSpanAttributes,
+                operation: dispatch,
+              })
+            : dispatch();
+        },
+      });
     },
   });
 }

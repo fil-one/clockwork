@@ -4,10 +4,7 @@ import { DatabaseSystemRecoveryCommandExecutor } from "@clockwork/db";
 import type { DeadLetterSource } from "@clockwork/db";
 import { revalidatePath } from "next/cache";
 
-import {
-  getCommerceSession,
-  requireRecentAuthentication,
-} from "@/src/auth/session";
+import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { redriveRetriedWork } from "./redrive";
@@ -54,12 +51,12 @@ export async function decideDeadLetterOperation(
   const database = getOptionalServiceDatabase();
   if (!database) return { ok: false, code: "SYSTEM_RECOVERY_UNAVAILABLE" };
 
+  let session;
   try {
-    await requireRecentAuthentication();
+    session = await requireRecentAuthentication();
   } catch {
     return { ok: false, code: "SYSTEM_RECOVERY_RECENT_AUTH_REQUIRED" };
   }
-  const session = await getCommerceSession();
   const requestId = `experience:recovery:${crypto.randomUUID()}`;
   const result = await new DatabaseSystemRecoveryCommandExecutor({
     database,

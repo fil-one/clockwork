@@ -146,6 +146,71 @@ describe("FetchJsonProviderTransport", () => {
     );
   });
 
+  it("stops reading a chunked response as soon as it exceeds the byte limit", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(700_000));
+        controller.enqueue(new Uint8Array(700_000));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const transport = new FetchJsonProviderTransport({
+      baseUrl: "https://provider.example/",
+      bearerToken: "secret-token",
+      provider: "example",
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { status: 200 })),
+    });
+
+    await expect(
+      transport.request({
+        operation: "objects.create",
+        path: "/v1/objects",
+        body: {},
+        response: z.object({ id: z.string() }),
+      }),
+    ).rejects.toMatchObject({
+      kind: "permanent",
+      code: "PROVIDER_RESPONSE_TOO_LARGE",
+    });
+    expect(cancelled).toBe(true);
+  });
+
+  it("keeps the deadline active after headers while the response body stalls", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const transport = new FetchJsonProviderTransport({
+      baseUrl: "https://provider.example/",
+      bearerToken: "secret-token",
+      provider: "example",
+      timeoutMs: 100,
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(body, { status: 200 })),
+    });
+
+    await expect(
+      transport.request({
+        operation: "objects.create",
+        path: "/v1/objects",
+        body: {},
+        response: z.object({ id: z.string() }),
+      }),
+    ).rejects.toMatchObject({
+      kind: "transient",
+      code: "PROVIDER_TIMEOUT",
+    });
+    expect(cancelled).toBe(true);
+  });
+
   it("keeps the original throw as the cause of every transport failure", async () => {
     const network = new TypeError("ECONNRESET reading provider.example");
     async function failure(fetcher: typeof fetch, response: z.ZodType) {

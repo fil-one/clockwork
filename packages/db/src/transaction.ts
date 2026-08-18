@@ -4,7 +4,11 @@ import { sql } from "drizzle-orm";
 
 import type { Role, UserId } from "@clockwork/contracts";
 
-import type { RuntimeDatabase, RuntimeTransaction } from "./client";
+import {
+  configuredServiceConnectionRole,
+  type RuntimeDatabase,
+  type RuntimeTransaction,
+} from "./client";
 
 export interface DatabaseAuthorizationContext {
   userId: UserId;
@@ -109,6 +113,8 @@ export async function withAuthorizedTransaction<T>(
  * would hand the tenant pool a standing exit from row-level security.
  */
 const RUNTIME_CONNECTION_ROLE = "clockwork_runtime";
+const SERVICE_CONNECTION_ROLE = "clockwork_service";
+const LOCAL_SUPERUSER_ROLE = "postgres";
 
 /**
  * Raised when an internal transaction is asked to run on a connection that
@@ -143,33 +149,45 @@ export function internalTransactionConnectionRole(
 }
 
 /**
- * The tenant pool is refused in every environment. A handle that reports no
- * connection role at all is refused in production, where every RuntimeDatabase
- * comes from createRuntimeDatabase() and therefore always reports one -- so the
- * only thing that can reach that branch in production is a handle the control
- * cannot classify, and an unclassifiable input must deny. Outside production the
- * same branch is reached by unit-test doubles, which have no connection to
- * escalate on; createRuntimeDatabase() gates its own role check on NODE_ENV for
- * the same reason.
+ * Remote production admits only the canonical service login. A database built
+ * explicitly as the service pool also carries its exact configured login; this
+ * supports isolated local release proof and production-like pool-separation
+ * tests without accepting a name prefix. The local Supabase superuser and
+ * role-less unit-test doubles are otherwise accepted only outside production,
+ * where the separate service login does not exist or no database connection
+ * exists at all. Every other named role is refused in every environment. This
+ * is an allow-list: rejecting only the known tenant role would let a future or
+ * misconfigured login attempt `set local role clockwork_service` before this
+ * boundary detected it.
  *
  * The check lives inside the helper rather than in a lint over the call sites so
- * that a future call site cannot route around it. Local and CI connections
- * authenticate as `postgres`, a member of both roles, so it is inert exactly
- * where the boundary itself is inert and binds exactly where production
- * separates the two logins.
+ * that a future call site cannot route around it. Local and CI service handles
+ * authenticate as `postgres`, a member of both roles, and are admitted only by
+ * their explicit service-pool binding (or the non-production fallback). Remote
+ * production still binds only the canonical service login.
  */
-function assertServicePool(db: RuntimeDatabase): void {
+export function assertInternalTransactionServicePool(
+  db: RuntimeDatabase,
+): void {
   const role = internalTransactionConnectionRole(db);
-  if (role === RUNTIME_CONNECTION_ROLE)
-    throw new InternalTransactionPoolError(
-      role,
-      `Internal transaction refused: the handle authenticates as ${RUNTIME_CONNECTION_ROLE}, which is not a member of clockwork_service. Pass the service pool; do not grant the membership`,
-    );
-  if (role === undefined && process.env.NODE_ENV === "production")
-    throw new InternalTransactionPoolError(
-      role,
-      "Internal transaction refused: the database handle does not report the role its connection authenticates as, so it cannot be shown to be the clockwork_service pool",
-    );
+  const configuredRole = configuredServiceConnectionRole(db);
+  if (role === SERVICE_CONNECTION_ROLE) return;
+  if (configuredRole !== undefined && role === configuredRole) return;
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (role === LOCAL_SUPERUSER_ROLE || role === undefined)
+  )
+    return;
+  const detail =
+    role === RUNTIME_CONNECTION_ROLE
+      ? `${RUNTIME_CONNECTION_ROLE}, which is not a member of ${SERVICE_CONNECTION_ROLE}. Pass the service pool; do not grant the membership`
+      : role === undefined
+        ? `no connection role, so it cannot be shown to be the ${SERVICE_CONNECTION_ROLE} pool`
+        : `${role}, which is not an allowed internal-transaction connection role`;
+  throw new InternalTransactionPoolError(
+    role,
+    `Internal transaction refused: the handle reports ${detail}`,
+  );
 }
 
 export async function withInternalTransaction<T>(
@@ -177,7 +195,7 @@ export async function withInternalTransaction<T>(
   requestId: string,
   operation: (transaction: RuntimeTransaction) => Promise<T>,
 ): Promise<T> {
-  assertServicePool(db);
+  assertInternalTransactionServicePool(db);
   return instrumentedTransaction({
     kind: "internal",
     requestId,

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProblemDetailsSchema } from "@clockwork/contracts";
@@ -16,7 +17,9 @@ const telemetrySecret = "proxy-telemetry-ingest-secret-of-ample-length";
 vi.stubEnv("CLOCKWORK_TELEMETRY_INGEST_SECRET", telemetrySecret);
 vi.stubEnv("NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS", "https://esign.example.test");
 
-const { default: proxy } = await import("../proxy");
+const proxyModule = await import("../proxy");
+const proxy = proxyModule.default;
+const proxyConfig = proxyModule.config;
 
 function event() {
   const pending: Promise<unknown>[] = [];
@@ -84,6 +87,45 @@ afterEach(() => {
 });
 
 describe("content security policy", () => {
+  it("keeps self-authenticating APIs and body-bearing actions outside the proxy", () => {
+    const matches = (pathname: string, headers?: Record<string, string>) =>
+      unstable_doesMiddlewareMatch({
+        config: proxyConfig,
+        url: `https://demo.clockwork.test${pathname}`,
+        ...(headers ? { headers } : {}),
+      });
+
+    expect(matches("/api/v1")).toBe(false);
+    expect(matches("/api/v1/")).toBe(false);
+    expect(matches("/api/v1/core/commands/orders")).toBe(false);
+    expect(matches("/api/v1/core/commands/quotes")).toBe(false);
+    expect(matches("/api/v1/webhooks")).toBe(false);
+    expect(matches("/api/v1/webhooks/stripe")).toBe(false);
+    expect(matches("/api/experience")).toBe(false);
+    expect(matches("/api/experience/projections/customer/quotes")).toBe(false);
+    // Similar prefixes are not part of the v1 namespace.
+    expect(matches("/api/v1x/core/commands/orders")).toBe(true);
+    expect(matches("/api/experiential")).toBe(true);
+    expect(matches("/customer/dashboard")).toBe(true);
+    expect(
+      matches("/customer/dashboard", { "content-type": "application/json" }),
+    ).toBe(true);
+    expect(
+      matches("/internal/recovery", { "next-action": "a".repeat(40) }),
+    ).toBe(false);
+    expect(
+      matches("/internal/recovery", {
+        "content-type": "multipart/form-data; boundary=clockwork",
+      }),
+    ).toBe(false);
+    expect(
+      matches("/internal/recovery", {
+        "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+      }),
+    ).toBe(false);
+    expect(matches("/brand/clockwork.svg")).toBe(false);
+  });
+
   it("serves a nonce policy on the response and forwards it to the renderer", async () => {
     const response = await documentResponse();
     const policy = response.headers.get("content-security-policy");

@@ -158,12 +158,8 @@ function record(
  * ----------------------------------------------------------------------- */
 
 const directJourney: readonly DemoPortalRecord[] = [
-  record(
-    "customer",
-    "quotes",
-    "quote-direct-renewal-v2",
-    DIRECT,
-    commercial({
+  record("customer", "quotes", "quote-direct-renewal-v2", DIRECT, {
+    ...commercial({
       kind: "quotes",
       id: "quote-direct-renewal-v2",
       title: "Annual renewal · committed capacity",
@@ -180,7 +176,13 @@ const directJourney: readonly DemoPortalRecord[] = [
       nextAction: "Accept before the notice window opens",
       allowedActions: ["accept", "expire"],
     }),
-  ),
+    // These are commercial identity, not projection metadata. The row's
+    // `version` remains the materialized projection version; the acceptance
+    // ceremony and its paper name the quote number and revision carried by
+    // the authoritative quote snapshot instead.
+    reference: "Q-2026-0312",
+    authoritative: { revision: 2 },
+  }),
   record(
     "customer",
     "billing",

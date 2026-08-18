@@ -181,6 +181,8 @@ jobs:
         with:
           pattern: release-*
           path: .artifacts/release-join
+      - name: Validate repository governance policy
+        run: node --test scripts/release-artifacts.test.mjs
       - name: Require every shard, isolation contract, and 30-minute budget
         env:
           RELEASE_SHARDS_RESULT: ${{ needs.release-shards.result }}

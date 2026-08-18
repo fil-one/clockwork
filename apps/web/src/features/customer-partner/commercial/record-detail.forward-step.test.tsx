@@ -90,12 +90,31 @@ describe("forward step references", () => {
     );
   });
 
-  it("sends the quote's record key to order acceptance", async () => {
+  it("does not send an accepted quote through acceptance again", async () => {
     expect(
       await forwardStep("quotes", recordKeys.quotes, { status: "accepted" }),
-    ).toContain(
+    ).toEqual([]);
+  });
+
+  it("offers an issued quote its binding acceptance step", async () => {
+    const view = render(
+      await CommercialRecordDetail({
+        canMutate: true,
+        id: recordKeys.quotes,
+        record: projected("quotes", {
+          status: "open",
+          statusLabel: "Issued · awaiting acceptance",
+        }),
+      }),
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Review and accept order" }),
+    ).toHaveAttribute(
+      "href",
       `/orders/accept?quote=${encodeURIComponent(recordKeys.quotes)}`,
     );
+    view.unmount();
   });
 
   it("sends the quote's record key to the revision builder", async () => {

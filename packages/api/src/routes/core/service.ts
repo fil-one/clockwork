@@ -88,6 +88,7 @@ export interface CoreFinanceService {
     provider: string;
     eventId: string;
     actor: Actor;
+    reason: string;
     requestId: string;
   }): Promise<{ replayed: boolean; workflowRunId: string }>;
 }
@@ -391,6 +392,7 @@ export class MemoryCoreFinanceService implements CoreFinanceService {
     provider: string;
     eventId: string;
     actor: Actor;
+    reason: string;
     requestId: string;
   }) {
     const key = `${input.provider}:${input.eventId}`;

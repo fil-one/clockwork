@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { hasPermission } from "@clockwork/contracts";
 
-import {
-  getCommerceSession,
-  requireRecentAuthentication,
-} from "@/src/auth/session";
+import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordUnhandledErrorDecision } from "./decision-store";
@@ -69,13 +66,13 @@ export async function decideUnhandledError(
   const database = getOptionalServiceDatabase();
   if (!database) return { ok: false, code: "UNHANDLED_ERROR_UNAVAILABLE" };
 
+  let session;
   try {
-    await requireRecentAuthentication();
+    session = await requireRecentAuthentication();
   } catch {
     return { ok: false, code: "UNHANDLED_ERROR_RECENT_AUTH_REQUIRED" };
   }
 
-  const session = await getCommerceSession();
   const permitted =
     session.isInternalStaff &&
     session.roles.some((role) => hasPermission(role, "system:operate"));
