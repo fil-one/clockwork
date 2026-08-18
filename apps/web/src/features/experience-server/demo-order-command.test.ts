@@ -7,11 +7,13 @@ import {
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
-  getCommerceSession: vi.fn(),
+  ambientSession: vi.fn(() =>
+    Promise.reject(new Error("ambient session access is forbidden")),
+  ),
 }));
 
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: mocks.getCommerceSession,
+  getCommerceSession: mocks.ambientSession,
 }));
 
 vi.mock("./demo-order-acceptance", () => ({
@@ -22,6 +24,15 @@ import { handleDemoOrderCommand } from "./demo-order-command";
 
 const accountId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
+const session = {
+  userId,
+  organizationId: "66666666-6666-4666-8666-666666666666",
+  accountIds: [accountId],
+  roles: ["owner" as const],
+  isInternalStaff: false,
+  mfaVerified: true,
+  recentAuthenticationVerified: true,
+};
 
 function request(
   idempotencyKey = "demo-order-command-0001",
@@ -58,15 +69,6 @@ function request(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getCommerceSession.mockResolvedValue({
-    userId,
-    organizationId: "66666666-6666-4666-8666-666666666666",
-    accountIds: [accountId],
-    roles: ["owner"],
-    isInternalStaff: false,
-    mfaVerified: true,
-    recentAuthenticationVerified: true,
-  });
   mocks.execute.mockResolvedValue({
     replayed: true,
     result: {
@@ -95,14 +97,14 @@ describe("the demo order command boundary", () => {
     const deniedRequest = request();
     const deniedBodyRead = vi.spyOn(deniedRequest, "arrayBuffer");
 
-    const denied = await handleDemoOrderCommand(deniedRequest);
+    const denied = await handleDemoOrderCommand(deniedRequest, session);
 
     expect(denied.status).toBe(403);
     await expect(denied.json()).resolves.toMatchObject({
       code: "DEMO_ACCESS_REQUIRED",
     });
     expect(deniedBodyRead).not.toHaveBeenCalled();
-    expect(mocks.getCommerceSession).not.toHaveBeenCalled();
+    expect(mocks.ambientSession).not.toHaveBeenCalled();
     expect(mocks.execute).not.toHaveBeenCalled();
 
     const grant = await issueDemoAccessCookie(password);
@@ -110,6 +112,7 @@ describe("the demo order command boundary", () => {
       request("demo-order-command-0002", {
         cookie: `${demoAccessCookieName}=${grant.value}`,
       }),
+      session,
     );
 
     expect(allowed.status).toBe(200);
@@ -117,12 +120,15 @@ describe("the demo order command boundary", () => {
   });
 
   it("requires order:write even when the account is in session scope", async () => {
-    mocks.getCommerceSession.mockResolvedValue({
-      ...(await mocks.getCommerceSession()),
+    const unauthorizedSession = {
+      ...session,
       roles: ["member"],
-    });
+    } as const;
 
-    const response = await handleDemoOrderCommand(request());
+    const response = await handleDemoOrderCommand(
+      request(),
+      unauthorizedSession,
+    );
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
@@ -136,7 +142,7 @@ describe("the demo order command boundary", () => {
     const clone = vi.spyOn(input, "clone");
     const arrayBuffer = vi.spyOn(input, "arrayBuffer");
 
-    const response = await handleDemoOrderCommand(input);
+    const response = await handleDemoOrderCommand(input, session);
 
     expect(response.status).toBe(200);
     expect(clone).not.toHaveBeenCalled();
@@ -146,7 +152,9 @@ describe("the demo order command boundary", () => {
     expect(execution).toMatchObject({
       action: "prepare_artifact",
       idempotencyKey: "demo-order-command-0001",
+      session,
     });
+    expect(mocks.ambientSession).not.toHaveBeenCalled();
     expect(
       (execution as { readonly requestHash?: unknown }).requestHash,
     ).toEqual(expect.stringMatching(/^[0-9a-f]{64}$/u));
@@ -157,7 +165,7 @@ describe("the demo order command boundary", () => {
   });
 
   it("rejects an invalid idempotency key before changing demo state", async () => {
-    const response = await handleDemoOrderCommand(request("short"));
+    const response = await handleDemoOrderCommand(request("short"), session);
 
     expect(response.status).toBe(422);
     await expect(response.json()).resolves.toMatchObject({
@@ -175,7 +183,7 @@ describe("the demo order command boundary", () => {
         body: "{",
       },
     );
-    const response = await handleDemoOrderCommand(malformed);
+    const response = await handleDemoOrderCommand(malformed, session);
     expect(response.status).toBe(422);
     await expect(response.json()).resolves.toMatchObject({
       code: "INVALID_BODY",
@@ -183,7 +191,7 @@ describe("the demo order command boundary", () => {
     });
 
     mocks.execute.mockRejectedValueOnce(new SyntaxError("downstream failure"));
-    await expect(handleDemoOrderCommand(request())).rejects.toThrow(
+    await expect(handleDemoOrderCommand(request(), session)).rejects.toThrow(
       "downstream failure",
     );
   });

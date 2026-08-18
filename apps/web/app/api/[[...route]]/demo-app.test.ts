@@ -1,9 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { SessionClaims } from "@clockwork/api";
+
 import {
   demoAccessCookieName,
   issueDemoAccessCookie,
 } from "@/src/auth/demo-access";
+
+const sessionMocks = vi.hoisted(() => ({
+  construct: vi.fn(),
+  resolve: vi.fn<(request: Request) => Promise<SessionClaims | null>>(),
+}));
+
+vi.mock("@/src/auth/session", () => ({
+  WorkosNextSessionResolver: class {
+    public constructor(options: unknown) {
+      sessionMocks.construct(options);
+    }
+
+    public resolve(request: Request): Promise<SessionClaims | null> {
+      return sessionMocks.resolve(request);
+    }
+  },
+}));
 
 import { demoMutationOriginAllowed, handle } from "./demo-app";
 
@@ -15,7 +34,17 @@ const orderProofHeaders = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubEnv("APP_ORIGIN", "https://demo.clockwork.test");
+  sessionMocks.resolve.mockResolvedValue({
+    userId: "22222222-2222-4222-8222-222222222222",
+    organizationId: "66666666-6666-4666-8666-666666666666",
+    accountIds: ["11111111-1111-4111-8111-111111111111"],
+    roles: ["owner"],
+    isInternalStaff: false,
+    mfaVerified: true,
+    recentAuthenticationVerified: true,
+  });
 });
 
 afterEach(() => {
@@ -36,6 +65,38 @@ function commandRequest(headers: Record<string, string>): Request {
       }),
     },
   );
+}
+
+function orderRequest(body: unknown): Request {
+  return new Request(
+    "https://demo.clockwork.test/api/v1/core/commands/orders",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "demo-order-boundary-0001",
+        ...orderProofHeaders,
+      },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+function validPrepareOrderBody(): Readonly<Record<string, unknown>> {
+  return {
+    id: "33333333-3333-4333-8333-333333333333",
+    accountId: "11111111-1111-4111-8111-111111111111",
+    action: "prepare_artifact",
+    payload: {
+      quoteId: "44444444-4444-4444-8444-444444444444",
+      signerUserId: "22222222-2222-4222-8222-222222222222",
+      authorityTitle: "Operations Director",
+      authorityAttested: true,
+      serviceStartsOn: "2027-01-01",
+      acceptedAt: "2026-08-18T12:00:00.000Z",
+      orderLineIds: ["55555555-5555-4555-8555-555555555555"],
+    },
+  };
 }
 
 describe("demo commerce api", () => {
@@ -194,6 +255,67 @@ describe("demo commerce api", () => {
     await expect(response.json()).resolves.toMatchObject({
       code: "ACTION_NOT_ALLOWED",
     });
+  });
+
+  it("resolves the exact request before the order lane consumes its body", async () => {
+    const input = orderRequest(validPrepareOrderBody());
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+    sessionMocks.resolve.mockImplementationOnce((request: Request) => {
+      expect(request).toBe(input);
+      expect(request.bodyUsed).toBe(false);
+      expect(bodyRead).not.toHaveBeenCalled();
+      return Promise.resolve({
+        userId: "22222222-2222-4222-8222-222222222222",
+        organizationId: "66666666-6666-4666-8666-666666666666",
+        accountIds: ["11111111-1111-4111-8111-111111111111"],
+        roles: ["member"],
+        isInternalStaff: false,
+        mfaVerified: true,
+        recentAuthenticationVerified: true,
+      });
+    });
+
+    const response = await handle(input);
+
+    expect(sessionMocks.construct).toHaveBeenCalledWith({
+      requireBoundSession: true,
+    });
+    expect(sessionMocks.resolve).toHaveBeenCalledWith(input);
+    expect(bodyRead).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "ORDER_AUTHORITY_FORBIDDEN",
+    });
+  });
+
+  it("fails closed before reading an order when identity is absent", async () => {
+    sessionMocks.resolve.mockResolvedValueOnce(null);
+    const input = orderRequest(validPrepareOrderBody());
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+
+    const response = await handle(input);
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "DEMO_IDENTITY_REQUIRED",
+      retryable: false,
+    });
+    expect(bodyRead).not.toHaveBeenCalled();
+  });
+
+  it("bounds identity resolution errors before reading the order", async () => {
+    sessionMocks.resolve.mockRejectedValueOnce(new Error("identity backend"));
+    const input = orderRequest(validPrepareOrderBody());
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+
+    const response = await handle(input);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "DEMO_IDENTITY_UNAVAILABLE",
+      retryable: true,
+    });
+    expect(bodyRead).not.toHaveBeenCalled();
   });
 
   it("refuses an order command with no replay evidence", async () => {

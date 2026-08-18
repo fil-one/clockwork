@@ -1,5 +1,6 @@
 import { createDemoCommerceHandlers } from "@clockwork/testing/demo-handlers";
 import { DEMO_ORIGIN } from "@clockwork/testing/demo-seed";
+import type { SessionClaims } from "@clockwork/api";
 import { getResponse } from "msw";
 
 import {
@@ -93,6 +94,46 @@ function demoAccessProblem(request: Request): Response {
       },
     },
   );
+}
+
+function demoIdentityProblem(request: Request, unavailable: boolean): Response {
+  const status = unavailable ? 503 : 401;
+  return Response.json(
+    {
+      type: `https://clockwork.test/problems/demo-identity-${unavailable ? "unavailable" : "required"}`,
+      title: unavailable
+        ? "Demo identity is temporarily unavailable"
+        : "Demo identity is required",
+      status,
+      detail: unavailable
+        ? "The demo could not establish an identity for this request."
+        : "A valid demo identity is required for this operation.",
+      code: unavailable
+        ? "DEMO_IDENTITY_UNAVAILABLE"
+        : "DEMO_IDENTITY_REQUIRED",
+      requestId: request.headers.get("x-request-id") ?? "demo",
+      retryable: unavailable,
+    },
+    {
+      status,
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": "application/problem+json",
+        "x-content-type-options": "nosniff",
+      },
+    },
+  );
+}
+
+function immutableSession(session: SessionClaims): SessionClaims {
+  return Object.freeze({
+    ...session,
+    accountIds: Object.freeze([...session.accountIds]),
+    roles: Object.freeze([...session.roles]),
+    ...(session.impersonation
+      ? { impersonation: Object.freeze({ ...session.impersonation }) }
+      : {}),
+  });
 }
 
 function securityProblem(
@@ -265,12 +306,27 @@ export async function handle(request: Request): Promise<Response> {
   if (isOrderCommand(request, url)) {
     const idempotencyFailure = validateOrderIdempotency(request);
     if (idempotencyFailure) return idempotencyFailure;
+    // Resolve identity from this exact request before its body is consumed or
+    // the command lane is loaded. Raw API routes do not rely on Next's ambient
+    // cookies()/headers() request store: serverless connection teardown and
+    // deferred module loading must not be able to detach authorization from
+    // the bytes the destination executes.
+    let session: SessionClaims | null;
+    try {
+      const { WorkosNextSessionResolver } = await import("@/src/auth/session");
+      session = await new WorkosNextSessionResolver({
+        requireBoundSession: true,
+      }).resolve(request);
+    } catch {
+      return demoIdentityProblem(request, true);
+    }
+    if (!session) return demoIdentityProblem(request, false);
     // Loaded on demand, the way this route already loads its two apps: the
     // order lane pulls in the domain, the document renderer and the demo state
     // store, and no other request needs any of them.
     const lane =
       await import("@/src/features/experience-server/demo-order-command");
-    return lane.handleDemoOrderCommand(request);
+    return lane.handleDemoOrderCommand(request, immutableSession(session));
   }
   const simulated = new URL(
     `${url.pathname.replace(/^\/api/, "") || "/"}${url.search}`,

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import type { SessionClaims } from "@clockwork/api";
 import { hasPermission, uuidV7 } from "@clockwork/contracts";
 
 import {
@@ -206,6 +207,7 @@ function commandFrom(
 
 export async function handleDemoOrderCommand(
   request: Request,
+  session: SessionClaims,
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
@@ -256,12 +258,6 @@ export async function handleDemoOrderCommand(
         `orders does not accept the action ${JSON.stringify(action)}`,
       );
     const command = commandFrom(body, record(body.payload));
-    // Imported here rather than at module scope: the session module pulls in
-    // the hosted identity provider's Next integration, and a malformed command
-    // must be answerable without it -- which is also what lets this lane be
-    // exercised without standing an identity provider up.
-    const { getCommerceSession } = await import("@/src/auth/session");
-    const session = await getCommerceSession();
     if (!session.roles.some((role) => hasPermission(role, "order:write")))
       throw new ExperienceProblem(
         403,
