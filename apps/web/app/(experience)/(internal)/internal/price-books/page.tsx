@@ -29,6 +29,7 @@ export default async function Page() {
       userId={identity?.userId ?? ""}
       books={priceBooks.books}
       source={priceBooks.source}
+      availability={priceBooks.availability}
       readAt={priceBooks.readAt}
     />
   );

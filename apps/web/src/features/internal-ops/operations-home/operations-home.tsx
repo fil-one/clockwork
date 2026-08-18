@@ -1,10 +1,18 @@
 import Link from "next/link";
 
 import { internalOpsCopy } from "../copy";
+import { formatOperationalTimestamp } from "../presentation";
 import type { OperationsHomeData, OperationalSignal } from "./server-loader";
 import styles from "./operations-home.module.css";
 
 function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
+  const areaLabels: Readonly<Record<string, string>> = {
+    queues: "Approvals",
+    provisioning: "Provisioning",
+    collections: "Collections",
+    orders: "Renewals",
+    reports: "Reports",
+  };
   return signals.map((signal) => (
     <tr key={signal.label} data-tone={signal.tone}>
       <th scope="row">
@@ -12,9 +20,11 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
         <strong className={styles.signalValue}>{signal.value}</strong>
       </th>
       <td>{signal.detail}</td>
-      <td>{signal.channel}</td>
+      <td>{areaLabels[signal.channel] ?? signal.channel}</td>
       <td>
-        <time dateTime={signal.generatedAt}>{signal.generatedAt}</time>
+        <time dateTime={signal.generatedAt}>
+          {formatOperationalTimestamp(signal.generatedAt)}
+        </time>
         {signal.stale ? ` · ${internalOpsCopy.home.staleSuffix}` : ""}
       </td>
       <td>
@@ -56,8 +66,10 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
           <p>{internalOpsCopy.home.description}</p>
         </div>
         <p className={styles.freshness} role="status">
-          {internalOpsCopy.home.generated}{" "}
-          <time dateTime={data.generatedAt}>{data.generatedAt}</time>
+          Updated{" "}
+          <time dateTime={data.generatedAt}>
+            {formatOperationalTimestamp(data.generatedAt)}
+          </time>
         </p>
       </header>
 
@@ -89,9 +101,9 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
             <thead>
               <tr>
                 <th scope="col">Signal</th>
-                <th scope="col">What the read found</th>
-                <th scope="col">Channel</th>
-                <th scope="col">Projection generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col">Area</th>
+                <th scope="col">Updated</th>
                 <th scope="col">
                   <span className="sr-only">Action</span>
                 </th>

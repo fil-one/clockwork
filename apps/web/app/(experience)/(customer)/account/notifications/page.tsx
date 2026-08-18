@@ -6,7 +6,10 @@ import {
 } from "@clockwork/contracts";
 import { DatabaseNotificationPreferenceRepository } from "@clockwork/db";
 
+import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { getOptionalRuntimeDatabase } from "@/src/db/service";
+import { demoNotificationPreferences } from "@/src/features/experience-server/demo-account-controls";
+import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
@@ -51,6 +54,11 @@ async function loadStoredPreferences(input: {
   userId: string;
   roles: readonly string[];
 }): Promise<readonly StoredPreference[] | undefined> {
+  if (explicitDemoIdentityEnabled())
+    return demoNotificationPreferences(
+      await configuredDemoStateStore().read(),
+      input.accountId,
+    );
   const runtime = getOptionalRuntimeDatabase();
   if (!runtime) return undefined;
   const repository = new DatabaseNotificationPreferenceRepository({

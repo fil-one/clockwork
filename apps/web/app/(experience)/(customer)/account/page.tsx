@@ -2,6 +2,8 @@ import {
   AccountOverview,
   type AccountOverviewProjection,
 } from "@/src/features/customer-partner/customer/account-overview";
+import { loadAccountOverviewAccount } from "@/src/features/customer-partner/customer/account-overview-loader";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { plural, t } from "@/src/i18n/en";
@@ -53,8 +55,13 @@ async function AccountWorkspace() {
   const invitations = users.records.filter(
     (record) => text(record.data, "status") === "pending",
   ).length;
+  const account = await loadAccountOverviewAccount({
+    accountId: identity.accountId,
+    identityAccountName: identity.accountName,
+    guidedDemo: demoDeployIdentityEnabled(process.env),
+  });
   const projection: AccountOverviewProjection = {
-    accountName: identity.accountName,
+    accountName: account.accountName,
     organizationName: identity.organizationName,
     roleLabel: titleCase(identity.role),
     facts: [
@@ -64,8 +71,17 @@ async function AccountWorkspace() {
       },
       {
         label: t("account.billingContact"),
-        value: personNamed(users.records, /billing/iu),
+        value:
+          account.billingContact ?? personNamed(users.records, /billing/iu),
       },
+      ...(account.invoiceDeliveryEmail
+        ? [
+            {
+              label: "Invoice delivery",
+              value: account.invoiceDeliveryEmail,
+            },
+          ]
+        : []),
       {
         label: t("account.people"),
         value: String(users.records.length),

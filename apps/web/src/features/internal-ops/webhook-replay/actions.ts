@@ -4,12 +4,15 @@ import { DatabaseCoreFinanceService } from "@clockwork/api";
 import { hasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
 } from "@/src/db/service";
 import { composedTaxProvider } from "@/src/providers/tax";
+
+import { replayDemoWebhook } from "../demo-operator-state";
 
 export interface WebhookReplayOutcome {
   ok: boolean;
@@ -58,10 +61,11 @@ export async function replayWebhookEvent(
   if (reason.length < 8)
     return { ok: false, code: "WEBHOOK_REPLAY_REASON_REQUIRED" };
 
+  const demoEnabled = demoDeployIdentityEnabled(process.env);
   const database = getOptionalRuntimeDatabase();
   const pricingDatabase = getOptionalServiceDatabase();
   const authorizationSecret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
-  if (!database || !pricingDatabase || !authorizationSecret)
+  if (!demoEnabled && (!database || !pricingDatabase || !authorizationSecret))
     return { ok: false, code: "WEBHOOK_REPLAY_UNAVAILABLE" };
 
   let session;
@@ -75,6 +79,35 @@ export async function replayWebhookEvent(
     session.isInternalStaff &&
     session.roles.some((role) => hasPermission(role, "system:operate"));
   if (!permitted) return { ok: false, code: "WEBHOOK_REPLAY_FORBIDDEN" };
+
+  if (demoEnabled && (!database || !pricingDatabase || !authorizationSecret)) {
+    try {
+      const result = await replayDemoWebhook({
+        provider,
+        providerEventId,
+        reason,
+        actorId: session.userId,
+      });
+      revalidatePath("/internal/webhook-replay");
+      return {
+        ok: true,
+        started: result.started,
+        workflowRunId: result.workflowRunId,
+        ...(result.started ? {} : { code: "WEBHOOK_REPLAY_ALREADY_RUNNING" }),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        code:
+          error instanceof Error &&
+          error.message === "WEBHOOK_REPLAY_EVENT_NOT_FOUND"
+            ? "WEBHOOK_REPLAY_EVENT_NOT_FOUND"
+            : "WEBHOOK_REPLAY_FAILED",
+      };
+    }
+  }
+  if (!database || !pricingDatabase || !authorizationSecret)
+    return { ok: false, code: "WEBHOOK_REPLAY_UNAVAILABLE" };
 
   try {
     // Replay moves no money and determines no tax. `requiredTaxProvider()`

@@ -5,7 +5,9 @@ import { FinancePageFrame } from "../finance-lifecycle/page-frame";
 import { revenueCopy } from "./copy";
 import {
   basisLabel,
+  businessLabel,
   formatMinor,
+  monthLabel,
   stageLabel,
   type RevenueWorkspace,
 } from "./model";
@@ -58,11 +60,6 @@ export function RevenueView({
           <span>{revenueCopy.unreadable.detail}</span>
         </div>
       )}
-
-      <section className={styles.notice} role="note">
-        <strong>{revenueCopy.methodology.title}</strong>
-        <span>{revenueCopy.methodology.detail}</span>
-      </section>
 
       <section className={styles.section} aria-labelledby="revenue-stage">
         <header className={styles.sectionHeader}>
@@ -124,8 +121,8 @@ export function RevenueView({
                 `${row.channel}-${row.merchantOfRecord}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.channels.map((row) => [
-              row.channel,
-              row.merchantOfRecord,
+              businessLabel(row.channel),
+              businessLabel(row.merchantOfRecord),
               row.currency,
               basisLabel(row.revenueBasis),
               formatMinor(row.revenueMinor, row.currency),
@@ -159,7 +156,7 @@ export function RevenueView({
               (row) => `${row.month}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.months.map((row) => [
-              row.month,
+              monthLabel(row.month),
               row.currency,
               basisLabel(row.revenueBasis),
               formatMinor(row.revenueMinor, row.currency),
@@ -199,7 +196,7 @@ export function RevenueView({
               formatMinor(row.mrrMinor, row.currency),
               formatMinor(row.arrMinor, row.currency),
               row.contractCount,
-              row.methodologyVersion,
+              businessLabel(row.methodologyVersion),
             ])}
           />
         )}

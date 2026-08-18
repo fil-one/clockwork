@@ -1,11 +1,10 @@
-import Link from "next/link";
-
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import { formatOperationalTimestamp } from "../presentation";
 import { unhandledErrorsCopy } from "./copy";
 import { IncidentDecisionControl } from "./incident-decision";
 import {
@@ -16,8 +15,7 @@ import {
   type IncidentSignature,
 } from "./model";
 
-const { page, summary, diagnosis, unreadable, unwiredDetail, table } =
-  unhandledErrorsCopy;
+const { page, summary, unreadable, unwiredDetail, table } = unhandledErrorsCopy;
 
 const catalogueSize = runtimeFailureEventTypes.length;
 
@@ -138,25 +136,6 @@ export function UnhandledErrorsView({
         </div>
       ) : null}
 
-      <section
-        className={styles.notice}
-        role="note"
-        aria-label={diagnosis.heading}
-      >
-        <strong>{diagnosis.heading}</strong>
-        <span>{diagnosis.scope(catalogueSize)}</span>
-        <span>{diagnosis.codeOnly}</span>
-        <span>{diagnosis.withCause}</span>
-        <span>
-          {diagnosis.containment}{" "}
-          <Link href={diagnosis.containmentHref}>
-            {diagnosis.containmentLink}
-          </Link>
-          . {diagnosis.recoveryNote}{" "}
-          <Link href={diagnosis.recoveryHref}>{diagnosis.recoveryLink}</Link>.
-        </span>
-      </section>
-
       <section className={styles.section} aria-labelledby="failure-signatures">
         <header className={styles.sectionHeader}>
           <div>
@@ -198,13 +177,13 @@ export function UnhandledErrorsView({
               <div className={styles.primaryCell}>
                 <strong>
                   <time dateTime={signature.lastSeenAt}>
-                    {signature.lastSeenAt}
+                    {formatOperationalTimestamp(signature.lastSeenAt)}
                   </time>
                 </strong>
                 <span className={styles.secondary}>
                   first{" "}
                   <time dateTime={signature.firstSeenAt}>
-                    {signature.firstSeenAt}
+                    {formatOperationalTimestamp(signature.firstSeenAt)}
                   </time>
                 </span>
               </div>,

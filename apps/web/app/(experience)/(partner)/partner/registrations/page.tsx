@@ -3,12 +3,14 @@ import { sql } from "drizzle-orm";
 import { ids, roles as commerceRoles, type Role } from "@clockwork/contracts";
 import { withAuthorizedTransaction } from "@clockwork/db";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { getOptionalRuntimeDatabase } from "@/src/db/service";
 import {
   DealRegistration,
   RegistrationDirectoryUnavailable,
 } from "@/src/features/customer-partner/partner/deal-registration";
 import type { RegistrableEndClient } from "@/src/features/customer-partner/partner/deal-registration-model";
+import { demoRegistrableEndClients } from "@/src/features/customer-partner/partner/demo-deal-registration";
 import { PartnerCollectionRoute } from "@/src/features/customer-partner/partner/partner-route";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import {
@@ -50,6 +52,8 @@ async function loadRegistrableEndClients(
   partnerAccountId: string,
   session: { userId: string; roles: readonly string[] },
 ): Promise<readonly RegistrableEndClient[] | undefined> {
+  if (demoDeployIdentityEnabled(process.env))
+    return demoRegistrableEndClients(partnerAccountId);
   const runtime = getOptionalRuntimeDatabase();
   const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
   if (!runtime || !secret || secret.length < 32) return undefined;

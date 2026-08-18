@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadReconciliationWorkspace } from "./reconciliation-loader";
 
@@ -9,6 +9,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   if (previous === undefined) delete process.env.CLOCKWORK_SERVICE_DATABASE_URL;
   else process.env.CLOCKWORK_SERVICE_DATABASE_URL = previous;
 });
@@ -26,5 +27,24 @@ describe("no service connection", () => {
     expect(workspace.periods).toEqual([]);
     expect(workspace.variances).toEqual([]);
     expect(workspace.source).toBe("No reconciliation read is available");
+  });
+
+  it("uses the resettable ledger only for the exact demo identity", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+
+    await expect(
+      loadReconciliationWorkspace({ requestId: "reconciliation-demo" }),
+    ).resolves.toMatchObject({
+      readable: true,
+      source: "Demonstration tie-out and reconciliation ledger",
+      periods: [{ mathematicallyTied: false }],
+      variances: [{ objectId: "INV-2026-0781" }],
+    });
   });
 });

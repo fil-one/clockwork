@@ -20,11 +20,13 @@ const previous = process.env.CLOCKWORK_SERVICE_DATABASE_URL;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   delete process.env.CLOCKWORK_SERVICE_DATABASE_URL;
   mocks.getOptionalServiceDatabase.mockReturnValue(undefined);
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.doUnmock("./incident-repository");
   if (previous === undefined) delete process.env.CLOCKWORK_SERVICE_DATABASE_URL;
   else process.env.CLOCKWORK_SERVICE_DATABASE_URL = previous;
@@ -46,6 +48,30 @@ describe("when nothing was read", () => {
     expect(queue.state).toBe("no_connection");
     expect(queue.incidents).toEqual([]);
     expect(queue.source).toBe("No service connection is configured");
+  });
+
+  it("reads the resettable incident ledger in the exact demo", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+
+    await expect(
+      loadRuntimeFailureIncidents({ requestId: "unhandled-errors-demo" }),
+    ).resolves.toMatchObject({
+      readable: true,
+      state: "read",
+      source: "Demonstration runtime failure ledger",
+      incidents: [
+        {
+          eventType: "lifecycle.provider_effect.dead_lettered",
+          safeCode: "PROVIDER_TIMEOUT",
+        },
+      ],
+    });
   });
 
   it("reports a read that raised as a failed read, not as a missing connection", async () => {

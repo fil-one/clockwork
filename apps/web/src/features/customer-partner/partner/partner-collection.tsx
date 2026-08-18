@@ -13,6 +13,7 @@ import {
   ProjectionFreshnessNotice,
   type ProjectionFreshness,
 } from "@/src/features/customer-partner/projection-freshness";
+import { requestRenewal } from "@/src/features/contracts/commerce-client";
 import {
   columnSortDirection,
   columnSortLabel,
@@ -245,50 +246,74 @@ function PriceBoundary({
   );
 }
 
-function RenewalPanel({ record }: { record: PartnerRecord | undefined }) {
+interface RenewalCommandContext {
+  readonly accountId: string;
+  readonly orderId: string;
+}
+
+function RenewalPanel({
+  record,
+  renewalContext,
+}: {
+  record: PartnerRecord | undefined;
+  renewalContext?: RenewalCommandContext;
+}) {
+  const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const [message, setMessage] = useState("");
   const idempotencyKeyRef = useRef<string | null>(null);
-  const canRequest = Boolean(
-    record?.projectionId &&
-    record.recordKey &&
-    record.recordVersion &&
-    record.allowedActions?.includes("request_renewal"),
-  );
+  const canRequest = renewalContext
+    ? Boolean(
+        record && record.status !== "pending" && record.status !== "canceled",
+      )
+    : Boolean(
+        record?.projectionId &&
+        record.recordKey &&
+        record.recordVersion &&
+        record.allowedActions?.includes("request_renewal"),
+      );
   const summary = record
     ? [record.name, record.context, record.value, record.secondary]
     : [];
   async function submit() {
-    if (
-      !confirmed ||
-      !record?.projectionId ||
-      !record.recordKey ||
-      !record.recordVersion
-    )
-      return;
+    if (!confirmed || !record || !canRequest) return;
     setPending(true);
     setMessage("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      await sendProjectionAction(
-        {
-          audience: "partner",
-          channel: "renewals",
-          recordKey: record.recordKey,
-          projectionId: record.projectionId,
-          action: "request_renewal",
-          expectedVersion: record.recordVersion,
-          payload: {},
-        },
-        { idempotencyKey: idempotencyKeyRef.current },
-      );
+      if (renewalContext)
+        await requestRenewal(
+          {
+            ...renewalContext,
+            requestedAction: "renew",
+            requestedTermMonths: 12,
+          },
+          { idempotencyKey: idempotencyKeyRef.current },
+        );
+      else {
+        if (!record.projectionId || !record.recordKey || !record.recordVersion)
+          throw new Error("The renewal record is no longer actionable.");
+        await sendProjectionAction(
+          {
+            audience: "partner",
+            channel: "renewals",
+            recordKey: record.recordKey,
+            projectionId: record.projectionId,
+            action: "request_renewal",
+            expectedVersion: record.recordVersion,
+            payload: {},
+          },
+          { idempotencyKey: idempotencyKeyRef.current },
+        );
+      }
       setSucceeded(true);
       setMessage(
         "Renewal request submitted. The current term remains authoritative until the server confirms a change.",
       );
+      router.refresh();
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -369,6 +394,7 @@ export function PartnerCollection({
   freshness,
   formatting,
   actions,
+  renewalContext,
 }: {
   surface: PartnerSurfaceKey;
   config: PartnerSurfaceConfig;
@@ -383,6 +409,11 @@ export function PartnerCollection({
    * carries the route's own permission gate rather than a second guess at it.
    */
   actions?: ReactNode;
+  /**
+   * Guided-demo binding to the hidden renewal order. Production collection
+   * records continue through their projection action and never receive this.
+   */
+  renewalContext?: RenewalCommandContext;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -623,7 +654,10 @@ export function PartnerCollection({
       </section>
       <p className={styles.ruleFooter}>{config.rule}</p>
       {surface === "renewals" && canUse ? (
-        <RenewalPanel record={config.records[0]} />
+        <RenewalPanel
+          record={config.records[0]}
+          {...(renewalContext ? { renewalContext } : {})}
+        />
       ) : null}
     </main>
   );

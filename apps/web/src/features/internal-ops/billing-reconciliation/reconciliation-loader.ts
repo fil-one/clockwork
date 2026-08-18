@@ -1,6 +1,9 @@
 import "server-only";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+
+import { readDemoReconciliationWorkspace } from "../demo-operator-state";
 
 import type { ReconciliationWorkspace } from "./model";
 import {
@@ -19,6 +22,14 @@ export async function loadReconciliationWorkspace(input: {
   limit?: number;
 }): Promise<ReconciliationWorkspace> {
   const database = getOptionalServiceDatabase();
+  if (!database && demoDeployIdentityEnabled(process.env))
+    try {
+      return await readDemoReconciliationWorkspace({
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+      });
+    } catch {
+      return unreadableReconciliationWorkspace;
+    }
   if (!database) return unreadableReconciliationWorkspace;
   try {
     return await readReconciliationWorkspace(database, input);

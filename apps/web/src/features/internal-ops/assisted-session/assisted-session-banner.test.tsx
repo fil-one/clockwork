@@ -29,7 +29,11 @@ describe("AssistedSessionBanner", () => {
     expect(banner).toHaveTextContent("Northstar Archive Labs");
     expect(banner).toHaveTextContent("Iris Operator · operator@filone.com");
     expect(banner).toHaveTextContent("CASE-4812");
-    expect(banner).toHaveTextContent("2026-07-31T16:15:00.000Z");
+    expect(banner).toHaveTextContent("Jul 31, 2026, 4:15 PM UTC");
+    expect(banner.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2026-07-31T16:15:00.000Z",
+    );
     expect(banner).toHaveTextContent(session.id);
     expect(
       screen.getByRole("button", { name: "Exit assisted mode" }),

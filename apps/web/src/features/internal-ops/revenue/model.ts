@@ -64,3 +64,22 @@ export function basisLabel(basis: string): string {
       ? "Gross"
       : basis;
 }
+
+export function businessLabel(value: string): string {
+  const [name, version] = value.split(".", 2);
+  const label = (name ?? value)
+    .replaceAll("_", " ")
+    .replace(/^\w/u, (letter) => letter.toUpperCase());
+  return version ? `${label} · ${version}` : label;
+}
+
+export function monthLabel(value: string): string {
+  const date = new Date(`${value.slice(0, 7)}-01T00:00:00.000Z`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(date);
+}

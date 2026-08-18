@@ -366,6 +366,289 @@ test.describe("direct buyer flagship journey", () => {
   });
 });
 
+test.describe("playable product-demo workflows", () => {
+  test("finance authors a priced draft, proposes it, and activates a second-authority version", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+      await page.goto("/internal/price-books");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Price books" }),
+      ).toBeVisible();
+
+      const authoring = page.getByRole("region", {
+        name: "Author a priced draft",
+      });
+      await authoring.getByLabel("Price-book name").fill("Browser proof USD");
+      await authoring.getByLabel("Currency").selectOption("USD");
+      await authoring.getByLabel("Version").fill("1");
+      await authoring.getByLabel("Effective from").fill("2026-09-01");
+      await authoring
+        .getByRole("button", { name: "Create draft and continue" })
+        .click();
+      await expect(
+        page.getByText(
+          "Draft metadata recorded. Add its first rate card next.",
+        ),
+      ).toBeVisible();
+
+      await authoring.getByLabel("SKU").fill("BROWSER-PROOF-TB");
+      await authoring.getByLabel("Region").fill("us-east-2");
+      await authoring.getByLabel("Unit price · USD").fill("150.00");
+      await authoring.getByLabel("Floor price · USD").fill("100.00");
+      await authoring.getByLabel("Overage rate · USD").fill("180.00");
+      await authoring.getByLabel("Stripe tax code").fill("txcd_10103000");
+      await authoring
+        .getByLabel("Approved commercial claim")
+        .fill("Browser proof of the guided finance authoring workflow.");
+      await authoring
+        .getByRole("button", { name: "Add first rate card" })
+        .click();
+      await expect(
+        page.getByText(
+          "Priced draft created. Review it below before proposing activation.",
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", { name: /Browser proof USD/ }),
+      ).toBeVisible();
+
+      await page
+        .getByLabel("Finance decision reason")
+        .fill("Browser proof pricing reviewed against policy CP-2.");
+      await page
+        .getByRole("button", { name: "Review price-book approval" })
+        .click();
+      await page.getByRole("button", { name: "Propose activation" }).click();
+      await expect(
+        page.getByRole("row", {
+          name: /Browser proof USD.*Proposed by finance\.approver@filone\.test/,
+        }),
+      ).toBeVisible();
+
+      // The public demo has one interactive finance persona, so it cannot
+      // impersonate a second approver for the draft Mateo just proposed. The
+      // seeded v3 proposal is authored by a distinct finance identity and lets
+      // Mateo exercise the same two-authority activation decision honestly.
+      const versionPicker = page.getByRole("combobox", {
+        name: "Price book version",
+      });
+      await versionPicker.fill("Direct commerce USD v3");
+      await versionPicker.press("Tab");
+      await page
+        .getByLabel("Finance decision reason")
+        .fill(
+          "Independent browser approval after reviewing the seeded proposal.",
+        );
+      await page
+        .getByRole("button", { name: "Review price-book approval" })
+        .click();
+      await page.getByRole("button", { name: "Approve and activate" }).click();
+      await expect(
+        page.getByRole("row", { name: /Direct commerce USD 3 USD.*Active/ }),
+      ).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("operator refreshes stale queue projections through the secured demo route", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Ada Mercer" }).click();
+      await page.goto("/internal/queues");
+      const refresh = page.getByRole("button", { name: "Refresh data" });
+      await expect(refresh).toBeVisible();
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (candidate) =>
+            candidate.url().endsWith("/api/demo/projections/queues/refresh") &&
+            candidate.request().method() === "POST",
+        ),
+        refresh.click(),
+      ]);
+      expect(response.status()).toBe(200);
+      await expect(
+        page.getByRole("button", { name: "Refresh data" }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText("At least one record is past its refresh window."),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Operational queues" }),
+      ).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("partner registration, priced quote, and renewal decisions remain visible", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Priya Nair" }).click();
+
+      await page.goto("/partner/registrations");
+      await page.getByLabel("End client").fill("Aster House Media");
+      await page.getByLabel("Workload").fill("Browser archive expansion");
+      await page.getByLabel("Expected volume (TB)").fill("40");
+      await page.getByRole("button", { name: "Register the deal" }).click();
+      await expect(
+        page.getByText(
+          /Registration submitted and added to the decision queue/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", {
+          name: /Aster House Media · Browser archive expansion/,
+        }),
+      ).toBeVisible();
+      await page.reload();
+      await expect(
+        page.getByRole("row", {
+          name: /Aster House Media · Browser archive expansion/,
+        }),
+      ).toBeVisible();
+
+      await page.goto("/partner/quotes/new");
+      await page
+        .getByLabel("Offer and price book")
+        .fill("LOCKED-STORAGE-TB · uk-south · Partner commerce GBP (GBP)");
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.getByLabel("Committed capacity (TB)").fill("40");
+      await page.getByLabel("Term (months)").fill("12");
+      await page.getByLabel("End client").fill("Aster House Media");
+      await page
+        .getByLabel("Partner resale price (GBP major units)")
+        .fill("60000");
+      await page.getByRole("button", { name: "Continue" }).click();
+      await page.getByRole("checkbox").check();
+      await page.getByRole("button", { name: "Create priced draft" }).click();
+      await expect(
+        page.getByText(/Draft created from server pricing/),
+      ).toBeVisible();
+      await page.goto("/partner/quotes");
+      await expect(
+        page.locator("tbody").getByRole("link", {
+          name: "Aster House Media · LOCKED-STORAGE-TB",
+        }),
+      ).toBeVisible();
+
+      await page.goto("/partner/renewals");
+      await page
+        .getByRole("button", { name: "Review Halcyon Research Cooperative" })
+        .click();
+      await page.getByRole("checkbox").check();
+      await page
+        .getByRole("button", { name: "Confirm renewal request" })
+        .click();
+      await expect(
+        page.getByText(/Renewal request submitted\. The current term remains/),
+      ).toBeVisible();
+      await page.reload();
+      await expect(
+        page
+          .getByText(
+            "Renewal request submitted · awaiting Fil One confirmation",
+          )
+          .first(),
+      ).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("customer notification preferences persist across a fresh server read", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Mara Voss" }).click();
+      await page.goto("/account/notifications");
+      const preference = page.getByRole("checkbox", {
+        name: /Quote expiry warnings/,
+      });
+      await expect(preference).toBeChecked();
+      // This controlled checkbox stays checked while the durable write is in
+      // flight, so click it and wait on the server-confirmed outcome.
+      await preference.click();
+      await expect(
+        page.getByText(
+          "Quote expiry warnings will no longer be sent to this account.",
+        ),
+      ).toBeVisible();
+      await page.reload();
+      await expect(
+        page.getByRole("checkbox", { name: /Quote expiry warnings/ }),
+      ).not.toBeChecked();
+      await expect(page.getByText("Stored choice: off.")).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("billing user completes a no-money sandbox payment and returns to its receipt", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+
+    try {
+      await page.getByRole("link", { name: "Start as Theo Grant" }).click();
+      await page.goto("/billing/invoice-meridian-overdue");
+      await expect(
+        page.getByText("Guided demo · payment sandbox"),
+      ).toBeVisible();
+      await page
+        .getByRole("checkbox", {
+          name: /understand this is a demo-only payment simulation/,
+        })
+        .check();
+      await page
+        .getByRole("button", { name: "Start demo sandbox checkout" })
+        .click();
+      await page.getByRole("button", { name: "Complete demo payment" }).click();
+      await expect(page.getByText(/Demo payment complete/)).toBeVisible();
+      await expect(page.getByText(/No money moved/)).toBeVisible();
+      await page.getByRole("link", { name: "Return to paid invoice" }).click();
+      await expect(
+        page
+          .getByLabel("Commercial summary")
+          .getByText("Paid · demo sandbox", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(/Demo receipt .*sandbox only.*no money moved/i),
+      ).toBeVisible();
+      await expect(page.getByText("Guided demo · payment sandbox")).toHaveCount(
+        0,
+      );
+      await expect(
+        page.getByRole("button", { name: "Start demo sandbox checkout" }),
+      ).toHaveCount(0);
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+});
+
 // The demo pages live behind the password gate, so their baselines are taken
 // here rather than in visual.spec.ts, which drives the ungated server.
 for (const viewport of [

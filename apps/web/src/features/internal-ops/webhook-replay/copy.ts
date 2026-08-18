@@ -6,6 +6,7 @@ export const webhookReplayCopy = {
   freshnessReadable: "Read at page load",
   freshnessUnreadable: "No read completed for this request",
   sourceReadable: "Verified provider callbacks",
+  sourceDemo: "Demonstration verified callback ledger",
   sourceUnreadable: "No callback read is available",
 
   unreadableTitle: "The callback store could not be read.",

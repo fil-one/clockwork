@@ -6,6 +6,7 @@ import type { Route } from "next";
 import type { ReactNode } from "react";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
+import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
 import styles from "./projection-detail-page.module.css";
 import {
   ArtifactDeliveryList,
@@ -183,10 +184,10 @@ export async function ProjectionDetailPage({
           role={projection.stale ? "alert" : "status"}
         >
           {projection.stale
-            ? "Source refresh is overdue"
-            : "Source projection is current"}
+            ? "Operational data needs a refresh"
+            : "Operational data is current"}
           <time className="sr-only" dateTime={projection.generatedAt}>
-            {projection.generatedAt}
+            {formatOperationalTimestamp(projection.generatedAt)}
           </time>
         </p>
       </header>
@@ -234,13 +235,13 @@ export async function ProjectionDetailPage({
               </h2>
               <p>
                 {visibleRecords.length}{" "}
-                {visibleRecords.length === 1 ? "record" : "records"} · server
-                projection
+                {visibleRecords.length === 1 ? "record" : "records"} · current
+                operational data
               </p>
             </div>
             {commercial ? (
               <p className={styles.ledgerBoundary}>
-                Actions bind the displayed record and optimistic version.
+                Actions apply to the displayed record and its current version.
               </p>
             ) : null}
           </header>
@@ -289,7 +290,7 @@ export async function ProjectionDetailPage({
 
                 <div className={styles.recordDecision}>
                   <div>
-                    <p>Next binding step</p>
+                    <p>Next step</p>
                     <strong>
                       {text(record, "nextAction") ?? "Review record evidence"}
                     </strong>
@@ -352,11 +353,11 @@ export async function ProjectionDetailPage({
                 </div>
 
                 <details className={styles.technical}>
-                  <summary>Technical projection evidence</summary>
+                  <summary>Audit evidence</summary>
+                  <p>System record {record.recordKey}</p>
                   <p>
-                    Aggregate {record.aggregateType} · {record.aggregateId}
+                    Updated {formatOperationalTimestamp(record.sourceUpdatedAt)}
                   </p>
-                  <p>Source updated {record.sourceUpdatedAt}</p>
                 </details>
               </article>
             ))}

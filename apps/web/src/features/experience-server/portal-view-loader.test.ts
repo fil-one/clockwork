@@ -190,15 +190,20 @@ describe("customer quote offer catalogue", () => {
     expect(JSON.stringify(result.offers)).not.toContain("unit_amount_minor");
   });
 
-  it("uses demo identifiers only behind the explicit safe demo adapter", async () => {
+  it("uses persisted active demo price books behind the explicit safe demo adapter", async () => {
     process.env.CLOCKWORK_EXPERIENCE_ADAPTER = "demo";
 
     const result = await loadCustomerQuoteOffers();
 
     expect(result).toMatchObject({
       status: "available",
-      catalogueMode: "simulated",
+      catalogueMode: "authoritative",
     });
+    if (result.status !== "available") throw new Error("catalogue unavailable");
+    expect(result.offers.length).toBeGreaterThan(0);
+    expect(
+      result.offers.every((offer) => offer.sku === "LOCKED-STORAGE-TB"),
+    ).toBe(true);
     expect(mocks.findCustomerQuoteCurrency).not.toHaveBeenCalled();
     expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
   });
@@ -444,6 +449,26 @@ describe("commercial record detail reads", () => {
 
     expect(record?.title).toBe("Q-MINE-0001 title");
     expect(record?.href).toBe("/quotes/Q-MINE-0001");
+  });
+
+  it("keeps a quote revision separate from its projection row version", async () => {
+    storeContaining([
+      {
+        ...mine,
+        data: commercialPayload("Q-MINE-0001", {
+          reference: "Q-2026-0312",
+          authoritative: { revision: 2 },
+        }),
+      },
+    ]);
+
+    const record = await loadCommercialRecord("quotes", "Q-MINE-0001");
+
+    expect(record).toMatchObject({
+      reference: "Q-2026-0312",
+      version: "2",
+      projectionVersion: 3,
+    });
   });
 
   it.each([

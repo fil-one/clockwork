@@ -154,6 +154,7 @@ export const recoveryCopy = {
   fallbackFailure: "The decision could not be recorded.",
   sourceLabel: {
     live: "Dispatch queue, provisioning, and workflow tasks",
+    demo: "Demonstration recovery ledger",
     unavailable: "No queue read is available",
   },
 } as const;

@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { FinancePageFrame } from "./page-frame";
 
 describe("FinancePageFrame provenance", () => {
-  it("prints the instant a projection read was generated", () => {
+  it("presents projection freshness without exposing transport diagnostics", () => {
     render(
       <FinancePageFrame
         title="Collections priority"
@@ -26,10 +26,11 @@ describe("FinancePageFrame provenance", () => {
     );
 
     expect(
-      screen.getByText("2026-08-15T09:15:00.000Z", { selector: "time" }),
+      screen.getByText("Aug 15, 2026, 9:15 AM UTC", { selector: "time" }),
     ).toBeVisible();
-    expect(screen.getByRole("status").textContent).toContain("2 server pages");
-    expect(screen.getByRole("status").textContent).toContain("140 records");
+    expect(screen.getByRole("status")).toHaveTextContent("Up to date");
+    expect(screen.getByRole("status")).not.toHaveTextContent("server page");
+    expect(screen.getByRole("status")).not.toHaveTextContent("140 records");
   });
 
   it("raises an alert rather than a status when the projection is stale", () => {
@@ -50,10 +51,10 @@ describe("FinancePageFrame provenance", () => {
       </FinancePageFrame>,
     );
 
-    expect(screen.getByRole("alert").textContent).toContain("Stale projection");
+    expect(screen.getByRole("alert")).toHaveTextContent("Needs refresh");
   });
 
-  it("says plainly when a surface is not wired to anything", () => {
+  it("describes an unavailable workflow without exposing implementation detail", () => {
     render(
       <FinancePageFrame
         title="Migration matching"
@@ -65,10 +66,27 @@ describe("FinancePageFrame provenance", () => {
     );
 
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain(
-      "This surface is not wired to a data source.",
+    expect(alert).toHaveTextContent("Not available in this workspace");
+    expect(alert).toHaveTextContent(
+      "This workflow is not enabled for the current environment.",
     );
-    expect(alert.textContent).toContain("No channel backs this.");
+    expect(alert).not.toHaveTextContent("No channel backs this.");
+  });
+
+  it("labels resettable guided data as a demo workspace", () => {
+    render(
+      <FinancePageFrame
+        title="Migration matching"
+        description="…"
+        provenance={{ kind: "guided" }}
+      >
+        <p>rows</p>
+      </FinancePageFrame>,
+    );
+
+    expect(screen.getByText("Guided demo workspace")).toBeVisible();
+    expect(screen.getByText(/reset from Demo controls/)).toBeVisible();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("distinguishes a completed read from one that never happened", () => {
@@ -85,7 +103,7 @@ describe("FinancePageFrame provenance", () => {
         <p>rows</p>
       </FinancePageFrame>,
     );
-    expect(screen.getByText("Read at page load")).toBeVisible();
+    expect(screen.getByText("Up to date")).toBeVisible();
 
     rerender(
       <FinancePageFrame
@@ -99,8 +117,11 @@ describe("FinancePageFrame provenance", () => {
         <p>rows</p>
       </FinancePageFrame>,
     );
-    expect(screen.getByRole("alert").textContent).toContain(
-      "No read completed for this request",
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Temporarily unavailable",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Refresh the page or try again shortly.",
     );
   });
 });

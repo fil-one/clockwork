@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button, Input, StatusBadge } from "@clockwork/ui";
 
 import { lifecycleCopy } from "./copy";
+import type { DemoMigrationDecision } from "../demo-operator-state";
 import {
   illustrativeMigrations,
   type MigrationCandidate,
@@ -13,13 +14,22 @@ import {
 import { resolveMigration } from "./lifecycle-logic";
 import { FinancePageFrame } from "./page-frame";
 import { ReviewAction } from "./review-action";
+import { MigrationDecisionAction } from "./migration-decision-action";
 import styles from "./finance-lifecycle.module.css";
 
 function candidateLabel(candidate: MigrationCandidate): string {
   return `${candidate.name} · ${candidate.detail}`;
 }
 
-function MigrationCard({ record }: { record: MigrationRecord }) {
+function MigrationCard({
+  record,
+  decision,
+  guidedDemo,
+}: {
+  record: MigrationRecord;
+  decision?: DemoMigrationDecision;
+  guidedDemo: boolean;
+}) {
   const initialCandidate =
     record.candidates.length === 1 ? record.candidates[0] : undefined;
   const [query, setQuery] = useState(
@@ -33,6 +43,7 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
   const resolution = resolveMigration(record, selectedId, confirmed);
   const listId = `${record.id}-candidates`;
   const ambiguous = record.candidates.length > 1;
+  const resolved = Boolean(decision);
 
   return (
     <article className={styles.migrationCard}>
@@ -45,18 +56,22 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
         </div>
         <StatusBadge
           tone={
-            ambiguous
-              ? "danger"
-              : record.candidates.length
-                ? "success"
-                : "warning"
+            resolved
+              ? "success"
+              : ambiguous
+                ? "danger"
+                : record.candidates.length
+                  ? "success"
+                  : "warning"
           }
         >
-          {ambiguous
-            ? `${record.candidates.length} possible matches`
-            : record.candidates.length === 1
-              ? "Single candidate"
-              : "No candidate"}
+          {resolved
+            ? "Decision recorded"
+            : ambiguous
+              ? `${record.candidates.length} possible matches`
+              : record.candidates.length === 1
+                ? "Single candidate"
+                : "No candidate"}
         </StatusBadge>
       </header>
 
@@ -104,7 +119,7 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
                 ? "The submitted value remains the selected account ID."
                 : "A new-account request is available only after evidence review."
           }
-          disabled={record.candidates.length === 0}
+          disabled={record.candidates.length === 0 || resolved}
           autoComplete="off"
         />
         <datalist id={listId}>
@@ -123,6 +138,7 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
         <input
           type="checkbox"
           checked={confirmed}
+          disabled={resolved}
           onChange={(event) => setConfirmed(event.currentTarget.checked)}
         />
         <span>
@@ -151,42 +167,86 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
       </details>
 
       <footer className={styles.migrationFooter}>
-        <p className={resolution.allowed ? styles.safe : styles.blocked}>
-          {resolution.reason}
+        <p
+          className={
+            resolved || resolution.allowed ? styles.safe : styles.blocked
+          }
+        >
+          {decision
+            ? decision.action === "link"
+              ? `Linked to account ${decision.targetAccountId}. Decision version ${decision.version}.`
+              : `New-account review staged. Decision version ${decision.version}.`
+            : resolution.reason}
         </p>
-        {resolution.allowed ? (
-          <ReviewAction
-            triggerLabel={
-              resolution.action === "link"
-                ? "Review account link"
-                : "Review new account"
-            }
-            confirmLabel="Complete migration review"
-            summary={{
-              action:
+        {decision ? null : resolution.allowed ? (
+          guidedDemo ? (
+            <MigrationDecisionAction
+              migrationId={record.id}
+              targetAccountId={selectedId}
+              triggerLabel={
                 resolution.action === "link"
-                  ? "Link migrated record to existing account"
-                  : "Request a new account from migration evidence",
-              entity:
-                resolution.action === "link" && selectedCandidate
-                  ? `${record.sourceName} → ${selectedCandidate.name}`
-                  : record.legalEntity,
-              impact:
+                  ? "Review account link"
+                  : "Review new account"
+              }
+              summary={{
+                action:
+                  resolution.action === "link"
+                    ? "Link migrated record to existing account"
+                    : "Request a new account from migration evidence",
+                entity:
+                  resolution.action === "link" && selectedCandidate
+                    ? `${record.sourceName} → ${selectedCandidate.name}`
+                    : record.legalEntity,
+                impact:
+                  resolution.action === "link"
+                    ? "The source record will reference the verified current account. No account is created."
+                    : "A separately gated account-creation request will be staged; creation is not automatic.",
+                evidence: record.evidence,
+                policyBasis:
+                  "Migration identity policy §3 · verified legal entity and explicit ambiguity resolution",
+                downstreamEffect:
+                  resolution.action === "link"
+                    ? "Orders and invoices remain on the existing account after reconciliation."
+                    : "Screening and credit gates run before any account becomes available.",
+                technicalId: `${record.id} · source ${record.externalReference}${selectedId ? ` · account ${selectedId}` : ""}`,
+                actorAuthority:
+                  "Internal operator may stage the review; the server authorizes linking or creation and records the actor.",
+              }}
+            />
+          ) : (
+            <ReviewAction
+              triggerLabel={
                 resolution.action === "link"
-                  ? "The source record will reference the verified current account. No account is created."
-                  : "A separately gated account-creation request will be staged; creation is not automatic.",
-              evidence: record.evidence,
-              policyBasis:
-                "Migration identity policy §3 · verified legal entity and explicit ambiguity resolution",
-              downstreamEffect:
-                resolution.action === "link"
-                  ? "Orders and invoices remain on the existing account after reconciliation."
-                  : "Screening and credit gates run before any account becomes available.",
-              technicalId: `${record.id} · source ${record.externalReference}${selectedId ? ` · account ${selectedId}` : ""}`,
-              actorAuthority:
-                "Internal operator may stage the review; the server authorizes linking or creation and records the actor.",
-            }}
-          />
+                  ? "Review account link"
+                  : "Review new account"
+              }
+              confirmLabel="Complete migration review"
+              summary={{
+                action:
+                  resolution.action === "link"
+                    ? "Link migrated record to existing account"
+                    : "Request a new account from migration evidence",
+                entity:
+                  resolution.action === "link" && selectedCandidate
+                    ? `${record.sourceName} → ${selectedCandidate.name}`
+                    : record.legalEntity,
+                impact:
+                  resolution.action === "link"
+                    ? "The source record will reference the verified current account. No account is created."
+                    : "A separately gated account-creation request will be staged; creation is not automatic.",
+                evidence: record.evidence,
+                policyBasis:
+                  "Migration identity policy §3 · verified legal entity and explicit ambiguity resolution",
+                downstreamEffect:
+                  resolution.action === "link"
+                    ? "Orders and invoices remain on the existing account after reconciliation."
+                    : "Screening and credit gates run before any account becomes available.",
+                technicalId: `${record.id} · source ${record.externalReference}${selectedId ? ` · account ${selectedId}` : ""}`,
+                actorAuthority:
+                  "Internal operator may stage the review; the server authorizes linking or creation and records the actor.",
+              }}
+            />
+          )
         ) : (
           <Button
             variant="secondary"
@@ -202,7 +262,13 @@ function MigrationCard({ record }: { record: MigrationRecord }) {
   );
 }
 
-export function MigrationsView() {
+export function MigrationsView({
+  guidedDemo = false,
+  decisions = [],
+}: {
+  guidedDemo?: boolean;
+  decisions?: readonly DemoMigrationDecision[];
+}) {
   const ambiguousCount = illustrativeMigrations.filter(
     (record) => record.candidates.length > 1,
   ).length;
@@ -214,12 +280,13 @@ export function MigrationsView() {
     <FinancePageFrame
       title={lifecycleCopy.migrations.title}
       description={lifecycleCopy.migrations.description}
-      provenance={{
-        kind: "unwired",
-        detail: lifecycleCopy.migrations.unwired,
-      }}
+      provenance={
+        guidedDemo
+          ? { kind: "guided" }
+          : { kind: "unwired", detail: lifecycleCopy.migrations.unwired }
+      }
     >
-      <div className={styles.warningNotice} role="alert">
+      <div className={styles.notice} role="note">
         <strong>{lifecycleCopy.migrations.illustrativeTitle}</strong>
         <span>{lifecycleCopy.migrations.illustrativeBody}</span>
       </div>
@@ -229,9 +296,9 @@ export function MigrationsView() {
         aria-label="Migration matching state"
       >
         <article className={styles.summaryCard}>
-          <p>Example records</p>
+          <p>Records to review</p>
           <strong>{illustrativeMigrations.length}</strong>
-          <span>Checked-in examples, not source records</span>
+          <span>Representative source records for this guided workspace</span>
         </article>
         <article className={styles.summaryCard}>
           <p>Ambiguous matches</p>
@@ -258,9 +325,19 @@ export function MigrationsView() {
         aria-label="Migration candidates"
         className={styles.migrationGrid}
       >
-        {illustrativeMigrations.map((record) => (
-          <MigrationCard key={record.id} record={record} />
-        ))}
+        {illustrativeMigrations.map((record) => {
+          const decision = decisions.find(
+            (candidate) => candidate.migrationId === record.id,
+          );
+          return (
+            <MigrationCard
+              key={record.id}
+              record={record}
+              guidedDemo={guidedDemo}
+              {...(decision ? { decision } : {})}
+            />
+          );
+        })}
       </section>
     </FinancePageFrame>
   );

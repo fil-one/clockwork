@@ -6,6 +6,9 @@ import {
 } from "@clockwork/db";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+
+import { readDemoWebhookEvents } from "../demo-operator-state";
 
 import { webhookReplayCopy } from "./copy";
 
@@ -36,6 +39,21 @@ export async function loadReplayableWebhookEvents(input: {
   limit?: number;
 }): Promise<WebhookReplayQueue> {
   const database = getOptionalServiceDatabase();
+  if (!database && demoDeployIdentityEnabled(process.env)) {
+    try {
+      const events = await readDemoWebhookEvents({
+        ...(input.provider ? { provider: input.provider } : {}),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+      });
+      return {
+        events,
+        source: webhookReplayCopy.sourceDemo,
+        readable: true,
+      };
+    } catch {
+      return unreadable;
+    }
+  }
   if (!database) return unreadable;
   try {
     const events = await new DatabaseWebhookReplayReadModel(database).list({

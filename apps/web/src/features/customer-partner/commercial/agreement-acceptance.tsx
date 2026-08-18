@@ -8,6 +8,7 @@ import {
   getActiveAgreementTemplate,
   type ActiveAgreementTemplate,
 } from "@/src/features/contracts/commerce-client";
+import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
@@ -33,18 +34,27 @@ export interface ExecutableAgreement {
   title: string;
   jurisdiction: string;
   type: string;
+  demoProjection?: {
+    projectionId: string;
+    recordKey: string;
+    version: number;
+  };
 }
 
 export function AgreementAcceptance({
   account,
   agreement,
+  demoTemplate,
 }: {
   account: { id: string; name: string };
   agreement?: ExecutableAgreement;
+  demoTemplate?: ActiveAgreementTemplate;
 }) {
   const jurisdiction = agreement?.jurisdiction ?? "US";
   const type = agreement?.type ?? "csa";
-  const [template, setTemplate] = useState<ActiveAgreementTemplate>();
+  const [template, setTemplate] = useState<ActiveAgreementTemplate | undefined>(
+    demoTemplate,
+  );
   const [authorityTitle, setAuthorityTitle] = useState("");
   const [attested, setAttested] = useState(false);
   const [pending, setPending] = useState(false);
@@ -70,6 +80,7 @@ export function AgreementAcceptance({
   useUnsavedChangesWarning(unsaved);
 
   useEffect(() => {
+    if (demoTemplate) return;
     let active = true;
     getActiveAgreementTemplate({ jurisdiction, type })
       .then((result) => {
@@ -86,7 +97,7 @@ export function AgreementAcceptance({
     return () => {
       active = false;
     };
-  }, [jurisdiction, type]);
+  }, [demoTemplate, jurisdiction, type]);
 
   const accept = async () => {
     if (!template) return;
@@ -117,17 +128,37 @@ export function AgreementAcceptance({
           "The approved agreement failed its integrity check. Nothing was accepted.",
         );
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      await executeClickAgreement(
-        {
-          accountId: account.id,
-          templateId: template.id,
-          templateVersion: template.semanticVersion,
-          exactText: template.exactText,
-          exactTextHash: template.exactTextHash,
-          authorityTitle,
-        },
-        { idempotencyKey: idempotencyKeyRef.current },
-      );
+      if (agreement?.demoProjection)
+        await sendProjectionAction(
+          {
+            audience: "customer",
+            channel: "agreements",
+            accountId: account.id,
+            recordKey: agreement.demoProjection.recordKey,
+            projectionId: agreement.demoProjection.projectionId,
+            action: "execute_agreement",
+            expectedVersion: agreement.demoProjection.version,
+            payload: {
+              authorityTitle,
+              templateId: template.id,
+              templateVersion: template.semanticVersion,
+              exactTextHash: template.exactTextHash,
+            },
+          },
+          { idempotencyKey: idempotencyKeyRef.current },
+        );
+      else
+        await executeClickAgreement(
+          {
+            accountId: account.id,
+            templateId: template.id,
+            templateVersion: template.semanticVersion,
+            exactText: template.exactText,
+            exactTextHash: template.exactTextHash,
+            authorityTitle,
+          },
+          { idempotencyKey: idempotencyKeyRef.current },
+        );
       setExecuted(true);
       setMessage(t("agreements.execute.accepted"));
     } catch (caught) {

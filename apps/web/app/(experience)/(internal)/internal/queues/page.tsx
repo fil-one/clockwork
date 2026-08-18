@@ -1,3 +1,4 @@
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { operationalRoles } from "@/src/features/internal-ops/queue-search/model";
 import { QueueWorkspace } from "@/src/features/internal-ops/queue-search/queue-workspace";
 import { loadQueueWorkspace } from "@/src/features/internal-ops/queue-search/server-loader";
@@ -18,6 +19,7 @@ export default async function Page() {
       generatedAt={workspace.generatedAt}
       stale={workspace.stale}
       actorId={actor?.userId ?? null}
+      demoRefreshEnabled={demoDeployIdentityEnabled(process.env)}
     />
   );
 }

@@ -11,6 +11,31 @@ const sessionMocks = vi.hoisted(() => ({
   construct: vi.fn(),
   resolve: vi.fn<(request: Request) => Promise<SessionClaims | null>>(),
 }));
+interface QueueRefreshInput {
+  readonly actorId: string;
+  readonly idempotencyKey: string;
+  readonly requestDigest: string;
+}
+
+interface QueueRefreshResult {
+  readonly refreshedAt: string;
+  readonly refreshedRecords: number;
+  readonly replayed: boolean;
+}
+
+const queueMocks = vi.hoisted(() => ({
+  refresh: vi.fn<(input: QueueRefreshInput) => Promise<QueueRefreshResult>>(),
+}));
+const priceBookMocks = vi.hoisted(() => ({ handle: vi.fn() }));
+const registrationMocks = vi.hoisted(() => ({ handle: vi.fn() }));
+const quoteMocks = vi.hoisted(() => ({ direct: vi.fn(), partner: vi.fn() }));
+const partnerControlMocks = vi.hoisted(() => ({
+  brand: vi.fn(),
+  renewal: vi.fn(),
+  renewalTarget: vi.fn(),
+}));
+const customerControlMocks = vi.hoisted(() => ({ handle: vi.fn() }));
+const paymentMocks = vi.hoisted(() => ({ handle: vi.fn() }));
 
 vi.mock("@/src/auth/session", () => ({
   WorkosNextSessionResolver: class {
@@ -23,8 +48,42 @@ vi.mock("@/src/auth/session", () => ({
     }
   },
 }));
+vi.mock("@/src/features/experience-server/projection-source", () => ({
+  refreshDemoQueueProjections: queueMocks.refresh,
+}));
+vi.mock(
+  "@/src/features/internal-ops/price-books/demo-price-book-command",
+  () => ({ handleDemoPriceBookCommand: priceBookMocks.handle }),
+);
+vi.mock("@/src/features/experience-server/demo-quote-command", () => ({
+  handleDemoQuoteCommand: quoteMocks.direct,
+}));
+vi.mock("@/src/features/customer-partner/partner/demo-partner-quote", () => ({
+  handleDemoPartnerQuoteCommand: quoteMocks.partner,
+}));
+vi.mock("@/src/features/customer-partner/partner/demo-partner-brand", () => ({
+  handleDemoPartnerBrand: partnerControlMocks.brand,
+}));
+vi.mock("@/src/features/customer-partner/partner/demo-partner-renewal", () => ({
+  demoPartnerRenewalOrderId: partnerControlMocks.renewalTarget,
+  handleDemoPartnerRenewal: partnerControlMocks.renewal,
+}));
+vi.mock("@/src/features/experience-server/demo-account-controls", () => ({
+  handleDemoCustomerAccountControl: customerControlMocks.handle,
+}));
+vi.mock("@/src/features/experience-server/demo-invoice-payment", () => ({
+  handleDemoInvoicePayment: paymentMocks.handle,
+}));
+vi.mock(
+  "@/src/features/customer-partner/partner/demo-deal-registration",
+  () => ({ handleDemoDealRegistrationCommand: registrationMocks.handle }),
+);
 
-import { demoMutationOriginAllowed, handle } from "./demo-app";
+import {
+  demoMutationOriginAllowed,
+  handle,
+  handleDemoQueueProjectionRefresh,
+} from "./demo-app";
 
 const csrfToken = "12345678901234567890123456789012";
 const orderProofHeaders = {
@@ -45,6 +104,34 @@ beforeEach(() => {
     mfaVerified: true,
     recentAuthenticationVerified: true,
   });
+  queueMocks.refresh.mockResolvedValue({
+    refreshedAt: "2026-08-18T12:00:00.000Z",
+    refreshedRecords: 3,
+    replayed: false,
+  });
+  priceBookMocks.handle.mockResolvedValue(Response.json({ ok: true }));
+  registrationMocks.handle.mockResolvedValue(Response.json({ ok: true }));
+  quoteMocks.direct.mockResolvedValue(
+    Response.json({
+      record: {
+        resource: "quotes",
+        rowVersion: 1,
+        data: { route: "direct" },
+      },
+    }),
+  );
+  quoteMocks.partner.mockResolvedValue(Response.json({ lane: "partner" }));
+  partnerControlMocks.brand.mockResolvedValue(Response.json({ ok: true }));
+  partnerControlMocks.renewal.mockResolvedValue(Response.json({ ok: true }));
+  partnerControlMocks.renewalTarget.mockImplementation((pathname: string) =>
+    pathname.endsWith("/declines")
+      ? { orderId: "demo-partner-renewal-ec-0038", action: "decline" }
+      : { orderId: "demo-partner-renewal-ec-0038", action: "request" },
+  );
+  customerControlMocks.handle.mockResolvedValue(Response.json({ ok: true }));
+  paymentMocks.handle.mockResolvedValue(
+    Response.json({ provider: "demo_sandbox", status: "paid" }),
+  );
 });
 
 afterEach(() => {
@@ -82,6 +169,102 @@ function orderRequest(body: unknown): Request {
   );
 }
 
+function priceBookRequest(): Request {
+  return new Request(
+    "https://demo.clockwork.test/api/v1/core/commands/price_books",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "demo-price-book-command-0001",
+        ...orderProofHeaders,
+      },
+      body: JSON.stringify({
+        id: "66000000-0000-4000-8000-000000000099",
+        action: "create",
+        payload: {},
+      }),
+    },
+  );
+}
+
+function registrationRequest(): Request {
+  return new Request(
+    "https://demo.clockwork.test/api/v1/core/commands/deal_registrations",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "demo-registration-command-0001",
+        ...orderProofHeaders,
+      },
+      body: JSON.stringify({
+        id: "77000000-0000-4000-8000-000000000001",
+        accountId: "11000000-0000-4000-8000-000000000003",
+        action: "create",
+        payload: {},
+      }),
+    },
+  );
+}
+
+function quoteRequest(): Request {
+  return new Request(
+    "https://demo.clockwork.test/api/v1/core/commands/quotes",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "demo-quote-command-0001",
+        ...orderProofHeaders,
+      },
+      body: JSON.stringify({ id: "78000000-0000-4000-8000-000000000001" }),
+    },
+  );
+}
+
+function partnerControlRequest(path: string): Request {
+  return new Request(`https://demo.clockwork.test${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": "demo-partner-control-0001",
+      ...orderProofHeaders,
+    },
+    body: JSON.stringify({ accountId: "11000000-0000-4000-8000-000000000006" }),
+  });
+}
+
+function customerControlRequest(method: string, path: string): Request {
+  return new Request(`https://demo.clockwork.test${path}`, {
+    method,
+    headers: {
+      ...(method === "GET"
+        ? {}
+        : {
+            "content-type": "application/json",
+            "idempotency-key": "demo-customer-control-0001",
+            ...orderProofHeaders,
+          }),
+    },
+    ...(method === "GET" ? {} : { body: "{}" }),
+  });
+}
+
+function queueRefreshRequest(
+  path = "/api/demo/projections/queues/refresh",
+  body?: string,
+): Request {
+  return new Request(`https://demo.clockwork.test${path}`, {
+    method: "POST",
+    headers: {
+      "idempotency-key": "demo-queue-refresh-0001",
+      ...orderProofHeaders,
+    },
+    ...(body === undefined ? {} : { body }),
+  });
+}
+
 function validPrepareOrderBody(): Readonly<Record<string, unknown>> {
   return {
     id: "33333333-3333-4333-8333-333333333333",
@@ -117,7 +300,10 @@ describe("demo commerce api", () => {
   it("refuses a mutation with no idempotency key", async () => {
     const response = await handle(commandRequest(orderProofHeaders));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "IDEMPOTENCY_KEY_REQUIRED",
+    });
   });
 
   it("refuses a mutation with no CSRF token", async () => {
@@ -224,6 +410,83 @@ describe("demo commerce api", () => {
     await expect(response.json()).resolves.toMatchObject({
       code: "DEMO_PAYMENT_UNAVAILABLE",
     });
+  });
+
+  it("routes exact demo sandbox payment paths after identity and mutation proof", async () => {
+    const input = new Request(
+      "https://demo.clockwork.test/api/demo/payments/sessions",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": "demo-sandbox-payment-0001",
+          ...orderProofHeaders,
+        },
+        body: JSON.stringify({
+          accountId: "11111111-1111-4111-8111-111111111111",
+          invoiceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        }),
+      },
+    );
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+    sessionMocks.resolve.mockImplementationOnce((request: Request) => {
+      expect(request).toBe(input);
+      expect(request.bodyUsed).toBe(false);
+      return Promise.resolve({
+        userId: "22222222-2222-4222-8222-222222222222",
+        organizationId: "66666666-6666-4666-8666-666666666666",
+        accountIds: ["11111111-1111-4111-8111-111111111111"],
+        roles: ["owner"],
+        isInternalStaff: false,
+        mfaVerified: true,
+        recentAuthenticationVerified: true,
+      });
+    });
+
+    const response = await handle(input);
+
+    expect(response.status).toBe(200);
+    expect(paymentMocks.handle).toHaveBeenCalledWith(
+      input,
+      expect.objectContaining({
+        userId: "22222222-2222-4222-8222-222222222222",
+      }),
+    );
+    expect(bodyRead).not.toHaveBeenCalled();
+  });
+
+  it("refuses cross-origin sandbox completion and does not match lookalikes", async () => {
+    const sessionId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const refused = await handle(
+      new Request(
+        `https://demo.clockwork.test/api/demo/payments/sessions/${sessionId}/complete`,
+        {
+          method: "POST",
+          headers: {
+            ...orderProofHeaders,
+            origin: "https://attacker.example",
+            "idempotency-key": "demo-sandbox-payment-0002",
+          },
+        },
+      ),
+    );
+    expect(refused.status).toBe(403);
+    await expect(refused.json()).resolves.toMatchObject({
+      code: "ORIGIN_REJECTED",
+    });
+    expect(paymentMocks.handle).not.toHaveBeenCalled();
+
+    const lookalike = await handle(
+      new Request("https://demo.clockwork.test/api/demo/payments/sessions-x", {
+        method: "POST",
+        headers: {
+          ...orderProofHeaders,
+          "idempotency-key": "demo-sandbox-payment-0003",
+        },
+      }),
+    );
+    expect(lookalike.status).toBe(404);
+    expect(paymentMocks.handle).not.toHaveBeenCalled();
   });
 
   /**
@@ -414,6 +677,177 @@ describe("demo commerce api", () => {
     });
   });
 
+  it("routes price-book commands with the exact verified finance session", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000008",
+      accountIds: [],
+      roles: ["finance_approver"],
+      isInternalStaff: true,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const input = priceBookRequest();
+    const response = await handle(input);
+    expect(response.status).toBe(200);
+    expect(priceBookMocks.handle).toHaveBeenCalledWith(
+      input,
+      expect.objectContaining({
+        userId: "21000000-0000-4000-8000-000000000008",
+        roles: ["finance_approver"],
+      }),
+    );
+  });
+
+  it("routes deal registrations with the exact verified partner session", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000003",
+      accountIds: ["11000000-0000-4000-8000-000000000003"],
+      roles: ["partner_admin"],
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const input = registrationRequest();
+    const response = await handle(input);
+    expect(response.status).toBe(200);
+    expect(registrationMocks.handle).toHaveBeenCalledWith(
+      input,
+      expect.objectContaining({
+        userId: "21000000-0000-4000-8000-000000000003",
+        roles: ["partner_admin"],
+      }),
+    );
+  });
+
+  it("routes partner and customer quotes by exact session authority", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000003",
+      accountIds: ["11000000-0000-4000-8000-000000000003"],
+      roles: ["partner_admin"],
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const partnerInput = quoteRequest();
+    expect((await handle(partnerInput)).status).toBe(200);
+    expect(quoteMocks.partner).toHaveBeenCalledWith(
+      partnerInput,
+      expect.objectContaining({ roles: ["partner_admin"] }),
+    );
+    expect(quoteMocks.direct).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    quoteMocks.direct.mockResolvedValue(Response.json({ lane: "direct" }));
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000001",
+      accountIds: ["11000000-0000-4000-8000-000000000001"],
+      roles: ["owner"],
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const customerInput = quoteRequest();
+    expect((await handle(customerInput)).status).toBe(200);
+    expect(quoteMocks.direct).toHaveBeenCalledWith(
+      customerInput,
+      expect.objectContaining({ roles: ["owner"] }),
+    );
+    expect(quoteMocks.partner).not.toHaveBeenCalled();
+  });
+
+  it("refuses mixed partner authority before either quote handler reads the body", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000003",
+      accountIds: ["11000000-0000-4000-8000-000000000003"],
+      roles: ["partner_admin", "owner"],
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const input = quoteRequest();
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+    const response = await handle(input);
+    expect(response.status).toBe(403);
+    expect(bodyRead).not.toHaveBeenCalled();
+    expect(quoteMocks.direct).not.toHaveBeenCalled();
+    expect(quoteMocks.partner).not.toHaveBeenCalled();
+  });
+
+  it("routes exact partner brand and renewal destinations through the verified session", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000003",
+      accountIds: ["11000000-0000-4000-8000-000000000003"],
+      roles: ["partner_admin"],
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const brand = partnerControlRequest(
+      "/api/v1/lifecycle/partners/11000000-0000-4000-8000-000000000003/domains",
+    );
+    expect((await handle(brand)).status).toBe(200);
+    expect(partnerControlMocks.brand).toHaveBeenCalledWith(
+      brand,
+      expect.objectContaining({ roles: ["partner_admin"] }),
+      "11000000-0000-4000-8000-000000000003",
+    );
+
+    const renewal = partnerControlRequest(
+      "/api/v1/lifecycle/renewals/demo-partner-renewal-ec-0038/requests",
+    );
+    expect((await handle(renewal)).status).toBe(200);
+    expect(partnerControlMocks.renewal).toHaveBeenCalledWith(
+      renewal,
+      expect.objectContaining({ roles: ["partner_admin"] }),
+      { orderId: "demo-partner-renewal-ec-0038", action: "request" },
+    );
+  });
+
+  it.each([
+    [
+      "GET",
+      "/api/v1/core/records/accounts?accountId=11000000-0000-4000-8000-000000000001",
+    ],
+    ["POST", "/api/v1/core/commands/accounts"],
+    ["PUT", "/api/v1/notifications/preferences"],
+    [
+      "POST",
+      "/api/v1/lifecycle/organizations/31000000-0000-4000-8000-000000000001/invites",
+    ],
+    [
+      "PUT",
+      "/api/v1/lifecycle/accounts/11000000-0000-4000-8000-000000000001/procurement-profile",
+    ],
+  ])(
+    "routes the exact %s %s customer account control",
+    async (method, path) => {
+      const input = customerControlRequest(method, path);
+      const response = await handle(input);
+      expect(response.status).toBe(200);
+      expect(customerControlMocks.handle).toHaveBeenCalledWith(
+        input,
+        expect.objectContaining({ roles: ["owner"] }),
+      );
+    },
+  );
+
+  it.each([
+    ["GET", "/api/v1/core/records/accounts-extra"],
+    ["POST", "/api/v1/core/commands/accounts/extra"],
+    ["PUT", "/api/v1/notifications/preferences-extra"],
+    ["POST", "/api/v1/lifecycle/organizations/not-a-uuid/invites"],
+    [
+      "PUT",
+      "/api/v1/lifecycle/accounts/11000000-0000-4000-8000-000000000001/procurement-profile/extra",
+    ],
+  ])(
+    "does not grant the lookalike %s %s account route",
+    async (method, path) => {
+      await handle(customerControlRequest(method, path));
+      expect(customerControlMocks.handle).not.toHaveBeenCalled();
+    },
+  );
+
   it("reports an operation the demo does not simulate as problem details", async () => {
     const response = await handle(
       new Request("https://demo.clockwork.test/api/v1/system/nothing-here"),
@@ -448,6 +882,151 @@ describe("demo commerce api", () => {
       code: "DEMO_WEBHOOK_UNAVAILABLE",
       retryable: false,
     });
+  });
+});
+
+describe("demo queue refresh destination security", () => {
+  beforeEach(() => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000009",
+      accountIds: [],
+      roles: ["internal_operator"],
+      isInternalStaff: true,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+  });
+
+  it("authorizes the exact bodyless request and reports durable replay", async () => {
+    const response = await handleDemoQueueProjectionRefresh(
+      queueRefreshRequest(),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("idempotency-replayed")).toBe("false");
+    expect(queueMocks.refresh).toHaveBeenCalledTimes(1);
+    const refreshInput = queueMocks.refresh.mock.calls[0]?.[0];
+    expect(refreshInput?.actorId).toBe("21000000-0000-4000-8000-000000000009");
+    expect(refreshInput?.idempotencyKey).toBe("demo-queue-refresh-0001");
+    expect(refreshInput?.requestDigest).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("accepts Next's non-null empty stream when the encoded length is exactly zero", async () => {
+    const input = queueRefreshRequest();
+    Object.defineProperty(input, "body", {
+      configurable: true,
+      value: new ReadableStream({
+        start(controller) {
+          controller.close();
+        },
+      }),
+    });
+    input.headers.set("content-length", "0");
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+
+    const response = await handleDemoQueueProjectionRefresh(input);
+
+    expect(input.body).not.toBeNull();
+    expect(response.status).toBe(200);
+    expect(bodyRead).not.toHaveBeenCalled();
+    expect(queueMocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects any request body without buffering or resolving identity", async () => {
+    const input = queueRefreshRequest(
+      "/api/demo/projections/queues/refresh",
+      "{}",
+    );
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+    const response = await handleDemoQueueProjectionRefresh(input);
+    expect(response.status).toBe(422);
+    expect(bodyRead).not.toHaveBeenCalled();
+    expect(sessionMocks.resolve).not.toHaveBeenCalled();
+    expect(queueMocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["nonzero content length", { "content-length": "1" }],
+    ["invalid content length", { "content-length": "not-a-length" }],
+    ["transfer encoding", { "transfer-encoding": "chunked" }],
+    [
+      "transfer encoding even with zero length",
+      { "content-length": "0", "transfer-encoding": "chunked" },
+    ],
+  ])("rejects %s without buffering", async (_name, encodedHeaders) => {
+    const input = queueRefreshRequest();
+    for (const [name, value] of Object.entries(encodedHeaders))
+      input.headers.set(name, value);
+    const bodyRead = vi.spyOn(input, "arrayBuffer");
+
+    const response = await handleDemoQueueProjectionRefresh(input);
+
+    expect(response.status).toBe(422);
+    expect(bodyRead).not.toHaveBeenCalled();
+    expect(sessionMocks.resolve).not.toHaveBeenCalled();
+    expect(queueMocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("refuses a different path before granting queue authority", async () => {
+    const response = await handleDemoQueueProjectionRefresh(
+      queueRefreshRequest("/api/demo/projections/queues/not-refresh"),
+    );
+    expect(response.status).toBe(404);
+    expect(sessionMocks.resolve).not.toHaveBeenCalled();
+    expect(queueMocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: "a cross-origin request",
+      mutate: (headers: Headers) =>
+        headers.set("origin", "https://attacker.example"),
+      status: 403,
+    },
+    {
+      name: "a missing CSRF cookie",
+      mutate: (headers: Headers) => headers.delete("cookie"),
+      status: 403,
+    },
+    {
+      name: "a mismatched CSRF header",
+      mutate: (headers: Headers) =>
+        headers.set("x-csrf-token", "99999999999999999999999999999999"),
+      status: 403,
+    },
+    {
+      name: "a missing idempotency key",
+      mutate: (headers: Headers) => headers.delete("idempotency-key"),
+      status: 422,
+    },
+    {
+      name: "a short idempotency key",
+      mutate: (headers: Headers) => headers.set("idempotency-key", "too-short"),
+      status: 422,
+    },
+  ])("refuses $name before resolving identity", async ({ mutate, status }) => {
+    const input = queueRefreshRequest();
+    mutate(input.headers);
+    const response = await handleDemoQueueProjectionRefresh(input);
+    expect(response.status).toBe(status);
+    expect(sessionMocks.resolve).not.toHaveBeenCalled();
+    expect(queueMocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it("requires an internal role holding system operation authority", async () => {
+    sessionMocks.resolve.mockResolvedValue({
+      userId: "21000000-0000-4000-8000-000000000008",
+      accountIds: [],
+      roles: ["finance_approver"],
+      isInternalStaff: true,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    const response = await handleDemoQueueProjectionRefresh(
+      queueRefreshRequest(),
+    );
+    expect(response.status).toBe(403);
+    expect(queueMocks.refresh).not.toHaveBeenCalled();
   });
 });
 

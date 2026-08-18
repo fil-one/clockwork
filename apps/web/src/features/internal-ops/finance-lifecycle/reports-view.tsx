@@ -10,6 +10,7 @@ import {
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
 import { plural } from "@/src/i18n/en";
+import { formatOperationalTimestamp } from "../presentation";
 
 import { lifecycleCopy } from "./copy";
 import { FinancePageFrame } from "./page-frame";
@@ -104,11 +105,6 @@ export function ReportsView({
       description={copy.description}
       provenance={provenance}
     >
-      <div className={styles.notice} role="note">
-        <strong>{copy.noVarianceTitle}</strong>
-        <span>{copy.noVarianceBody}</span>
-      </div>
-
       <form
         className={styles.filterBar}
         aria-label="Report filters"
@@ -175,7 +171,9 @@ export function ReportsView({
               ) : (
                 copy.documentPending
               ),
-              <time dateTime={record.updatedAt}>{record.updatedAt}</time>,
+              <time dateTime={record.updatedAt}>
+                {formatOperationalTimestamp(record.updatedAt)}
+              </time>,
             ])}
           />
         )}

@@ -1,6 +1,9 @@
 import "server-only";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+
+import { readDemoRuntimeFailureIncidents } from "../demo-operator-state";
 
 import {
   readRuntimeFailureIncidents,
@@ -26,6 +29,14 @@ export async function loadRuntimeFailureIncidents(input: {
   limit?: number;
 }): Promise<IncidentQueue> {
   const database = getOptionalServiceDatabase();
+  if (!database && demoDeployIdentityEnabled(process.env))
+    try {
+      return await readDemoRuntimeFailureIncidents({
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+      });
+    } catch {
+      return unreadableIncidentQueue;
+    }
   if (!database) return unwiredIncidentQueue;
   try {
     return await readRuntimeFailureIncidents(database, input);

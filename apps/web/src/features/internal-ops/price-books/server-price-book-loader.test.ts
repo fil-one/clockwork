@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
+
 import { loadPriceBookRecords } from "./server-price-book-loader";
 
 const book = {
@@ -29,6 +31,7 @@ describe("price book server read", () => {
     expect(result).toEqual({
       books: [book],
       source: "Pricing service",
+      availability: "available",
       readAt: "2026-08-02T00:00:00.000Z",
     });
   });
@@ -38,10 +41,44 @@ describe("price book server read", () => {
       list: () => Promise.reject(new Error("pricing service is unreachable")),
     });
     expect(unreadable.books).toEqual([]);
-    expect(unreadable.source).toBe("Fail-closed operational fallback");
+    expect(unreadable.source).toBe("Pricing service unavailable");
+    expect(unreadable.availability).toBe("unavailable");
 
     const unconfigured = await loadPriceBookRecords(undefined);
     expect(unconfigured.books).toEqual([]);
-    expect(unconfigured.source).toBe("Fail-closed operational fallback");
+    expect(unconfigured.source).toBe("Pricing service unavailable");
+    expect(unconfigured.availability).toBe("unavailable");
+  });
+
+  it("distinguishes a successful empty live read from an unavailable read", async () => {
+    const result = await loadPriceBookRecords({
+      list: () => Promise.resolve([]),
+    });
+    expect(result).toMatchObject({
+      books: [],
+      source: "Pricing service",
+      availability: "empty",
+    });
+  });
+
+  it("serves canonical fictional books only for an explicit demo", async () => {
+    const result = await loadPriceBookRecords(undefined, {
+      demoEnabled: true,
+      demoStore: createMemoryDemoStore(),
+      now: new Date("2026-08-02T00:00:00.000Z"),
+    });
+    expect(result.source).toBe("Deterministic demo fixture");
+    expect(result.availability).toBe("available");
+    expect(result.books).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ currency: "USD", status: "active" }),
+        expect.objectContaining({ currency: "GBP", status: "active" }),
+        expect.objectContaining({
+          currency: "USD",
+          status: "draft",
+          activationRequestedByEmail: "commercial.policy@filone.test",
+        }),
+      ]),
+    );
   });
 });

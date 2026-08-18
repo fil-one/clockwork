@@ -269,3 +269,52 @@ describe("record documents", () => {
       expect(container.textContent).not.toContain(claim);
   });
 });
+
+describe("customer-facing identity and version evidence", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mocks.loadRecordArtifacts.mockResolvedValue([]);
+  });
+
+  it("keeps the semantic quote revision visible and projection locks technical", async () => {
+    const rawRecordId = "60000000-0000-4000-8000-000000000021";
+    const rawProjectionId = "50000000-0000-4000-8000-000000000021";
+    const view = render(
+      await CommercialRecordDetail({
+        id: "quote-renewal-v2",
+        record: invoice({
+          id: rawRecordId,
+          kind: "quotes",
+          title: "Annual renewal",
+          href: "/quotes/quote-renewal-v2",
+          version: "2",
+          reference: "Q-2026-0312",
+          projectionId: rawProjectionId,
+          projectionVersion: 7,
+        }),
+      }),
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Annual renewal · version 2",
+      }),
+    ).toBeVisible();
+    const summary = screen.getByRole("region", { name: "Commercial summary" });
+    expect(summary).toHaveTextContent("Quote revision");
+    expect(summary).toHaveTextContent("2");
+    expect(summary).not.toHaveTextContent("Projection version");
+    const chain = screen.getByRole("region", { name: "Artifact chain" });
+    expect(chain).toHaveTextContent("Q-2026-0312");
+    expect(chain).not.toHaveTextContent(rawRecordId);
+    expect(chain).not.toHaveTextContent(rawProjectionId);
+
+    const technical = view.container.querySelector("details");
+    expect(technical).not.toBeNull();
+    expect(technical).toHaveTextContent(rawRecordId);
+    expect(technical).toHaveTextContent(rawProjectionId);
+    expect(technical).toHaveTextContent("Projection row version");
+    expect(technical).toHaveTextContent("7");
+  });
+});

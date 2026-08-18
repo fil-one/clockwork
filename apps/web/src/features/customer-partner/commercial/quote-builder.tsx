@@ -157,7 +157,6 @@ function Field({
 
 export function QuoteBuilder({
   account,
-  catalogueMode,
   initialDraft,
   offers,
   origin,
@@ -184,7 +183,6 @@ export function QuoteBuilder({
   const [errors, setErrors] = useState<QuoteErrors>({});
   const [pending, setPending] = useState(false);
   const [createdQuoteId, setCreatedQuoteId] = useState("");
-  const [simulatedComplete, setSimulatedComplete] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const workflowRef = useRef<HTMLDivElement>(null);
@@ -196,8 +194,8 @@ export function QuoteBuilder({
    * Armed while, and only while, the reader has changed something away from
    * the state the form opened in and the server has not accepted it.
    *
-   * An authoritative created ID or a completed simulator exchange disarms the
-   * warning when `sendCoreCommand` returns. `update()` clears either outcome,
+   * An authoritative created ID disarms the warning when `sendCoreCommand`
+   * returns. `update()` clears that outcome,
    * so editing after that response re-arms. A form still holding exactly
    * `emptyQuoteDraft(account.name)` is never armed, so opening the builder and
    * changing your mind costs nothing.
@@ -209,8 +207,7 @@ export function QuoteBuilder({
         : emptyQuoteDraft(account.name),
     [account.name, initialDraft],
   );
-  const unsaved =
-    draftIsDirty(draft, pristine) && !createdQuoteId && !simulatedComplete;
+  const unsaved = draftIsDirty(draft, pristine) && !createdQuoteId;
   useUnsavedChangesWarning(unsaved);
 
   const update = (field: QuoteField, value: string) => {
@@ -220,7 +217,6 @@ export function QuoteBuilder({
     quoteIdRef.current = null;
     quoteInputRef.current = null;
     setCreatedQuoteId("");
-    setSimulatedComplete(false);
     setMessage("");
     setErrorMessage("");
   };
@@ -287,13 +283,6 @@ export function QuoteBuilder({
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
-      if (catalogueMode === "simulated") {
-        setSimulatedComplete(true);
-        setMessage(
-          "The demo returned a simulated draft-command response. No quote was saved, priced, or issued.",
-        );
-        return;
-      }
       setCreatedQuoteId(quoteIdRef.current);
       setMessage(t("quotes.builder.created"));
     } catch (caught) {
@@ -318,9 +307,7 @@ export function QuoteBuilder({
           <h1>Create a quote</h1>
           <p className={styles.description}>
             Build the commercial offer in three stages. Human-readable choices
-            {catalogueMode === "simulated"
-              ? " use demo-only simulator identifiers and do not save or price a quote."
-              : " resolve to active server identifiers only when submitted."}
+            resolve to active server identifiers only when submitted.
           </p>
         </div>
         <LeaveDraftControl
@@ -342,13 +329,6 @@ export function QuoteBuilder({
         <p className={styles.errorMessage} role="alert">
           No authoritative active offer catalogue is available for this account.
           No quote command can be sent.
-        </p>
-      ) : null}
-      {catalogueMode === "simulated" ? (
-        <p className={styles.notice} role="status">
-          Demo catalogue · these offers and the draft-command response are
-          simulated. No authoritative price book is read and no quote is saved
-          or priced.
         </p>
       ) : null}
 
@@ -403,11 +383,7 @@ export function QuoteBuilder({
 
           {stage === 1 ? (
             <fieldset className={styles.stageFields}>
-              <legend>
-                Customer and{" "}
-                {catalogueMode === "simulated" ? "simulated" : "authoritative"}{" "}
-                offer
-              </legend>
+              <legend>Customer and authoritative offer</legend>
               <div className={styles.formGrid}>
                 <SearchableSelector
                   error={errors.account}
@@ -539,10 +515,9 @@ export function QuoteBuilder({
               <h3 id="quote-review-heading">Draft boundary</h3>
               <p className={styles.notice}>
                 Review customer, offer, region, capacity, term, route, parties,
-                and expiry.
-                {catalogueMode === "simulated"
-                  ? " This demo sends the command to a contract echo and stops; it does not price or save the draft."
-                  : " This step creates a server-priced draft. Issuance is available only after the rendered artifact is prepared and bound, so this screen does not infer an open status."}
+                and expiry. This step creates a server-priced draft. Issuance is
+                available only after the rendered artifact is prepared and
+                bound, so this screen does not infer an open status.
               </p>
               <ul className={styles.reviewList}>
                 <li>
@@ -614,13 +589,7 @@ export function QuoteBuilder({
                   }}
                   type="button"
                 >
-                  {pending
-                    ? catalogueMode === "simulated"
-                      ? "Simulating…"
-                      : "Creating…"
-                    : catalogueMode === "simulated"
-                      ? "Simulate draft"
-                      : "Create priced draft"}
+                  {pending ? "Creating…" : "Create priced draft"}
                 </button>
               )}
             </div>

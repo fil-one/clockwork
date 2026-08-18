@@ -2,21 +2,21 @@ export const reconciliationCopy = {
   page: {
     title: "Billing reconciliation",
     description:
-      "The close from docs/operations/billing-reconciliation.md: stored tie-out periods, and the variances the reconciliation tasks actually raised.",
+      "Review monthly close readiness, compare billing and ledger totals, and classify the variances that need follow-up.",
   },
   summary: {
     label: "Close readiness",
     periods: {
       title: "Tie-out periods",
-      detail: "Rows stored in core_three_way_tie_outs",
+      detail: "Monthly periods available for review",
     },
     untied: {
       title: "Not tied",
-      detail: "Periods whose stored totals differ across the three sources",
+      detail: "Periods where platform, billing, and ledger totals differ",
     },
     blocking: {
       title: "Blocking variances",
-      detail: "Reconciliation cases unclassified or classified unexplained",
+      detail: "Cases that still prevent the period from closing",
     },
   },
   provenance: {
@@ -29,16 +29,15 @@ export const reconciliationCopy = {
       "Closing a case is a signed decision with an immutable evidence document and stays on the lifecycle command path. Classifying a variance here records the disposition the runbook asks for and leaves the case open.",
   },
   unreadable: {
-    title: "The reconciliation records could not be read.",
+    title: "Reconciliation is temporarily unavailable.",
     detail:
-      "Nothing is listed because no read completed, which is a different state from a clean close. Check the service database connection before concluding the period ties.",
+      "Refresh the page or try again shortly. No close decision was made.",
   },
   periods: {
     heading: "Tie-out periods",
     subheading: "Platform against billing provider against general ledger.",
     caption: "Stored three-way tie-out periods and their variances",
-    empty:
-      "No tie-out period is stored. Nothing in the application writes this table, so an empty list is its normal state.",
+    empty: "No tie-out periods are ready for review.",
     count: (count: number) => `${count} ${count === 1 ? "period" : "periods"}`,
     columns: {
       period: "Period",

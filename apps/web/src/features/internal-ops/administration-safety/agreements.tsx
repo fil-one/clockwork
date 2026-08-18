@@ -19,8 +19,10 @@ import {
 export function AgreementAdministration({
   roles,
   publishAction,
+  readOnly = false,
 }: {
   roles: readonly string[];
+  readOnly?: boolean;
   /**
    * The authorized template publication workflow this review hands off to,
    * supplied by the route so it carries the route's own permission gate.
@@ -225,45 +227,55 @@ export function AgreementAdministration({
               <dd>{selected.execution}</dd>
             </div>
           </dl>
-          <label className={styles.field}>
-            Counsel decision reason
-            <textarea
-              value={reason}
-              required
-              minLength={8}
-              placeholder="Explain why this exact version is approved for publication."
-              onChange={(event) => {
-                setReason(event.currentTarget.value);
-                setSummary(null);
-              }}
-            />
-          </label>
+          {!readOnly ? (
+            <label className={styles.field}>
+              Counsel decision reason
+              <textarea
+                value={reason}
+                required
+                minLength={8}
+                placeholder="Explain why this exact version is approved for publication."
+                onChange={(event) => {
+                  setReason(event.currentTarget.value);
+                  setSummary(null);
+                }}
+              />
+            </label>
+          ) : null}
           <TechnicalEvidence
             identifiers={[
               { label: "Template ID", value: selected.id },
               { label: "Exact text hash", value: selected.textHash },
             ]}
           />
-          {!permitted ? (
+          {readOnly ? (
+            <div className={styles.roleNotice} role="note">
+              <strong>Template evidence is read only in this demo.</strong>
+              Publication needs counsel-approved canonical text and approval
+              evidence from the production agreement registry.
+            </div>
+          ) : !permitted ? (
             <div className={styles.roleNotice} role="note">
               <strong>Legal approval authority is required.</strong>
               Other internal roles may scan versions and evidence but cannot
               approve or activate a template.
             </div>
           ) : null}
-          <div className={styles.actions}>
-            <button
-              className={styles.button}
-              type="submit"
-              disabled={!permitted}
-            >
-              Review template approval
-            </button>
-          </div>
+          {!readOnly ? (
+            <div className={styles.actions}>
+              <button
+                className={styles.button}
+                type="submit"
+                disabled={!permitted}
+              >
+                Review template approval
+              </button>
+            </div>
+          ) : null}
         </form>
       </section>
 
-      {summary ? (
+      {summary && !readOnly ? (
         <>
           <ReviewSummaryCard
             summary={summary}

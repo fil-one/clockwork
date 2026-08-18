@@ -2,6 +2,7 @@ import {
   exitAssistedSession,
   exitProviderAssistedSession,
 } from "@/src/auth/actions";
+import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
 
 import type { AssistedSessionView } from "./repository";
 import styles from "./assisted-session-banner.module.css";
@@ -38,7 +39,9 @@ export function AssistedSessionBanner({
           <dt>Reason and expiry</dt>
           <dd>
             {session.reason} · expires{" "}
-            <time dateTime={expiresAt}>{expiresAt}</time>
+            <time dateTime={expiresAt}>
+              {formatOperationalTimestamp(expiresAt)}
+            </time>
           </dd>
         </div>
       </dl>

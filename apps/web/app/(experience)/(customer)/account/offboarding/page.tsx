@@ -2,6 +2,7 @@ import {
   OffboardingWorkflow,
   type OffboardableService,
 } from "@/src/features/customer-partner/commercial/offboarding";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import {
   firstSearchParam,
   type RawSearchParams,
@@ -57,11 +58,24 @@ async function OffboardingSurface({ params }: { params: RawSearchParams }) {
     open,
     services?.records ?? [],
   );
+  const selectedOrderId = selected ?? open[0]?.aggregateId;
+  const selectedRecord = open.find(
+    (record) => record.aggregateId === selectedOrderId,
+  );
   return (
     <OffboardingWorkflow
       account={{ id: identity.accountId, name: identity.accountName }}
       services={open.map(offboardableService)}
-      {...(selected ? { selectedServiceId: selected } : {})}
+      {...(selectedOrderId ? { selectedServiceId: selectedOrderId } : {})}
+      {...(demoDeployIdentityEnabled(process.env) && selectedRecord
+        ? {
+            demoProjection: {
+              projectionId: selectedRecord.id,
+              recordKey: selectedRecord.recordKey,
+              version: selectedRecord.version,
+            },
+          }
+        : {})}
     />
   );
 }

@@ -20,15 +20,87 @@ import styles from "./commercial.module.css";
 export interface PayableInvoice {
   accountId: string;
   invoiceId: string;
+  recordKey: string;
   amountLabel: string;
   dueLabel: string;
+  guidedDemo?: boolean;
+}
+
+interface DemoPaymentSession {
+  readonly provider: "demo_sandbox";
+  readonly sessionId: string;
+  readonly invoiceId: string;
+  readonly status: "requires_customer_action" | "paid";
+  readonly paymentAttemptId: string;
+  readonly receiptId: string | null;
+  readonly completedAt: string | null;
+}
+
+function cookieValue(name: string): string | undefined {
+  return document.cookie
+    .split(";")
+    .map((part) => part.trim().split("="))
+    .find(([key]) => key === name)?.[1];
+}
+
+async function demoPaymentMutation(
+  path: string,
+  idempotencyKey: string,
+  body?: Readonly<Record<string, string>>,
+): Promise<DemoPaymentSession> {
+  const csrf = cookieValue("clockwork-csrf");
+  if (!csrf || csrf.length < 32)
+    throw new Error(
+      "The secure form token is unavailable. Refresh the page and try again.",
+    );
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: {
+      "idempotency-key": idempotencyKey,
+      "x-csrf-token": csrf,
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const payload = (await response.json()) as {
+    detail?: unknown;
+    provider?: unknown;
+    sessionId?: unknown;
+    invoiceId?: unknown;
+    status?: unknown;
+    paymentAttemptId?: unknown;
+    receiptId?: unknown;
+    completedAt?: unknown;
+  };
+  if (!response.ok)
+    throw new Error(
+      typeof payload.detail === "string"
+        ? payload.detail
+        : "The demo sandbox payment could not be recorded.",
+    );
+  if (
+    payload.provider !== "demo_sandbox" ||
+    typeof payload.sessionId !== "string" ||
+    typeof payload.invoiceId !== "string" ||
+    (payload.status !== "requires_customer_action" &&
+      payload.status !== "paid") ||
+    typeof payload.paymentAttemptId !== "string" ||
+    (payload.receiptId !== null && typeof payload.receiptId !== "string") ||
+    (payload.completedAt !== null && typeof payload.completedAt !== "string")
+  )
+    throw new Error("The demo sandbox returned an invalid payment record.");
+  return payload as DemoPaymentSession;
 }
 
 export function PaymentHandoff({
   accountId,
   invoiceId,
+  recordKey,
   amountLabel,
   dueLabel,
+  guidedDemo = false,
 }: PayableInvoice) {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -46,7 +118,11 @@ export function PaymentHandoff({
    * withdraws the retry, because pressing the button again cannot change it.
    */
   const [boundary, setBoundary] = useState("");
+  const [demoSession, setDemoSession] = useState<DemoPaymentSession | null>(
+    null,
+  );
   const idempotencyKeyRef = useRef<string | null>(null);
+  const completionKeyRef = useRef<string | null>(null);
 
   const prepare = async () => {
     if (!confirmed) {
@@ -58,6 +134,17 @@ export function PaymentHandoff({
     setBoundary("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
+      if (guidedDemo) {
+        const session = await demoPaymentMutation(
+          "/api/demo/payments/sessions",
+          idempotencyKeyRef.current,
+          { accountId, invoiceId },
+        );
+        if (session.invoiceId !== invoiceId)
+          throw new Error("The demo sandbox returned a different invoice.");
+        setDemoSession(session);
+        return;
+      }
       const session = await createInvoicePaymentSession(
         { accountId, invoiceId },
         { idempotencyKey: idempotencyKeyRef.current },
@@ -81,11 +168,45 @@ export function PaymentHandoff({
     }
   };
 
+  const completeDemoPayment = async () => {
+    if (!demoSession || demoSession.status !== "requires_customer_action")
+      return;
+    setPending(true);
+    setError("");
+    try {
+      completionKeyRef.current ??= crypto.randomUUID();
+      const completed = await demoPaymentMutation(
+        `/api/demo/payments/sessions/${encodeURIComponent(demoSession.sessionId)}/complete`,
+        completionKeyRef.current,
+      );
+      if (
+        completed.invoiceId !== invoiceId ||
+        completed.sessionId !== demoSession.sessionId ||
+        completed.status !== "paid" ||
+        !completed.receiptId
+      )
+        throw new Error("The demo sandbox returned an invalid paid record.");
+      setDemoSession(completed);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The demo sandbox payment could not be completed.",
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <section className={styles.summary} aria-labelledby="payment-title">
       <div>
-        <p className={styles.eyebrow}>Provider handoff</p>
-        <h2 id="payment-title">Review payment</h2>
+        <p className={styles.eyebrow}>
+          {guidedDemo ? "Guided demo · payment sandbox" : "Provider handoff"}
+        </p>
+        <h2 id="payment-title">
+          {guidedDemo ? "Try the payment flow" : "Review payment"}
+        </h2>
       </div>
       <dl>
         <div>
@@ -94,7 +215,13 @@ export function PaymentHandoff({
         </div>
         <div>
           <dt>{customerPartnerCopy.commercial.paymentTruth}</dt>
-          <dd>Awaiting provider confirmation</dd>
+          <dd>
+            {guidedDemo
+              ? demoSession?.status === "paid"
+                ? "Paid in demo sandbox"
+                : "No real payment attempted"
+              : "Awaiting provider confirmation"}
+          </dd>
         </div>
         <div>
           <dt>Payment due</dt>
@@ -102,7 +229,9 @@ export function PaymentHandoff({
         </div>
       </dl>
       <p className={styles.notice}>
-        {customerPartnerCopy.commercial.externalPayment}
+        {guidedDemo
+          ? "This guided sandbox never contacts Stripe, a bank, or a card network. Completing it changes only resettable demo records; no money moves."
+          : customerPartnerCopy.commercial.externalPayment}
       </p>
       <label className={styles.check} htmlFor="payment-confirmation">
         <input
@@ -112,8 +241,9 @@ export function PaymentHandoff({
           type="checkbox"
         />
         <span>
-          I reviewed the invoice amount and understand payment continues with
-          the provider.
+          {guidedDemo
+            ? "I reviewed the invoice amount and understand this is a demo-only payment simulation."
+            : "I reviewed the invoice amount and understand payment continues with the provider."}
         </span>
       </label>
       {error ? (
@@ -128,7 +258,32 @@ export function PaymentHandoff({
           marked paid only by the provider webhook that follows.
         </p>
       ) : null}
-      {providerUrl ? (
+      {guidedDemo && demoSession?.status === "requires_customer_action" ? (
+        <div className={styles.stack} aria-label="Demo payment sandbox">
+          <p className={styles.notice} role="status">
+            Sandbox checkout is ready. Complete it to create one resettable
+            payment attempt and receipt. No external provider is involved.
+          </p>
+          <button
+            className={styles.primary}
+            disabled={pending}
+            onClick={() => void completeDemoPayment()}
+            type="button"
+          >
+            {pending ? "Completing…" : "Complete demo payment"}
+          </button>
+        </div>
+      ) : guidedDemo && demoSession?.status === "paid" ? (
+        <div className={styles.stack}>
+          <p className={styles.successMessage} role="status">
+            Demo payment complete. Receipt {demoSession.receiptId} is stored in
+            resettable demo state. No money moved.
+          </p>
+          <a className={styles.primary} href={`/billing/${recordKey}`}>
+            Return to paid invoice
+          </a>
+        </div>
+      ) : providerUrl ? (
         <a className={styles.primary} href={providerUrl} rel="noreferrer">
           Continue to secure Stripe payment
         </a>
@@ -141,12 +296,17 @@ export function PaymentHandoff({
           }}
           type="button"
         >
-          {pending ? "Preparing…" : "Prepare secure payment"}
+          {pending
+            ? "Preparing…"
+            : guidedDemo
+              ? "Start demo sandbox checkout"
+              : "Prepare secure payment"}
         </button>
       )}
       <p className={styles.muted}>
-        {customerPartnerCopy.commercial.paymentWebhook}. Returning from the
-        provider does not mark the invoice paid.
+        {guidedDemo
+          ? "Reset demo data to remove the sandbox payment, receipt, and paid invoice state."
+          : `${customerPartnerCopy.commercial.paymentWebhook}. Returning from the provider does not mark the invoice paid.`}
       </p>
     </section>
   );

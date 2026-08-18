@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { hasPermission } from "@clockwork/contracts";
 
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordVarianceDisposition } from "./disposition-store";
 import { clearingPeriodPattern, isVarianceClassification } from "./model";
+import { classifyDemoReconciliationVariance } from "../demo-operator-state";
 
 export interface VarianceDispositionResult {
   ok: boolean;
@@ -71,8 +73,10 @@ export async function classifyReconciliationVariance(
   if (evidenceReference && !evidencePattern.test(evidenceReference))
     return { ok: false, code: "RECONCILIATION_EVIDENCE_INVALID" };
 
+  const demoEnabled = demoDeployIdentityEnabled(process.env);
   const database = getOptionalServiceDatabase();
-  if (!database) return { ok: false, code: "RECONCILIATION_UNAVAILABLE" };
+  if (!database && !demoEnabled)
+    return { ok: false, code: "RECONCILIATION_UNAVAILABLE" };
 
   let session;
   try {
@@ -94,6 +98,29 @@ export async function classifyReconciliationVariance(
         hasPermission(role, "system:operate"),
     );
   if (!permitted) return { ok: false, code: "RECONCILIATION_FORBIDDEN" };
+
+  if (demoEnabled && !database) {
+    try {
+      const recorded = await classifyDemoReconciliationVariance({
+        caseId,
+        expectedRowVersion,
+        classification,
+        reason,
+        ...(expectedClearingPeriod ? { expectedClearingPeriod } : {}),
+        ...(evidenceReference ? { evidenceReference } : {}),
+        actorId: session.userId,
+      });
+      revalidatePath("/internal/billing-reconciliation");
+      return { ok: true, blocksClose: recorded.blocksClose };
+    } catch (error) {
+      const code =
+        error instanceof Error && knownFailures.has(error.message)
+          ? error.message
+          : "RECONCILIATION_FAILED";
+      return { ok: false, code };
+    }
+  }
+  if (!database) return { ok: false, code: "RECONCILIATION_UNAVAILABLE" };
 
   try {
     const recorded = await recordVarianceDisposition(database, {

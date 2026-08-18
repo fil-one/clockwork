@@ -1,4 +1,5 @@
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
+import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
 
 export type SearchGroup =
   | "Accounts"
@@ -68,20 +69,27 @@ function contextLine(data: Readonly<Record<string, unknown>>): string | null {
  * dedicated operator surface resolves to the account that owns it, which is the
  * only other place an operator can act on it.
  */
-function destination(record: ProjectionRecord, group: SearchGroup): string {
+function destination(
+  record: ProjectionRecord,
+  group: SearchGroup,
+  accountRecordKey?: string,
+): string {
   const key = encodeURIComponent(record.recordKey);
   if (group === "Accounts") return `/internal/accounts/${key}`;
   if (group === "Queues") return `/internal/queues/${key}`;
   if (group === "Agreements") return "/internal/agreements";
   if (group === "Invoices") return "/internal/collections";
-  return record.accountId
-    ? `/internal/accounts/${encodeURIComponent(record.accountId)}`
-    : "/internal/queues";
+  return accountRecordKey
+    ? `/internal/accounts/${encodeURIComponent(accountRecordKey)}`
+    : record.accountId
+      ? `/internal/accounts/${encodeURIComponent(record.accountId)}`
+      : "/internal/queues";
 }
 
 export function searchRecordFromProjection(
   record: ProjectionRecord,
   group: SearchGroup,
+  accountRecordKey?: string,
 ): SearchRecord {
   const data = record.data;
   return {
@@ -92,8 +100,8 @@ export function searchRecordFromProjection(
       text(data, "description") ??
       contextLine(data) ??
       text(data, "nextAction") ??
-      `Updated ${record.sourceUpdatedAt}`,
-    href: destination(record, group),
+      `Updated ${formatOperationalTimestamp(record.sourceUpdatedAt)}`,
+    href: destination(record, group, accountRecordKey),
     status: text(data, "statusLabel") ?? text(data, "status") ?? "Available",
   };
 }

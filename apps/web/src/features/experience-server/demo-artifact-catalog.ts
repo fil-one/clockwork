@@ -1332,6 +1332,7 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
     audience: "internal",
     accountId: null,
     attachments: [
+      "internal:reports:RPT-2026-07",
       "internal:dashboard:meridian-archive",
       "internal:dashboard:cobalt-orchard",
       "internal:queues:queue-legal-meridian",

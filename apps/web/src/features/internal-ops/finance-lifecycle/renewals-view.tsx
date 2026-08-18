@@ -26,17 +26,11 @@ function riskClass(order: RenewalOrder): string {
 export function RenewalsView({
   windows,
   provenance,
-  invoiceProvenance,
 }: {
   windows: Readonly<Record<RenewalWindow, readonly RenewalOrder[]>>;
   provenance: SurfaceProvenance;
   invoiceProvenance: SurfaceProvenance;
 }) {
-  const invoiceSource =
-    invoiceProvenance.kind === "projection"
-      ? `Invoice totals read from the internal collections channel, generated ${invoiceProvenance.generatedAt}.`
-      : "";
-
   return (
     <FinancePageFrame
       title={copy.title}
@@ -57,12 +51,6 @@ export function RenewalsView({
             </article>
           ))}
       </section>
-
-      <div className={styles.warningNotice} role="note">
-        <strong>{copy.noExposureTitle}</strong>
-        <span>{copy.noExposureBody}</span>
-        <span>{invoiceSource}</span>
-      </div>
 
       <div>
         {renewalWindows.map((window) => {

@@ -130,9 +130,35 @@ describe("forward step references", () => {
   });
 
   it("sends the agreement's record key to execution", async () => {
-    expect(await forwardStep("agreements", recordKeys.agreements)).toContain(
+    expect(
+      await forwardStep("agreements", recordKeys.agreements, {
+        status: "review",
+        allowedActions: ["execute_agreement"],
+      }),
+    ).toContain(
       `/agreements/execute?agreement=${encodeURIComponent(recordKeys.agreements)}`,
     );
+  });
+
+  it("offers no execution or signing action on an active agreement", async () => {
+    render(
+      await CommercialRecordDetail({
+        canMutate: true,
+        id: recordKeys.agreements,
+        record: projected("agreements", {
+          status: "active",
+          statusLabel: "Active · signed",
+          allowedActions: [],
+        }),
+      }),
+    );
+
+    expect(
+      screen.queryByRole("link", { name: "Execute a new agreement" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Sign this agreement" }),
+    ).not.toBeInTheDocument();
   });
 
   /**

@@ -249,6 +249,37 @@ export function sendCoreCommand(
   );
 }
 
+/**
+ * Reads the account aggregate immediately before an optimistic update. The
+ * returned row version belongs to the core account itself, unlike an
+ * experience projection version, and therefore is safe to send as
+ * `expectedVersion`.
+ */
+export async function readCoreAccount(
+  accountId: string,
+  options: Pick<CommerceClientOptions, "baseUrl" | "fetchImplementation"> = {},
+) {
+  const result = await client(options).GET("/v1/core/records/{resource}", {
+    params: {
+      path: { resource: "accounts" },
+      query: { accountId, limit: 2 },
+    },
+  });
+  if (result.error !== undefined || result.data === undefined)
+    throw apiError(result.response.status, result.error);
+  const matches = result.data.items.filter(
+    (record) => record.id === accountId && record.accountId === accountId,
+  );
+  const match = matches[0];
+  if (matches.length !== 1 || !match)
+    throw new CommerceApiError(
+      409,
+      "conflict",
+      "The current account version could not be resolved safely.",
+    );
+  return match;
+}
+
 export function registerOrganization(
   input: RegistrationInput,
   options: CommerceClientOptions = {},

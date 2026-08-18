@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import { formatOperationalTimestamp } from "../presentation";
 import styles from "./queue-search.module.css";
 import { QUEUE_COPY } from "./copy";
 import {
@@ -217,17 +218,23 @@ export function QueueWorkspace({
   generatedAt,
   stale,
   actorId = null,
+  demoRefreshEnabled = false,
 }: {
   roles: readonly OperationalRole[];
   items: readonly QueueItem[];
   generatedAt: string;
   stale: boolean;
   actorId?: string | null;
+  demoRefreshEnabled?: boolean;
 }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [refreshState, setRefreshState] = useState<
+    "idle" | "pending" | "failed"
+  >("idle");
+  const refreshIdempotencyKey = useRef<string | null>(null);
   const now = new Date();
   const filters = useMemo(
     () => parseQueueFilters(new URLSearchParams(searchParams.toString())),
@@ -358,6 +365,40 @@ export function QueueWorkspace({
     commitFilters(DEFAULT_FILTERS);
   }
 
+  async function refreshProjection(): Promise<void> {
+    if (!demoRefreshEnabled) {
+      router.refresh();
+      return;
+    }
+    if (refreshState === "pending") return;
+    setRefreshState("pending");
+    const key = refreshIdempotencyKey.current ?? crypto.randomUUID();
+    refreshIdempotencyKey.current = key;
+    const token = document.cookie
+      .split(";")
+      .map((part) => part.trim().split("="))
+      .find(([name]) => name === "clockwork-csrf")
+      ?.slice(1)
+      .join("=");
+    try {
+      const response = await fetch("/api/demo/projections/queues/refresh", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          "idempotency-key": key,
+          ...(token ? { "x-csrf-token": token } : {}),
+        },
+      });
+      if (!response.ok) throw new Error("Projection refresh was refused");
+      refreshIdempotencyKey.current = null;
+      setRefreshState("idle");
+      router.refresh();
+    } catch {
+      setRefreshState("failed");
+    }
+  }
+
   return (
     <main className={styles.page} id="main-content">
       <header className={styles.pageHeader}>
@@ -369,7 +410,9 @@ export function QueueWorkspace({
         <p className={styles.freshness}>
           <span aria-hidden="true" />
           {QUEUE_COPY.freshness}{" "}
-          <time dateTime={generatedAt}>{generatedAt}</time>
+          <time dateTime={generatedAt}>
+            {formatOperationalTimestamp(generatedAt)}
+          </time>
         </p>
       </header>
 
@@ -377,9 +420,20 @@ export function QueueWorkspace({
         <section className={styles.staleBanner} role="alert">
           <strong>{QUEUE_COPY.staleTitle}</strong>
           <span>{QUEUE_COPY.staleDescription}</span>
-          <button type="button" onClick={() => router.refresh()}>
-            {QUEUE_COPY.staleAction}
+          <button
+            type="button"
+            disabled={refreshState === "pending"}
+            onClick={() => void refreshProjection()}
+          >
+            {refreshState === "pending"
+              ? QUEUE_COPY.staleRefreshing
+              : refreshState === "failed"
+                ? QUEUE_COPY.staleRetry
+                : QUEUE_COPY.staleAction}
           </button>
+          {refreshState === "failed" ? (
+            <span role="status">{QUEUE_COPY.staleRefreshFailed}</span>
+          ) : null}
         </section>
       ) : null}
 

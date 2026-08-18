@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { requestOffboarding } from "@/src/features/contracts/commerce-client";
+import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
@@ -25,10 +26,16 @@ export function OffboardingWorkflow({
   account,
   services,
   selectedServiceId,
+  demoProjection,
 }: {
   account: { id: string; name: string };
   services: readonly OffboardableService[];
   selectedServiceId?: string;
+  demoProjection?: {
+    projectionId: string;
+    recordKey: string;
+    version: number;
+  };
 }) {
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
@@ -94,22 +101,37 @@ export function OffboardingWorkflow({
     setError("");
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
-      await requestOffboarding(
-        {
-          accountId: account.id,
-          orderId,
-          reason: reason as
-            | "customer_request"
-            | "non_renewal"
-            | "partner_request"
-            | "partner_default"
-            | "material_breach",
-          effectiveAt: new Date(effectiveAt).toISOString(),
-          retrievalDays: Number(retrievalDays),
-          partnerAccountId: null,
-        },
-        { idempotencyKey: idempotencyKeyRef.current },
-      );
+      const request = {
+        accountId: account.id,
+        orderId,
+        reason: reason as
+          | "customer_request"
+          | "non_renewal"
+          | "partner_request"
+          | "partner_default"
+          | "material_breach",
+        effectiveAt: new Date(effectiveAt).toISOString(),
+        retrievalDays: Number(retrievalDays),
+        partnerAccountId: null,
+      };
+      if (demoProjection)
+        await sendProjectionAction(
+          {
+            audience: "customer",
+            channel: "orders",
+            accountId: account.id,
+            recordKey: demoProjection.recordKey,
+            projectionId: demoProjection.projectionId,
+            action: "request_teardown",
+            expectedVersion: demoProjection.version,
+            payload: request,
+          },
+          { idempotencyKey: idempotencyKeyRef.current },
+        );
+      else
+        await requestOffboarding(request, {
+          idempotencyKey: idempotencyKeyRef.current,
+        });
       setRequested(true);
       setMessage(t("account.offboarding.requested"));
     } catch (caught) {

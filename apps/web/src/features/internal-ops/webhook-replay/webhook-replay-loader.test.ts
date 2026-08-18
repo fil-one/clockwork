@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getOptionalServiceDatabase: vi.fn(),
   list: vi.fn(),
+  readDemoWebhookEvents: vi.fn(),
 }));
 
 vi.mock("@/src/db/service", () => ({
@@ -12,6 +13,9 @@ vi.mock("@clockwork/db", () => ({
   DatabaseWebhookReplayReadModel: class {
     public list = mocks.list;
   },
+}));
+vi.mock("../demo-operator-state", () => ({
+  readDemoWebhookEvents: mocks.readDemoWebhookEvents,
 }));
 
 import { loadReplayableWebhookEvents } from "./webhook-replay-loader";
@@ -32,8 +36,10 @@ const event = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
   mocks.getOptionalServiceDatabase.mockReturnValue({});
   mocks.list.mockResolvedValue([event]);
+  mocks.readDemoWebhookEvents.mockResolvedValue([event]);
 });
 
 describe("replayable webhook event queue", () => {
@@ -79,6 +85,33 @@ describe("replayable webhook event queue", () => {
     expect(queue.readable).toBe(false);
     expect(queue.events).toEqual([]);
     expect(queue.source).toBe("No callback read is available");
+  });
+
+  it("reads the resettable callback ledger in the exact demo", async () => {
+    vi.stubEnv("CLOCKWORK_DEMO_DEPLOY", "1");
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "demo");
+    vi.stubEnv("VERCEL_ENV", "");
+    vi.stubEnv("CLOCKWORK_ENV", "");
+    vi.stubEnv("DEPLOYMENT_ENVIRONMENT", "");
+    vi.stubEnv("ENVIRONMENT", "");
+    mocks.getOptionalServiceDatabase.mockReturnValue(undefined);
+
+    await expect(
+      loadReplayableWebhookEvents({
+        requestId: "experience:webhook-replay:demo",
+        provider: "stripe",
+        limit: 10,
+      }),
+    ).resolves.toEqual({
+      events: [event],
+      source: "Demonstration verified callback ledger",
+      readable: true,
+    });
+    expect(mocks.readDemoWebhookEvents).toHaveBeenCalledWith({
+      provider: "stripe",
+      limit: 10,
+    });
   });
 
   it("reports a failed read as unreadable", async () => {

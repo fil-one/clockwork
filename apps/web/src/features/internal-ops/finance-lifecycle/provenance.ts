@@ -19,6 +19,7 @@ export type SurfaceProvenance =
       recordCount: number;
     }
   | { kind: "read"; source: string; readAt: string }
+  | { kind: "guided" }
   | { kind: "unreadable"; source: string }
   | {
       kind: "unwired";

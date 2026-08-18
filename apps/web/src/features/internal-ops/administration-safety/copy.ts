@@ -54,6 +54,7 @@ export const adminSafetyCopy = {
     financeOnlyBody:
       "Other internal roles may scan versions. Only finance may decide activation.",
     noDecision: "This version has no decision open to you.",
+    empty: "The pricing service is available, but no price books exist yet.",
     unreadable: "No price books are readable for this request.",
     noMatches: "No price-book versions match these filters.",
   },

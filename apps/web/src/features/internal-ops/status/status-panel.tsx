@@ -10,6 +10,7 @@ import {
 } from "@/src/features/contracts/status-client";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { formatOperationalTimestamp } from "../presentation";
 import { integrationStatusCopy } from "./copy";
 
 type Lane = LaneStatus["lane"];
@@ -19,6 +20,11 @@ type LaneResult =
   | { state: "unavailable"; readAt: string };
 
 const lanes = ["core", "lifecycle", "system"] as const;
+const laneLabels: Readonly<Record<Lane, string>> = {
+  core: "Commerce",
+  lifecycle: "Customer lifecycle",
+  system: "Operations",
+};
 
 const detailLabels: Readonly<Record<string, string>> = {
   service: "Service store",
@@ -32,6 +38,13 @@ const detailLabels: Readonly<Record<string, string>> = {
   activationTestRunner: "Activation test runner",
   workosWebhook: "WorkOS webhook",
 };
+
+function detailValue(value: unknown): string {
+  if (value === "database") return "Connected";
+  if (value === "configured" || value === true) return "Configured";
+  if (value === "unconfigured" || value === false) return "Not configured";
+  return String(value).replaceAll("_", " ");
+}
 
 function tone(status: LaneStatus["status"]) {
   return status === "ready"
@@ -94,7 +107,7 @@ export function StatusPanel() {
           return (
             <article className={styles.reportCard} key={lane}>
               <div>
-                <h3>{lane}</h3>
+                <h3>{laneLabels[lane]}</h3>
                 {result.state === "loading" ? (
                   <p role="status">{integrationStatusCopy.lanes.loading}</p>
                 ) : result.state === "unavailable" ? (
@@ -102,7 +115,11 @@ export function StatusPanel() {
                     <p role="alert">
                       {integrationStatusCopy.lanes.unavailable}
                     </p>
-                    <p>{integrationStatusCopy.lanes.readAt(result.readAt)}</p>
+                    <p>
+                      {integrationStatusCopy.lanes.readAt(
+                        formatOperationalTimestamp(result.readAt),
+                      )}
+                    </p>
                   </>
                 ) : (
                   <>
@@ -114,12 +131,16 @@ export function StatusPanel() {
                         ([key, value]) => (
                           <div key={key}>
                             <dt>{detailLabels[key] ?? key}</dt>
-                            <dd>{value}</dd>
+                            <dd>{detailValue(value)}</dd>
                           </div>
                         ),
                       )}
                     </dl>
-                    <p>{integrationStatusCopy.lanes.readAt(result.readAt)}</p>
+                    <p>
+                      {integrationStatusCopy.lanes.readAt(
+                        formatOperationalTimestamp(result.readAt),
+                      )}
+                    </p>
                   </>
                 )}
               </div>

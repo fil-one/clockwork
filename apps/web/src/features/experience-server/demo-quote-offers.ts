@@ -1,30 +1,29 @@
 import "server-only";
 
+import type { DemoAdapterState } from "@clockwork/testing/demo-state";
+
 import type { QuoteOfferOption } from "@/src/features/customer-partner/commercial/workflow-model";
+import { currentDemoPriceBooks } from "@/src/features/internal-ops/price-books/demo-price-books";
 
 /**
- * The quote command demo is an explicit echo simulator: it accepts and returns
- * these identifiers without consulting a database price book. Keeping that
- * vocabulary here, behind the demo adapter boundary, prevents a production
- * surface from mistaking fixture identifiers for active commercial data.
+ * The full demo exposes the same non-confidential offer vocabulary as the
+ * database-backed loader, derived from its persisted active price books. Price
+ * amounts remain server-side and are applied only by the demo command handler.
  */
-export const simulatedCustomerQuoteOffers: readonly QuoteOfferOption[] = [
-  {
-    id: "44444444-4444-4444-8444-444444444444:FIL-ARCHIVE-CAPACITY:us-east",
-    priceBookId: "44444444-4444-4444-8444-444444444444",
-    sku: "FIL-ARCHIVE-CAPACITY",
-    region: "us-east",
-    currency: "USD",
-    label: "Simulated enterprise archive capacity · us-east",
-    description: "Demo simulator fixture · no authoritative price book",
-  },
-  {
-    id: "44444444-4444-4444-8444-444444444445:FIL-REPLICA-CAPACITY:eu-west",
-    priceBookId: "44444444-4444-4444-8444-444444444445",
-    sku: "FIL-REPLICA-CAPACITY",
-    region: "eu-west",
-    currency: "USD",
-    label: "Simulated compliance replica capacity · eu-west",
-    description: "Demo simulator fixture · no authoritative price book",
-  },
-];
+export function demoCustomerQuoteOffers(
+  state: DemoAdapterState,
+): readonly QuoteOfferOption[] {
+  return currentDemoPriceBooks(state)
+    .filter((book) => book.status === "active")
+    .flatMap((book) =>
+      book.rateCards.map((rate) => ({
+        id: `${book.id}:${rate.sku}:${rate.region}`,
+        priceBookId: book.id,
+        sku: rate.sku,
+        region: rate.region,
+        currency: book.currency as QuoteOfferOption["currency"],
+        label: `${rate.approvedClaim} · ${rate.sku} · ${rate.region} · ${book.name} v${book.version}`,
+        description: `${book.currency} · active price-book version ${book.version}`,
+      })),
+    );
+}

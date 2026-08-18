@@ -9,12 +9,18 @@ import {
 } from "@clockwork/ui";
 
 import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import {
+  getRouteIdentity,
+  getRouteRoles,
+} from "@/src/features/shell/route-session";
 import { t } from "@/src/i18n/en";
 
 import type { PartnerRecord, PartnerSurfaceKey } from "./partner-data";
 import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
+import { demoPartnerQuoteRecord } from "./demo-partner-quote";
 import styles from "./partner.module.css";
 
 const common = customerPartnerCopy.common;
@@ -50,6 +56,15 @@ async function partnerRecordFor(
   surface: PartnerSurfaceKey,
   recordKey: string,
 ): Promise<PartnerRecord | undefined> {
+  if (surface === "quotes" && demoDeployIdentityEnabled(process.env)) {
+    const identity = await getRouteIdentity("partner");
+    const created = demoPartnerQuoteRecord(
+      await configuredDemoStateStore().read(),
+      identity.accountId,
+      recordKey,
+    );
+    if (created) return created;
+  }
   const projection = await loadPartnerRecords(surface);
   return projection.records.find(
     (record) => record.recordKey === recordKey || record.id === recordKey,
@@ -251,14 +266,9 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           </div>
         </div>
         <div className={styles.actions}>
-          {actions.includes("edit") ? (
+          {actions.includes("edit") || actions.includes("revise") ? (
             <Link className={styles.buttonLink} href="/partner/quotes/new">
-              {t("partner.detail.quote.edit")}
-            </Link>
-          ) : null}
-          {actions.includes("revise") ? (
-            <Link className={styles.buttonLink} href="/partner/quotes/new">
-              {t("partner.detail.quote.revise")}
+              Create a new quote
             </Link>
           ) : null}
         </div>

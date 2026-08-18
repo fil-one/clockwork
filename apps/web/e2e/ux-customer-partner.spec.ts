@@ -252,7 +252,7 @@ test("an explicit missing acceptance quote never falls back to another record", 
   await expect(page.getByLabel("Purchase order")).toHaveCount(0);
 });
 
-test("owner reviews persisted agreement identity before the signing handoff", async ({
+test("owner sees signed agreement identity without another signing handoff", async ({
   page,
 }) => {
   await usePersona(page, "owner");
@@ -269,7 +269,10 @@ test("owner reviews persisted agreement identity before the signing handoff", as
   await expect(artifacts.getByText("3.2")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Sign this agreement" }),
-  ).toHaveAttribute("href", /\/signing\/redirect\?agreementId=[0-9a-f-]{36}/);
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Execute a new agreement" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("group", { name: "Attach customer agreement paper" }),
   ).toBeVisible();
