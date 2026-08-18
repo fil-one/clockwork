@@ -103,6 +103,20 @@ describe("content security policy", () => {
     expect(matches("/api/v1/webhooks/stripe")).toBe(false);
     expect(matches("/api/experience")).toBe(false);
     expect(matches("/api/experience/projections/customer/quotes")).toBe(false);
+    expect(matches("/api/demo/payments")).toBe(false);
+    expect(matches("/api/demo/payments/")).toBe(false);
+    expect(matches("/api/demo/payments/sessions")).toBe(false);
+    expect(
+      matches(
+        "/api/demo/payments/sessions/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/complete",
+      ),
+    ).toBe(false);
+    // Reset, queues, and lookalike prefixes remain behind the proxy.
+    expect(matches("/api/demo/reset")).toBe(true);
+    expect(matches("/api/demo/projections/queues/refresh")).toBe(true);
+    expect(matches("/api/demo/payment")).toBe(true);
+    expect(matches("/api/demo/paymentss")).toBe(true);
+    expect(matches("/api/demo/payments-x/sessions")).toBe(true);
     // Similar prefixes are not part of the v1 namespace.
     expect(matches("/api/v1x/core/commands/orders")).toBe(true);
     expect(matches("/api/experiential")).toBe(true);
