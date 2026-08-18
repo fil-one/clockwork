@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GlobalSearch } from "./global-search";
@@ -233,6 +235,62 @@ describe("operator queue filter typing", () => {
 
     expect(field.value).toBe("");
     expect(search).not.toContain("q=");
+  });
+});
+
+describe("operator queue hydration", () => {
+  it("keeps due dates and SLA state stable across server and browser clocks", async () => {
+    const originalTimeZone = process.env.TZ;
+    const generatedAt = "2026-08-18T12:00:00.000Z";
+    const hydrationItem = queueItem({
+      id: "EXC-HYDRATION-001",
+      dueAt: "2026-08-19T00:30:00.000Z",
+    });
+    const workspace = (
+      <QueueWorkspace
+        roles={["internal_operator"]}
+        items={[hydrationItem]}
+        generatedAt={generatedAt}
+        stale={false}
+        actorId="dana"
+      />
+    );
+    const onRecoverableError = vi.fn();
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      vi.useFakeTimers();
+      process.env.TZ = "UTC";
+      vi.setSystemTime(new Date(generatedAt));
+      const serverHtml = renderToString(workspace);
+      document.body.innerHTML = `<div id="hydration-root">${serverHtml}</div>`;
+
+      // Hydration happens later and west of UTC: without a request-stable
+      // clock and an explicit display zone, both the SLA and calendar day can
+      // disagree with the server markup.
+      process.env.TZ = "America/New_York";
+      vi.setSystemTime(new Date("2026-08-19T01:00:00.000Z"));
+      const container = document.querySelector<HTMLElement>("#hydration-root");
+      if (!container) throw new Error("Hydration root was not rendered");
+      await act(async () => {
+        root = hydrateRoot(container, workspace, {
+          onRecoverableError,
+        });
+        await Promise.resolve();
+      });
+
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(within(container).getAllByText("Due soon")).toHaveLength(2);
+      expect(within(container).getByText("Aug 19")).toBeVisible();
+    } finally {
+      if (root)
+        act(() => {
+          root?.unmount();
+        });
+      process.env.TZ = originalTimeZone;
+      vi.useRealTimers();
+      document.body.innerHTML = "";
+    }
   });
 });
 
