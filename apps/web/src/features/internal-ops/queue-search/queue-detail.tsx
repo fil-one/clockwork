@@ -16,6 +16,7 @@ const DATE_TIME = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   hour: "numeric",
   minute: "2-digit",
+  timeZone: "UTC",
   timeZoneName: "short",
 });
 
@@ -30,14 +31,16 @@ export function QueueDetail({
   item,
   roles = ["internal_operator"],
   standalone = false,
+  now,
 }: {
   item: QueueItem;
   roles?: readonly OperationalRole[];
   standalone?: boolean;
+  now?: Date;
 }) {
   const actions = permittedActions(item, roles);
   const restricted = actions.length !== item.permittedActions.length;
-  const sla = slaFor(item);
+  const sla = slaFor(item, now);
   return (
     <article
       className={standalone ? styles.detailStandalone : styles.detail}

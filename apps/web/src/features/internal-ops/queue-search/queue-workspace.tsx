@@ -30,6 +30,11 @@ import {
 import { QueueDetail } from "./queue-detail";
 
 const NOT_RECORDED = "Not recorded";
+const DUE_DATE = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
 
 /**
  * How long typing has to settle before the filter reaches the URL. Short
@@ -101,12 +106,7 @@ function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
             ? "Due soon"
             : "Healthy"}
       </span>
-      <time dateTime={item.dueAt}>
-        {new Date(item.dueAt).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })}
-      </time>
+      <time dateTime={item.dueAt}>{DUE_DATE.format(new Date(item.dueAt))}</time>
     </>
   );
 }
@@ -235,7 +235,11 @@ export function QueueWorkspace({
     "idle" | "pending" | "failed"
   >("idle");
   const refreshIdempotencyKey = useRef<string | null>(null);
-  const now = new Date();
+  // The server already chose this request's projection time. Reusing it keeps
+  // SLA labels and ordering identical when the browser hydrates later (or in a
+  // different time zone) instead of evaluating the same row against two
+  // different clocks.
+  const now = useMemo(() => new Date(generatedAt), [generatedAt]);
   const filters = useMemo(
     () => parseQueueFilters(new URLSearchParams(searchParams.toString())),
     [searchParams],
@@ -278,10 +282,11 @@ export function QueueWorkspace({
   const filtered = useMemo(
     () =>
       sortQueueItems(
-        filterQueueItems(items, filters, { actorId }),
+        filterQueueItems(items, filters, { actorId, now }),
         filters.sort,
+        now,
       ),
-    [actorId, filters, items],
+    [actorId, filters, items, now],
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectQueueItem(filtered, selectedId);
@@ -629,7 +634,9 @@ export function QueueWorkspace({
             className={styles.splitPanel}
             aria-label={QUEUE_COPY.detailLabel}
           >
-            {selected ? <QueueDetail item={selected} roles={roles} /> : null}
+            {selected ? (
+              <QueueDetail item={selected} roles={roles} now={now} />
+            ) : null}
           </aside>
         </div>
       )}
