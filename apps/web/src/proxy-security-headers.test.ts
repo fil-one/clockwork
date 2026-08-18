@@ -84,6 +84,30 @@ afterEach(() => {
 });
 
 describe("content security policy", () => {
+  it("preserves deployed demo mutation bodies at the edge handoff", async () => {
+    const built = await productionProxy();
+    const scheduled = event();
+    const response = await built(
+      new NextRequest(
+        "https://demo.clockwork.test/api/v1/core/commands/orders",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "prepare_artifact" }),
+        },
+      ),
+      scheduled.value as never,
+    );
+    await Promise.all(scheduled.pending);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("x-middleware-override-headers")).toBeNull();
+    expect(response.headers.get("x-request-id")).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
+  });
+
   it("serves a nonce policy on the response and forwards it to the renderer", async () => {
     const response = await documentResponse();
     const policy = response.headers.get("content-security-policy");

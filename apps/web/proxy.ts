@@ -330,6 +330,17 @@ export default async function proxy(
     // namespace outside AuthKit lets lanes add Stripe/e-sign routes without a
     // shared proxy edit; Hono still requires verifier-backed handlers.
     const isWebhook = request.nextUrl.pathname.startsWith("/api/v1/webhooks/");
+    // Netlify's edge handoff drops a request body when middleware overrides
+    // request headers. Demo mutations enforce their own origin, CSRF,
+    // permission and idempotency proofs in the destination handler; webhooks
+    // authenticate their exact raw bytes there. Preserve those bodies with an
+    // unmodified pass-through. Documents still receive the forwarded CSP
+    // nonce, and the response continues to carry the proxy's correlation and
+    // security headers below.
+    const preserveRequestBody =
+      request.method !== "GET" &&
+      request.method !== "HEAD" &&
+      (demoDeployIdentity || isWebhook);
     let response: NextResponse;
     if (releaseProof) {
       if (request.nextUrl.origin !== releaseProof.origin) {
@@ -362,7 +373,9 @@ export default async function proxy(
           ? authResponse
           : authResponse instanceof Response
             ? new NextResponse(authResponse.body, authResponse)
-            : NextResponse.next({ request: { headers: forwardedHeaders } });
+            : preserveRequestBody
+              ? NextResponse.next()
+              : NextResponse.next({ request: { headers: forwardedHeaders } });
     }
     if (!request.cookies.has("clockwork-csrf"))
       response.cookies.set(
