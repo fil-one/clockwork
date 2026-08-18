@@ -4,7 +4,11 @@ import { sql } from "drizzle-orm";
 
 import type { Role, UserId } from "@clockwork/contracts";
 
-import type { RuntimeDatabase, RuntimeTransaction } from "./client";
+import {
+  configuredServiceConnectionRole,
+  type RuntimeDatabase,
+  type RuntimeTransaction,
+} from "./client";
 
 export interface DatabaseAuthorizationContext {
   userId: UserId;
@@ -145,23 +149,30 @@ export function internalTransactionConnectionRole(
 }
 
 /**
- * Production admits only the service login. The local Supabase superuser and
- * role-less unit-test doubles are accepted only outside production, where the
- * separate service login does not exist or no database connection exists at
- * all. Every other named role is refused in every environment. This is an
- * allow-list: rejecting only the known tenant role would let a future or
+ * Remote production admits only the canonical service login. A database built
+ * explicitly as the service pool also carries its exact configured login; this
+ * supports isolated local release proof and production-like pool-separation
+ * tests without accepting a name prefix. The local Supabase superuser and
+ * role-less unit-test doubles are otherwise accepted only outside production,
+ * where the separate service login does not exist or no database connection
+ * exists at all. Every other named role is refused in every environment. This
+ * is an allow-list: rejecting only the known tenant role would let a future or
  * misconfigured login attempt `set local role clockwork_service` before this
  * boundary detected it.
  *
  * The check lives inside the helper rather than in a lint over the call sites so
- * that a future call site cannot route around it. Local and CI connections
- * authenticate as `postgres`, a member of both roles, so it is inert exactly
- * where the boundary itself is inert and binds exactly where production
- * separates the two logins.
+ * that a future call site cannot route around it. Local and CI service handles
+ * authenticate as `postgres`, a member of both roles, and are admitted only by
+ * their explicit service-pool binding (or the non-production fallback). Remote
+ * production still binds only the canonical service login.
  */
-function assertServicePool(db: RuntimeDatabase): void {
+export function assertInternalTransactionServicePool(
+  db: RuntimeDatabase,
+): void {
   const role = internalTransactionConnectionRole(db);
+  const configuredRole = configuredServiceConnectionRole(db);
   if (role === SERVICE_CONNECTION_ROLE) return;
+  if (configuredRole !== undefined && role === configuredRole) return;
   if (
     process.env.NODE_ENV !== "production" &&
     (role === LOCAL_SUPERUSER_ROLE || role === undefined)
@@ -184,7 +195,7 @@ export async function withInternalTransaction<T>(
   requestId: string,
   operation: (transaction: RuntimeTransaction) => Promise<T>,
 ): Promise<T> {
-  assertServicePool(db);
+  assertInternalTransactionServicePool(db);
   return instrumentedTransaction({
     kind: "internal",
     requestId,

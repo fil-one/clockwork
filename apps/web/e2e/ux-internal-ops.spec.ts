@@ -138,6 +138,10 @@ test.describe("internal operator operations journey", () => {
   test("search route returns only scoped operational projections", async ({
     page,
   }) => {
+    // The preceding queue journey deliberately changes this same durable
+    // projection. Reset at the fixture-dependent test boundary so a failed or
+    // interrupted sibling cannot make search results depend on execution order.
+    await resetDurableDemoState();
     await page.goto("/internal/search");
     await expect(
       page.getByRole("heading", { level: 1, name: "Global search" }),

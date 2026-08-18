@@ -18,6 +18,74 @@ function configuredPassword(): string {
 
 const password = configuredPassword();
 
+/**
+ * The demo Playwright project deliberately runs against `next dev`. A page can
+ * finish its document load before the dev runtime connects; capturing in that
+ * interval lets Chromium's full-page metrics retain the wordmark's 3,863px
+ * intrinsic width even after the stylesheet visibly clamps it. Waiting for the
+ * runtime's connection event isolates screenshots from that development-only
+ * bootstrap without sleeping or retrying the assertion.
+ */
+function nextDevRuntimeReady(page: Page) {
+  return page.waitForEvent("console", {
+    predicate: (message) => message.text() === "[HMR] connected",
+  });
+}
+
+async function expectVisualLayoutReady(page: Page, viewportWidth: number) {
+  const wordmark = page.locator("img.cw-brand-logo[data-mark='wordmark']");
+  await expect(wordmark).toBeVisible();
+  await wordmark.evaluate(async (image) => {
+    if (!(image instanceof HTMLImageElement))
+      throw new Error("The demo wordmark must render as an image.");
+    await image.decode();
+  });
+  await page.evaluate(() => document.fonts.ready);
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async (expectedWidth) => {
+          const measure = () => {
+            const main = document.querySelector("main#main-content");
+            const logo = document.querySelector<HTMLImageElement>(
+              "img.cw-brand-logo[data-mark='wordmark']",
+            );
+            const stylesLoaded = [...document.styleSheets].every(
+              (sheet) => !sheet.href || sheet.ownerNode?.isConnected,
+            );
+            return {
+              stylesLoaded,
+              viewportWidth: document.documentElement.clientWidth,
+              documentWidth: document.documentElement.scrollWidth,
+              mainDisplay: main ? getComputedStyle(main).display : "missing",
+              logoWidth: logo?.getBoundingClientRect().width ?? 0,
+            };
+          };
+
+          const first = measure();
+          await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+          const second = measure();
+          const ready = (value: ReturnType<typeof measure>) =>
+            value.stylesLoaded &&
+            value.viewportWidth === expectedWidth &&
+            value.documentWidth === expectedWidth &&
+            value.mainDisplay === "grid" &&
+            value.logoWidth > 0 &&
+            value.logoWidth <= 120;
+          return (
+            ready(first) &&
+            ready(second) &&
+            first.logoWidth === second.logoWidth
+          );
+        }, viewportWidth),
+      { message: "demo CSS and viewport metrics must settle before capture" },
+    )
+    .toBe(true);
+}
+
 async function expectAxeClean(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
@@ -119,12 +187,14 @@ for (const viewport of [
   { label: "320", width: 320, height: 800 },
 ] as const) {
   test(`visual demo access at ${viewport.label}`, async ({ page }) => {
+    const runtimeReady = nextDevRuntimeReady(page);
     await page.setViewportSize(viewport);
     await openGate(page);
+    await runtimeReady;
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",
     });
-    await page.evaluate(() => document.fonts.ready);
+    await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
       { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
@@ -132,13 +202,15 @@ for (const viewport of [
   });
 
   test(`visual demo landing at ${viewport.label}`, async ({ page }) => {
+    const runtimeReady = nextDevRuntimeReady(page);
     await page.setViewportSize(viewport);
     await passGate(page);
     await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
+    await runtimeReady;
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",
     });
-    await page.evaluate(() => document.fonts.ready);
+    await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-landing${viewport.label === "320" ? "-320" : ""}.png`,
       { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },

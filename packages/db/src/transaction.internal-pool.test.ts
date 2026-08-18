@@ -4,9 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { createRuntimeDatabase } from "./client";
 import type { RuntimeDatabase } from "./client";
 import {
   InternalTransactionPoolError,
+  assertInternalTransactionServicePool,
   internalTransactionConnectionRole,
   withInternalTransaction,
 } from "./transaction";
@@ -120,7 +122,12 @@ describe("internal transactions refuse any pool that is not the service pool", (
   });
 
   it("refuses every other named role without opening a transaction", async () => {
-    for (const role of ["clockwork_readonly", "billing_worker", "postgres"]) {
+    for (const role of [
+      "clockwork_readonly",
+      "billing_worker",
+      "cw_pool_service_not_configured",
+      "postgres",
+    ]) {
       const other = pool(role);
       vi.stubEnv("NODE_ENV", "production");
       try {
@@ -152,6 +159,32 @@ describe("internal transactions refuse any pool that is not the service pool", (
     ).resolves.toBe("ran");
     expect(service.opened).toEqual(["begin"]);
     expect(local.opened).toEqual(["begin"]);
+  });
+
+  it("admits only the exact login bound to an explicitly configured local service pool", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const service = createRuntimeDatabase({
+      url: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      role: "clockwork_service",
+      ssl: false,
+    });
+    const sameLoginRuntimePool = createRuntimeDatabase({
+      url: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      role: "clockwork_runtime",
+      ssl: false,
+    });
+    try {
+      expect(() =>
+        assertInternalTransactionServicePool(service.db),
+      ).not.toThrow();
+      expect(() =>
+        assertInternalTransactionServicePool(sameLoginRuntimePool.db),
+      ).toThrow(InternalTransactionPoolError);
+    } finally {
+      vi.unstubAllEnvs();
+      await service.client.end();
+      await sameLoginRuntimePool.client.end();
+    }
   });
 });
 

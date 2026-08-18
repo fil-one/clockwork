@@ -32,9 +32,12 @@ const { client, db } = createRuntimeDatabase({
 
 const runs = new DatabaseWorkflowRunStore(db);
 const suffix = crypto.randomUUID().slice(0, 8);
-const accountId = "10000000-0000-4000-8000-000000000004";
-const orderId = "80000000-0000-4000-8000-000000000007";
-const orderLineId = "81000000-0000-4000-8000-000000000007";
+// Use the stable direct-customer fixture rather than account …0004. POC suites
+// legitimately add isolated organizations to …0004, which made this unrelated
+// recovery test depend on suite order through organization auto-selection.
+const accountId = "10000000-0000-4000-8000-000000000001";
+const orderId = "80000000-0000-4000-8000-000000000001";
+const orderLineId = "81000000-0000-4000-8000-000000000001";
 
 const actor: Actor = {
   kind: "user",
@@ -206,19 +209,28 @@ async function seed() {
 
 async function cleanup() {
   await withInternalTransaction(db, `redrive-clean-${suffix}`, async (tx) => {
-    await tx.execute(sql`
-      delete from public.workflow_runs
-      where idempotency_key = ${seeded.invocationKey}
-    `);
-    await tx.execute(sql`
-      delete from public.outbox_messages where id in (
-        ${seeded.outboxMessageId}::uuid, ${seeded.stubMessageId}::uuid
-      )
-    `);
-    await tx.execute(sql`
-      delete from public.lifecycle_provisioning_attempts
-      where id = ${seeded.attemptId}::uuid
-    `);
+    // beforeAll failures still run afterAll. Never cast an unset fixture id to
+    // UUID during cleanup, or the cleanup error hides the actual seed failure.
+    if (seeded.invocationKey)
+      await tx.execute(sql`
+        delete from public.workflow_runs
+        where idempotency_key = ${seeded.invocationKey}
+      `);
+    if (seeded.outboxMessageId)
+      await tx.execute(sql`
+        delete from public.outbox_messages
+        where id = ${seeded.outboxMessageId}::uuid
+      `);
+    if (seeded.stubMessageId)
+      await tx.execute(sql`
+        delete from public.outbox_messages
+        where id = ${seeded.stubMessageId}::uuid
+      `);
+    if (seeded.attemptId)
+      await tx.execute(sql`
+        delete from public.lifecycle_provisioning_attempts
+        where id = ${seeded.attemptId}::uuid
+      `);
   });
 }
 
