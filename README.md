@@ -17,8 +17,8 @@ Hosted demo: https://clockwork-commerce-demo.netlify.app/
 
 Password is in the FF 1Password vault (I will add it if it is not there yet).
 
-The demo has three personas — customer, partner, internal staff — and fake
-data. It does not talk to real Stripe, Auth0, or Forge.
+The demo is a shared password, then a persona picker (customers, partners,
+Fil One staff). Fake data. It does not talk to Stripe, WorkOS, Auth0, or Forge.
 
 If you are an engineer being asked to take this on, the RFC is the decision
 document. This README is just how to run it.
@@ -33,8 +33,9 @@ document. This README is just how to run it.
 | Billing | Invoices and payments (Stripe is the card network; Clockwork is the record) |
 | Back office | Search, exceptions, do a customer action on their behalf |
 
-Fil One still owns buckets, usage, and Auth0. Clockwork does not write to
-those yet. WorkOS is only how this app logs people in for the demo.
+Fil One still owns buckets, usage, and Auth0. The hosted demo does not use
+WorkOS. If we ran Clockwork for real, login would be WorkOS AuthKit unless we
+replace it. That work is not done.
 
 ## Run the demo locally (no database)
 
