@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { RateCard } from "@clockwork/domain/core";
 import { DiscountMatrixEditor } from "./price-book-discounts";
@@ -119,7 +119,39 @@ export function PriceBookAdministration({
     books.find((book) => book.status === "draft")?.id ?? books[0]?.id ?? "",
   );
   const [reason, setReason] = useState("");
-  const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [summary, setSummary] = useState<{
+    bookId: string;
+    rowVersion: number;
+    value: ReviewSummary;
+  } | null>(null);
+  const [awaitingRead, setAwaitingRead] = useState<Record<string, number>>({});
+  // A mutation receipt precedes the refreshed server projection, especially on
+  // hosted deployments. Do not review or edit economics we know are obsolete.
+  const refreshPending = Object.entries(awaitingRead).some(
+    ([id, version]) =>
+      !books.some((book) => book.id === id && book.rowVersion >= version),
+  );
+  useEffect(() => {
+    setAwaitingRead((current) => {
+      const remaining = Object.fromEntries(
+        Object.entries(current).filter(
+          ([id, version]) =>
+            !books.some((book) => book.id === id && book.rowVersion >= version),
+        ),
+      );
+      return Object.keys(remaining).length === Object.keys(current).length
+        ? current
+        : remaining;
+    });
+  }, [books]);
+  function refreshAfterMutation(id: string, minimumVersion: number) {
+    setSummary(null);
+    setAwaitingRead((current) => ({
+      ...current,
+      [id]: Math.max(current[id] ?? 0, minimumVersion),
+    }));
+    router.refresh();
+  }
   const [outcome, setOutcome] = useState<{
     tone: "done" | "problem";
     message: string;
@@ -137,7 +169,8 @@ export function PriceBookAdministration({
   >([]);
   const [authoringMessage, setAuthoringMessage] = useState("");
   const permitted = canDecide(roles, "finance");
-  const authoringAvailable = permitted && availability !== "unavailable";
+  const authoringAvailable =
+    permitted && availability !== "unavailable" && !refreshPending && !pending;
   const sourceLabel =
     source === "Deterministic demo fixture" ? "Guided demo data" : source;
   const updatedLabel = new Intl.DateTimeFormat("en-US", {
@@ -166,6 +199,12 @@ export function PriceBookAdministration({
     );
   }, [books, currency, query, state]);
   const selected = books.find((book) => book.id === selectedId) ?? books[0];
+  const reviewCurrent = Boolean(
+    summary &&
+    selected &&
+    summary.bookId === selected.id &&
+    summary.rowVersion === selected.rowVersion,
+  );
   const decisions = selected ? decisionsFor(selected, userId) : [];
   const incumbent = selected
     ? books.find(
@@ -179,16 +218,24 @@ export function PriceBookAdministration({
     selected && incumbent ? priceBookEconomicDiff(selected, incumbent) : [];
 
   async function submit(action: Decision) {
-    if (!selected) return;
+    if (
+      !selected ||
+      !summary ||
+      !reviewCurrent ||
+      pending ||
+      refreshPending ||
+      authoringPending
+    )
+      return;
     setPending(true);
     setOutcome(null);
     try {
-      await sendCoreCommand({
+      const saved = await sendCoreCommand({
         resource: "price_books",
         id: selected.id,
         action,
-        expectedVersion: selected.rowVersion,
-        payload: { reason },
+        expectedVersion: summary.rowVersion,
+        payload: { reason: summary.value.reason },
       });
       setOutcome({
         tone: "done",
@@ -202,8 +249,10 @@ export function PriceBookAdministration({
                 : activationCopy.retired,
       });
       setReason("");
-      setSummary(null);
-      router.refresh();
+      refreshAfterMutation(
+        selected.id,
+        saved?.record?.rowVersion ?? selected.rowVersion + 1,
+      );
     } catch (error) {
       setOutcome({
         tone: "problem",
@@ -410,7 +459,7 @@ export function PriceBookAdministration({
                   setAuthoringMessage(
                     "Rate card saved. Reopen this draft to add or edit more rates, then review before proposing activation.",
                   );
-                  router.refresh();
+                  refreshAfterMutation(draft.id, draft.rowVersion + 1);
                 })
                 .catch((error: unknown) => {
                   setAuthoringMessage(
@@ -542,7 +591,7 @@ export function PriceBookAdministration({
                 />
               </label>
             </div>
-            <fieldset disabled={authoringPending}>
+            <fieldset disabled={authoringPending || refreshPending || pending}>
               <legend>Partner transfer prices</legend>
               <p className={styles.resultMeta}>
                 Wholesale prices by tier, in {draft.currency}. These apply only
@@ -622,7 +671,7 @@ export function PriceBookAdministration({
               <button
                 className={styles.button}
                 type="submit"
-                disabled={authoringPending}
+                disabled={authoringPending || refreshPending || pending}
               >
                 {authoringPending
                   ? "Validating rate…"
@@ -633,7 +682,7 @@ export function PriceBookAdministration({
               <button
                 className={styles.button}
                 type="button"
-                disabled={authoringPending}
+                disabled={authoringPending || refreshPending || pending}
                 onClick={() => {
                   setDraft(null);
                   setEditingRate(null);
@@ -777,8 +826,12 @@ export function PriceBookAdministration({
             className={styles.panelBody}
             onSubmit={(event) => {
               event.preventDefault();
-              setSummary(
-                buildReviewSummary({
+              if (refreshPending || authoringPending || pending || !permitted)
+                return;
+              setSummary({
+                bookId: selected.id,
+                rowVersion: selected.rowVersion,
+                value: buildReviewSummary({
                   entity: `${selected.name} v${selected.version} · ${selected.currency}`,
                   impact: `Approves ${selected.rateCardCount} rate cards across ${selected.regions.join(", ") || "no region"} from ${selected.effectiveFrom}.`,
                   evidence: [
@@ -794,7 +847,7 @@ export function PriceBookAdministration({
                     "Activation makes the version eligible for new pricing resolutions. Existing quotes, orders, invoices, and collections remain unchanged.",
                   reason,
                 }),
-              );
+              });
             }}
           >
             <HumanSelector
@@ -868,7 +921,7 @@ export function PriceBookAdministration({
                 <button
                   className={styles.button}
                   type="button"
-                  disabled={authoringPending}
+                  disabled={authoringPending || refreshPending || pending}
                   onClick={() => {
                     setEditingRate(null);
                     setTransferRows([]);
@@ -947,7 +1000,7 @@ export function PriceBookAdministration({
                     <button
                       type="button"
                       className={styles.button}
-                      disabled={authoringPending}
+                      disabled={authoringPending || refreshPending || pending}
                       aria-label={`Edit ${rate.sku} ${rate.region}`}
                       onClick={() => {
                         setEditingRate(rate);
@@ -974,7 +1027,7 @@ export function PriceBookAdministration({
                     <button
                       type="button"
                       className={styles.button}
-                      disabled={authoringPending}
+                      disabled={authoringPending || refreshPending || pending}
                       aria-label={`Remove ${rate.sku} ${rate.region}`}
                       onClick={() => {
                         setAuthoringPending(true);
@@ -992,7 +1045,10 @@ export function PriceBookAdministration({
                             setAuthoringMessage(
                               "Rate removed from the draft. Review the remaining rates before proposing activation.",
                             );
-                            router.refresh();
+                            refreshAfterMutation(
+                              selected.id,
+                              selected.rowVersion + 1,
+                            );
                           })
                           .catch((error: unknown) =>
                             setAuthoringMessage(
@@ -1074,11 +1130,32 @@ export function PriceBookAdministration({
                 {activationCopy.awaitingSecondBody}
               </div>
             ) : null}
+            {refreshPending ? (
+              <div className={styles.actions}>
+                <p role="status">
+                  Loading saved price-book changes before review…
+                </p>
+                <button
+                  type="button"
+                  className={styles.buttonSecondary}
+                  onClick={() => router.refresh()}
+                >
+                  Refresh saved changes
+                </button>
+              </div>
+            ) : summary && !reviewCurrent ? (
+              <p role="status">
+                The price book changed after your review. Review the current
+                version before recording a decision.
+              </p>
+            ) : null}
             <div className={styles.actions}>
               <button
                 className={styles.button}
                 type="submit"
-                disabled={!permitted}
+                disabled={
+                  !permitted || refreshPending || authoringPending || pending
+                }
               >
                 Review price-book approval
               </button>
@@ -1089,17 +1166,16 @@ export function PriceBookAdministration({
             book={selected}
             permitted={authoringAvailable}
             onSaved={() => {
-              setSummary(null);
-              router.refresh();
+              refreshAfterMutation(selected.id, selected.rowVersion + 1);
             }}
           />
         </section>
       ) : null}
 
-      {summary && selected ? (
+      {summary && selected && reviewCurrent && !refreshPending ? (
         <>
           <ReviewSummaryCard
-            summary={summary}
+            summary={summary.value}
             title="Price-book activation review"
             identifiers={[{ label: "Price book ID", value: selected.id }]}
           />
@@ -1111,7 +1187,12 @@ export function PriceBookAdministration({
                     <button
                       className={styles.button}
                       type="button"
-                      disabled={!permitted || pending || reason.length < 8}
+                      disabled={
+                        !permitted ||
+                        pending ||
+                        authoringPending ||
+                        reason.length < 8
+                      }
                       onClick={() => void submit(decision.action)}
                     >
                       {pending ? "Recording…" : decision.label}

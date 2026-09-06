@@ -159,6 +159,9 @@ export class DatabasePriceBookAdministrationReader {
           }),
         );
       },
+      // Parent version/counts, rates and approval evidence must describe one
+      // snapshot even if an editor commits between these dependent reads.
+      { isolationLevel: "repeatable read" },
     );
   }
 }

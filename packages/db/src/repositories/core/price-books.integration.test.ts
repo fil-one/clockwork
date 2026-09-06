@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { asc, eq } from "drizzle-orm";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import { ids } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
@@ -11,6 +11,7 @@ import { approvals, priceBooks, rateCards } from "../../schema";
 import { priceBookActivationEvents } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import { DatabaseCoreFinanceRepository } from "./database-finance";
+import { DatabasePriceBookAdministrationReader } from "./price-book-administration";
 import { FixtureTaxPort } from "./tax-fixture";
 
 const databaseUrl =
@@ -117,6 +118,63 @@ const createDraft = async (offset: number, key: string) => {
   });
   return id;
 };
+
+it("keeps review counts, version and rate details coherent across a concurrent edit", async () => {
+  const bookId = await createDraft(48, "coherent-reader");
+  const readerConnection = createRuntimeDatabase({
+    url: databaseUrl,
+    role: "clockwork_service",
+    ssl: false,
+  });
+  const transaction = readerConnection.db.transaction.bind(readerConnection.db);
+  let mutation: ReturnType<typeof command> | undefined;
+  const intercept = vi.spyOn(readerConnection.db, "transaction");
+  intercept.mockImplementation((operation, options) =>
+    transaction(async (tx) => {
+      const findMany = tx.query.rateCards.findMany.bind(tx.query.rateCards);
+      // Pause actual detail execution after the parent's aggregate SELECT has
+      // completed, then commit through another database connection. All reads
+      // and writes remain real PostgreSQL queries; only their order is fixed.
+      vi.spyOn(tx.query.rateCards, "findMany").mockImplementation((config) => {
+        const query = findMany(config);
+        const execute = query.execute.bind(query);
+        vi.spyOn(query, "execute").mockImplementation(async () => {
+          mutation ??= command({
+            id: bookId,
+            action: "add_rate",
+            payload: rate("SECOND-COHERENT-RATE"),
+            key: "coherent-concurrent-add",
+          });
+          await mutation;
+          return execute();
+        });
+        return query;
+      });
+      return operation(tx);
+    }, options),
+  );
+  try {
+    const reader = new DatabasePriceBookAdministrationReader(
+      readerConnection.db,
+    );
+    const during = (await reader.list({ limit: 500 })).find(
+      (book) => book.id === bookId,
+    );
+    expect(mutation).toBeDefined();
+    expect(during).toMatchObject({ rowVersion: 2, rateCardCount: 1 });
+    expect(during?.rateCards).toHaveLength(1);
+    expect(during?.rateCards?.[0]?.sku).toBe("LOCKED-STORAGE-TB");
+    intercept.mockRestore();
+    const after = (await reader.list({ limit: 500 })).find(
+      (book) => book.id === bookId,
+    );
+    expect(after).toMatchObject({ rowVersion: 3, rateCardCount: 2 });
+    expect(after?.rateCards).toHaveLength(2);
+  } finally {
+    intercept.mockRestore();
+    await readerConnection.client.end();
+  }
+});
 
 const readBook = (id: string, label: string) =>
   withInternalTransaction(db, `price-book-read-${label}-${runId}`, (tx) =>

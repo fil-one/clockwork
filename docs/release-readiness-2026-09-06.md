@@ -252,3 +252,36 @@ were preserved in a verified local Git bundle before cleanup. Remaining merged
 documentation and task branches are removed after main advances; no unique
 branch work is discarded. The public demo follows the separate deployment
 runbook and is deployed from the clean merged main checkout.
+
+## Hosted qualification follow-up
+
+The first packaged Netlify draft passed 11 of 13 transaction journeys and
+exposed a stale finance review immediately after adding a rate. The refreshed
+table could show the new rate while an already-opened review retained the
+previous version. The backend rejected that proposal correctly. The UI now waits
+for the acknowledged saved version, pins review evidence and its reason to the
+reviewed version, invalidates changed reviews, and offers an explicit refresh
+retry. Twelve focused administration tests and all 17 local demo journeys passed
+after this correction; browser expectations were not relaxed.
+
+Independent review also identified a production reader consistency issue: parent
+version/count, rates and approval evidence used separate reads that could
+observe different commits. This reader now opts into repeatable-read isolation
+before its first query. Other transaction defaults are unchanged. All eight
+price-book database integration tests passed, including a real concurrent rate
+mutation between parent and detail reads: the first read sees one old version
+consistently and the next read sees the complete new version.
+
+The other hosted failure was a clean-URL assertion: Netlify retained the persona
+selector through a 302 redirect. The route now uses 303 and preserves its
+relative destination, private cache policy and identity cookie contract. The
+underlying hosted quote/PDF/order workflow also passed a diagnostic run that
+accepted the known query parameter. Final hosted qualification uses the original
+strict URL expectations.
+
+`apps/web/playwright.hosted-demo.config.ts` makes all 13 non-visual demo
+transaction journeys repeatable against a draft or canonical Netlify origin. It
+uses the existing remote deployment, resets fictional shared demo data, rejects
+unrelated origins and retains no authentication traces. The deployment runbook
+requires checking the draft before publishing that exact artifact and rechecking
+the canonical site after promotion.

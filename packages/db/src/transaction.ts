@@ -194,6 +194,7 @@ export async function withInternalTransaction<T>(
   db: RuntimeDatabase,
   requestId: string,
   operation: (transaction: RuntimeTransaction) => Promise<T>,
+  options?: { isolationLevel: "repeatable read" },
 ): Promise<T> {
   assertInternalTransactionServicePool(db);
   return instrumentedTransaction({
@@ -206,6 +207,6 @@ export async function withInternalTransaction<T>(
           sql`select set_config('app.request_id', ${requestId}, true)`,
         );
         return operation(transaction);
-      }),
+      }, options),
   });
 }

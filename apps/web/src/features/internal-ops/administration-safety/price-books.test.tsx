@@ -133,7 +133,7 @@ describe("price-book administration actionability", () => {
     vi.spyOn(crypto, "randomUUID").mockReturnValue(
       "66000000-0000-4000-8000-000000000099",
     );
-    render(
+    const { rerender } = render(
       <PriceBookAdministration
         roles={["finance_approver"]}
         userId="21000000-0000-4000-8000-000000000008"
@@ -185,6 +185,88 @@ describe("price-book administration actionability", () => {
       },
     });
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
+    const reviewButton = screen.getByRole("button", {
+      name: "Review price-book approval",
+    });
+    expect(reviewButton).toBeDisabled();
+    expect(
+      screen.getByText("Loading saved price-book changes before review…"),
+    ).toBeVisible();
+    const emptyBook: PriceBookAdministrationRecord = {
+      ...draft,
+      id: "66000000-0000-4000-8000-000000000099",
+      name: "Demo EUR",
+      currency: "EUR",
+      version: 9,
+      rowVersion: 1,
+      rateCardCount: 0,
+      regions: [],
+      activationRequestedBy: null,
+      activationRequestedByEmail: null,
+    };
+    const page = (book: PriceBookAdministrationRecord) => (
+      <PriceBookAdministration
+        roles={["finance_approver"]}
+        userId="21000000-0000-4000-8000-000000000008"
+        books={[draft, book]}
+        source="Deterministic demo fixture"
+        availability="available"
+        readAt="2026-08-18T12:00:00.000Z"
+      />
+    );
+    // The create refresh can arrive after add_rate succeeds. It must not make
+    // that known-obsolete empty version reviewable while the second read waits.
+    rerender(page(emptyBook));
+    await user.type(
+      screen.getByLabelText("Finance decision reason"),
+      "Review the saved regional economics.",
+    );
+    expect(reviewButton).toBeDisabled();
+    await user.click(reviewButton);
+    expect(
+      screen.queryByRole("button", { name: "Propose activation" }),
+    ).toBeNull();
+    expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(2);
+    rerender(
+      page({
+        ...emptyBook,
+        rowVersion: 2,
+        rateCardCount: 1,
+        regions: ["eu-central-1"],
+      }),
+    );
+    expect(reviewButton).toBeEnabled();
+    await user.click(reviewButton);
+    const review = within(
+      screen.getByRole("region", { name: "Price-book activation review" }),
+    );
+    expect(review.getByText("1 rate cards persisted")).toBeVisible();
+    expect(review.queryByText("0 rate cards persisted")).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Propose activation" }),
+    );
+    expect(mocks.sendCoreCommand.mock.calls[2]?.[0]).toMatchObject({
+      id: emptyBook.id,
+      action: "request_activation",
+      expectedVersion: 2,
+      payload: { reason: "Review the saved regional economics." },
+    });
+    // A successful proposal is also awaiting its server read: don't reopen an
+    // editor or submit another review against the pre-proposal draft meanwhile.
+    expect(
+      screen.getByRole("button", { name: "Review price-book approval" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Add a rate to this draft" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Create draft and continue" }),
+    ).toBeDisabled();
+    await user.click(
+      screen.getByRole("button", { name: "Refresh saved changes" }),
+    );
+    expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(3);
+    expect(mocks.refresh).toHaveBeenCalledTimes(4);
   });
 });
 
@@ -243,5 +325,61 @@ it("reopens a saved rate and edits transfer economics without losing its other f
       trialLimit: "5",
       partnerTransferPrices: { gold: { currency: "USD", minor: "425" } },
     },
+  });
+});
+
+it("invalidates reviewed evidence when a refreshed price-book version arrives", async () => {
+  const user = userEvent.setup();
+  const unproposed = {
+    ...draft,
+    activationRequestedBy: null,
+    activationRequestedByEmail: null,
+  };
+  const page = (book: PriceBookAdministrationRecord) => (
+    <PriceBookAdministration
+      roles={["finance_approver"]}
+      userId="21000000-0000-4000-8000-000000000008"
+      books={[book]}
+      source="Pricing service"
+      availability="available"
+      readAt="2026-09-06T12:00:00.000Z"
+    />
+  );
+  const { rerender } = render(page(unproposed));
+  await user.type(
+    screen.getByLabelText("Finance decision reason"),
+    "Reviewed regional pricing and floors.",
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Review price-book approval" }),
+  );
+  expect(
+    screen.getByRole("button", { name: "Propose activation" }),
+  ).toBeEnabled();
+  rerender(
+    page({
+      ...unproposed,
+      rowVersion: 3,
+      rateCardCount: 2,
+      regions: ["us-east-2", "us-west-2"],
+    }),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Propose activation" }),
+  ).toBeNull();
+  expect(
+    screen.getByText(
+      "The price book changed after your review. Review the current version before recording a decision.",
+    ),
+  ).toBeVisible();
+  expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
+  await user.click(
+    screen.getByRole("button", { name: "Review price-book approval" }),
+  );
+  expect(screen.getByText("2 rate cards persisted")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Propose activation" }));
+  expect(mocks.sendCoreCommand.mock.calls[0]?.[0]).toMatchObject({
+    action: "request_activation",
+    expectedVersion: 3,
   });
 });
