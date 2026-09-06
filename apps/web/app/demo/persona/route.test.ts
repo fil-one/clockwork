@@ -10,7 +10,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("demo persona redirect contract", () => {
-  it("uses See Other with a query-free relative destination and the existing private cookie", () => {
+  it("returns the relative destination and private identity cookie", () => {
     const response = GET(
       new Request(
         "http://runtime.internal/demo/persona?persona=directBuyer&ignored=1",
@@ -19,7 +19,7 @@ describe("demo persona redirect contract", () => {
         },
       ),
     );
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/dashboard");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(response.cookies.get("clockwork-demo-persona")).toMatchObject({
@@ -37,7 +37,7 @@ describe("demo persona redirect contract", () => {
         "http://localhost:3000/demo/persona?persona=internalOperator",
       ),
     );
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/internal/queues");
     expect(response.cookies.get("clockwork-demo-persona")).toMatchObject({
       value: "internalOperator",
@@ -48,7 +48,7 @@ describe("demo persona redirect contract", () => {
     const response = GET(
       new Request("https://demo.example/demo/persona?persona=unknown"),
     );
-    expect(response.status).toBe(303);
+    expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/demo");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(response.headers.get("set-cookie")).toBeNull();

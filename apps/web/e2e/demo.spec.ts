@@ -222,7 +222,9 @@ test.describe("direct buyer flagship journey", () => {
 
     try {
       await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-      await expect(page).toHaveURL(/\/dashboard$/u);
+      // Netlify preserves this selector on redirects; identity still comes
+      // from the HttpOnly persona cookie. Allow only that exact known suffix.
+      await expect(page).toHaveURL(/\/dashboard(?:\?persona=directBuyer)?$/u);
       await expect(page.locator(".experience-shell")).toHaveAttribute(
         "data-hydrated",
         "true",
@@ -231,6 +233,7 @@ test.describe("direct buyer flagship journey", () => {
       await page.getByRole("button", { name: "Open demo controls" }).click();
       const panel = page.getByRole("complementary", { name: "Demo controls" });
       await expect(panel.getByLabel("Signed in as")).toBeVisible();
+      await expect(panel.getByLabel("Signed in as")).toHaveValue("directBuyer");
       await panel
         .getByRole("link", {
           name: "Review the issued version and proceed to acceptance.",
