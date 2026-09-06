@@ -105,6 +105,32 @@ holding your test order.
 
 ## Verifying a deploy
 
+Run the hosted transaction suite against the draft URL before promotion:
+
+```sh
+CLOCKWORK_HOSTED_DEMO_URL="https://DEPLOY_ID--clockwork-commerce-demo.netlify.app" \
+  CLOCKWORK_DEMO_ACCESS_PASSWORD="${CLOCKWORK_DEMO_ACCESS_PASSWORD:?set the demo password}" \
+  pnpm --filter @clockwork/web exec playwright test --config playwright.hosted-demo.config.ts
+```
+
+This runs the 13 shared password, persona, order/PDF, finance, policy, partner,
+settings, sandbox-payment and reset journeys against the packaged deployment. It
+uses the existing remote server and resets shared fictional data. The four
+development-only visual cases stay in local qualification; their HMR readiness
+check does not apply to a production build. Hosted authentication traces are
+disabled to avoid retaining the real access password. The target is restricted
+to this demo's canonical or deploy-specific Netlify origin.
+
+After it passes, publish that same verified deployment with Netlify's
+[`restoreSiteDeploy` operation](https://open-api.netlify.com/#operation/restoreSiteDeploy):
+
+```sh
+pnpm exec netlify api restoreSiteDeploy --data '{"site_id":"e6b53765-8195-4fd4-b1c9-48a5ca8ef0b7","deploy_id":"DEPLOY_ID"}'
+```
+
+Confirm the site's published deploy ID matches the verified draft, then repeat
+the hosted suite against `https://clockwork-commerce-demo.netlify.app`.
+
 ```sh
 curl -s https://clockwork-commerce-demo.netlify.app/demo/access | grep -o '<html[^>]*'
 ```
