@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { DEMO_SEED_VERSION } from "@clockwork/testing/demo-seed";
 
 /**
  * The demo surfaces exist only behind the deploy opt-in and a configured
@@ -101,8 +102,12 @@ async function openGate(page: Page, next = "/demo") {
 
 async function passGate(page: Page, next = "/demo") {
   const field = await openGate(page, next);
+  const destination = new URL(next, page.url()).href;
   await field.fill(password);
   await page.getByRole("button", { name: "Continue" }).click();
+  // The gate submits asynchronously. A click alone does not establish its
+  // cookie; wait before issuing any protected command such as demo reset.
+  await expect(page).toHaveURL(destination);
 }
 
 /**
@@ -129,11 +134,25 @@ async function resetDemoData(page: Page) {
       body: "{}",
       cache: "no-store",
     });
-    return { ok: response.ok, status: response.status };
+    const contentType = response.headers.get("content-type") ?? "";
+    const receipt: unknown = contentType.includes("application/json")
+      ? await response.json()
+      : null;
+    return {
+      ok: response.ok,
+      status: response.status,
+      redirected: response.redirected,
+      receipt,
+    };
   });
-  expect(result, "demo reset must accept the gated browser session").toEqual({
+  expect(
+    result,
+    "demo reset must return a receipt for the gated session",
+  ).toMatchObject({
     ok: true,
     status: 200,
+    redirected: false,
+    receipt: { target: "demo", seedVersion: DEMO_SEED_VERSION },
   });
 }
 
@@ -222,7 +241,9 @@ test.describe("direct buyer flagship journey", () => {
 
     try {
       await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-      await expect(page).toHaveURL(/\/dashboard$/u);
+      // Netlify preserves this selector on redirects; identity still comes
+      // from the HttpOnly persona cookie. Allow only that exact known suffix.
+      await expect(page).toHaveURL(/\/dashboard(?:\?persona=directBuyer)?$/u);
       await expect(page.locator(".experience-shell")).toHaveAttribute(
         "data-hydrated",
         "true",
@@ -231,6 +252,7 @@ test.describe("direct buyer flagship journey", () => {
       await page.getByRole("button", { name: "Open demo controls" }).click();
       const panel = page.getByRole("complementary", { name: "Demo controls" });
       await expect(panel.getByLabel("Signed in as")).toBeVisible();
+      await expect(panel.getByLabel("Signed in as")).toHaveValue("directBuyer");
       await panel
         .getByRole("link", {
           name: "Review the issued version and proceed to acceptance.",

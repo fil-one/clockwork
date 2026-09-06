@@ -2,12 +2,29 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { z } from "zod";
 
 import { Button, buttonClassName, Dialog, Select } from "@clockwork/ui";
 
 import { t } from "@/src/i18n/en";
 
 import styles from "./demo-persona-switcher.module.css";
+
+const demoResetReceipt = z.object({
+  target: z.literal("demo"),
+  seedVersion: z.string().min(1),
+  resetAt: z.iso.datetime(),
+  statePath: z.string().min(1),
+  counts: z.object({
+    accounts: z.number().int().nonnegative(),
+    agreements: z.number().int().nonnegative(),
+    quotes: z.number().int().nonnegative(),
+    orders: z.number().int().nonnegative(),
+    pocs: z.number().int().nonnegative(),
+    invoices: z.number().int().nonnegative(),
+    queueItems: z.number().int().nonnegative(),
+  }),
+});
 
 export interface DemoPersonaChoice {
   value: string;
@@ -114,8 +131,18 @@ export function DemoPersonaSwitcher({
         },
         body: "{}",
         cache: "no-store",
+        redirect: "error",
       });
-      if (!response.ok) throw new Error("reset rejected");
+      // A gate redirect can end on a login page with status 200. Only the
+      // reset endpoint's receipt confirms that both halves may be cleared.
+      if (
+        !response.ok ||
+        response.redirected ||
+        response.headers.get("content-type")?.split(";")[0]?.trim() !==
+          "application/json"
+      )
+        throw new Error("reset rejected");
+      demoResetReceipt.parse(await response.json());
       clearLocalDemoState();
       window.location.reload();
     } catch {
@@ -151,11 +178,6 @@ export function DemoPersonaSwitcher({
           {journey ? (
             <JourneySteps journey={journey} pathname={pathname} />
           ) : null}
-          {failed ? (
-            <p className={styles.error} role="alert">
-              {t("demo.panel.reset.failed")}
-            </p>
-          ) : null}
           <div className={styles.actions}>
             <Dialog
               title={t("app.demo.reset.confirm.title")}
@@ -172,6 +194,7 @@ export function DemoPersonaSwitcher({
                 <Button
                   variant="danger"
                   size="small"
+                  disabled={resetting}
                   onClick={() => void reset()}
                 >
                   {t("app.demo.reset.confirm.action")}
@@ -179,6 +202,11 @@ export function DemoPersonaSwitcher({
               }
             >
               <p>{t("app.demo.reset.confirm.detail")}</p>
+              {failed ? (
+                <p className={styles.error} role="alert">
+                  {t("demo.panel.reset.failed")}
+                </p>
+              ) : null}
             </Dialog>
             <a
               className={buttonClassName({ variant: "quiet", size: "small" })}

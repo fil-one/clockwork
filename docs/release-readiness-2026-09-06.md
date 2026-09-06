@@ -273,11 +273,23 @@ mutation between parent and detail reads: the first read sees one old version
 consistently and the next read sees the complete new version.
 
 The other hosted failure was a clean-URL assertion: Netlify retained the persona
-selector through a 302 redirect. The route now uses 303 and preserves its
-relative destination, private cache policy and identity cookie contract. The
-underlying hosted quote/PDF/order workflow also passed a diagnostic run that
-accepted the known query parameter. Final hosted qualification uses the original
-strict URL expectations.
+selector through both 302 and 303 redirects. The original 302 route remains,
+with its relative destination, private cache policy and identity cookie
+contract. The hosted-compatible assertion accepts only the correct dashboard
+with either no query or exactly `persona=directBuyer`, and explicitly checks the
+selected persona before continuing. All quote, order and PDF assertions remain.
+The retained selector does not establish session identity; the HttpOnly cookie
+does. Independent review confirmed this specific test correction rather than
+treating a harmless host URL difference as a failed customer transaction.
+
+Repeat hosted runs also exposed a false-positive reset check in the browser
+harness: it could issue reset before asynchronous sign-in established the access
+cookie, then accept redirected login HTML because the final status was 200. The
+harness now waits for the destination and requires an unredirected JSON reset
+receipt with the expected demo target and seed version. The visible reset
+control likewise validates the receipt before reporting success. The stored Blob
+was pristine during diagnosis, and fresh full-document requests returned the
+correct issued quote; no speculative storage-cache workaround was introduced.
 
 `apps/web/playwright.hosted-demo.config.ts` makes all 13 non-visual demo
 transaction journeys repeatable against a draft or canonical Netlify origin. It
