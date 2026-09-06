@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { demoDocuments } from "./__fixtures__/demo-documents";
-import { goldenPdfs } from "./__fixtures__/golden-pdfs";
+import { goldenPdfs, goldenPdfRuntime } from "./__fixtures__/golden-pdfs";
 import { canonicalizeReactPdf } from "./canonicalize";
 import { renderCommerceDocument } from "./render";
 
@@ -12,6 +12,10 @@ function pageCount(bytes: Uint8Array): number {
 
 describe("commerce PDF renderer", () => {
   it("matches the deterministic golden PDF for every document kind", async () => {
+    expect(
+      { node: process.versions.node, zlib: process.versions.zlib },
+      "PDF byte goldens require the official Node build pinned in .node-version",
+    ).toEqual(goldenPdfRuntime);
     for (const input of demoDocuments) {
       const rendered = await renderCommerceDocument(input);
       const golden = goldenPdfs[input.kind];

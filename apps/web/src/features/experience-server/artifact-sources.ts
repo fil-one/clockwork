@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { SessionClaims } from "@clockwork/api";
-import type { RuntimeTransaction } from "@clockwork/db";
+import { loadPaygInvoiceSource, type RuntimeTransaction } from "@clockwork/db";
 import type { CommerceDocumentInput, Party } from "@clockwork/documents";
 
 import {
@@ -625,10 +625,176 @@ async function pocSource(
   });
 }
 
+async function paygInvoiceArtifactSource(
+  transaction: RuntimeTransaction,
+  request: ArtifactSourceRequest,
+): Promise<ResolvedArtifactSource | undefined> {
+  const rows = await transaction.execute(sql<Row>`
+    select invoice.*, source.source_snapshot, source.source_hash,
+      coalesce(sum(payment.amount_minor) filter (where payment.status='succeeded'),0) as paid_minor,
+      max(payment.stripe_payment_intent_id) filter(where payment.status='succeeded') as payment_reference
+    from public.invoices invoice join public.core_payg_invoice_sources source on source.invoice_id=invoice.id
+    left join public.payments payment on payment.invoice_id=invoice.id
+    where invoice.id=${request.subjectId}::uuid and invoice.billing_source='payg'
+    group by invoice.id, source.invoice_id limit 1
+  `);
+  const row = rows[0];
+  if (!row) return undefined;
+  if (!row.stripe_invoice_id || row.status === "draft")
+    throw new Error("ARTIFACT_SOURCE_INCOMPLETE");
+  if (
+    createHash("sha256")
+      .update(canonicalJson(row.source_snapshot))
+      .digest("hex") !== row.source_hash
+  )
+    throw new Error("ARTIFACT_SOURCE_CORRUPT");
+  const currency = CurrencySchema.parse(row.currency);
+  const source = await loadPaygInvoiceSource(transaction, {
+    id: text(row, "id"),
+    billingSource: "payg",
+    orderId: null,
+    paygEffectKey: text(row, "payg_effect_key"),
+    accountId: text(row, "account_id"),
+    currency,
+    amountMinor: BigInt(text(row, "amount_minor")),
+    taxMinor: BigInt(text(row, "tax_minor")),
+    taxTreatment: text(row, "tax_treatment"),
+  });
+  const party = z.object({
+    legalName: z.string(),
+    registeredAddress: AddressSchema,
+  });
+  const snapshot = z
+    .object({
+      supplier: party,
+      customer: party.extend({ invoiceDeliveryEmail: z.email() }),
+      effect: z.object({
+        kind: z.string(),
+        amount: z.object({ minor: z.string() }),
+      }),
+      rating: z.object({
+        lines: z.array(
+          z.object({
+            kind: z.string(),
+            amount: z.object({ minor: z.string() }),
+          }),
+        ),
+        period: z.object({
+          serviceStartsAt: z.string(),
+          serviceEndsAt: z.string(),
+        }),
+      }),
+      taxDetermination: z.object({
+        detail: z.object({
+          lines: z.array(
+            z.object({
+              jurisdiction: z.string(),
+              treatment: z.string(),
+              notation: z.string(),
+              taxMinor: z.string(),
+            }),
+          ),
+        }),
+      }),
+    })
+    .parse(source.sourceSnapshot);
+  const present = (value: z.infer<typeof party>): Party => ({
+    legalName: value.legalName,
+    address: {
+      line1: value.registeredAddress.line1,
+      ...(value.registeredAddress.line2
+        ? { line2: value.registeredAddress.line2 }
+        : {}),
+      locality: value.registeredAddress.city,
+      ...(value.registeredAddress.region
+        ? { region: value.registeredAddress.region }
+        : {}),
+      postalCode: value.registeredAddress.postalCode,
+      countryCode: value.registeredAddress.country,
+    },
+  });
+  const paid = BigInt(text(row, "paid_minor"));
+  const total = BigInt(text(row, "amount_minor"));
+  const tax = BigInt(text(row, "tax_minor"));
+  if (
+    request.kind === "receipt" &&
+    (paid < total || !row.paid_at || !row.payment_reference)
+  )
+    throw new ExperienceProblem(
+      409,
+      "ARTIFACT_SOURCE_INCOMPLETE",
+      "A receipt requires authoritative successful payment evidence",
+    );
+  const items =
+    snapshot.effect.kind === "debit_adjustment"
+      ? [
+          {
+            kind: "Correction adjustment",
+            amount: { minor: snapshot.effect.amount.minor },
+          },
+        ]
+      : snapshot.rating.lines;
+  const sourceVersion = `${integer(row, "row_version")}:payg:${source.paygSource.revision}`;
+  const period = `PAYG ${source.paygSource.month} · revision ${source.paygSource.revision}`;
+  return finalized({
+    accountId: text(row, "account_id"),
+    audience: request.audience,
+    audienceAccountId: text(row, "account_id"),
+    subjectType: "invoice",
+    subjectId: text(row, "id"),
+    kind: request.kind,
+    sourceVersion,
+    retainUntil: addYears(instant(row, "created_at")),
+    input: {
+      kind: request.kind as "invoice_companion" | "receipt",
+      documentId: `${request.kind === "receipt" ? "RCT" : "INV-COMP"}-${text(row, "id")}`,
+      version: sourceVersion,
+      issuedAt: instant(row, "updated_at"),
+      locale: "en-US",
+      issuer: present(snapshot.supplier),
+      recipient: {
+        ...present(snapshot.customer),
+        contactEmail: snapshot.customer.invoiceDeliveryEmail,
+      },
+      invoiceNumber: text(row, "stripe_invoice_id"),
+      billingPeriodReference: period,
+      ...(row.due_at ? { dueDate: instant(row, "due_at").slice(0, 10) } : {}),
+      ...(request.kind === "receipt"
+        ? {
+            paidAt: instant(row, "paid_at"),
+            paymentReference: text(row, "payment_reference"),
+          }
+        : {}),
+      currency,
+      lineItems: items.map((item, index) => ({
+        id: `payg-${index}`,
+        description: item.kind.replaceAll("_", " "),
+        amount: money(currency, item.amount.minor),
+      })),
+      totals: {
+        subtotal: money(currency, total - tax),
+        tax: money(currency, tax),
+        total: money(currency, total),
+      },
+      amountPaid: money(currency, paid),
+      balanceDue: money(currency, paid >= total ? 0n : total - paid),
+      notes: [
+        `Service period ${snapshot.rating.period.serviceStartsAt} to ${snapshot.rating.period.serviceEndsAt} (end excluded).`,
+        ...snapshot.taxDetermination.detail.lines.map(
+          (line) =>
+            `${line.jurisdiction}: ${line.treatment.replaceAll("_", " ")}; tax ${line.taxMinor} minor units ${currency}${line.notation ? `; ${line.notation}` : ""}`,
+        ),
+      ],
+    },
+  });
+}
+
 async function invoiceSource(
   transaction: RuntimeTransaction,
   request: ArtifactSourceRequest,
 ): Promise<ResolvedArtifactSource> {
+  const payg = await paygInvoiceArtifactSource(transaction, request);
+  if (payg) return payg;
   const rows = await transaction.execute(sql<Row>`
     select invoice.*, snapshot.line_items, snapshot.subtotal_minor,
            snapshot.tax_minor, snapshot.total_minor, snapshot.source_version,

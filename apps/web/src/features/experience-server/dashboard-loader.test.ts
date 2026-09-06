@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
+import { demoAccountIds } from "@clockwork/testing/personas";
 import { NOT_RECORDED } from "@clockwork/workflows";
 
 import type { ProjectionChannel, ProjectionRecord } from "./model";
@@ -271,7 +272,7 @@ describe("dashboard demo boundary", () => {
     ).toBe(true);
   });
 
-  it("serves the demo fixtures without reading any projection channel", async () => {
+  it("uses current demo obligations while retaining the demonstration usage context", async () => {
     vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
     vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "local");
 
@@ -280,10 +281,59 @@ describe("dashboard demo boundary", () => {
 
     expect(customer.capacity?.committed).toBe("620 TB");
     expect(partner.agreement.label).toBe(
-      "Meridian Channel Partner Agreement - v4.1",
+      "Your organization Partner Agreement - v4.1",
     );
-    expect(mocks.loadPortalRecords).not.toHaveBeenCalled();
+    expect(mocks.loadPortalRecords).toHaveBeenCalledTimes(2);
     expect(mocks.loadTopPortalRecords).not.toHaveBeenCalled();
+  });
+
+  it("drops paid demo invoices from attention and preserves exact open record links", async () => {
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    serve({ billing: [overdueInvoice, paidInvoice], quotes: [openQuote] });
+    const result = await loadCustomerDashboardProjection("Meridian Data Works");
+    expect(result.term.title).toBe("Meridian Data Works annual term");
+    expect(result.obligations.map((item) => item.id)).toContain(
+      overdueInvoice.recordKey,
+    );
+    expect(result.obligations.map((item) => item.id)).not.toContain(
+      paidInvoice.recordKey,
+    );
+    expect(
+      result.obligations.find((item) => item.id === overdueInvoice.recordKey)
+        ?.title,
+    ).toContain("$15,400.00");
+    expect(
+      result.obligations.find((item) => item.id === openQuote.recordKey)?.href,
+    ).toContain(openQuote.recordKey);
+  });
+
+  it("binds demo partner economics to the selected organization and selling motion", async () => {
+    vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+    vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "local");
+    const reseller = await loadPartnerDashboardProjection({
+      accountId: demoAccountIds.reseller,
+      accountName: "Ember Peak Systems",
+    });
+    expect(reseller.agreement.label).toBe(
+      "Ember Peak Systems Partner Agreement - v4.1",
+    );
+    expect(reseller.agreement.merchantBoundary).toContain(
+      "Ember Peak Systems is merchant of record",
+    );
+    expect(JSON.stringify(reseller)).not.toContain("Meridian");
+
+    const referral = await loadPartnerDashboardProjection({
+      accountId: demoAccountIds.referral,
+      accountName: "Northstar Advisory",
+    });
+    expect(referral.agreement.commercialRoute).toBe("Referral");
+    expect(referral.boundary).toContainEqual({
+      label: "Merchant of record",
+      value: "Fil One",
+    });
+    expect(
+      referral.boundary.some((row) => row.label === "Transfer price"),
+    ).toBe(false);
   });
 });
 

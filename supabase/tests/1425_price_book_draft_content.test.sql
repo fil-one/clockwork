@@ -1,0 +1,12 @@
+begin;
+select plan(4);
+set local search_path = public, extensions;
+insert into price_books (id,name,currency,effective_from,status,version) values ('c6000000-0000-4000-8000-000000001425','Draft guard test','USD','2026-01-01','draft',91425);
+insert into rate_cards (id,price_book_id,sku,approved_claim,region,unit,unit_price_minor,floor_price_minor,overage_rate_minor,minimum_quantity,egress_treatment,commit_type,stripe_tax_code,qbo_income_account) values ('c6100000-0000-4000-8000-000000001425','c6000000-0000-4000-8000-000000001425','GUARD-TEST','Test','test','TB-month',100,50,100,1,'metered','term_drawdown','txcd_demo','4000');
+insert into approvals (action,object_type,object_id,requested_by,status) values ('price_book_activation','price_book','c6000000-0000-4000-8000-000000001425','20000000-0000-4000-8000-000000000001','pending');
+select throws_ok($$update rate_cards set unit_price_minor = 150 where id = 'c6100000-0000-4000-8000-000000001425'$$,'55000','proposed price content is frozen; reject activation before editing','proposal freezes rate updates');
+select throws_ok($$delete from rate_cards where id = 'c6100000-0000-4000-8000-000000001425'$$,'55000','proposed price content is frozen; reject activation before editing','proposal freezes rate removals');
+select throws_ok($$update price_books set discount_matrix = '{"id":"changed"}' where id = 'c6000000-0000-4000-8000-000000001425'$$,'55000','proposed price content is frozen; reject activation before editing','proposal freezes discount authority');
+select throws_ok($$insert into rate_cards (price_book_id,sku,approved_claim,region,unit,unit_price_minor,overage_rate_minor,minimum_quantity,egress_treatment,commit_type,stripe_tax_code,qbo_income_account) values ('60000000-0000-4000-8000-000000000001','INJECTED','Test','test','TB-month',100,100,1,'metered','term_drawdown','txcd_demo','4000')$$,'55000','rate cards require an editable draft price book','published books reject newly injected rates');
+select * from finish();
+rollback;

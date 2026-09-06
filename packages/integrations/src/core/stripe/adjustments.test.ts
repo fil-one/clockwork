@@ -50,6 +50,41 @@ function gateway(input?: {
 }
 
 describe("persisted Stripe adjustment submission", () => {
+  it("reserves PAYG credit and refund capacity against their common invoice without a term order", async () => {
+    const common = {
+      orderId: null,
+      invoiceId: "payg-invoice",
+      aggregateCapMinor: "4000",
+      alreadyAdjustedMinor: "0",
+    };
+    const store = new InMemoryPersistedStripeAdjustmentStore([
+      operation("payg-credit", {
+        ...common,
+        kind: "credit_note",
+        sourceId: "payg-invoice",
+        providerInvoiceId: "in_payg",
+      }),
+      operation("payg-refund", { ...common, sourceId: "payg-payment" }),
+      operation("other-refund", {
+        ...common,
+        invoiceId: "other-payg-invoice",
+        sourceId: "other-payment",
+      }),
+    ]);
+    expect(
+      (await store.claim({ adjustmentId: "payg-credit", expectedVersion: 2 }))
+        .status,
+    ).toBe("claimed");
+    expect(
+      (await store.claim({ adjustmentId: "payg-refund", expectedVersion: 2 }))
+        .status,
+    ).toBe("cap_exceeded");
+    expect(
+      (await store.claim({ adjustmentId: "other-refund", expectedVersion: 2 }))
+        .status,
+    ).toBe("claimed");
+  });
+
   it("derives every refund field from persisted state and does not claim final success", async () => {
     const refundPayment = vi.fn().mockResolvedValue({
       ok: true,

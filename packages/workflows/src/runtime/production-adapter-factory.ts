@@ -8,6 +8,7 @@ import {
   DatabaseAuthoritativeLifecycleTaskStore,
   DatabasePersistedWorkflowExceptionRouting,
   DatabaseExternalGateService,
+  DatabaseSystemCapabilityGuard,
   DatabaseQboVendorMappingResolver,
   DatabaseProvisioningDispatchStore,
   type RuntimeDatabase,
@@ -82,6 +83,8 @@ export type ProviderAdapterMode = "live" | "simulator";
 
 export interface SelectedProvider<T> {
   mode: ProviderAdapterMode;
+  /** Omitted at boot because all owning capabilities are disabled. */
+  disabled?: boolean;
   value: T;
   activationTest(): Promise<ExternalGateActivationTestResult>;
 }
@@ -191,6 +194,7 @@ export interface ProductionWorkflowProviderSelections {
 
 export interface ProductionWorkflowProviderFactoryOptions {
   providers: ProductionWorkflowProviderSelections;
+  activationGateKeys?: readonly ExternalGateKey[];
   authorizationSecret: string;
   coreTaskSubmitter: CoreWorkflowTaskSubmitter;
   /**
@@ -298,18 +302,20 @@ export function createProductionWorkflowAdapterFactory(
         : new PersistedWorkflowProviderActivationGuard(db, options.clock);
       const guard = options.activationGuard ?? persistedGuard;
       if (!guard) throw new Error("WORKFLOW_EXTERNAL_GATE_GUARD_UNAVAILABLE");
+      const activeGateKeys =
+        options.activationGateKeys ?? providerActivationGates;
       if (persistedGuard)
         await persistedGuard.requireConfiguredForActivation(
-          providerActivationGates,
+          activeGateKeys,
           `workflow-bootstrap:preflight:${crypto.randomUUID()}`,
         );
       else
         await guard.requireActive(
-          providerActivationGates,
+          activeGateKeys,
           `workflow-bootstrap:${crypto.randomUUID()}`,
         );
       const now = (options.clock ?? (() => new Date()))();
-      const selections: readonly [
+      const allSelections: readonly [
         keyof ProductionWorkflowProviderSelections,
         SelectedProvider<unknown>,
       ][] = [
@@ -324,6 +330,9 @@ export function createProductionWorkflowAdapterFactory(
         ["signature", options.providers.signature],
         ["tax", options.providers.tax],
       ];
+      const selections = allSelections.filter(
+        ([, selection]) => !selection.disabled,
+      );
       let gateActivationExecutor:
         ProductionWorkflowAdapterBundle["gateActivationExecutor"] | undefined;
       if (options.activationGuard) {
@@ -377,7 +386,7 @@ export function createProductionWorkflowAdapterFactory(
             `workflow-bootstrap:activation:${name}`,
           );
         await guard.requireActive(
-          providerActivationGates,
+          activeGateKeys,
           `workflow-bootstrap:post-activation:${crypto.randomUUID()}`,
         );
         gateActivationExecutor = async (payload, requestId) => {
@@ -431,6 +440,25 @@ export function createProductionWorkflowAdapterFactory(
           const capability = lifecycleCapability(effect);
           if (!capability) return;
           try {
+            if (environment.runtimeEnvironment === "production") {
+              const systemCapability =
+                capability === "legal_execution"
+                  ? "legal"
+                  : capability === "provisioning_invoicing"
+                    ? "billing"
+                    : capability === "migration"
+                      ? "new_business"
+                      : capability;
+              const internal = await new DatabaseSystemCapabilityGuard(
+                db,
+              ).require({
+                capabilities: [systemCapability],
+                recovery: false,
+                requestId: `lifecycle-system-capability:${effect.effectKey}`,
+              });
+              if (!internal.allowed)
+                throw new Error("SYSTEM_CAPABILITY_DISABLED");
+            }
             await gateService.requireCapability({
               capability,
               boundary: "lifecycle",

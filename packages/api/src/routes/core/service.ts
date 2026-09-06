@@ -146,6 +146,10 @@ export const coreCommandCatalogue: Record<
   price_books: new Set([
     "create",
     "add_rate",
+    "update_rate",
+    "remove_rate",
+    "update_discount_matrix",
+    "reject_activation",
     "request_activation",
     "activate",
     "retire",

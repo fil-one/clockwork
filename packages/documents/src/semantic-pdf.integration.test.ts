@@ -56,7 +56,7 @@ function kindAnchors(input: CommerceDocumentInput): readonly string[] {
     case "receipt":
       return [
         input.invoiceNumber,
-        input.orderReference,
+        input.orderReference ?? input.billingPeriodReference ?? "",
         input.paymentReference ?? input.lineItems[0]?.description ?? "",
       ];
     case "commission_statement":
@@ -92,6 +92,35 @@ function kindAnchors(input: CommerceDocumentInput): readonly string[] {
 }
 
 describe("semantic PDF verification with Poppler", () => {
+  it("keeps wrapped quote details above the fixed footer on every page", async () => {
+    const input = demoDocuments.find(
+      (document) => document.kind === "direct_quote",
+    );
+    if (!input) throw new Error("Direct quote fixture is missing");
+    const rendered = await renderCommerceDocument(input);
+    const pdf = join(directory, "quote-layout.pdf");
+    const boundsFile = join(directory, "quote-layout.html");
+    await writeFile(pdf, rendered.bytes);
+    await execute("pdftotext", ["-bbox", pdf, boundsFile]);
+    const bounds = await readFile(boundsFile, "utf8");
+    let detailCount = 0;
+    for (const page of bounds.matchAll(
+      /<page width="[^"]+" height="([^"]+)">([\s\S]*?)<\/page>/g,
+    )) {
+      const height = Number(page[1]);
+      for (const word of (page[2] ?? "").matchAll(
+        /<word [^>]*yMax="([^"]+)"[^>]*>(Term-drawdown|TB-month|pricing)<\/word>/g,
+      )) {
+        detailCount += 1;
+        expect(
+          Number(word[1]),
+          `Quote detail ${word[2]} must clear the footer`,
+        ).toBeLessThan(height - 62);
+      }
+    }
+    expect(detailCount).toBeGreaterThan(30);
+  });
+
   it("extracts immutable identity, parties, version, source hash, and kind-specific truth for all 15 kinds", async () => {
     for (const input of demoDocuments) {
       const rendered = await renderCommerceDocument(input);

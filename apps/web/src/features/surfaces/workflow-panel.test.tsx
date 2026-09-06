@@ -241,6 +241,13 @@ describe("generated-client commerce workflows", () => {
       }),
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", { name: "Submit securely" }),
+    ).toHaveFocus();
+    expect(refresh).toHaveBeenCalledTimes(2);
     expect((fetchMock.mock.calls[1]?.[0] as Request).url).toContain(
       "/declines",
     );
@@ -531,7 +538,9 @@ describe("route-resolved record identifiers", () => {
     if (!form) throw new Error("Workflow form was not rendered.");
 
     fireEvent.submit(form);
+    fireEvent.submit(form);
     await waitFor(() => expect(confirm).toBeDisabled());
+    expect(fetch).toHaveBeenCalledOnce();
 
     resolveFetch?.(
       Response.json({

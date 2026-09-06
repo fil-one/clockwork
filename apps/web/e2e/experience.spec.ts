@@ -3,8 +3,9 @@ import { expect, test } from "@playwright/test";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
-const OFFER = "Simulated enterprise archive capacity · us-east";
-const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
+const OFFER =
+  "Fictional immutable storage capacity · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2";
+const OFFER_PRICE_BOOK_ID = "66000000-0000-4000-8000-000000000001";
 
 const journeys = [
   {
@@ -127,7 +128,7 @@ test("new buyer registers a verified legal entity through the bootstrap contract
   });
 });
 
-test("direct buyer sends a protected simulated quote command without claiming persistence", async ({
+test("direct buyer sends a protected priced-draft command and receives its receipt", async ({
   page,
 }) => {
   await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
@@ -158,10 +159,8 @@ test("direct buyer sends a protected simulated quote command without claiming pe
   await page.getByLabel("Term (months)").fill("12");
   await page.getByLabel("Quote expiry").fill("2026-09-30T17:00");
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Simulate draft" }).click();
-  await expect(
-    page.getByText(/No quote was saved, priced, or issued/),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Create priced draft" }).click();
+  await expect(page.getByText(/Priced draft created/)).toBeVisible();
   expect(requestBody).toMatchObject({
     id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     accountId: CUSTOMER_ACCOUNT_ID,

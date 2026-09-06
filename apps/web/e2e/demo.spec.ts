@@ -406,12 +406,10 @@ test.describe("playable product-demo workflows", () => {
       await authoring
         .getByLabel("Approved commercial claim")
         .fill("Browser proof of the guided finance authoring workflow.");
-      await authoring
-        .getByRole("button", { name: "Add first rate card" })
-        .click();
+      await authoring.getByRole("button", { name: "Add rate card" }).click();
       await expect(
         page.getByText(
-          "Priced draft created. Review it below before proposing activation.",
+          "Rate card saved. Reopen this draft to add or edit more rates, then review before proposing activation.",
         ),
       ).toBeVisible();
       await expect(
@@ -452,6 +450,106 @@ test.describe("playable product-demo workflows", () => {
       await expect(
         page.getByRole("row", { name: /Direct commerce USD 3 USD.*Active/ }),
       ).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("finance reviews PAYG minimum and high-egress estimates before approving a fictional policy", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+    try {
+      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+      await page.goto("/internal/payg-offers");
+      await expect(page.getByText(/Fictional policy workspace/)).toBeVisible();
+      await page
+        .getByRole("button", { name: /Fictional PAYG review scenario/ })
+        .click();
+      await page
+        .getByRole("button", { name: "Calculate monthly estimate" })
+        .click();
+      await expect(
+        page.getByText(/Estimated monthly total: USD 4.99/),
+      ).toBeVisible();
+      await page.getByLabel("Average daily storage (TB)").fill("10");
+      await page.getByLabel("Total monthly egress (TB)").fill("100");
+      await page
+        .getByRole("button", { name: "Calculate monthly estimate" })
+        .click();
+      await expect(
+        page.getByText(/Estimated monthly total: USD 49.90/),
+      ).toBeVisible();
+      await page
+        .getByLabel("Decision reason")
+        .fill("Browser QA minimum and high-egress review.");
+      await page
+        .getByLabel("Approval evidence reference")
+        .fill("demo-browser-policy-review");
+      await page
+        .getByRole("button", { name: "Approve policy version" })
+        .click();
+      await expect(
+        page.getByText(
+          "Policy version 1 is approved. Sales activation is unchanged.",
+        ),
+      ).toBeVisible();
+      await page.reload();
+      await page
+        .getByRole("button", { name: /Fictional PAYG review scenario/ })
+        .click();
+      await expect(
+        page.getByRole("heading", {
+          name: /Fictional PAYG review scenario · approved/,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Approve policy version" }),
+      ).toHaveCount(0);
+      await page.setViewportSize({ width: 320, height: 800 });
+      await expectAxeClean(page);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("approved fictional channel controls survive a fresh page read", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+    try {
+      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+      await page.goto("/internal/channel-policy");
+      const approval = page.getByRole("group", { name: "Approve policy" });
+      await approval
+        .getByLabel("Decision reason")
+        .fill("Browser QA review of requested protection limits.");
+      await approval
+        .getByLabel("Approval evidence reference")
+        .fill("demo-browser-channel-review");
+      await approval.getByRole("button", { name: "Approve policy" }).click();
+      await expect(page.getByText(/Approved policy v1/)).toBeVisible();
+      await page.reload();
+      await expect(page.getByText(/Approved policy v1/)).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Approve policy" }),
+      ).toHaveCount(0);
+      await page.setViewportSize({ width: 320, height: 800 });
+      await expectAxeClean(page);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
     } finally {
       if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
     }
@@ -504,6 +602,9 @@ test.describe("playable product-demo workflows", () => {
 
       await page.goto("/partner/registrations");
       await page.getByLabel("End client").fill("Aster House Media");
+      await page
+        .getByRole("option", { name: "Aster House Media", exact: true })
+        .click();
       await page.getByLabel("Workload").fill("Browser archive expansion");
       await page.getByLabel("Expected volume (TB)").fill("40");
       await page.getByRole("button", { name: "Register the deal" }).click();

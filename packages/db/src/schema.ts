@@ -872,9 +872,10 @@ export const invoices = pgTable(
   "invoices",
   {
     id: id(),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
+    billingSource: text("billing_source").notNull().default("order"),
+    // Cross-lane FK and exclusive-source guard are enforced by migration001429.
+    paygEffectKey: text("payg_effect_key").unique(),
     accountId: uuid("account_id")
       .notNull()
       .references(() => accounts.id),
@@ -951,9 +952,7 @@ export const payments = pgTable(
     invoiceId: uuid("invoice_id")
       .notNull()
       .references(() => invoices.id),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
     stripePaymentIntentId: text("stripe_payment_intent_id").notNull().unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
@@ -991,9 +990,7 @@ export const creditNotes = pgTable(
     invoiceId: uuid("invoice_id")
       .notNull()
       .references(() => invoices.id),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
     stripeCreditNoteId: text("stripe_credit_note_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
@@ -1035,9 +1032,7 @@ export const refunds = pgTable(
     paymentId: uuid("payment_id")
       .notNull()
       .references(() => payments.id),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
     stripeRefundId: text("stripe_refund_id").unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
@@ -1073,9 +1068,7 @@ export const disputeCases = pgTable(
     paymentId: uuid("payment_id")
       .notNull()
       .references(() => payments.id),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
     stripeDisputeId: text("stripe_dispute_id").notNull().unique(),
     currency: currency(),
     amountMinor: minor("amount_minor"),
@@ -1202,6 +1195,11 @@ export const dealRegistrations = pgTable(
     protectionEndsAt: timestamp("protection_ends_at", {
       withTimezone: true,
     }).notNull(),
+    channelPolicySnapshot: jsonb("channel_policy_snapshot"),
+    policyExtensionCount: integer("policy_extension_count")
+      .notNull()
+      .default(0),
+    extensionReason: text("extension_reason"),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     convertedOrderId: uuid("converted_order_id").references(() => orders.id),
     createdAt: createdAt(),

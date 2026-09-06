@@ -49,20 +49,36 @@ export type ProviderResult<T> =
       retryAfterMs?: number;
     };
 
+export const PaygInvoiceSourceSchema = z
+  .object({
+    kind: z.literal("payg"),
+    enrollmentId: z.uuid(),
+    effectKey: z.string().min(1).max(500),
+    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+    revision: z.number().int().positive(),
+  })
+  .strict();
+export type PaygInvoiceSource = z.infer<typeof PaygInvoiceSourceSchema>;
+
+export type InvoiceBillingSource =
+  | { orderId: OrderId; paygSource?: never }
+  | { orderId?: never; paygSource: PaygInvoiceSource };
+
 export interface BillingPort {
   createCustomer(input: {
     accountId: AccountId;
     email: string;
     idempotencyKey: IdempotencyKey;
   }): Promise<ProviderResult<{ customerId: string }>>;
-  issueInvoice(input: {
-    invoiceId: InvoiceId;
-    customerId: string;
-    orderId: OrderId;
-    amount: Money;
-    poNumber?: string;
-    idempotencyKey: IdempotencyKey;
-  }): Promise<ProviderResult<{ providerInvoiceId: string; status: string }>>;
+  issueInvoice(
+    input: InvoiceBillingSource & {
+      invoiceId: InvoiceId;
+      customerId: string;
+      amount: Money;
+      poNumber?: string;
+      idempotencyKey: IdempotencyKey;
+    },
+  ): Promise<ProviderResult<{ providerInvoiceId: string; status: string }>>;
   createRefund(input: {
     paymentId: string;
     amount: Money;

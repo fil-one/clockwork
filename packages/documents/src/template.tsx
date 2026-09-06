@@ -148,7 +148,8 @@ export const styles = StyleSheet.create({
     color: palette.ink,
     fontFamily: "Helvetica",
     fontSize: 9,
-    paddingBottom: 62,
+    // Keep wrapped table details clear of the fixed footer.
+    paddingBottom: 80,
     paddingHorizontal: 42,
     paddingTop: 98,
   },
@@ -219,7 +220,12 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: "uppercase",
   },
-  totals: { alignSelf: "flex-end", marginTop: 13, width: "50%" },
+  totals: {
+    alignSelf: "flex-end",
+    marginTop: 13,
+    marginBottom: 12,
+    width: "50%",
+  },
   totalsGrand: {
     borderTopColor: palette.ink,
     borderTopWidth: 1.5,

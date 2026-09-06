@@ -346,6 +346,7 @@ function fixture(kind: ArtifactKind): Fixture {
       },
       session: customerSession,
       results: [
+        [], // This invoice has an accepted-order source, no PAYG source.
         [
           {
             id: subjectId,

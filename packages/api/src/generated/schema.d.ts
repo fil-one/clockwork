@@ -512,6 +512,786 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/core/payg-offers/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        terms: {
+                            name: string;
+                            sku: string;
+                            region: string;
+                            version: number;
+                            /** Format: date */
+                            effectiveFrom: string;
+                            /** Format: uri */
+                            sourceUri: string;
+                            /** Format: date-time */
+                            sourceCheckedAt: string;
+                            sourceDocumentId: string;
+                            owner: string;
+                            payg: {
+                                /** @enum {string} */
+                                currency: "USD" | "EUR" | "GBP";
+                                storageTbMonthMinor: string;
+                                monthlyMinimumMinor: string;
+                                /** @enum {string} */
+                                partialMonthMinimum: "full" | "prorated";
+                                correctionWindowDays: number;
+                                /** @enum {string} */
+                                aggregation: "hourly_average_daily_utc";
+                                /** @enum {string} */
+                                egressRateMinor: "0";
+                                /** @enum {string} */
+                                apiRateMinor: "0";
+                                stripeTaxCode: string;
+                                qboIncomeAccount: string;
+                            };
+                            trial: {
+                                durationDays: number;
+                                gracePeriodDays: number;
+                                storageLimitBytes: string;
+                                cumulativeEgressLimitBytes: string;
+                                maximumCounterAgeSeconds: number;
+                                /** @enum {string} */
+                                egressExhaustion: "disable_all" | "block_egress";
+                            };
+                        };
+                        month: string;
+                        averageStorageBytes: string;
+                        egressBytes: string;
+                        apiOperations: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Monthly policy simulation with no enrollment or billing effect */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            simulation: true;
+                            month: string;
+                            total: {
+                                currency: string;
+                                minor: string;
+                            };
+                            lines: {
+                                kind: string;
+                                amount: {
+                                    currency: string;
+                                    minor: string;
+                                };
+                                serviceStartsAt: string;
+                                serviceEndsAt: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Internal finance permission required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/payg-offers/trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retained lifetime trial claims */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            trials: unknown[];
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Trial service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "claim";
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        organizationId: string;
+                        /** Format: uuid */
+                        offerVersionId: string;
+                        verificationEvidenceId: string;
+                    } | {
+                        /** @enum {string} */
+                        action: "convert";
+                        /** Format: uuid */
+                        trialId: string;
+                        /** Format: uuid */
+                        entitlementId?: string;
+                        /** Format: uuid */
+                        paygEnrollmentId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Verified trial claim or confirmed paid conversion */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            trial?: unknown;
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Trial eligibility or evidence conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Trial service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/payg-offers/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retained PAYG enrollments */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollments: unknown[];
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Billing unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "enroll";
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        offerVersionId: string;
+                        binding: {
+                            mappingVersionId: string;
+                            /** Format: uuid */
+                            accountId: string;
+                            filOneOrganizationId: string;
+                            tenantId: string;
+                            entitlementId: string;
+                            sku: string;
+                            region: string;
+                            source: string;
+                            meters: ("storage_bytes" | "egress_bytes" | "api_operations")[];
+                            /** @enum {string} */
+                            status: "active";
+                        };
+                        bindingEvidenceId: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        /** @enum {string} */
+                        billingAuthority: "fil_one" | "clockwork";
+                        cutoverEvidenceId?: string;
+                    } | {
+                        /** @enum {string} */
+                        action: "cancel";
+                        /** Format: uuid */
+                        enrollmentId: string;
+                        /** Format: date-time */
+                        serviceEndsAt: string;
+                        evidenceId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Verified enrollment or confirmed cancellation retained */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollment?: unknown;
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Verified evidence required */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Billing unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/payg-offers/billing-effects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retained billing deltas awaiting financial materialization */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            effects: {
+                                idempotencyKey: string;
+                                kind: string;
+                                enrollmentId: string;
+                                accountId: string;
+                                month: string;
+                                revision: number;
+                                amount: {
+                                    currency: string;
+                                    minor: string;
+                                };
+                            }[];
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Billing service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        effectKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Invoice draft retained and queued for provider delivery */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            invoiceId: string;
+                            creditNoteIds?: string[];
+                            replay: boolean;
+                        };
+                    };
+                };
+                /** @description Finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Source or tax evidence requires repair */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Billing service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/core/payg-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Persisted PAYG/trial policy versions; approval alone does not enable sales */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            offers: {
+                                /** Format: uuid */
+                                id: string;
+                                rowVersion: number;
+                                /** @enum {string} */
+                                status: "draft" | "proposed" | "approved" | "retired";
+                                terms: {
+                                    name: string;
+                                    sku: string;
+                                    region: string;
+                                    version: number;
+                                    /** Format: date */
+                                    effectiveFrom: string;
+                                    /** Format: uri */
+                                    sourceUri: string;
+                                    /** Format: date-time */
+                                    sourceCheckedAt: string;
+                                    sourceDocumentId: string;
+                                    owner: string;
+                                    payg: {
+                                        /** @enum {string} */
+                                        currency: "USD" | "EUR" | "GBP";
+                                        storageTbMonthMinor: string;
+                                        monthlyMinimumMinor: string;
+                                        /** @enum {string} */
+                                        partialMonthMinimum: "full" | "prorated";
+                                        correctionWindowDays: number;
+                                        /** @enum {string} */
+                                        aggregation: "hourly_average_daily_utc";
+                                        /** @enum {string} */
+                                        egressRateMinor: "0";
+                                        /** @enum {string} */
+                                        apiRateMinor: "0";
+                                        stripeTaxCode: string;
+                                        qboIncomeAccount: string;
+                                    };
+                                    trial: {
+                                        durationDays: number;
+                                        gracePeriodDays: number;
+                                        storageLimitBytes: string;
+                                        cumulativeEgressLimitBytes: string;
+                                        maximumCounterAgeSeconds: number;
+                                        /** @enum {string} */
+                                        egressExhaustion: "disable_all" | "block_egress";
+                                    };
+                                };
+                                /** Format: uuid */
+                                createdBy: string;
+                                /** Format: uuid */
+                                lastEditedBy: string;
+                                /** Format: uuid */
+                                proposedBy: string | null;
+                                /** Format: uuid */
+                                approvedBy: string | null;
+                                approvalEvidenceId: string | null;
+                                decisionReason: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Internal finance access required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Policy service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "create";
+                        terms: {
+                            name: string;
+                            sku: string;
+                            region: string;
+                            version: number;
+                            /** Format: date */
+                            effectiveFrom: string;
+                            /** Format: uri */
+                            sourceUri: string;
+                            /** Format: date-time */
+                            sourceCheckedAt: string;
+                            sourceDocumentId: string;
+                            owner: string;
+                            payg: {
+                                /** @enum {string} */
+                                currency: "USD" | "EUR" | "GBP";
+                                storageTbMonthMinor: string;
+                                monthlyMinimumMinor: string;
+                                /** @enum {string} */
+                                partialMonthMinimum: "full" | "prorated";
+                                correctionWindowDays: number;
+                                /** @enum {string} */
+                                aggregation: "hourly_average_daily_utc";
+                                /** @enum {string} */
+                                egressRateMinor: "0";
+                                /** @enum {string} */
+                                apiRateMinor: "0";
+                                stripeTaxCode: string;
+                                qboIncomeAccount: string;
+                            };
+                            trial: {
+                                durationDays: number;
+                                gracePeriodDays: number;
+                                storageLimitBytes: string;
+                                cumulativeEgressLimitBytes: string;
+                                maximumCounterAgeSeconds: number;
+                                /** @enum {string} */
+                                egressExhaustion: "disable_all" | "block_egress";
+                            };
+                        };
+                    } | {
+                        /** @enum {string} */
+                        action: "save";
+                        /** Format: uuid */
+                        id: string;
+                        expectedRowVersion: number;
+                        terms: {
+                            name: string;
+                            sku: string;
+                            region: string;
+                            version: number;
+                            /** Format: date */
+                            effectiveFrom: string;
+                            /** Format: uri */
+                            sourceUri: string;
+                            /** Format: date-time */
+                            sourceCheckedAt: string;
+                            sourceDocumentId: string;
+                            owner: string;
+                            payg: {
+                                /** @enum {string} */
+                                currency: "USD" | "EUR" | "GBP";
+                                storageTbMonthMinor: string;
+                                monthlyMinimumMinor: string;
+                                /** @enum {string} */
+                                partialMonthMinimum: "full" | "prorated";
+                                correctionWindowDays: number;
+                                /** @enum {string} */
+                                aggregation: "hourly_average_daily_utc";
+                                /** @enum {string} */
+                                egressRateMinor: "0";
+                                /** @enum {string} */
+                                apiRateMinor: "0";
+                                stripeTaxCode: string;
+                                qboIncomeAccount: string;
+                            };
+                            trial: {
+                                durationDays: number;
+                                gracePeriodDays: number;
+                                storageLimitBytes: string;
+                                cumulativeEgressLimitBytes: string;
+                                maximumCounterAgeSeconds: number;
+                                /** @enum {string} */
+                                egressExhaustion: "disable_all" | "block_egress";
+                            };
+                        };
+                    } | {
+                        /** @enum {string} */
+                        action: "propose" | "approve" | "reject" | "retire";
+                        /** Format: uuid */
+                        id: string;
+                        expectedRowVersion: number;
+                        reason: string;
+                        approvalEvidenceId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Saved policy version with audited decision */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            rowVersion: number;
+                            /** @enum {string} */
+                            status: "draft" | "proposed" | "approved" | "retired";
+                            terms: {
+                                name: string;
+                                sku: string;
+                                region: string;
+                                version: number;
+                                /** Format: date */
+                                effectiveFrom: string;
+                                /** Format: uri */
+                                sourceUri: string;
+                                /** Format: date-time */
+                                sourceCheckedAt: string;
+                                sourceDocumentId: string;
+                                owner: string;
+                                payg: {
+                                    /** @enum {string} */
+                                    currency: "USD" | "EUR" | "GBP";
+                                    storageTbMonthMinor: string;
+                                    monthlyMinimumMinor: string;
+                                    /** @enum {string} */
+                                    partialMonthMinimum: "full" | "prorated";
+                                    correctionWindowDays: number;
+                                    /** @enum {string} */
+                                    aggregation: "hourly_average_daily_utc";
+                                    /** @enum {string} */
+                                    egressRateMinor: "0";
+                                    /** @enum {string} */
+                                    apiRateMinor: "0";
+                                    stripeTaxCode: string;
+                                    qboIncomeAccount: string;
+                                };
+                                trial: {
+                                    durationDays: number;
+                                    gracePeriodDays: number;
+                                    storageLimitBytes: string;
+                                    cumulativeEgressLimitBytes: string;
+                                    maximumCounterAgeSeconds: number;
+                                    /** @enum {string} */
+                                    egressExhaustion: "disable_all" | "block_egress";
+                                };
+                            };
+                            /** Format: uuid */
+                            createdBy: string;
+                            /** Format: uuid */
+                            lastEditedBy: string;
+                            /** Format: uuid */
+                            proposedBy: string | null;
+                            /** Format: uuid */
+                            approvedBy: string | null;
+                            approvalEvidenceId: string | null;
+                            decisionReason: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Internal finance access and recent authentication required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Policy state, version, or distinct approver conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Policy service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notifications": {
         parameters: {
             query?: never;

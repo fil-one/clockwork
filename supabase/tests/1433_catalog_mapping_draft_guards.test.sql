@@ -1,0 +1,15 @@
+begin;
+select plan(7);
+set local search_path=public,extensions;
+insert into price_books(id,name,currency,effective_from,status,version) values('c6000000-0000-4000-8000-000000001433','Catalog mapping test','USD','2026-01-01','draft',91433);
+insert into rate_cards(id,price_book_id,sku,approved_claim,region,unit,unit_price_minor,overage_rate_minor,minimum_quantity,egress_treatment,commit_type,stripe_tax_code,qbo_income_account) values('c6100000-0000-4000-8000-000000001433','c6000000-0000-4000-8000-000000001433','MAP-TEST','Test','test','TB-month',100,100,1,'metered','term_drawdown','txcd_demo','4000');
+select lives_ok($$insert into system_provider_resource_bindings(provider,provider_resource_type,provider_resource_id,aggregate_type,aggregate_id,binding) values('fil_one','sku_region','catalog-test','rate_card','c6100000-0000-4000-8000-000000001433','{"providerSku":"object","providerRegion":"fr","meterId":"bytes","sourceEvidence":"evidence:mapping"}')$$,'unproposed draft accepts mapping');
+select throws_ok($$update system_provider_resource_bindings set binding='{"providerSku":null}' where provider_resource_id='catalog-test'$$,'23514','catalog mapping source evidence and provider dimensions required','null and missing mapping dimensions fail closed');
+select throws_ok($$update system_provider_resource_bindings set aggregate_type='other' where provider_resource_id='catalog-test'$$,'55000','catalog mapping identity is immutable','cannot escape guard by changing binding identity');
+insert into approvals(action,object_type,object_id,requested_by,status) values('price_book_activation','price_book','c6000000-0000-4000-8000-000000001433','20000000-0000-4000-8000-000000000001','pending');
+select throws_ok($$update system_provider_resource_bindings set binding=jsonb_set(binding,'{meterId}','"new-meter"') where provider_resource_id='catalog-test'$$,'55000','catalog mappings require an unproposed draft','pending approval freezes mapping changes');
+select throws_ok($$delete from system_provider_resource_bindings where provider_resource_id='catalog-test'$$,'55000','catalog mappings require an unproposed draft','pending approval freezes mapping deletion');
+select throws_ok($$insert into system_provider_resource_bindings(provider,provider_resource_type,provider_resource_id,aggregate_type,aggregate_id,binding) select 'fil_one','sku_region','published-test','rate_card',id,'{"providerSku":"object","providerRegion":"fr","meterId":"bytes","sourceEvidence":"evidence:mapping"}'::jsonb from rate_cards where price_book_id='60000000-0000-4000-8000-000000000001' limit 1$$,'55000','catalog mappings require an unproposed draft','published rates reject mapping injection');
+select lives_ok($$insert into system_provider_resource_bindings(provider,provider_resource_type,provider_resource_id,aggregate_type,aggregate_id,binding) values('stripe','invoice','unrelated-catalog-test','invoice','c6200000-0000-4000-8000-000000001433','{}')$$,'unrelated provider bindings retain existing behavior');
+select * from finish();
+rollback;

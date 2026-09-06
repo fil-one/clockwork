@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   MoneySchema,
+  PaygInvoiceSourceSchema,
   type Actor,
   type IdempotencyKey,
 } from "@clockwork/contracts";
@@ -22,6 +23,7 @@ import {
   workflowRuns,
 } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
+import { loadPaygInvoiceSource } from "../core/payg-invoice-source";
 import { appendAuditAndOutbox } from "../audit-outbox";
 
 export interface DatabaseWorkflowClaimRequest {
@@ -802,7 +804,8 @@ const InvoiceIssuedWorkflowRecordSchema = z
     input: z
       .object({
         invoiceId: z.uuid(),
-        orderId: z.uuid(),
+        orderId: z.uuid().optional(),
+        paygSource: PaygInvoiceSourceSchema.optional(),
         billingAccountId: z.uuid(),
         customerId: z.string().min(1),
         commercialShape: z.enum([
@@ -1062,22 +1065,37 @@ async function invoiceIssuedState(
     where: eq(invoices.id, record.input.invoiceId),
   });
   if (!invoice) throw new Error("INVOICE_WORKFLOW_INVOICE_NOT_FOUND");
+  const payg =
+    invoice.billingSource === "payg"
+      ? await loadPaygInvoiceSource(transaction, invoice)
+      : undefined;
   const [order, account] = await Promise.all([
-    transaction.query.orders.findFirst({
-      where: eq(orders.id, invoice.orderId),
-    }),
+    invoice.orderId
+      ? transaction.query.orders.findFirst({
+          where: eq(orders.id, invoice.orderId),
+        })
+      : Promise.resolve(undefined),
     transaction.query.accounts.findFirst({
       where: eq(accounts.id, invoice.accountId),
     }),
   ]);
-  if (!order) throw new Error("INVOICE_WORKFLOW_ORDER_NOT_FOUND");
+  if (!payg && !order) throw new Error("INVOICE_WORKFLOW_ORDER_NOT_FOUND");
+  if (
+    payg
+      ? record.input.orderId !== undefined ||
+        JSON.stringify(record.input.paygSource) !==
+          JSON.stringify(payg.paygSource) ||
+        record.input.customerId !== payg.customerId
+      : record.input.paygSource !== undefined
+  )
+    throw new Error("INVOICE_WORKFLOW_SOURCE_MISMATCH");
   if (!account?.stripeCustomerId)
     throw new Error("INVOICE_WORKFLOW_CUSTOMER_NOT_BOUND");
   if (
-    record.input.orderId !== invoice.orderId ||
+    (record.input.orderId ?? null) !== invoice.orderId ||
     record.input.billingAccountId !== invoice.accountId ||
     record.input.customerId !== account.stripeCustomerId ||
-    record.input.commercialShape !== order.sourcing ||
+    record.input.commercialShape !== (payg ? "direct" : order?.sourcing) ||
     record.input.amount.currency !== invoice.currency ||
     BigInt(record.input.amount.minor) !== invoice.amountMinor ||
     (record.input.poNumber ?? null) !== invoice.poNumber
@@ -1168,6 +1186,8 @@ async function projectInvoiceIssued(
       stripeInvoiceId: after.stripeInvoiceId,
       accountingPostingId: after.accountingPostingId,
       orderId: after.orderId,
+      billingSource: after.billingSource,
+      paygEffectKey: after.paygEffectKey,
       accountId: after.accountId,
       currency: after.currency,
       amountMinor: after.amountMinor.toString(),

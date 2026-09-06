@@ -8,8 +8,9 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 test.describe.configure({ mode: "serial" });
 
 const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
-const OFFER = "Simulated enterprise archive capacity · us-east";
-const OFFER_PRICE_BOOK_ID = "44444444-4444-4444-8444-444444444444";
+const OFFER =
+  "Fictional immutable storage capacity · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2";
+const OFFER_PRICE_BOOK_ID = "66000000-0000-4000-8000-000000000001";
 
 async function usePersona(page: Page, role: string) {
   await page.setExtraHTTPHeaders({ "x-clockwork-persona": role });
@@ -51,7 +52,7 @@ test("owner dashboard leads with decisions and one commercial term", async ({
   for (const name of ["Invoice", "Notice and renewal", "Quote"])
     await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Northstar annual term" }),
+    page.getByRole("heading", { name: "Northstar Archive Labs annual term" }),
   ).toHaveCount(1);
   await expect(page.getByText("Service term rollup")).toBeVisible();
   const supportingContext = page.getByText(
@@ -97,7 +98,7 @@ test("member keeps read access without owner-only customer actions", async ({
   await expect(page).toHaveURL(/pageSize=5/);
 });
 
-test("owner simulates a direct quote command from the session account", async ({
+test("owner creates a priced draft from the session account", async ({
   page,
 }) => {
   await usePersona(page, "owner");
@@ -140,11 +141,9 @@ test("owner simulates a direct quote command from the session account", async ({
   await expect(
     page.getByRole("heading", { level: 3, name: "Draft boundary" }),
   ).toBeVisible();
-  const create = page.getByRole("button", { name: "Simulate draft" });
+  const create = page.getByRole("button", { name: "Create priced draft" });
   await create.click();
-  await expect(
-    page.getByText(/No quote was saved, priced, or issued/),
-  ).toBeVisible();
+  await expect(page.getByText(/Priced draft created/)).toBeVisible();
   await expect(create).toBeDisabled();
 
   expect(commands).toHaveLength(1);
@@ -157,8 +156,8 @@ test("owner simulates a direct quote command from the session account", async ({
       route: "direct",
       lines: [
         {
-          sku: "FIL-ARCHIVE-CAPACITY",
-          region: "us-east",
+          sku: "LOCKED-STORAGE-TB",
+          region: "us-east-2",
           quantity: "120",
           termMonths: 12,
         },
@@ -170,7 +169,7 @@ test("owner simulates a direct quote command from the session account", async ({
   expect(commands[0]?.payload).not.toHaveProperty("marketplaceProvider");
 });
 
-test("Buy keeps its demo and capacity boundaries honest at desktop and mobile", async ({
+test("Buy preserves capacity routing and pricing-review boundaries at desktop and mobile", async ({
   page,
 }) => {
   await usePersona(page, "owner");
@@ -192,7 +191,7 @@ test("Buy keeps its demo and capacity boundaries honest at desktop and mobile", 
             ...((command.payload as Record<string, unknown>) ?? {}),
             totalMinor: "120000",
             currency: "USD",
-            marginFloorResult: "pass",
+            marginFloorResult: "exception_required",
           },
         },
         auditEventId: "audit-demo-buy",
@@ -221,9 +220,9 @@ test("Buy keeps its demo and capacity boundaries honest at desktop and mobile", 
   expect(commands).toHaveLength(0);
 
   await page.getByLabel("Committed capacity (TB)").fill("42");
-  await page.getByRole("button", { name: "Simulate draft" }).click();
+  await page.getByRole("button", { name: "Price and prepare quote" }).click();
   await expect(
-    page.getByText(/did not save, price, or issue a quote/),
+    page.getByText(/needs pricing review before issuance/),
   ).toBeVisible();
   expect(commands).toHaveLength(1);
   expect(commands[0]).toMatchObject({

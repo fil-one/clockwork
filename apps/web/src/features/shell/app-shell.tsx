@@ -118,6 +118,10 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
   "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
+  "/internal/payg-offers": <ReceiptText size={19} strokeWidth={1.8} />,
+  "/internal/catalog": <Layers size={19} strokeWidth={1.8} />,
+  "/internal/channel-policy": <Handshake size={19} strokeWidth={1.8} />,
+  "/internal/capabilities": <SlidersHorizontal size={19} strokeWidth={1.8} />,
   "/internal/gates": <ShieldCheck size={19} strokeWidth={1.8} />,
   "/internal/assisted": <Users size={19} strokeWidth={1.8} />,
 };
@@ -222,6 +226,10 @@ const navigationSections: Readonly<
       hrefs: [
         "/internal/agreements",
         "/internal/price-books",
+        "/internal/payg-offers",
+        "/internal/catalog",
+        "/internal/channel-policy",
+        "/internal/capabilities",
         "/internal/migrations",
         "/internal/reports",
         "/internal/revenue",

@@ -1,3 +1,4 @@
+import { currentDemoChannelPolicy } from "@/src/features/internal-ops/commercial-policies/demo-policies";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -272,6 +273,16 @@ export async function handleDemoDealRegistrationCommand(
         result = prior.response;
         return state;
       }
+      const channelPolicy = currentDemoChannelPolicy(state, now);
+      if (
+        channelPolicy.maximumProtectionDays !== null &&
+        command.payload.protectionDays > channelPolicy.maximumProtectionDays
+      )
+        throw new RegistrationProblem(
+          422,
+          "REGISTRATION_PROTECTION_POLICY_EXCEEDED",
+          "Requested protection exceeds the current channel policy maximum",
+        );
       if (state.projectionOverrides[`${registrationPrefix}${command.id}`])
         throw new RegistrationProblem(
           409,
@@ -288,6 +299,10 @@ export async function handleDemoDealRegistrationCommand(
             updatedAt: now,
             data: {
               kind: "demo_partner_registration",
+              channelPolicySnapshot: {
+                ...channelPolicy,
+                initialProtectionDays: command.payload.protectionDays,
+              },
               aggregateId: command.id,
               partnerAccountId,
               endClientAccountId: endClient.id,

@@ -9,6 +9,7 @@ export type TriggerTaskImporter = () => Promise<unknown>;
 export const productionTaskImporters: readonly TriggerTaskImporter[] = [
   () => import("../core/tasks"),
   () => import("../core/scheduled-tasks"),
+  () => import("../core/payg-scheduled-tasks"),
   () => import("../agreements/tasks"),
   () => import("../exceptions/tasks"),
   () => import("../migrations/tasks"),

@@ -33,6 +33,31 @@ function draft(
 }
 
 describe("deal registration draft", () => {
+  it("uses a configured requested default and rejects a request above the captured program maximum", () => {
+    expect(emptyDealRegistrationDraft(30).protectionDays).toBe("30");
+    const channelPolicy = {
+      source: "approved_policy" as const,
+      policyId: "90000000-0000-4000-8000-000000001431",
+      version: 1,
+      selfServeThresholdTb: 250,
+      defaultProtectionDays: 30,
+      maximumProtectionDays: 60,
+      extensionDays: 30,
+      maximumExtensions: 1,
+    };
+    expect(
+      validateDealRegistration(draft({ protectionDays: "61" }), {
+        ...context,
+        channelPolicy,
+      }).protectionDays,
+    ).toContain("at most 60");
+    expect(
+      validateDealRegistration(draft({ protectionDays: "30" }), {
+        ...context,
+        channelPolicy,
+      }),
+    ).toEqual({});
+  });
   it("seeds no commercial claim the seller did not make", () => {
     const empty = emptyDealRegistrationDraft();
     expect(empty.endClientName).toBe("");

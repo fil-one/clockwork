@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { MoneySchema } from "@clockwork/contracts";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
 import type * as CommerceClient from "@/src/features/contracts/commerce-client";
 
@@ -78,6 +79,33 @@ describe("price-book administration actionability", () => {
     ).toBeVisible();
   });
 
+  it("explains that a renamed book still replaces the active currency catalogue", () => {
+    render(
+      <PriceBookAdministration
+        roles={["finance_approver"]}
+        userId="reviewer"
+        books={[
+          { ...draft, name: "New independent book", rateCards: [] },
+          {
+            ...draft,
+            id: "active-other-family",
+            status: "active",
+            rateCards: [],
+          },
+        ]}
+        source="Pricing service"
+        availability="available"
+        readAt="2026-09-06T12:00:00.000Z"
+      />,
+    );
+    expect(
+      screen.getByText(/Only one price book can be active per currency/),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("table", { name: /Economic changes from/ }),
+    ).toBeVisible();
+  });
+
   it("renders a seeded draft as a second-authority finance decision", () => {
     render(
       <PriceBookAdministration
@@ -144,9 +172,7 @@ describe("price-book administration actionability", () => {
       screen.getByLabelText("Approved commercial claim"),
       "Fictional immutable storage capacity",
     );
-    await user.click(
-      screen.getByRole("button", { name: "Add first rate card" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Add rate card" }));
 
     const rateInput = mocks.sendCoreCommand.mock.calls[1]?.[0];
     expect(rateInput).toMatchObject({
@@ -159,5 +185,63 @@ describe("price-book administration actionability", () => {
       },
     });
     expect(mocks.refresh).toHaveBeenCalledTimes(2);
+  });
+});
+
+it("reopens a saved rate and edits transfer economics without losing its other fields", async () => {
+  const user = userEvent.setup();
+  const money = (minor: string) =>
+    MoneySchema.parse({ currency: "USD", minor });
+  const editable: PriceBookAdministrationRecord = {
+    ...draft,
+    activationRequestedBy: null,
+    activationRequestedByEmail: null,
+    rateCards: [
+      {
+        id: "66100000-0000-4000-8000-000000000001",
+        sku: "STORAGE",
+        region: "test-region",
+        unit: "TB-month",
+        approvedClaim: "Approved storage claim",
+        unitPrice: money("500"),
+        floorPrice: money("300"),
+        overageRate: money("500"),
+        minimumQuantity: "1",
+        trialLimit: "5",
+        egressTreatment: "zero-rated",
+        commitType: "term_drawdown",
+        stripeTaxCode: "txcd_test",
+        qboIncomeAccount: "4000",
+        partnerTransferPrices: { gold: money("400") },
+      },
+    ],
+  };
+  render(
+    <PriceBookAdministration
+      roles={["finance_approver"]}
+      userId="21000000-0000-4000-8000-000000000008"
+      books={[editable]}
+      source="Pricing service"
+      availability="available"
+      readAt="2026-08-18T12:00:00.000Z"
+    />,
+  );
+  Element.prototype.scrollIntoView = vi.fn();
+  await user.click(
+    screen.getByRole("button", { name: "Edit STORAGE test-region" }),
+  );
+  expect(screen.getByLabelText("Unit price · USD")).toHaveValue("5.00");
+  const transfer = screen.getByLabelText("Transfer price 1 · USD");
+  expect(transfer).toHaveValue("4.00");
+  await user.clear(transfer);
+  await user.type(transfer, "4.25");
+  await user.click(screen.getByRole("button", { name: "Save rate card" }));
+  expect(mocks.sendCoreCommand.mock.calls[0]?.[0]).toMatchObject({
+    action: "update_rate",
+    expectedVersion: 2,
+    payload: {
+      trialLimit: "5",
+      partnerTransferPrices: { gold: { currency: "USD", minor: "425" } },
+    },
   });
 });

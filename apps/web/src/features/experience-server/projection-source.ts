@@ -561,12 +561,17 @@ function applyInvoicePayment(
     freshnessMode: "source",
     data: {
       ...record.data,
+      title:
+        typeof record.data.title === "string"
+          ? record.data.title.replace(/ · overdue$/u, " · paid")
+          : record.data.title,
       status: "paid",
       statusLabel: "Paid · demo sandbox",
       tone: "success",
       risk: "low",
       description: `Demo receipt ${payment.receiptId} · sandbox only · no money moved`,
-      nextAction: "Reset the demo to restore this open invoice",
+      dateLabel: `Demo payment confirmed ${payment.completedAt.slice(0, 10)} UTC`,
+      nextAction: "Payment complete · no further payment is due",
       allowedActions: [],
       authoritative: {
         ...authoritative,

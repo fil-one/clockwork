@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -318,6 +319,85 @@ describe("global search keyboard model", () => {
     search = "q=northstar";
     paramsBySnapshot.clear();
     replace.mockClear();
+  });
+
+  it("preserves text entered before hydration through the first client rerender", async () => {
+    search = "";
+    const workspace = <GlobalSearch records={searchRecords} />;
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(workspace);
+    document.body.append(container);
+    const field = within(container).getByRole<HTMLInputElement>("searchbox");
+    field.value = "collections";
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, workspace);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        root?.render(<GlobalSearch records={[...searchRecords]} />);
+        await Promise.resolve();
+      });
+      expect(field).toHaveValue("collections");
+      fireEvent.submit(within(container).getByRole("search"));
+      expect(replace).toHaveBeenCalledExactlyOnceWith(
+        "/internal/queues?q=collections",
+        { scroll: false },
+      );
+    } finally {
+      act(() => root?.unmount());
+      container.remove();
+    }
+  });
+
+  it("submits one search from the current field value on Enter", async () => {
+    const user = userEvent.setup();
+    render(<GlobalSearch records={searchRecords} />);
+    const field = screen.getByRole("searchbox");
+    await user.clear(field);
+    await user.type(field, "collections{Enter}");
+    expect(replace).toHaveBeenCalledExactlyOnceWith(
+      "/internal/queues?q=collections",
+      { scroll: false },
+    );
+  });
+
+  it("keeps newer typing when a submitted query arrives, and follows external URL changes", async () => {
+    vi.useFakeTimers();
+    try {
+      render(<GlobalSearch records={searchRecords} />);
+      const field = screen.getByRole("searchbox");
+      fireEvent.change(field, { target: { value: "collections" } });
+      fireEvent.submit(screen.getByRole("search"));
+      fireEvent.change(field, { target: { value: "screening" } });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROUTER_LAG_MS);
+      });
+      expect(field).toHaveValue("screening");
+      await act(async () => {
+        search = "q=northstar";
+        for (const listener of listeners) listener();
+        await Promise.resolve();
+      });
+      expect(field).toHaveValue("northstar");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("lets Enter activate the focused result exactly once", async () => {
+    const user = userEvent.setup();
+    render(<GlobalSearch records={searchRecords} />);
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "ArrowDown" });
+    const first = screen.getByRole("link", {
+      name: "Collections aging decision",
+    });
+    const clicked = vi.fn((event: Event) => event.preventDefault());
+    first.addEventListener("click", clicked);
+    await user.keyboard("{Enter}");
+    expect(clicked).toHaveBeenCalledOnce();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   /**

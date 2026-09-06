@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
-import type { InvoiceDerivation } from "@clockwork/db";
+import type { BillingInvoiceDerivation } from "@clockwork/db";
 
 import { getCommerceSession } from "@/src/auth/session";
 
@@ -26,7 +26,7 @@ export interface DerivationRequest {
 
 export interface AccountDerivations {
   accountId: string;
-  derivations: readonly InvoiceDerivation[];
+  derivations: readonly BillingInvoiceDerivation[];
   generatedAt: string;
 }
 

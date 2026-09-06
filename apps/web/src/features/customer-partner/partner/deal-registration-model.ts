@@ -1,3 +1,4 @@
+import type { ChannelPolicySnapshot } from "@clockwork/domain/core";
 import { QuantitySchema } from "@clockwork/contracts";
 
 /**
@@ -20,6 +21,8 @@ import { QuantitySchema } from "@clockwork/contracts";
 export interface RegistrableEndClient {
   id: string;
   name: string;
+  domain?: string;
+  country?: string;
 }
 
 /**
@@ -33,11 +36,13 @@ export interface RegistrableEndClient {
 export interface DealRegistrationContext {
   partnerAccountId: string;
   partnerAccountName: string;
+  channelPolicy?: ChannelPolicySnapshot;
   endClients: readonly RegistrableEndClient[];
 }
 
 export interface DealRegistrationDraft {
   endClientName: string;
+  endClientId?: string;
   workload: string;
   expectedVolume: string;
   protectionDays: string;
@@ -58,12 +63,14 @@ export const defaultProtectionDays = 90;
  * `120 TB` as defaults, and the second of those could not be submitted at all
  * (see `validateDealRegistration`).
  */
-export function emptyDealRegistrationDraft(): DealRegistrationDraft {
+export function emptyDealRegistrationDraft(
+  protectionDays = defaultProtectionDays,
+): DealRegistrationDraft {
   return {
     endClientName: "",
     workload: "",
     expectedVolume: "",
-    protectionDays: String(defaultProtectionDays),
+    protectionDays: String(protectionDays),
   };
 }
 
@@ -73,9 +80,19 @@ export function resolveEndClient(
 ): RegistrableEndClient | undefined {
   const normalized = name.trim().toLocaleLowerCase();
   if (!normalized) return undefined;
-  return options.find(
+  const matching = options.filter(
     (option) => option.name.toLocaleLowerCase() === normalized,
   );
+  return matching.length === 1 ? matching[0] : undefined;
+}
+
+export function resolveRegistrationEndClient(
+  draft: DealRegistrationDraft,
+  options: readonly RegistrableEndClient[],
+): RegistrableEndClient | undefined {
+  return draft.endClientId
+    ? options.find((option) => option.id === draft.endClientId)
+    : resolveEndClient(draft.endClientName, options);
 }
 
 /**
@@ -97,10 +114,13 @@ export function resolveEndClient(
  */
 export function validateDealRegistration(
   draft: DealRegistrationDraft,
-  context: Pick<DealRegistrationContext, "partnerAccountId" | "endClients">,
+  context: Pick<
+    DealRegistrationContext,
+    "partnerAccountId" | "endClients" | "channelPolicy"
+  >,
 ): DealRegistrationValidation {
   const errors: DealRegistrationValidation = {};
-  const endClient = resolveEndClient(draft.endClientName, context.endClients);
+  const endClient = resolveRegistrationEndClient(draft, context.endClients);
   if (!endClient)
     errors.endClientName = "Select one of your named end clients by name.";
   else if (endClient.id === context.partnerAccountId)
@@ -115,6 +135,11 @@ export function validateDealRegistration(
   if (!Number.isInteger(protectionDays) || protectionDays < 1)
     errors.protectionDays =
       "Enter a protection window of at least one whole day.";
+  if (
+    context.channelPolicy?.maximumProtectionDays != null &&
+    protectionDays > context.channelPolicy.maximumProtectionDays
+  )
+    errors.protectionDays = `This policy permits requests of at most ${context.channelPolicy.maximumProtectionDays} days.`;
   return errors;
 }
 
@@ -136,7 +161,7 @@ export function dealRegistrationPayload(
   expectedVolume: string;
   protectionDays: number;
 } {
-  const endClient = resolveEndClient(draft.endClientName, context.endClients);
+  const endClient = resolveRegistrationEndClient(draft, context.endClients);
   if (!endClient)
     throw new Error("The named end client is not one this partner may name.");
   return {
@@ -152,12 +177,12 @@ export function dealRegistrationSummary(
   draft: DealRegistrationDraft,
   context: DealRegistrationContext,
 ): readonly string[] {
-  const endClient = resolveEndClient(draft.endClientName, context.endClients);
+  const endClient = resolveRegistrationEndClient(draft, context.endClients);
   return [
     `Registering partner: ${context.partnerAccountName}`,
     `End client: ${endClient?.name ?? "Not selected"}`,
     `Workload: ${draft.workload.trim() || "Not described"}`,
     `Expected volume: ${draft.expectedVolume.trim() ? `${draft.expectedVolume.trim()} TB` : "Not stated"}`,
-    `Protection requested: ${draft.protectionDays || "0"} days from acceptance`,
+    `Protection requested: ${draft.protectionDays || "0"} days from registration, subject to approval`,
   ];
 }

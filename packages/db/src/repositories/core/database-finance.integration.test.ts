@@ -1728,6 +1728,8 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       `core-owner-amended-derivation-${runId}`,
       async (tx) => loadInvoiceDerivation(tx, persistedInvoiceId),
     );
+    if ("billingSource" in derivation)
+      throw new Error("Expected a term-order derivation");
     // The derivation view no longer reads an amended order as unamended: the
     // supersession is in the line, named, and carried into its amount.
     expect(derivation.lines[0]?.superseded).toBe(true);
@@ -1964,6 +1966,8 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       `core-owner-post-amendment-variance-${runId}`,
       async (tx) => loadInvoiceDerivation(tx, persistedInvoiceId),
     );
+    if ("billingSource" in varianceDerivation)
+      throw new Error("Expected a term-order derivation");
     expect(varianceDerivation.varianceMinor).toBe("-174148");
     expect(
       BigInt(varianceDerivation.varianceMinor) -

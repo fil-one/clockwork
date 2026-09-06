@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { uuidV7 } from "@clockwork/contracts";
-import { ApplicationStatePanel, Button, buttonClassName } from "@clockwork/ui";
+import {
+  ApplicationStatePanel,
+  Button,
+  buttonClassName,
+  EntityCombobox,
+} from "@clockwork/ui";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { draftIsDirty } from "@/src/features/customer-partner/draft-state";
@@ -15,7 +20,7 @@ import {
   dealRegistrationPayload,
   dealRegistrationSummary,
   emptyDealRegistrationDraft,
-  resolveEndClient,
+  resolveRegistrationEndClient,
   validateDealRegistration,
   type DealRegistrationContext,
   type DealRegistrationDraft,
@@ -104,8 +109,8 @@ export function DealRegistration({
 
 function RegistrationForm({ context }: { context: DealRegistrationContext }) {
   const router = useRouter();
-  const [draft, setDraft] = useState<DealRegistrationDraft>(
-    emptyDealRegistrationDraft,
+  const [draft, setDraft] = useState<DealRegistrationDraft>(() =>
+    emptyDealRegistrationDraft(context.channelPolicy?.defaultProtectionDays),
   );
   const [errors, setErrors] = useState<DealRegistrationValidation>({});
   const [pending, setPending] = useState(false);
@@ -132,7 +137,10 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
    * whole protection here: reload, tab close, and leaving the application.
    */
   useUnsavedChangesWarning(
-    draftIsDirty(draft, emptyDealRegistrationDraft()) && !registered,
+    draftIsDirty(
+      draft,
+      emptyDealRegistrationDraft(context.channelPolicy?.defaultProtectionDays),
+    ) && !registered,
   );
 
   function update<K extends keyof DealRegistrationDraft>(
@@ -155,7 +163,9 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
       window.setTimeout(
         () =>
           formRef.current
-            ?.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)
+            ?.querySelector<HTMLElement>(
+              `[name="${firstInvalid}"], [data-field="${firstInvalid}"] input`,
+            )
             ?.focus(),
         0,
       );
@@ -196,17 +206,24 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
     }
   }
 
-  const endClient = resolveEndClient(draft.endClientName, context.endClients);
+  const endClient = resolveRegistrationEndClient(draft, context.endClients);
   const summary = dealRegistrationSummary(draft, context);
 
   return (
     <section className={styles.workflow} aria-labelledby="deal-registration">
       <h2 id="deal-registration">Register a deal</h2>
       <p className={styles.muted}>
-        Name an opportunity to open its protection window. Fil One submits the
-        existing account identifiers; the decision, the protection clock, and
-        any exclusion are recorded on the registration record itself.
+        Name an opportunity and request its protection window. Fil One submits
+        the existing account identifiers; the decision, the protection clock,
+        and any exclusion are recorded on the registration record itself.
       </p>
+      {context.channelPolicy?.source === "approved_policy" ? (
+        <p className={styles.muted}>
+          Policy v{context.channelPolicy.version}: request up to{" "}
+          {context.channelPolicy.maximumProtectionDays} days. Registration
+          remains subject to channel operations approval.
+        </p>
+      ) : null}
       <form
         className={styles.formGrid}
         ref={formRef}
@@ -215,27 +232,31 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
         }}
         noValidate
       >
-        <label className={`${styles.field} ${styles.full}`}>
-          End client
-          <input
-            name="endClientName"
-            list="registrable-end-clients"
-            value={draft.endClientName}
-            onChange={(event) => update("endClientName", event.target.value)}
-            aria-invalid={Boolean(errors.endClientName)}
-            autoComplete="off"
+        <div className={styles.full} data-field="endClientName">
+          <EntityCombobox
+            label="End client"
+            value={
+              resolveRegistrationEndClient(draft, context.endClients)?.id ?? ""
+            }
+            options={context.endClients.map((option) => ({
+              id: option.id,
+              label: option.name,
+              ...([option.domain, option.country].some(Boolean)
+                ? {
+                    description: [option.domain, option.country]
+                      .filter(Boolean)
+                      .join(" · "),
+                  }
+                : {}),
+            }))}
+            onValueChange={(id, option) => {
+              update("endClientName", option.label);
+              setDraft((current) => ({ ...current, endClientId: id }));
+            }}
+            placeholder="Search end clients"
+            error={errors.endClientName}
           />
-          <datalist id="registrable-end-clients">
-            {context.endClients.map((option) => (
-              <option value={option.name} key={option.id} />
-            ))}
-          </datalist>
-          {errors.endClientName ? (
-            <span className={styles.error} role="alert">
-              {errors.endClientName}
-            </span>
-          ) : null}
-        </label>
+        </div>
         <label className={`${styles.field} ${styles.full}`}>
           Workload
           <input
@@ -269,6 +290,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
           Protection requested (days)
           <input
             name="protectionDays"
+            max={context.channelPolicy?.maximumProtectionDays ?? undefined}
             type="number"
             min="1"
             step="1"

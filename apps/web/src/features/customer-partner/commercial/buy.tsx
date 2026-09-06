@@ -152,6 +152,7 @@ async function readBuyQuoteProjection(input: {
 export function SelfServeBuy({
   account,
   offers,
+  thresholdTb = SELF_SERVE_CAPACITY_CEILING_TB,
   pollAttempts = defaultPollAttempts,
   pollIntervalMs = defaultPollIntervalMs,
 }: {
@@ -159,6 +160,7 @@ export function SelfServeBuy({
   catalogueMode: "authoritative" | "simulated";
   mode: BuyMode;
   offers: readonly QuoteOfferOption[];
+  thresholdTb?: number;
   pollAttempts?: number;
   pollIntervalMs?: number;
 }) {
@@ -176,7 +178,7 @@ export function SelfServeBuy({
   );
 
   const capacity = buyCapacity(draft);
-  const fullQuote = needsFullQuote(draft);
+  const fullQuote = needsFullQuote(draft, thresholdTb);
   const quoteId = quoteIdRef.current;
 
   const resetRun = () => {
@@ -260,6 +262,7 @@ export function SelfServeBuy({
         offers,
         quoteId: quoteIdRef.current,
         now: new Date(),
+        thresholdTb,
       });
       createKeyRef.current ??= crypto.randomUUID();
       const created = await sendCoreCommand(commandRef.current, {
@@ -407,7 +410,7 @@ export function SelfServeBuy({
           <CapacityMeter
             label="Capacity routing"
             max={150}
-            threshold={SELF_SERVE_CAPACITY_CEILING_TB}
+            threshold={thresholdTb}
             thresholdLabel="100 TB routes to the full quote workspace"
             value={capacity ?? 0}
             valueLabel={capacity === null ? "Not set" : `${capacity} TB`}

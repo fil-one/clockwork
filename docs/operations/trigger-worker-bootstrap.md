@@ -73,3 +73,24 @@ confirmation ingestion and the provisioning-to-invoice projection.
 `CLOCKWORK_ENABLE_SIMULATORS=true` is rejected in production. Deterministic
 provider clients live in `@clockwork/testing` and may be injected only by test
 or staging composition.
+
+## Capability-scoped composition
+
+The environment bootstrap reads persisted software capabilities before parsing
+provider credentials. Enabled recovery work also retains its providers. An
+entirely disabled registry boots without business provider credentials; a
+onboarding-only pilot requires identity, screening, notifications, evidence, and
+artifact rendering, while billing adds
+billing/accounting/tax/usage/provisioning. Legal adds signature.
+Partner/marketplace currently require the full provider set. Only selected
+providers are probed and only their applicable external gates are required at
+boot. External gates still apply at every execution.
+
+Omitted providers use denial-only ports that throw
+`WORKFLOW_PROVIDER_DISABLED:<provider>:restart_after_activation` before IO.
+Restart the worker after activating an omitted capability. Production lifecycle
+effects also recheck the software capability before provider work, so an
+immediate disable is effective on the next attempt. Task registrations remain
+available for observability and recovery; no simulated result is substituted.
+Outbound CRM is independently off unless `CLOCKWORK_CRM_ENABLED=true`, which
+requires `CRM_PROVIDER_BASE_URL` and `CRM_PROVIDER_TOKEN`.

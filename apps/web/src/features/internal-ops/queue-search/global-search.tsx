@@ -34,18 +34,35 @@ export function GlobalSearch({
   const router = useRouter();
   const pathname = usePathname();
   const query = searchParams.get("q") ?? "";
-  const [draft, setDraft] = useState(query);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
   const linkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previousQuery = useRef(query);
+  const submittedQueries = useRef(new Set<string>());
+  const latestSubmittedQuery = useRef<string | null>(null);
   const results = useMemo(
     () => searchRecords(query, records),
     [query, records],
   );
   const groups = useMemo(() => groupSearchResults(results), [results]);
 
-  useEffect(() => setDraft(query), [query]);
+  useEffect(() => {
+    if (previousQuery.current === query) return;
+    previousQuery.current = query;
+    // A completed search must not erase typing for the next search. A URL
+    // change from elsewhere (including back/forward) replaces the field.
+    if (submittedQueries.current.delete(query)) {
+      if (latestSubmittedQuery.current === query) {
+        submittedQueries.current.clear();
+        latestSubmittedQuery.current = null;
+      }
+      return;
+    }
+    submittedQueries.current.clear();
+    latestSubmittedQuery.current = null;
+    if (inputRef.current) inputRef.current.value = query;
+  }, [query]);
   /**
    * A new query means no active result. The ref array is truncated rather than
    * emptied: React attaches these refs during the commit that precedes this
@@ -61,7 +78,15 @@ export function GlobalSearch({
 
   function commit(value: string) {
     const next = new URLSearchParams();
-    if (value.trim()) next.set("q", value.trim());
+    const submitted = value.trim();
+    if (submitted !== query) {
+      submittedQueries.current.add(submitted);
+      latestSubmittedQuery.current = submitted;
+    } else {
+      submittedQueries.current.clear();
+      latestSubmittedQuery.current = null;
+    }
+    if (submitted) next.set("q", submitted);
     startTransition(() =>
       router.replace(`${pathname}${next.size ? `?${next}` : ""}` as Route, {
         scroll: false,
@@ -86,7 +111,6 @@ export function GlobalSearch({
     if (
       event.key !== "ArrowDown" &&
       event.key !== "ArrowUp" &&
-      event.key !== "Enter" &&
       event.key !== "Escape"
     )
       return;
@@ -95,11 +119,6 @@ export function GlobalSearch({
       // Focus lives on a result, so leaving it there after dismissing the
       // active result would strand the keyboard away from the field.
       inputRef.current?.focus();
-      return;
-    }
-    if (event.key === "Enter") {
-      if (activeIndex >= 0) linkRefs.current[activeIndex]?.click();
-      else commit(draft);
       return;
     }
     event.preventDefault();
@@ -118,20 +137,23 @@ export function GlobalSearch({
         <form
           className={styles.searchForm}
           role="search"
+          action={pathname}
+          method="get"
           onSubmit={(event) => {
             event.preventDefault();
-            commit(draft);
+            const value = new FormData(event.currentTarget).get("q");
+            commit(typeof value === "string" ? value : "");
           }}
         >
           <label htmlFor="global-search">{SEARCH_COPY.label}</label>
           <div>
             <input
               id="global-search"
+              name="q"
               ref={inputRef}
               type="search"
               autoComplete="off"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              defaultValue={query}
               onKeyDown={onKeyDown}
               aria-controls="global-search-results"
               placeholder={SEARCH_COPY.placeholder}
@@ -172,7 +194,7 @@ export function GlobalSearch({
             <Button
               variant="secondary"
               onClick={() => {
-                setDraft("");
+                if (inputRef.current) inputRef.current.value = "";
                 commit("");
               }}
             >

@@ -24,6 +24,13 @@
   justify-content: space-between;
 }
 
+.header h1 {
+  font-family: var(--cw-font-display);
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
 .header h1,
 .panel h2,
 .panel h3,
@@ -186,6 +193,7 @@
 
 .field,
 .selector {
+  align-content: start;
   display: grid;
   gap: 6px;
   min-width: 0;

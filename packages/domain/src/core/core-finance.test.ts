@@ -1047,3 +1047,39 @@ describe("commissions, webhook projection, and exports", () => {
     ).toMatchObject({ tied: false, qboVarianceMinor: "1" });
   });
 });
+
+it("uses list price for direct and referral even when partner tier metadata is present", () => {
+  for (const route of ["direct", "referral"] as const) {
+    const priced = priceQuote({
+      book: book(),
+      route,
+      partnerTier: "gold",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        { sku: "storage", region: "us-east", quantity: "10", termMonths: 12 },
+      ],
+    });
+    const expected = priceQuote({
+      book: book(),
+      route,
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        { sku: "storage", region: "us-east", quantity: "10", termMonths: 12 },
+      ],
+    });
+    expect(priced.total).toEqual(expected.total);
+  }
+});
+
+it("rejects impossible calendar dates instead of rolling them into the next month", () => {
+  expect(() =>
+    priceQuote({
+      book: { ...book(), effectiveFrom: "2026-02-30" },
+      route: "direct",
+      quotedAt: "2026-07-31T16:00:00Z",
+      lines: [
+        { sku: "storage", region: "us-east", quantity: "10", termMonths: 12 },
+      ],
+    }),
+  ).toThrow("ISO calendar date");
+});

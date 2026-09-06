@@ -103,6 +103,7 @@ import {
   orderLineSnapshots,
   quoteCommercialProfiles,
   quoteSnapshots,
+  referralCommissionPolicySnapshots,
   usageReconciliations,
   dealRegistrationExclusions,
 } from "../../schema/core/finance";
@@ -468,6 +469,10 @@ export const databaseCoreCommands = {
   price_books: [
     "create",
     "add_rate",
+    "update_rate",
+    "remove_rate",
+    "update_discount_matrix",
+    "reject_activation",
     "request_activation",
     "activate",
     "retire",
@@ -3212,7 +3217,12 @@ async function persistedCommissionSource(
     const payment = await transaction.query.payments.findFirst({
       where: eq(payments.id, sourceId),
     });
-    if (!payment || payment.status !== "succeeded" || !payment.receivedAt)
+    if (
+      !payment ||
+      !payment.orderId ||
+      payment.status !== "succeeded" ||
+      !payment.receivedAt
+    )
       throw new CoreServiceError(
         "INVALID_STATE",
         "Collected payment source is not eligible for commission",
@@ -3230,7 +3240,7 @@ async function persistedCommissionSource(
     const creditNote = await transaction.query.creditNotes.findFirst({
       where: eq(creditNotes.id, sourceId),
     });
-    if (!creditNote || creditNote.status !== "issued")
+    if (!creditNote || !creditNote.orderId || creditNote.status !== "issued")
       throw new CoreServiceError(
         "INVALID_STATE",
         "Issued credit-note source is not eligible for commission clawback",
@@ -3249,6 +3259,7 @@ async function persistedCommissionSource(
     });
     if (
       !creditNote ||
+      !creditNote.orderId ||
       creditNote.status !== "void" ||
       !creditNote.stripeLastOccurredAt
     )
@@ -3268,7 +3279,7 @@ async function persistedCommissionSource(
     const refund = await transaction.query.refunds.findFirst({
       where: eq(refunds.id, sourceId),
     });
-    if (!refund || refund.status !== "succeeded")
+    if (!refund || !refund.orderId || refund.status !== "succeeded")
       throw new CoreServiceError(
         "INVALID_STATE",
         "Succeeded refund source is not eligible for commission clawback",
@@ -3298,7 +3309,7 @@ async function persistedCommissionSource(
   const dispute = await transaction.query.disputeCases.findFirst({
     where: eq(disputeCases.id, sourceId),
   });
-  if (!dispute || dispute.status !== "lost")
+  if (!dispute || !dispute.orderId || dispute.status !== "lost")
     throw new CoreServiceError(
       "INVALID_STATE",
       "Lost chargeback source is not eligible for commission clawback",
@@ -3740,14 +3751,28 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         const partner = await transaction.query.accounts.findFirst({
           where: eq(accounts.id, order.partnerAccountId),
         });
-        if (!partner || partner.partnerAgreementType !== "referral")
+        const policy =
+          await transaction.query.referralCommissionPolicySnapshots.findFirst({
+            where: eq(referralCommissionPolicySnapshots.quoteId, order.quoteId),
+          });
+        if (
+          !partner ||
+          (policy
+            ? policy.partnerAccountId !== order.partnerAccountId
+            : partner.partnerAgreementType !== "referral")
+        )
           throw new CoreServiceError(
             "INVALID_STATE",
             "Commission source is not governed by a referral agreement",
           );
 
-        let rateBps = partner.commissionRateBps;
-        let holdbackBps = partner.commissionHoldbackBps;
+        // New quotes pin exact economics. Pre-migration quotes have no honest
+        // historical snapshot; preserve their explicitly legacy behavior until
+        // finance supplies contract evidence, rather than inventing a backfill.
+        let rateBps = policy ? policy.rateBps : partner.commissionRateBps;
+        let holdbackBps = policy
+          ? policy.holdbackBps
+          : partner.commissionHoldbackBps;
         let adjustmentSourceId: string | undefined;
         let baseMinor: bigint;
         if (sourceType === "payment") {
@@ -5168,9 +5193,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       if (!row) throw new Error("Price book insert returned no row");
       return audited(transaction, input, coreRecord("price_books", row));
     }
-    const prior = await transaction.query.priceBooks.findFirst({
-      where: eq(priceBooks.id, input.id),
-    });
+    // Serialize content changes with proposal/approval, including callers that
+    // omit an expected version. An approval can never race a rate edit.
+    const [prior] = await transaction
+      .select()
+      .from(priceBooks)
+      .where(eq(priceBooks.id, input.id))
+      .for("update");
     if (!prior)
       throw new CoreServiceError("NOT_FOUND", "Price book was not found");
     if (
@@ -5181,8 +5210,116 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "VERSION_CONFLICT",
         "Price book changed since it was read",
       );
-    if (input.action === "add_rate")
+    if (
+      [
+        "add_rate",
+        "update_rate",
+        "remove_rate",
+        "update_discount_matrix",
+      ].includes(input.action)
+    ) {
+      assertFinanceApproval(input);
+      if (prior.status !== "draft")
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Only an unproposed draft can be edited",
+        );
+      const pending = await transaction.query.approvals.findFirst({
+        where: and(
+          eq(approvals.objectId, prior.id),
+          eq(approvals.action, "price_book_activation"),
+          eq(approvals.status, "pending"),
+        ),
+      });
+      if (pending)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Proposed price content is frozen; a different finance approver must reject activation before editing",
+        );
+      if (input.action === "update_discount_matrix") {
+        const matrix = serverDiscountMatrix(
+          DiscountMatrixSchema.parse(input.payload),
+        );
+        const book = await serverPriceBook(transaction, prior.id);
+        if (!matrix)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "Discount matrix is required",
+          );
+        validatePriceBook({ ...book, discountMatrix: matrix });
+        const [row] = await transaction
+          .update(priceBooks)
+          .set({ discountMatrix: matrix })
+          .where(eq(priceBooks.id, prior.id))
+          .returning();
+        if (!row) throw new Error("Price book update returned no row");
+        return audited(
+          transaction,
+          input,
+          coreRecord("price_books", row),
+          prior,
+        );
+      }
+      if (input.action === "remove_rate") {
+        const { id } = z.object({ id: z.uuid() }).strict().parse(input.payload);
+        const [removed] = await transaction
+          .delete(rateCards)
+          .where(and(eq(rateCards.id, id), eq(rateCards.priceBookId, prior.id)))
+          .returning();
+        if (!removed)
+          throw new CoreServiceError(
+            "NOT_FOUND",
+            "Rate card was not found in this draft",
+          );
+        const touched = await this.touchPriceBook(transaction, prior);
+        return audited(
+          transaction,
+          input,
+          coreRecord("price_books", { ...touched, removedRateCardId: id }),
+          { ...prior, removedRateCard: removed },
+        );
+      }
       return this.addPriceBookRate(transaction, input, prior);
+    }
+    if (input.action === "reject_activation") {
+      assertFinanceApproval(input);
+      const { reason } = PriceBookDecisionCommandSchema.parse(input.payload);
+      const pending = await transaction.query.approvals.findFirst({
+        where: and(
+          eq(approvals.objectId, prior.id),
+          eq(approvals.action, "price_book_activation"),
+          eq(approvals.status, "pending"),
+        ),
+      });
+      if (
+        prior.status !== "draft" ||
+        !pending ||
+        pending.requestedBy === input.authorization.userId
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A different finance approver must reject a pending activation",
+        );
+      await transaction
+        .update(approvals)
+        .set({
+          status: "rejected",
+          approvedBy: input.authorization.userId,
+          decidedAt: new Date(input.occurredAt),
+        })
+        .where(eq(approvals.id, pending.id));
+      const touched = await this.touchPriceBook(transaction, prior);
+      return audited(
+        transaction,
+        input,
+        coreRecord("price_books", {
+          ...touched,
+          rejectedApprovalId: pending.id,
+          reason,
+        }),
+        prior,
+      );
+    }
     if (input.action === "request_activation")
       return this.requestPriceBookActivation(transaction, input, prior);
     if (input.action === "activate")
@@ -5268,6 +5405,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "Rate cards may only be added to a draft price book",
       );
     const book = await serverPriceBook(transaction, prior.id);
+    const existing =
+      input.action === "update_rate"
+        ? book.rateCards.find((rate) => rate.id === command.id)
+        : undefined;
+    if (input.action === "update_rate" && !existing)
+      throw new CoreServiceError(
+        "NOT_FOUND",
+        "Rate card was not found in this draft",
+      );
     const candidate = {
       id: command.id ?? uuidV7(),
       sku: command.sku,
@@ -5288,7 +5434,12 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     try {
       validatePriceBook({
         ...book,
-        rateCards: [...book.rateCards, candidate],
+        rateCards: [
+          ...book.rateCards.filter(
+            (rate) => !existing || rate.id !== existing.id,
+          ),
+          candidate,
+        ],
       });
     } catch (error) {
       throw new CoreServiceError(
@@ -5296,36 +5447,45 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         error instanceof Error ? error.message : "Rate card is invalid",
       );
     }
-    const [row] = await transaction
-      .insert(rateCards)
-      .values({
-        id: candidate.id,
-        priceBookId: prior.id,
-        sku: candidate.sku,
-        region: candidate.region,
-        unit: candidate.unit,
-        approvedClaim: candidate.approvedClaim,
-        unitPriceMinor: BigInt(candidate.unitPrice.minor),
-        floorPriceMinor: candidate.floorPrice
-          ? BigInt(candidate.floorPrice.minor)
-          : null,
-        overageRateMinor: BigInt(candidate.overageRate.minor),
-        minimumQuantity: candidate.minimumQuantity,
-        trialLimit: candidate.trialLimit ?? null,
-        egressTreatment: candidate.egressTreatment,
-        commitType: candidate.commitType,
-        stripeTaxCode: candidate.stripeTaxCode,
-        qboIncomeAccount: candidate.qboIncomeAccount,
-        partnerTransferPrices: candidate.partnerTransferPrices,
-      })
-      .returning();
+    const values = {
+      id: candidate.id,
+      priceBookId: prior.id,
+      sku: candidate.sku,
+      region: candidate.region,
+      unit: candidate.unit,
+      approvedClaim: candidate.approvedClaim,
+      unitPriceMinor: BigInt(candidate.unitPrice.minor),
+      floorPriceMinor: candidate.floorPrice
+        ? BigInt(candidate.floorPrice.minor)
+        : null,
+      overageRateMinor: BigInt(candidate.overageRate.minor),
+      minimumQuantity: candidate.minimumQuantity,
+      trialLimit: candidate.trialLimit ?? null,
+      egressTreatment: candidate.egressTreatment,
+      commitType: candidate.commitType,
+      stripeTaxCode: candidate.stripeTaxCode,
+      qboIncomeAccount: candidate.qboIncomeAccount,
+      partnerTransferPrices: candidate.partnerTransferPrices,
+    };
+    const [row] = existing
+      ? await transaction
+          .update(rateCards)
+          .set(values)
+          .where(
+            and(
+              eq(rateCards.id, existing.id),
+              eq(rateCards.priceBookId, prior.id),
+            ),
+          )
+          .returning()
+      : await transaction.insert(rateCards).values(values).returning();
     if (!row) throw new Error("Rate card insert returned no row");
     const touched = await this.touchPriceBook(transaction, prior);
     return audited(
       transaction,
       input,
-      coreRecord("price_books", { ...touched, addedRateCardId: row.id }),
-      prior,
+      coreRecord("price_books", { ...touched, changedRateCard: candidate }),
+      { ...prior, previousRateCard: existing ?? null },
     );
   }
 
@@ -7408,10 +7568,12 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         transaction.query.billingPolicies.findFirst({
           where: eq(billingPolicies.accountId, invoice.accountId),
         }),
-        transaction.query.entitlements.findMany({
-          where: eq(entitlements.orderId, invoice.orderId),
-          columns: { maximumRetentionAt: true },
-        }),
+        invoice.orderId
+          ? transaction.query.entitlements.findMany({
+              where: eq(entitlements.orderId, invoice.orderId),
+              columns: { maximumRetentionAt: true },
+            })
+          : Promise.resolve([]),
         transaction.query.collectionCases.findFirst({
           where: eq(collectionCases.invoiceId, invoice.id),
         }),
@@ -7777,6 +7939,27 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "INVALID_STATE",
           "expectedVolume must be a nonnegative decimal quantity",
         );
+      const policyRows = await transaction.execute(
+        sql`select public.core_current_channel_policy() as policy`,
+      );
+      const channelPolicy = z
+        .object({
+          defaultProtectionDays: z.number().int().positive(),
+          maximumProtectionDays: z.number().int().positive().nullable(),
+        })
+        .parse(policyRows[0]?.policy);
+      const requestedDays =
+        input.payload.protectionDays === undefined
+          ? channelPolicy.defaultProtectionDays
+          : integer(input.payload.protectionDays, "protectionDays");
+      if (
+        channelPolicy.maximumProtectionDays !== null &&
+        requestedDays > channelPolicy.maximumProtectionDays
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          `Current channel policy permits at most ${channelPolicy.maximumProtectionDays} days of requested protection`,
+        );
       const registration = registerDeal({
         id: input.id,
         partner,
@@ -7784,7 +7967,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         workload,
         expectedVolume,
         registeredAt: input.occurredAt,
-        protectionDays: integer(input.payload.protectionDays, "protectionDays"),
+        protectionDays: requestedDays,
         // House-account and prior-deal policy is derived from the unified
         // account/deal records. A command caller cannot attest its own
         // exclusion result.
@@ -7831,6 +8014,35 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "NOT_FOUND",
         "Deal registration was not found",
       );
+    if (
+      input.action === "extend" &&
+      prior.channelPolicySnapshot &&
+      typeof prior.channelPolicySnapshot === "object" &&
+      "source" in prior.channelPolicySnapshot &&
+      prior.channelPolicySnapshot.source === "approved_policy"
+    ) {
+      const policy = z
+        .object({
+          extensionDays: z.number().int().positive(),
+          maximumExtensions: z.number().int().nonnegative(),
+        })
+        .parse(prior.channelPolicySnapshot);
+      const days = integer(input.payload.extensionDays, "extensionDays");
+      const reason =
+        optionalString(input.payload.reason, "reason") ??
+        optionalString(input.payload.extensionReason, "extensionReason") ??
+        "";
+      if (
+        days < 1 ||
+        days > policy.extensionDays ||
+        prior.policyExtensionCount >= policy.maximumExtensions ||
+        reason.trim().length < 8
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "The captured channel policy limits this extension; supply a permitted duration and documented progress of at least eight characters",
+        );
+    }
     const registration: DealRegistration = {
       id: prior.id,
       partnerAccountId: prior.partnerAccountId,
@@ -7885,6 +8097,17 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       .set({
         status: next.status,
         protectionEndsAt: new Date(next.protectionEndsAt),
+        ...(input.action === "extend"
+          ? {
+              extensionReason:
+                optionalString(input.payload.reason, "reason") ??
+                optionalString(
+                  input.payload.extensionReason,
+                  "extensionReason",
+                ) ??
+                null,
+            }
+          : {}),
         decidedAt: new Date(input.occurredAt),
         ...(input.action === "convert"
           ? { convertedOrderId: string(input.payload.orderId, "orderId") }

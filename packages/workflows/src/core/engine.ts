@@ -376,6 +376,12 @@ export class CoreFinanceWorkflowEngine {
   > {
     const input = parsePayload(IssueInvoiceInputSchema, raw);
     assertAggregate(input.context.aggregateId, input.invoiceId, "invoice");
+    const source = input.paygSource
+      ? { paygSource: input.paygSource }
+      : input.orderId
+        ? { orderId: input.orderId }
+        : undefined;
+    if (!source) throw new Error("INVOICE_SOURCE_REQUIRED");
     return this.runControlled(
       TASKS.issueInvoice,
       "invoice",
@@ -384,7 +390,7 @@ export class CoreFinanceWorkflowEngine {
         const issued = await this.dependencies.billing.issueInvoice({
           invoiceId: input.invoiceId,
           customerId: input.customerId,
-          orderId: input.orderId,
+          ...source,
           amount: input.amount,
           ...(input.poNumber === undefined ? {} : { poNumber: input.poNumber }),
           idempotencyKey: downstreamIdempotencyKey(key, "billing-issue"),

@@ -11,6 +11,8 @@ export interface DialogProps {
   trigger: ReactNode;
   children: ReactNode;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   closeLabel?: string;
   footer?: ReactNode;
 }
@@ -20,12 +22,16 @@ export function Dialog({
   trigger,
   children,
   defaultOpen,
+  open,
+  onOpenChange,
   closeLabel = "Close",
   footer,
 }: DialogProps) {
   return (
     <DialogPrimitive.Root
       {...(defaultOpen === undefined ? {} : { defaultOpen })}
+      {...(open === undefined ? {} : { open })}
+      {...(onOpenChange === undefined ? {} : { onOpenChange })}
     >
       <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>

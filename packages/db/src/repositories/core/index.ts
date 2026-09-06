@@ -18,3 +18,16 @@ export const coreRepositoryRegistry = [
   DatabaseCommissionStatementRepository,
   DatabasePriceBookAdministrationReader,
 ] as const;
+export * from "./payg-offers";
+export {
+  prospectiveSupplierEntity,
+  determineTaxForSubject,
+  canonicalTaxHash,
+} from "./tax-determination";
+
+export * from "./payg-invoices";
+
+export * from "./payg-invoice-source";
+export * from "./channel-policy";
+
+export * from "./trials";

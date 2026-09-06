@@ -1,6 +1,10 @@
+import { DatabasePaygBillingRepository } from "../core/database-payg";
+import { configurePaygScheduleRepository } from "../core/payg-scheduled-runtime";
 import {
   configureDatabaseTransactionInstrumentation,
   createRuntimeDatabase,
+  DatabaseSystemCapabilityAdmin,
+  DatabaseSystemCapabilityGuard,
   type RuntimeDatabase,
 } from "@clockwork/db";
 import {
@@ -13,6 +17,7 @@ import {
   createProductionWorkflowRuntime,
   type ProductionWorkflowRuntimeInput,
 } from "./production";
+import { deriveWorkflowCapabilityProfile } from "./capability-profile";
 import {
   createEnvironmentWorkflowAdapterFactory,
   WorkflowEnvironmentAdapterConfigurationError,
@@ -224,6 +229,13 @@ export async function createEnvironmentProductionWorkflowRuntime(
   input: {
     source?: TriggerWorkerEnvironmentSource;
     adapterFactory?: ProductionWorkflowAdapterFactory;
+    readCapabilities?: (db: RuntimeDatabase) => Promise<
+      readonly {
+        capabilityKey: string;
+        enabled: boolean;
+        recoveryEnabled: boolean;
+      }[]
+    >;
   } = {},
 ): Promise<ProductionWorkflowRuntime> {
   const source = input.source ?? process.env;
@@ -255,32 +267,48 @@ export async function createEnvironmentProductionWorkflowRuntime(
         operation: () => transaction.operation(),
       }),
   });
-  let adapterFactory = input.adapterFactory;
-  if (!adapterFactory) {
-    try {
-      adapterFactory = createEnvironmentWorkflowAdapterFactory(
-        source,
-        instrumentation,
-        telemetry,
-      );
-    } catch (error) {
-      if (error instanceof WorkflowEnvironmentAdapterConfigurationError)
-        throw new WorkflowBootstrapConfigurationError(
-          error.missing,
-          error.externalGates,
-        );
-      throw error;
-    }
-  }
   const { client, db } = createRuntimeDatabase({
     url: environment.directDatabaseUrl,
     role: "clockwork_service",
   });
   try {
-    const adapters = await adapterFactory.create({
-      db,
-      environment,
-      source,
+    let adapterFactory = input.adapterFactory;
+    if (!adapterFactory) {
+      const capabilities = input.readCapabilities
+        ? await input.readCapabilities(db)
+        : await new DatabaseSystemCapabilityAdmin(db).list({
+            requestId: `workflow-bootstrap:capabilities:${crypto.randomUUID()}`,
+          });
+      try {
+        adapterFactory = createEnvironmentWorkflowAdapterFactory(
+          source,
+          instrumentation,
+          telemetry,
+          deriveWorkflowCapabilityProfile(capabilities),
+        );
+      } catch (error) {
+        if (error instanceof WorkflowEnvironmentAdapterConfigurationError)
+          throw new WorkflowBootstrapConfigurationError(
+            error.missing,
+            error.externalGates,
+          );
+        throw error;
+      }
+    }
+    const adapters = await adapterFactory.create({ db, environment, source });
+    configurePaygScheduleRepository({
+      billingMonths: (now) =>
+        new DatabasePaygBillingRepository(db).billingMonths(now),
+      closeMonth: async (period) => {
+        const capability = await new DatabaseSystemCapabilityGuard(db).require({
+          capabilities: ["billing"],
+          recovery: false,
+          requestId: `payg-schedule:${period.month}`,
+        });
+        if (!capability.allowed)
+          throw new Error("PAYG_BILLING_CAPABILITY_DISABLED");
+        return new DatabasePaygBillingRepository(db).closeMonth(period);
+      },
     });
     return createProductionWorkflowRuntime({
       db,

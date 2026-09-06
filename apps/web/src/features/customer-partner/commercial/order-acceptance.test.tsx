@@ -761,9 +761,55 @@ describe("order acceptance two-pass bridge", () => {
       fireEvent.click(screen.getByRole("button", { name: createLabel }));
     });
 
-    expect(screen.getByRole("button", { name: createLabel })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: createLabel }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Order created");
   });
+
+  it.each([
+    null,
+    {
+      ...quote,
+      id: "40000000-0000-4000-8000-000000000099",
+      title: "Different next quote",
+    },
+  ])(
+    "keeps the created order receipt when refresh changes the selected quote (%j)",
+    async (nextQuote) => {
+      const view = renderSurface();
+      fillAcceptanceInputs();
+      await submitFirstPass();
+      storeOrderForm();
+      await elapse(2_000);
+      await settled(() => {
+        fireEvent.click(screen.getByRole("button", { name: createLabel }));
+      });
+      const href = screen
+        .getByRole("link", { name: "Open the created order" })
+        .getAttribute("href");
+      expect(mocks.refresh).toHaveBeenCalled();
+
+      view.rerender(
+        <OrderAcceptance
+          account={account}
+          agreement={{ title: "Cloud Service Agreement", version: "3.2" }}
+          quote={nextQuote}
+          signerUserId="20000000-0000-4000-8000-000000000002"
+        />,
+      );
+
+      expect(screen.getByRole("status")).toHaveTextContent("Order created");
+      expect(
+        screen.getByRole("link", { name: "Open the created order" }),
+      ).toHaveAttribute("href", href);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Different next quote"),
+      ).not.toBeInTheDocument();
+      expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(2);
+    },
+  );
 });
 
 /**

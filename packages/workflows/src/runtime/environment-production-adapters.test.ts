@@ -280,3 +280,68 @@ describe("runtime-bound notification delivery client", () => {
     expect(bind).toHaveBeenCalledWith(db);
   });
 });
+
+describe("capability-scoped environment requirements", () => {
+  it("needs no provider credentials for an entirely disabled production registry", () => {
+    expect(() =>
+      createEnvironmentWorkflowAdapterFactory(
+        {
+          NODE_ENV: "production",
+          AUTHORIZATION_CONTEXT_SECRET:
+            "production-authorization-secret-without-providers",
+        },
+        undefined,
+        undefined,
+        { capabilities: [], providers: [], gateKeys: [], artifacts: false },
+      ),
+    ).not.toThrow();
+  });
+  it("does not require signature, Stripe, tax or CRM credentials for onboarding only", () => {
+    const minimal = {
+      ...completeEnvironment,
+      STRIPE_SECRET_KEY: undefined,
+      TAX_PROVIDER_BASE_URL: undefined,
+      TAX_PROVIDER_TOKEN: undefined,
+      SIGNATURE_PROVIDER_BASE_URL: undefined,
+      SIGNATURE_PROVIDER_TOKEN: undefined,
+      SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON: undefined,
+      CRM_PROVIDER_BASE_URL: undefined,
+      CRM_PROVIDER_TOKEN: undefined,
+      ACCOUNTING_PROVIDER_BASE_URL: undefined,
+      ACCOUNTING_PROVIDER_TOKEN: undefined,
+      USAGE_PROVIDER_BASE_URL: undefined,
+      USAGE_PROVIDER_TOKEN: undefined,
+      PROVISIONING_PROVIDER_BASE_URL: undefined,
+      PROVISIONING_PROVIDER_TOKEN: undefined,
+    };
+    expect(() =>
+      createEnvironmentWorkflowAdapterFactory(minimal, undefined, undefined, {
+        capabilities: ["new_business"],
+        providers: ["workos", "screening", "notifications", "evidence"],
+        gateKeys: ["EXT-ACC-01", "EXT-LEGAL-01", "EXT-PROVIDER-01"],
+        artifacts: true,
+      }),
+    ).not.toThrow();
+  });
+  it("continues to require credentials for an enabled billing provider", () => {
+    expect(() =>
+      createEnvironmentWorkflowAdapterFactory(
+        {
+          NODE_ENV: "production",
+          AUTHORIZATION_CONTEXT_SECRET:
+            "production-authorization-secret-without-providers",
+          WORKFLOW_PROVIDER_CONTROL_BASE_URL: "https://control.example/",
+          WORKFLOW_PROVIDER_CONTROL_TOKEN: "control-reference",
+        },
+        undefined,
+        undefined,
+        {
+          capabilities: ["billing"],
+          providers: ["billing"],
+          gateKeys: ["EXT-ACC-01"],
+          artifacts: false,
+        },
+      ),
+    ).toThrow("STRIPE_SECRET_KEY");
+  });
+});

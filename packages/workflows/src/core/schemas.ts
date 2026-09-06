@@ -1,4 +1,5 @@
 import {
+  PaygInvoiceSourceSchema,
   CurrencySchema,
   EmailSchema,
   IdempotencyKeySchema,
@@ -40,7 +41,8 @@ export const IssueInvoiceInputSchema = z
   .object({
     context: CoreWorkflowContextSchema,
     invoiceId: ids.invoice,
-    orderId: ids.order,
+    orderId: ids.order.optional(),
+    paygSource: PaygInvoiceSourceSchema.optional(),
     billingAccountId: ids.account,
     customerId: z.string().min(1).max(255),
     commercialShape: z.enum([
@@ -59,6 +61,25 @@ export const IssueInvoiceInputSchema = z
   })
   .strict()
   .superRefine((input, context) => {
+    if ((input.orderId === undefined) === (input.paygSource === undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["orderId"],
+        message: "Invoice requires exactly one order or PAYG source",
+      });
+    }
+    if (
+      input.paygSource &&
+      (input.commercialShape !== "direct" || input.groups.length > 0)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["paygSource"],
+        message:
+          "PAYG invoices require a direct source without term allocations",
+      });
+    }
+
     if (BigInt(input.amount.minor) <= 0n) {
       context.addIssue({
         code: "custom",

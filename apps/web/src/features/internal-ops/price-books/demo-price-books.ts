@@ -225,6 +225,8 @@ export function administrationRecord(
     effectiveFrom: book.effectiveFrom,
     effectiveTo: book.effectiveTo,
     rateCardCount: book.rateCardCount,
+    rateCards: book.rateCards,
+    ...(book.discountMatrix ? { discountMatrix: book.discountMatrix } : {}),
     regions: book.regions,
     activationRequestedBy: book.activationRequestedBy,
     activationRequestedByEmail: book.activationRequestedByEmail,
@@ -244,6 +246,7 @@ export function domainPriceBook(book: DemoPriceBook): PriceBook {
     ...(book.effectiveTo ? { effectiveTo: book.effectiveTo } : {}),
     status: book.status,
     rateCards: book.rateCards,
+    ...(book.discountMatrix ? { discountMatrix: book.discountMatrix } : {}),
   };
 }
 

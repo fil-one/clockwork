@@ -62,6 +62,7 @@ export const englishDocumentMessages = {
   objectVersion: "Object version",
   orderForm: "Order form",
   orderReference: "Order reference",
+  billingPeriod: "Billing period",
   outcome: "Outcome",
   page: "Page",
   paidAt: "Paid",

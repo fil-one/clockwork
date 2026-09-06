@@ -130,3 +130,51 @@ describe("invoice derivation panel", () => {
     ).toBeDefined();
   });
 });
+
+it("shows retained PAYG charges and correction identity without a priced quote", () => {
+  render(
+    <InvoiceDerivationPanel
+      derivations={[
+        {
+          billingSource: "payg",
+          invoiceId: "invoice-payg",
+          accountId: "account",
+          reference: "in_payg",
+          status: "open",
+          currency: "USD",
+          invoicedTotalMinor: "120",
+          invoicedNetTotalMinor: "100",
+          taxMinor: "20",
+          month: "2026-08",
+          revision: 2,
+          kind: "debit_adjustment",
+          serviceStartsAt: "2026-08-01T00:00:00.000Z",
+          serviceEndsAt: "2026-09-01T00:00:00.000Z",
+          supplierName: "Supplier",
+          customerName: "Buyer",
+          sku: "STANDARD-STORAGE",
+          region: "eu-west",
+          policyVersion: 1,
+          storageByteHours: "1000000000000",
+          egressBytes: "0",
+          apiOperations: "0",
+          lines: [{ kind: "correction_adjustment", minor: "100" }],
+          taxLines: [
+            {
+              jurisdiction: "GB",
+              treatment: "standard",
+              notation: "",
+              taxMinor: "20",
+            },
+          ],
+        },
+      ]}
+    />,
+  );
+  expect(
+    screen.getByText("PAYG 2026-08 · revision 2 · correction"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Correction adjustment")).toBeInTheDocument();
+  expect(screen.getByText("Supplier → Buyer")).toBeInTheDocument();
+  expect(screen.queryByText("Ordered line")).not.toBeInTheDocument();
+});

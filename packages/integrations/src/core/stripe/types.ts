@@ -1,6 +1,7 @@
 import type {
   AccountId,
   IdempotencyKey,
+  InvoiceBillingSource,
   Money,
   OrderId,
   ProviderResult,
@@ -67,9 +68,8 @@ export interface StripeInvoiceLineInput {
   readonly endClientAccountId?: AccountId;
 }
 
-export interface StripeInvoiceInput {
+export type StripeInvoiceInput = InvoiceBillingSource & {
   readonly customerId: string;
-  readonly orderId: OrderId;
   readonly invoiceReference: string;
   readonly currency: Money["currency"];
   readonly lines: readonly StripeInvoiceLineInput[];
@@ -77,7 +77,7 @@ export interface StripeInvoiceInput {
   readonly poNumber?: string;
   readonly autoFinalize?: boolean;
   readonly idempotencyKey: IdempotencyKey;
-}
+};
 
 export interface StripeTaxCalculationInput {
   readonly customerId: string;

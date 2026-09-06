@@ -158,6 +158,9 @@ select throws_ok(
   'a disputed amount cannot be rewritten into an unknown currency'
 );
 
+insert into price_books (id, name, currency, effective_from, status, version) values
+('c6000000-0000-4000-8000-000000001370', 'Constraint probe', 'USD', '2026-01-01', 'draft', 91370);
+
 select throws_ok(
   $$insert into rate_cards (
       price_book_id, sku, approved_claim, region, unit,
@@ -165,7 +168,7 @@ select throws_ok(
       minimum_quantity, egress_treatment, commit_type,
       stripe_tax_code, qbo_income_account
     ) values (
-      '60000000-0000-4000-8000-000000000001', 'PROBE-SKU',
+      'c6000000-0000-4000-8000-000000001370', 'PROBE-SKU',
       'Fictional probe claim', 'us-east-2', 'TB-month',
       1, -1, 1, 1, 'metered', 'term_drawdown', 'txcd_demo', '4000-Storage'
     )$$,

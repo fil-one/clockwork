@@ -1,3 +1,4 @@
+import { DatabasePaygBillingRepository } from "@clockwork/workflows/core";
 import {
   createApiApp,
   createExternalGateActivationSimulator,
@@ -11,6 +12,9 @@ import {
   DatabaseEsignEnvelopeLookup,
   DatabaseExceptionRosterAdminService,
   DatabaseExternalGateService,
+  DatabasePaygOfferRepository,
+  DatabasePaygInvoiceRepository,
+  DatabaseTrialRepository,
   DatabaseLifecycleCommandRepository,
   DatabasePersistedWorkflowExceptionRouting,
   DatabaseLifecycleAuthorizationScopeResolver,
@@ -497,6 +501,51 @@ const sessionResolver = new WorkosNextSessionResolver({
 });
 const api = createApiApp({
   sessionResolver,
+  ...(serviceDatabase
+    ? {
+        paygOffers: {
+          list: () => new DatabasePaygOfferRepository(serviceDatabase).list(),
+          command: (input) =>
+            new DatabasePaygOfferRepository(serviceDatabase).command(input),
+          listTrials: () => new DatabaseTrialRepository(serviceDatabase).list(),
+          trialCommand: ({ command, actor, now }) =>
+            command.action === "claim"
+              ? new DatabaseTrialRepository(serviceDatabase).claim({
+                  ...command,
+                  actor,
+                  now,
+                })
+              : new DatabaseTrialRepository(serviceDatabase).convert({
+                  trialId: command.trialId,
+                  ...(command.entitlementId
+                    ? { entitlementId: command.entitlementId }
+                    : {}),
+                  ...(command.paygEnrollmentId
+                    ? { paygEnrollmentId: command.paygEnrollmentId }
+                    : {}),
+                  actor,
+                  now,
+                }),
+          listEnrollments: () =>
+            new DatabasePaygBillingRepository(
+              serviceDatabase,
+            ).listEnrollments(),
+          enrollmentCommand: async ({ command, actor, now }) => {
+            const billing = new DatabasePaygBillingRepository(serviceDatabase);
+            await billing.requireAdministrator(actor);
+            return command.action === "enroll"
+              ? billing.enroll({ ...command, actor, now })
+              : billing.confirmCancellation({ ...command, actor, now });
+          },
+          listPending: () =>
+            new DatabasePaygInvoiceRepository(serviceDatabase).listPending(),
+          materialize: (input) =>
+            new DatabasePaygInvoiceRepository(serviceDatabase).materialize(
+              input,
+            ),
+        },
+      }
+    : {}),
   ...(trustedOriginResolver ? { trustedOriginResolver } : {}),
   ...(idempotencyStore ? { idempotencyStore } : {}),
   ...(coreService

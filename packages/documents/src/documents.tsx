@@ -408,7 +408,19 @@ function InvoiceDocument({ input }: { input: InvoiceDocumentInput }) {
       <KeyValueGrid
         items={[
           { label: copy.invoiceNumber, value: input.invoiceNumber },
-          { label: copy.orderReference, value: input.orderReference },
+          ...(input.billingPeriodReference
+            ? [
+                {
+                  label: copy.billingPeriod,
+                  value: input.billingPeriodReference,
+                },
+              ]
+            : [
+                {
+                  label: copy.orderReference,
+                  value: input.orderReference ?? "-",
+                },
+              ]),
           {
             label: copy.purchaseOrder,
             value: input.purchaseOrderNumber ?? "-",

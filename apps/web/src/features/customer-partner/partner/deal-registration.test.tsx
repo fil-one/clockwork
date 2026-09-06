@@ -35,7 +35,8 @@ afterEach(() => {
 });
 
 async function fillValidRegistration(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText("End client"), "Juniper Health");
+  await user.click(screen.getByRole("combobox", { name: "End client" }));
+  await user.click(screen.getByRole("option", { name: "Juniper Health" }));
   await user.type(screen.getByLabelText("Workload"), "Immutable archive");
   await user.type(screen.getByLabelText("Expected volume (TB)"), "120");
 }
@@ -85,6 +86,33 @@ describe("deal registration", () => {
    * else on the desk. The end client is therefore named, and the identifier
    * comes from the server-resolved list.
    */
+  it("submits the selected account when two end clients share a name", async () => {
+    const user = userEvent.setup();
+    const duplicate = {
+      id: "5e6f7a8b-1111-4111-8111-222222222222",
+      name: "Juniper Health",
+    };
+    render(
+      <DealRegistration
+        context={{ ...context, endClients: [...context.endClients, duplicate] }}
+      />,
+    );
+    await user.click(screen.getByRole("combobox", { name: "End client" }));
+    const second = screen.getAllByRole("option", { name: "Juniper Health" })[1];
+    if (!second) throw new Error("Missing second client option");
+    await user.click(second);
+    await user.type(
+      screen.getByLabelText("Workload"),
+      "Distinct account archive",
+    );
+    await user.type(screen.getByLabelText("Expected volume (TB)"), "20");
+    await user.click(screen.getByRole("button", { name: "Register the deal" }));
+    const [input] = sendCoreCommand.mock.calls[0] ?? [];
+    expect(input).toMatchObject({
+      payload: { endClientAccountId: duplicate.id },
+    });
+  });
+
   it("never asks the partner to type an account identifier", () => {
     render(<DealRegistration context={context} />);
     expect(screen.queryByLabelText(/account id/i)).toBeNull();
@@ -102,7 +130,8 @@ describe("deal registration", () => {
     const user = userEvent.setup();
     render(<DealRegistration context={context} />);
 
-    await user.type(screen.getByLabelText("End client"), "Juniper Health");
+    await user.click(screen.getByRole("combobox", { name: "End client" }));
+    await user.click(screen.getByRole("option", { name: "Juniper Health" }));
     await user.type(screen.getByLabelText("Workload"), "Immutable archive");
     await user.type(screen.getByLabelText("Expected volume (TB)"), "120 TB");
     await user.click(screen.getByRole("button", { name: "Register the deal" }));

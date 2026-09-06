@@ -29,9 +29,12 @@ export function buyCapacity(draft: BuyDraft): number | null {
     : null;
 }
 
-export function needsFullQuote(draft: BuyDraft): boolean {
+export function needsFullQuote(
+  draft: BuyDraft,
+  thresholdTb = SELF_SERVE_CAPACITY_CEILING_TB,
+): boolean {
   const capacity = buyCapacity(draft);
-  return capacity !== null && capacity >= SELF_SERVE_CAPACITY_CEILING_TB;
+  return capacity !== null && capacity >= thresholdTb;
 }
 
 export function quoteHandoff(draft: BuyDraft): Route {
@@ -53,10 +56,11 @@ export function buildBuyQuoteCommand(input: {
   offers: readonly QuoteOfferOption[];
   quoteId: string;
   now: Date;
+  thresholdTb?: number;
 }): CoreCommandInput {
   const capacity = buyCapacity(input.draft);
   if (capacity === null) throw new Error("Enter at least 10 TB to continue.");
-  if (needsFullQuote(input.draft))
+  if (needsFullQuote(input.draft, input.thresholdTb))
     throw new Error("This capacity continues in the full quote workspace.");
   const quoted = quotePayload(
     {

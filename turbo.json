@@ -24,7 +24,8 @@
         "DATABASE_URL",
         "DIRECT_DATABASE_URL"
       ],
-      "outputs": []
+      "outputs": [],
+      "cache": false
     },
     "//#format:check": {
       "outputs": []
