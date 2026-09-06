@@ -35,3 +35,5 @@ export const coreDomainRegistry = [
   "procurement",
 ] as const;
 export * from "./channel-policy";
+
+export * from "./payg/acquisition";

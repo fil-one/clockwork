@@ -33,6 +33,12 @@ export const navigation: Readonly<
       requiredPermission: "quote:write",
     },
     {
+      href: "/buy/payg",
+      label: "nav.payg",
+      keywords: ["trial", "pay as you go", "usage"],
+      allowedRoles: ["owner", "admin"],
+    },
+    {
       href: "/agreements",
       label: "nav.agreements",
       keywords: ["contracts"],
@@ -207,6 +213,11 @@ export const navigation: Readonly<
       requiredPermission: "quote:approve",
     },
     {
+      href: "/internal/payg-requests",
+      label: "nav.internal.paygRequests",
+      allowedRoles: ["finance_approver"],
+    },
+    {
       href: "/internal/payg-offers",
       label: "nav.internal.paygOffers",
       allowedRoles: ["finance_approver"],
@@ -220,6 +231,11 @@ export const navigation: Readonly<
         "legal_approver",
         "destructive_action_approver",
       ],
+    },
+    {
+      href: "/internal/providers",
+      label: "nav.internal.providers",
+      allowedRoles: ["internal_operator", "finance_approver"],
     },
     {
       href: "/internal/catalog",
@@ -286,7 +302,8 @@ export function isNavigationItemActive(
   pathname: string,
 ): boolean {
   const match = item.match ?? item.href;
-  const rootDestination = match === "/partner" || match === "/internal";
+  const rootDestination =
+    match === "/partner" || match === "/internal" || match === "/buy";
   return rootDestination
     ? pathname === match
     : pathname === match || pathname.startsWith(`${match}/`);

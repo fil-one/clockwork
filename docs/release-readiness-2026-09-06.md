@@ -157,6 +157,68 @@ assumed equal.
   [Fastify's release](https://github.com/fastify/fastify/releases/tag/v5.12.1),
   and [qs's changelog](https://github.com/ljharb/qs/blob/main/CHANGELOG.md).
 
+## Additional operating and acquisition workflows
+
+- Scheduled pricing (`001435`) retains a distinct finance approval of the exact
+  version and effective window, freezes economics and catalog mappings, and
+  executes atomically with incumbent retirement. Only one approved schedule per
+  currency is allowed; a conflicting immediate activation requires explicit
+  cancellation first. Cancellation reopens the draft and requires fresh review.
+  The worker checks the actual execution time, including after lock waits, and
+  preserves current pricing if the window expires or a required capability or
+  authority is unavailable. A delayed scheduled occurrence is not a valid
+  activation clock.
+- Finance sees coherent, complete reference counts for each selected price book
+  and its current incumbent: quote revisions, open quote work, orders, governing
+  agreements, order lines and retained entitlements. Version checks invalidate
+  stale counts. The panel explains that economics are retained while retirement
+  stops draft issuance and revisions on the old book. Demo counts are explicitly
+  illustrative; unavailable data is not represented as zero.
+- Customer PAYG/trial acquisition (`001436`) displays approved effective offer
+  economics and admin-configured service, trial and cancellation notices.
+  Versioned terms and retention references are retained with exact customer
+  assent and an organization-scoped request. Finance can link an independently
+  verified trial or enrollment matching the accepted policy and current tenant;
+  the linked new service cannot predate assent. Paid conversion requires its
+  confirmed conversion record. Cancellation remains a request until the
+  enrollment retains its confirmed end; sales blocking does not remove the
+  customer's cancellation path. Requests and resolutions append their audit
+  event and outbox delivery evidence atomically. These screens do not provision
+  storage, issue credentials, enforce a remote provider's quotas, or establish
+  billing cutover.
+- Provider operating references (`001437`) give operators and finance an audited
+  editor for ownership, secret-manager path/version, completed rotation evidence
+  and configurable review intervals. Bootstrap references remain visible until a
+  registry entry is saved. Direct recent MFA, persisted role locks and
+  optimistic versions protect updates. This is reference metadata, not automatic
+  secret detection, deployed configuration or proof of a working provider.
+- Browser review corrected ambiguous cancellation summaries, schedule scan
+  labels, duplicate active navigation items, unobvious admin links/buttons, and
+  stale-offer recovery. A separate dashboard regression makes the notice
+  countdown and term progress agree with the displayed snapshot date.
+
+The current demo suite contains 21 local journeys: 17 transactional cases and
+four visual cases. The hosted suite uses the same 17 transactional cases,
+including scheduled pricing and customer trial, paid conversion and cancellation
+handoffs. Fictional finance confirmations exercise retained workflow state, not
+live provider execution. Historical qualification results below retain the
+counts from their original runs.
+
+Operational guidance: [scheduled pricing](operations/scheduled-pricing.md),
+[customer acquisition](operations/customer-acquisition.md), and
+[provider references](operations/provider-reference-administration.md).
+
+Provider source was inspected at
+[`fil-one/fil-one` commit `ed83903`](https://github.com/fil-one/fil-one/tree/ed83903c144982af6ec22f07fcd9568638c433cc).
+Its
+[trial creator](https://github.com/fil-one/fil-one/blob/ed83903c144982af6ec22f07fcd9568638c433cc/packages/backend/src/lib/create-billing-trial.ts)
+creates organization-scoped Stripe customers/subscriptions, and its
+[billing activation](https://github.com/fil-one/fil-one/blob/ed83903c144982af6ec22f07fcd9568638c433cc/packages/backend/src/lib/billing-activation.ts)
+persists subscription state and synchronizes provisioned regions. Therefore an
+independent Clockwork request must not silently authorize duplicate billing or
+claim that provider access is active. A contracted integration and billing
+cutover remain necessary. No changes were made to the provider repository.
+
 ## Remaining internal implementation
 
 These are product/integration work, not merely missing credentials:
@@ -168,24 +230,23 @@ These are product/integration work, not merely missing credentials:
   repository tests use provider fixtures; the methods alone do not enforce a
   remote storage service. Draft catalog references need a qualified runtime
   mapping consumer.
-- Deliver the customer-facing no-term PAYG/trial acquisition and lifecycle flow,
-  including approved notices, conversion and any approved retention/deletion
-  behavior. Current committed quote builders still represent committed products.
-  An approved PAYG policy does not silently convert a term contract into usage
-  billing. A configurable sales threshold does not itself remove committed
-  product minimums.
+- Connect the delivered customer PAYG/trial request and confirmed-record
+  lifecycle to the actual provider execution boundary. Customer assent, notices,
+  finance handoff, conversion and cancellation tracking now exist. Provider
+  credentials, storage access, usage enforcement and any approved deletion
+  behavior still require the real integration and its acceptance evidence.
+  Existing committed quote builders continue to represent committed products.
 - Complete broader channel program, brand, marketplace and operator products
   before their capabilities are enabled. Versioned transfer maps and new quote
   commission snapshots do not implement full referral tenure/eligibility,
   settlement programs, distributor economics, OEM/operator agreements or
   marketplace adapters. Deal-registration protection controls do not implement
   every recommended prospect/conflict/house-account decision policy.
-- Scheduled price-book activation execution and impact analysis across existing
-  contracts remain beyond the delivered editor, draft cloning and validated
-  economics import/export. Future proposals require a second finance approver on
-  or after their effective date; they are not automatically activated. Legacy
-  unsnapshotted commissions retain explicitly documented legacy behavior; their
-  historical economics need evidenced remediation, not a fabricated backfill.
+- Legacy unsnapshotted commissions retain explicitly documented legacy behavior;
+  their historical economics need evidenced remediation, not a fabricated
+  backfill. Broader revenue, margin and renewal forecasts require approved cost
+  and commercial inputs; the delivered impact panel reports retained references
+  and workflow consequences without inventing forecasts.
 
 ## Actual external release dependencies
 
@@ -292,7 +353,7 @@ control likewise validates the receipt before reporting success. The stored Blob
 was pristine during diagnosis, and fresh full-document requests returned the
 correct issued quote; no speculative storage-cache workaround was introduced.
 
-`apps/web/playwright.hosted-demo.config.ts` makes all 15 non-visual demo
+`apps/web/playwright.hosted-demo.config.ts` makes all 17 non-visual demo
 transaction journeys repeatable against a draft or canonical Netlify origin. It
 uses the existing remote deployment, resets fictional shared demo data, rejects
 unrelated origins and retains no authentication traces. The deployment runbook
@@ -324,21 +385,22 @@ authorization, concurrency, exact values, validation failures and evidence.
 
 Activation now preserves an explicit effective end date and rejects expired
 versions. Offer discovery includes the final UTC day, matching the existing
-pricing rule. Future-dated proposals leave current pricing in place until a
-different finance approver activates them on or after the effective date. The
-real database regression checks refusal, approval state, retained dates, the
-final second of the last day, and the next midnight without retaining its
-transaction fixtures.
+pricing rule. Future-dated proposals leave current pricing in place. A different
+finance approver can now approve a durable schedule in advance or activate
+manually within the effective window. The real database regression checks
+refusal, approval state, retained dates, the final second of the last day, and
+the next midnight without retaining its transaction fixtures.
 
 The bounded administration reader prioritizes active books so newer drafts
 cannot evict incumbent economics from replacement review. The displayed table
 still sorts by currency and version. This preserves comparison evidence within
 the normal limit; it does not add unrestricted history pagination.
 
-The extended browser suite now includes 19 local demo journeys and 15 hosted
-transaction journeys. Real database qualification passed all 13 tests across
-price-book editing/clone/import, bounded activation windows and active
-comparison evidence; all five API command-catalogue integration tests passed.
+At the clone/import qualification, the browser suite contained 19 local demo
+journeys and 15 hosted transaction journeys. Real database qualification passed
+all 13 tests across price-book editing/clone/import, bounded activation windows
+and active comparison evidence; all five API command-catalogue integration tests
+passed.
 
 Final local qualification for these additions passed all 10 unit packages (web:
 194 files and 1,751 tests), all 19 demo browser journeys, generated-contract
@@ -348,3 +410,48 @@ and rate identities. The full unit run also exposed a delayed mock-router timer
 leaking across search tests; cleanup now isolates each test, and the original
 assertions pass with realistic typing delays. Production search behavior was
 unchanged.
+
+## Scheduled pricing, acquisition and provider-reference qualification
+
+This follow-up starts from merged main `19e6de1` and adds migrations
+`001435`–`001437`. The earlier validation sections retain their historical
+counts. Qualification again uses Node 24.18.1, pnpm 10.34.5 and the existing 6
+GiB CI heap setting; no CI gate or security exception was weakened.
+
+| Check                                  | Follow-up result                                                                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit suites                            | All 10 packages passed; web: 200 files, 1,801 tests                                                                                            |
+| Release and verification scripts       | 99 tests passed                                                                                                                                |
+| Integration suites                     | All 10 tasks passed without cache; database: 57 files, 321 tests                                                                               |
+| Final changed database paths           | 19 tests passed across acquisition, schedules, price books, impact and provider references, including atomic acquisition audit/outbox evidence |
+| Fresh database and schema              | Reset through `001437`; 147 modelled and 148 applied tables, no drift under the existing comparison scope and reservation-table exception      |
+| Database constraints, policies and RLS | 52 pgTAP files, 964 assertions passed                                                                                                          |
+| Functional browser journeys            | 79 passed                                                                                                                                      |
+| Reviewed visual comparisons            | 25 passed; only the two intentionally changed Buy-page baselines were updated after desktop and 320px image review                             |
+| Password-gated local demo journeys     | 21 passed, including scheduled pricing and the full trial/conversion/cancellation handoff                                                      |
+| Generated API contract                 | Both generated files reproduced byte-for-byte                                                                                                  |
+
+The production build passed all 10 tasks without cache; Storybook built and
+passed its four files/10 tests. The compiled production browser proof passed all
+four cases against freshly reset PostgreSQL: customer quote/order flows, partner
+scope, internal replay-safe recovery, and provider reference edits with retained
+audit/outbox evidence. The manual proof invocation initially lacked the release
+harness's OTLP settings; rerunning with its complete environment passed the
+existing telemetry correlation assertions without changing tests or product
+code. Typecheck, dependency boundaries, traceability and citation liveness
+passed. Dependency audit retained only the same three documented advisory
+exceptions.
+
+Native Chrome review found and corrected an unstable fictional offer fingerprint
+that rejected customer assent, stale conversion selection after submission,
+misleading schedule/cancellation labels, and duplicate active navigation. The
+accessibility sweep also caught the new PAYG link outside the Buy page's main
+landmark; it now belongs to the purchase header. Offer refresh invalidates stale
+assent, completed requests survive refresh, and pending conversion prevents a
+duplicate handoff while allowing another organization to be selected.
+
+Independent reviews challenged schedule timing after lock waits, policy and
+tenant evidence for customer handoffs, atomic audit delivery, and provider
+reference authorization and concurrency. The resulting boundaries are tested
+against local PostgreSQL. They do not establish live provider execution,
+automatic secret rotation, approved commercial terms or billing cutover.

@@ -152,6 +152,8 @@ export const coreCommandCatalogue: Record<
     "remove_rate",
     "update_discount_matrix",
     "reject_activation",
+    "schedule_activation",
+    "cancel_schedule",
     "request_activation",
     "activate",
     "retire",

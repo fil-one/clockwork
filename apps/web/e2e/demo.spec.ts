@@ -20,6 +20,65 @@ function configuredPassword(): string {
 
 const password = configuredPassword();
 
+test("finance approves and cancels a future price schedule without retiring current pricing", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await passGate(page);
+  await resetDemoData(page);
+  try {
+    await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+    await page.goto("/internal/price-books");
+    const incumbent = page.getByRole("row", {
+      name: /Direct commerce USD 2 USD.*Active/,
+    });
+    await expect(incumbent).toBeVisible();
+    const picker = page.getByRole("combobox", { name: "Price book version" });
+    await picker.fill("Future scheduled USD v9000");
+    await picker.press("Tab");
+    await page
+      .getByLabel("Finance decision reason")
+      .fill("Advance approval of the exact future economics and dates.");
+    await page
+      .getByRole("button", { name: "Review price-book approval" })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Approve and activate" }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Approve scheduled activation" })
+      .click();
+    await expect(
+      page.getByText("Activation schedule · approved", { exact: true }),
+    ).toBeVisible();
+    await expect(incumbent).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Review price-book approval" }),
+    ).toBeEnabled();
+    await page
+      .getByLabel("Finance decision reason")
+      .fill("Cancel the future change and reopen it for a new review.");
+    await page
+      .getByRole("button", { name: "Review price-book approval" })
+      .click();
+    await page
+      .getByRole("button", { name: "Cancel approved schedule" })
+      .click();
+    await expect(
+      page.getByText("Activation schedule · cancelled", { exact: true }),
+    ).toBeVisible();
+    await expect(incumbent).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" }),
+    ).toBeVisible();
+  } finally {
+    if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+  }
+});
+
 /**
  * The demo Playwright project deliberately runs against `next dev`. A page can
  * finish its document load before the dev runtime connects; capturing in that
@@ -584,7 +643,11 @@ test.describe("playable product-demo workflows", () => {
         ),
       ).toBeVisible();
       await expect(
-        page.getByRole("row", { name: /Browser proof USD/ }),
+        page
+          .getByRole("table", {
+            name: "Price book versions and activation readiness",
+          })
+          .getByRole("row", { name: /Browser proof USD/ }),
       ).toBeVisible();
 
       await page
@@ -1001,4 +1064,104 @@ test.describe("demo reset", () => {
     ).toBeNull();
     await expect(page.locator(".experience-shell")).toBeVisible();
   });
+});
+
+test("customer trial, paid conversion and cancellation retain verified handoff states", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await passGate(page);
+  await resetDemoData(page);
+  const customer = async () => {
+    await page.goto("/demo");
+    await page.getByRole("link", { name: "Start as Mara Voss" }).click();
+    await page.goto("/buy/payg");
+  };
+  const financeHandoff = async () => {
+    await page.goto("/demo");
+    await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+    await page.goto("/internal/payg-requests");
+    await page
+      .getByLabel("Resolution reason")
+      .fill(
+        "Fictional verified handoff confirmed by finance for this demo request",
+      );
+    await page
+      .getByRole("button", { name: "Simulate verified handoff" })
+      .click();
+    await expect(
+      page.getByText(
+        "Fictional handoff recorded in demo state. No provider or billing action occurred.",
+      ),
+    ).toBeVisible();
+  };
+  try {
+    await customer();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      )
+      .toBe(true);
+    await expectAxeClean(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(
+      page.getByRole("heading", { name: "PAYG and trials", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("radio", { name: "Trial request" }).check();
+    await expect(
+      page.getByRole("button", { name: "Accept terms and request trial" }),
+    ).toBeDisabled();
+    await page.getByRole("checkbox", { name: /I have read and agree/ }).check();
+    await page
+      .getByRole("button", { name: "Accept terms and request trial" })
+      .click();
+    await expect(
+      page.getByText("Pending verified handoff", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Accept terms and request trial" }),
+    ).toBeDisabled();
+    await page.reload();
+    await expect(
+      page.getByText("Pending verified handoff", { exact: true }),
+    ).toBeVisible();
+    await financeHandoff();
+    await customer();
+    await page.getByRole("button", { name: "Review PAYG conversion" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Review paid conversion" }),
+    ).toBeFocused();
+    await page.getByRole("checkbox", { name: /I have read and agree/ }).check();
+    await page
+      .getByRole("button", { name: "Accept paid terms and request conversion" })
+      .click();
+    await expect(
+      page.getByText("Pending verified handoff", { exact: true }),
+    ).toBeVisible();
+    await financeHandoff();
+    await customer();
+    await expect(page.getByText(/Trial conversion confirmed/)).toBeVisible();
+    await page
+      .getByLabel("Cancellation reason")
+      .fill("The demo customer no longer needs the service");
+    await page
+      .getByRole("button", { name: "Request cancellation", exact: true })
+      .click();
+    await expect(
+      page.getByText(
+        "Cancellation requested. Service and billing continue until the provider confirms the service end.",
+      ),
+    ).toBeVisible();
+    await financeHandoff();
+    await customer();
+    await expect(page.getByText(/Service end confirmed/).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Request cancellation", exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+  }
 });

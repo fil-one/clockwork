@@ -5,9 +5,19 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import type { RuntimeDatabase } from "../../client";
 import { approvals, commerceUsers, priceBooks, rateCards } from "../../schema";
 import { priceBookActivationEvents } from "../../schema/core/finance";
+import { priceBookSchedules } from "../../schema/core/price-book-schedules";
 import { withInternalTransaction } from "../../transaction";
 
 export interface PriceBookAdministrationRecord {
+  activationSchedule?: {
+    id: string;
+    status: "approved" | "executed" | "cancelled" | "expired";
+    effectiveFrom: string;
+    effectiveTo: string | null;
+    approvedAt: string;
+    completedAt: string | null;
+    completionReason: string | null;
+  };
   id: string;
   name: string;
   currency: string;
@@ -72,7 +82,7 @@ export class DatabasePriceBookAdministrationReader {
           .limit(limit);
         return Promise.all(
           books.map(async (book) => {
-            const [pending, lastEvent, rates] = await Promise.all([
+            const [pending, lastEvent, rates, schedule] = await Promise.all([
               transaction
                 .select({
                   requestedBy: approvals.requestedBy,
@@ -87,7 +97,7 @@ export class DatabasePriceBookAdministrationReader {
                 .where(
                   sql`${approvals.action} = 'price_book_activation'
                     and ${approvals.objectId} = ${book.id}
-                    and ${approvals.status} = 'pending'`,
+                    and (${approvals.status} = 'pending' or exists(select 1 from ${priceBookSchedules} s where s.approval_id=${approvals.id} and s.status='approved'))`,
                 )
                 .limit(1),
               transaction.query.priceBookActivationEvents.findFirst({
@@ -98,9 +108,30 @@ export class DatabasePriceBookAdministrationReader {
                 where: eq(rateCards.priceBookId, book.id),
                 orderBy: [asc(rateCards.sku), asc(rateCards.region)],
               }),
+              transaction.query.priceBookSchedules.findFirst({
+                where: eq(priceBookSchedules.priceBookId, book.id),
+                orderBy: [
+                  desc(priceBookSchedules.approvedAt),
+                  desc(priceBookSchedules.id),
+                ],
+              }),
             ]);
             const request = pending[0];
             return {
+              ...(schedule
+                ? {
+                    activationSchedule: {
+                      id: schedule.id,
+                      status: schedule.status as
+                        "approved" | "executed" | "cancelled" | "expired",
+                      effectiveFrom: schedule.effectiveFrom,
+                      effectiveTo: schedule.effectiveTo,
+                      approvedAt: schedule.approvedAt.toISOString(),
+                      completedAt: schedule.completedAt?.toISOString() ?? null,
+                      completionReason: schedule.completionReason,
+                    },
+                  }
+                : {}),
               id: book.id,
               name: book.name,
               currency: book.currency,

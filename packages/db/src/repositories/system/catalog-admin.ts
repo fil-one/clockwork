@@ -11,6 +11,7 @@ import {
   rateCards,
 } from "../../schema";
 import { providerResourceBindings } from "../../schema/system/providers";
+import { priceBookSchedules } from "../../schema/core/price-book-schedules";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 
@@ -87,6 +88,10 @@ export class DatabaseCatalogAdmin {
             eq(approvals.status, "pending"),
           ),
         );
+      const scheduled = await tx
+        .select({ id: priceBookSchedules.priceBookId })
+        .from(priceBookSchedules)
+        .where(eq(priceBookSchedules.status, "approved"));
       return rows.map(({ binding, ...row }) => {
         const mapping = CatalogMappingSchema.omit({
           rateCardId: true,
@@ -98,7 +103,8 @@ export class DatabaseCatalogAdmin {
           mapping: mapping.success ? mapping.data : null,
           editable:
             row.status === "draft" &&
-            !pending.some((item) => item.id === row.bookId),
+            !pending.some((item) => item.id === row.bookId) &&
+            !scheduled.some((item) => item.id === row.bookId),
         };
       });
     });
@@ -157,7 +163,13 @@ export class DatabaseCatalogAdmin {
           ),
         )
         .limit(1);
-      if (book.status !== "draft" || pending)
+      const scheduled = await tx.query.priceBookSchedules.findFirst({
+        where: and(
+          eq(priceBookSchedules.priceBookId, book.id),
+          eq(priceBookSchedules.status, "approved"),
+        ),
+      });
+      if (book.status !== "draft" || pending || scheduled)
         throw new Error("CATALOG_DRAFT_FROZEN");
       const [before] = await tx
         .select()

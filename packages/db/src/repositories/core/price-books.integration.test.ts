@@ -607,8 +607,20 @@ it("clones a coherent multi-rate source into a fresh draft with retained provena
   expect(saved.events[0]?.eventType).toBe("core.price_books.clone");
   expect(saved.events[0]?.before).toMatchObject({
     sourceBook: { id: sourceId, rowVersion: proposed.book.rowVersion },
-    sourceRates: proposed.rates,
   });
+  // Audit JSON preserves bigint minor units as decimal strings and dates as
+  // ISO strings. Compare every retained field without coercing money to Number.
+  const sourceEvidence = saved.events[0]?.before as
+    { sourceRates?: unknown } | undefined;
+  expect(sourceEvidence?.sourceRates).toEqual(
+    proposed.rates.map((rate) => ({
+      ...rate,
+      createdAt: rate.createdAt.toISOString(),
+      unitPriceMinor: rate.unitPriceMinor.toString(),
+      floorPriceMinor: rate.floorPriceMinor?.toString() ?? null,
+      overageRateMinor: rate.overageRateMinor?.toString() ?? null,
+    })),
+  );
   expect(
     await command({
       id: target,

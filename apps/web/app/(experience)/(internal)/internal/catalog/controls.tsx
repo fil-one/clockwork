@@ -54,7 +54,7 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
           Reason for change
           <textarea name="reason" required minLength={8} maxLength={2000} />
         </label>
-        <button type="submit">
+        <button className={styles.button} type="submit">
           {pending ? "Saving…" : "Save draft mapping"}
         </button>
       </fieldset>

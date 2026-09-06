@@ -16,12 +16,14 @@ guardrail exceptions without activating anything. PAYG usage and minimum-charge
 simulation belongs to the separate offer policy.
 
 A first finance approver proposes the validated draft. All price content freezes
-until a distinct finance approver either activates it or returns it for changes
-with a reason. Returned drafts require a new proposal. Activation preserves
-published immutability and existing two-person controls. Optimistic versions and
-database row locks prevent stale or concurrent content changes from invalidating
-an approval. The database also rejects adding rates to an already published
-book.
+until a distinct finance approver activates it, approves a future schedule, or
+returns it for changes with a reason. An approved schedule remains frozen until
+execution, explicit cancellation, or expiry. Returned drafts require a new
+proposal. See [scheduled pricing](scheduled-pricing.md) for execution and
+recovery. Activation preserves published immutability and existing two-person
+controls. Optimistic versions and database row locks prevent stale or concurrent
+content changes from invalidating an approval. The database also rejects adding
+rates to an already published book.
 
 Rate changes record the changed rate and previous rate in audit evidence.
 Discount changes preserve previous/new matrix data. Review the displayed claims,
@@ -60,14 +62,17 @@ order by o.partner_account_id, o.id;
 ## Work still required before full commercial release
 
 The selected price book can be downloaded as JSON with retained rates,
-discounts, source, and read timestamp. Arbitrary import and cloning, scheduled
-activation execution, impact analysis across affected contracts, normalized
-effective-dated transfer programs, full commission tenure/eligibility/settlement
-policy, or source-document/evidence lifecycle. The transfer map remains the
-current runtime's versioned rate-card policy; normalized program administration
-remains outstanding. The term simulator is not a PAYG billing proof. External
-legal, tax, cost, identity/provisioning, provider and production-pilot evidence
-gates remain release conditions.
+discounts, source, and read timestamp. Finance can clone a version or import
+validated economics into a new draft, review retained quote/order/contract
+impact counts, and approve scheduled activation. These operations preserve the
+proposal and distinct-approver controls; imported data cannot supply approval.
+Normalized effective-dated transfer programs, full commission
+tenure/eligibility/settlement policy, and source-document/evidence lifecycle
+remain outstanding. The transfer map remains the current runtime's versioned
+rate-card policy; normalized program administration remains outstanding. The
+term simulator is not a PAYG billing proof. External legal, tax, cost,
+identity/provisioning, provider and production-pilot evidence gates remain
+release conditions.
 
 ## PAYG invoice and correction sources
 
@@ -187,7 +192,12 @@ policy workspaces. The seeded proposals have a different author, allowing the
 finance persona to review them without weakening two-person controls. Saved
 records and idempotency receipts use the same resettable demo state store as
 other demo commands. PAYG simulation uses the real usage rating engine with
-synthetic hourly measurements. Enrollment and billing execution are unavailable
-in this workspace; approval cannot verify an external source or activate live
-sales. Demo reset restores the fictional proposals and explicit channel
-defaults.
+synthetic hourly measurements. Live enrollment and billing execution are
+unavailable in this workspace; approval cannot verify an external source or
+activate live sales. The separate customer request workspace at `/buy/payg` and
+finance queue at `/internal/payg-requests` retain fictional trial, conversion
+and cancellation handoffs, explicitly labeled **Simulate verified handoff**.
+They do not invoke production repositories or providers. Demo reset removes
+those requests and simulated service results and restores the fictional
+policies. See [customer acquisition](customer-acquisition.md) for the production
+assent and verified-source requirements.

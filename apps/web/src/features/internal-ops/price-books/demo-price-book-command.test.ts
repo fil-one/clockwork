@@ -56,6 +56,47 @@ beforeEach(async () => {
 });
 
 describe("durable demo price-book commands", () => {
+  it("approves a future schedule with distinct authority, freezes it, then cancels without changing active pricing", async () => {
+    const id = "66000000-0000-4000-8000-000000000004";
+    const send = (action: string, expectedVersion: number) =>
+      handleDemoPriceBookCommand(
+        request(`demo-schedule-${action}-unique`, {
+          id,
+          action,
+          expectedVersion,
+          payload: {
+            reason:
+              "Review the future price schedule and preserve current pricing",
+          },
+        }),
+        finance,
+        { store, now: "2026-09-06T12:00:00Z" },
+      );
+    expect((await send("schedule_activation", 2)).status).toBe(200);
+    const scheduled = currentDemoPriceBooks(await store.read()).find(
+      (book) => book.id === id,
+    );
+    expect(scheduled).toMatchObject({
+      status: "draft",
+      activationSchedule: { status: "approved" },
+      rowVersion: 3,
+    });
+    expect(
+      currentDemoPriceBooks(await store.read()).find((book) =>
+        book.id.endsWith("0001"),
+      ),
+    ).toMatchObject({ status: "active" });
+    expect((await send("reject_activation", 3)).status).toBe(422);
+    expect((await send("cancel_schedule", 3)).status).toBe(200);
+    expect(
+      currentDemoPriceBooks(await store.read()).find((book) => book.id === id),
+    ).toMatchObject({
+      status: "draft",
+      activationRequestedBy: null,
+      activationSchedule: { status: "cancelled" },
+      rowVersion: 4,
+    });
+  });
   it("creates only a draft, then validates and adds its first rate", async () => {
     const created = await handleDemoPriceBookCommand(
       request("price-book-create-0001", createBody),
@@ -214,7 +255,7 @@ describe("durable demo price-book commands", () => {
       );
       expect(response.status).toBe(403);
     }
-    expect(currentDemoPriceBooks(await store.read())).toHaveLength(3);
+    expect(currentDemoPriceBooks(await store.read())).toHaveLength(4);
   });
 
   it("returns to deterministic seeds when the demo is reset", async () => {
@@ -223,11 +264,11 @@ describe("durable demo price-book commands", () => {
       finance,
       { store },
     );
-    expect(currentDemoPriceBooks(await store.read())).toHaveLength(4);
+    expect(currentDemoPriceBooks(await store.read())).toHaveLength(5);
 
     await store.replace(createPristineDemoAdapterState());
     const resetBooks = currentDemoPriceBooks(await store.read());
-    expect(resetBooks).toHaveLength(3);
+    expect(resetBooks).toHaveLength(4);
     expect(resetBooks.some((book) => book.id === createBody.id)).toBe(false);
   });
 
@@ -249,7 +290,7 @@ describe("durable demo price-book commands", () => {
       code: "VALIDATION_FAILED",
       retryable: false,
     });
-    expect(currentDemoPriceBooks(await store.read())).toHaveLength(3);
+    expect(currentDemoPriceBooks(await store.read())).toHaveLength(4);
   });
 });
 

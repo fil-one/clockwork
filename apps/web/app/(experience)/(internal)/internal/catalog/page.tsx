@@ -34,12 +34,15 @@ export default async function Page() {
       description="Inspect catalog versions and prepare the provisionable SKU, region and source meter for each draft rate."
     >
       <p>
-        <Link href="/internal/price-books">
+        <Link className={styles.proseLink} href="/internal/price-books">
           Manage SKUs, regions, rates and price-book approval
         </Link>
         . Mapping evidence records supplied references; it does not certify a
         live provider or enable sales.{" "}
-        <Link href="/internal/gates">Review provider qualification gates</Link>.
+        <Link className={styles.proseLink} href="/internal/gates">
+          Review provider qualification gates
+        </Link>
+        .
       </p>
       {rows === null ? (
         <p role="status">

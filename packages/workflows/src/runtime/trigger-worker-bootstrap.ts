@@ -1,5 +1,7 @@
 import { DatabasePaygBillingRepository } from "../core/database-payg";
 import { configurePaygScheduleRepository } from "../core/payg-scheduled-runtime";
+import { configurePriceBookScheduleRepository } from "../core/price-book-scheduled-runtime";
+import { DatabasePriceBookScheduleRepository } from "@clockwork/db";
 import {
   configureDatabaseTransactionInstrumentation,
   createRuntimeDatabase,
@@ -296,6 +298,9 @@ export async function createEnvironmentProductionWorkflowRuntime(
       }
     }
     const adapters = await adapterFactory.create({ db, environment, source });
+    configurePriceBookScheduleRepository(
+      new DatabasePriceBookScheduleRepository(db),
+    );
     configurePaygScheduleRepository({
       billingMonths: (now) =>
         new DatabasePaygBillingRepository(db).billingMonths(now),

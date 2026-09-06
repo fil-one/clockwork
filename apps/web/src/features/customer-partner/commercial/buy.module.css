@@ -222,3 +222,10 @@
     width: 100%;
   }
 }
+
+.alternateOffer {
+  color: var(--web-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  font-weight: 600;
+}

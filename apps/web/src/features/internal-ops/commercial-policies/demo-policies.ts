@@ -95,6 +95,59 @@ function seeds(now: string) {
     }),
   };
 }
+export function currentDemoPaygPolicies(
+  state: DemoAdapterState,
+  now = new Date().toISOString(),
+): PaygOfferRecord[] {
+  const proposal = seeds(`${now.slice(0, 10)}T00:00:00.000Z`).payg;
+  const customer = PaygOfferRecordSchema.parse({
+    ...proposal,
+    id: "61000000-0000-4000-8000-000000000003",
+    rowVersion: 3,
+    status: "approved",
+    approvedBy: "21000000-0000-4000-8000-000000000011",
+    approvalEvidenceId: "fictional-customer-request-policy",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    terms: {
+      ...proposal.terms,
+      name: "Fictional no-term storage",
+      effectiveFrom: "2026-07-01",
+      sourceCheckedAt: "2026-07-01T00:00:00.000Z",
+      region: "us-west-2",
+      customerAcquisition: {
+        paygRequestsEnabled: true,
+        trialRequestsEnabled: true,
+        serviceNotice:
+          "Fictional demo only. Your request does not activate a provider tenant or start billing. A verified handoff is required before service begins.",
+        cancellationNotice:
+          "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",
+        trialNotice:
+          "Fictional demo only. Trial eligibility is verified once for the organization and domain. No paid conversion occurs without your separate request.",
+        terms: {
+          documentId: "fictional-demo-terms",
+          version: "1",
+          uri: "https://example.test/fictional-terms",
+          sha256: "a".repeat(64),
+        },
+        retention: {
+          documentId: "fictional-demo-retention",
+          version: "1",
+          uri: "https://example.test/fictional-retention",
+          sha256: "b".repeat(64),
+        },
+      },
+    },
+  });
+  const found = new Map([
+    [proposal.id, proposal],
+    [customer.id, customer],
+    ...records(state, "payg", proposal, PaygOfferRecordSchema).map(
+      (row) => [row.id, row] as const,
+    ),
+  ]);
+  return [...found.values()];
+}
 function records<T extends { id: string }>(
   state: DemoAdapterState,
   kind: string,
@@ -144,12 +197,7 @@ export class DemoCommercialPolicyRepository {
   ) {}
   async listPayg(now = new Date().toISOString()): Promise<PaygOfferRecord[]> {
     assertDemo();
-    return records(
-      await this.store.read(),
-      "payg",
-      seeds(now).payg,
-      PaygOfferRecordSchema,
-    );
+    return currentDemoPaygPolicies(await this.store.read(), now);
   }
   async listChannel(
     now = new Date().toISOString(),
@@ -215,7 +263,7 @@ export class DemoCommercialPolicyRepository {
       };
       if (kind === "payg") {
         const command = PaygOfferCommandSchema.parse(input.command),
-          rows = records(state, kind, seeds(now).payg, PaygOfferRecordSchema);
+          rows = currentDemoPaygPolicies(state, now);
         if (command.action === "create") {
           if (command.terms.sourceCheckedAt > now)
             throw new Error("PAYG_OFFER_SOURCE_CHECKED_IN_FUTURE");

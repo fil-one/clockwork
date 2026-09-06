@@ -307,6 +307,37 @@ describe("dashboard demo boundary", () => {
     ).toContain(openQuote.recordKey);
   });
 
+  it.each([
+    ["2026-09-06T00:00:00.000Z", "Opens Nov 1, 2026 · 56 days", 68],
+    ["2026-11-02T00:00:00.000Z", "Opened Nov 1, 2026", 84],
+    ["2027-02-01T00:00:00.000Z", "Opened Nov 1, 2026", 100],
+  ])(
+    "ages the fictional term from the displayed as-of date %s",
+    async (asOf, notice, progress) => {
+      vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
+      mocks.loadPortalRecords.mockResolvedValue({
+        ...pageFor([]),
+        generatedAt: asOf,
+      });
+
+      const result = await loadCustomerDashboardProjection();
+
+      expect(result.generatedAt).toBe(asOf);
+      expect(result.term.noticeLabel).toBe(notice);
+      expect(result.term.progressPercent).toBe(progress);
+      expect(result.term.rangeLabel).toBe("Jan 1 - Dec 31, 2026");
+      expect(result.term.renewalLabel).toBe("Jan 1, 2027");
+      expect(
+        result.obligations.find((item) => item.type === "Notice and renewal")
+          ?.title,
+      ).toBe(
+        asOf < "2026-11-01"
+          ? "Notice window opens Nov 1"
+          : "Notice window opened Nov 1",
+      );
+    },
+  );
+
   it("binds demo partner economics to the selected organization and selling motion", async () => {
     vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
     vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "local");

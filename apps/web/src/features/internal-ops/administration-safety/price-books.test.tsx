@@ -429,10 +429,72 @@ it.each([
       screen.queryByRole("button", { name: "Approve and activate" }) !== null,
     ).toBe(allowed);
     expect(
+      screen.queryByRole("button", { name: "Approve scheduled activation" }) !==
+        null,
+    ).toBe(effectiveFrom > "2026-09-06");
+    expect(
       screen.getByRole("button", { name: "Return draft for changes" }),
     ).toBeEnabled();
   },
 );
+
+it("shows an approved schedule as frozen and permits explicit cancellation", async () => {
+  const user = userEvent.setup();
+  render(
+    <PriceBookAdministration
+      roles={["finance_approver"]}
+      userId="reviewer"
+      books={[
+        {
+          ...draft,
+          effectiveFrom: "2099-01-01",
+          activationSchedule: {
+            id: "schedule",
+            status: "approved",
+            effectiveFrom: "2099-01-01",
+            effectiveTo: null,
+            approvedAt: "2026-09-06T12:00:00Z",
+            completedAt: null,
+            completionReason: null,
+          },
+        },
+      ]}
+      source="Pricing service"
+      availability="available"
+      readAt="2026-09-06T12:00:00Z"
+    />,
+  );
+  expect(screen.getByText("Activation schedule · approved")).toBeVisible();
+  expect(screen.getByText("Scheduled · 2099-01-01")).toBeVisible();
+  await user.type(
+    screen.getByLabelText("Finance decision reason"),
+    "Cancel the future change and request a fresh review.",
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Review price-book approval" }),
+  );
+  expect(
+    screen.getAllByRole("heading", { name: "Schedule cancellation review" })
+      .length,
+  ).toBeGreaterThan(0);
+  expect(
+    screen.getByText(
+      "Cancels the approved schedule and unlocks this draft for editing. Current active pricing stays in place.",
+    ),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Approve scheduled activation" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Return draft for changes" }),
+  ).not.toBeInTheDocument();
+  await user.click(
+    screen.getByRole("button", { name: "Cancel approved schedule" }),
+  );
+  expect(mocks.sendCoreCommand).toHaveBeenCalledWith(
+    expect.objectContaining({ action: "cancel_schedule", expectedVersion: 2 }),
+  );
+});
 
 it("reports a duplicate clone version before sending a mutation", async () => {
   const user = userEvent.setup();

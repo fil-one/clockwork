@@ -25,7 +25,7 @@ const otherFinanceApprover = {
 const money = (currency: "GBP" | "USD", minor: string) =>
   MoneySchema.parse({ currency, minor });
 
-export const canonicalDemoPriceBooks: readonly DemoPriceBook[] = [
+const baseDemoPriceBooks: readonly DemoPriceBook[] = [
   {
     id: "66000000-0000-4000-8000-000000000001",
     name: "Direct commerce USD",
@@ -153,6 +153,26 @@ export const canonicalDemoPriceBooks: readonly DemoPriceBook[] = [
   },
 ] as const;
 
+const futureSource = baseDemoPriceBooks.find((book) => book.status === "draft");
+if (!futureSource) throw new Error("Missing fictional price-book proposal");
+export const canonicalDemoPriceBooks: readonly DemoPriceBook[] = [
+  ...baseDemoPriceBooks,
+  {
+    ...structuredClone(futureSource),
+    id: "66000000-0000-4000-8000-000000000004",
+    name: "Future scheduled USD",
+    version: 9000,
+    effectiveFrom: "2099-01-01",
+    effectiveTo: "2099-12-31",
+    lastDecisionReason:
+      "Fictional advance-approval scenario; no production activation is implied.",
+    rateCards: futureSource.rateCards.map((rate, index) => ({
+      ...structuredClone(rate),
+      id: `66100000-0000-4000-8000-${String(100 + index).padStart(12, "0")}`,
+    })),
+  },
+];
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -219,6 +239,9 @@ export function administrationRecord(
 ): PriceBookAdministrationRecord {
   return {
     id: book.id,
+    ...(book.activationSchedule
+      ? { activationSchedule: book.activationSchedule }
+      : {}),
     name: book.name,
     currency: book.currency,
     version: book.version,

@@ -4,6 +4,8 @@ export * from "./commercial-artifacts";
 export * from "./finance";
 export * from "./invoice-derivation";
 export * from "./price-book-administration";
+export * from "./price-book-schedules";
+export * from "./price-book-impact";
 export * from "./stripe-adjustments";
 export * from "./tax-fixture";
 
@@ -31,3 +33,5 @@ export * from "./payg-invoice-source";
 export * from "./channel-policy";
 
 export * from "./trials";
+
+export * from "./customer-acquisition";

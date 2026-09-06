@@ -544,6 +544,27 @@ export interface paths {
                             sourceCheckedAt: string;
                             sourceDocumentId: string;
                             owner: string;
+                            customerAcquisition?: {
+                                paygRequestsEnabled: boolean;
+                                trialRequestsEnabled: boolean;
+                                serviceNotice: string;
+                                cancellationNotice: string;
+                                trialNotice: string;
+                                terms: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                                retention: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                            };
                             payg: {
                                 /** @enum {string} */
                                 currency: "USD" | "EUR" | "GBP";
@@ -1022,6 +1043,27 @@ export interface paths {
                                     sourceCheckedAt: string;
                                     sourceDocumentId: string;
                                     owner: string;
+                                    customerAcquisition?: {
+                                        paygRequestsEnabled: boolean;
+                                        trialRequestsEnabled: boolean;
+                                        serviceNotice: string;
+                                        cancellationNotice: string;
+                                        trialNotice: string;
+                                        terms: {
+                                            documentId: string;
+                                            version: string;
+                                            /** Format: uri */
+                                            uri: string;
+                                            sha256: string;
+                                        };
+                                        retention: {
+                                            documentId: string;
+                                            version: string;
+                                            /** Format: uri */
+                                            uri: string;
+                                            sha256: string;
+                                        };
+                                    };
                                     payg: {
                                         /** @enum {string} */
                                         currency: "USD" | "EUR" | "GBP";
@@ -1109,6 +1151,27 @@ export interface paths {
                             sourceCheckedAt: string;
                             sourceDocumentId: string;
                             owner: string;
+                            customerAcquisition?: {
+                                paygRequestsEnabled: boolean;
+                                trialRequestsEnabled: boolean;
+                                serviceNotice: string;
+                                cancellationNotice: string;
+                                trialNotice: string;
+                                terms: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                                retention: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                            };
                             payg: {
                                 /** @enum {string} */
                                 currency: "USD" | "EUR" | "GBP";
@@ -1155,6 +1218,27 @@ export interface paths {
                             sourceCheckedAt: string;
                             sourceDocumentId: string;
                             owner: string;
+                            customerAcquisition?: {
+                                paygRequestsEnabled: boolean;
+                                trialRequestsEnabled: boolean;
+                                serviceNotice: string;
+                                cancellationNotice: string;
+                                trialNotice: string;
+                                terms: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                                retention: {
+                                    documentId: string;
+                                    version: string;
+                                    /** Format: uri */
+                                    uri: string;
+                                    sha256: string;
+                                };
+                            };
                             payg: {
                                 /** @enum {string} */
                                 currency: "USD" | "EUR" | "GBP";
@@ -1219,6 +1303,27 @@ export interface paths {
                                 sourceCheckedAt: string;
                                 sourceDocumentId: string;
                                 owner: string;
+                                customerAcquisition?: {
+                                    paygRequestsEnabled: boolean;
+                                    trialRequestsEnabled: boolean;
+                                    serviceNotice: string;
+                                    cancellationNotice: string;
+                                    trialNotice: string;
+                                    terms: {
+                                        documentId: string;
+                                        version: string;
+                                        /** Format: uri */
+                                        uri: string;
+                                        sha256: string;
+                                    };
+                                    retention: {
+                                        documentId: string;
+                                        version: string;
+                                        /** Format: uri */
+                                        uri: string;
+                                        sha256: string;
+                                    };
+                                };
                                 payg: {
                                     /** @enum {string} */
                                     currency: "USD" | "EUR" | "GBP";
