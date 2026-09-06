@@ -205,5 +205,50 @@ acceptance gates pass.
 
 ## Validation and branch consolidation
 
-Final qualification and branch outcomes are recorded below after checks
-complete.
+Qualification used the pinned Node 24.18.1 and pnpm 10.34.5 toolchain on macOS,
+with local Supabase/Postgres and explicitly selected demo or provider-fixture
+adapters. The implementation commit is `26e342b`.
+
+| Check                                      | Result                                                                                                         |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Unit suites                                | All 10 packages passed; the final search change additionally passed all 13 focused regressions                 |
+| Release and verification scripts           | 99 tests passed                                                                                                |
+| Integration suites                         | All 10 tasks passed without cache; database package: 51 files, 307 tests                                       |
+| Database constraints, policies and RLS     | 52 pgTAP files, 964 assertions passed on a fresh reset                                                         |
+| Populated upgrade                          | Accepted; same-millisecond preservation, inconsistent-evidence rollback and 964 post-upgrade assertions passed |
+| Applied schema comparison                  | 144 modelled tables, 145 applied tables, no drift; the existing documented reservation-table exception remains |
+| Functional browser journeys                | 79 passed                                                                                                      |
+| Reviewed desktop/mobile visual comparisons | 25 passed                                                                                                      |
+| Password-gated demo journeys               | 17 passed, including policy approval, persistence and reset                                                    |
+| Compiled production browser proof          | Customer, partner and internal proofs: 3 passed against local Postgres and provider fixtures                   |
+| Production build                           | All 10 tasks passed without cache                                                                              |
+| Storybook build and tests                  | Build passed; 4 test files, 10 tests passed                                                                    |
+| Static and security checks                 | Typecheck, lint, formatting, secret scan, dependency boundaries, traceability and citation liveness passed     |
+| Generated API contract                     | Regeneration reproduced both generated files byte-for-byte                                                     |
+| Dependency audit                           | Passed with the existing three documented ignored advisories; no new exception                                 |
+
+Integration suites now bypass Turbo's cache because their result depends on
+mutable database state. Database fixtures require a fresh reset at qualification
+boundaries; an arbitrary second run against already-mutated fixtures is not a
+fresh release proof. These checks establish the tested local behavior and do not
+qualify a live external provider.
+
+GitHub Actions could not start the existing hosted jobs because organization
+payments or spending limits blocked execution. The check annotations explicitly
+identify billing; hosted CI is not represented as passing. This account-level
+restriction was not worked around by weakening the workflow. Local qualification
+is recorded above, and hosted checks must be rerun when the account is restored.
+
+The two outstanding documentation branches are integrated with merge ancestry:
+`codex/commercial-readiness-decision-register` and `docs/human-readme`. The
+register retains its proposed-policy status and gains this execution record. The
+README retains the human introduction, shared-password demo explanation,
+engineering ownership decision link and evaluation license, with technical
+contributor material preserved in `docs/contributing.md`.
+
+Eleven `ws10`–`ws20` branches were verified as ancestors of main and removed
+with expected-tip checks. Their references, and both documentation branch tips,
+were preserved in a verified local Git bundle before cleanup. Remaining merged
+documentation and task branches are removed after main advances; no unique
+branch work is discarded. The public demo follows the separate deployment
+runbook and is deployed from the clean merged main checkout.
