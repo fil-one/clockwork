@@ -4,6 +4,14 @@ values ('local', 'clockwork-local-auth-context-secret-change-me', true)
 on conflict (id) do update set secret = excluded.secret, active = true, rotated_at = now();
 set role clockwork_service;
 
+-- Explicit demo-only capabilities. Migrations leave production disabled;
+-- never apply this fictional seed to staging or production.
+update public.system_capabilities
+set enabled = capability_key in ('new_business','legal','billing','partner'),
+    recovery_enabled = capability_key <> 'new_business',
+    change_reason = 'Fictional local demo fixture; not production launch approval',
+    changed_by = 'demo:seed';
+
 insert into accounts (
   id, legal_name, relationship_roles, registered_address, billing_contact, ap_contact,
   invoice_delivery_email, domain, country, currency, screening_status,
@@ -148,11 +156,13 @@ insert into key_terms (id, agreement_id, breach_notice_hours, audit_rights, rete
 ('52000000-0000-4000-8000-000000000001','51000000-0000-4000-8000-000000000001',72,'Annual evidence review','liable_through_retention');
 
 insert into price_books (id, name, currency, effective_from, status, version) values
-('60000000-0000-4000-8000-000000000001','Demo USD 2026','USD','2026-01-01','active',1),
-('60000000-0000-4000-8000-000000000002','Demo EUR 2026','EUR','2026-01-01','active',1);
+('60000000-0000-4000-8000-000000000001','Demo USD 2026','USD','2026-01-01','draft',1),
+('60000000-0000-4000-8000-000000000002','Demo EUR 2026','EUR','2026-01-01','draft',1);
 insert into rate_cards (id, price_book_id, sku, approved_claim, region, unit, unit_price_minor, floor_price_minor, overage_rate_minor, minimum_quantity, trial_limit, egress_treatment, commit_type, stripe_tax_code, qbo_income_account, partner_transfer_prices) values
 ('61000000-0000-4000-8000-000000000001','60000000-0000-4000-8000-000000000001','LOCKED-STORAGE-TB','Fictional immutable storage capacity','us-east-2','TB-month',15000,10000,18000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage','{"gold":{"currency":"USD","minor":"12500"},"silver":{"currency":"USD","minor":"12000"},"distributor":{"currency":"USD","minor":"11000"},"two-tier":{"currency":"USD","minor":"11500"},"white-label":{"currency":"USD","minor":"12000"},"marketplace":{"currency":"USD","minor":"13000"}}'),
 ('61000000-0000-4000-8000-000000000002','60000000-0000-4000-8000-000000000002','LOCKED-STORAGE-TB','Fictional immutable storage capacity','eu-west-1','TB-month',14000,9500,17000,1,5,'metered','term_drawdown','txcd_demo','4000-Storage','{"silver":{"currency":"EUR","minor":"14000"}}');
+
+update price_books set status = 'active' where id in ('60000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000002');
 
 insert into quotes (id, account_id, end_client_account_id, partner_account_id, price_book_id, series_id, revision, status, currency, total_minor, margin_floor_result, expires_at, created_by, rendered_document_id, partner_document_id, partner_resale_total_minor, immutable_at) values
 ('70000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',null,null,'60000000-0000-4000-8000-000000000001','70100000-0000-4000-8000-000000000001',1,'accepted','USD',180000,'pass','2026-08-31T16:00:00Z','20000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000003',null,null,'2026-01-01T16:00:00Z'),

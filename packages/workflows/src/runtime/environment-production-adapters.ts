@@ -48,6 +48,11 @@ import type {
 import type { CoreWorkflowTaskSubmitter } from "../core/outbox-handlers";
 import type { DeletionCertificateRenderer } from "../offboarding/deletion-certificate-handler";
 import { createProductionWorkflowAdapterFactory } from "./production-adapter-factory";
+import {
+  disabledWorkflowProvider,
+  type WorkflowCapabilityProfile,
+  type WorkflowProviderName,
+} from "./capability-profile";
 
 const PartySchema = z.object({
   legalName: z.string().min(1),
@@ -229,7 +234,40 @@ export function createEnvironmentWorkflowAdapterFactory(
   source: TriggerWorkerEnvironmentSource,
   instrumentation?: RuntimeBoundaryInstrumentation,
   telemetry?: ClockworkTelemetry,
+  capabilityProfile?: WorkflowCapabilityProfile,
 ) {
+  const needed = (name: WorkflowProviderName) =>
+    !capabilityProfile || capabilityProfile.providers.includes(name);
+  const artifactsNeeded = capabilityProfile?.artifacts ?? true;
+  const crmEnabled =
+    !capabilityProfile || source.CLOCKWORK_CRM_ENABLED === "true";
+  const selectedTransport: typeof transport = (...args) => {
+    const prefix = args[1];
+    const owner: Record<string, WorkflowProviderName> = {
+      ACCOUNTING_PROVIDER: "accounting",
+      NOTIFICATION_PROVIDER: "notifications",
+      USAGE_PROVIDER: "usage",
+      PROVISIONING_PROVIDER: "provisioning",
+      SCREENING_PROVIDER: "screening",
+      SIGNATURE_PROVIDER: "signature",
+      EVIDENCE_PROVIDER: "evidence",
+      TAX_PROVIDER: "tax",
+      WORKOS_MFA_PROVIDER: "workos",
+    };
+    const enabled =
+      prefix === "WORKFLOW_PROVIDER_CONTROL"
+        ? !capabilityProfile || capabilityProfile.providers.length > 0
+        : prefix === "DOCUMENT_RENDERER_PROVIDER"
+          ? artifactsNeeded
+          : prefix === "CRM_PROVIDER"
+            ? crmEnabled
+            : owner[prefix]
+              ? needed(owner[prefix])
+              : false;
+    return enabled
+      ? transport(...args)
+      : disabledWorkflowProvider<ProviderJsonTransport>(args[2]);
+  };
   const runtimeEnvironment = required(source, "NODE_ENV", "EXT-ACC-01");
   if (
     runtimeEnvironment === "production" &&
@@ -241,7 +279,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     );
   const allowInsecureLocalhost = runtimeEnvironment !== "production";
   const control = new HttpProviderActivationTestClient(
-    transport(
+    selectedTransport(
       source,
       "WORKFLOW_PROVIDER_CONTROL",
       "workflow-provider-control",
@@ -252,7 +290,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     ),
   );
   const activationTest = (provider: string) => () => control.run(provider);
-  const accountingTransport = transport(
+  const accountingTransport = selectedTransport(
     source,
     "ACCOUNTING_PROVIDER",
     "accounting",
@@ -261,7 +299,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const notificationTransport = transport(
+  const notificationTransport = selectedTransport(
     source,
     "NOTIFICATION_PROVIDER",
     "notifications",
@@ -270,7 +308,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const usageTransport = transport(
+  const usageTransport = selectedTransport(
     source,
     "USAGE_PROVIDER",
     "usage",
@@ -279,7 +317,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const provisioningTransport = transport(
+  const provisioningTransport = selectedTransport(
     source,
     "PROVISIONING_PROVIDER",
     "provisioning",
@@ -288,7 +326,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const screeningTransport = transport(
+  const screeningTransport = selectedTransport(
     source,
     "SCREENING_PROVIDER",
     "screening",
@@ -297,12 +335,9 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  // The slot P0-44 found missing. The projection port, its adapter and its fake
-  // existed and nothing constructed them, so §15's one-way outbound sync had no
-  // runtime caller at all. `required` throws naming EXT-PROVIDER-01 when the
-  // endpoint or credential is absent, so a worker with no approved CRM does not
-  // boot rather than booting with a silently dead projection.
-  const crmTransport = transport(
+  // CRM is an explicit production opt-in. When enabled its credentials are
+  // required; when omitted no CRM consumer is attached to the worker.
+  const crmTransport = selectedTransport(
     source,
     "CRM_PROVIDER",
     "crm",
@@ -311,7 +346,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const signatureTransport = transport(
+  const signatureTransport = selectedTransport(
     source,
     "SIGNATURE_PROVIDER",
     "signature",
@@ -320,7 +355,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const evidenceTransport = transport(
+  const evidenceTransport = selectedTransport(
     source,
     "EVIDENCE_PROVIDER",
     "evidence",
@@ -329,11 +364,9 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  // The slot P0-61 found missing. `required` throws a
-  // WorkflowEnvironmentAdapterConfigurationError naming EXT-TAX-01 when the
-  // endpoint or credential is absent, so a worker with no approved tax engine
-  // does not boot rather than booting and billing every customer net.
-  const taxTransport = transport(
+  // Billing-capable workers require a configured tax provider. Omitted billing
+  // uses a denial port, so it cannot silently invoice customers without tax.
+  const taxTransport = selectedTransport(
     source,
     "TAX_PROVIDER",
     "tax",
@@ -342,7 +375,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const documentRendererTransport = transport(
+  const documentRendererTransport = selectedTransport(
     source,
     "DOCUMENT_RENDERER_PROVIDER",
     "document-renderer",
@@ -351,7 +384,7 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const workosMfaTransport = transport(
+  const workosMfaTransport = selectedTransport(
     source,
     "WORKOS_MFA_PROVIDER",
     "workos-mfa",
@@ -360,12 +393,14 @@ export function createEnvironmentWorkflowAdapterFactory(
     instrumentation,
     telemetry,
   );
-  const stripe = new StripeFinanceGateway({
-    apiKey: required(source, "STRIPE_SECRET_KEY", "EXT-ACC-01"),
-  });
-  const issuer = party(
-    json(source, "PLATFORM_ISSUER_JSON", "EXT-LEGAL-01", PartySchema),
-  );
+  const stripe = needed("billing")
+    ? new StripeFinanceGateway({
+        apiKey: required(source, "STRIPE_SECRET_KEY", "EXT-ACC-01"),
+      })
+    : disabledWorkflowProvider<StripeFinanceGateway>("billing");
+  const issuer = artifactsNeeded
+    ? party(json(source, "PLATFORM_ISSUER_JSON", "EXT-LEGAL-01", PartySchema))
+    : undefined;
   const notifications = createRuntimeBoundNotificationClient(
     notificationTransport,
   );
@@ -381,51 +416,64 @@ export function createEnvironmentWorkflowAdapterFactory(
       "EXT-ACC-01",
     ),
     coreTaskSubmitter: new TriggerCoreWorkflowTaskSubmitter(),
+    ...(capabilityProfile
+      ? { activationGateKeys: capabilityProfile.gateKeys }
+      : {}),
     providers: {
       billing: {
         mode: "live",
+        disabled: !needed("billing"),
         value: { billing: stripe, metering: stripe, adjustments: stripe },
         activationTest: activationTest("billing"),
       },
       accounting: {
         mode: "live",
+        disabled: !needed("accounting"),
         value: { sink: new HttpAccountingExportSink(accountingTransport) },
         activationTest: activationTest("accounting"),
       },
       notifications: {
         mode: "live",
+        disabled: !needed("notifications"),
         value: { client: notifications.client },
         activationTest: activationTest("notifications"),
       },
       usage: {
         mode: "live",
+        disabled: !needed("usage"),
         value: { client: new HttpUsageProviderClient(usageTransport) },
         activationTest: activationTest("usage"),
       },
       workos: {
         mode: "live",
+        disabled: !needed("workos"),
         value: {
-          client: new WorkosSdkOrganizationClient({
-            apiKey: required(source, "WORKOS_API_KEY", "EXT-ACC-01"),
-            mfaPolicyEnforcer: new HttpWorkosMfaPolicyEnforcer(
-              workosMfaTransport,
-            ),
-          }),
+          client: needed("workos")
+            ? new WorkosSdkOrganizationClient({
+                apiKey: required(source, "WORKOS_API_KEY", "EXT-ACC-01"),
+                mfaPolicyEnforcer: new HttpWorkosMfaPolicyEnforcer(
+                  workosMfaTransport,
+                ),
+              })
+            : disabledWorkflowProvider<WorkosSdkOrganizationClient>("workos"),
         },
         activationTest: activationTest("workos"),
       },
       evidence: {
         mode: "live",
+        disabled: !needed("evidence"),
         value: evidence,
         activationTest: activationTest("evidence"),
       },
       provisioning: {
         mode: "live",
+        disabled: !needed("provisioning"),
         value: { provider: new HttpProvisioningAdapter(provisioningTransport) },
         activationTest: activationTest("provisioning"),
       },
       screening: {
         mode: "live",
+        disabled: !needed("screening"),
         value: {
           provider: new HttpLifecycleScreeningAdapter(screeningTransport),
         },
@@ -433,36 +481,51 @@ export function createEnvironmentWorkflowAdapterFactory(
       },
       signature: {
         mode: "live",
+        disabled: !needed("signature"),
         value: {
-          provider: new HttpLifecycleSignatureAdapter(
-            signatureTransport,
-            json(
-              source,
-              "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
-              "EXT-LEGAL-01",
-              z.array(z.url()).min(1).max(20),
-            ),
-          ),
+          provider: needed("signature")
+            ? new HttpLifecycleSignatureAdapter(
+                signatureTransport,
+                json(
+                  source,
+                  "SIGNATURE_PROVIDER_SIGNING_ORIGINS_JSON",
+                  "EXT-LEGAL-01",
+                  z.array(z.url()).min(1).max(20),
+                ),
+              )
+            : disabledWorkflowProvider<HttpLifecycleSignatureAdapter>(
+                "signature",
+              ),
         },
         activationTest: activationTest("signature"),
       },
       tax: {
         mode: "live",
+        disabled: !needed("tax"),
         value: { provider: new HttpTaxAdapter(taxTransport) },
         activationTest: activationTest("tax"),
       },
     },
-    deletionCertificates: {
-      issuer,
-      automatedTeardownEnabled: source.AUTOMATED_TEARDOWN_ENABLED === "true",
-      renderer: renderers.deletion,
-    },
-    commercialArtifacts: {
-      platformIssuer: issuer,
-      renderer: renderers.commercial,
-    },
+    ...(issuer
+      ? {
+          deletionCertificates: {
+            issuer,
+            automatedTeardownEnabled:
+              source.AUTOMATED_TEARDOWN_ENABLED === "true",
+            renderer: renderers.deletion,
+          },
+          commercialArtifacts: {
+            platformIssuer: issuer,
+            renderer: renderers.commercial,
+          },
+        }
+      : {}),
   });
-  return withRuntimeBoundAdapters(factory, crmTransport, notifications.bind);
+  return withRuntimeBoundAdapters(
+    factory,
+    crmEnabled ? crmTransport : undefined,
+    notifications.bind,
+  );
 }
 
 /**
@@ -514,13 +577,14 @@ export function createRuntimeBoundNotificationClient(
  */
 export function withRuntimeBoundAdapters(
   factory: ProductionWorkflowAdapterFactory,
-  crmTransport: ProviderJsonTransport,
+  crmTransport: ProviderJsonTransport | undefined,
   bindRuntime: (db: RuntimeDatabase) => void = () => {},
 ): ProductionWorkflowAdapterFactory {
   return {
     async create(input) {
       bindRuntime(input.db);
       const bundle = await factory.create(input);
+      if (!crmTransport) return bundle;
       const handlers = new Map(bundle.outboxHandlers);
       const runtime = new ProviderRuntime(
         new PersistedProviderGateStateStore(

@@ -687,8 +687,8 @@ export function WorkflowPanel({
   const [error, setError] = useState("");
   const [reportResult, setReportResult] = useState<unknown>(null);
   const [decision, setDecision] = useState(defaultDecision(workflow));
-  /** Bumped on confirmation so the uncontrolled dialog returns to its closed state. */
-  const [confirmations, setConfirmations] = useState(0);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const submittingRef = useRef(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const commandKeyRef = useRef<string | null>(null);
@@ -717,6 +717,7 @@ export function WorkflowPanel({
 
   const run = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submittingRef.current) return;
     const form = event.currentTarget;
     setError("");
     setSuccess("");
@@ -728,12 +729,17 @@ export function WorkflowPanel({
       return;
     }
     if (!form.checkValidity()) {
+      setConfirmationOpen(false);
       form.reportValidity();
-      form.querySelector<HTMLElement>(":invalid")?.focus();
+      window.setTimeout(
+        () => form.querySelector<HTMLElement>(":invalid")?.focus(),
+        0,
+      );
       return;
     }
     const data = new FormData(form);
 
+    submittingRef.current = true;
     setPending(true);
     try {
       let result: unknown;
@@ -893,13 +899,7 @@ export function WorkflowPanel({
                 ? "Renewal decision saved. The portfolio record now shows the pending outcome."
                 : "Request accepted. The server record is now the source of truth.",
         );
-        if (
-          workflow === "brand" ||
-          workflow === "invite" ||
-          workflow === "procurement" ||
-          (workflow === "renewal" && surface === "partnerRenewals")
-        )
-          router.refresh();
+        if (workflow !== "reports") router.refresh();
       }
     } catch (caught) {
       /*
@@ -924,7 +924,9 @@ export function WorkflowPanel({
           : "The request failed. Nothing was changed.",
       );
     } finally {
+      submittingRef.current = false;
       setPending(false);
+      setConfirmationOpen(false);
     }
   };
 
@@ -1021,7 +1023,8 @@ export function WorkflowPanel({
         <div className="form-actions">
           {destructive ? (
             <Dialog
-              key={confirmations}
+              open={confirmationOpen}
+              onOpenChange={setConfirmationOpen}
               title={t("workflow.confirm.title")}
               description={t("workflow.confirm.description")}
               closeLabel={t("workflow.confirm.cancel")}
@@ -1031,7 +1034,6 @@ export function WorkflowPanel({
                   variant="danger"
                   disabled={pending}
                   onClick={() => {
-                    setConfirmations((count) => count + 1);
                     formRef.current?.requestSubmit();
                   }}
                 >

@@ -11,7 +11,7 @@ import {
   loadInvoiceDerivation,
   withAuthorizedTransaction,
   withInternalTransaction,
-  type InvoiceDerivation,
+  type BillingInvoiceDerivation,
   type RuntimeDatabase,
   type RuntimeTransaction,
 } from "@clockwork/db";
@@ -672,7 +672,7 @@ export class DatabaseExperienceRepository {
     session: SessionClaims,
     invoiceId: string,
     requestId: string,
-  ): Promise<InvoiceDerivation> {
+  ): Promise<BillingInvoiceDerivation> {
     return this.authorized(session, requestId, async (transaction) => {
       try {
         return await loadInvoiceDerivation(transaction, invoiceId);
@@ -693,7 +693,7 @@ export class DatabaseExperienceRepository {
     accountId: string,
     limit: number,
     requestId: string,
-  ): Promise<readonly InvoiceDerivation[]> {
+  ): Promise<readonly BillingInvoiceDerivation[]> {
     return this.authorized(session, requestId, (transaction) =>
       loadAccountInvoiceDerivations(transaction, accountId, limit),
     );

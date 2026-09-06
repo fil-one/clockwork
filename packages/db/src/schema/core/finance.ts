@@ -1155,9 +1155,7 @@ export const stripeAdjustmentOperations = pgTable(
   {
     adjustmentId: uuid("adjustment_id").primaryKey(),
     kind: text("kind").notNull(),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id),
+    orderId: uuid("order_id").references(() => orders.id),
     sourceId: uuid("source_id").notNull(),
     sourceCurrency: text("source_currency").notNull(),
     providerInvoiceId: text("provider_invoice_id"),
@@ -1454,7 +1452,33 @@ export const threeWayTieOuts = pgTable(
   ],
 );
 
+/** Private, immutable referral economics captured when a quote is created. */
+export const referralCommissionPolicySnapshots = pgTable(
+  "core_referral_commission_policy_snapshots",
+  {
+    quoteId: uuid("quote_id")
+      .primaryKey()
+      .references(() => quotes.id),
+    partnerAccountId: uuid("partner_account_id")
+      .notNull()
+      .references(() => accounts.id),
+    accountRowVersion: integer("account_row_version").notNull(),
+    rateBps: integer("rate_bps"),
+    holdbackBps: integer("holdback_bps"),
+    capturedAt: timestamp("captured_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "core_referral_policy_basis_points_check",
+      sql`(${table.rateBps} is null) = (${table.holdbackBps} is null) and (${table.rateBps} is null or (${table.rateBps} between 0 and 10000 and ${table.holdbackBps} between 0 and 10000))`,
+    ),
+  ],
+);
+
 export const coreFinanceTables = {
+  referralCommissionPolicySnapshots,
   accountCommercialProfiles,
   accountRelationshipRoles,
   accountContacts,

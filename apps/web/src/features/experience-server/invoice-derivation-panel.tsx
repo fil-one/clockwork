@@ -2,6 +2,8 @@ import type {
   DerivationNote,
   DerivationStep,
   InvoiceDerivation,
+  BillingInvoiceDerivation,
+  PaygInvoiceDerivation,
   InvoiceDerivationLine,
 } from "@clockwork/db";
 
@@ -150,6 +152,90 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
   );
 }
 
+function PaygInvoice({
+  derivation: invoice,
+}: {
+  derivation: PaygInvoiceDerivation;
+}) {
+  const labels: Record<string, string> = {
+    storage_bytes: "Storage",
+    egress_bytes: "Egress",
+    api_operations: "API operations",
+    monthly_minimum_adjustment: "Monthly minimum adjustment",
+    correction_adjustment: "Correction adjustment",
+  };
+  return (
+    <li className={styles.invoice}>
+      <div className={styles.invoiceHeader}>
+        <h3>
+          {invoice.reference} · {invoice.status}
+        </h3>
+        <p>
+          PAYG {invoice.month} · revision {invoice.revision}
+          {invoice.kind === "debit_adjustment" ? " · correction" : ""}
+        </p>
+        <dl className={styles.totals}>
+          <div>
+            <dt>Invoiced</dt>
+            <dd>{amount(invoice.invoicedTotalMinor, invoice.currency)}</dd>
+          </div>
+          <div>
+            <dt>Net</dt>
+            <dd>{amount(invoice.invoicedNetTotalMinor, invoice.currency)}</dd>
+          </div>
+          <div>
+            <dt>Tax</dt>
+            <dd>{amount(invoice.taxMinor, invoice.currency)}</dd>
+          </div>
+        </dl>
+      </div>
+      <p>
+        {invoice.supplierName} → {invoice.customerName}
+      </p>
+      <p>
+        {invoice.sku} · {invoice.region} · approved policy version{" "}
+        {invoice.policyVersion}
+      </p>
+      <p>
+        Service period: {invoice.serviceStartsAt} to {invoice.serviceEndsAt}{" "}
+        (end excluded).
+      </p>
+      <dl className={styles.facts}>
+        {invoice.lines.map((line) => (
+          <div key={line.kind}>
+            <dt>{labels[line.kind] ?? line.kind}</dt>
+            <dd>{amount(line.minor, invoice.currency)}</dd>
+          </div>
+        ))}
+      </dl>
+      <details>
+        <summary>Usage and tax evidence</summary>
+        <dl className={styles.facts}>
+          <div>
+            <dt>Storage byte-hours</dt>
+            <dd>{invoice.storageByteHours}</dd>
+          </div>
+          <div>
+            <dt>Egress bytes</dt>
+            <dd>{invoice.egressBytes}</dd>
+          </div>
+          <div>
+            <dt>API operations</dt>
+            <dd>{invoice.apiOperations}</dd>
+          </div>
+        </dl>
+        {invoice.taxLines.map((line, index) => (
+          <p key={`${line.jurisdiction}:${index}`}>
+            {line.jurisdiction} · {line.treatment.replaceAll("_", " ")} ·{" "}
+            {amount(line.taxMinor, invoice.currency)}
+            {line.notation ? ` · ${line.notation}` : ""}
+          </p>
+        ))}
+      </details>
+    </li>
+  );
+}
+
 /**
  * The billed amount rebuilt from the rows that produced it: quote revision,
  * ordered line, entitlement, reconciled usage, commitment period, and the
@@ -158,24 +244,28 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
 export function InvoiceDerivationPanel({
   derivations,
 }: {
-  derivations: readonly InvoiceDerivation[];
+  derivations: readonly BillingInvoiceDerivation[];
 }) {
   return (
     <section aria-labelledby="derivation-title" className={styles.panel}>
       <div className={styles.heading}>
         <h2 id="derivation-title">Invoice derivation</h2>
         <p>
-          Every issued invoice on this account, traced from the priced quote to
-          the billed amount.
+          Recent issued invoices on this account, traced from their retained
+          commercial terms and usage to the billed amount.
         </p>
       </div>
       {derivations.length === 0 ? (
         <p className={styles.empty}>This account has no issued invoices.</p>
       ) : (
         <ol className={styles.invoices}>
-          {derivations.map((derivation) => (
-            <Invoice derivation={derivation} key={derivation.invoiceId} />
-          ))}
+          {derivations.map((derivation) =>
+            "billingSource" in derivation ? (
+              <PaygInvoice derivation={derivation} key={derivation.invoiceId} />
+            ) : (
+              <Invoice derivation={derivation} key={derivation.invoiceId} />
+            ),
+          )}
         </ol>
       )}
     </section>

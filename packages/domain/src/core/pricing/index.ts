@@ -96,7 +96,8 @@ export interface PricingAdminAudit {
 function assertLocalDate(value: string, label: string): void {
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-    Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+    Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ||
+    new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value
   )
     throw new Error(`${label} must be an ISO calendar date`);
 }
@@ -209,7 +210,8 @@ export function validatePriceBook(book: PriceBook): PriceBook {
       );
     if (
       BigInt(rate.unitPrice.minor) < 0n ||
-      BigInt(rate.overageRate.minor) < 0n
+      BigInt(rate.overageRate.minor) < 0n ||
+      (rate.floorPrice !== undefined && BigInt(rate.floorPrice.minor) < 0n)
     )
       throw new Error("Prices cannot be negative");
     parseDecimal(rate.minimumQuantity);
@@ -388,9 +390,11 @@ export function priceQuote(input: PriceQuoteInput): {
       );
     if (compareQuantities(requested.quantity, rate.minimumQuantity) < 0)
       throw new Error(`${requested.sku} quantity is below its minimum`);
-    const transfer = input.partnerTier
-      ? rate.partnerTransferPrices[input.partnerTier]
-      : undefined;
+    const transfer =
+      (input.route === "resale" || input.route === "distributor") &&
+      input.partnerTier
+        ? rate.partnerTransferPrices[input.partnerTier]
+        : undefined;
     if (
       (input.route === "resale" || input.route === "distributor") &&
       !transfer

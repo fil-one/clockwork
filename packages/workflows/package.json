@@ -22,6 +22,7 @@
     "@clockwork/domain": "workspace:*",
     "@clockwork/integrations": "workspace:*",
     "@trigger.dev/sdk": "catalog:",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

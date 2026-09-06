@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import type { RateCard } from "@clockwork/domain/core";
+import { DiscountMatrixEditor } from "./price-book-discounts";
+import { priceBookEconomicDiff } from "./price-book-diff";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
 import { Table } from "@clockwork/ui";
 
@@ -26,7 +30,8 @@ import {
   styles,
 } from "./ui";
 
-type Decision = "request_activation" | "activate" | "retire";
+type Decision =
+  "request_activation" | "activate" | "retire" | "reject_activation";
 
 const activationCopy = adminSafetyCopy.priceBookActivation;
 
@@ -39,6 +44,11 @@ const stateLabel = {
 function formString(values: FormData, name: string): string {
   const value = values.get(name);
   return typeof value === "string" ? value : "";
+}
+
+function minorDecimal(value: string): string {
+  const minor = BigInt(value);
+  return `${minor / 100n}.${(minor % 100n).toString().padStart(2, "0")}`;
 }
 
 function currencyMinor(value: string): string | undefined {
@@ -78,6 +88,11 @@ function decisionsFor(
       label: activationCopy.approveLabel,
       hint: activationCopy.approveHint,
     },
+    {
+      action: "reject_activation",
+      label: "Return draft for changes",
+      hint: "Records your reason and reopens the draft for editing. A new proposal is required before activation.",
+    },
   ];
 }
 
@@ -116,6 +131,10 @@ export function PriceBookAdministration({
     rowVersion: number;
     currency: "EUR" | "GBP" | "USD";
   } | null>(null);
+  const [editingRate, setEditingRate] = useState<RateCard | null>(null);
+  const [transferRows, setTransferRows] = useState<
+    { tier: string; amount: string }[]
+  >([]);
   const [authoringMessage, setAuthoringMessage] = useState("");
   const permitted = canDecide(roles, "finance");
   const authoringAvailable = permitted && availability !== "unavailable";
@@ -148,6 +167,16 @@ export function PriceBookAdministration({
   }, [books, currency, query, state]);
   const selected = books.find((book) => book.id === selectedId) ?? books[0];
   const decisions = selected ? decisionsFor(selected, userId) : [];
+  const incumbent = selected
+    ? books.find(
+        (book) =>
+          book.id !== selected.id &&
+          book.currency === selected.currency &&
+          book.status === "active",
+      )
+    : undefined;
+  const economicDiff =
+    selected && incumbent ? priceBookEconomicDiff(selected, incumbent) : [];
 
   async function submit(action: Decision) {
     if (!selected) return;
@@ -164,11 +193,13 @@ export function PriceBookAdministration({
       setOutcome({
         tone: "done",
         message:
-          action === "request_activation"
-            ? activationCopy.proposed
-            : action === "activate"
-              ? activationCopy.activated
-              : activationCopy.retired,
+          action === "reject_activation"
+            ? "Activation rejected. The draft can be edited and proposed again."
+            : action === "request_activation"
+              ? activationCopy.proposed
+              : action === "activate"
+                ? activationCopy.activated
+                : activationCopy.retired,
       });
       setReason("");
       setSummary(null);
@@ -193,6 +224,15 @@ export function PriceBookAdministration({
       <section className={styles.notice} role="note">
         <strong>Only activated versions set price.</strong>
         {activationCopy.authorities}
+        <p>
+          <Link href="/internal/payg-offers">
+            Configure PAYG billing and trial offer policies
+          </Link>
+          {" · "}
+          <Link href="/internal/channel-policy">
+            Configure channel and acquisition controls
+          </Link>
+        </p>
       </section>
 
       <section
@@ -236,6 +276,7 @@ export function PriceBookAdministration({
               })
                 .then(() => {
                   setDraft({ id, rowVersion: 1, currency });
+                  setTransferRows([]);
                   setAuthoringMessage(
                     "Draft metadata recorded. Add its first rate card next.",
                   );
@@ -292,6 +333,7 @@ export function PriceBookAdministration({
           </form>
         ) : (
           <form
+            key={`${draft.id}:${editingRate?.id ?? "new"}`}
             className={styles.panelBody}
             onSubmit={(event) => {
               event.preventDefault();
@@ -306,14 +348,37 @@ export function PriceBookAdministration({
                 );
                 return;
               }
+              const partnerTransferPrices: Record<
+                string,
+                { currency: typeof draft.currency; minor: string }
+              > = {};
+              for (const entry of transferRows) {
+                const tier = entry.tier.trim();
+                const amount = currencyMinor(entry.amount);
+                if (
+                  !tier ||
+                  amount === undefined ||
+                  Object.hasOwn(partnerTransferPrices, tier)
+                ) {
+                  setAuthoringMessage(
+                    "Each transfer tier needs a unique name and a valid price with at most two decimal places.",
+                  );
+                  return;
+                }
+                partnerTransferPrices[tier] = {
+                  currency: draft.currency,
+                  minor: amount,
+                };
+              }
               setAuthoringPending(true);
               setAuthoringMessage("");
               void sendCoreCommand({
                 resource: "price_books",
                 id: draft.id,
-                action: "add_rate",
+                action: editingRate ? "update_rate" : "add_rate",
                 expectedVersion: draft.rowVersion,
                 payload: {
+                  ...(editingRate ?? {}),
                   sku: minor("sku").trim(),
                   region: minor("region").trim(),
                   unit: minor("unit").trim(),
@@ -335,14 +400,15 @@ export function PriceBookAdministration({
                   commitType: minor("commitType"),
                   stripeTaxCode: minor("stripeTaxCode").trim(),
                   qboIncomeAccount: minor("qboIncomeAccount").trim(),
-                  partnerTransferPrices: {},
+                  partnerTransferPrices,
                 },
               })
                 .then(() => {
                   setSelectedId(draft.id);
                   setDraft(null);
+                  setEditingRate(null);
                   setAuthoringMessage(
-                    "Priced draft created. Review it below before proposing activation.",
+                    "Rate card saved. Reopen this draft to add or edit more rates, then review before proposing activation.",
                   );
                   router.refresh();
                 })
@@ -362,29 +428,48 @@ export function PriceBookAdministration({
             <div className={styles.metaGrid}>
               <label className={styles.field}>
                 SKU
-                <input name="sku" required maxLength={80} />
+                <input
+                  name="sku"
+                  defaultValue={editingRate?.sku}
+                  required
+                  maxLength={80}
+                />
               </label>
               <label className={styles.field}>
                 Region
-                <input name="region" required maxLength={80} />
+                <input
+                  name="region"
+                  defaultValue={editingRate?.region}
+                  required
+                  maxLength={80}
+                />
               </label>
               <label className={styles.field}>
                 Unit
                 <input
                   name="unit"
-                  defaultValue="TB-month"
+                  defaultValue={editingRate?.unit ?? "TB-month"}
                   required
                   maxLength={40}
                 />
               </label>
               <label className={styles.field}>
                 Minimum quantity
-                <input name="minimumQuantity" defaultValue="1" required />
+                <input
+                  name="minimumQuantity"
+                  defaultValue={editingRate?.minimumQuantity ?? "1"}
+                  required
+                />
               </label>
               <label className={styles.field}>
                 Unit price · {draft.currency}
                 <input
                   name="unitPrice"
+                  defaultValue={
+                    editingRate?.unitPrice
+                      ? minorDecimal(editingRate.unitPrice.minor)
+                      : ""
+                  }
                   inputMode="decimal"
                   required
                   pattern="[0-9]+(?:\.[0-9]{1,2})?"
@@ -395,6 +480,11 @@ export function PriceBookAdministration({
                 Floor price · {draft.currency}
                 <input
                   name="floorPrice"
+                  defaultValue={
+                    editingRate?.floorPrice
+                      ? minorDecimal(editingRate.floorPrice.minor)
+                      : ""
+                  }
                   inputMode="decimal"
                   required
                   pattern="[0-9]+(?:\.[0-9]{1,2})?"
@@ -405,6 +495,11 @@ export function PriceBookAdministration({
                 Overage rate · {draft.currency}
                 <input
                   name="overageRate"
+                  defaultValue={
+                    editingRate?.overageRate
+                      ? minorDecimal(editingRate.overageRate.minor)
+                      : ""
+                  }
                   inputMode="decimal"
                   required
                   pattern="[0-9]+(?:\.[0-9]{1,2})?"
@@ -413,19 +508,27 @@ export function PriceBookAdministration({
               </label>
               <label className={styles.field}>
                 Commitment model
-                <select name="commitType" defaultValue="term_drawdown">
+                <select
+                  name="commitType"
+                  defaultValue={editingRate?.commitType ?? "term_drawdown"}
+                >
                   <option value="term_drawdown">Term drawdown</option>
                   <option value="period_allowance">Period allowance</option>
                 </select>
               </label>
               <label className={styles.field}>
                 Egress treatment
-                <input name="egressTreatment" defaultValue="metered" required />
+                <input
+                  name="egressTreatment"
+                  defaultValue={editingRate?.egressTreatment ?? "metered"}
+                  required
+                />
               </label>
               <label className={styles.field}>
                 Stripe tax code
                 <input
                   name="stripeTaxCode"
+                  defaultValue={editingRate?.stripeTaxCode ?? ""}
                   placeholder="e.g. txcd_10103000"
                   required
                 />
@@ -434,14 +537,86 @@ export function PriceBookAdministration({
                 QBO income account
                 <input
                   name="qboIncomeAccount"
-                  defaultValue="4000-Storage"
+                  defaultValue={editingRate?.qboIncomeAccount ?? "4000-Storage"}
                   required
                 />
               </label>
             </div>
+            <fieldset disabled={authoringPending}>
+              <legend>Partner transfer prices</legend>
+              <p className={styles.resultMeta}>
+                Wholesale prices by tier, in {draft.currency}. These apply only
+                to resale and distributor routes and remain subject to the
+                floor. Leave empty for a direct-only rate.
+              </p>
+              {transferRows.map((entry, index) => (
+                <div className={styles.metaGrid} key={index}>
+                  <label className={styles.field}>
+                    Transfer tier {index + 1}
+                    <input
+                      required
+                      maxLength={80}
+                      value={entry.tier}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setTransferRows((rows) =>
+                          rows.map((row, position) =>
+                            position === index ? { ...row, tier: value } : row,
+                          ),
+                        );
+                      }}
+                    />
+                  </label>
+                  <label className={styles.field}>
+                    Transfer price {index + 1} · {draft.currency}
+                    <input
+                      required
+                      inputMode="decimal"
+                      pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                      value={entry.amount}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setTransferRows((rows) =>
+                          rows.map((row, position) =>
+                            position === index
+                              ? { ...row, amount: value }
+                              : row,
+                          ),
+                        );
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={styles.button}
+                    onClick={() =>
+                      setTransferRows((rows) =>
+                        rows.filter((_, position) => position !== index),
+                      )
+                    }
+                  >
+                    Remove transfer tier {index + 1}
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() =>
+                  setTransferRows((rows) => [...rows, { tier: "", amount: "" }])
+                }
+              >
+                Add transfer tier
+              </button>
+            </fieldset>
             <label className={styles.field}>
               Approved commercial claim
-              <textarea name="approvedClaim" required maxLength={500} />
+              <textarea
+                name="approvedClaim"
+                defaultValue={editingRate?.approvedClaim ?? ""}
+                required
+                maxLength={500}
+              />
             </label>
             <div className={styles.actions}>
               <button
@@ -449,7 +624,22 @@ export function PriceBookAdministration({
                 type="submit"
                 disabled={authoringPending}
               >
-                {authoringPending ? "Validating rate…" : "Add first rate card"}
+                {authoringPending
+                  ? "Validating rate…"
+                  : editingRate
+                    ? "Save rate card"
+                    : "Add rate card"}
+              </button>
+              <button
+                className={styles.button}
+                type="button"
+                disabled={authoringPending}
+                onClick={() => {
+                  setDraft(null);
+                  setEditingRate(null);
+                }}
+              >
+                Close draft editor
               </button>
             </div>
           </form>
@@ -641,6 +831,219 @@ export function PriceBookAdministration({
                 <dd>{selected.activationRequestedByEmail ?? "Not proposed"}</dd>
               </div>
             </dl>
+            <div className={styles.actions}>
+              <button
+                className={styles.button}
+                type="button"
+                onClick={() => {
+                  const url = URL.createObjectURL(
+                    new Blob(
+                      [
+                        JSON.stringify(
+                          {
+                            format: "clockwork.price-book.v1",
+                            source: sourceLabel,
+                            readAt,
+                            priceBook: selected,
+                          },
+                          null,
+                          2,
+                        ),
+                      ],
+                      { type: "application/json" },
+                    ),
+                  );
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `price-book-${selected.currency}-v${selected.version}-${selected.id}.json`;
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                Download price book
+              </button>
+              {selected.status === "draft" &&
+              !selected.activationRequestedBy &&
+              authoringAvailable ? (
+                <button
+                  className={styles.button}
+                  type="button"
+                  disabled={authoringPending}
+                  onClick={() => {
+                    setEditingRate(null);
+                    setTransferRows([]);
+                    setDraft({
+                      id: selected.id,
+                      rowVersion: selected.rowVersion,
+                      currency: selected.currency as "USD" | "EUR" | "GBP",
+                    });
+                    setAuthoringMessage(
+                      "Draft reopened. Add another SKU or region, or edit a rate below.",
+                    );
+                    document
+                      .getElementById("price-book-author-title")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  Add a rate to this draft
+                </button>
+              ) : null}
+            </div>
+            <Table
+              caption="Rate card economics"
+              density="compact"
+              headers={[
+                "SKU / region",
+                "List",
+                "Floor",
+                "Overage",
+                "Minimum",
+                "Commercial terms",
+                "Actions",
+              ]}
+              rowKeys={(selected.rateCards ?? []).map((rate) => rate.id)}
+              rows={(selected.rateCards ?? []).map((rate) => [
+                `${rate.sku} / ${rate.region}`,
+                `${selected.currency} ${minorDecimal(rate.unitPrice.minor)}`,
+                rate.floorPrice
+                  ? `${selected.currency} ${minorDecimal(rate.floorPrice.minor)}`
+                  : "Not configured",
+                `${selected.currency} ${minorDecimal(rate.overageRate.minor)}`,
+                `${rate.minimumQuantity} ${rate.unit}`,
+                <details>
+                  <summary>Claims, mappings and transfer prices</summary>
+                  <dl>
+                    <dt>Approved claim</dt>
+                    <dd>{rate.approvedClaim}</dd>
+                    <dt>Commitment / egress</dt>
+                    <dd>
+                      {rate.commitType} / {rate.egressTreatment}
+                    </dd>
+                    <dt>Tax code / income account</dt>
+                    <dd>
+                      {rate.stripeTaxCode} / {rate.qboIncomeAccount}
+                    </dd>
+                    <dt>Transfer prices</dt>
+                    <dd>
+                      {Object.entries(rate.partnerTransferPrices)
+                        .map(
+                          ([tier, value]) =>
+                            `${tier}: ${value.currency} ${minorDecimal(value.minor)}`,
+                        )
+                        .join("; ") || "None"}
+                    </dd>
+                    {rate.trialLimit ? (
+                      <>
+                        <dt>Legacy trial quantity</dt>
+                        <dd>{rate.trialLimit}</dd>
+                      </>
+                    ) : null}
+                  </dl>
+                </details>,
+                selected.status === "draft" &&
+                !selected.activationRequestedBy &&
+                authoringAvailable ? (
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.button}
+                      disabled={authoringPending}
+                      aria-label={`Edit ${rate.sku} ${rate.region}`}
+                      onClick={() => {
+                        setEditingRate(rate);
+                        setTransferRows(
+                          Object.entries(rate.partnerTransferPrices).map(
+                            ([tier, value]) => ({
+                              tier,
+                              amount: minorDecimal(value.minor),
+                            }),
+                          ),
+                        );
+                        setDraft({
+                          id: selected.id,
+                          rowVersion: selected.rowVersion,
+                          currency: selected.currency as "USD" | "EUR" | "GBP",
+                        });
+                        document
+                          .getElementById("price-book-author-title")
+                          ?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.button}
+                      disabled={authoringPending}
+                      aria-label={`Remove ${rate.sku} ${rate.region}`}
+                      onClick={() => {
+                        setAuthoringPending(true);
+                        setSummary(null);
+                        void sendCoreCommand({
+                          resource: "price_books",
+                          id: selected.id,
+                          action: "remove_rate",
+                          expectedVersion: selected.rowVersion,
+                          payload: { id: rate.id },
+                        })
+                          .then(() => {
+                            setDraft(null);
+                            setEditingRate(null);
+                            setAuthoringMessage(
+                              "Rate removed from the draft. Review the remaining rates before proposing activation.",
+                            );
+                            router.refresh();
+                          })
+                          .catch((error: unknown) =>
+                            setAuthoringMessage(
+                              error instanceof Error
+                                ? error.message
+                                : "The rate was not removed.",
+                            ),
+                          )
+                          .finally(() => setAuthoringPending(false));
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  "Read only"
+                ),
+              ])}
+              emptyState="No rate cards available. Add a rate before proposing activation."
+            />
+            {incumbent ? (
+              <p className={styles.notice}>
+                Activation replaces {incumbent.name} v{incumbent.version} for{" "}
+                {selected.currency}. Only one price book can be active per
+                currency, even when the new version has a different name. Review
+                removed rates before approval.
+              </p>
+            ) : null}
+            {incumbent && selected.rateCards && incumbent.rateCards ? (
+              <Table
+                caption={`Economic changes from ${incumbent.name} v${incumbent.version}`}
+                density="compact"
+                headers={[
+                  "Changed field",
+                  "Current active value",
+                  "Candidate value",
+                ]}
+                rowKeys={economicDiff.map((change) => change.field)}
+                rows={economicDiff.map((change) => [
+                  change.field,
+                  change.before,
+                  change.after,
+                ])}
+                emptyState="No rate or discount authority changes from the active version."
+              />
+            ) : selected.status === "draft" ? (
+              <p className={styles.muted}>
+                No active price book exists for this currency. Review the
+                complete rate table above.
+              </p>
+            ) : null}
             <label className={styles.field}>
               Finance decision reason
               <textarea
@@ -681,6 +1084,15 @@ export function PriceBookAdministration({
               </button>
             </div>
           </form>
+          <DiscountMatrixEditor
+            key={`${selected.id}:${selected.rowVersion}`}
+            book={selected}
+            permitted={authoringAvailable}
+            onSaved={() => {
+              setSummary(null);
+              router.refresh();
+            }}
+          />
         </section>
       ) : null}
 

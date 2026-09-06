@@ -1,3 +1,5 @@
+import { MoneySchema } from "@clockwork/contracts";
+import type { DiscountMatrix, RateCard } from "@clockwork/domain/core";
 import { asc, desc, eq, sql } from "drizzle-orm";
 
 import type { RuntimeDatabase } from "../../client";
@@ -15,6 +17,8 @@ export interface PriceBookAdministrationRecord {
   effectiveFrom: string;
   effectiveTo: string | null;
   rateCardCount: number;
+  rateCards?: readonly RateCard[];
+  discountMatrix?: DiscountMatrix;
   regions: readonly string[];
   /** Present once a first authority has proposed activation. */
   activationRequestedBy: string | null;
@@ -48,6 +52,7 @@ export class DatabasePriceBookAdministrationReader {
             status: priceBooks.status,
             effectiveFrom: priceBooks.effectiveFrom,
             effectiveTo: priceBooks.effectiveTo,
+            discountMatrix: priceBooks.discountMatrix,
             rateCardCount: sql<number>`count(distinct ${rateCards.id})::int`,
             regions: sql<
               string[]
@@ -64,7 +69,7 @@ export class DatabasePriceBookAdministrationReader {
           .limit(limit);
         return Promise.all(
           books.map(async (book) => {
-            const [pending, lastEvent] = await Promise.all([
+            const [pending, lastEvent, rates] = await Promise.all([
               transaction
                 .select({
                   requestedBy: approvals.requestedBy,
@@ -86,6 +91,10 @@ export class DatabasePriceBookAdministrationReader {
                 where: eq(priceBookActivationEvents.priceBookId, book.id),
                 orderBy: [desc(priceBookActivationEvents.createdAt)],
               }),
+              transaction.query.rateCards.findMany({
+                where: eq(rateCards.priceBookId, book.id),
+                orderBy: [asc(rateCards.sku), asc(rateCards.region)],
+              }),
             ]);
             const request = pending[0];
             return {
@@ -98,6 +107,47 @@ export class DatabasePriceBookAdministrationReader {
               effectiveFrom: book.effectiveFrom,
               effectiveTo: book.effectiveTo,
               rateCardCount: book.rateCardCount,
+              ...(book.discountMatrix &&
+              typeof book.discountMatrix === "object" &&
+              Object.keys(book.discountMatrix).length
+                ? {
+                    discountMatrix:
+                      book.discountMatrix as unknown as DiscountMatrix,
+                  }
+                : {}),
+              rateCards: rates.map((rate): RateCard => ({
+                id: rate.id,
+                sku: rate.sku,
+                region: rate.region,
+                unit: rate.unit,
+                approvedClaim: rate.approvedClaim,
+                unitPrice: MoneySchema.parse({
+                  currency: book.currency,
+                  minor: rate.unitPriceMinor.toString(),
+                }),
+                ...(rate.floorPriceMinor === null
+                  ? {}
+                  : {
+                      floorPrice: MoneySchema.parse({
+                        currency: book.currency,
+                        minor: rate.floorPriceMinor.toString(),
+                      }),
+                    }),
+                overageRate: MoneySchema.parse({
+                  currency: book.currency,
+                  minor: rate.overageRateMinor.toString(),
+                }),
+                minimumQuantity: rate.minimumQuantity,
+                ...(rate.trialLimit === null
+                  ? {}
+                  : { trialLimit: rate.trialLimit }),
+                egressTreatment: rate.egressTreatment,
+                commitType: rate.commitType as RateCard["commitType"],
+                stripeTaxCode: rate.stripeTaxCode,
+                qboIncomeAccount: rate.qboIncomeAccount,
+                partnerTransferPrices:
+                  rate.partnerTransferPrices as RateCard["partnerTransferPrices"],
+              })),
               regions: book.regions,
               activationRequestedBy: request?.requestedBy ?? null,
               activationRequestedByEmail: request?.email ?? null,

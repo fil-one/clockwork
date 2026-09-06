@@ -41,6 +41,7 @@ const INTERNAL_DESTINATIONS = [
   "Integration status",
   "Unhandled errors",
   "External gates",
+  "Capabilities",
   "Assisted mode",
 ] as const;
 
@@ -133,6 +134,29 @@ test.describe("internal operator operations journey", () => {
     await expect(page.getByText("EXC-COL-008").first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await resetDurableDemoState();
+  });
+
+  test("native search submission preserves the query without a React submit handler", async ({
+    page,
+  }) => {
+    await resetDurableDemoState();
+    await page.goto("/internal/search");
+    await page
+      .getByRole("searchbox", {
+        name: "Search accounts, records, and documents",
+      })
+      .fill("collections");
+    // Native submit deliberately bypasses React's handler, as an early submit
+    // can before hydration. The streamed Next layout itself requires JavaScript.
+    await page
+      .getByRole("search")
+      .evaluate((form) => (form as HTMLFormElement).submit());
+    await expect(page).toHaveURL(/q=collections/);
+    await expect(
+      page
+        .getByRole("region", { name: "Search results" })
+        .getByRole("link", { name: "Collections aging decision" }),
+    ).toBeVisible();
   });
 
   test("search route returns only scoped operational projections", async ({
@@ -235,14 +259,12 @@ test.describe("internal operator operations journey", () => {
     page,
   }) => {
     await page.goto("/internal/status");
-    for (const lane of ["core", "lifecycle", "system"]) {
+    for (const lane of ["Commerce", "Customer lifecycle", "Operations"]) {
       await expect(
         page.getByRole("heading", { level: 3, name: lane }),
       ).toBeVisible();
     }
-    await expect(page.getByText(/^Read at .* in this page load$/)).toHaveCount(
-      3,
-    );
+    await expect(page.getByText(/^Updated /)).toHaveCount(3);
     await expect(
       page.getByText("This status endpoint did not return a readable result."),
     ).toHaveCount(0);
@@ -273,26 +295,40 @@ test.describe("internal operator operations journey", () => {
 test.describe("finance approver journey", () => {
   test.beforeEach(async ({ page }) => usePersona(page, "finance_approver"));
 
-  test("reviews the finance case it holds authority over without recording a decision", async ({
+  test("records a finance decision and preserves it across reload", async ({
     page,
   }) => {
-    await page.goto("/internal/approvals");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Approval review" }),
-    ).toBeVisible();
-    await expect(page.getByText("Authorized role")).toBeVisible();
-    const submit = page.getByRole("button", { name: "Review approval" });
-    await expect(submit).toBeEnabled();
-    await page
-      .getByRole("textbox", { name: "Decision reason" })
-      .fill("Exception evidence matches the pricing floor policy.");
-    await submit.click();
-    await expect(
-      page.getByRole("heading", { name: "Approval review summary" }),
-    ).toBeVisible();
-    // Review is not a decision: the surface says so rather than implying the
-    // approval was recorded.
-    await expect(page.getByText("No decision recorded")).toBeVisible();
+    await resetDurableDemoState();
+    try {
+      await page.goto("/internal/approvals");
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Approval decisions" }),
+      ).toBeVisible();
+      await expect(page.getByText("APR-DEMO-001").first()).toBeVisible();
+      await expect(
+        page.getByText("Awaiting approval", { exact: true }).first(),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Approve exception", exact: true })
+        .click();
+      await expect(
+        page.getByText("Approved", { exact: true }).first(),
+      ).toBeVisible({
+        timeout: 60_000,
+      });
+      await page.reload();
+      await expect(
+        page.getByText("Approved", { exact: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Approve exception", exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Reject exception", exact: true }),
+      ).toHaveCount(0);
+    } finally {
+      await resetDurableDemoState();
+    }
   });
 
   test("presents renewal and reporting work as product workflows", async ({
@@ -327,8 +363,11 @@ test.describe("legal approver journey", () => {
     ).toBeVisible();
     await expect(page.getByText("Legal authority")).toBeVisible();
     await expect(
+      page.getByText("Template evidence is read only in this demo."),
+    ).toBeVisible();
+    await expect(
       page.getByRole("button", { name: "Review template approval" }),
-    ).toBeEnabled();
+    ).toHaveCount(0);
     await expectAxeClean(page);
   });
 
@@ -366,17 +405,20 @@ test.describe("destructive-action approver journey", () => {
   test("cannot decide the finance-only approval case", async ({ page }) => {
     await page.goto("/internal/approvals");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Approval review" }),
+      page.getByRole("heading", { level: 1, name: "Approval decisions" }),
     ).toBeVisible();
-    await expect(page.getByText("Read only")).toBeVisible();
+    await expect(page.getByText("APR-DEMO-001").first()).toBeVisible();
     await expect(
-      page.getByText("This role cannot decide this case."),
+      page.getByText(
+        "Read only. An account owner or the assigned approver can act on this record.",
+      ),
     ).toBeVisible();
-    // The decision form is the only control that could record an approval, and
-    // it stays closed to a role without finance authority.
     await expect(
-      page.getByRole("button", { name: "Review approval" }),
-    ).toBeDisabled();
+      page.getByRole("button", { name: "Approve exception", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Reject exception", exact: true }),
+    ).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 });

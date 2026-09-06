@@ -7,11 +7,13 @@ export * from "./decimal";
 export * from "./derivation";
 export * from "./orders";
 export * from "./partners";
+export * from "./payg";
 export * from "./pricing";
 export * from "./procurement";
 export * from "./quotes";
 export * from "./reports";
 export * from "./tax";
+export * from "./trials";
 
 // `coreDomainRegistry` names the lanes the composition test counts, and tax is
 // not one of them: the determination engine is domain code the finance lane
@@ -31,3 +33,4 @@ export const coreDomainRegistry = [
   "derivation",
   "procurement",
 ] as const;
+export * from "./channel-policy";

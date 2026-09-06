@@ -82,8 +82,8 @@ describe("durable demo adapter state", () => {
     expect((await store.read()).revision).toBe(9);
 
     const result = spawnSync(
-      "pnpm",
-      ["exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
+      process.execPath,
+      ["--import", "tsx", "packages/testing/src/demo/reset-command.ts"],
       {
         cwd: workspaceRoot,
         encoding: "utf8",
@@ -112,8 +112,8 @@ describe("durable demo adapter state", () => {
     environment.NODE_ENV = "production";
 
     const result = spawnSync(
-      "pnpm",
-      ["exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
+      process.execPath,
+      ["--import", "tsx", "packages/testing/src/demo/reset-command.ts"],
       {
         cwd: workspaceRoot,
         encoding: "utf8",
@@ -137,8 +137,8 @@ describe("durable demo adapter state", () => {
     await writeFile(location, corrupt, "utf8");
 
     const result = spawnSync(
-      "pnpm",
-      ["exec", "tsx", "packages/testing/src/demo/reset-command.ts"],
+      process.execPath,
+      ["--import", "tsx", "packages/testing/src/demo/reset-command.ts"],
       {
         cwd: workspaceRoot,
         encoding: "utf8",

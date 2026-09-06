@@ -1,3 +1,7 @@
+export * from "./agreement-registry";
+export * from "./catalog-admin";
+export * from "./capability-admin";
+export * from "./capability-policy";
 export * from "./capabilities";
 export * from "./crm-projection";
 export * from "./dead-letter";

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionClaims } from "@clockwork/api";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
+import { currentDemoChannelPolicies } from "@/src/features/internal-ops/commercial-policies/demo-policies";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 vi.mock("server-only", () => ({}));
@@ -153,5 +154,61 @@ describe("durable demo deal registration", () => {
     expect(
       demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
     ).toHaveLength(0);
+  });
+});
+
+it("enforces the current configured request maximum and retains its snapshot atomically", async () => {
+  const now = "2026-08-18T12:00:00.000Z";
+  await store.update((state) => {
+    const seed = currentDemoChannelPolicies(state, now)[0];
+    if (!seed) throw new Error("Missing demo policy");
+    const policy = {
+      ...seed,
+      status: "approved",
+      rowVersion: 3,
+      approvedBy: "21000000-0000-4000-8000-000000000099",
+      approvalEvidence: "fictional-review",
+      terms: {
+        ...seed.terms,
+        defaultProtectionDays: 30,
+        maximumProtectionDays: 60,
+      },
+    };
+    return {
+      ...state,
+      revision: state.revision + 1,
+      projectionOverrides: {
+        ...state.projectionOverrides,
+        [`commercial-policy-demo:channel:${policy.id}`]: {
+          version: 3,
+          updatedAt: now,
+          data: policy,
+        },
+      },
+    };
+  });
+  const refused = await handleDemoDealRegistrationCommand(
+    request("demo-policy-max-refused"),
+    partner,
+    { store, now },
+  );
+  expect(refused.status).toBe(422);
+  const allowed = await handleDemoDealRegistrationCommand(
+    request("demo-policy-max-allowed", {
+      ...body,
+      payload: { ...body.payload, protectionDays: 30 },
+    }),
+    partner,
+    { store, now },
+  );
+  expect(allowed.status).toBe(200);
+  const saved = Object.values((await store.read()).projectionOverrides).find(
+    (entry) => entry.data.kind === "demo_partner_registration",
+  );
+  expect(saved?.data.channelPolicySnapshot).toMatchObject({
+    source: "approved_policy",
+    version: 1,
+    maximumProtectionDays: 60,
+    initialProtectionDays: 30,
   });
 });

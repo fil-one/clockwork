@@ -1294,6 +1294,7 @@ export class DatabaseLifecycleCommandRepository {
         status: registration.status,
         canTransact: registration.canTransact,
         domainVerifiedAt: payload.domainVerifiedAt,
+        verifiedDomain: registration.normalizedDomain,
       },
     });
     await appendEvent(transaction, {

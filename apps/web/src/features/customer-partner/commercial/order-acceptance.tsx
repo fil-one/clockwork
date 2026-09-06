@@ -693,7 +693,20 @@ export function OrderAcceptance({
         </p>
       ) : null}
 
-      {quote ? (
+      {createdOrderId ? (
+        <section className={styles.state}>
+          <h2>Order created</h2>
+          <p className={styles.successMessage} role="status">
+            {t("orders.accept.created")}
+          </p>
+          <Link
+            className={styles.primary}
+            href={`/orders/order-${createdOrderId}`}
+          >
+            {t("orders.accept.createdLink")}
+          </Link>
+        </section>
+      ) : quote ? (
         <>
           <ol
             aria-label="Commercial promise chain"

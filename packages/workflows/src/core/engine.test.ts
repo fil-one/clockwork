@@ -189,6 +189,31 @@ function invoiceInput() {
 }
 
 describe("core workflow deterministic primitives", () => {
+  it("accepts explicit PAYG invoice sources and rejects mixed or missing financial sources", () => {
+    const base = { ...invoiceInput(), orderId: undefined };
+    const paygSource = {
+      kind: "payg",
+      enrollmentId: ID.account,
+      effectKey: "payg:august:1",
+      month: "2026-08",
+      revision: 1,
+    };
+    expect(
+      IssueInvoiceInputSchema.parse({ ...base, paygSource }),
+    ).toMatchObject({ paygSource });
+    expect(() => IssueInvoiceInputSchema.parse(base)).toThrow();
+    expect(() =>
+      IssueInvoiceInputSchema.parse({ ...invoiceInput(), paygSource }),
+    ).toThrow();
+    expect(() =>
+      IssueInvoiceInputSchema.parse({
+        ...base,
+        paygSource,
+        commercialShape: "referral",
+      }),
+    ).toThrow();
+  });
+
   it("uses exact 18-place decimal arithmetic", () => {
     const total =
       parseDecimal("1.000000000000000001") +

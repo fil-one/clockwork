@@ -1,3 +1,7 @@
+import {
+  derivePaygInvoice,
+  type PaygInvoiceDerivation,
+} from "./payg-invoice-derivation";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 
 import {
@@ -58,6 +62,10 @@ function instant(value: Date | null): string | null {
   return value ? value.toISOString() : null;
 }
 
+export type { PaygInvoiceDerivation } from "./payg-invoice-derivation";
+export type BillingInvoiceDerivation =
+  InvoiceDerivation | PaygInvoiceDerivation;
+
 const MAXIMUM_ACCOUNT_DERIVATIONS = 25;
 
 /**
@@ -68,7 +76,7 @@ export async function loadAccountInvoiceDerivations(
   transaction: RuntimeTransaction,
   accountId: string,
   limit = 5,
-): Promise<readonly InvoiceDerivation[]> {
+): Promise<readonly BillingInvoiceDerivation[]> {
   if (!Number.isSafeInteger(limit) || limit < 1)
     throw new InvoiceDerivationError(
       "LIMIT_INVALID",
@@ -80,7 +88,7 @@ export async function loadAccountInvoiceDerivations(
     .where(and(eq(invoices.accountId, accountId), ne(invoices.status, "draft")))
     .orderBy(desc(invoices.createdAt))
     .limit(Math.min(limit, MAXIMUM_ACCOUNT_DERIVATIONS));
-  const derivations: InvoiceDerivation[] = [];
+  const derivations: BillingInvoiceDerivation[] = [];
   for (const row of rows)
     derivations.push(await loadInvoiceDerivation(transaction, row.id));
   return derivations;
@@ -95,7 +103,7 @@ export async function loadAccountInvoiceDerivations(
 export async function loadInvoiceDerivation(
   transaction: RuntimeTransaction,
   invoiceId: string,
-): Promise<InvoiceDerivation> {
+): Promise<BillingInvoiceDerivation> {
   const invoice = await transaction.query.invoices.findFirst({
     where: eq(invoices.id, invoiceId),
   });
@@ -103,6 +111,13 @@ export async function loadInvoiceDerivation(
     throw new InvoiceDerivationError(
       "INVOICE_NOT_FOUND",
       "Invoice was not found",
+    );
+  if (invoice.billingSource === "payg")
+    return derivePaygInvoice(transaction, invoice);
+  if (!invoice.orderId)
+    throw new InvoiceDerivationError(
+      "ORDER_NOT_FOUND",
+      "Invoice order was not found",
     );
   const order = await transaction.query.orders.findFirst({
     where: eq(orders.id, invoice.orderId),

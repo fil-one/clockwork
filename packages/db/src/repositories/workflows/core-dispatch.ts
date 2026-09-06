@@ -39,6 +39,7 @@ import {
   initialInvoiceId,
   orderTaxDetermination,
 } from "../core/database-finance";
+import { loadPaygInvoiceSource } from "../core/payg-invoice-source";
 import { persistInvoiceTaxDetermination } from "../core/tax-determination";
 
 export type PersistedCommissionSourceType =
@@ -459,6 +460,59 @@ export class DatabaseCoreWorkflowDispatchStore {
           invoice.stripeInvoiceId !== null
         )
           throw new Error("INVOICE_DRAFT_NOT_ISSUE_ELIGIBLE");
+        if (invoice.billingSource === "payg") {
+          const source = await loadPaygInvoiceSource(transaction, invoice);
+          const [account, policy, procurement] = await Promise.all([
+            transaction.query.accounts.findFirst({
+              where: eq(accounts.id, invoice.accountId),
+            }),
+            transaction.query.billingPolicies.findFirst({
+              where: eq(billingPolicies.accountId, invoice.accountId),
+            }),
+            transaction.query.procurementProfiles.findFirst({
+              where: eq(procurementProfiles.accountId, invoice.accountId),
+            }),
+          ]);
+          if (!policy || account?.stripeCustomerId !== source.customerId)
+            throw new Error("INVOICE_ISSUE_PERSISTED_TRUTH_INCOMPLETE");
+          const method = collectionMethod(policy);
+          const vendorSetupComplete =
+            !policy.requireVendorSetup ||
+            procurement?.supplierPortalStatus === "complete";
+          if (
+            method === "net_terms" &&
+            (!invoice.poNumber || !vendorSetupComplete)
+          )
+            throw new Error("NET_TERMS_ISSUE_PREREQUISITES_INCOMPLETE");
+          return {
+            taskId: "core.billing.issue-invoice.v1",
+            idempotencyKey: input.idempotencyKey,
+            payload: {
+              context: {
+                aggregateId: invoice.id,
+                aggregateVersion: invoice.rowVersion,
+                requestId: input.context.requestId,
+                occurredAt: input.context.occurredAt,
+              },
+              invoiceId: invoice.id,
+              paygSource: source.paygSource,
+              billingAccountId: invoice.accountId,
+              customerId: source.customerId,
+              commercialShape: "direct",
+              collectionMethod: method,
+              amount: {
+                currency: invoice.currency,
+                minor: invoice.amountMinor.toString(),
+              },
+              ...(invoice.poNumber ? { poNumber: invoice.poNumber } : {}),
+              apEmail: source.apEmail,
+              vendorSetupComplete,
+              groups: [],
+            },
+          };
+        }
+        if (!invoice.orderId)
+          throw new Error("INVOICE_ISSUE_ORDER_BINDING_INVALID");
         const [order, account, policy, procurement, allocations] =
           await Promise.all([
             transaction.query.orders.findFirst({
@@ -661,7 +715,7 @@ export class DatabaseCoreWorkflowDispatchStore {
       }
     | undefined
   > {
-    let orderId: string | undefined;
+    let orderId: string | null | undefined;
     let occurredAt: Date | undefined;
     if (input.sourceType === "payment") {
       const row = await transaction.query.payments.findFirst({
@@ -697,6 +751,7 @@ export class DatabaseCoreWorkflowDispatchStore {
       orderId = row.orderId;
       occurredAt = row.updatedAt;
     }
+    if (!orderId) return undefined;
     const order = await transaction.query.orders.findFirst({
       where: eq(orders.id, orderId),
     });

@@ -456,7 +456,9 @@ describe("explicit demo projection durable reset", () => {
         risk: "low",
         value: "$17,132.50",
         description: `Demo receipt ${receiptId} · sandbox only · no money moved`,
-        nextAction: "Reset the demo to restore this open invoice",
+        title: "Committed capacity · paid",
+        dateLabel: "Demo payment confirmed 2026-08-18 UTC",
+        nextAction: "Payment complete · no further payment is due",
         allowedActions: [],
         authoritative: {
           status: "paid",

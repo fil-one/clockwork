@@ -322,3 +322,81 @@ describe.sequential("finance price-book activation", () => {
     ).rejects.toThrow("Finance approval authority is required");
   });
 });
+
+it("edits draft economics and freezes the exact proposed content until rejection", async () => {
+  const book = await createDraft(47, "editable");
+  const rates = await withInternalTransaction(
+    db,
+    `editable-rate-${runId}`,
+    (tx) =>
+      tx.query.rateCards.findMany({ where: eq(rateCards.priceBookId, book) }),
+  );
+  const first = rates[0];
+  if (!first) throw new Error("Missing draft rate");
+  await command({
+    id: book,
+    action: "update_rate",
+    payload: rate("LOCKED-STORAGE-TB", {
+      id: first.id,
+      unitPrice: money("15100"),
+    }),
+    key: "edit-rate",
+  });
+  await command({
+    id: book,
+    action: "add_rate",
+    payload: rate("SECOND-SKU"),
+    key: "second-rate",
+  });
+  await command({
+    id: book,
+    action: "update_discount_matrix",
+    payload: {
+      id: "test-matrix",
+      version: 1,
+      defaultMaxDiscountBps: 0,
+      rules: [{ id: "volume", minQuantity: "100", maxDiscountBps: 300 }],
+    },
+    key: "edit-matrix",
+  });
+  await command({
+    id: book,
+    action: "request_activation",
+    payload: { reason: "First authority attests exact saved economics." },
+    key: "freeze-edit",
+  });
+  await expect(
+    command({
+      id: book,
+      action: "remove_rate",
+      payload: { id: first.id },
+      key: "frozen-remove",
+    }),
+  ).rejects.toThrow("frozen");
+  await expect(
+    command({
+      id: book,
+      action: "reject_activation",
+      payload: { reason: "Attempting rejection by the proposer." },
+      key: "self-reject",
+    }),
+  ).rejects.toThrow("different finance");
+  await command({
+    id: book,
+    action: "reject_activation",
+    payload: { reason: "Please correct the regional minimum." },
+    userId: approverId,
+    key: "reject-edit",
+  });
+  await command({
+    id: book,
+    action: "remove_rate",
+    payload: { id: first.id },
+    key: "reopened-remove",
+  });
+  expect(
+    await withInternalTransaction(db, `edited-read-${runId}`, (tx) =>
+      tx.query.rateCards.findMany({ where: eq(rateCards.priceBookId, book) }),
+    ),
+  ).toHaveLength(1);
+});

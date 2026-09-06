@@ -540,6 +540,9 @@ export async function handle(request: Request): Promise<Response> {
   const partnerRenewalPath = isDemoPartnerRenewalPath(request, url);
   const customerAccountControl = isDemoCustomerAccountControl(request, url);
   const demoInvoicePayment = isDemoInvoicePayment(request, url);
+  const paygPolicyPath =
+    url.pathname === "/api/v1/core/payg-offers" ||
+    url.pathname.startsWith("/api/v1/core/payg-offers/");
   const demoAccessSecret = demoAccessConfiguration(process.env);
   if (
     demoAccessSecret &&
@@ -559,6 +562,7 @@ export async function handle(request: Request): Promise<Response> {
     if (proofFailure) return proofFailure;
   }
   if (
+    paygPolicyPath ||
     isOrderCommand(request, url) ||
     isPriceBookCommand(request, url) ||
     isDealRegistrationCommand(request, url) ||
@@ -579,6 +583,11 @@ export async function handle(request: Request): Promise<Response> {
     // the bytes the destination executes.
     const identity = await demoCoreSession(request);
     if ("response" in identity) return identity.response;
+    if (paygPolicyPath) {
+      const lane =
+        await import("@/src/features/internal-ops/commercial-policies/demo-payg-handler");
+      return lane.handleDemoPaygPolicy(request, identity.session);
+    }
     if (demoInvoicePayment) {
       const lane =
         await import("@/src/features/experience-server/demo-invoice-payment");

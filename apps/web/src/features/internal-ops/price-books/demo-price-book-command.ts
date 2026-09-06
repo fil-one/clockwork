@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
 import { hasPermission, MoneySchema, uuidV7 } from "@clockwork/contracts";
-import { validatePriceBook } from "@clockwork/domain/core";
+import { validatePriceBook, type DiscountMatrix } from "@clockwork/domain/core";
 import { DEMO_NOW } from "@clockwork/testing/demo-seed";
 import type {
   DemoAdapterState,
@@ -28,6 +28,10 @@ const commandSchema = z
     action: z.enum([
       "create",
       "add_rate",
+      "update_rate",
+      "remove_rate",
+      "update_discount_matrix",
+      "reject_activation",
       "request_activation",
       "activate",
       "retire",
@@ -65,6 +69,36 @@ const rateSchema = z
     stripeTaxCode: z.string().trim().min(1).max(80),
     qboIncomeAccount: z.string().trim().min(1).max(120),
     partnerTransferPrices: z.record(z.string(), MoneySchema).default({}),
+  })
+  .strict();
+
+const discountMatrixSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    version: z.number().int().min(0),
+    defaultMaxDiscountBps: z.number().int().min(0).max(10000),
+    rules: z.array(
+      z
+        .object({
+          id: z.string().trim().min(1),
+          sku: z.string().trim().min(1).optional(),
+          region: z.string().trim().min(1).optional(),
+          route: z
+            .enum([
+              "direct",
+              "referral",
+              "resale",
+              "distributor",
+              "marketplace",
+            ])
+            .optional(),
+          partnerTier: z.string().trim().min(1).optional(),
+          minTermMonths: z.number().int().positive().optional(),
+          minQuantity: quantity.optional(),
+          maxDiscountBps: z.number().int().min(0).max(10000),
+        })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -228,7 +262,64 @@ function mutateBooks(input: {
   const current = requiredBook(input.books, input.id);
   checkVersion(current, input.expectedVersion);
   const index = input.books.findIndex((book) => book.id === current.id);
-  if (input.action === "add_rate") {
+  if (
+    [
+      "add_rate",
+      "update_rate",
+      "remove_rate",
+      "update_discount_matrix",
+    ].includes(input.action)
+  ) {
+    if (current.status !== "draft" || current.activationRequestedBy)
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "Only an unproposed draft can be edited; a different finance approver must reject activation before editing",
+      );
+  }
+  if (input.action === "remove_rate") {
+    const { id } = z.object({ id: z.uuid() }).strict().parse(input.payload);
+    if (!current.rateCards.some((rate) => rate.id === id))
+      throw new DemoPriceBookProblem(
+        404,
+        "NOT_FOUND",
+        "Rate card was not found in this draft",
+      );
+    const rates = current.rateCards.filter((rate) => rate.id !== id);
+    const next = {
+      ...current,
+      rowVersion: current.rowVersion + 1,
+      rateCards: rates,
+      rateCardCount: rates.length,
+      regions: [...new Set(rates.map((rate) => rate.region))].sort(),
+    };
+    input.books[index] = next;
+    return next;
+  }
+  if (input.action === "update_discount_matrix") {
+    const parsedMatrix = discountMatrixSchema.parse(input.payload);
+    const matrix = JSON.parse(JSON.stringify(parsedMatrix)) as DiscountMatrix;
+    try {
+      validatePriceBook({
+        ...domainPriceBook(current),
+        discountMatrix: matrix,
+      });
+    } catch (error) {
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        error instanceof Error ? error.message : "Discount matrix is invalid",
+      );
+    }
+    const next = {
+      ...current,
+      rowVersion: current.rowVersion + 1,
+      discountMatrix: matrix,
+    };
+    input.books[index] = next;
+    return next;
+  }
+  if (input.action === "add_rate" || input.action === "update_rate") {
     if (current.status !== "draft")
       throw new DemoPriceBookProblem(
         422,
@@ -236,6 +327,16 @@ function mutateBooks(input: {
         "Rate cards may only be added to a draft price book",
       );
     const parsed = rateSchema.parse(input.payload);
+    const existing =
+      input.action === "update_rate"
+        ? current.rateCards.find((rate) => rate.id === parsed.id)
+        : undefined;
+    if (input.action === "update_rate" && !existing)
+      throw new DemoPriceBookProblem(
+        404,
+        "NOT_FOUND",
+        "Rate card was not found in this draft",
+      );
     const { floorPrice, trialLimit, ...required } = parsed;
     const rate = {
       ...required,
@@ -246,9 +347,21 @@ function mutateBooks(input: {
     const next = {
       ...current,
       rowVersion: current.rowVersion + 1,
-      rateCards: [...current.rateCards, rate],
-      rateCardCount: current.rateCardCount + 1,
-      regions: [...new Set([...current.regions, rate.region])].sort(),
+      rateCards: [
+        ...current.rateCards.filter(
+          (entry) => !existing || entry.id !== existing.id,
+        ),
+        rate,
+      ],
+      rateCardCount: current.rateCardCount + (existing ? 0 : 1),
+      regions: [
+        ...new Set([
+          ...current.rateCards
+            .filter((entry) => !existing || entry.id !== existing.id)
+            .map((entry) => entry.region),
+          rate.region,
+        ]),
+      ].sort(),
     } satisfies DemoPriceBook;
     try {
       validatePriceBook(domainPriceBook(next));
@@ -264,6 +377,29 @@ function mutateBooks(input: {
   }
 
   const { reason } = decisionSchema.parse(input.payload);
+  if (input.action === "reject_activation") {
+    if (
+      current.status !== "draft" ||
+      !current.activationRequestedBy ||
+      current.activationRequestedBy === input.actorId
+    )
+      throw new DemoPriceBookProblem(
+        422,
+        "TWO_AUTHORITY_REQUIRED",
+        "A different finance approver must reject a pending activation",
+      );
+    const next = {
+      ...current,
+      rowVersion: current.rowVersion + 1,
+      activationRequestedBy: null,
+      activationRequestedByEmail: null,
+      activationRequestedAt: null,
+      lastDecisionAt: input.now,
+      lastDecisionReason: reason,
+    };
+    input.books[index] = next;
+    return next;
+  }
   if (input.action === "request_activation") {
     if (current.status !== "draft" || current.activationRequestedBy)
       throw new DemoPriceBookProblem(

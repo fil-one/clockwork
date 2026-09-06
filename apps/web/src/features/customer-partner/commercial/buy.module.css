@@ -101,8 +101,22 @@
 
 .fields input,
 .fields select {
+  background: var(--color-surface);
+  border: 1px solid var(--web-line-strong, var(--color-border));
+  border-radius: var(--cw-radius-sm);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 400;
+  min-height: 44px;
   min-width: 0;
+  padding: 9px 11px;
   width: 100%;
+}
+
+.fields input:focus-visible,
+.fields select:focus-visible {
+  outline: 3px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 
 .rule {

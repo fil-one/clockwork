@@ -41,6 +41,14 @@ describe("Trigger production worker bootstrap", () => {
     );
     const failure: unknown = await createEnvironmentProductionWorkflowRuntime({
       source: validEnvironment,
+      readCapabilities: () =>
+        Promise.resolve([
+          {
+            capabilityKey: "new_business",
+            enabled: true,
+            recoveryEnabled: false,
+          },
+        ]),
     }).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(WorkflowBootstrapConfigurationError);
     if (!(failure instanceof WorkflowBootstrapConfigurationError))

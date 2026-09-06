@@ -119,6 +119,72 @@ export const systemCapabilities = pgTable(
   ],
 );
 
+export const systemCapabilityRequests = pgTable(
+  "system_capability_requests",
+  {
+    id: uuid("id").primaryKey().default(uuidV7Default),
+    capabilityKey: text("capability_key")
+      .notNull()
+      .references(() => systemCapabilities.capabilityKey),
+    baseVersion: integer("base_version").notNull(),
+    enableRecovery: boolean("enable_recovery").notNull(),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => commerceUsers.id),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+    reason: text("reason").notNull(),
+    evidenceReference: text("evidence_reference").notNull(),
+    status: text("status").notNull().default("pending"),
+    decidedBy: uuid("decided_by").references(() => commerceUsers.id),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionReason: text("decision_reason"),
+  },
+  (table) => [
+    uniqueIndex("system_capability_requests_pending_unique")
+      .on(table.capabilityKey)
+      .where(sql`${table.status} = 'pending'`),
+    check(
+      "system_capability_requests_status_check",
+      sql`${table.status} in ('pending','approved','rejected','canceled')`,
+    ),
+    check(
+      "system_capability_requests_separation_check",
+      sql`${table.status} <> 'approved' or ${table.decidedBy} <> ${table.requestedBy}`,
+    ),
+    check(
+      "system_capability_requests_decision_check",
+      sql`(${table.status} = 'pending' and ${table.decidedBy} is null and ${table.decidedAt} is null and ${table.decisionReason} is null) or (${table.status} <> 'pending' and ${table.decidedBy} is not null and ${table.decidedAt} is not null and length(trim(${table.decisionReason})) >= 8)`,
+    ),
+    check(
+      "system_capability_requests_reason_check",
+      sql`length(trim(${table.reason})) >= 8 and length(trim(${table.evidenceReference})) > 0 and ${table.baseVersion} > 0`,
+    ),
+  ],
+);
+
+export const systemProductionBootstraps = pgTable(
+  "system_production_bootstraps",
+  {
+    id: uuid("id").primaryKey(),
+    manifestHash: text("manifest_hash").notNull(),
+    manifest: jsonb("manifest").notNull(),
+    appliedBy: uuid("applied_by")
+      .notNull()
+      .references(() => commerceUsers.id),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    check(
+      "system_production_bootstraps_manifest_hash_check",
+      sql`${table.manifestHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      "system_production_bootstraps_manifest_check",
+      sql`jsonb_typeof(${table.manifest}) = 'object'`,
+    ),
+  ],
+);
+
 export const systemExceptionRoster = pgTable(
   "system_exception_roster",
   {
@@ -266,6 +332,8 @@ export const systemExternalGateActivationTasks = pgTable(
 export const systemSchema = {
   externalGates,
   systemCapabilities,
+  systemCapabilityRequests,
+  systemProductionBootstraps,
   systemExceptionRoster,
   systemExternalGateActivationTasks,
   ...providerSchema,

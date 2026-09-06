@@ -13,7 +13,8 @@ import type { StripeCommercialGateway } from "./types";
 export interface PersistedStripeAdjustmentOperation {
   readonly adjustmentId: string;
   readonly expectedVersion: number;
-  readonly orderId: string;
+  readonly orderId: string | null;
+  readonly invoiceId?: string;
   readonly sourceId: string;
   readonly sourceCurrency: Currency;
   readonly kind: "credit_note" | "refund";
@@ -325,7 +326,7 @@ export class InMemoryPersistedStripeAdjustmentStore implements PersistedStripeAd
     const operation = row.operation;
     const amount = BigInt(operation.amount.minor);
     if (
-      !operation.orderId ||
+      (!operation.orderId && !operation.invoiceId) ||
       !operation.sourceId ||
       operation.amount.currency !== operation.sourceCurrency ||
       amount <= 0n ||
@@ -338,8 +339,9 @@ export class InMemoryPersistedStripeAdjustmentStore implements PersistedStripeAd
       .filter(
         (candidate) =>
           candidate !== row &&
-          candidate.operation.sourceId === operation.sourceId &&
-          candidate.operation.orderId === operation.orderId &&
+          (operation.orderId
+            ? candidate.operation.orderId === operation.orderId
+            : candidate.operation.invoiceId === operation.invoiceId) &&
           candidate.operation.sourceCurrency === operation.sourceCurrency &&
           (candidate.state === "submitting" ||
             candidate.state === "provider_accepted"),

@@ -427,7 +427,11 @@ const StoredRegistrationSchema = z
 
 export const StoredDeterminationInputSchema = z
   .object({
-    orderId: z.string(),
+    orderId: z.string().optional(),
+    paygSource: z
+      .object({ enrollmentId: z.string(), effectKey: z.string() })
+      .strict()
+      .optional(),
     documentType: z.enum(["invoice", "credit_note", "proforma"]),
     taxPointDate: z.string(),
     currency: z.enum(["USD", "EUR", "GBP"]),
@@ -485,7 +489,12 @@ export const StoredDeterminationInputSchema = z
         .strict(),
     ),
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) =>
+      (input.orderId === undefined) !== (input.paygSource === undefined),
+    "Exactly one commercial tax source is required",
+  );
 
 /**
  * Rebuilds an optional-property record without the undefined keys.
@@ -704,7 +713,8 @@ function headerTreatment(
 }
 
 interface DeterminationSubject {
-  orderId: string;
+  orderId?: string;
+  paygSource?: { enrollmentId: string; effectKey: string };
   supplierLegalEntityId: string;
   customerAccountId: string;
   lines: readonly TaxRequestLineSource[];
@@ -730,6 +740,11 @@ export async function determineTaxForSubject(
   treatment: TaxTreatment;
 }> {
   const day = taxDay(subject.taxPointDate);
+  if ((subject.orderId === undefined) === (subject.paygSource === undefined))
+    throw new TaxDeterminationUnavailableError(
+      "TAX_SOURCE_AMBIGUOUS",
+      "Tax determination requires exactly one commercial source",
+    );
   if (subject.lines.length === 0)
     throw new TaxDeterminationUnavailableError(
       "TAX_REQUEST_EMPTY",
@@ -802,7 +817,9 @@ export async function determineTaxForSubject(
   // nothing it is about to produce, so a replay reads this and reaches the same
   // answer or the build fails.
   const determinationInput = {
-    orderId: subject.orderId,
+    ...(subject.orderId
+      ? { orderId: subject.orderId }
+      : { paygSource: subject.paygSource }),
     documentType: subject.documentType,
     taxPointDate: day,
     currency: subject.currency,

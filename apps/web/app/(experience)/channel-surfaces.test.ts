@@ -292,8 +292,12 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
     unchanneled: [
       "/internal/assisted",
       "/internal/billing-reconciliation",
+      "/internal/capabilities",
+      "/internal/catalog",
+      "/internal/channel-policy",
       "/internal/gates",
       "/internal/migrations",
+      "/internal/payg-offers",
       "/internal/price-books",
       "/internal/recovery",
       "/internal/revenue",

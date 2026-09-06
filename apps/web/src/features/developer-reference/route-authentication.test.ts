@@ -62,6 +62,7 @@ function read(path: string): string {
 
 const routeSourcePaths = [
   "packages/api/src/routes/core/index.ts",
+  "packages/api/src/routes/core/payg-offers.ts",
   "packages/api/src/routes/lifecycle/index.ts",
   "packages/api/src/routes/lifecycle/notifications.ts",
   "packages/api/src/routes/system/index.ts",

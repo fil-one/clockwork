@@ -15,6 +15,10 @@ import { createCsrfAndOriginMiddleware } from "./middleware/security";
 import type { TrustedOriginResolver } from "./middleware/security";
 import { registerCoreRoutes } from "./routes/core";
 import type { CoreRouteDependencies } from "./routes/core";
+import {
+  registerPaygOfferRoutes,
+  type PaygOfferAdministrationService,
+} from "./routes/core/payg-offers";
 import { registerLifecycleRoutes } from "./routes/lifecycle";
 import type { LifecycleRouteDependencies } from "./routes/lifecycle";
 import { registerSystemRoutes } from "./routes/system";
@@ -25,6 +29,7 @@ export interface ApiAppOptions {
   sessionResolver?: SessionResolver;
   idempotencyStore?: IdempotencyStore;
   core?: CoreRouteDependencies;
+  paygOffers?: PaygOfferAdministrationService;
   lifecycle?: LifecycleRouteDependencies;
   system?: SystemRouteDependencies;
   trustedOriginResolver?: TrustedOriginResolver;
@@ -102,6 +107,7 @@ export function createApiApp(options: ApiAppOptions = {}) {
   });
 
   registerCoreRoutes(app, options.core);
+  registerPaygOfferRoutes(app, options.paygOffers);
   registerLifecycleRoutes(app, options.lifecycle);
   registerSystemRoutes(app, options.system);
 

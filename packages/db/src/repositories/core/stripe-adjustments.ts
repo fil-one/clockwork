@@ -14,6 +14,7 @@ import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import { creditNotes, invoices, payments, refunds } from "../../schema";
 import { stripeAdjustmentOperations } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
+import { loadPaygInvoiceSource } from "./payg-invoice-source";
 import { appendAuditAndOutbox } from "../audit-outbox";
 
 const CurrencySchema = z.enum(["USD", "EUR", "GBP"]);
@@ -21,7 +22,8 @@ const CurrencySchema = z.enum(["USD", "EUR", "GBP"]);
 export interface DatabaseStripeAdjustmentOperation {
   adjustmentId: string;
   expectedVersion: number;
-  orderId: string;
+  orderId: string | null;
+  invoiceId: string;
   sourceId: string;
   sourceCurrency: Currency;
   kind: "credit_note" | "refund";
@@ -72,7 +74,7 @@ async function lockAdjustment(
 async function assertPersistedBinding(
   transaction: RuntimeTransaction,
   operation: AdjustmentRow,
-): Promise<void> {
+): Promise<string> {
   if (operation.kind === "credit_note") {
     const adjustment = await transaction.query.creditNotes.findFirst({
       where: eq(creditNotes.id, operation.adjustmentId),
@@ -95,7 +97,18 @@ async function assertPersistedBinding(
       source.amountMinor !== operation.aggregateCapMinor
     )
       throw new Error("STRIPE_ADJUSTMENT_PERSISTED_BINDING_MISMATCH");
-    return;
+    if (source.billingSource === "payg") {
+      await loadPaygInvoiceSource(transaction, source);
+      const allocations = await transaction.execute(
+        sql`select amount_minor from core_payg_credit_sources where credit_note_id = ${adjustment.id} and invoice_id = ${source.id}`,
+      );
+      if (
+        allocations.length !== 1 ||
+        BigInt(String(allocations[0]?.amount_minor)) !== adjustment.amountMinor
+      )
+        throw new Error("STRIPE_PAYG_CREDIT_SOURCE_MISMATCH");
+    }
+    return source.id;
   }
   if (operation.kind !== "refund")
     throw new Error("STRIPE_ADJUSTMENT_KIND_INVALID");
@@ -121,12 +134,16 @@ async function assertPersistedBinding(
     adjustment.currency !== operation.sourceCurrency ||
     adjustment.amountMinor !== operation.amountMinor ||
     source.orderId !== operation.orderId ||
+    invoice.orderId !== operation.orderId ||
     source.currency !== operation.sourceCurrency ||
     source.stripePaymentIntentId !== operation.providerPaymentIntentId ||
     source.amountMinor !== operation.individualCapMinor ||
     invoice.amountMinor !== operation.aggregateCapMinor
   )
     throw new Error("STRIPE_ADJUSTMENT_PERSISTED_BINDING_MISMATCH");
+  if (invoice.billingSource === "payg")
+    await loadPaygInvoiceSource(transaction, invoice);
+  return invoice.id;
 }
 
 /** Database claim/commit implementation for persisted-only Stripe commands. */
@@ -203,11 +220,16 @@ export class DatabasePersistedStripeAdjustmentStore {
           )
         )
           return { status: "not_approved" };
-        await assertPersistedBinding(transaction, operation);
+        const sourceInvoiceId = await assertPersistedBinding(
+          transaction,
+          operation,
+        );
         const reserved =
           await transaction.query.stripeAdjustmentOperations.findMany({
             where: and(
-              eq(stripeAdjustmentOperations.orderId, operation.orderId),
+              operation.orderId
+                ? eq(stripeAdjustmentOperations.orderId, operation.orderId)
+                : sql`((${stripeAdjustmentOperations.kind} = 'credit_note' and ${stripeAdjustmentOperations.sourceId} = ${sourceInvoiceId}) or (${stripeAdjustmentOperations.kind} = 'refund' and ${stripeAdjustmentOperations.sourceId} in (select id from payments where invoice_id = ${sourceInvoiceId})))`,
               eq(
                 stripeAdjustmentOperations.sourceCurrency,
                 operation.sourceCurrency,
@@ -268,6 +290,7 @@ export class DatabasePersistedStripeAdjustmentStore {
             adjustmentId,
             expectedVersion: claimed.commandVersion,
             orderId: claimed.orderId,
+            invoiceId: sourceInvoiceId,
             sourceId: claimed.sourceId,
             sourceCurrency: currency,
             kind: z.enum(["credit_note", "refund"]).parse(claimed.kind),

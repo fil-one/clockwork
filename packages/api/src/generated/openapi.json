@@ -879,6 +879,1883 @@
         }
       }
     },
+    "/v1/core/payg-offers/simulate": {
+      "post": {
+        "tags": [
+          "core",
+          "pricing"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "terms": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "sku": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "region": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true
+                      },
+                      "effectiveFrom": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "sourceUri": {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "format": "uri"
+                      },
+                      "sourceCheckedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "sourceDocumentId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "owner": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "payg": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "USD",
+                              "EUR",
+                              "GBP"
+                            ]
+                          },
+                          "storageTbMonthMinor": {
+                            "type": "string",
+                            "maxLength": 38,
+                            "pattern": "^(0|[1-9]\\d*)$"
+                          },
+                          "monthlyMinimumMinor": {
+                            "type": "string",
+                            "maxLength": 38,
+                            "pattern": "^(0|[1-9]\\d*)$"
+                          },
+                          "partialMonthMinimum": {
+                            "type": "string",
+                            "enum": [
+                              "full",
+                              "prorated"
+                            ]
+                          },
+                          "correctionWindowDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3650
+                          },
+                          "aggregation": {
+                            "type": "string",
+                            "enum": [
+                              "hourly_average_daily_utc"
+                            ]
+                          },
+                          "egressRateMinor": {
+                            "type": "string",
+                            "enum": [
+                              "0"
+                            ]
+                          },
+                          "apiRateMinor": {
+                            "type": "string",
+                            "enum": [
+                              "0"
+                            ]
+                          },
+                          "stripeTaxCode": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "qboIncomeAccount": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          }
+                        },
+                        "required": [
+                          "currency",
+                          "storageTbMonthMinor",
+                          "monthlyMinimumMinor",
+                          "partialMonthMinimum",
+                          "correctionWindowDays",
+                          "aggregation",
+                          "egressRateMinor",
+                          "apiRateMinor",
+                          "stripeTaxCode",
+                          "qboIncomeAccount"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "trial": {
+                        "type": "object",
+                        "properties": {
+                          "durationDays": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 365
+                          },
+                          "gracePeriodDays": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 365
+                          },
+                          "storageLimitBytes": {
+                            "type": "string",
+                            "maxLength": 38,
+                            "pattern": "^(0|[1-9]\\d*)$"
+                          },
+                          "cumulativeEgressLimitBytes": {
+                            "type": "string",
+                            "maxLength": 38,
+                            "pattern": "^(0|[1-9]\\d*)$"
+                          },
+                          "maximumCounterAgeSeconds": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 86400
+                          },
+                          "egressExhaustion": {
+                            "type": "string",
+                            "enum": [
+                              "disable_all",
+                              "block_egress"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "durationDays",
+                          "gracePeriodDays",
+                          "storageLimitBytes",
+                          "cumulativeEgressLimitBytes",
+                          "maximumCounterAgeSeconds",
+                          "egressExhaustion"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sku",
+                      "region",
+                      "version",
+                      "effectiveFrom",
+                      "sourceUri",
+                      "sourceCheckedAt",
+                      "sourceDocumentId",
+                      "owner",
+                      "payg",
+                      "trial"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "month": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                  },
+                  "averageStorageBytes": {
+                    "type": "string",
+                    "maxLength": 38,
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "egressBytes": {
+                    "type": "string",
+                    "maxLength": 38,
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  },
+                  "apiOperations": {
+                    "type": "string",
+                    "maxLength": 38,
+                    "pattern": "^(0|[1-9]\\d*)$"
+                  }
+                },
+                "required": [
+                  "terms",
+                  "month",
+                  "averageStorageBytes",
+                  "egressBytes",
+                  "apiOperations"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Monthly policy simulation with no enrollment or billing effect",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "simulation": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "month": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string"
+                        },
+                        "minor": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "currency",
+                        "minor"
+                      ]
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string"
+                              },
+                              "minor": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "minor"
+                            ]
+                          },
+                          "serviceStartsAt": {
+                            "type": "string"
+                          },
+                          "serviceEndsAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "amount",
+                          "serviceStartsAt",
+                          "serviceEndsAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "simulation",
+                    "month",
+                    "total",
+                    "lines"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Internal finance permission required"
+          }
+        }
+      }
+    },
+    "/v1/core/payg-offers/trials": {
+      "get": {
+        "tags": [
+          "core",
+          "trials"
+        ],
+        "responses": {
+          "200": {
+            "description": "Retained lifetime trial claims",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "trials": {
+                      "type": "array",
+                      "items": {
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "trials"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "503": {
+            "description": "Trial service unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "core",
+          "trials"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "claim"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "organizationId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "offerVersionId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "verificationEvidenceId": {
+                        "type": "string",
+                        "pattern": "^(dns|registration):[0-9a-f-]{36}$"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "id",
+                      "organizationId",
+                      "offerVersionId",
+                      "verificationEvidenceId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "convert"
+                        ]
+                      },
+                      "trialId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "entitlementId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "paygEnrollmentId": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "trialId"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified trial claim or confirmed paid conversion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "trial": {
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "409": {
+            "description": "Trial eligibility or evidence conflict"
+          },
+          "503": {
+            "description": "Trial service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/core/payg-offers/enrollments": {
+      "get": {
+        "tags": [
+          "core",
+          "billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Retained PAYG enrollments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollments": {
+                      "type": "array",
+                      "items": {
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "enrollments"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "503": {
+            "description": "Billing unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "core",
+          "billing"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "enroll"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "offerVersionId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "binding": {
+                        "type": "object",
+                        "properties": {
+                          "mappingVersionId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "accountId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "filOneOrganizationId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "tenantId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "entitlementId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "sku": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "region": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "source": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "meters": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "storage_bytes"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "egress_bytes"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "api_operations"
+                                  ]
+                                }
+                              ]
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "active"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mappingVersionId",
+                          "accountId",
+                          "filOneOrganizationId",
+                          "tenantId",
+                          "entitlementId",
+                          "sku",
+                          "region",
+                          "source",
+                          "meters",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "bindingEvidenceId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "startsAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "billingAuthority": {
+                        "type": "string",
+                        "enum": [
+                          "fil_one",
+                          "clockwork"
+                        ]
+                      },
+                      "cutoverEvidenceId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "id",
+                      "offerVersionId",
+                      "binding",
+                      "bindingEvidenceId",
+                      "startsAt",
+                      "billingAuthority"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "cancel"
+                        ]
+                      },
+                      "enrollmentId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "serviceEndsAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "evidenceId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "enrollmentId",
+                      "serviceEndsAt",
+                      "evidenceId"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified enrollment or confirmed cancellation retained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enrollment": {
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "409": {
+            "description": "Verified evidence required"
+          },
+          "503": {
+            "description": "Billing unavailable"
+          }
+        }
+      }
+    },
+    "/v1/core/payg-offers/billing-effects": {
+      "get": {
+        "tags": [
+          "core",
+          "billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Retained billing deltas awaiting financial materialization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "effects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "idempotencyKey": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "enrollmentId": {
+                            "type": "string"
+                          },
+                          "accountId": {
+                            "type": "string"
+                          },
+                          "month": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "number"
+                          },
+                          "amount": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string"
+                              },
+                              "minor": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "minor"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "idempotencyKey",
+                          "kind",
+                          "enrollmentId",
+                          "accountId",
+                          "month",
+                          "revision",
+                          "amount"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "effects"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "503": {
+            "description": "Billing service unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "core",
+          "billing"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "effectKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "effectKey"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice draft retained and queued for provider delivery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "creditNoteIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "replay": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "invoiceId",
+                    "replay"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Finance access required"
+          },
+          "409": {
+            "description": "Source or tax evidence requires repair"
+          },
+          "503": {
+            "description": "Billing service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/core/payg-offers": {
+      "get": {
+        "tags": [
+          "core",
+          "pricing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted PAYG/trial policy versions; approval alone does not enable sales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "offers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "rowVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "proposed",
+                              "approved",
+                              "retired"
+                            ]
+                          },
+                          "terms": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "sku": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "region": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "version": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true
+                              },
+                              "effectiveFrom": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "sourceUri": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "sourceCheckedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "sourceDocumentId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "owner": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "payg": {
+                                "type": "object",
+                                "properties": {
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "USD",
+                                      "EUR",
+                                      "GBP"
+                                    ]
+                                  },
+                                  "storageTbMonthMinor": {
+                                    "type": "string",
+                                    "maxLength": 38,
+                                    "pattern": "^(0|[1-9]\\d*)$"
+                                  },
+                                  "monthlyMinimumMinor": {
+                                    "type": "string",
+                                    "maxLength": 38,
+                                    "pattern": "^(0|[1-9]\\d*)$"
+                                  },
+                                  "partialMonthMinimum": {
+                                    "type": "string",
+                                    "enum": [
+                                      "full",
+                                      "prorated"
+                                    ]
+                                  },
+                                  "correctionWindowDays": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 3650
+                                  },
+                                  "aggregation": {
+                                    "type": "string",
+                                    "enum": [
+                                      "hourly_average_daily_utc"
+                                    ]
+                                  },
+                                  "egressRateMinor": {
+                                    "type": "string",
+                                    "enum": [
+                                      "0"
+                                    ]
+                                  },
+                                  "apiRateMinor": {
+                                    "type": "string",
+                                    "enum": [
+                                      "0"
+                                    ]
+                                  },
+                                  "stripeTaxCode": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "qboIncomeAccount": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  }
+                                },
+                                "required": [
+                                  "currency",
+                                  "storageTbMonthMinor",
+                                  "monthlyMinimumMinor",
+                                  "partialMonthMinimum",
+                                  "correctionWindowDays",
+                                  "aggregation",
+                                  "egressRateMinor",
+                                  "apiRateMinor",
+                                  "stripeTaxCode",
+                                  "qboIncomeAccount"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "trial": {
+                                "type": "object",
+                                "properties": {
+                                  "durationDays": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 365
+                                  },
+                                  "gracePeriodDays": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 365
+                                  },
+                                  "storageLimitBytes": {
+                                    "type": "string",
+                                    "maxLength": 38,
+                                    "pattern": "^(0|[1-9]\\d*)$"
+                                  },
+                                  "cumulativeEgressLimitBytes": {
+                                    "type": "string",
+                                    "maxLength": 38,
+                                    "pattern": "^(0|[1-9]\\d*)$"
+                                  },
+                                  "maximumCounterAgeSeconds": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 86400
+                                  },
+                                  "egressExhaustion": {
+                                    "type": "string",
+                                    "enum": [
+                                      "disable_all",
+                                      "block_egress"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "durationDays",
+                                  "gracePeriodDays",
+                                  "storageLimitBytes",
+                                  "cumulativeEgressLimitBytes",
+                                  "maximumCounterAgeSeconds",
+                                  "egressExhaustion"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "sku",
+                              "region",
+                              "version",
+                              "effectiveFrom",
+                              "sourceUri",
+                              "sourceCheckedAt",
+                              "sourceDocumentId",
+                              "owner",
+                              "payg",
+                              "trial"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "createdBy": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "lastEditedBy": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "proposedBy": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uuid"
+                          },
+                          "approvedBy": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uuid"
+                          },
+                          "approvalEvidenceId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "decisionReason": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "rowVersion",
+                          "status",
+                          "terms",
+                          "createdBy",
+                          "lastEditedBy",
+                          "proposedBy",
+                          "approvedBy",
+                          "approvalEvidenceId",
+                          "decisionReason",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "offers"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Internal finance access required"
+          },
+          "503": {
+            "description": "Policy service unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "core",
+          "pricing"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "create"
+                        ]
+                      },
+                      "terms": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "sku": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "region": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "sourceUri": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "format": "uri"
+                          },
+                          "sourceCheckedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "sourceDocumentId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "owner": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "payg": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "enum": [
+                                  "USD",
+                                  "EUR",
+                                  "GBP"
+                                ]
+                              },
+                              "storageTbMonthMinor": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "monthlyMinimumMinor": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "partialMonthMinimum": {
+                                "type": "string",
+                                "enum": [
+                                  "full",
+                                  "prorated"
+                                ]
+                              },
+                              "correctionWindowDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3650
+                              },
+                              "aggregation": {
+                                "type": "string",
+                                "enum": [
+                                  "hourly_average_daily_utc"
+                                ]
+                              },
+                              "egressRateMinor": {
+                                "type": "string",
+                                "enum": [
+                                  "0"
+                                ]
+                              },
+                              "apiRateMinor": {
+                                "type": "string",
+                                "enum": [
+                                  "0"
+                                ]
+                              },
+                              "stripeTaxCode": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "qboIncomeAccount": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "storageTbMonthMinor",
+                              "monthlyMinimumMinor",
+                              "partialMonthMinimum",
+                              "correctionWindowDays",
+                              "aggregation",
+                              "egressRateMinor",
+                              "apiRateMinor",
+                              "stripeTaxCode",
+                              "qboIncomeAccount"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "trial": {
+                            "type": "object",
+                            "properties": {
+                              "durationDays": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 365
+                              },
+                              "gracePeriodDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 365
+                              },
+                              "storageLimitBytes": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "cumulativeEgressLimitBytes": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "maximumCounterAgeSeconds": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 86400
+                              },
+                              "egressExhaustion": {
+                                "type": "string",
+                                "enum": [
+                                  "disable_all",
+                                  "block_egress"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "durationDays",
+                              "gracePeriodDays",
+                              "storageLimitBytes",
+                              "cumulativeEgressLimitBytes",
+                              "maximumCounterAgeSeconds",
+                              "egressExhaustion"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "sku",
+                          "region",
+                          "version",
+                          "effectiveFrom",
+                          "sourceUri",
+                          "sourceCheckedAt",
+                          "sourceDocumentId",
+                          "owner",
+                          "payg",
+                          "trial"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "terms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "save"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "expectedRowVersion": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true
+                      },
+                      "terms": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "sku": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "region": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "sourceUri": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "format": "uri"
+                          },
+                          "sourceCheckedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "sourceDocumentId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "owner": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "payg": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "enum": [
+                                  "USD",
+                                  "EUR",
+                                  "GBP"
+                                ]
+                              },
+                              "storageTbMonthMinor": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "monthlyMinimumMinor": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "partialMonthMinimum": {
+                                "type": "string",
+                                "enum": [
+                                  "full",
+                                  "prorated"
+                                ]
+                              },
+                              "correctionWindowDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 3650
+                              },
+                              "aggregation": {
+                                "type": "string",
+                                "enum": [
+                                  "hourly_average_daily_utc"
+                                ]
+                              },
+                              "egressRateMinor": {
+                                "type": "string",
+                                "enum": [
+                                  "0"
+                                ]
+                              },
+                              "apiRateMinor": {
+                                "type": "string",
+                                "enum": [
+                                  "0"
+                                ]
+                              },
+                              "stripeTaxCode": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "qboIncomeAccount": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              }
+                            },
+                            "required": [
+                              "currency",
+                              "storageTbMonthMinor",
+                              "monthlyMinimumMinor",
+                              "partialMonthMinimum",
+                              "correctionWindowDays",
+                              "aggregation",
+                              "egressRateMinor",
+                              "apiRateMinor",
+                              "stripeTaxCode",
+                              "qboIncomeAccount"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "trial": {
+                            "type": "object",
+                            "properties": {
+                              "durationDays": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 365
+                              },
+                              "gracePeriodDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 365
+                              },
+                              "storageLimitBytes": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "cumulativeEgressLimitBytes": {
+                                "type": "string",
+                                "maxLength": 38,
+                                "pattern": "^(0|[1-9]\\d*)$"
+                              },
+                              "maximumCounterAgeSeconds": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 86400
+                              },
+                              "egressExhaustion": {
+                                "type": "string",
+                                "enum": [
+                                  "disable_all",
+                                  "block_egress"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "durationDays",
+                              "gracePeriodDays",
+                              "storageLimitBytes",
+                              "cumulativeEgressLimitBytes",
+                              "maximumCounterAgeSeconds",
+                              "egressExhaustion"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "sku",
+                          "region",
+                          "version",
+                          "effectiveFrom",
+                          "sourceUri",
+                          "sourceCheckedAt",
+                          "sourceDocumentId",
+                          "owner",
+                          "payg",
+                          "trial"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "id",
+                      "expectedRowVersion",
+                      "terms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "propose",
+                          "approve",
+                          "reject",
+                          "retire"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "expectedRowVersion": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 2000
+                      },
+                      "approvalEvidenceId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "id",
+                      "expectedRowVersion",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved policy version with audited decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "rowVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "proposed",
+                        "approved",
+                        "retired"
+                      ]
+                    },
+                    "terms": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "sku": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "region": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true
+                        },
+                        "effectiveFrom": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "sourceUri": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "format": "uri"
+                        },
+                        "sourceCheckedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "sourceDocumentId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "owner": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "payg": {
+                          "type": "object",
+                          "properties": {
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "USD",
+                                "EUR",
+                                "GBP"
+                              ]
+                            },
+                            "storageTbMonthMinor": {
+                              "type": "string",
+                              "maxLength": 38,
+                              "pattern": "^(0|[1-9]\\d*)$"
+                            },
+                            "monthlyMinimumMinor": {
+                              "type": "string",
+                              "maxLength": 38,
+                              "pattern": "^(0|[1-9]\\d*)$"
+                            },
+                            "partialMonthMinimum": {
+                              "type": "string",
+                              "enum": [
+                                "full",
+                                "prorated"
+                              ]
+                            },
+                            "correctionWindowDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 3650
+                            },
+                            "aggregation": {
+                              "type": "string",
+                              "enum": [
+                                "hourly_average_daily_utc"
+                              ]
+                            },
+                            "egressRateMinor": {
+                              "type": "string",
+                              "enum": [
+                                "0"
+                              ]
+                            },
+                            "apiRateMinor": {
+                              "type": "string",
+                              "enum": [
+                                "0"
+                              ]
+                            },
+                            "stripeTaxCode": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 255
+                            },
+                            "qboIncomeAccount": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 255
+                            }
+                          },
+                          "required": [
+                            "currency",
+                            "storageTbMonthMinor",
+                            "monthlyMinimumMinor",
+                            "partialMonthMinimum",
+                            "correctionWindowDays",
+                            "aggregation",
+                            "egressRateMinor",
+                            "apiRateMinor",
+                            "stripeTaxCode",
+                            "qboIncomeAccount"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "trial": {
+                          "type": "object",
+                          "properties": {
+                            "durationDays": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 365
+                            },
+                            "gracePeriodDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "storageLimitBytes": {
+                              "type": "string",
+                              "maxLength": 38,
+                              "pattern": "^(0|[1-9]\\d*)$"
+                            },
+                            "cumulativeEgressLimitBytes": {
+                              "type": "string",
+                              "maxLength": 38,
+                              "pattern": "^(0|[1-9]\\d*)$"
+                            },
+                            "maximumCounterAgeSeconds": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 86400
+                            },
+                            "egressExhaustion": {
+                              "type": "string",
+                              "enum": [
+                                "disable_all",
+                                "block_egress"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "durationDays",
+                            "gracePeriodDays",
+                            "storageLimitBytes",
+                            "cumulativeEgressLimitBytes",
+                            "maximumCounterAgeSeconds",
+                            "egressExhaustion"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "sku",
+                        "region",
+                        "version",
+                        "effectiveFrom",
+                        "sourceUri",
+                        "sourceCheckedAt",
+                        "sourceDocumentId",
+                        "owner",
+                        "payg",
+                        "trial"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "lastEditedBy": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "proposedBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "approvedBy": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "uuid"
+                    },
+                    "approvalEvidenceId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "decisionReason": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "rowVersion",
+                    "status",
+                    "terms",
+                    "createdBy",
+                    "lastEditedBy",
+                    "proposedBy",
+                    "approvedBy",
+                    "approvalEvidenceId",
+                    "decisionReason",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Internal finance access and recent authentication required"
+          },
+          "409": {
+            "description": "Policy state, version, or distinct approver conflict"
+          },
+          "503": {
+            "description": "Policy service unavailable"
+          }
+        }
+      }
+    },
     "/v1/notifications": {
       "get": {
         "tags": [

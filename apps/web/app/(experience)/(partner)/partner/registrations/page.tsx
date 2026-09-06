@@ -1,3 +1,4 @@
+import { loadChannelPolicy } from "@/src/features/experience-server/channel-policy-loader";
 import { sql } from "drizzle-orm";
 
 import { ids, roles as commerceRoles, type Role } from "@clockwork/contracts";
@@ -69,7 +70,7 @@ async function loadRegistrableEndClients(
     { secret },
     async (transaction) => {
       const result = await transaction.execute(sql<Row>`
-        select account.id as id, account.legal_name as name
+        select account.id as id, account.legal_name as name, account.domain, account.country
         from accounts account
         where account.id <> ${partnerAccountId}::uuid
         order by account.legal_name
@@ -81,7 +82,17 @@ async function loadRegistrableEndClients(
   for (const row of rows) {
     const id = typeof row.id === "string" ? row.id : undefined;
     const name = typeof row.name === "string" ? row.name.trim() : "";
-    if (id && name) clients.push({ id, name });
+    if (id && name)
+      clients.push({
+        id,
+        name,
+        ...(typeof row.domain === "string" && row.domain
+          ? { domain: row.domain }
+          : {}),
+        ...(typeof row.country === "string" && row.country
+          ? { country: row.country }
+          : {}),
+      });
   }
   return clients;
 }
@@ -101,13 +112,16 @@ async function RegistrationAction() {
     userId: identity.userId,
     roles: session.roles,
   });
-  if (!endClients) return <RegistrationDirectoryUnavailable />;
+  const channelPolicy = await loadChannelPolicy();
+  if (!endClients || !channelPolicy)
+    return <RegistrationDirectoryUnavailable />;
   return (
     <DealRegistration
       context={{
         partnerAccountId: identity.accountId,
         partnerAccountName: identity.accountName,
         endClients,
+        channelPolicy,
       }}
     />
   );

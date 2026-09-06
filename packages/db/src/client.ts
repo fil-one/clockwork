@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { runtimeSchema } from "./schema/index";
@@ -24,7 +24,10 @@ const runtimeDatabaseRoleBindings = new WeakMap<
  * Runtime connections target Supavisor transaction mode. Transaction pooling does
  * not preserve session state, so prepared statements are intentionally disabled.
  */
-export function createRuntimeDatabase(options: RuntimeDatabaseOptions) {
+export function createRuntimeDatabase(options: RuntimeDatabaseOptions): {
+  client: postgres.Sql;
+  db: RuntimeDatabase;
+} {
   const parsedUrl = new URL(options.url);
   const local = ["127.0.0.1", "localhost", "::1"].includes(parsedUrl.hostname);
   const expectedRole = options.role ?? "clockwork_runtime";
@@ -54,7 +57,9 @@ export function createRuntimeDatabase(options: RuntimeDatabaseOptions) {
   return { client, db };
 }
 
-export type RuntimeDatabase = ReturnType<typeof createRuntimeDatabase>["db"];
+export type RuntimeDatabase = PostgresJsDatabase<typeof runtimeSchema> & {
+  $client: postgres.Sql;
+};
 export type RuntimeTransaction = Parameters<
   Parameters<RuntimeDatabase["transaction"]>[0]
 >[0];

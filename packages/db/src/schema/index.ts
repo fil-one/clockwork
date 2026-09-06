@@ -11,7 +11,11 @@ export * from "./system";
 export * from "./experience";
 
 /** Drizzle consumes this stable composition; lanes only edit their own object. */
-export const runtimeSchema = {
+export const runtimeSchema: typeof foundationSchema &
+  typeof coreSchema &
+  typeof lifecycleSchema &
+  typeof systemSchema &
+  typeof experienceSchema = {
   ...foundationSchema,
   ...coreSchema,
   ...lifecycleSchema,

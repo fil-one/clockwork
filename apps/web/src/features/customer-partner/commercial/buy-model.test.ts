@@ -21,6 +21,19 @@ const quoteId = "70000000-0000-4000-8000-000000000001";
 const initial = initialBuyDraft(authoritativeQuoteOffers);
 
 describe("self-serve buy model", () => {
+  it("uses the approved configurable handoff without changing term economics", () => {
+    expect(needsFullQuote({ ...initial, capacity: "200" }, 250)).toBe(false);
+    expect(needsFullQuote({ ...initial, capacity: "250" }, 250)).toBe(true);
+    const command = buildBuyQuoteCommand({
+      account,
+      quoteId,
+      now: new Date("2026-09-06T00:00:00Z"),
+      draft: { ...initial, capacity: "200" },
+      offers: authoritativeQuoteOffers,
+      thresholdTb: 250,
+    });
+    expect(command.resource).toBe("quotes");
+  });
   it("keeps 99 TB self-serve and routes 100 TB to the full quote", () => {
     expect(needsFullQuote({ ...initial, capacity: "99" })).toBe(false);
     expect(needsFullQuote({ ...initial, capacity: "99.999" })).toBe(false);

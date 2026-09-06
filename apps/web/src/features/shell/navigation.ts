@@ -207,6 +207,31 @@ export const navigation: Readonly<
       requiredPermission: "quote:approve",
     },
     {
+      href: "/internal/payg-offers",
+      label: "nav.internal.paygOffers",
+      allowedRoles: ["finance_approver"],
+    },
+    {
+      href: "/internal/capabilities",
+      label: "nav.internal.capabilities",
+      allowedRoles: [
+        "internal_operator",
+        "finance_approver",
+        "legal_approver",
+        "destructive_action_approver",
+      ],
+    },
+    {
+      href: "/internal/catalog",
+      label: "nav.internal.catalog",
+      allowedRoles: ["internal_operator", "finance_approver"],
+    },
+    {
+      href: "/internal/channel-policy",
+      label: "nav.internal.channelPolicy",
+      allowedRoles: ["finance_approver"],
+    },
+    {
       href: "/internal/gates",
       label: "nav.internal.gates",
       allowedRoles: ["internal_operator"],

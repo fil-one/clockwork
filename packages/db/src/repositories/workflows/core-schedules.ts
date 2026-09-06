@@ -27,6 +27,9 @@ import {
 } from "@clockwork/domain/core";
 
 import type { RuntimeDatabase } from "../../client";
+import { paygEnrollments } from "../../schema/core/payg-billing";
+import { loadPaygInvoiceSource } from "../core/payg-invoice-source";
+import { z } from "zod";
 import { replayCommitmentLedger } from "../core/commitments";
 import {
   accounts,
@@ -540,21 +543,46 @@ export class DatabaseCoreScheduledDispatchStore {
         if (!owner || !account)
           throw new Error("SCHEDULED_DUNNING_OWNER_BINDING_INCOMPLETE");
         const [order, policy, serviceEntitlements] = await Promise.all([
-          tx.query.orders.findFirst({ where: eq(orders.id, invoice.orderId) }),
+          invoice.orderId
+            ? tx.query.orders.findFirst({
+                where: eq(orders.id, invoice.orderId),
+              })
+            : Promise.resolve(undefined),
           tx.query.billingPolicies.findFirst({
             where: eq(billingPolicies.accountId, invoice.accountId),
           }),
-          tx.query.entitlements.findMany({
-            where: eq(entitlements.orderId, invoice.orderId),
-          }),
+          invoice.orderId
+            ? tx.query.entitlements.findMany({
+                where: eq(entitlements.orderId, invoice.orderId),
+              })
+            : Promise.resolve([]),
         ]);
+        const payg =
+          invoice.billingSource === "payg"
+            ? await loadPaygInvoiceSource(tx, invoice)
+            : undefined;
+        let paygServiceRunning = false;
+        if (payg) {
+          const enrollment = await tx.query.paygEnrollments.findFirst({
+            where: eq(paygEnrollments.id, payg.paygSource.enrollmentId),
+          });
+          if (!enrollment || enrollment.accountId !== invoice.accountId)
+            throw new Error("SCHEDULED_DUNNING_PAYG_BINDING_INVALID");
+          const service = z
+            .object({ endsAt: z.iso.datetime().optional() })
+            .parse(enrollment.snapshot);
+          paygServiceRunning =
+            !service.endsAt ||
+            Date.parse(service.endsAt) > scheduledAt.valueOf();
+        }
         if (
-          !order ||
           !policy ||
-          order.invoicingAccountId !== invoice.accountId ||
-          !["direct", "referral", "resale", "distributor"].includes(
-            order.sourcing,
-          )
+          (!payg &&
+            (!order ||
+              order.invoicingAccountId !== invoice.accountId ||
+              !["direct", "referral", "resale", "distributor"].includes(
+                order.sourcing,
+              )))
         )
           throw new Error("SCHEDULED_DUNNING_COMMERCIAL_BINDING_INCOMPLETE");
         const daysPastDue = Math.max(
@@ -587,7 +615,7 @@ export class DatabaseCoreScheduledDispatchStore {
             ),
             invoiceId: invoice.id,
             billingAccountId: invoice.accountId,
-            commercialShape: order.sourcing,
+            commercialShape: payg ? "direct" : order?.sourcing,
             invoiceStatus:
               invoice.status === "uncollectible" ? "uncollectible" : "past_due",
             outstanding: {
@@ -601,9 +629,11 @@ export class DatabaseCoreScheduledDispatchStore {
               serviceEntitlements.map((item) => item.maximumRetentionAt),
             ),
             retentionLiabilityRule: "manual_review",
-            serviceRunning: serviceEntitlements.some((item) =>
-              ["active", "suspended_write"].includes(item.status),
-            ),
+            serviceRunning: payg
+              ? paygServiceRunning
+              : serviceEntitlements.some((item) =>
+                  ["active", "suspended_write"].includes(item.status),
+                ),
             collectionsOwner: owner.email,
             billingRecipients: [account.invoiceDeliveryEmail],
           },

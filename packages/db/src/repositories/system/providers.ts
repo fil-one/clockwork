@@ -1,3 +1,4 @@
+import { loadPaygInvoiceSource } from "../core/payg-invoice-source";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { ids } from "@clockwork/contracts";
@@ -1051,11 +1052,19 @@ async function assertStripeInvoiceIdentity(
 ): Promise<void> {
   if (event.invoiceId !== invoice.stripeInvoiceId)
     throw new Error("Stripe event invoice binding mismatch");
-  const order = await transaction.query.orders.findFirst({
-    where: eq(orders.id, invoice.orderId),
-  });
-  if (!order || order.invoicingAccountId !== invoice.accountId)
-    throw new Error("Stripe invoice order binding mismatch");
+  if (invoice.billingSource === "payg") {
+    const source = await loadPaygInvoiceSource(transaction, invoice);
+    if (event.customerId && source.customerId !== event.customerId)
+      throw new Error("Stripe PAYG customer binding mismatch");
+  } else {
+    if (!invoice.orderId)
+      throw new Error("Stripe invoice order binding mismatch");
+    const order = await transaction.query.orders.findFirst({
+      where: eq(orders.id, invoice.orderId),
+    });
+    if (!order || order.invoicingAccountId !== invoice.accountId)
+      throw new Error("Stripe invoice order binding mismatch");
+  }
   if (!event.customerId) return;
   const account = await transaction.query.accounts.findFirst({
     where: eq(accounts.id, invoice.accountId),

@@ -4,6 +4,7 @@ import type { Route } from "next";
 import type { RenewalState } from "@clockwork/ui";
 import { NOT_RECORDED } from "@clockwork/workflows";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
+import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { getCommerceSession } from "@/src/auth/session";
 import type { CollectionKind } from "@/src/features/customer-partner/commercial/model";
@@ -611,9 +612,39 @@ const customerChannels: readonly ProjectionChannel[] = [
  * precomputed row: the rollup spans quotes, orders, invoices and agreements, so
  * an account-keyed row would go stale the moment any one of them changed.
  */
-export async function loadCustomerDashboardProjection(): Promise<CustomerDashboardProjection> {
-  if (explicitDashboardDemoEnabled()) return demoCustomer;
+export async function loadCustomerDashboardProjection(
+  accountName?: string,
+): Promise<CustomerDashboardProjection> {
   const session = await getCommerceSession();
+  if (explicitDashboardDemoEnabled()) {
+    const loaded = await loadDashboardChannels(
+      "customer",
+      ["billing", "quotes"],
+      session,
+    );
+    return {
+      ...demoCustomer,
+      generatedAt: loaded.generatedAt,
+      stale: loaded.stale,
+      obligations: [
+        ...customerObligations(loaded.records),
+        ...demoCustomer.obligations.filter(
+          (item) => item.type === "Notice and renewal",
+        ),
+      ].map((item, index) => ({ ...item, priority: index + 1 })),
+      term: {
+        ...demoCustomer.term,
+        title: `${accountName ?? "Northstar"} annual term`,
+      },
+      services: demoCustomer.services.map((service) => ({
+        ...service,
+        name:
+          service.id === "service-primary"
+            ? `${accountName ?? "Northstar"} primary archive`
+            : service.name,
+      })),
+    };
+  }
   const loaded = await loadDashboardChannels(
     "customer",
     customerChannels,
@@ -820,8 +851,41 @@ function partnerCommission(
 }
 
 /** Partner account records route to `portfolio`, never to a `dashboard` row. */
-export async function loadPartnerDashboardProjection(): Promise<PartnerDashboardProjection> {
-  if (explicitDashboardDemoEnabled()) return demoPartner;
+export async function loadPartnerDashboardProjection(identity?: {
+  accountId: string;
+  accountName: string;
+}): Promise<PartnerDashboardProjection> {
+  if (explicitDashboardDemoEnabled()) {
+    const name = identity?.accountName ?? "Your organization";
+    const referral = identity?.accountId === demoAccountIds.referral;
+    return {
+      ...demoPartner,
+      agreement: {
+        ...demoPartner.agreement,
+        label: `${name} Partner Agreement - v4.1`,
+        commercialRoute: referral
+          ? "Referral"
+          : "Resale and two-tier distributor",
+        merchantBoundary: referral
+          ? "Fil One is merchant of record to referred customers"
+          : `${name} is merchant of record to end clients on resale routes`,
+      },
+      boundary: referral
+        ? [
+            { label: "Customer pricing", value: "Set by Fil One" },
+            { label: "Merchant of record", value: "Fil One" },
+            {
+              label: "Partner earnings",
+              value: "Referral commission on eligible collected revenue",
+            },
+          ]
+        : [
+            { label: "Transfer price", value: `Private to ${name}` },
+            { label: "Partner price", value: `Controlled by ${name}` },
+            { label: "Merchant of record", value: `${name} on resale routes` },
+          ],
+    };
+  }
   const session = await getCommerceSession();
   const [loaded, commissions] = await Promise.all([
     loadDashboardChannels("partner", partnerChannels, session),

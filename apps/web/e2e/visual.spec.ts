@@ -18,9 +18,17 @@ test.beforeAll(resetDurableDemoState);
 test.afterAll(resetDurableDemoState);
 
 const desktopSurfaces = [
-  { name: "customer-dashboard", path: "/dashboard" },
-  { name: "partner-agreement-clock", path: "/partner" },
-  { name: "operator-priority-work", path: "/internal/queues" },
+  { name: "customer-dashboard", path: "/dashboard", persona: "owner" },
+  {
+    name: "partner-agreement-clock",
+    path: "/partner",
+    persona: "partner_admin",
+  },
+  {
+    name: "operator-priority-work",
+    path: "/internal/queues",
+    persona: "internal_operator",
+  },
 ] as const;
 
 const commercialSurfaces = [
@@ -87,6 +95,7 @@ async function expectAxeClean(page: Page) {
 
 for (const surface of desktopSurfaces) {
   test(`visual ${surface.name}`, async ({ page }) => {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": surface.persona });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(surface.path);
     await expect(page.locator(".experience-shell")).toHaveAttribute(
@@ -98,6 +107,7 @@ for (const surface of desktopSurfaces) {
     });
     await page.evaluate(() => document.fonts.ready);
     await expect(page).toHaveScreenshot(`${surface.name}.png`, {
+      mask: [page.locator("time")],
       animations: "disabled",
       fullPage: true,
       maxDiffPixelRatio: 0.01,
@@ -217,6 +227,7 @@ for (const surface of mobileRailSurfaces) {
 }
 
 test("visual customer dashboard at 320px", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/dashboard");
   await expect(page.locator(".experience-shell")).toHaveAttribute(
@@ -228,6 +239,7 @@ test("visual customer dashboard at 320px", async ({ page }) => {
   });
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot("customer-dashboard-320.png", {
+    mask: [page.locator("time")],
     animations: "disabled",
     fullPage: true,
     maxDiffPixelRatio: 0.01,
@@ -282,6 +294,9 @@ for (const viewport of [
   }) => {
     await page.setViewportSize(viewport);
     for (const surface of desktopSurfaces) {
+      await page.setExtraHTTPHeaders({
+        "x-clockwork-persona": surface.persona,
+      });
       await page.goto(surface.path);
       await expect(page.locator("#main-content h1")).toBeVisible();
       await expectNoHorizontalOverflow(page);
@@ -320,6 +335,9 @@ test("approval surfaces preserve content at 200% zoom and 400% reflow equivalent
   ] as const) {
     await page.setViewportSize(equivalent);
     for (const surface of desktopSurfaces) {
+      await page.setExtraHTTPHeaders({
+        "x-clockwork-persona": surface.persona,
+      });
       await page.goto(surface.path);
       await expect(page.locator("#main-content h1")).toBeVisible();
       await expectNoHorizontalOverflow(page);
@@ -336,6 +354,7 @@ test("approval surfaces tolerate WCAG text spacing overrides", async ({
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   for (const surface of desktopSurfaces) {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": surface.persona });
     await page.goto(surface.path);
     await page.addStyleTag({
       content: `
@@ -358,6 +377,7 @@ test("approval surfaces honor reduced motion and retain keyboard focus", async (
   await page.setViewportSize({ width: 320, height: 800 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (const surface of desktopSurfaces) {
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": surface.persona });
     await page.goto(surface.path);
     await page.addStyleTag({
       content: "nextjs-portal { display: none !important; }",

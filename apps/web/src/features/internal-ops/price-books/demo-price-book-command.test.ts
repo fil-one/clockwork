@@ -208,3 +208,106 @@ describe("durable demo price-book commands", () => {
     expect(currentDemoPriceBooks(await store.read())).toHaveLength(3);
   });
 });
+
+describe("draft editing preserves approval evidence", () => {
+  it("freezes proposals, rejects by a distinct authority, edits multiple rates and invalidates stale writes", async () => {
+    const id = "66000000-0000-4000-8000-000000000003";
+    const original = currentDemoPriceBooks(await store.read()).find(
+      (book) => book.id === id,
+    )?.rateCards[0];
+    if (!original) throw new Error("Missing fixture rate");
+    let sequence = 0;
+    const send = (
+      action: string,
+      expectedVersion: number,
+      payload: Record<string, unknown>,
+    ) =>
+      handleDemoPriceBookCommand(
+        request(`price-edit-${++sequence}-idempotency`, {
+          id,
+          action,
+          expectedVersion,
+          payload,
+        }),
+        finance,
+        { store },
+      );
+    expect(
+      (
+        await send("update_rate", 2, {
+          ...original,
+          unitPrice: { currency: "USD", minor: "14900" },
+        })
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await send("reject_activation", 2, {
+          reason: "Return for corrected regional prices.",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await send("update_rate", 3, {
+          ...original,
+          unitPrice: { currency: "USD", minor: "14900" },
+        })
+      ).status,
+    ).toBe(200);
+    expect((await send("update_rate", 3, { ...original })).status).toBe(409);
+    expect(
+      (
+        await send("add_rate", 4, {
+          ...original,
+          id: "66100000-0000-4000-8000-000000000099",
+          region: "us-west-2",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await send("update_discount_matrix", 5, {
+          id: "policy-test",
+          version: 1,
+          defaultMaxDiscountBps: 0,
+          rules: [{ id: "volume", minQuantity: "100", maxDiscountBps: 300 }],
+        })
+      ).status,
+    ).toBe(200);
+    expect((await send("remove_rate", 6, { id: original.id })).status).toBe(
+      200,
+    );
+    const edited = currentDemoPriceBooks(await store.read()).find(
+      (book) => book.id === id,
+    );
+    expect(edited).toMatchObject({
+      rowVersion: 7,
+      rateCardCount: 1,
+      regions: ["us-west-2"],
+      activationRequestedBy: null,
+      discountMatrix: { version: 1 },
+    });
+    expect(
+      (
+        await send("request_activation", 7, {
+          reason: "Revalidated corrected regional economics.",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await send("remove_rate", 8, {
+          id: "66100000-0000-4000-8000-000000000099",
+        })
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await send("activate", 8, {
+          reason: "Attempting self approval of changed prices.",
+        })
+      ).status,
+    ).toBe(422);
+  });
+});

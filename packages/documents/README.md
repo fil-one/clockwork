@@ -33,3 +33,11 @@ input locale. Adding Spanish copy later does not require changing input shapes.
 Golden tests render every document kind and pin its byte hash, byte count, and
 page count. Update goldens only after inspecting the corresponding rendered
 pages.
+
+Use the official Node distribution pinned in `.node-version` when rendering or
+updating byte goldens. PDF stream compression depends on Node's bundled zlib;
+Homebrew or another Node release can produce different byte hashes even when the
+extracted text and rendered pixels are identical. The golden fixture records
+both Node and zlib versions, and the test reports a toolchain mismatch
+explicitly. Semantic Poppler tests separately verify document contents and keep
+wrapped quote details clear of the fixed footer.

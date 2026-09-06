@@ -1,0 +1,139 @@
+.form {
+  display: grid;
+  gap: 1rem;
+}
+.fields {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-sm);
+}
+.fields legend {
+  padding: 0 0.4rem;
+  font-weight: 700;
+}
+@media (max-width: 700px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.workspace {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 72rem;
+  width: 100%;
+  min-width: 0;
+}
+.workspace h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.metrics > div {
+  padding: 1.25rem;
+  background: var(--web-paper);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-sm);
+}
+.metrics span {
+  display: block;
+  color: var(--web-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.metrics strong {
+  display: block;
+  margin: 0.3rem 0;
+  font-size: 2rem;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+.metrics small {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--web-muted);
+}
+.metrics p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--web-muted);
+}
+.facts {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(0, 3fr);
+  margin: 1rem 0;
+  border-top: 1px solid var(--web-line);
+}
+.facts dt,
+.facts dd {
+  margin: 0;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--web-line);
+  overflow-wrap: anywhere;
+}
+.facts dt {
+  color: var(--web-muted);
+  font-size: 0.88rem;
+  padding-right: 1rem;
+}
+.facts dd {
+  font-weight: 500;
+}
+.decisionNote {
+  background: var(--web-paper);
+  border-left: 3px solid var(--web-line);
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.decisionNote strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.disclosure summary {
+  padding: 0.9rem 0;
+  cursor: pointer;
+  font-weight: 600;
+}
+.decisions {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+.form > button {
+  justify-self: start;
+}
+@media (max-width: 700px) {
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .facts dt {
+    border: 0;
+    padding-bottom: 0.2rem;
+  }
+  .facts dd {
+    padding-top: 0;
+  }
+}

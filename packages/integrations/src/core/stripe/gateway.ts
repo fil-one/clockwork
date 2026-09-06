@@ -312,13 +312,17 @@ export class StripeFinanceGateway
   ): ReturnType<BillingPort["issueInvoice"]> {
     return this.createInvoice({
       customerId: input.customerId,
-      orderId: input.orderId,
+      ...(input.paygSource
+        ? { paygSource: input.paygSource }
+        : { orderId: input.orderId }),
       invoiceReference: input.invoiceId,
       currency: input.amount.currency,
       lines: [
         {
           lineId: input.invoiceId,
-          description: `Order ${input.orderId}`,
+          description: input.paygSource
+            ? `PAYG ${input.paygSource.month} revision ${input.paygSource.revision}`
+            : `Order ${input.orderId}`,
           amount: input.amount,
           taxCode: "",
         },
@@ -336,6 +340,10 @@ export class StripeFinanceGateway
     try {
       if (input.lines.length === 0)
         throw new TypeError("An invoice needs a line");
+      if ((input.orderId === undefined) === (input.paygSource === undefined))
+        throw new TypeError(
+          "Invoice requires exactly one order or PAYG source",
+        );
       const collection = collectionParams(input.collection);
       for (const line of input.lines) {
         if (line.amount.currency !== input.currency)
@@ -362,7 +370,15 @@ export class StripeFinanceGateway
             ? {}
             : { custom_fields: [{ name: "PO", value: input.poNumber }] }),
           metadata: {
-            order_id: input.orderId,
+            ...(input.paygSource
+              ? {
+                  billing_source: "payg",
+                  payg_enrollment_id: input.paygSource.enrollmentId,
+                  payg_effect_key: input.paygSource.effectKey,
+                  payg_month: input.paygSource.month,
+                  payg_revision: String(input.paygSource.revision),
+                }
+              : { order_id: input.orderId }),
             commerce_invoice_id: input.invoiceReference,
             ...(input.poNumber === undefined
               ? {}
@@ -725,12 +741,69 @@ export class StripeFinanceGateway
     input: Parameters<StripeCommercialGateway["issueCreditNote"]>[0],
   ): ReturnType<StripeCommercialGateway["issueCreditNote"]> {
     try {
+      const amount = toSafeMinorUnits(input.amount);
+      const operationKey = stableExternalId("credit", input.idempotencyKey);
+      // Recover a crash after Stripe accepted a credit, before previewing again:
+      // the original credit may have consumed the whole creditable amount.
+      let matched: Stripe.CreditNote | undefined;
+      for await (const prior of this.stripe.creditNotes.list({
+        invoice: input.invoiceId,
+        limit: 100,
+      })) {
+        if (prior.metadata?.clockwork_operation !== operationKey) continue;
+        if (
+          (typeof prior.invoice === "string"
+            ? prior.invoice
+            : prior.invoice.id) !== input.invoiceId ||
+          prior.amount !== amount ||
+          prior.currency !== input.amount.currency.toLowerCase() ||
+          prior.reason !== input.reason ||
+          prior.metadata.reason_code !== input.internalReasonCode
+        )
+          throw new TypeError(
+            "Persisted Stripe credit operation conflicts with its retained request",
+          );
+        if (matched)
+          throw new TypeError(
+            "Stripe credit operation has ambiguous duplicate provider notes",
+          );
+        matched = prior;
+      }
+      if (matched)
+        return {
+          ok: true,
+          value: { creditNoteId: matched.id, status: matched.status },
+        };
+      const preview = await this.stripe.creditNotes.preview({
+        invoice: input.invoiceId,
+        amount,
+        reason: input.reason,
+      });
+      const postPayment = preview.post_payment_amount;
+      if (
+        (typeof preview.invoice === "string"
+          ? preview.invoice
+          : preview.invoice.id) !== input.invoiceId ||
+        preview.amount !== amount ||
+        preview.currency !== input.amount.currency.toLowerCase() ||
+        !Number.isSafeInteger(postPayment) ||
+        postPayment < 0 ||
+        postPayment > amount ||
+        preview.pre_payment_amount + postPayment !== amount
+      )
+        throw new TypeError(
+          "Stripe credit preview does not match the retained credit amount",
+        );
       const creditNote = await this.stripe.creditNotes.create(
         {
           invoice: input.invoiceId,
-          amount: toSafeMinorUnits(input.amount),
+          amount,
+          credit_amount: postPayment,
           reason: input.reason,
-          metadata: { reason_code: input.internalReasonCode },
+          metadata: {
+            reason_code: input.internalReasonCode,
+            clockwork_operation: operationKey,
+          },
         },
         requestOptions(input.idempotencyKey, "credit-note"),
       );

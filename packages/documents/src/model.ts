@@ -190,7 +190,8 @@ export interface PocDocumentInput extends BaseDocumentInput {
 export interface InvoiceDocumentInput extends BaseDocumentInput {
   kind: "invoice_companion" | "receipt";
   invoiceNumber: string;
-  orderReference: string;
+  orderReference?: string;
+  billingPeriodReference?: string;
   purchaseOrderNumber?: string;
   dueDate?: string;
   paidAt?: string;
