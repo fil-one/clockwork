@@ -282,6 +282,15 @@ The retained selector does not establish session identity; the HttpOnly cookie
 does. Independent review confirmed this specific test correction rather than
 treating a harmless host URL difference as a failed customer transaction.
 
+Repeat hosted runs also exposed a false-positive reset check in the browser
+harness: it could issue reset before asynchronous sign-in established the access
+cookie, then accept redirected login HTML because the final status was 200. The
+harness now waits for the destination and requires an unredirected JSON reset
+receipt with the expected demo target and seed version. The visible reset
+control likewise validates the receipt before reporting success. The stored Blob
+was pristine during diagnosis, and fresh full-document requests returned the
+correct issued quote; no speculative storage-cache workaround was introduced.
+
 `apps/web/playwright.hosted-demo.config.ts` makes all 13 non-visual demo
 transaction journeys repeatable against a draft or canonical Netlify origin. It
 uses the existing remote deployment, resets fictional shared demo data, rejects
