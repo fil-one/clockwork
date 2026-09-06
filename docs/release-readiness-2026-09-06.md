@@ -455,3 +455,12 @@ tenant evidence for customer handoffs, atomic audit delivery, and provider
 reference authorization and concurrency. The resulting boundaries are tested
 against local PostgreSQL. They do not establish live provider execution,
 automatic secret rotation, approved commercial terms or billing cutover.
+
+The packaged draft's first hosted acquisition run exposed a test navigation
+race: a second navigation interrupted persona sign-in, so the finance handoff
+page correctly returned 403 while the session still belonged to the customer.
+The journey now waits for the exact persona landing route, hydrated shell and
+selected identity before continuing. Independent review confirmed the failure
+snapshot and helper semantics. All assent, service handoff, cancellation,
+accessibility and persistence assertions are retained; no application authority
+check changed.

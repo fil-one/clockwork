@@ -1072,14 +1072,34 @@ test("customer trial, paid conversion and cancellation retain verified handoff s
   test.setTimeout(180_000);
   await passGate(page);
   await resetDemoData(page);
-  const customer = async () => {
+  const startPersona = async (
+    name: string,
+    persona: "directBuyer" | "financeApprover",
+    destination: string,
+  ) => {
     await page.goto("/demo");
-    await page.getByRole("link", { name: "Start as Mara Voss" }).click();
+    await page.getByRole("link", { name: `Start as ${name}` }).click();
+    // The redirect establishes the HttpOnly identity cookie. A second goto
+    // before it completes can cancel sign-in and retain the previous role.
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === destination &&
+        (url.search === "" || url.search === `?persona=${persona}`),
+    );
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
+    await page.getByRole("button", { name: "Open demo controls" }).click();
+    const panel = page.getByRole("complementary", { name: "Demo controls" });
+    await expect(panel.getByLabel("Signed in as")).toHaveValue(persona);
+  };
+  const customer = async () => {
+    await startPersona("Mara Voss", "directBuyer", "/dashboard");
     await page.goto("/buy/payg");
   };
   const financeHandoff = async () => {
-    await page.goto("/demo");
-    await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+    await startPersona("Mateo Silva", "financeApprover", "/internal/approvals");
     await page.goto("/internal/payg-requests");
     await page
       .getByLabel("Resolution reason")
