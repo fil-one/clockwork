@@ -4,7 +4,15 @@ import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
 import { hasPermission, MoneySchema, uuidV7 } from "@clockwork/contracts";
-import { validatePriceBook, type DiscountMatrix } from "@clockwork/domain/core";
+import {
+  validatePriceBook,
+  PriceBookCloneCommandSchema,
+  PriceBookImportCommandSchema,
+  parsePriceBookExchange,
+  importedPriceBook,
+  clonedDiscountMatrix,
+  type DiscountMatrix,
+} from "@clockwork/domain/core";
 import { DEMO_NOW } from "@clockwork/testing/demo-seed";
 import type {
   DemoAdapterState,
@@ -27,6 +35,8 @@ const commandSchema = z
     id: z.uuid(),
     action: z.enum([
       "create",
+      "clone",
+      "import",
       "add_rate",
       "update_rate",
       "remove_rate",
@@ -178,6 +188,12 @@ function responseFor(
         status: book.status,
         statusAction: action,
         rateCardCount: book.rateCardCount,
+        ...(book.importProvenance
+          ? { importProvenance: book.importProvenance }
+          : {}),
+        ...(book.cloneProvenance
+          ? { cloneProvenance: book.cloneProvenance }
+          : {}),
       },
       createdAt: now,
       updatedAt: now,
@@ -219,6 +235,153 @@ function mutateBooks(input: {
   readonly books: DemoPriceBook[];
   readonly now: string;
 }): DemoPriceBook {
+  if (input.action === "import") {
+    let document: ReturnType<typeof parsePriceBookExchange>;
+    try {
+      document = parsePriceBookExchange(input.payload.document);
+    } catch (error) {
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        error instanceof Error ? error.message : "Price-book import is invalid",
+      );
+    }
+    const command = PriceBookImportCommandSchema.parse({
+      ...input.payload,
+      document,
+    });
+    if (
+      input.books.some(
+        (book) =>
+          book.id === input.id ||
+          (book.currency === document.currency &&
+            book.version === command.version),
+      )
+    )
+      throw new DemoPriceBookProblem(
+        409,
+        "DUPLICATE",
+        "Price book currency and version already exist",
+      );
+    if (input.id === document.source.id)
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "An import requires a new price-book identity",
+      );
+    const candidate = importedPriceBook(
+      document,
+      {
+        id: input.id,
+        name: command.name,
+        version: command.version,
+        effectiveFrom: command.effectiveFrom,
+      },
+      uuidV7,
+    );
+    const copied: DemoPriceBook = {
+      ...candidate,
+      rowVersion: 1,
+      effectiveTo: null,
+      rateCardCount: candidate.rateCards.length,
+      regions: [
+        ...new Set(candidate.rateCards.map((rate) => rate.region)),
+      ].sort(),
+      activationRequestedBy: null,
+      activationRequestedByEmail: null,
+      activationRequestedAt: null,
+      lastDecisionAt: null,
+      lastDecisionReason: null,
+      importProvenance: {
+        document,
+        documentHashKind: "normalized_validated_economics_sha256",
+        documentHash: createHash("sha256")
+          .update(JSON.stringify(document))
+          .digest("hex"),
+        source: document.source,
+        sourceAuthority: "unverified_uploaded_economics",
+        rateIdMap: candidate.rateCards.map((rate, index) => ({
+          sourceRateId: document.rateCards[index]?.id,
+          rateId: rate.id,
+        })),
+        providerMappings: "not_imported_requires_review",
+        approvalHistory: "not_imported",
+        reason: command.reason,
+        actorId: input.actorId,
+      },
+    };
+    input.books.push(copied);
+    return copied;
+  }
+  if (input.action === "clone") {
+    const payload = PriceBookCloneCommandSchema.parse(input.payload);
+    const source = requiredBook(input.books, payload.sourceId);
+    checkVersion(source, payload.sourceRowVersion);
+    if (
+      input.books.some(
+        (book) =>
+          book.id === input.id ||
+          (book.currency === source.currency &&
+            book.version === payload.version),
+      )
+    )
+      throw new DemoPriceBookProblem(
+        409,
+        "DUPLICATE",
+        "Price book currency and version already exist",
+      );
+    if (!source.rateCards.length)
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "Add at least one rate before cloning this price book",
+      );
+    const rateIdMap = source.rateCards.map((rate) => ({
+      sourceRateId: rate.id,
+      rateId: uuidV7(),
+    }));
+    const copied: DemoPriceBook = {
+      ...structuredClone(source),
+      id: input.id,
+      name: payload.name,
+      version: payload.version,
+      rowVersion: 1,
+      status: "draft",
+      effectiveFrom: payload.effectiveFrom,
+      effectiveTo: null,
+      activationRequestedBy: null,
+      activationRequestedByEmail: null,
+      activationRequestedAt: null,
+      lastDecisionAt: null,
+      lastDecisionReason: null,
+      ...(source.discountMatrix
+        ? {
+            discountMatrix: clonedDiscountMatrix(
+              source.discountMatrix,
+              input.id,
+            ),
+          }
+        : {}),
+      rateCards: source.rateCards.map((rate, index) => {
+        const mapping = rateIdMap[index];
+        if (!mapping) throw new Error("Cloned rate identity is missing");
+        return { ...structuredClone(rate), id: mapping.rateId };
+      }),
+      cloneProvenance: {
+        sourceId: source.id,
+        sourceRowVersion: source.rowVersion,
+        sourceVersion: source.version,
+        rateIdMap,
+        sourceSnapshot: structuredClone(domainPriceBook(source)),
+        providerMappings: "not_copied_requires_review",
+        reason: payload.reason,
+        actorId: input.actorId,
+      },
+    };
+    validatePriceBook(domainPriceBook(copied));
+    input.books.push(copied);
+    return copied;
+  }
   if (input.action === "create") {
     const payload = createSchema.parse(input.payload);
     if (payload.effectiveTo && payload.effectiveTo < payload.effectiveFrom)
@@ -455,6 +618,12 @@ function mutateBooks(input: {
         "INVALID_STATE",
         "A price book cannot activate before its effective date",
       );
+    if (current.effectiveTo && current.effectiveTo < occurredOn)
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "A price book cannot activate after its effective end date",
+      );
     for (const [otherIndex, other] of input.books.entries())
       if (other.currency === current.currency && other.status === "active")
         input.books[otherIndex] = {
@@ -540,6 +709,7 @@ export async function handleDemoPriceBookCommand(
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
     if (
+      session.impersonation ||
       !session.isInternalStaff ||
       !session.roles.some((role) => hasPermission(role, "quote:approve")) ||
       !session.mfaVerified ||

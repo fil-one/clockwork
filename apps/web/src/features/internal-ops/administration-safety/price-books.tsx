@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import type { RateCard } from "@clockwork/domain/core";
+import {
+  PriceBookCloneCommandSchema,
+  exportPriceBookExchange,
+  type RateCard,
+} from "@clockwork/domain/core";
+import { PriceBookImport } from "./price-book-import";
 import { DiscountMatrixEditor } from "./price-book-discounts";
 import { priceBookEconomicDiff } from "./price-book-diff";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
@@ -63,6 +68,7 @@ function currencyMinor(value: string): string | undefined {
 function decisionsFor(
   book: PriceBookAdministrationRecord,
   userId: string,
+  today: string,
 ): readonly { action: Decision; label: string; hint: string }[] {
   if (book.status === "active")
     return [
@@ -83,11 +89,16 @@ function decisionsFor(
     ];
   if (book.activationRequestedBy === userId) return [];
   return [
-    {
-      action: "activate",
-      label: activationCopy.approveLabel,
-      hint: activationCopy.approveHint,
-    },
+    ...(book.effectiveFrom <= today &&
+    (!book.effectiveTo || book.effectiveTo >= today)
+      ? [
+          {
+            action: "activate" as const,
+            label: activationCopy.approveLabel,
+            hint: activationCopy.approveHint,
+          },
+        ]
+      : []),
     {
       action: "reject_activation",
       label: "Return draft for changes",
@@ -185,18 +196,25 @@ export function PriceBookAdministration({
   );
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return books.filter(
-      (book) =>
-        (currency === "All" || book.currency === currency) &&
-        (state === "All" || stateLabel[book.status] === state) &&
-        (!needle ||
-          [
-            book.name,
-            String(book.version),
-            book.currency,
-            ...book.regions,
-          ].some((value) => value.toLowerCase().includes(needle))),
-    );
+    return books
+      .filter(
+        (book) =>
+          (currency === "All" || book.currency === currency) &&
+          (state === "All" || stateLabel[book.status] === state) &&
+          (!needle ||
+            [
+              book.name,
+              String(book.version),
+              book.currency,
+              ...book.regions,
+            ].some((value) => value.toLowerCase().includes(needle))),
+      )
+      .sort(
+        (a, b) =>
+          a.currency.localeCompare(b.currency) ||
+          b.version - a.version ||
+          a.id.localeCompare(b.id),
+      );
   }, [books, currency, query, state]);
   const selected = books.find((book) => book.id === selectedId) ?? books[0];
   const reviewCurrent = Boolean(
@@ -205,7 +223,9 @@ export function PriceBookAdministration({
     summary.bookId === selected.id &&
     summary.rowVersion === selected.rowVersion,
   );
-  const decisions = selected ? decisionsFor(selected, userId) : [];
+  const decisions = selected
+    ? decisionsFor(selected, userId, readAt.slice(0, 10))
+    : [];
   const incumbent = selected
     ? books.find(
         (book) =>
@@ -807,6 +827,21 @@ export function PriceBookAdministration({
         />
       </section>
 
+      <PriceBookImport
+        books={books}
+        permitted={authoringAvailable && !authoringPending}
+        readAt={readAt}
+        onBusy={setAuthoringPending}
+        onImported={(id) => {
+          setSelectedId(id);
+          setDraft(null);
+          setEditingRate(null);
+          setReason("");
+          setSummary(null);
+          setOutcome(null);
+          refreshAfterMutation(id, 1);
+        }}
+      />
       {selected ? (
         <section
           className={styles.panel}
@@ -888,23 +923,21 @@ export function PriceBookAdministration({
               <button
                 className={styles.button}
                 type="button"
+                disabled={!selected.rateCardCount || refreshPending}
                 onClick={() => {
+                  let exported: ReturnType<typeof exportPriceBookExchange>;
+                  try {
+                    exported = exportPriceBookExchange(selected, readAt);
+                  } catch {
+                    setAuthoringMessage(
+                      "This price book cannot use the strict v2 exchange format. Check that all rates are complete and supported before exporting.",
+                    );
+                    return;
+                  }
                   const url = URL.createObjectURL(
-                    new Blob(
-                      [
-                        JSON.stringify(
-                          {
-                            format: "clockwork.price-book.v1",
-                            source: sourceLabel,
-                            readAt,
-                            priceBook: selected,
-                          },
-                          null,
-                          2,
-                        ),
-                      ],
-                      { type: "application/json" },
-                    ),
+                    new Blob([JSON.stringify(exported)], {
+                      type: "application/json",
+                    }),
                   );
                   const link = document.createElement("a");
                   link.href = url;
@@ -1130,6 +1163,21 @@ export function PriceBookAdministration({
                 {activationCopy.awaitingSecondBody}
               </div>
             ) : null}
+            {selected.status === "draft" &&
+            selected.effectiveFrom > readAt.slice(0, 10) ? (
+              <p role="note">
+                Activation is available on or after {selected.effectiveFrom}{" "}
+                (UTC). A different finance approver must return then to activate
+                this version. Current active pricing stays in place.
+              </p>
+            ) : selected.status === "draft" &&
+              selected.effectiveTo &&
+              selected.effectiveTo < readAt.slice(0, 10) ? (
+              <p role="note">
+                This draft’s effective period has expired. Return it for changes
+                or create a new draft with current dates before approval.
+              </p>
+            ) : null}
             {refreshPending ? (
               <div className={styles.actions}>
                 <p role="status">
@@ -1161,6 +1209,155 @@ export function PriceBookAdministration({
               </button>
             </div>
           </form>
+          <details
+            className={styles.panelBody}
+            key={`clone:${selected.id}:${selected.rowVersion}`}
+          >
+            <summary>Clone this version into a draft</summary>
+            <p>
+              Copy {selected.rateCardCount} saved rates, floors, transfer
+              prices, tax/accounting codes and discount rules into a new{" "}
+              {selected.currency} draft. The source stays unchanged. Approval
+              history and provider resource bindings are not copied; review
+              catalog mappings before proposing the new version.
+            </p>
+            <form
+              aria-label="Clone price book"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!authoringAvailable || authoringPending || pending) return;
+                const values = new FormData(event.currentTarget);
+                const parsed = PriceBookCloneCommandSchema.safeParse({
+                  sourceId: selected.id,
+                  sourceRowVersion: selected.rowVersion,
+                  name: formString(values, "cloneName"),
+                  version: Number(values.get("cloneVersion")),
+                  effectiveFrom: formString(values, "cloneEffectiveFrom"),
+                  reason: formString(values, "cloneReason"),
+                });
+                if (!parsed.success) {
+                  setAuthoringMessage(
+                    "Check the clone name, new version, effective date and reason.",
+                  );
+                  return;
+                }
+                if (
+                  books.some(
+                    (book) =>
+                      book.currency === selected.currency &&
+                      book.version === parsed.data.version,
+                  )
+                ) {
+                  setAuthoringMessage(
+                    `${selected.currency} version ${parsed.data.version} already exists. Choose a new version.`,
+                  );
+                  return;
+                }
+                const id = crypto.randomUUID();
+                setAuthoringPending(true);
+                setSummary(null);
+                setAuthoringMessage("");
+                void sendCoreCommand({
+                  resource: "price_books",
+                  id,
+                  action: "clone",
+                  payload: parsed.data,
+                })
+                  .then(() => {
+                    setSelectedId(id);
+                    setDraft(null);
+                    setEditingRate(null);
+                    setReason("");
+                    setOutcome(null);
+                    setAuthoringMessage(
+                      "Draft cloned. Review its copied economics and configure catalog mappings before requesting fresh approval.",
+                    );
+                    refreshAfterMutation(id, 1);
+                  })
+                  .catch((error: unknown) =>
+                    setAuthoringMessage(
+                      error instanceof CommerceApiError
+                        ? error.problemCode === "DUPLICATE"
+                          ? "The destination identity or currency/version already exists. Choose a new version."
+                          : error.message
+                        : "The draft was not cloned. Refresh the source and check that the new currency/version is unused.",
+                    ),
+                  )
+                  .finally(() => setAuthoringPending(false));
+              }}
+            >
+              <fieldset
+                className={styles.formGrid}
+                disabled={
+                  !authoringAvailable ||
+                  authoringPending ||
+                  selected.rateCardCount === 0
+                }
+              >
+                <legend>New draft · {selected.currency}</legend>
+                <label className={styles.field}>
+                  Cloned price-book name
+                  <input
+                    name="cloneName"
+                    minLength={3}
+                    maxLength={120}
+                    defaultValue={selected.name}
+                    required
+                  />
+                </label>
+                <label className={styles.field}>
+                  Cloned price-book version
+                  <input
+                    name="cloneVersion"
+                    type="number"
+                    min={1}
+                    step={1}
+                    defaultValue={
+                      Math.max(
+                        0,
+                        ...books
+                          .filter((book) => book.currency === selected.currency)
+                          .map((book) => book.version),
+                      ) + 1
+                    }
+                    required
+                  />
+                </label>
+                <label className={styles.field}>
+                  Cloned effective date
+                  <input
+                    name="cloneEffectiveFrom"
+                    type="date"
+                    defaultValue={readAt.slice(0, 10)}
+                    required
+                  />
+                </label>
+                <label className={styles.field}>
+                  Clone reason
+                  <textarea
+                    name="cloneReason"
+                    minLength={8}
+                    maxLength={1000}
+                    required
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className={styles.button}
+                  disabled={
+                    !authoringAvailable ||
+                    authoringPending ||
+                    selected.rateCardCount === 0
+                  }
+                >
+                  {authoringPending ? "Cloning…" : "Create cloned draft"}
+                </button>
+              </fieldset>
+              {selected.rateCardCount === 0 ? (
+                <p>Add at least one rate before cloning this price book.</p>
+              ) : null}
+            </form>
+          </details>
           <DiscountMatrixEditor
             key={`${selected.id}:${selected.rowVersion}`}
             book={selected}

@@ -62,6 +62,9 @@ export class DatabasePriceBookAdministrationReader {
           .leftJoin(rateCards, eq(rateCards.priceBookId, priceBooks.id))
           .groupBy(priceBooks.id)
           .orderBy(
+            // Keep incumbent economics available for replacement review even
+            // when newer drafts fill the bounded administration result.
+            desc(sql`${priceBooks.status} = 'active'`),
             asc(priceBooks.currency),
             desc(priceBooks.version),
             asc(priceBooks.id),

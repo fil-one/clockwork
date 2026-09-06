@@ -246,6 +246,10 @@ export function activatePriceBook(input: {
   const occurredOn = input.occurredAt.slice(0, 10);
   if (input.candidate.effectiveFrom > occurredOn)
     throw new Error("A price book cannot activate before its effective date");
+  if (input.candidate.effectiveTo && input.candidate.effectiveTo < occurredOn)
+    throw new Error(
+      "A price book cannot activate after its effective end date",
+    );
   const audits: PricingAdminAudit[] = [];
   const books = input.allBooks.map((book) => {
     if (book.currency !== input.candidate.currency || book.status !== "active")
@@ -531,3 +535,5 @@ export function priceQuote(input: PriceQuoteInput): {
     guardrailBreaches,
   };
 }
+
+export * from "./clone";
