@@ -113,13 +113,14 @@ CLOCKWORK_HOSTED_DEMO_URL="https://DEPLOY_ID--clockwork-commerce-demo.netlify.ap
   pnpm --filter @clockwork/web exec playwright test --config playwright.hosted-demo.config.ts
 ```
 
-This runs the 13 shared password, persona, order/PDF, finance, policy, partner,
-settings, sandbox-payment and reset journeys against the packaged deployment. It
-uses the existing remote server and resets shared fictional data. The four
-development-only visual cases stay in local qualification; their HMR readiness
-check does not apply to a production build. Hosted authentication traces are
-disabled to avoid retaining the real access password. The target is restricted
-to this demo's canonical or deploy-specific Netlify origin.
+This runs the 15 shared password, persona, order/PDF, finance, cloning/import,
+policy, partner, settings, sandbox-payment and reset journeys against the
+packaged deployment. It uses the existing remote server and resets shared
+fictional data. The four development-only visual cases stay in local
+qualification; their HMR readiness check does not apply to a production build.
+Hosted authentication traces are disabled to avoid retaining the real access
+password. The target is restricted to this demo's canonical or deploy-specific
+Netlify origin.
 
 After it passes, publish that same verified deployment with Netlify's
 [`restoreSiteDeploy` operation](https://open-api.netlify.com/#operation/restoreSiteDeploy):

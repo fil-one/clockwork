@@ -49,6 +49,7 @@ export async function findActiveCustomerQuoteOffers(
 ): Promise<readonly DatabaseQuoteOffer[]> {
   const currency = CurrencySchema.parse(input.currency);
   const onDate = input.now.toISOString().slice(0, 10);
+  // Price-book end dates include the final UTC day, as quote pricing does.
   const rows = await transaction.execute(sql`
     select
       book.id as price_book_id,
@@ -63,7 +64,7 @@ export async function findActiveCustomerQuoteOffers(
     where book.status = 'active'
       and book.currency = ${currency}
       and book.effective_from <= ${onDate}::date
-      and (book.effective_to is null or book.effective_to > ${onDate}::date)
+      and (book.effective_to is null or book.effective_to >= ${onDate}::date)
     order by card.approved_claim, card.region, book.name, card.sku
   `);
   return rows.map((row) => QuoteOfferRowSchema.parse(row));

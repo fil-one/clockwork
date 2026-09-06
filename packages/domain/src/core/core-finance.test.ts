@@ -172,6 +172,70 @@ describe("core commercial domain", () => {
     ]);
   });
 
+  it.each(["2026-07-30", "2026-08-02"])(
+    "refuses activation outside the approved window on %s without retiring current pricing",
+    (day) => {
+      const old = book();
+      const candidate: PriceBook = {
+        ...book(),
+        id: "bounded-draft",
+        version: 2,
+        status: "draft",
+        effectiveFrom: "2026-07-31",
+        effectiveTo: "2026-08-01",
+      };
+      expect(() =>
+        activatePriceBook({
+          candidate,
+          allBooks: [old, candidate],
+          actorId: "finance-user",
+          occurredAt: `${day}T12:00:00Z`,
+        }),
+      ).toThrow(/cannot activate (before|after)/u);
+      expect(old.status).toBe("active");
+      expect(candidate.status).toBe("draft");
+    },
+  );
+
+  it("preserves a bounded book's final day through activation and pricing", () => {
+    const candidate: PriceBook = {
+      ...book(),
+      id: "bounded-draft",
+      version: 2,
+      status: "draft",
+      effectiveFrom: "2026-07-31",
+      effectiveTo: "2026-08-01",
+    };
+    const result = activatePriceBook({
+      candidate,
+      allBooks: [book(), candidate],
+      actorId: "finance-user",
+      occurredAt: "2026-08-01T23:59:59Z",
+    });
+    const active = result.books.find((entry) => entry.id === candidate.id);
+    expect(active).toMatchObject({
+      status: "active",
+      effectiveTo: "2026-08-01",
+    });
+    if (!active) throw new Error("Missing activated book");
+    expect(() =>
+      priceQuote({
+        book: active,
+        route: "direct",
+        quotedAt: "2026-08-01T23:59:59Z",
+        lines: [line()],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      priceQuote({
+        book: active,
+        route: "direct",
+        quotedAt: "2026-08-02T00:00:00Z",
+        lines: [line()],
+      }),
+    ).toThrow("Price book is not active for the quote date");
+  });
+
   it("enforces floors only on our direct or transfer price, not resale price", () => {
     const direct = priceQuote({
       book: book(),

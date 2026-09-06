@@ -356,6 +356,8 @@ const actionPermissionByResource: Partial<
 
 const recentAuthenticationActions = new Set([
   "price_books:create",
+  "price_books:clone",
+  "price_books:import",
   "price_books:add_rate",
   "price_books:update_rate",
   "price_books:remove_rate",

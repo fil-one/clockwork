@@ -13,6 +13,8 @@ export const demoPriceBookReceiptPrefix = "demo-price-book-receipt:";
 
 export interface DemoPriceBook extends PriceBookAdministrationRecord {
   readonly rateCards: readonly RateCard[];
+  readonly importProvenance?: Readonly<Record<string, unknown>>;
+  readonly cloneProvenance?: Readonly<Record<string, unknown>>;
 }
 
 const otherFinanceApprover = {

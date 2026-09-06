@@ -532,6 +532,8 @@ const exercisedVerbs: Record<CoreResourceName, readonly string[]> = {
   ],
   price_books: [
     "create",
+    "clone",
+    "import",
     "add_rate",
     "update_rate",
     "remove_rate",

@@ -180,11 +180,12 @@ These are product/integration work, not merely missing credentials:
   settlement programs, distributor economics, OEM/operator agreements or
   marketplace adapters. Deal-registration protection controls do not implement
   every recommended prospect/conflict/house-account decision policy.
-- Price-book import/clone, scheduled activation execution and impact analysis
-  across existing contracts remain beyond the delivered editor and JSON export.
-  Legacy unsnapshotted commissions retain explicitly documented legacy behavior;
-  their historical economics need evidenced remediation, not a fabricated
-  backfill.
+- Scheduled price-book activation execution and impact analysis across existing
+  contracts remain beyond the delivered editor, draft cloning and validated
+  economics import/export. Future proposals require a second finance approver on
+  or after their effective date; they are not automatically activated. Legacy
+  unsnapshotted commissions retain explicitly documented legacy behavior; their
+  historical economics need evidenced remediation, not a fabricated backfill.
 
 ## Actual external release dependencies
 
@@ -291,9 +292,59 @@ control likewise validates the receipt before reporting success. The stored Blob
 was pristine during diagnosis, and fresh full-document requests returned the
 correct issued quote; no speculative storage-cache workaround was introduced.
 
-`apps/web/playwright.hosted-demo.config.ts` makes all 13 non-visual demo
+`apps/web/playwright.hosted-demo.config.ts` makes all 15 non-visual demo
 transaction journeys repeatable against a draft or canonical Netlify origin. It
 uses the existing remote deployment, resets fictional shared demo data, rejects
 unrelated origins and retains no authentication traces. The deployment runbook
 requires checking the draft before publishing that exact artifact and rechecking
 the canonical site after promotion.
+
+## Price-book reuse and effective windows
+
+Finance can clone a saved price-book version into a fresh draft. The command
+locks and verifies the reviewed source version, retains exact rate economics,
+creates new book/rate/discount-policy identities, and records source provenance.
+It copies neither approval history nor provider resource bindings. The new draft
+requires normal mapping review and fresh two-person approval. Concurrent
+duplicate destinations return a conflict without leaving a partial copy.
+
+The versioned economics exchange supports validated JSON import into a fresh
+draft, with a preview and limits on document size, rates and discount rules.
+Imported source details are supplied provenance, not independently verified
+authority. Unknown approval/provider fields are rejected; monetary and quantity
+values must fit the database exactly. Editing import text invalidates the
+preview. Import and export do not activate pricing or reprice existing
+contracts.
+
+Computer-use QA cloned a proposed version, changed the copy's list price,
+reloaded it, and confirmed the source retained its original price and approval
+state. A duplicate-version attempt identified misleading generic conflict copy,
+which now names the destination version instead. Independent review covered
+authorization, concurrency, exact values, validation failures and evidence.
+
+Activation now preserves an explicit effective end date and rejects expired
+versions. Offer discovery includes the final UTC day, matching the existing
+pricing rule. Future-dated proposals leave current pricing in place until a
+different finance approver activates them on or after the effective date. The
+real database regression checks refusal, approval state, retained dates, the
+final second of the last day, and the next midnight without retaining its
+transaction fixtures.
+
+The bounded administration reader prioritizes active books so newer drafts
+cannot evict incumbent economics from replacement review. The displayed table
+still sorts by currency and version. This preserves comparison evidence within
+the normal limit; it does not add unrestricted history pagination.
+
+The extended browser suite now includes 19 local demo journeys and 15 hosted
+transaction journeys. Real database qualification passed all 13 tests across
+price-book editing/clone/import, bounded activation windows and active
+comparison evidence; all five API command-catalogue integration tests passed.
+
+Final local qualification for these additions passed all 10 unit packages (web:
+194 files and 1,751 tests), all 19 demo browser journeys, generated-contract
+checks, dependency boundaries and traceability. Computer-use
+export/import/export comparison preserved every rate field while changing book
+and rate identities. The full unit run also exposed a delayed mock-router timer
+leaking across search tests; cleanup now isolates each test, and the original
+assertions pass with realistic typing delays. Production search behavior was
+unchanged.

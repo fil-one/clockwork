@@ -44,6 +44,11 @@ import {
   reviseQuote,
   validateCommitmentContract,
   validatePriceBook,
+  PriceBookCloneCommandSchema,
+  PriceBookImportCommandSchema,
+  parsePriceBookExchange,
+  importedPriceBook,
+  clonedDiscountMatrix,
 } from "@clockwork/domain/core";
 import type {
   AccountCommercialRecord,
@@ -468,6 +473,8 @@ export const databaseCoreCommands = {
   ],
   price_books: [
     "create",
+    "clone",
+    "import",
     "add_rate",
     "update_rate",
     "remove_rate",
@@ -5177,6 +5184,253 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
   ) {
+    if (input.action === "import") {
+      assertFinanceApproval(input);
+      if (
+        input.actor.kind !== "user" ||
+        input.actor.effectiveUserId ||
+        input.actor.impersonatedAccountId ||
+        !input.authorization.mfaVerified ||
+        !input.authorization.recentAuthenticationVerified
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Direct finance authority with recent MFA is required to import a price book",
+        );
+      let command: ReturnType<typeof PriceBookImportCommandSchema.parse>;
+      let candidate: PriceBook;
+      try {
+        const document = parsePriceBookExchange(input.payload.document);
+        command = PriceBookImportCommandSchema.parse({
+          ...input.payload,
+          document,
+        });
+        if (input.id === document.source.id)
+          throw new Error("An import requires a new price-book identity");
+        candidate = importedPriceBook(
+          document,
+          {
+            id: input.id,
+            name: command.name,
+            version: command.version,
+            effectiveFrom: command.effectiveFrom,
+          },
+          uuidV7,
+        );
+      } catch (error) {
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          error instanceof Error
+            ? error.message
+            : "Price-book import is invalid",
+        );
+      }
+      const document = command.document;
+      const [created] = await transaction
+        .insert(priceBooks)
+        .values({
+          id: candidate.id,
+          name: candidate.name,
+          currency: candidate.currency,
+          version: candidate.version,
+          effectiveFrom: candidate.effectiveFrom,
+          effectiveTo: null,
+          status: "draft",
+          discountMatrix: candidate.discountMatrix ?? {},
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (!created)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "The destination identity or currency/version already exists. Choose a new draft version",
+        );
+      const copiedRates = await transaction
+        .insert(rateCards)
+        .values(
+          candidate.rateCards.map((rate) => ({
+            id: rate.id,
+            priceBookId: candidate.id,
+            sku: rate.sku,
+            region: rate.region,
+            unit: rate.unit,
+            approvedClaim: rate.approvedClaim,
+            unitPriceMinor: BigInt(rate.unitPrice.minor),
+            floorPriceMinor: rate.floorPrice
+              ? BigInt(rate.floorPrice.minor)
+              : null,
+            overageRateMinor: BigInt(rate.overageRate.minor),
+            minimumQuantity: rate.minimumQuantity,
+            trialLimit: rate.trialLimit ?? null,
+            egressTreatment: rate.egressTreatment,
+            commitType: rate.commitType,
+            stripeTaxCode: rate.stripeTaxCode,
+            qboIncomeAccount: rate.qboIncomeAccount,
+            partnerTransferPrices: rate.partnerTransferPrices,
+            version: 1,
+          })),
+        )
+        .returning();
+      validatePriceBook(await serverPriceBook(transaction, created.id));
+      const importProvenance = {
+        format: document.format,
+        schemaVersion: document.schemaVersion,
+        documentHashKind: "normalized_validated_economics_sha256",
+        documentHash: createHash("sha256")
+          .update(JSON.stringify(document))
+          .digest("hex"),
+        source: document.source,
+        sourceAuthority: "unverified_uploaded_economics",
+        rateIdMap: candidate.rateCards.map((rate, index) => ({
+          sourceRateId: document.rateCards[index]?.id,
+          rateId: rate.id,
+        })),
+        providerMappings: "not_imported_requires_review",
+        approvalHistory: "not_imported",
+        reason: command.reason,
+      };
+      return audited(
+        transaction,
+        input,
+        coreRecord("price_books", {
+          ...created,
+          rateCards: copiedRates,
+          rateCardCount: copiedRates.length,
+          importProvenance,
+        }),
+        { importDocument: document },
+      );
+    }
+    if (input.action === "clone") {
+      assertFinanceApproval(input);
+      if (
+        input.actor.kind !== "user" ||
+        input.actor.effectiveUserId ||
+        input.actor.impersonatedAccountId ||
+        !input.authorization.mfaVerified ||
+        !input.authorization.recentAuthenticationVerified
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Direct finance authority with recent MFA is required to clone a price book",
+        );
+      const command = PriceBookCloneCommandSchema.parse(input.payload);
+      if (input.id === command.sourceId)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A clone requires a new price-book identity",
+        );
+      // Rate, discount and catalog writers take the same parent lock, so this
+      // snapshot cannot combine a source header with later economics.
+      const [source] = await transaction
+        .select()
+        .from(priceBooks)
+        .where(eq(priceBooks.id, command.sourceId))
+        .for("share");
+      if (!source)
+        throw new CoreServiceError(
+          "NOT_FOUND",
+          "Source price book was not found",
+        );
+      if (source.rowVersion !== command.sourceRowVersion)
+        throw new CoreServiceError(
+          "VERSION_CONFLICT",
+          "Source price book changed. Refresh and review it before cloning",
+        );
+      const rates = await transaction
+        .select()
+        .from(rateCards)
+        .where(eq(rateCards.priceBookId, source.id))
+        .orderBy(asc(rateCards.id));
+      if (!rates.length)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Add at least one rate before cloning this price book",
+        );
+      const [duplicate] = await transaction
+        .select({ id: priceBooks.id })
+        .from(priceBooks)
+        .where(
+          and(
+            eq(priceBooks.currency, source.currency),
+            eq(priceBooks.version, command.version),
+          ),
+        )
+        .limit(1);
+      if (duplicate)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "That currency and version already exist. Choose a new version",
+        );
+      const [created] = await transaction
+        .insert(priceBooks)
+        .values({
+          id: input.id,
+          name: command.name,
+          currency: source.currency,
+          version: command.version,
+          effectiveFrom: command.effectiveFrom,
+          effectiveTo: null,
+          status: "draft",
+          discountMatrix: clonedDiscountMatrix(source.discountMatrix, input.id),
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (!created)
+        throw new CoreServiceError(
+          "DUPLICATE",
+          "The destination identity or currency/version already exists. Choose a new draft version",
+        );
+      const rateIdMap = rates.map((rate) => ({
+        sourceRateId: rate.id,
+        rateId: uuidV7(),
+      }));
+      const copiedRates = await transaction
+        .insert(rateCards)
+        .values(
+          rates.map((rate, index) => {
+            const mapping = rateIdMap[index];
+            if (!mapping) throw new Error("Cloned rate identity is missing");
+            const {
+              id: _id,
+              priceBookId: _bookId,
+              createdAt: _createdAt,
+              version: _version,
+              ...economics
+            } = rate;
+            void _id;
+            void _bookId;
+            void _createdAt;
+            void _version;
+            return {
+              ...economics,
+              id: mapping.rateId,
+              priceBookId: created.id,
+              version: 1,
+            };
+          }),
+        )
+        .returning();
+      validatePriceBook(await serverPriceBook(transaction, created.id));
+      return audited(
+        transaction,
+        input,
+        coreRecord("price_books", {
+          ...created,
+          rateCardCount: copiedRates.length,
+          rateCards: copiedRates,
+          cloneProvenance: {
+            sourceId: source.id,
+            sourceRowVersion: source.rowVersion,
+            sourceVersion: source.version,
+            rateIdMap,
+            providerMappings: "not_copied_requires_review",
+            reason: command.reason,
+          },
+        }),
+        { sourceBook: source, sourceRates: rates },
+      );
+    }
     if (input.action === "create") {
       const [row] = await transaction
         .insert(priceBooks)
@@ -5626,7 +5880,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           status: retiring ? "retired" : "active",
           ...(retiring
             ? { effectiveTo: input.occurredAt.slice(0, 10) }
-            : { effectiveTo: null }),
+            : { effectiveTo: candidate.effectiveTo ?? null }),
         })
         .where(
           and(

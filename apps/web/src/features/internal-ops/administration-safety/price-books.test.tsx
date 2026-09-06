@@ -383,3 +383,79 @@ it("invalidates reviewed evidence when a refreshed price-book version arrives", 
     expectedVersion: 3,
   });
 });
+
+it.each([
+  {
+    effectiveFrom: "2026-09-07",
+    effectiveTo: null,
+    allowed: false,
+    note: "Activation is available on or after",
+  },
+  {
+    effectiveFrom: "2026-09-01",
+    effectiveTo: "2026-09-05",
+    allowed: false,
+    note: "This draft’s effective period has expired",
+  },
+  {
+    effectiveFrom: "2026-09-01",
+    effectiveTo: "2026-09-06",
+    allowed: true,
+    note: null,
+  },
+])(
+  "keeps date-bound approval truthful: $effectiveFrom to $effectiveTo",
+  async ({ effectiveFrom, effectiveTo, allowed, note }) => {
+    const user = userEvent.setup();
+    render(
+      <PriceBookAdministration
+        roles={["finance_approver"]}
+        userId="other-finance"
+        books={[{ ...draft, effectiveFrom, effectiveTo }]}
+        source="Pricing service"
+        availability="available"
+        readAt="2026-09-06T23:59:00.000Z"
+      />,
+    );
+    if (note) expect(screen.getByText(new RegExp(note))).toBeVisible();
+    await user.type(
+      screen.getByLabelText("Finance decision reason"),
+      "Review the approved effective window.",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Review price-book approval" }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Approve and activate" }) !== null,
+    ).toBe(allowed);
+    expect(
+      screen.getByRole("button", { name: "Return draft for changes" }),
+    ).toBeEnabled();
+  },
+);
+
+it("reports a duplicate clone version before sending a mutation", async () => {
+  const user = userEvent.setup();
+  render(
+    <PriceBookAdministration
+      roles={["finance_approver"]}
+      userId="other-finance"
+      books={[draft]}
+      source="Pricing service"
+      availability="available"
+      readAt="2026-09-06T12:00:00.000Z"
+    />,
+  );
+  await user.click(screen.getByText("Clone this version into a draft"));
+  await user.clear(screen.getByLabelText("Cloned price-book version"));
+  await user.type(screen.getByLabelText("Cloned price-book version"), "3");
+  await user.type(
+    screen.getByLabelText("Clone reason"),
+    "Prepare next regional pricing version",
+  );
+  await user.click(screen.getByRole("button", { name: "Create cloned draft" }));
+  expect(
+    screen.getByText("USD version 3 already exists. Choose a new version."),
+  ).toBeVisible();
+  expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
+});

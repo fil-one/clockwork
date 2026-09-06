@@ -22,12 +22,26 @@ const KEYSTROKE_MS = 20;
 let search = "";
 const listeners = new Set<() => void>();
 const paramsBySnapshot = new Map<string, URLSearchParams>();
+const pendingRouterUpdates = new Set<() => void>();
 const replace = vi.fn((url: string) => {
   const next = url.includes("?") ? url.slice(url.indexOf("?") + 1) : "";
-  setTimeout(() => {
+  // Capture the matching timer implementation: some tests switch between
+  // real and fake clocks before cleanup runs.
+  const cancelTimeout = clearTimeout;
+  const timer = setTimeout(() => {
+    pendingRouterUpdates.delete(cancel);
     search = next;
     for (const listener of listeners) listener();
   }, ROUTER_LAG_MS);
+  const cancel = () => cancelTimeout(timer);
+  pendingRouterUpdates.add(cancel);
+});
+
+afterEach(() => {
+  // A transition belongs to one mounted test application. Letting it survive
+  // teardown can overwrite the next test's URL midway through a keystroke.
+  for (const cancel of pendingRouterUpdates) cancel();
+  pendingRouterUpdates.clear();
 });
 
 function snapshot() {
@@ -352,7 +366,7 @@ describe("global search keyboard model", () => {
   });
 
   it("submits one search from the current field value on Enter", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: KEYSTROKE_MS });
     render(<GlobalSearch records={searchRecords} />);
     const field = screen.getByRole("searchbox");
     await user.clear(field);

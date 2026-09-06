@@ -145,6 +145,8 @@ export const coreCommandCatalogue: Record<
   ]),
   price_books: new Set([
     "create",
+    "clone",
+    "import",
     "add_rate",
     "update_rate",
     "remove_rate",

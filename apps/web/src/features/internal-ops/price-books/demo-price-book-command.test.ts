@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { exportPriceBookExchange } from "@clockwork/domain/core";
 import type { SessionClaims } from "@clockwork/api";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
@@ -8,7 +9,7 @@ import { demoPersonas } from "@clockwork/testing/personas";
 vi.mock("server-only", () => ({}));
 
 import { handleDemoPriceBookCommand } from "./demo-price-book-command";
-import { currentDemoPriceBooks } from "./demo-price-books";
+import { currentDemoPriceBooks, storeDemoPriceBooks } from "./demo-price-books";
 
 const finance: SessionClaims = {
   userId: demoPersonas.financeApprover.userId,
@@ -127,6 +128,49 @@ describe("durable demo price-book commands", () => {
       effectiveTo: "2026-07-31",
     });
   });
+
+  it.each([
+    ["2026-07-30", 422, "draft"],
+    ["2026-07-31", 200, "active"],
+  ] as const)(
+    "honors the inclusive demo end date %s",
+    async (effectiveTo, status, expectedStatus) => {
+      const id = "66000000-0000-4000-8000-000000000003";
+      await store.update((state) =>
+        storeDemoPriceBooks(
+          state,
+          currentDemoPriceBooks(state).map((book) =>
+            book.id === id ? { ...book, effectiveTo } : book,
+          ),
+          "2026-07-31T12:00:00Z",
+        ),
+      );
+      const response = await handleDemoPriceBookCommand(
+        request(`price-book-window-${effectiveTo}`, {
+          id,
+          action: "activate",
+          expectedVersion: 2,
+          payload: {
+            reason: "Second finance review of the bounded effective window",
+          },
+        }),
+        finance,
+        { store, now: "2026-07-31T23:59:59Z" },
+      );
+      expect(response.status).toBe(status);
+      expect(
+        currentDemoPriceBooks(await store.read()).find(
+          (book) => book.id === id,
+        ),
+      ).toMatchObject({ status: expectedStatus, effectiveTo });
+      if (status === 422)
+        expect(
+          currentDemoPriceBooks(await store.read()).find((book) =>
+            book.id.endsWith("0001"),
+          ),
+        ).toMatchObject({ status: "active" });
+    },
+  );
 
   it("binds replay to the exact command bytes", async () => {
     const first = await handleDemoPriceBookCommand(
@@ -310,4 +354,170 @@ describe("draft editing preserves approval evidence", () => {
       ).status,
     ).toBe(422);
   });
+});
+
+it("clones the exact source into an independent draft with new rate IDs and reset approval", async () => {
+  const source = currentDemoPriceBooks(await store.read()).find(
+    (book) => book.activationRequestedBy,
+  );
+  if (!source) throw new Error("Missing proposed source");
+  const original = structuredClone(source);
+  const id = "66000000-0000-4000-8000-000000000098";
+  const command = {
+    id,
+    action: "clone",
+    payload: {
+      sourceId: source.id,
+      sourceRowVersion: source.rowVersion,
+      name: "Copied economics",
+      version: 90,
+      effectiveFrom: "2026-09-06",
+      reason: "Prepare a separately approved regional refresh",
+    },
+  };
+  const response = await handleDemoPriceBookCommand(
+    request("clone-independent-draft-0001", command),
+    finance,
+    { store },
+  );
+  expect(response.status).toBe(200);
+  const result = (await response.json()) as {
+    record: { data: { cloneProvenance: unknown } };
+  };
+  const books = currentDemoPriceBooks(await store.read());
+  const cloned = books.find((book) => book.id === id);
+  expect(books.find((book) => book.id === source.id)).toEqual(original);
+  expect(cloned).toMatchObject({
+    rowVersion: 1,
+    status: "draft",
+    version: 90,
+    effectiveTo: null,
+    activationRequestedBy: null,
+    activationRequestedAt: null,
+    lastDecisionAt: null,
+    lastDecisionReason: null,
+  });
+  expect(
+    cloned?.rateCards.map(({ id: _id, ...economics }) => economics),
+  ).toEqual(source.rateCards.map(({ id: _id, ...economics }) => economics));
+  expect(cloned?.rateCards[0]?.id).not.toBe(source.rateCards[0]?.id);
+  expect(result.record.data.cloneProvenance).toMatchObject({
+    sourceId: source.id,
+    sourceRowVersion: source.rowVersion,
+    providerMappings: "not_copied_requires_review",
+  });
+  expect(
+    (
+      await handleDemoPriceBookCommand(
+        request("clone-independent-draft-0001", command),
+        finance,
+        { store },
+      )
+    ).headers.get("idempotency-replayed"),
+  ).toBe("true");
+  const stale = await handleDemoPriceBookCommand(
+    request("clone-independent-stale-0001", {
+      ...command,
+      id: "66000000-0000-4000-8000-000000000097",
+      payload: {
+        ...command.payload,
+        version: 91,
+        sourceRowVersion: source.rowVersion + 1,
+      },
+    }),
+    finance,
+    { store },
+  );
+  expect(stale.status).toBe(409);
+  expect(currentDemoPriceBooks(await store.read())).toHaveLength(books.length);
+  const activate = await handleDemoPriceBookCommand(
+    request("clone-without-approval-0001", {
+      id,
+      action: "activate",
+      expectedVersion: 1,
+      payload: { reason: "Attempt an inherited approval" },
+    }),
+    finance,
+    { store },
+  );
+  expect(activate.status).toBe(422);
+  expect(await activate.json()).toMatchObject({
+    code: "TWO_AUTHORITY_REQUIRED",
+  });
+});
+
+it("imports validated economics into an independent draft and rejects injected authority atomically", async () => {
+  const before = currentDemoPriceBooks(await store.read());
+  const source = before[0];
+  if (!source) throw new Error("Missing fixture");
+  const document = exportPriceBookExchange(source, "2026-09-06T12:00:00.000Z");
+  const id = "66000000-0000-4000-8000-000000000096";
+  const body = {
+    id,
+    action: "import",
+    payload: {
+      name: "Imported USD",
+      version: 89,
+      effectiveFrom: "2026-09-06",
+      reason: "Review imported regional economics",
+      document,
+    },
+  };
+  const invalid = await handleDemoPriceBookCommand(
+    request("import-invalid-authority-0001", {
+      ...body,
+      payload: {
+        ...body.payload,
+        document: { ...document, approvals: [{ approved: true }] },
+      },
+    }),
+    finance,
+    { store },
+  );
+  expect(invalid.status).toBe(422);
+  expect(currentDemoPriceBooks(await store.read())).toEqual(before);
+  const imported = await handleDemoPriceBookCommand(
+    request("import-economics-0001", body),
+    finance,
+    { store },
+  );
+  expect(imported.status).toBe(200);
+  const after = currentDemoPriceBooks(await store.read());
+  expect(after.find((book) => book.id === source.id)).toEqual(source);
+  const target = after.find((book) => book.id === id);
+  expect(target).toMatchObject({
+    status: "draft",
+    rowVersion: 1,
+    version: 89,
+    effectiveTo: null,
+    activationRequestedBy: null,
+    importProvenance: {
+      sourceAuthority: "unverified_uploaded_economics",
+      approvalHistory: "not_imported",
+    },
+  });
+  expect(target?.rateCards[0]?.unitPrice).toEqual(
+    source.rateCards[0]?.unitPrice,
+  );
+  expect(target?.rateCards[0]?.id).not.toBe(source.rateCards[0]?.id);
+  const replay = await handleDemoPriceBookCommand(
+    request("import-economics-0001", body),
+    finance,
+    { store },
+  );
+  expect(replay.headers.get("idempotency-replayed")).toBe("true");
+  expect(currentDemoPriceBooks(await store.read())).toHaveLength(
+    before.length + 1,
+  );
+  const activate = await handleDemoPriceBookCommand(
+    request("import-activate-0001", {
+      id,
+      action: "activate",
+      expectedVersion: 1,
+      payload: { reason: "Try uploaded approval bypass" },
+    }),
+    finance,
+    { store },
+  );
+  expect(activate.status).toBe(422);
 });

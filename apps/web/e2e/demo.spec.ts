@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { DEMO_SEED_VERSION } from "@clockwork/testing/demo-seed";
@@ -389,6 +390,154 @@ test.describe("direct buyer flagship journey", () => {
 });
 
 test.describe("playable product-demo workflows", () => {
+  test("finance exports and imports reviewed economics into a fresh draft", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await passGate(page);
+    await resetDemoData(page);
+    try {
+      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+      await page.goto("/internal/price-books");
+      const downloadPromise = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Download price book" }).click();
+      const download = await downloadPromise;
+      const path = await download.path();
+      if (!path) throw new Error("Download path missing");
+      const json = await readFile(path, "utf8");
+      await page
+        .getByText("Import price-book JSON into a new draft", { exact: true })
+        .click();
+      const editor = page.getByLabel("Price-book JSON", { exact: true });
+      await editor.fill(json);
+      await page
+        .getByRole("button", { name: "Validate import preview" })
+        .click();
+      await expect(
+        page.getByRole("table", { name: "Imported rate preview" }),
+      ).toBeVisible();
+      await editor.fill(json + " invalid");
+      await expect(
+        page.getByRole("button", { name: "Create imported draft" }),
+      ).toHaveCount(0);
+      await page
+        .getByRole("button", { name: "Validate import preview" })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Create imported draft" }),
+      ).toHaveCount(0);
+      await editor.fill(json);
+      await page
+        .getByRole("button", { name: "Validate import preview" })
+        .click();
+      const form = page.getByRole("form", { name: "Import price book" });
+      await form
+        .getByLabel("Imported price-book name")
+        .fill("Browser imported USD");
+      await form.getByLabel("Imported price-book version").fill("98");
+      await form
+        .getByLabel("Import reason")
+        .fill("Review exported economics as a separately approved new draft");
+      await form.getByRole("button", { name: "Create imported draft" }).click();
+      await expect(
+        page.getByRole("row", {
+          name: /Browser imported USD 98 USD.*Draft Not proposed/,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("table", { name: "Rate card economics" }),
+      ).toContainText("LOCKED-STORAGE-TB");
+      await page
+        .getByLabel("Finance decision reason")
+        .fill("Fresh review of imported regional pricing and mappings");
+      await page
+        .getByRole("button", { name: "Review price-book approval" })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Approve and activate" }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Propose activation" }),
+      ).toBeEnabled();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
+
+  test("finance clones a proposal, edits its independent draft, and preserves the source", async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
+    await passGate(page);
+    await resetDemoData(page);
+    try {
+      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
+      await page.goto("/internal/price-books");
+      const source = page.getByRole("row", {
+        name: /Direct commerce USD 3 USD.*Proposed by commercial.policy@filone.test/,
+      });
+      await expect(source).toBeVisible();
+      const originalEconomics = await page
+        .getByRole("table", { name: "Rate card economics" })
+        .innerText();
+      await page
+        .getByText("Clone this version into a draft", { exact: true })
+        .click();
+      const cloning = page.getByRole("form", { name: "Clone price book" });
+      await cloning
+        .getByLabel("Cloned price-book name")
+        .fill("Browser cloned USD");
+      await cloning.getByLabel("Cloned price-book version").fill("99");
+      await cloning
+        .getByLabel("Clone reason")
+        .fill("Independent regional refresh from reviewed source economics.");
+      await cloning
+        .getByRole("button", { name: "Create cloned draft" })
+        .click();
+      await expect(
+        page.getByRole("row", {
+          name: /Browser cloned USD 99 USD.*1 Draft Not proposed/,
+        }),
+      ).toBeVisible();
+      await expect(source).toBeVisible();
+      await page
+        .getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" })
+        .click();
+      await page.getByLabel("Unit price · USD").fill("159.00");
+      await page.getByRole("button", { name: "Save rate card" }).click();
+      await expect(
+        page
+          .getByRole("table", { name: "Rate card economics" })
+          .getByText("USD 159.00", { exact: true }),
+      ).toBeVisible();
+      await page
+        .getByLabel("Finance decision reason")
+        .fill("Copied draft independently reviewed after editing.");
+      await page
+        .getByRole("button", { name: "Review price-book approval" })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Approve and activate" }),
+      ).toHaveCount(0);
+      await page.getByRole("button", { name: "Propose activation" }).click();
+      await expect(
+        page.getByRole("row", {
+          name: /Browser cloned USD 99 USD.*Proposed by finance.approver@filone.test/,
+        }),
+      ).toBeVisible();
+      const picker = page.getByRole("combobox", { name: "Price book version" });
+      await picker.fill("Direct commerce USD v3");
+      await picker.press("Tab");
+      await expect
+        .poll(() =>
+          page.getByRole("table", { name: "Rate card economics" }).innerText(),
+        )
+        .toBe(originalEconomics);
+      await expect(source).toBeVisible();
+    } finally {
+      if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
+    }
+  });
   test("finance authors a priced draft, proposes it, and activates a second-authority version", async ({
     page,
   }) => {
