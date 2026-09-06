@@ -357,6 +357,12 @@ export function SelfServeBuy({
           Configure one direct 12-month quote. The server prices the draft and
           issues it only after its customer document is stored and bound.
         </p>
+        <p>
+          <Link className={styles.alternateOffer} href="/buy/payg">
+            Looking for no-term PAYG or a trial? Review offers and service
+            requests
+          </Link>
+        </p>
       </header>
 
       <ol aria-label="Purchase path" className={styles.steps}>

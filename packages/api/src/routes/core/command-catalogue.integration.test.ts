@@ -539,6 +539,8 @@ const exercisedVerbs: Record<CoreResourceName, readonly string[]> = {
     "remove_rate",
     "update_discount_matrix",
     "reject_activation",
+    "schedule_activation",
+    "cancel_schedule",
     "request_activation",
     "activate",
     "retire",

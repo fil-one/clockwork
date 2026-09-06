@@ -11,6 +11,7 @@ export * from "./exception-routing";
 export * from "./gate-activation-tasks";
 export * from "./outbox";
 export * from "./providers";
+export * from "./provider-reference-admin";
 export * from "./webhook-replay";
 
 import { DatabaseExternalGateService } from "./external-gates";

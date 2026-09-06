@@ -593,3 +593,15 @@
     scroll-behavior: auto;
   }
 }
+
+.guidance {
+  max-width: 75rem;
+  line-height: 1.6;
+}
+
+.proseLink {
+  color: var(--web-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  font-weight: 600;
+}

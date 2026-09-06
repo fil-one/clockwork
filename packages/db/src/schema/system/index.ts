@@ -14,6 +14,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { accounts, commerceUsers } from "../../schema";
 import * as providerSchema from "./providers";
+import * as providerReferenceSchema from "./provider-references";
+export * from "./provider-references";
 
 export * from "./providers";
 
@@ -337,4 +339,5 @@ export const systemSchema = {
   systemExceptionRoster,
   systemExternalGateActivationTasks,
   ...providerSchema,
+  ...providerReferenceSchema,
 };

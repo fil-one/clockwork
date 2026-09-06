@@ -938,6 +938,104 @@
                         "minLength": 1,
                         "maxLength": 255
                       },
+                      "customerAcquisition": {
+                        "type": "object",
+                        "properties": {
+                          "paygRequestsEnabled": {
+                            "type": "boolean"
+                          },
+                          "trialRequestsEnabled": {
+                            "type": "boolean"
+                          },
+                          "serviceNotice": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 4000
+                          },
+                          "cancellationNotice": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 4000
+                          },
+                          "trialNotice": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 4000
+                          },
+                          "terms": {
+                            "type": "object",
+                            "properties": {
+                              "documentId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "version": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "uri": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              }
+                            },
+                            "required": [
+                              "documentId",
+                              "version",
+                              "uri",
+                              "sha256"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "retention": {
+                            "type": "object",
+                            "properties": {
+                              "documentId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "version": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "uri": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              }
+                            },
+                            "required": [
+                              "documentId",
+                              "version",
+                              "uri",
+                              "sha256"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "paygRequestsEnabled",
+                          "trialRequestsEnabled",
+                          "serviceNotice",
+                          "cancellationNotice",
+                          "trialNotice",
+                          "terms",
+                          "retention"
+                        ],
+                        "additionalProperties": false
+                      },
                       "payg": {
                         "type": "object",
                         "properties": {
@@ -1809,6 +1907,104 @@
                                 "minLength": 1,
                                 "maxLength": 255
                               },
+                              "customerAcquisition": {
+                                "type": "object",
+                                "properties": {
+                                  "paygRequestsEnabled": {
+                                    "type": "boolean"
+                                  },
+                                  "trialRequestsEnabled": {
+                                    "type": "boolean"
+                                  },
+                                  "serviceNotice": {
+                                    "type": "string",
+                                    "minLength": 20,
+                                    "maxLength": 4000
+                                  },
+                                  "cancellationNotice": {
+                                    "type": "string",
+                                    "minLength": 20,
+                                    "maxLength": 4000
+                                  },
+                                  "trialNotice": {
+                                    "type": "string",
+                                    "minLength": 20,
+                                    "maxLength": 4000
+                                  },
+                                  "terms": {
+                                    "type": "object",
+                                    "properties": {
+                                      "documentId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "version": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 80
+                                      },
+                                      "uri": {
+                                        "type": "string",
+                                        "maxLength": 2048,
+                                        "format": "uri"
+                                      },
+                                      "sha256": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
+                                      }
+                                    },
+                                    "required": [
+                                      "documentId",
+                                      "version",
+                                      "uri",
+                                      "sha256"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "retention": {
+                                    "type": "object",
+                                    "properties": {
+                                      "documentId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 255
+                                      },
+                                      "version": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 80
+                                      },
+                                      "uri": {
+                                        "type": "string",
+                                        "maxLength": 2048,
+                                        "format": "uri"
+                                      },
+                                      "sha256": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
+                                      }
+                                    },
+                                    "required": [
+                                      "documentId",
+                                      "version",
+                                      "uri",
+                                      "sha256"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "paygRequestsEnabled",
+                                  "trialRequestsEnabled",
+                                  "serviceNotice",
+                                  "cancellationNotice",
+                                  "trialNotice",
+                                  "terms",
+                                  "retention"
+                                ],
+                                "additionalProperties": false
+                              },
                               "payg": {
                                 "type": "object",
                                 "properties": {
@@ -2080,6 +2276,104 @@
                             "minLength": 1,
                             "maxLength": 255
                           },
+                          "customerAcquisition": {
+                            "type": "object",
+                            "properties": {
+                              "paygRequestsEnabled": {
+                                "type": "boolean"
+                              },
+                              "trialRequestsEnabled": {
+                                "type": "boolean"
+                              },
+                              "serviceNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "cancellationNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "trialNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "terms": {
+                                "type": "object",
+                                "properties": {
+                                  "documentId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "uri": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  }
+                                },
+                                "required": [
+                                  "documentId",
+                                  "version",
+                                  "uri",
+                                  "sha256"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "retention": {
+                                "type": "object",
+                                "properties": {
+                                  "documentId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "uri": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  }
+                                },
+                                "required": [
+                                  "documentId",
+                                  "version",
+                                  "uri",
+                                  "sha256"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "paygRequestsEnabled",
+                              "trialRequestsEnabled",
+                              "serviceNotice",
+                              "cancellationNotice",
+                              "trialNotice",
+                              "terms",
+                              "retention"
+                            ],
+                            "additionalProperties": false
+                          },
                           "payg": {
                             "type": "object",
                             "properties": {
@@ -2288,6 +2582,104 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 255
+                          },
+                          "customerAcquisition": {
+                            "type": "object",
+                            "properties": {
+                              "paygRequestsEnabled": {
+                                "type": "boolean"
+                              },
+                              "trialRequestsEnabled": {
+                                "type": "boolean"
+                              },
+                              "serviceNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "cancellationNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "trialNotice": {
+                                "type": "string",
+                                "minLength": 20,
+                                "maxLength": 4000
+                              },
+                              "terms": {
+                                "type": "object",
+                                "properties": {
+                                  "documentId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "uri": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  }
+                                },
+                                "required": [
+                                  "documentId",
+                                  "version",
+                                  "uri",
+                                  "sha256"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "retention": {
+                                "type": "object",
+                                "properties": {
+                                  "documentId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 255
+                                  },
+                                  "version": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "uri": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  }
+                                },
+                                "required": [
+                                  "documentId",
+                                  "version",
+                                  "uri",
+                                  "sha256"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "paygRequestsEnabled",
+                              "trialRequestsEnabled",
+                              "serviceNotice",
+                              "cancellationNotice",
+                              "trialNotice",
+                              "terms",
+                              "retention"
+                            ],
+                            "additionalProperties": false
                           },
                           "payg": {
                             "type": "object",
@@ -2552,6 +2944,104 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 255
+                        },
+                        "customerAcquisition": {
+                          "type": "object",
+                          "properties": {
+                            "paygRequestsEnabled": {
+                              "type": "boolean"
+                            },
+                            "trialRequestsEnabled": {
+                              "type": "boolean"
+                            },
+                            "serviceNotice": {
+                              "type": "string",
+                              "minLength": 20,
+                              "maxLength": 4000
+                            },
+                            "cancellationNotice": {
+                              "type": "string",
+                              "minLength": 20,
+                              "maxLength": 4000
+                            },
+                            "trialNotice": {
+                              "type": "string",
+                              "minLength": 20,
+                              "maxLength": 4000
+                            },
+                            "terms": {
+                              "type": "object",
+                              "properties": {
+                                "documentId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 255
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "uri": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "format": "uri"
+                                },
+                                "sha256": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "documentId",
+                                "version",
+                                "uri",
+                                "sha256"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "retention": {
+                              "type": "object",
+                              "properties": {
+                                "documentId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 255
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "uri": {
+                                  "type": "string",
+                                  "maxLength": 2048,
+                                  "format": "uri"
+                                },
+                                "sha256": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "documentId",
+                                "version",
+                                "uri",
+                                "sha256"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "paygRequestsEnabled",
+                            "trialRequestsEnabled",
+                            "serviceNotice",
+                            "cancellationNotice",
+                            "trialNotice",
+                            "terms",
+                            "retention"
+                          ],
+                          "additionalProperties": false
                         },
                         "payg": {
                           "type": "object",

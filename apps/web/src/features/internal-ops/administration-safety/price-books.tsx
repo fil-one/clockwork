@@ -11,6 +11,8 @@ import {
 } from "@clockwork/domain/core";
 import { PriceBookImport } from "./price-book-import";
 import { DiscountMatrixEditor } from "./price-book-discounts";
+import { PriceBookImpactPanel } from "./price-book-impact";
+import type { PriceBookImpactResult } from "../price-books/price-book-impact-model";
 import { priceBookEconomicDiff } from "./price-book-diff";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
 import { Table } from "@clockwork/ui";
@@ -36,7 +38,12 @@ import {
 } from "./ui";
 
 type Decision =
-  "request_activation" | "activate" | "retire" | "reject_activation";
+  | "request_activation"
+  | "activate"
+  | "retire"
+  | "reject_activation"
+  | "schedule_activation"
+  | "cancel_schedule";
 
 const activationCopy = adminSafetyCopy.priceBookActivation;
 
@@ -70,6 +77,14 @@ function decisionsFor(
   userId: string,
   today: string,
 ): readonly { action: Decision; label: string; hint: string }[] {
+  if (book.activationSchedule?.status === "approved")
+    return [
+      {
+        action: "cancel_schedule",
+        label: "Cancel approved schedule",
+        hint: "Retains the decision history and current active pricing. The draft becomes editable and needs a new proposal and approval.",
+      },
+    ];
   if (book.status === "active")
     return [
       {
@@ -89,6 +104,15 @@ function decisionsFor(
     ];
   if (book.activationRequestedBy === userId) return [];
   return [
+    ...(book.effectiveFrom > today
+      ? [
+          {
+            action: "schedule_activation" as const,
+            label: "Approve scheduled activation",
+            hint: "Locks this exact version for execution from its effective date. Current pricing remains active until execution. Only one approved schedule per currency is allowed.",
+          },
+        ]
+      : []),
     ...(book.effectiveFrom <= today &&
     (!book.effectiveTo || book.effectiveTo >= today)
       ? [
@@ -114,6 +138,7 @@ export function PriceBookAdministration({
   source,
   availability,
   readAt,
+  impact,
 }: {
   roles: readonly string[];
   userId: string;
@@ -121,13 +146,22 @@ export function PriceBookAdministration({
   source: PriceBookSource;
   availability: PriceBookAvailability;
   readAt: string;
+  impact?: PriceBookImpactResult;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("All");
   const [state, setState] = useState("All");
   const [selectedId, setSelectedId] = useState(
-    books.find((book) => book.status === "draft")?.id ?? books[0]?.id ?? "",
+    books.find(
+      (book) =>
+        book.status === "draft" &&
+        book.effectiveFrom <= readAt.slice(0, 10) &&
+        (!book.effectiveTo || book.effectiveTo >= readAt.slice(0, 10)),
+    )?.id ??
+      books.find((book) => book.status === "draft")?.id ??
+      books[0]?.id ??
+      "",
   );
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<{
@@ -223,8 +257,20 @@ export function PriceBookAdministration({
     summary.bookId === selected.id &&
     summary.rowVersion === selected.rowVersion,
   );
+  const otherSchedule = selected
+    ? books.find(
+        (book) =>
+          book.id !== selected.id &&
+          book.currency === selected.currency &&
+          book.activationSchedule?.status === "approved",
+      )
+    : undefined;
   const decisions = selected
-    ? decisionsFor(selected, userId, readAt.slice(0, 10))
+    ? decisionsFor(selected, userId, readAt.slice(0, 10)).filter(
+        (decision) =>
+          !otherSchedule ||
+          !["activate", "schedule_activation"].includes(decision.action),
+      )
     : [];
   const incumbent = selected
     ? books.find(
@@ -260,13 +306,17 @@ export function PriceBookAdministration({
       setOutcome({
         tone: "done",
         message:
-          action === "reject_activation"
-            ? "Activation rejected. The draft can be edited and proposed again."
-            : action === "request_activation"
-              ? activationCopy.proposed
-              : action === "activate"
-                ? activationCopy.activated
-                : activationCopy.retired,
+          action === "schedule_activation"
+            ? "Scheduled activation approved. The exact reviewed version is locked until execution or cancellation."
+            : action === "cancel_schedule"
+              ? "Schedule cancelled. Current pricing is unchanged; the draft needs a new approval."
+              : action === "reject_activation"
+                ? "Activation rejected. The draft can be edited and proposed again."
+                : action === "request_activation"
+                  ? activationCopy.proposed
+                  : action === "activate"
+                    ? activationCopy.activated
+                    : activationCopy.retired,
       });
       setReason("");
       refreshAfterMutation(
@@ -811,11 +861,13 @@ export function PriceBookAdministration({
             `${book.effectiveFrom}${book.effectiveTo ? ` to ${book.effectiveTo}` : ""}`,
             book.rateCardCount,
             <StatusPill state={stateLabel[book.status]} />,
-            book.activationRequestedByEmail
-              ? `Proposed by ${book.activationRequestedByEmail}`
-              : book.status === "draft"
-                ? "Not proposed"
-                : "Decided",
+            book.activationSchedule?.status === "approved"
+              ? `Scheduled · ${book.activationSchedule.effectiveFrom}`
+              : book.activationRequestedByEmail
+                ? `Proposed by ${book.activationRequestedByEmail}`
+                : book.status === "draft"
+                  ? "Not proposed"
+                  : "Decided",
           ])}
           emptyState={
             books.length
@@ -849,7 +901,11 @@ export function PriceBookAdministration({
         >
           <div className={styles.panelHeading}>
             <div>
-              <h2 id="price-book-review-title">Finance activation review</h2>
+              <h2 id="price-book-review-title">
+                {selected.activationSchedule?.status === "approved"
+                  ? "Schedule cancellation review"
+                  : "Finance activation review"}
+              </h2>
               <p>
                 Review creates no quote, order, invoice, or collected-value
                 assertion.
@@ -863,23 +919,31 @@ export function PriceBookAdministration({
               event.preventDefault();
               if (refreshPending || authoringPending || pending || !permitted)
                 return;
+              setOutcome(null);
+              const cancelling =
+                selected.activationSchedule?.status === "approved";
               setSummary({
                 bookId: selected.id,
                 rowVersion: selected.rowVersion,
                 value: buildReviewSummary({
                   entity: `${selected.name} v${selected.version} · ${selected.currency}`,
-                  impact: `Approves ${selected.rateCardCount} rate cards across ${selected.regions.join(", ") || "no region"} from ${selected.effectiveFrom}.`,
+                  impact: cancelling
+                    ? "Cancels the approved schedule and unlocks this draft for editing. Current active pricing stays in place."
+                    : `Approves ${selected.rateCardCount} rate cards across ${selected.regions.join(", ") || "no region"} from ${selected.effectiveFrom}.`,
                   evidence: [
                     `${selected.rateCardCount} rate cards persisted`,
-                    selected.activationRequestedByEmail
-                      ? `Proposed by ${selected.activationRequestedByEmail}`
-                      : "Not yet proposed",
+                    cancelling
+                      ? `Approved schedule effective ${selected.activationSchedule?.effectiveFrom}`
+                      : selected.activationRequestedByEmail
+                        ? `Proposed by ${selected.activationRequestedByEmail}`
+                        : "Not yet proposed",
                     selected.lastDecisionReason ?? "No prior decision recorded",
                   ],
                   policyBasis:
                     "Commercial policy CP-2 requires versioned rate cards, explicit routes, regional floors, and two finance authorities.",
-                  downstreamEffect:
-                    "Activation makes the version eligible for new pricing resolutions. Existing quotes, orders, invoices, and collections remain unchanged.",
+                  downstreamEffect: cancelling
+                    ? "No price book is activated or retired. The cancellation and prior approval remain in history; this draft requires a new proposal and distinct finance approval before any later activation."
+                    : "Activation makes the version eligible for new pricing resolutions. Retained quote, order, invoice, and collection economics stay unchanged; retiring the current book stops its draft issuance and revisions.",
                   reason,
                 }),
               });
@@ -1133,6 +1197,11 @@ export function PriceBookAdministration({
                 complete rate table above.
               </p>
             ) : null}
+            <PriceBookImpactPanel
+              candidate={selected}
+              incumbent={incumbent}
+              impact={impact}
+            />
             <label className={styles.field}>
               Finance decision reason
               <textarea
@@ -1157,18 +1226,54 @@ export function PriceBookAdministration({
             ) : null}
             {permitted &&
             selected.status === "draft" &&
-            selected.activationRequestedBy === userId ? (
+            selected.activationRequestedBy === userId &&
+            selected.activationSchedule?.status !== "approved" ? (
               <div className={styles.roleNotice} role="note">
                 <strong>{activationCopy.awaitingSecondTitle}</strong>
                 {activationCopy.awaitingSecondBody}
               </div>
             ) : null}
-            {selected.status === "draft" &&
+            {otherSchedule ? (
+              <p role="note">
+                {otherSchedule.name} v{otherSchedule.version} has an approved
+                schedule for {selected.currency}. Cancel that schedule before
+                approving another scheduled or immediate activation.
+              </p>
+            ) : null}
+            {selected.activationSchedule ? (
+              <div role="status" className={styles.roleNotice}>
+                <strong>
+                  Activation schedule · {selected.activationSchedule.status}
+                </strong>
+                <p>
+                  Effective from {selected.activationSchedule.effectiveFrom}{" "}
+                  (UTC)
+                  {selected.activationSchedule.effectiveTo
+                    ? ` through ${selected.activationSchedule.effectiveTo}`
+                    : ""}
+                  .
+                </p>
+                {selected.activationSchedule.status === "approved" ? (
+                  <p>
+                    This reviewed version is locked.{" "}
+                    {source === "Deterministic demo fixture"
+                      ? "This fictional schedule demonstrates advance approval and cancellation; it does not run the production worker."
+                      : "The worker checks each minute from the effective date, and rechecks finance authority and the new-business control before changing current pricing."}{" "}
+                    Cancel this schedule to reopen the draft.
+                  </p>
+                ) : (
+                  <p>{selected.activationSchedule.completionReason}</p>
+                )}
+              </div>
+            ) : null}
+            {selected.activationSchedule?.status !== "approved" &&
+            selected.status === "draft" &&
             selected.effectiveFrom > readAt.slice(0, 10) ? (
               <p role="note">
                 Activation is available on or after {selected.effectiveFrom}{" "}
-                (UTC). A different finance approver must return then to activate
-                this version. Current active pricing stays in place.
+                (UTC). A different finance approver can approve its schedule
+                now, or return then for immediate activation. Current active
+                pricing stays in place until execution.
               </p>
             ) : selected.status === "draft" &&
               selected.effectiveTo &&
@@ -1373,7 +1478,11 @@ export function PriceBookAdministration({
         <>
           <ReviewSummaryCard
             summary={summary.value}
-            title="Price-book activation review"
+            title={
+              selected.activationSchedule?.status === "approved"
+                ? "Schedule cancellation review"
+                : "Price-book activation review"
+            }
             identifiers={[{ label: "Price book ID", value: selected.id }]}
           />
           <section className={styles.panel} aria-label="Record the decision">

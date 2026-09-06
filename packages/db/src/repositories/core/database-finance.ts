@@ -117,6 +117,16 @@ import {
   lifecycleRenewalActions,
 } from "../../schema/lifecycle/platform";
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
+import { priceBookSchedules } from "../../schema/core/price-book-schedules";
+import {
+  assertPersistedPriceScheduleFinance,
+  lockPriceBookCurrency,
+} from "./price-book-schedule-controls";
+import { DatabaseCoreError } from "./database-core-error";
+export {
+  DatabaseCoreError,
+  type DatabaseCoreErrorCode,
+} from "./database-core-error";
 import {
   withAuthorizedTransaction,
   withInternalTransaction,
@@ -415,18 +425,6 @@ export const coreReportSources: Readonly<
   },
 };
 
-export type DatabaseCoreErrorCode =
-  "NOT_FOUND" | "VERSION_CONFLICT" | "DUPLICATE" | "INVALID_STATE";
-
-export class DatabaseCoreError extends Error {
-  public constructor(
-    public readonly code: DatabaseCoreErrorCode,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
 type CoreResourceName = DatabaseCoreResourceName;
 type CoreRecord = DatabaseCoreRecord;
 type CoreMutation = DatabaseCoreMutation;
@@ -480,6 +478,8 @@ export const databaseCoreCommands = {
     "remove_rate",
     "update_discount_matrix",
     "reject_activation",
+    "schedule_activation",
+    "cancel_schedule",
     "request_activation",
     "activate",
     "retire",
@@ -3018,7 +3018,7 @@ function serverDiscountMatrix(
   };
 }
 
-async function serverPriceBook(
+export async function serverPriceBook(
   transaction: RuntimeTransaction,
   priceBookId: string,
 ): Promise<PriceBook> {
@@ -5449,6 +5449,16 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     }
     // Serialize content changes with proposal/approval, including callers that
     // omit an expected version. An approval can never race a rate edit.
+    if (
+      ["activate", "schedule_activation", "cancel_schedule", "retire"].includes(
+        input.action,
+      )
+    ) {
+      const header = await transaction.query.priceBooks.findFirst({
+        where: eq(priceBooks.id, input.id),
+      });
+      if (header) await lockPriceBookCurrency(transaction, header.currency);
+    }
     const [prior] = await transaction
       .select()
       .from(priceBooks)
@@ -5464,6 +5474,151 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "VERSION_CONFLICT",
         "Price book changed since it was read",
       );
+    if (input.action === "cancel_schedule") {
+      assertFinanceApproval(input);
+      await assertPersistedPriceScheduleFinance(
+        transaction,
+        input.authorization.userId,
+        input,
+      );
+      const { reason } = PriceBookDecisionCommandSchema.parse(input.payload);
+      const [schedule] = await transaction
+        .update(priceBookSchedules)
+        .set({
+          status: "cancelled",
+          completedAt: new Date(input.occurredAt),
+          cancelledBy: input.authorization.userId,
+          completionReason: reason,
+        })
+        .where(
+          and(
+            eq(priceBookSchedules.priceBookId, prior.id),
+            eq(priceBookSchedules.status, "approved"),
+          ),
+        )
+        .returning();
+      if (!schedule)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "No approved activation schedule exists for this draft",
+        );
+      const touched = await this.touchPriceBook(transaction, prior);
+      await new CoreFinanceRepository(transaction).recordPriceBookActivation({
+        priceBookId: prior.id,
+        action: "cancel_schedule",
+        previousStatus: prior.status,
+        resultingStatus: prior.status,
+        effectiveAt: new Date(input.occurredAt),
+        actorUserId: input.authorization.userId,
+        reason,
+        requestId: input.requestId,
+      });
+      return audited(
+        transaction,
+        input,
+        coreRecord("price_books", { ...touched, activationSchedule: schedule }),
+        prior,
+      );
+    }
+    const scheduled = await transaction.query.priceBookSchedules.findFirst({
+      where: and(
+        eq(priceBookSchedules.priceBookId, prior.id),
+        eq(priceBookSchedules.status, "approved"),
+      ),
+    });
+    if (scheduled)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "This approved schedule is frozen; cancel it before changing the draft or its decision",
+      );
+    if (input.action === "schedule_activation") {
+      assertFinanceApproval(input);
+      await assertPersistedPriceScheduleFinance(
+        transaction,
+        input.authorization.userId,
+        input,
+      );
+      const { reason } = PriceBookDecisionCommandSchema.parse(input.payload);
+      const [request] = await transaction
+        .select()
+        .from(approvals)
+        .where(
+          and(
+            eq(approvals.action, "price_book_activation"),
+            eq(approvals.objectId, prior.id),
+            eq(approvals.status, "pending"),
+          ),
+        )
+        .for("update");
+      if (!request || request.requestedBy === input.authorization.userId)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "A different finance approver must approve the proposed schedule",
+        );
+      await assertPersistedPriceScheduleFinance(
+        transaction,
+        request.requestedBy,
+      );
+      const candidate = await serverPriceBook(transaction, prior.id);
+      validatePriceBook(candidate);
+      if (
+        candidate.status !== "draft" ||
+        candidate.effectiveFrom <= input.occurredAt.slice(0, 10)
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Advance approval requires a future effective date; use Activate for an effective draft",
+        );
+      const conflict = await transaction.query.priceBookSchedules.findFirst({
+        where: and(
+          eq(priceBookSchedules.currency, prior.currency),
+          eq(priceBookSchedules.status, "approved"),
+        ),
+      });
+      if (conflict)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "This currency already has an approved schedule; cancel it before approving another",
+        );
+      await transaction
+        .update(approvals)
+        .set({
+          status: "approved",
+          approvedBy: input.authorization.userId,
+          decidedAt: new Date(input.occurredAt),
+        })
+        .where(eq(approvals.id, request.id));
+      const touched = await this.touchPriceBook(transaction, prior);
+      const [schedule] = await transaction
+        .insert(priceBookSchedules)
+        .values({
+          priceBookId: prior.id,
+          approvalId: request.id,
+          currency: prior.currency,
+          effectiveFrom: prior.effectiveFrom,
+          effectiveTo: prior.effectiveTo,
+          approvedRowVersion: touched.rowVersion,
+          approvedBy: input.authorization.userId,
+          approvedAt: new Date(input.occurredAt),
+        })
+        .returning();
+      await new CoreFinanceRepository(transaction).recordPriceBookActivation({
+        priceBookId: prior.id,
+        action: "schedule",
+        previousStatus: prior.status,
+        resultingStatus: prior.status,
+        effectiveAt: new Date(`${prior.effectiveFrom}T00:00:00Z`),
+        actorUserId: input.authorization.userId,
+        reason,
+        requestId: input.requestId,
+      });
+      return audited(
+        transaction,
+        input,
+        coreRecord("price_books", { ...touched, activationSchedule: schedule }),
+        prior,
+      );
+    }
     if (
       [
         "add_rate",
@@ -5576,8 +5731,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     }
     if (input.action === "request_activation")
       return this.requestPriceBookActivation(transaction, input, prior);
-    if (input.action === "activate")
+    if (input.action === "activate") {
+      const conflict = await transaction.query.priceBookSchedules.findFirst({
+        where: and(
+          eq(priceBookSchedules.currency, prior.currency),
+          eq(priceBookSchedules.status, "approved"),
+        ),
+      });
+      if (conflict)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Cancel the approved schedule for this currency before activating a different version",
+        );
       return this.activatePersistedPriceBook(transaction, input, prior);
+    }
     if (input.action !== "retire")
       throw new CoreServiceError(
         "INVALID_STATE",

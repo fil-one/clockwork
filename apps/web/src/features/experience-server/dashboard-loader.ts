@@ -622,19 +622,42 @@ export async function loadCustomerDashboardProjection(
       ["billing", "quotes"],
       session,
     );
+    // Keep the fictional term dates, but age their display using the same
+    // projection timestamp shown in Account facts.
+    const demoTermStart = Date.parse("2026-01-01T00:00:00Z");
+    const demoTermEnd = Date.parse("2027-01-01T00:00:00Z");
+    const demoNoticeAt = Date.parse("2026-11-01T00:00:00Z");
+    const progressPercent = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          ((loaded.now - demoTermStart) / (demoTermEnd - demoTermStart)) * 100,
+        ),
+      ),
+    );
     return {
       ...demoCustomer,
       generatedAt: loaded.generatedAt,
       stale: loaded.stale,
       obligations: [
         ...customerObligations(loaded.records),
-        ...demoCustomer.obligations.filter(
-          (item) => item.type === "Notice and renewal",
-        ),
+        ...demoCustomer.obligations
+          .filter((item) => item.type === "Notice and renewal")
+          .map((item) => ({
+            ...item,
+            title:
+              loaded.now < demoNoticeAt
+                ? "Notice window opens Nov 1"
+                : "Notice window opened Nov 1",
+          })),
       ].map((item, index) => ({ ...item, priority: index + 1 })),
       term: {
         ...demoCustomer.term,
         title: `${accountName ?? "Northstar"} annual term`,
+        progressPercent,
+        progressLabel: `${progressPercent} percent of the current commercial term elapsed`,
+        noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now),
       },
       services: demoCustomer.services.map((service) => ({
         ...service,

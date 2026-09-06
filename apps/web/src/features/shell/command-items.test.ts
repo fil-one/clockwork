@@ -143,4 +143,13 @@ describe("audience-aware shell commands", () => {
       isNavigationItemActive(partnerPortfolio, "/partner/portfolio/EC-0038"),
     ).toBe(true);
   });
+  it("marks only the selected customer purchase destination active", () => {
+    const buy = navigation.customer.find((item) => item.href === "/buy");
+    const payg = navigation.customer.find((item) => item.href === "/buy/payg");
+    if (!buy || !payg)
+      throw new Error("Customer purchase navigation is missing");
+    expect(isNavigationItemActive(buy, "/buy")).toBe(true);
+    expect(isNavigationItemActive(buy, "/buy/payg")).toBe(false);
+    expect(isNavigationItemActive(payg, "/buy/payg")).toBe(true);
+  });
 });

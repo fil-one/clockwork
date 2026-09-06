@@ -1038,3 +1038,78 @@ test("@internal drives exception and replay-safe recovery with accessibility", a
   await expectProviderReplay(recoveryAction);
   assertHeaders();
 });
+
+test("@internal maintains provider operating references with retained audit evidence", async ({
+  page,
+}) => {
+  await page.goto("/internal/providers");
+  await expect(
+    page.getByRole("heading", { name: "Provider operating references" }),
+  ).toBeVisible();
+  const panel = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Billing", exact: true }),
+  });
+  await panel
+    .getByLabel("Secret-manager reference", { exact: true })
+    .fill("vault:clockwork/release-proof/billing");
+  await panel
+    .getByLabel("Secret version", { exact: true })
+    .fill("proof-version-1");
+  const rotatedAt = new Date(Date.now() - 60_000).toISOString();
+  await panel
+    .getByLabel("Actual rotation timestamp (UTC)", { exact: true })
+    .fill(rotatedAt);
+  await panel
+    .getByLabel("Operating owner", { exact: true })
+    .fill("Release proof operations");
+  await panel
+    .getByLabel("Rotation review interval (days)", { exact: true })
+    .fill("45");
+  await panel
+    .getByLabel("Rotation evidence reference", { exact: true })
+    .fill("evidence:release-proof-rotation");
+  await panel
+    .getByLabel("Reason for change", { exact: true })
+    .fill("Record fictional completed rotation for browser qualification");
+  await panel
+    .getByRole("button", { name: "Save provider reference", exact: true })
+    .click();
+  await expect(
+    panel.getByText("Registry version 1", { exact: false }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    panel.locator("dd").filter({ hasText: /^Release proof operations$/ }),
+  ).toBeVisible();
+  await expect(
+    panel.getByLabel("Rotation review interval (days)", { exact: true }),
+  ).toHaveValue("45");
+  const databaseUrl = process.env.DIRECT_DATABASE_URL;
+  if (!databaseUrl)
+    throw new Error(
+      "DIRECT_DATABASE_URL is required for provider reference proof",
+    );
+  const sql = createDirectMigrationClient(databaseUrl);
+  try {
+    const rows = await sql`
+      select r.row_version, r.secret_reference, r.rotated_at, a.aggregate_version, a.actor,
+        a.event_type, o.id as outbox_id
+      from public.system_provider_connection_references r
+      join public.audit_events a on a.aggregate_id=r.id and a.aggregate_version=r.row_version
+      join public.outbox_messages o on o.event_id=a.id
+      where r.provider='billing' and a.event_type='system.provider_reference.updated'
+    `;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      row_version: 1,
+      aggregate_version: 1,
+      secret_reference: "vault:clockwork/release-proof/billing",
+      actor: { kind: "user", id: "20000000-0000-4000-8000-000000000001" },
+    });
+    expect(rows[0]?.outbox_id).toBeTruthy();
+  } finally {
+    await sql.end();
+  }
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});

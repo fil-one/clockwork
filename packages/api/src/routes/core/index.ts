@@ -363,6 +363,8 @@ const recentAuthenticationActions = new Set([
   "price_books:remove_rate",
   "price_books:update_discount_matrix",
   "price_books:reject_activation",
+  "price_books:schedule_activation",
+  "price_books:cancel_schedule",
   "price_books:request_activation",
   "price_books:activate",
   "price_books:retire",

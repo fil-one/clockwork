@@ -229,6 +229,8 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/account/offboarding",
       "/agreements/execute",
       "/buy",
+      // Direct approved-offer and durable customer request repository.
+      "/buy/payg",
       "/orders/accept",
       "/quotes/new",
       "/states",
@@ -298,7 +300,11 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/gates",
       "/internal/migrations",
       "/internal/payg-offers",
+      // Finance reads verified customer handoff requests directly.
+      "/internal/payg-requests",
       "/internal/price-books",
+      // Service-only operating-reference registry and bootstrap fallback.
+      "/internal/providers",
       "/internal/recovery",
       "/internal/revenue",
       "/internal/search",

@@ -1,4 +1,8 @@
+import * as customerAcquisitionSchema from "./customer-acquisition";
+export * from "./customer-acquisition";
 import * as channelPolicySchema from "./channel-policy";
+import * as priceBookScheduleSchema from "./price-book-schedules";
+export * from "./price-book-schedules";
 export * from "./channel-policy";
 export * from "./finance";
 export * from "./commercial-artifacts";
@@ -15,6 +19,8 @@ import * as paygBillingSchema from "./payg-billing";
 
 /** Core-finance owns this composition object; the shared runtime schema spreads it. */
 export const coreSchema = {
+  ...customerAcquisitionSchema,
+  ...priceBookScheduleSchema,
   ...channelPolicySchema,
   ...financeSchema,
   ...commercialArtifactSchema,

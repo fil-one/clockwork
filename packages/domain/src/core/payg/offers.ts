@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CustomerAcquisitionPolicySchema } from "./acquisition-policy";
 
 const integer = z
   .string()
@@ -28,6 +29,7 @@ export const PaygOfferTermsSchema = z
     sourceCheckedAt: z.iso.datetime(),
     sourceDocumentId: text,
     owner: text,
+    customerAcquisition: CustomerAcquisitionPolicySchema.optional(),
     payg: z
       .object({
         currency: z.enum(["USD", "EUR", "GBP"]),

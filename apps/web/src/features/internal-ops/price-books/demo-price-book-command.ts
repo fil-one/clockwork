@@ -42,6 +42,8 @@ const commandSchema = z
       "remove_rate",
       "update_discount_matrix",
       "reject_activation",
+      "schedule_activation",
+      "cancel_schedule",
       "request_activation",
       "activate",
       "retire",
@@ -340,8 +342,10 @@ function mutateBooks(input: {
       sourceRateId: rate.id,
       rateId: uuidV7(),
     }));
+    const sourceWithoutSchedule = structuredClone(source);
+    delete sourceWithoutSchedule.activationSchedule;
     const copied: DemoPriceBook = {
-      ...structuredClone(source),
+      ...structuredClone(sourceWithoutSchedule),
       id: input.id,
       name: payload.name,
       version: payload.version,
@@ -425,6 +429,87 @@ function mutateBooks(input: {
   const current = requiredBook(input.books, input.id);
   checkVersion(current, input.expectedVersion);
   const index = input.books.findIndex((book) => book.id === current.id);
+  if (input.action === "cancel_schedule") {
+    const { reason } = decisionSchema.parse(input.payload);
+    if (current.activationSchedule?.status !== "approved")
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "No approved schedule exists for this draft",
+      );
+    const next: DemoPriceBook = {
+      ...current,
+      rowVersion: current.rowVersion + 1,
+      activationRequestedBy: null,
+      activationRequestedByEmail: null,
+      activationRequestedAt: null,
+      lastDecisionAt: input.now,
+      lastDecisionReason: reason,
+      activationSchedule: {
+        ...current.activationSchedule,
+        status: "cancelled",
+        completedAt: input.now,
+        completionReason: reason,
+      },
+    };
+    input.books[index] = next;
+    return next;
+  }
+  if (current.activationSchedule?.status === "approved")
+    throw new DemoPriceBookProblem(
+      422,
+      "INVALID_STATE",
+      "This approved schedule is frozen; cancel it before changing the draft",
+    );
+  if (input.action === "schedule_activation") {
+    const { reason } = decisionSchema.parse(input.payload);
+    if (
+      current.status !== "draft" ||
+      !current.activationRequestedBy ||
+      current.activationRequestedBy === input.actorId
+    )
+      throw new DemoPriceBookProblem(
+        422,
+        "TWO_AUTHORITY_REQUIRED",
+        "A different finance approver must approve the proposed schedule",
+      );
+    if (current.effectiveFrom <= input.now.slice(0, 10))
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "Advance approval requires a future effective date",
+      );
+    if (
+      input.books.some(
+        (book) =>
+          book.currency === current.currency &&
+          book.activationSchedule?.status === "approved",
+      )
+    )
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "This currency already has an approved schedule",
+      );
+    validatePriceBook(domainPriceBook(current));
+    const next: DemoPriceBook = {
+      ...current,
+      rowVersion: current.rowVersion + 1,
+      lastDecisionAt: input.now,
+      lastDecisionReason: reason,
+      activationSchedule: {
+        id: uuidV7(),
+        status: "approved",
+        effectiveFrom: current.effectiveFrom,
+        effectiveTo: current.effectiveTo,
+        approvedAt: input.now,
+        completedAt: null,
+        completionReason: null,
+      },
+    };
+    input.books[index] = next;
+    return next;
+  }
   if (
     [
       "add_rate",
@@ -592,6 +677,18 @@ function mutateBooks(input: {
     return next;
   }
   if (input.action === "activate") {
+    if (
+      input.books.some(
+        (book) =>
+          book.currency === current.currency &&
+          book.activationSchedule?.status === "approved",
+      )
+    )
+      throw new DemoPriceBookProblem(
+        422,
+        "INVALID_STATE",
+        "Cancel the approved schedule for this currency before activating a different version",
+      );
     if (
       current.status !== "draft" ||
       !current.activationRequestedBy ||

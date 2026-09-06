@@ -77,6 +77,7 @@ const audienceHome: Readonly<Record<ExperienceAudience, Route>> = {
 
 const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/dashboard": <LayoutDashboard size={19} strokeWidth={1.8} />,
+  "/buy/payg": <ReceiptText size={19} strokeWidth={1.8} />,
   "/buy": <ShoppingCart size={19} strokeWidth={1.8} />,
   "/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/quotes": <ScrollText size={19} strokeWidth={1.8} />,
@@ -118,7 +119,9 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
   "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
+  "/internal/payg-requests": <Inbox size={19} strokeWidth={1.8} />,
   "/internal/payg-offers": <ReceiptText size={19} strokeWidth={1.8} />,
+  "/internal/providers": <Layers size={19} strokeWidth={1.8} />,
   "/internal/catalog": <Layers size={19} strokeWidth={1.8} />,
   "/internal/channel-policy": <Handshake size={19} strokeWidth={1.8} />,
   "/internal/capabilities": <SlidersHorizontal size={19} strokeWidth={1.8} />,
@@ -147,7 +150,7 @@ const navigationSections: Readonly<
     {
       id: "pricing",
       label: "nav.group.pricing",
-      hrefs: ["/buy", "/quotes", "/pocs", "/marketplace"],
+      hrefs: ["/buy", "/buy/payg", "/quotes", "/pocs", "/marketplace"],
     },
     {
       id: "legal",
@@ -204,6 +207,7 @@ const navigationSections: Readonly<
       hrefs: [
         "/internal/queues",
         "/internal/approvals",
+        "/internal/payg-requests",
         "/internal/collections",
         "/internal/renewals",
       ],
@@ -227,6 +231,7 @@ const navigationSections: Readonly<
         "/internal/agreements",
         "/internal/price-books",
         "/internal/payg-offers",
+        "/internal/providers",
         "/internal/catalog",
         "/internal/channel-policy",
         "/internal/capabilities",

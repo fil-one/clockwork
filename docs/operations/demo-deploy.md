@@ -113,14 +113,16 @@ CLOCKWORK_HOSTED_DEMO_URL="https://DEPLOY_ID--clockwork-commerce-demo.netlify.ap
   pnpm --filter @clockwork/web exec playwright test --config playwright.hosted-demo.config.ts
 ```
 
-This runs the 15 shared password, persona, order/PDF, finance, cloning/import,
-policy, partner, settings, sandbox-payment and reset journeys against the
-packaged deployment. It uses the existing remote server and resets shared
-fictional data. The four development-only visual cases stay in local
-qualification; their HMR readiness check does not apply to a production build.
-Hosted authentication traces are disabled to avoid retaining the real access
-password. The target is restricted to this demo's canonical or deploy-specific
-Netlify origin.
+This runs the 17 shared transactional journeys covering password access,
+personas, order/PDF, finance, cloning/import, scheduled pricing, policies,
+customer trial/conversion/cancellation handoff, partners, settings, sandbox
+payments and reset against the packaged deployment. It uses the existing remote
+server and resets shared fictional data. The local demo suite contains 21
+journeys: these 17 transactional cases plus four development-only visual cases.
+The visual cases stay in local qualification; their HMR readiness check does not
+apply to a production build. Hosted authentication traces are disabled to avoid
+retaining the real access password. The target is restricted to this demo's
+canonical or deploy-specific Netlify origin.
 
 After it passes, publish that same verified deployment with Netlify's
 [`restoreSiteDeploy` operation](https://open-api.netlify.com/#operation/restoreSiteDeploy):
@@ -211,6 +213,18 @@ something that has actually broken here:
     `script-src-elem` means the vendored Next patch in `patches/` was dropped —
     see `patches/README.md`. Repeated `/api/telemetry` 403s mean no ingest
     secret is set; harmless, fail-closed, but noisy for a technical prospect.
+
+13. **Customer requests retain their handoff state.** As Mara Voss, open
+    `/buy/payg`, review the fictional notices and document references, and
+    accept a trial request. It must remain **Pending verified handoff** after
+    reload. As Mateo Silva, open `/internal/payg-requests`, record a reason, and
+    choose **Simulate verified handoff**. Return as the customer to review and
+    separately accept paid conversion. After finance simulates that
+    confirmation, request cancellation and verify it remains pending until
+    finance confirms the end. Check the customer page at 390 px, then restore
+    demo data. These simulated records prove the request workflow; they do not
+    provision storage, issue credentials, enforce provider quotas, or establish
+    live billing cutover.
 
 One environment trap: `CLOCKWORK_DEMO_STATE_STORE=memory` breaks order
 acceptance in a production build, because the API route and the page bundles get

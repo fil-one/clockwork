@@ -271,6 +271,9 @@ function OfferForm({
   busy: boolean;
 }) {
   const terms = offer?.terms;
+  const [customerPolicyConfigured, setCustomerPolicyConfigured] = useState(
+    Boolean(terms?.customerAcquisition),
+  );
   const [error, setError] = useState("");
   const field = (
     name: string,
@@ -306,6 +309,29 @@ function OfferForm({
         sourceCheckedAt: `${value(data, "sourceCheckedAt")}T00:00:00.000Z`,
         sourceDocumentId: value(data, "sourceDocumentId"),
         owner: value(data, "owner"),
+        ...(customerPolicyConfigured
+          ? {
+              customerAcquisition: {
+                paygRequestsEnabled: data.get("paygRequestsEnabled") === "on",
+                trialRequestsEnabled: data.get("trialRequestsEnabled") === "on",
+                serviceNotice: value(data, "serviceNotice"),
+                cancellationNotice: value(data, "cancellationNotice"),
+                trialNotice: value(data, "trialNotice"),
+                terms: {
+                  documentId: value(data, "customerTermsId"),
+                  version: value(data, "customerTermsVersion"),
+                  uri: value(data, "customerTermsUri"),
+                  sha256: value(data, "customerTermsHash"),
+                },
+                retention: {
+                  documentId: value(data, "customerRetentionId"),
+                  version: value(data, "customerRetentionVersion"),
+                  uri: value(data, "customerRetentionUri"),
+                  sha256: value(data, "customerRetentionHash"),
+                },
+              },
+            }
+          : {}),
         payg: {
           currency: value(
             data,
@@ -493,6 +519,103 @@ function OfferForm({
           grace period; the account is disabled when grace ends. Automatic
           deletion is not configured here.
         </p>
+        <h3>Customer request notices and terms</h3>
+        <p>
+          Configure approved documents before offering this version to
+          customers. These flags permit collecting requests; they do not
+          activate billing, provision a tenant, or authorize a provider cutover.
+        </p>
+        <label>
+          <input
+            type="checkbox"
+            checked={customerPolicyConfigured}
+            onChange={(event) =>
+              setCustomerPolicyConfigured(event.target.checked)
+            }
+          />{" "}
+          Include customer acquisition policy
+        </label>
+        {customerPolicyConfigured ? (
+          <>
+            <div className={styles.toolbar}>
+              <label>
+                <input
+                  type="checkbox"
+                  name="paygRequestsEnabled"
+                  defaultChecked={
+                    terms?.customerAcquisition?.paygRequestsEnabled
+                  }
+                />{" "}
+                Accept PAYG activation requests
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  name="trialRequestsEnabled"
+                  defaultChecked={
+                    terms?.customerAcquisition?.trialRequestsEnabled
+                  }
+                />{" "}
+                Accept trial requests
+              </label>
+            </div>
+            <div className={styles.formGrid}>
+              {(
+                [
+                  ["serviceNotice", "Service and billing notice"],
+                  ["cancellationNotice", "Cancellation and service-end notice"],
+                  ["trialNotice", "Trial eligibility and expiry notice"],
+                ] as const
+              ).map(([name, label]) => (
+                <label className={styles.field} key={name}>
+                  {label}
+                  <textarea
+                    name={name}
+                    required
+                    minLength={20}
+                    maxLength={4000}
+                    defaultValue={terms?.customerAcquisition?.[name] ?? ""}
+                  />
+                </label>
+              ))}
+              {(
+                [
+                  ["customerTerms", "Terms", terms?.customerAcquisition?.terms],
+                  [
+                    "customerRetention",
+                    "Retention policy",
+                    terms?.customerAcquisition?.retention,
+                  ],
+                ] as const
+              ).map(([prefix, label, reference]) => (
+                <div key={prefix}>
+                  <h4>{label}</h4>
+                  {field(
+                    `${prefix}Id`,
+                    `${label} document reference`,
+                    reference?.documentId,
+                  )}
+                  {field(
+                    `${prefix}Version`,
+                    `${label} document version`,
+                    reference?.version,
+                  )}
+                  {field(
+                    `${prefix}Uri`,
+                    `${label} document URL`,
+                    reference?.uri,
+                    "url",
+                  )}
+                  {field(
+                    `${prefix}Hash`,
+                    `${label} exact document SHA-256`,
+                    reference?.sha256,
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
         <button className={styles.button} type="submit">
           {busy ? "Saving…" : offer ? "Save draft" : "Create policy draft"}
         </button>
@@ -1063,6 +1186,11 @@ export function PaygOfferAdministration({
         </Link>
       }
     >
+      <p>
+        <Link href="/internal/payg-requests">
+          Review customer activation, trial and cancellation requests
+        </Link>
+      </p>
       {demo ? (
         <p className={styles.notice}>
           Fictional policy workspace. Changes persist until demo reset. Review
