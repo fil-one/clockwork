@@ -665,13 +665,29 @@ function applyDemoState(
   record: DemoRecord,
   state: DemoAdapterState,
 ): DemoRecord {
-  const override = state.projectionOverrides[record.id];
+  const override =
+    state.projectionOverrides[record.id] ??
+    (record.aggregateType === "quote" && record.aggregateId
+      ? state.projectionOverrides[record.aggregateId]
+      : undefined);
   if (!override) return record;
   return {
     ...record,
     version: override.version,
     updatedAt: override.updatedAt,
-    data: { ...record.data, ...override.data },
+    data: {
+      ...record.data,
+      ...override.data,
+      ...(record.aggregateType === "quote" &&
+      override.data.status === "accepted"
+        ? {
+            authoritative: {
+              ...(record.data.authoritative as Record<string, unknown>),
+              status: "accepted",
+            },
+          }
+        : {}),
+    },
   };
 }
 

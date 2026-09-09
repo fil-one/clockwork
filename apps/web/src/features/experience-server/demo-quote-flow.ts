@@ -238,6 +238,15 @@ function transition(
         "VERSION_CONFLICT",
         "The revision must use the current quote version, series and price book",
       );
+    if (
+      previous &&
+      state.projectionOverrides[command.quoteId]?.data.status === "accepted"
+    )
+      throw new ExperienceProblem(
+        422,
+        "INVALID_STATE",
+        "An accepted quote cannot be revised. Create a new quote for additional requirements.",
+      );
     const newId =
       command.action === "revise" ? command.revisionId : command.quoteId;
     if (!newId)
