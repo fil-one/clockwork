@@ -1,9 +1,12 @@
+import { localizeCopy } from "@/src/i18n/copy";
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 
 import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 
-import { plural, t } from "@/src/i18n/en";
+import { plural } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import { formatSurfaceTimestamp, type SurfaceFormatting } from "../formatting";
@@ -18,12 +21,16 @@ const copy = customerPartnerCopy.customer;
  * a decision or follow-up." A reader with two obligations was told there were
  * four, and had nowhere to look for the missing two.
  */
-function attentionDescription(count: number, locale: string): string {
-  if (count === 0) return copy.attentionDescriptionNone;
+function attentionDescription(
+  count: number,
+  locale: string,
+  localized: typeof copy,
+): string {
+  if (count === 0) return localized.attentionDescriptionNone;
   return plural(
     count,
-    copy.attentionDescriptionOne,
-    copy.attentionDescriptionOther,
+    localized.attentionDescriptionOne,
+    localized.attentionDescriptionOther,
     locale,
   );
 }
@@ -102,32 +109,37 @@ export function CustomerDashboard({
   formatting: SurfaceFormatting;
   canCreateQuote?: boolean;
 }) {
+  const t = use(getTranslations());
+  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
           <h1>
-            {copy.dashboardGreeting}, {greetingName}
+            {localizedcopy.dashboardGreeting}, {greetingName}
           </h1>
-          <p>{copy.dashboardDescription}</p>
+          <p>{localizedcopy.dashboardDescription}</p>
         </div>
         {canCreateQuote ? (
           <Link className={styles.primaryLink} href="/quotes/new">
             Create quote
           </Link>
         ) : (
-          <p className={styles.permissionNote}>{copy.quotePermissionNote}</p>
+          <p className={styles.permissionNote}>
+            {localizedcopy.quotePermissionNote}
+          </p>
         )}
       </header>
 
       <section className={styles.obligations} aria-labelledby="attention-title">
         <div className={styles.obligationHeading}>
           <div>
-            <h2 id="attention-title">{copy.attentionTitle}</h2>
+            <h2 id="attention-title">{localizedcopy.attentionTitle}</h2>
             <p>
               {attentionDescription(
                 projection.obligations.length,
                 formatting.locale,
+                localizedcopy,
               )}
             </p>
           </div>
@@ -215,7 +227,7 @@ export function CustomerDashboard({
 
         <details className={styles.rollup}>
           <summary>
-            <span>{copy.serviceRollup}</span>
+            <span>{localizedcopy.serviceRollup}</span>
             <span className={styles.rollupCount}>
               {plural(
                 projection.services.length,
@@ -279,7 +291,7 @@ export function CustomerDashboard({
             )}
           </section>
           <section aria-labelledby="activity-title">
-            <h2 id="activity-title">{copy.activityTitle}</h2>
+            <h2 id="activity-title">{localizedcopy.activityTitle}</h2>
             {projection.activity.length === 0 ? (
               <ApplicationStatePanel
                 state="empty"

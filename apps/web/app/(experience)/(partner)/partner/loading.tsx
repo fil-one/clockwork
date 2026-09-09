@@ -1,6 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import { Skeleton } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 import styles from "./loading.module.css";
 
@@ -12,6 +12,7 @@ const ledgerRows = [0, 1, 2, 3, 4, 5];
  * holds the same bands the partner desk resolves into.
  */
 export default function PartnerLoading() {
+  const t = use(getTranslations());
   return (
     <main className={styles.main} id="main-content">
       <p className="cw-sr-only" role="status">

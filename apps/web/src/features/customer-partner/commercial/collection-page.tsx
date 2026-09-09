@@ -1,3 +1,7 @@
+"use client";
+import { useTranslations } from "@/src/i18n/client";
+
+import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -100,11 +104,13 @@ function RecordTable({
   pathname: Route;
   state: CollectionState;
 }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const headers = [
     "Record",
-    customerPartnerCopy.common.status,
-    customerPartnerCopy.common.risk,
-    customerPartnerCopy.common.owner,
+    localizedcustomerPartnerCopy.common.status,
+    localizedcustomerPartnerCopy.common.risk,
+    localizedcustomerPartnerCopy.common.owner,
     "Commercial context",
     "Timing",
   ];
@@ -173,6 +179,7 @@ function RecordCards({
   records: readonly CommercialRecord[];
   forced?: boolean;
 }) {
+  const t = useTranslations();
   return (
     <ul className={`${styles.cards} ${forced ? styles.cardsForced : ""}`}>
       {records.map((record) => (
@@ -194,11 +201,11 @@ function RecordCards({
               <dd>{record.value}</dd>
             </div>
             <div>
-              <dt>Owner</dt>
+              <dt>{t("partner.detail.owner")}</dt>
               <dd>{record.owner}</dd>
             </div>
             <div>
-              <dt>Risk</dt>
+              <dt>{t("ui.89")}</dt>
               <dd className={styles.risk}>{record.risk}</dd>
             </div>
             <div>
@@ -209,7 +216,7 @@ function RecordCards({
           <div className={styles.cardBottom}>
             <span className={styles.muted}>{record.id}</span>
             <Link className={styles.textButton} href={record.href as Route}>
-              Open record
+              {t("action.open")}
             </Link>
           </div>
         </li>
@@ -219,29 +226,33 @@ function RecordCards({
 }
 
 export function CommercialLoadingState() {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="status">
-        <h1>{customerPartnerCopy.common.loadingTitle}</h1>
-        <p>{customerPartnerCopy.common.loadingBody}</p>
+        <h1>{localizedcustomerPartnerCopy.common.loadingTitle}</h1>
+        <p>{localizedcustomerPartnerCopy.common.loadingBody}</p>
       </section>
     </main>
   );
 }
 
 export function CommercialErrorState({ retry }: { retry?: () => void }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="alert">
-        <h1>{customerPartnerCopy.common.errorTitle}</h1>
-        <p>{customerPartnerCopy.common.errorBody}</p>
+        <h1>{localizedcustomerPartnerCopy.common.errorTitle}</h1>
+        <p>{localizedcustomerPartnerCopy.common.errorBody}</p>
         {retry ? (
           <button
             className={buttonClassName({ variant: "secondary" })}
             onClick={retry}
             type="button"
           >
-            Try again
+            {t("action.retry")}
           </button>
         ) : null}
       </section>
@@ -266,6 +277,8 @@ export function CommercialCollectionPage({
   formatting: SurfaceFormatting;
   canUsePrimaryAction?: boolean;
 }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const definition = collectionDefinitions[kind];
   const state = parseCollectionState(searchParams);
   const filtered = filterAndSortRecords(allRecords, state);
@@ -309,7 +322,7 @@ export function CommercialCollectionPage({
       <form className={`${styles.panel} ${styles.filters}`} method="get">
         <div className={styles.field}>
           <label htmlFor={`${kind}-search`}>
-            {customerPartnerCopy.common.search}
+            {localizedcustomerPartnerCopy.common.search}
           </label>
           <input
             defaultValue={state.q}
@@ -321,7 +334,7 @@ export function CommercialCollectionPage({
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-status`}>
-            {customerPartnerCopy.common.status}
+            {localizedcustomerPartnerCopy.common.status}
           </label>
           <select
             defaultValue={state.status}
@@ -338,7 +351,7 @@ export function CommercialCollectionPage({
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-risk`}>
-            {customerPartnerCopy.common.risk}
+            {localizedcustomerPartnerCopy.common.risk}
           </label>
           <select defaultValue={state.risk} id={`${kind}-risk`} name="risk">
             <option value="">All risk levels</option>
@@ -349,7 +362,7 @@ export function CommercialCollectionPage({
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-owner`}>
-            {customerPartnerCopy.common.owner}
+            {localizedcustomerPartnerCopy.common.owner}
           </label>
           <select defaultValue={state.owner} id={`${kind}-owner`} name="owner">
             <option value="">All owners</option>
@@ -362,7 +375,7 @@ export function CommercialCollectionPage({
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-sort`}>
-            {customerPartnerCopy.common.sort}
+            {localizedcustomerPartnerCopy.common.sort}
           </label>
           <select defaultValue={state.sort} id={`${kind}-sort`} name="sort">
             {/*
@@ -381,7 +394,7 @@ export function CommercialCollectionPage({
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-size`}>
-            {customerPartnerCopy.common.pageSize}
+            {localizedcustomerPartnerCopy.common.pageSize}
           </label>
           <select
             defaultValue={state.pageSize}
@@ -416,7 +429,7 @@ export function CommercialCollectionPage({
           <div className={styles.resultActions}>
             <div className={styles.viewControls}>
               <span className={styles.viewLabel}>
-                {customerPartnerCopy.common.view}
+                {localizedcustomerPartnerCopy.common.view}
               </span>
               <Link
                 className={styles.viewLink}
@@ -463,14 +476,14 @@ export function CommercialCollectionPage({
             <nav className={styles.pagination} aria-label="Result pages">
               {page <= 1 ? (
                 <span aria-disabled="true" className={styles.pageLink}>
-                  {customerPartnerCopy.common.previous}
+                  {localizedcustomerPartnerCopy.common.previous}
                 </span>
               ) : (
                 <Link
                   className={styles.pageLink}
                   href={collectionUrl(pathname, state, { page: page - 1 })}
                 >
-                  {customerPartnerCopy.common.previous}
+                  {localizedcustomerPartnerCopy.common.previous}
                 </Link>
               )}
               <span aria-live="polite">
@@ -478,14 +491,14 @@ export function CommercialCollectionPage({
               </span>
               {page >= totalPages ? (
                 <span aria-disabled="true" className={styles.pageLink}>
-                  {customerPartnerCopy.common.next}
+                  {localizedcustomerPartnerCopy.common.next}
                 </span>
               ) : (
                 <Link
                   className={styles.pageLink}
                   href={collectionUrl(pathname, state, { page: page + 1 })}
                 >
-                  {customerPartnerCopy.common.next}
+                  {localizedcustomerPartnerCopy.common.next}
                 </Link>
               )}
             </nav>
@@ -494,13 +507,13 @@ export function CommercialCollectionPage({
           <div className={styles.state}>
             <h3>
               {hasFilters
-                ? customerPartnerCopy.common.noMatchTitle
-                : customerPartnerCopy.common.emptyTitle}
+                ? localizedcustomerPartnerCopy.common.noMatchTitle
+                : localizedcustomerPartnerCopy.common.emptyTitle}
             </h3>
             <p>
               {hasFilters
-                ? customerPartnerCopy.common.noMatchBody
-                : customerPartnerCopy.common.emptyBody}
+                ? localizedcustomerPartnerCopy.common.noMatchBody
+                : localizedcustomerPartnerCopy.common.emptyBody}
             </p>
             {hasFilters ? (
               <Link

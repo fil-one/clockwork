@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -144,20 +146,22 @@ export function ReviewSummaryCard({
   title?: string;
   identifiers?: readonly EvidenceIdentifier[];
 }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   return (
     <section className={styles.summary} aria-labelledby="review-summary-title">
       <h3 id="review-summary-title">{title}</h3>
       <dl>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.entity}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.entity}</dt>
           <dd>{summary.entity}</dd>
         </div>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.impact}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.impact}</dt>
           <dd>{summary.impact}</dd>
         </div>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.evidence}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.evidence}</dt>
           <dd>
             <ul>
               {summary.evidence.map((item) => (
@@ -167,15 +171,15 @@ export function ReviewSummaryCard({
           </dd>
         </div>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.policy}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.policy}</dt>
           <dd>{summary.policyBasis}</dd>
         </div>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.downstream}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.downstream}</dt>
           <dd>{summary.downstreamEffect}</dd>
         </div>
         <div>
-          <dt>{adminSafetyCopy.reviewLabels.reason}</dt>
+          <dt>{localizedadminSafetyCopy.reviewLabels.reason}</dt>
           <dd>{summary.reason}</dd>
         </div>
       </dl>

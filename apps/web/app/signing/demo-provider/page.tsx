@@ -1,3 +1,4 @@
+import { getTranslations } from "@/src/i18n/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -8,7 +9,6 @@ import {
   demoExperienceRepository,
 } from "@/src/features/experience-server/demo-experience-repository";
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
 
 export const metadata = { title: "Demo signing" };
 
@@ -17,6 +17,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ state?: string }>;
 }) {
+  const t = await getTranslations();
   if (!demoExperienceEnabled()) notFound();
   const state = (await searchParams).state?.trim() ?? "";
   const ceremony = state

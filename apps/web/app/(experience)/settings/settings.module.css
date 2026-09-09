@@ -1,0 +1,46 @@
+.main {
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+.main h1 {
+  font-size: 2rem;
+  font-weight: 650;
+}
+.main p {
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+.panel {
+  margin-top: 2rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 1rem;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+.panel h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.panel form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 26rem;
+  margin-top: 1.5rem;
+}
+.panel label {
+  font-weight: 600;
+}
+.panel select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #64748b;
+  border-radius: 0.5rem;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+.panel select:focus-visible {
+  outline: 3px solid #0090ff;
+  outline-offset: 3px;
+}

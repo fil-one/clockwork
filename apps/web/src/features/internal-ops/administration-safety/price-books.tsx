@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -148,6 +150,9 @@ export function PriceBookAdministration({
   readAt: string;
   impact?: PriceBookImpactResult;
 }) {
+  const t = useTranslations();
+  const localizedactivationCopy = localizeCopy(activationCopy, t);
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("All");
@@ -313,10 +318,10 @@ export function PriceBookAdministration({
               : action === "reject_activation"
                 ? "Activation rejected. The draft can be edited and proposed again."
                 : action === "request_activation"
-                  ? activationCopy.proposed
+                  ? localizedactivationCopy.proposed
                   : action === "activate"
-                    ? activationCopy.activated
-                    : activationCopy.retired,
+                    ? localizedactivationCopy.activated
+                    : localizedactivationCopy.retired,
       });
       setReason("");
       refreshAfterMutation(
@@ -328,10 +333,10 @@ export function PriceBookAdministration({
         tone: "problem",
         message:
           error instanceof CommerceApiError && error.code === "conflict"
-            ? activationCopy.stale
+            ? localizedactivationCopy.stale
             : error instanceof CommerceApiError
               ? error.message
-              : activationCopy.failed,
+              : localizedactivationCopy.failed,
       });
     } finally {
       setPending(false);
@@ -339,10 +344,10 @@ export function PriceBookAdministration({
   }
 
   return (
-    <AdministrationPage {...adminSafetyCopy.priceBooks}>
+    <AdministrationPage {...localizedadminSafetyCopy.priceBooks}>
       <section className={styles.notice} role="note">
         <strong>Only activated versions set price.</strong>
-        {activationCopy.authorities}
+        {localizedactivationCopy.authorities}
         <p>
           <Link href="/internal/payg-offers">
             Configure PAYG billing and trial offer policies
@@ -417,7 +422,7 @@ export function PriceBookAdministration({
                 <input name="name" required minLength={3} maxLength={120} />
               </label>
               <label className={styles.field}>
-                Currency
+                {t("ui.120")}
                 <select name="currency" defaultValue="USD">
                   <option>USD</option>
                   <option>EUR</option>
@@ -425,7 +430,7 @@ export function PriceBookAdministration({
                 </select>
               </label>
               <label className={styles.field}>
-                Version
+                {t("ui.122")}
                 <input name="version" type="number" min={1} step={1} required />
               </label>
               <label className={styles.field}>
@@ -806,12 +811,12 @@ export function PriceBookAdministration({
             />
           </label>
           <label className={styles.field}>
-            Currency
+            {t("ui.120")}
             <select
               value={currency}
               onChange={(event) => setCurrency(event.currentTarget.value)}
             >
-              <option>All</option>
+              <option>{t("ui.113")}</option>
               {currencies.map((code) => (
                 <option key={code}>{code}</option>
               ))}
@@ -823,9 +828,9 @@ export function PriceBookAdministration({
               value={state}
               onChange={(event) => setState(event.currentTarget.value)}
             >
-              <option>All</option>
-              <option>Draft</option>
-              <option>Active</option>
+              <option>{t("ui.113")}</option>
+              <option>{t("status.draft")}</option>
+              <option>{t("status.active")}</option>
               <option>Retired</option>
             </select>
           </label>
@@ -871,10 +876,10 @@ export function PriceBookAdministration({
           ])}
           emptyState={
             books.length
-              ? activationCopy.noMatches
+              ? localizedactivationCopy.noMatches
               : availability === "empty"
-                ? activationCopy.empty
-                : activationCopy.unreadable
+                ? localizedactivationCopy.empty
+                : localizedactivationCopy.unreadable
           }
         />
       </section>
@@ -1220,8 +1225,8 @@ export function PriceBookAdministration({
             />
             {!permitted ? (
               <div className={styles.roleNotice} role="note">
-                <strong>{activationCopy.financeOnlyTitle}</strong>
-                {activationCopy.financeOnlyBody}
+                <strong>{localizedactivationCopy.financeOnlyTitle}</strong>
+                {localizedactivationCopy.financeOnlyBody}
               </div>
             ) : null}
             {permitted &&
@@ -1229,8 +1234,8 @@ export function PriceBookAdministration({
             selected.activationRequestedBy === userId &&
             selected.activationSchedule?.status !== "approved" ? (
               <div className={styles.roleNotice} role="note">
-                <strong>{activationCopy.awaitingSecondTitle}</strong>
-                {activationCopy.awaitingSecondBody}
+                <strong>{localizedactivationCopy.awaitingSecondTitle}</strong>
+                {localizedactivationCopy.awaitingSecondBody}
               </div>
             ) : null}
             {otherSchedule ? (
@@ -1507,7 +1512,9 @@ export function PriceBookAdministration({
                   </div>
                 ))
               ) : (
-                <p className={styles.resultMeta}>{activationCopy.noDecision}</p>
+                <p className={styles.resultMeta}>
+                  {localizedactivationCopy.noDecision}
+                </p>
               )}
               {outcome ? (
                 <p

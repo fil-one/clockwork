@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useEffect, useState } from "react";
 
@@ -18,6 +19,7 @@ export function ArtifactDeliveryList({
 }: {
   artifacts: readonly ProjectedArtifact[];
 }) {
+  const t = useTranslations();
   const [representations, setRepresentations] = useState<
     Readonly<Record<string, ArtifactRepresentation>>
   >({});
@@ -57,7 +59,7 @@ export function ArtifactDeliveryList({
     );
   return (
     <section aria-label="Immutable document artifacts">
-      <h3>Documents</h3>
+      <h3>{t("ui.97")}</h3>
       <ul>
         {artifacts.map((artifact) => {
           const representation = representations[artifact.id];

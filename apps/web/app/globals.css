@@ -764,3 +764,48 @@ input {
     justify-items: start;
   }
 }
+
+/* Arabic uses the same layout with logical inline edges. Keep technical input
+   readable without changing stored values or the direction of chart axes. */
+html[dir="rtl"] .utility-popover {
+  right: auto;
+  left: 0;
+}
+html[dir="rtl"] .cw-shell__brand,
+html[dir="rtl"] .cw-shell__rail,
+html[dir="rtl"] .cw-drawer-content {
+  border-right: 0;
+  border-left: 1px solid var(--cw-border);
+}
+html[dir="rtl"] .cw-drawer-content {
+  left: auto;
+  right: 0;
+  animation: none;
+}
+html[dir="rtl"] .cw-skip-link {
+  left: auto;
+  right: var(--cw-space-3);
+}
+html[dir="rtl"] .cw-navigation__badge {
+  margin-left: 0;
+  margin-right: auto;
+}
+html[dir="rtl"] .avatar {
+  margin-left: 0;
+  margin-right: 0.25rem;
+}
+html[dir="rtl"] .utility-popover ul {
+  padding-left: 0;
+  padding-right: 1.1rem;
+}
+html[dir="rtl"] :is(th, td, label, h1, h2, h3) {
+  text-align: start;
+}
+html[dir="rtl"] :is(h1, h2, h3, button, label, .cw-navigation__label) {
+  letter-spacing: normal;
+}
+html[dir="rtl"] :is(input[type="email"], input[type="url"], code, pre) {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}

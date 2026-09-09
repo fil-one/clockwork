@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 
@@ -114,6 +116,8 @@ function GateControls({
   onUpdated: (gate: GeneratedExternalGate) => void;
   demo: boolean;
 }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const [owner, setOwner] = useState(gate.owner);
   const [inputRequired, setInputRequired] = useState(gate.inputRequired ?? "");
   const [configuredStatus, setConfiguredStatus] = useState(
@@ -151,7 +155,7 @@ function GateControls({
   const requireRowVersion = () => {
     if (gate.rowVersion) return true;
     setMessage("");
-    setError(adminSafetyCopy.gateVersionUnavailable);
+    setError(localizedadminSafetyCopy.gateVersionUnavailable);
     return false;
   };
 
@@ -194,7 +198,7 @@ function GateControls({
           review checks.
         </p>
         <label className={styles.field}>
-          Owner
+          {t("partner.detail.owner")}
           <input
             value={owner}
             minLength={2}
@@ -293,6 +297,8 @@ export function GateRegister({
   gates: readonly GateRecord[];
   source: GateRecordSource;
 }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const mayOperate = canDecide(roles, "assisted");
   const [displayGates, setDisplayGates] = useState(gates);
   useEffect(() => setDisplayGates(gates), [gates]);
@@ -303,7 +309,7 @@ export function GateRegister({
       ),
     );
   return (
-    <AdministrationPage {...adminSafetyCopy.gates}>
+    <AdministrationPage {...localizedadminSafetyCopy.gates}>
       <section className={styles.notice} role="note">
         <strong>{source}</strong>
         Activation is fail-closed. A configured “active” state is insufficient

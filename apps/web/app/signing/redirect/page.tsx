@@ -1,16 +1,17 @@
+import { getTranslations } from "@/src/i18n/server";
 import Link from "next/link";
 
 import { BrandLogo, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
 import { SigningExperience } from "@/src/features/signing/signing-experience";
-import { t } from "@/src/i18n/en";
 
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<{ agreementId?: string }>;
 }) {
+  const t = await getTranslations();
   const agreementId = (await searchParams).agreementId?.trim();
   if (!agreementId && process.env.NODE_ENV === "production")
     return (

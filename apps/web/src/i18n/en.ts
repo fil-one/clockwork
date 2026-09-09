@@ -1,4 +1,284 @@
 export const en = {
+  "cp.common.loadingTitle": "Loading records",
+  "cp.common.loadingBody": "The latest records are being retrieved.",
+  "cp.common.emptyTitle": "Nothing here yet",
+  "cp.common.emptyBody": "Records appear here as work starts on this account.",
+  "cp.common.noMatchTitle": "No records match these filters",
+  "cp.common.noMatchBody": "Clear or change a filter to see more results.",
+  "cp.common.permissionTitle": "This information is not available to your role",
+  "cp.common.permissionBody":
+    "Ask an account owner to grant the required access.",
+  "cp.common.errorTitle": "Records could not be loaded",
+  "cp.common.errorBody": "Try again. Your filters have been preserved.",
+  "cp.common.freshnessCurrent": "Records are current",
+  "cp.common.freshnessReadAt": "Read",
+  "cp.common.freshnessStaleTitle": "These records may be out of date.",
+  "cp.common.freshnessStaleBody":
+    "The projection behind this page has not caught up with its source, so a recent change may be missing. Refresh before acting on anything here.",
+  "cp.common.freshnessAction": "Refresh records",
+  "cp.common.freshnessPartialTitle":
+    "Only part of this collection could be read.",
+  "cp.common.freshnessPartialBody":
+    "This account holds more records in this channel than one read of this workspace returns, so the rows below are the most recently updated ones. The result count, the filter choices and any total on this page describe only what was read, and sorting orders only what was read: a list sorted by value can be correctly ordered and still be missing this account's largest record. The incomplete read has been reported for attention; refreshing will not return the rest.",
+  "cp.common.unsavedTitle": "Leave without saving?",
+  "cp.common.unsavedBody":
+    "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",
+  "cp.common.unsavedDiscard": "Discard and leave",
+  "cp.common.unsavedKeep": "Keep editing",
+  "cp.customer.dashboardGreeting": "Welcome back",
+  "cp.customer.dashboardDescription":
+    "Act on commercial deadlines first, then review account performance.",
+  "cp.customer.attentionTitle": "Needs attention",
+  "cp.customer.attentionDescriptionOne":
+    "{count} item needs a decision or follow-up.",
+  "cp.customer.attentionDescriptionOther":
+    "{count} items need a decision or follow-up.",
+  "cp.customer.attentionDescriptionNone":
+    "Nothing needs a decision or follow-up.",
+  "cp.customer.termTitle": "Current commercial term",
+  "cp.customer.serviceRollup": "Service term rollup",
+  "cp.customer.metricsTitle": "Decisions at a glance",
+  "cp.customer.activityTitle": "Recent activity",
+  "cp.customer.accountTitle": "Account settings",
+  "cp.customer.accountDescription":
+    "Manage your organization, people, and purchasing requirements.",
+  "cp.customer.quotePermissionNote":
+    "An account owner or administrator can create quotes.",
+  "cp.customer.accountPermissionNote":
+    "An account owner or administrator manages users, procurement, and offboarding requests.",
+  "cp.customer.collections.amendments.description":
+    "Track requested and completed changes to active services.",
+  "cp.customer.collections.amendments.searchPlaceholder": "Search amendments",
+  "cp.customer.collections.users.description":
+    "See who can view and approve commercial work.",
+  "cp.customer.collections.users.searchPlaceholder": "Search users",
+  "cp.customer.collections.procurement.description":
+    "Keep invoice routing, supplier onboarding, and tax evidence current.",
+  "cp.customer.collections.procurement.searchPlaceholder":
+    "Search procurement records",
+  "cp.customer.collections.marketplace.title": "Marketplace purchases",
+  "cp.customer.collections.marketplace.description":
+    "Follow private offers and provider-reported fulfillment.",
+  "cp.customer.collections.marketplace.searchPlaceholder":
+    "Search marketplace offers",
+  "cp.customer.collections.support.description":
+    "Follow customer issues while the support provider remains the source of truth.",
+  "cp.customer.collections.support.searchPlaceholder": "Search support tickets",
+  "cp.commercial.quoteStages.0": "Offer and region",
+  "cp.commercial.quoteStages.1": "Capacity, term, direct route, and expiry",
+  "cp.commercial.quoteStages.2": "Review and issue",
+  "cp.commercial.quoteSummary": "Quote summary",
+  "cp.commercial.reviewIssue": "Review and issue",
+  "cp.commercial.agreementAuthority":
+    "I confirm I am authorized to bind this legal entity to this agreement.",
+  "cp.commercial.agreementReview": "Review and accept agreement",
+  "cp.commercial.orderReview": "Review resulting commitment",
+  "cp.commercial.orderConfirmation":
+    "I reviewed the accepted quote, governing agreement, purchase order, service start, service end, and resulting commitment.",
+  "cp.commercial.orderTermsHelp":
+    "Order terms come from accepted quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
+  "cp.commercial.orderArtifactRetention":
+    "The rendered order form and its acceptance evidence are retained for {years} years from the recorded acceptance instant.",
+  "cp.commercial.estimatedSpend": "Estimated spend",
+  "cp.commercial.invoiceTruth": "Invoiced amount",
+  "cp.commercial.paymentTruth": "Payment status",
+  "cp.commercial.paymentWebhook": "Reported by the payment provider webhook",
+  "cp.commercial.externalPayment":
+    "You will continue with the payment provider. The invoice is marked paid only after the provider confirms it.",
+  "cp.commercial.confirmMutation": "Review and confirm",
+  "cp.partner.deskDescription":
+    "Protect the agreement clock and resolve urgent client work before reviewing performance.",
+  "cp.partner.agreementClock": "Partner agreement clock",
+  "cp.partner.urgentTitle": "Urgent partner work",
+  "cp.partner.transferPrice": "Fil One transfer price",
+  "cp.partner.partnerPrice": "Partner resale price",
+  "cp.partner.merchantOfRecord": "Merchant of record",
+  "cp.partner.boundary":
+    "Transfer pricing stays private to the partner. The end client sees the resale price set by the partner.",
+  "cp.partner.renewalReview": "Review renewal before confirming",
+  "cp.partner.registrationReview": "Review deal registration",
+  "app.pageLoaded": "{page}. Page loaded.",
+
+  "operations.stale":
+    "Refresh needed for {channels}. Open the workspace before making a decision.",
+  "operations.cases.one": "{count} case",
+  "operations.cases.other": "{count} cases",
+  "operations.priority.one": "{count} case needs priority attention.",
+  "operations.priority.other": "{count} cases need priority attention.",
+  "operations.records.one": "{count} record",
+  "operations.records.other": "{count} records",
+  "operations.providerSummary":
+    "Provider operations: {operations}. Service terminations: {terminations}.",
+  "operations.invoiceSummary":
+    "Past-due invoices: {overdue}. Open invoices: {open}.",
+  "operations.orders.one": "{count} order",
+  "operations.orders.other": "{count} orders",
+  "operations.exports.one": "{count} export",
+  "operations.exports.other": "{count} exports",
+  "approval.reviewApprove": "Review approval",
+  "approval.reviewReject": "Review rejection",
+
+  "ui.0": "Operational health",
+  "ui.1":
+    "The work that needs attention across approvals, collections, provisioning, renewals, and reporting.",
+  "ui.2": "Work overview",
+  "ui.3":
+    "Prioritized work across the teams you support, with a direct path to each workspace.",
+  "ui.4": "Operational work overview",
+  "ui.5": "Open my queue",
+  "ui.6": "Signal",
+  "ui.7": "Summary",
+  "ui.8": "Area",
+  "ui.9": "Updated",
+  "ui.10": "Action",
+  "ui.11": "Approvals",
+  "ui.12": "Provisioning",
+  "ui.13": "Collections",
+  "ui.14": "Renewals",
+  "ui.15": "Reports",
+  "ui.16": "stale",
+  "ui.17": "Queue work",
+  "ui.18": "Open the queue",
+  "ui.19": "Open provisioning",
+  "ui.20": "No amount recorded",
+  "ui.21": "Open collections",
+  "ui.22": "Renewal notice",
+  "ui.23":
+    "Orders whose contractual notice date has passed or falls inside 30 days.",
+  "ui.24": "Open renewals",
+  "ui.25": "Report exports",
+  "ui.26": "Exports recorded against your operator session.",
+  "ui.27": "Open reports",
+  "ui.28": "Internal operations",
+  "ui.29": "Data status",
+  "ui.30": "Up to date",
+  "ui.31": "Needs refresh",
+  "ui.32": "Temporarily unavailable",
+  "ui.33": "Not available in this workspace",
+  "ui.34": "At least one record is past its refresh window.",
+  "ui.35":
+    "Verify anything you are about to act on against the source record before deciding it.",
+  "ui.36": "Renewal notice windows",
+  "ui.37":
+    "Orders grouped by how long is left before their contractual notice date, with the route and the invoicing already recorded against them.",
+  "ui.38": "About renewal value",
+  "ui.39":
+    "Invoiced to date shows billed value for each order. Forecast value remains separate from this renewal worklist.",
+  "ui.40": "Invoiced to date",
+  "ui.41": "No invoices recorded against this order",
+  "ui.42": "Route not recorded",
+  "ui.43": "No orders fall in this window.",
+  "ui.44": "Collections priority",
+  "ui.45":
+    "Open invoices ordered by exposure and age, with the corrections a finance approver may raise against them.",
+  "ui.46": "Priority order",
+  "ui.47":
+    "Highest open amount, then days past due, then invoice reference. Amounts in a second currency are ranked but never added into a total.",
+  "ui.48": "Collections actions",
+  "ui.49":
+    "Open each invoice to review its payment history, disputes, and available corrections.",
+  "ui.50": "Open invoice total",
+  "ui.51": "Past due",
+  "ui.52": "Oldest past due",
+  "ui.53": "Not recorded",
+  "ui.54": "Open invoices",
+  "ui.55": "Amount, age, status and the corrections available on each invoice.",
+  "ui.56": "Open invoices ordered by amount then days past due",
+  "ui.57": "No open invoices need collections attention.",
+  "ui.58": "Provisioning work",
+  "ui.59":
+    "Track provider work, service terminations, retry timing, and the items that need operator attention.",
+  "ui.60": "Stopped work is handled in recovery.",
+  "ui.61":
+    "Open the recovery workspace to retry or abandon work that has exhausted its automatic attempts.",
+  "ui.62": "Open the recovery queue",
+  "ui.63": "Provider operations",
+  "ui.64": "Service terminations",
+  "ui.65": "High risk",
+  "ui.66": "Provisioning records",
+  "ui.67": "Provisioning records ordered by risk then attempts spent",
+  "ui.68": "No provisioning work needs attention in this workspace.",
+  "ui.69": "Attempts",
+  "ui.70": "Not applicable",
+  "ui.71": "Operational reports",
+  "ui.72":
+    "Report exports recorded against your operator session, and the supported exports you can generate now.",
+  "ui.73": "Recorded report exports",
+  "ui.74": "Report exports newest first",
+  "ui.75":
+    "No report exports are projected into your operator scope. Generating an export below records one.",
+  "ui.76": "All supported reports",
+  "ui.77": "Document recorded",
+  "ui.78": "No document recorded yet",
+  "ui.79": "Supported exports",
+  "ui.80":
+    "The report registry in the commerce contract. Each one is generated on request; this page holds no cached result and states no freshness for one.",
+  "ui.81": "ARR & MRR",
+  "ui.82": "Billing & collections",
+  "ui.83": "Commission settlement",
+  "ui.84": "Exports are generated on demand",
+  "ui.85":
+    "Choose a report and account scope below. Completed exports remain available in the history list.",
+  "ui.86": "Search",
+  "ui.87": "Filters",
+  "ui.88": "Status",
+  "ui.89": "Risk",
+  "ui.90": "Owner",
+  "ui.91": "Sort",
+  "ui.92": "View",
+  "ui.93": "Rows per page",
+  "ui.94": "Previous",
+  "ui.95": "Next",
+  "ui.96": "Technical details",
+  "ui.97": "Documents",
+  "ui.98": "Audit evidence",
+  "ui.99": "Artifact chain",
+  "ui.100": "Commercial summary",
+  "ui.101": "Term state",
+  "ui.102": "Next action",
+  "ui.103": "Customer workspace",
+  "ui.104": "Organization",
+  "ui.105": "Users and access",
+  "ui.106":
+    "Review roles, approval authority, MFA state, and pending invitations.",
+  "ui.107": "Procurement",
+  "ui.108":
+    "Maintain invoice delivery, supplier onboarding, purchase orders, and tax evidence.",
+  "ui.109": "Offboarding",
+  "ui.110":
+    "Review retrieval, final billing, retention exclusions, and teardown authority.",
+  "ui.111": "Save",
+  "ui.112": "Cancel",
+  "ui.113": "All",
+  "ui.114": "None",
+  "ui.115": "Reason",
+  "ui.116": "Evidence",
+  "ui.117": "Reference",
+  "ui.118": "Account",
+  "ui.119": "Amount",
+  "ui.120": "Currency",
+  "ui.121": "Date",
+  "ui.122": "Version",
+  "ui.123": "Details",
+  "ui.124": "Refresh",
+  "ui.125": "Retry",
+  "ui.126": "Close",
+  "ui.127": "Loading…",
+  "ui.128": "No results",
+
+  "settings.title": "Settings",
+  "settings.description": "Personalize your workspace.",
+  "settings.language": "Language",
+  "settings.language.description":
+    "Choose the interface language. Your preference is saved in this browser for future visits.",
+  "settings.language.label": "Interface language",
+  "settings.save": "Save language",
+  "settings.saving": "Saving…",
+  "settings.saved": "Language saved.",
+  "settings.error": "Choose a supported language and try again.",
+  "settings.language.records":
+    "Names, entered data, and original contractual documents retain their original language.",
+
   "app.name": "Fil One",
   "app.product": "Commerce",
   "app.demo": "Demo environment",
@@ -595,9 +875,8 @@ export type MessageCatalog = Readonly<Record<MessageId, string>>;
 
 export function createTranslator(catalog: MessageCatalog) {
   return (id: MessageId, values: MessageValues = {}): string =>
-    Object.entries(values).reduce(
-      (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
-      catalog[id],
+    catalog[id].replace(/\{([^{}]+)\}/gu, (placeholder, key: string) =>
+      Object.hasOwn(values, key) ? String(values[key]) : placeholder,
     );
 }
 
@@ -610,5 +889,8 @@ export function plural(
   locale = "en-US",
 ): string {
   const form = new Intl.PluralRules(locale).select(count);
-  return (form === "one" ? one : other).replaceAll("{count}", String(count));
+  return (form === "one" ? one : other).replaceAll(
+    "{count}",
+    new Intl.NumberFormat(locale).format(count),
+  );
 }

@@ -1,10 +1,9 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useEffect } from "react";
 
 import { Button } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * The internal group's error boundary.
@@ -23,6 +22,7 @@ export default function InternalExperienceError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations();
   useEffect(() => {
     console.error("Internal experience route error", { digest: error.digest });
   }, [error]);

@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState } from "react";
 
@@ -64,6 +66,8 @@ export function AssistedMode({
   sessionActive?: boolean;
   guidedDemo?: boolean;
 }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [reason, setReason] = useState("");
   const [actionKey, setActionKey] =
@@ -82,7 +86,7 @@ export function AssistedMode({
 
   if (!account)
     return (
-      <AdministrationPage {...adminSafetyCopy.assisted}>
+      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
         <section className={styles.roleNotice} role="note">
           <strong>Assisted authority is required.</strong>
           This session cannot load or select customer accounts for assisted
@@ -93,7 +97,7 @@ export function AssistedMode({
 
   if (sessionActive)
     return (
-      <AdministrationPage {...adminSafetyCopy.assisted}>
+      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
         <section className={styles.notice} role="note">
           <strong>An assisted session is already active.</strong>
           The effective account remains locked to {account.label}. Use the
@@ -105,7 +109,7 @@ export function AssistedMode({
 
   if (guidedDemo)
     return (
-      <AdministrationPage {...adminSafetyCopy.assisted}>
+      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
         <section className={styles.panel} aria-labelledby="assisted-demo-title">
           <div className={styles.panelHeading}>
             <div>
@@ -156,7 +160,7 @@ export function AssistedMode({
   };
 
   return (
-    <AdministrationPage {...adminSafetyCopy.assisted}>
+    <AdministrationPage {...localizedadminSafetyCopy.assisted}>
       <section className={styles.notice} role="note">
         <strong>The staff actor never changes.</strong>
         The effective account scopes the customer record. The authenticated

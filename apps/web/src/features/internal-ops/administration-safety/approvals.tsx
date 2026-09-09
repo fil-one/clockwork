@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useMemo, useState } from "react";
 
@@ -24,6 +26,8 @@ const actorNames: Readonly<Record<string, string>> = {
 };
 
 export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const [caseId, setCaseId] = useState(approvalCases[0]?.id ?? "");
   const [decision, setDecision] = useState<"approved" | "rejected">("approved");
   const [reason, setReason] = useState("");
@@ -46,7 +50,7 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
   };
 
   return (
-    <AdministrationPage {...adminSafetyCopy.approvals}>
+    <AdministrationPage {...localizedadminSafetyCopy.approvals}>
       <div className={styles.decisionGrid}>
         <section className={styles.panel} aria-labelledby="approval-work-title">
           <div className={styles.panelHeading}>
@@ -204,7 +208,11 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                 type="submit"
                 disabled={!permitted}
               >
-                Review {decision === "approved" ? "approval" : "rejection"}
+                {t(
+                  decision === "approved"
+                    ? "approval.reviewApprove"
+                    : "approval.reviewReject",
+                )}
               </button>
             </div>
           </form>

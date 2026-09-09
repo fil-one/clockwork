@@ -1,3 +1,4 @@
+import { getTranslations } from "@/src/i18n/server";
 import { notFound } from "next/navigation";
 
 import { BrandLogo, Button, Input } from "@clockwork/ui";
@@ -8,7 +9,6 @@ import {
   safeDemoReturnPath,
 } from "@/src/auth/demo-access";
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
 
 export const metadata = { title: "Demo access" };
 
@@ -17,6 +17,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
+  const t = await getTranslations();
   if (!demoAccessConfiguration(process.env)) notFound();
   const query = await searchParams;
   const invalid = query.error === "1";

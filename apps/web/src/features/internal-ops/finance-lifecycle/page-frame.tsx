@@ -1,3 +1,7 @@
+"use client";
+import { useTranslations } from "@/src/i18n/client";
+
+import { localizeCopy } from "@/src/i18n/copy";
 import type { ReactNode } from "react";
 
 import { lifecycleCopy } from "./copy";
@@ -8,20 +12,22 @@ import styles from "./finance-lifecycle.module.css";
 export type { SurfaceProvenance };
 
 function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
+  const t = useTranslations();
+  const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
   if (provenance.kind === "projection")
     return (
       <div
         className={styles.freshness}
-        aria-label={lifecycleCopy.provenance}
+        aria-label={localizedlifecycleCopy.provenance}
         role={provenance.stale ? "alert" : "status"}
       >
         <strong>
           {provenance.stale
-            ? lifecycleCopy.projectionStale
-            : lifecycleCopy.projectionCurrent}
+            ? localizedlifecycleCopy.projectionStale
+            : localizedlifecycleCopy.projectionCurrent}
         </strong>
         <span>
-          Updated{" "}
+          {t("ui.9")}{" "}
           <time dateTime={provenance.generatedAt}>
             {formatOperationalTimestamp(provenance.generatedAt)}
           </time>
@@ -30,10 +36,13 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
     );
   if (provenance.kind === "read")
     return (
-      <div className={styles.freshness} aria-label={lifecycleCopy.provenance}>
-        <strong>{lifecycleCopy.readAtLoad}</strong>
+      <div
+        className={styles.freshness}
+        aria-label={localizedlifecycleCopy.provenance}
+      >
+        <strong>{localizedlifecycleCopy.readAtLoad}</strong>
         <span>
-          Updated{" "}
+          {t("ui.9")}{" "}
           <time dateTime={provenance.readAt}>
             {formatOperationalTimestamp(provenance.readAt)}
           </time>
@@ -42,7 +51,10 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
     );
   if (provenance.kind === "guided")
     return (
-      <div className={styles.freshness} aria-label={lifecycleCopy.provenance}>
+      <div
+        className={styles.freshness}
+        aria-label={localizedlifecycleCopy.provenance}
+      >
         <strong>Guided demo workspace</strong>
         <span>Changes can be reset from Demo controls.</span>
       </div>
@@ -51,20 +63,20 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
     return (
       <div
         className={styles.freshness}
-        aria-label={lifecycleCopy.provenance}
+        aria-label={localizedlifecycleCopy.provenance}
         role="alert"
       >
-        <strong>{lifecycleCopy.readFailed}</strong>
+        <strong>{localizedlifecycleCopy.readFailed}</strong>
         <span>Refresh the page or try again shortly.</span>
       </div>
     );
   return (
     <div
       className={styles.freshness}
-      aria-label={lifecycleCopy.provenance}
+      aria-label={localizedlifecycleCopy.provenance}
       role="alert"
     >
-      <strong>{lifecycleCopy.notWired}</strong>
+      <strong>{localizedlifecycleCopy.notWired}</strong>
       <span>This workflow is not enabled for the current environment.</span>
     </div>
   );
@@ -86,11 +98,13 @@ export function FinancePageFrame({
   provenance: SurfaceProvenance;
   children: ReactNode;
 }) {
+  const t = useTranslations();
+  const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
   return (
     <main className={styles.page} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>{lifecycleCopy.eyebrow}</p>
+          <p className={styles.eyebrow}>{localizedlifecycleCopy.eyebrow}</p>
           <h1 className={styles.title}>{title}</h1>
           <p className={styles.description}>{description}</p>
         </div>

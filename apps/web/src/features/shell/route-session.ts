@@ -1,3 +1,4 @@
+import { localeCookie, resolveLocale, formattingLocales } from "@/src/i18n";
 import { redirect } from "next/navigation";
 import "server-only";
 
@@ -152,6 +153,11 @@ export async function getRouteSession(
   audience: ExperienceAudience,
 ): Promise<RouteSession> {
   await connection();
+  const language = (await cookies()).get(localeCookie)?.value;
+  const formatting = {
+    ...defaultRouteFormatting,
+    ...(language ? { locale: formattingLocales[resolveLocale(language)] } : {}),
+  };
   if (!providerAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
@@ -173,7 +179,9 @@ export async function getRouteSession(
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
         // `America/Los_Angeles` for the end client. Nothing read them.
-        locale: persona.locale,
+        locale: language
+          ? formattingLocales[resolveLocale(language)]
+          : persona.locale,
         timeZone: persona.timeZone,
         memberships: [membership],
         selectedAccountId: membership.accountId,
@@ -189,7 +197,7 @@ export async function getRouteSession(
     return {
       roles: isCommerceRole(demoRole) ? [demoRole] : demoRoles[audience],
       profile: { name: selected.userName, email: selected.userEmail },
-      ...defaultRouteFormatting,
+      ...formatting,
       memberships: Object.values(demoMemberships),
       selectedAccountId: selected.accountId,
       effectiveAccountId: selected.accountId,
@@ -211,7 +219,7 @@ export async function getRouteSession(
   return {
     roles: session.roles,
     profile: session.profile,
-    ...defaultRouteFormatting,
+    ...formatting,
     memberships: session.memberships,
     selectedAccountId: session.selectedAccountId,
     effectiveAccountId: session.effectiveAccountId ?? session.selectedAccountId,

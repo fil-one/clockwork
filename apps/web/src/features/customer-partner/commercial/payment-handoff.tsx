@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useRef, useState } from "react";
 
@@ -102,6 +104,8 @@ export function PaymentHandoff({
   dueLabel,
   guidedDemo = false,
 }: PayableInvoice) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [providerUrl, setProviderUrl] = useState("");
@@ -210,11 +214,11 @@ export function PaymentHandoff({
       </div>
       <dl>
         <div>
-          <dt>{customerPartnerCopy.commercial.invoiceTruth}</dt>
+          <dt>{localizedcustomerPartnerCopy.commercial.invoiceTruth}</dt>
           <dd>{amountLabel}</dd>
         </div>
         <div>
-          <dt>{customerPartnerCopy.commercial.paymentTruth}</dt>
+          <dt>{localizedcustomerPartnerCopy.commercial.paymentTruth}</dt>
           <dd>
             {guidedDemo
               ? demoSession?.status === "paid"
@@ -231,7 +235,7 @@ export function PaymentHandoff({
       <p className={styles.notice}>
         {guidedDemo
           ? "This guided sandbox never contacts Stripe, a bank, or a card network. Completing it changes only resettable demo records; no money moves."
-          : customerPartnerCopy.commercial.externalPayment}
+          : localizedcustomerPartnerCopy.commercial.externalPayment}
       </p>
       <label className={styles.check} htmlFor="payment-confirmation">
         <input
@@ -306,7 +310,7 @@ export function PaymentHandoff({
       <p className={styles.muted}>
         {guidedDemo
           ? "Reset demo data to remove the sandbox payment, receipt, and paid invoice state."
-          : `${customerPartnerCopy.commercial.paymentWebhook}. Returning from the provider does not mark the invoice paid.`}
+          : `${localizedcustomerPartnerCopy.commercial.paymentWebhook}. Returning from the provider does not mark the invoice paid.`}
       </p>
     </section>
   );

@@ -1,8 +1,9 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { ApplicationStatePanel, buttonClassName } from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
 import type { RouteSession } from "@/src/features/shell/route-session";
 
 import styles from "./partner.module.css";
@@ -23,6 +24,7 @@ export function partnerRouteMembership(
 
 /** A missing partner membership is a permission outcome, not a route error. */
 export function NoPartnerMembership() {
+  const t = use(getTranslations());
   return (
     <main className={styles.main} id="main-content">
       <div className={styles.state}>

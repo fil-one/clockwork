@@ -8,7 +8,7 @@ import {
 } from "@clockwork/contracts";
 import type { CommandPaletteItem } from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
+import { t as englishTranslator } from "@/src/i18n/en";
 
 import {
   canAccessNavigationItem,
@@ -30,65 +30,66 @@ export interface CommandItemContext {
   providerBacked: boolean;
 }
 
-const actions: Readonly<Record<ExperienceAudience, readonly CommandAction[]>> =
-  {
-    customer: [
-      {
-        id: "create-quote",
-        label: t("action.createQuote"),
-        description: t("app.command.action.customerQuote"),
-        href: "/quotes/new",
-        keywords: ["new", "pricing", "capacity"],
-        requiredPermission: "quote:write",
-      },
-      {
-        id: "invite-user",
-        label: t("action.invite"),
-        description: t("app.command.action.inviteUser"),
-        href: "/account/users",
-        keywords: ["member", "team", "access"],
-        requiredPermission: "account:write",
-      },
-    ],
-    partner: [
-      {
-        id: "register-deal",
-        label: t("action.register"),
-        description: t("app.command.action.registerDeal"),
-        href: "/partner/registrations",
-        keywords: ["new", "opportunity", "client"],
-      },
-      {
-        id: "create-partner-quote",
-        label: t("action.createQuote"),
-        description: t("app.command.action.partnerQuote"),
-        href: "/partner/quotes/new",
-        keywords: ["new", "pricing", "client"],
-        requiredPermission: "partner:quote:write",
-      },
-    ],
-    internal: [
-      {
-        id: "open-global-search",
-        label: t("nav.internal.search"),
-        description: t("app.command.action.globalSearch"),
-        href: "/internal/search",
-        keywords: ["find", "lookup", "account"],
-      },
-      {
-        id: "review-approvals",
-        label: t("action.review"),
-        description: t("app.command.action.reviewApprovals"),
-        href: "/internal/approvals",
-        keywords: ["queue", "exception", "resolve"],
-        allowedRoles: [
-          "finance_approver",
-          "legal_approver",
-          "destructive_action_approver",
-        ],
-      },
-    ],
-  };
+const actionsFor = (
+  t = englishTranslator,
+): Readonly<Record<ExperienceAudience, readonly CommandAction[]>> => ({
+  customer: [
+    {
+      id: "create-quote",
+      label: t("action.createQuote"),
+      description: t("app.command.action.customerQuote"),
+      href: "/quotes/new",
+      keywords: ["new", "pricing", "capacity"],
+      requiredPermission: "quote:write",
+    },
+    {
+      id: "invite-user",
+      label: t("action.invite"),
+      description: t("app.command.action.inviteUser"),
+      href: "/account/users",
+      keywords: ["member", "team", "access"],
+      requiredPermission: "account:write",
+    },
+  ],
+  partner: [
+    {
+      id: "register-deal",
+      label: t("action.register"),
+      description: t("app.command.action.registerDeal"),
+      href: "/partner/registrations",
+      keywords: ["new", "opportunity", "client"],
+    },
+    {
+      id: "create-partner-quote",
+      label: t("action.createQuote"),
+      description: t("app.command.action.partnerQuote"),
+      href: "/partner/quotes/new",
+      keywords: ["new", "pricing", "client"],
+      requiredPermission: "partner:quote:write",
+    },
+  ],
+  internal: [
+    {
+      id: "open-global-search",
+      label: t("nav.internal.search"),
+      description: t("app.command.action.globalSearch"),
+      href: "/internal/search",
+      keywords: ["find", "lookup", "account"],
+    },
+    {
+      id: "review-approvals",
+      label: t("action.review"),
+      description: t("app.command.action.reviewApprovals"),
+      href: "/internal/approvals",
+      keywords: ["queue", "exception", "resolve"],
+      allowedRoles: [
+        "finance_approver",
+        "legal_approver",
+        "destructive_action_approver",
+      ],
+    },
+  ],
+});
 
 function isCommerceRole(role: string): role is Role {
   return (commerceRoles as readonly string[]).includes(role);
@@ -118,6 +119,7 @@ export function getCommandItems(
   audience: ExperienceAudience,
   roles: readonly string[],
   context: CommandItemContext,
+  t = englishTranslator,
 ): CommandPaletteItem[] {
   const navigationItems: CommandPaletteItem[] = navigation[audience]
     .filter((item) => canAccessNavigationItem(item, roles))
@@ -131,7 +133,8 @@ export function getCommandItems(
       audiences: [audience],
     }));
 
-  const actionItems: CommandPaletteItem[] = actions[audience]
+  const audienceActions = actionsFor(t)[audience];
+  const actionItems: CommandPaletteItem[] = audienceActions
     .filter((item) => canAccessAction(item, roles))
     .map((item) => ({
       id: `action-${item.id}`,

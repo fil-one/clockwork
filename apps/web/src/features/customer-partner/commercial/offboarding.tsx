@@ -1,11 +1,13 @@
 "use client";
+import { localizeCopy } from "@/src/i18n/copy";
+
+import { useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { requestOffboarding } from "@/src/features/contracts/commerce-client";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
-import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
@@ -37,6 +39,8 @@ export function OffboardingWorkflow({
     version: number;
   };
 }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
     selectedServiceId ?? services[0]?.id ?? "",
@@ -199,7 +203,7 @@ export function OffboardingWorkflow({
                 </select>
               </div>
               <div className={styles.field}>
-                <label htmlFor="offboarding-reason">Reason</label>
+                <label htmlFor="offboarding-reason">{t("ui.115")}</label>
                 <select
                   id="offboarding-reason"
                   onChange={(event) => setReason(event.target.value)}
@@ -250,7 +254,7 @@ export function OffboardingWorkflow({
               onClick={() => setReviewing(true)}
               type="button"
             >
-              {customerPartnerCopy.commercial.confirmMutation}
+              {localizedcustomerPartnerCopy.commercial.confirmMutation}
             </button>
           </section>
 
@@ -266,7 +270,7 @@ export function OffboardingWorkflow({
               <>
                 <ul className={styles.reviewList}>
                   <li>
-                    <span>Service</span>
+                    <span>{t("account.offboarding.service")}</span>
                     <strong>{selectedService?.name ?? "Not selected"}</strong>
                   </li>
                   <li>

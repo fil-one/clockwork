@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -164,6 +165,7 @@ export function SelfServeBuy({
   pollAttempts?: number;
   pollIntervalMs?: number;
 }) {
+  const t = useTranslations();
   const [draft, setDraft] = useState<BuyDraft>(() => initialBuyDraft(offers));
   const [phase, setPhase] = useState<BuyPhase>("configure");
   const [message, setMessage] = useState("");
@@ -434,7 +436,7 @@ export function SelfServeBuy({
               </dd>
             </div>
             <div>
-              <dt>Term</dt>
+              <dt>{t("common.term")}</dt>
               <dd>{SELF_SERVE_TERM_MONTHS} months · fixed on this page</dd>
             </div>
           </dl>

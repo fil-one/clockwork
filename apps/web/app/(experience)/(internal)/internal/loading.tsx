@@ -1,6 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import { Skeleton } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 import styles from "./loading.module.css";
 
@@ -36,6 +36,7 @@ function BandHeading() {
  * holds the same bands the operations home resolves into.
  */
 export default function InternalLoading() {
+  const t = use(getTranslations());
   return (
     <main className={styles.main} id="main-content">
       <p className="cw-sr-only" role="status">

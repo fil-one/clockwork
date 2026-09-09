@@ -1,8 +1,9 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import { Skeleton } from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
-
 export default function ExperienceLoading() {
+  const t = use(getTranslations());
   return (
     <main
       className="experience-main loading-page"

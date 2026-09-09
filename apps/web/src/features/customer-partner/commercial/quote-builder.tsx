@@ -1,4 +1,7 @@
 "use client";
+import { localizeCopy } from "@/src/i18n/copy";
+
+import { useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -7,7 +10,7 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
-import { t } from "@/src/i18n/en";
+import { t as englishTranslator } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
@@ -45,7 +48,7 @@ export interface QuoteOrigin {
   resolved: boolean;
 }
 
-function originLabel(origin: QuoteOrigin): string {
+function originLabel(origin: QuoteOrigin, t = englishTranslator): string {
   if (!origin.resolved) return t("quotes.builder.origin.unavailable");
   return origin.kind === "revision"
     ? t("quotes.builder.origin.revision", { reference: origin.reference })
@@ -78,6 +81,8 @@ function expiryLabel(value: string) {
 }
 
 function Summary({ draft }: { draft: QuoteDraft }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <aside
       className={`${styles.summary} ${styles.commitmentSummary}`}
@@ -86,7 +91,7 @@ function Summary({ draft }: { draft: QuoteDraft }) {
       <div>
         <p className={styles.taskContext}>Draft facts</p>
         <h2 id="quote-summary-title">
-          {customerPartnerCopy.commercial.quoteSummary}
+          {localizedcustomerPartnerCopy.commercial.quoteSummary}
         </h2>
       </div>
       <dl>
@@ -167,6 +172,7 @@ export function QuoteBuilder({
   offers: readonly QuoteOfferOption[];
   origin?: QuoteOrigin;
 }) {
+  const t = useTranslations();
   const accountOptions: readonly SelectorOption[] = [
     {
       id: account.id,
@@ -321,7 +327,7 @@ export function QuoteBuilder({
 
       {origin ? (
         <p className={styles.notice} role="status">
-          {originLabel(origin)}
+          {originLabel(origin, t)}
         </p>
       ) : null}
 
@@ -578,7 +584,7 @@ export function QuoteBuilder({
                   onClick={next}
                   type="button"
                 >
-                  Continue
+                  {t("demo.access.submit")}
                 </button>
               ) : (
                 <button

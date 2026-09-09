@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -57,7 +58,7 @@ import {
 
 import { switchCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
-import { t, type MessageId } from "@/src/i18n/en";
+import { type MessageId } from "@/src/i18n/en";
 
 import { brandAsset } from "./brand-assets";
 import { getCommandItems } from "./command-items";
@@ -249,6 +250,7 @@ const navigationSections: Readonly<
  * falls back to the text wordmark if the asset does not resolve.
  */
 function Wordmark({ audience }: { audience: ExperienceAudience }) {
+  const t = useTranslations();
   return (
     <Link
       className="wordmark"
@@ -268,6 +270,7 @@ function OrganizationSwitcher({
   session: RouteSession;
   announce: (message: string) => void;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [selected, setSelected] = useState(session.selectedAccountId);
   const [pending, startTransition] = useTransition();
@@ -364,6 +367,7 @@ function ShellUtilities({
   profile: RouteSession["profile"];
   providerBacked: boolean;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const helpHref: Route =
     audience === "partner"
@@ -472,8 +476,15 @@ function ShellUtilities({
           id={profilePopoverId}
           hidden={!profileOpen}
         >
-          <strong>{profile.name}</strong>
-          <p>{profile.email}</p>
+          <p>
+            <Link href="/settings">{t("settings.title")}</Link>
+          </p>
+          <strong>
+            <bdi>{profile.name}</bdi>
+          </strong>
+          <p>
+            <bdi>{profile.email}</bdi>
+          </p>
           {providerBacked && audience === "internal" && (
             <p>
               <Link href="/access/mfa">{t("app.verifyAuthentication")}</Link>
@@ -499,6 +510,7 @@ export function AppShell({
   session: RouteSession;
   children: ReactNode;
 }) {
+  const t = useTranslations();
   const roles = session.roles;
   const pathname = usePathname();
   const router = useRouter();
@@ -507,10 +519,15 @@ export function AppShell({
   const [announcement, setAnnouncement] = useState("");
   const commandItems = useMemo(
     () =>
-      getCommandItems(audience, roles, {
-        providerBacked: session.providerBacked,
-      }),
-    [audience, roles, session.providerBacked],
+      getCommandItems(
+        audience,
+        roles,
+        {
+          providerBacked: session.providerBacked,
+        },
+        t,
+      ),
+    [audience, roles, session.providerBacked, t],
   );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
@@ -549,7 +566,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, roles]);
+  }, [audience, pathname, roles, t]);
 
   /**
    * A client transition replaces the content of the page without a document
@@ -585,8 +602,10 @@ export function AppShell({
     const heading = document
       .querySelector("#main-content h1")
       ?.textContent?.trim();
-    setAnnouncement(`${heading || destination || pathname}. Page loaded.`);
-  }, [destination, pathname]);
+    setAnnouncement(
+      t("app.pageLoaded", { page: heading || destination || pathname }),
+    );
+  }, [destination, pathname, t]);
 
   useEffect(() => {
     setHydrated(true);
@@ -602,7 +621,7 @@ export function AppShell({
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
     };
-  }, []);
+  }, [t]);
 
   const banner = (
     <>

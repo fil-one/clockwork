@@ -98,6 +98,6 @@ describe("OperationsHome", () => {
     render(<OperationsHome data={data} />);
 
     const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("collections");
+    expect(alert.textContent).toContain("Collections");
   });
 });

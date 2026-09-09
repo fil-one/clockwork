@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useRouter } from "next/navigation";
 import { isValidElement, useRef, useState, type ReactNode } from "react";
@@ -23,7 +24,6 @@ import {
   updateProcurementProfile,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { t } from "@/src/i18n/en";
 
 import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
 
@@ -681,6 +681,7 @@ export function WorkflowPanel({
    */
   context: WorkflowRecordContext;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");

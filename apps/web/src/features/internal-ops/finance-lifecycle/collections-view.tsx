@@ -1,3 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
+import { localizeCopy } from "@/src/i18n/copy";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { plural } from "@/src/i18n/en";
@@ -28,10 +31,12 @@ function riskTone(
 }
 
 function Corrections({ entry }: { entry: CollectionCase }) {
+  const t = use(getTranslations());
+  const localizedcorrectionCopy = localizeCopy(correctionCopy, t);
   if (!entry.billingAccountId)
     return (
       <span className={styles.blocked}>
-        {correctionCopy.refusals.ACCOUNT_UNRESOLVED}
+        {localizedcorrectionCopy.refusals.ACCOUNT_UNRESOLVED}
       </span>
     );
   const subject = {
@@ -61,18 +66,21 @@ export function CollectionsView({
   roles: readonly string[];
   provenance: SurfaceProvenance;
 }) {
+  const t = use(getTranslations());
+  const localizedcopy = localizeCopy(copy, t);
+  const localizedcorrectionCopy = localizeCopy(correctionCopy, t);
   const summary = summarizeCollectionCases(cases);
 
   return (
     <FinancePageFrame
-      title={copy.title}
-      description={copy.description}
+      title={localizedcopy.title}
+      description={localizedcopy.description}
       provenance={provenance}
     >
       <section className={styles.summaryGrid} aria-label="Collections health">
         <article className={styles.summaryCard}>
-          <p>{copy.openTotal}</p>
-          <strong>{summary.openTotal ?? copy.unrecorded}</strong>
+          <p>{localizedcopy.openTotal}</p>
+          <strong>{summary.openTotal ?? localizedcopy.unrecorded}</strong>
           <span>
             {plural(
               summary.openCount,
@@ -82,8 +90,8 @@ export function CollectionsView({
           </span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{copy.overdueTotal}</p>
-          <strong>{summary.overdueTotal ?? copy.unrecorded}</strong>
+          <p>{localizedcopy.overdueTotal}</p>
+          <strong>{summary.overdueTotal ?? localizedcopy.unrecorded}</strong>
           <span>
             {plural(
               summary.overdueCount,
@@ -93,39 +101,41 @@ export function CollectionsView({
           </span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{copy.oldest}</p>
+          <p>{localizedcopy.oldest}</p>
           <strong>
             {summary.oldestOverdueDays === null
-              ? copy.unrecorded
-              : copy.days(summary.oldestOverdueDays)}
+              ? localizedcopy.unrecorded
+              : localizedcopy.days(summary.oldestOverdueDays)}
           </strong>
-          <span>{copy.priorityBody}</span>
+          <span>{localizedcopy.priorityBody}</span>
         </article>
       </section>
 
       {summary.excludedByCurrency > 0 ? (
         <div className={styles.warningNotice} role="note">
-          <strong>{copy.mixedCurrency(summary.excludedByCurrency)}</strong>
+          <strong>
+            {localizedcopy.mixedCurrency(summary.excludedByCurrency)}
+          </strong>
         </div>
       ) : null}
 
       <section className={styles.section} aria-labelledby="collections-table">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="collections-table">{copy.tableHeading}</h2>
-            <p>{copy.tableSubheading}</p>
+            <h2 id="collections-table">{localizedcopy.tableHeading}</h2>
+            <p>{localizedcopy.tableSubheading}</p>
           </div>
           <span className={styles.sectionMeta}>
             {plural(cases.length, "{count} result", "{count} results")} ·{" "}
-            {copy.priorityTitle.toLocaleLowerCase()}
+            {localizedcopy.priorityTitle.toLocaleLowerCase()}
           </span>
         </header>
         {cases.length === 0 ? (
-          <p className={styles.empty}>{copy.empty}</p>
+          <p className={styles.empty}>{localizedcopy.empty}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={copy.caption}
+            caption={localizedcopy.caption}
             captionHidden
             density="compact"
             headers={[
@@ -134,7 +144,7 @@ export function CollectionsView({
               "Age",
               "Status",
               "Next action",
-              correctionCopy.heading,
+              localizedcorrectionCopy.heading,
             ]}
             numericColumns={[1, 2]}
             rowKeys={cases.map((entry) => entry.id)}
@@ -163,19 +173,19 @@ export function CollectionsView({
                   ))}
                 </details>
               </div>,
-              <strong>{entry.amount ?? copy.unrecorded}</strong>,
+              <strong>{entry.amount ?? localizedcopy.unrecorded}</strong>,
               entry.overdueDays === null
-                ? copy.unrecorded
-                : copy.days(entry.overdueDays),
+                ? localizedcopy.unrecorded
+                : localizedcopy.days(entry.overdueDays),
               <>
                 <StatusBadge tone={riskTone(entry)}>
                   {entry.statusLabel}
                 </StatusBadge>
                 <div className={styles.secondary}>
-                  {entry.dueLabel ?? copy.unrecorded}
+                  {entry.dueLabel ?? localizedcopy.unrecorded}
                 </div>
               </>,
-              entry.nextAction ?? copy.unrecorded,
+              entry.nextAction ?? localizedcopy.unrecorded,
               <div className={styles.actionStack}>
                 {/*
                  * The invoice aggregate's own projection verb. `actionsFor`

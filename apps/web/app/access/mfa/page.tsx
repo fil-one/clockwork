@@ -1,14 +1,16 @@
+import { getTranslations } from "@/src/i18n/server";
 import Link from "next/link";
 
 import { BrandLogo, Button, Input, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
+
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const t = await getTranslations();
   const { error } = await searchParams;
   return (
     <main className="access-main">

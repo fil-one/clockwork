@@ -1,3 +1,7 @@
+"use client";
+import { useTranslations } from "@/src/i18n/client";
+
+import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -38,6 +42,8 @@ export function QueueDetail({
   standalone?: boolean;
   now?: Date;
 }) {
+  const t = useTranslations();
+  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   const actions = permittedActions(item, roles);
   const restricted = actions.length !== item.permittedActions.length;
   const sla = slaFor(item, now);
@@ -78,18 +84,18 @@ export function QueueDetail({
       */}
       <dl className={styles.detailFacts}>
         <div>
-          <dt>{QUEUE_COPY.details.owner}</dt>
+          <dt>{localizedQUEUE_COPY.details.owner}</dt>
           <dd>{item.owner ?? NOT_RECORDED}</dd>
         </div>
         {item.backup ? (
           <div>
-            <dt>{QUEUE_COPY.details.backup}</dt>
+            <dt>{localizedQUEUE_COPY.details.backup}</dt>
             <dd>{item.backup}</dd>
           </div>
         ) : null}
         {item.risk ? (
           <div>
-            <dt>{QUEUE_COPY.details.risk}</dt>
+            <dt>{localizedQUEUE_COPY.details.risk}</dt>
             <dd>
               <span className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}>
                 {item.risk}
@@ -98,26 +104,26 @@ export function QueueDetail({
           </div>
         ) : null}
         <div>
-          <dt>{QUEUE_COPY.details.status}</dt>
+          <dt>{localizedQUEUE_COPY.details.status}</dt>
           <dd>{item.statusLabel ?? item.status ?? NOT_RECORDED}</dd>
         </div>
         {item.createdAt ? (
           <div>
-            <dt>{QUEUE_COPY.details.created}</dt>
+            <dt>{localizedQUEUE_COPY.details.created}</dt>
             <dd>
               <Moment value={item.createdAt} />
             </dd>
           </div>
         ) : null}
         <div>
-          <dt>{QUEUE_COPY.details.updated}</dt>
+          <dt>{localizedQUEUE_COPY.details.updated}</dt>
           <dd>
             <Moment value={item.updatedAt} />
           </dd>
         </div>
         {item.dueAt ? (
           <div>
-            <dt>{QUEUE_COPY.details.deadline}</dt>
+            <dt>{localizedQUEUE_COPY.details.deadline}</dt>
             <dd>
               <Moment value={item.dueAt} />
             </dd>
@@ -130,11 +136,12 @@ export function QueueDetail({
           className={styles.detailSection}
           aria-labelledby={`policy-${item.id}`}
         >
-          <h3 id={`policy-${item.id}`}>{QUEUE_COPY.details.reason}</h3>
+          <h3 id={`policy-${item.id}`}>{localizedQUEUE_COPY.details.reason}</h3>
           {item.policyReason ? <p>{item.policyReason}</p> : null}
           {item.policyBasis ? (
             <p className={styles.policyBasis}>
-              <strong>{QUEUE_COPY.details.policy}</strong> {item.policyBasis}
+              <strong>{localizedQUEUE_COPY.details.policy}</strong>{" "}
+              {item.policyBasis}
             </p>
           ) : null}
         </section>
@@ -144,7 +151,9 @@ export function QueueDetail({
         className={styles.detailSection}
         aria-labelledby={`evidence-${item.id}`}
       >
-        <h3 id={`evidence-${item.id}`}>{QUEUE_COPY.details.evidence}</h3>
+        <h3 id={`evidence-${item.id}`}>
+          {localizedQUEUE_COPY.details.evidence}
+        </h3>
         <dl className={styles.evidenceList}>
           {item.evidence.map((entry) => (
             <div key={entry.label}>
@@ -153,7 +162,7 @@ export function QueueDetail({
                 {entry.value}
                 {entry.technicalId ? (
                   <details className={styles.technicalDisclosure}>
-                    <summary>{QUEUE_COPY.details.technicalId}</summary>
+                    <summary>{localizedQUEUE_COPY.details.technicalId}</summary>
                     <code>{entry.technicalId}</code>
                   </details>
                 ) : null}
@@ -168,7 +177,9 @@ export function QueueDetail({
           className={styles.detailSection}
           aria-labelledby={`related-${item.id}`}
         >
-          <h3 id={`related-${item.id}`}>{QUEUE_COPY.details.related}</h3>
+          <h3 id={`related-${item.id}`}>
+            {localizedQUEUE_COPY.details.related}
+          </h3>
           <ul className={styles.linkList}>
             {item.related.map((record) => (
               <li key={record.label}>
@@ -183,7 +194,7 @@ export function QueueDetail({
         className={styles.detailSection}
         aria-labelledby={`actions-${item.id}`}
       >
-        <h3 id={`actions-${item.id}`}>{QUEUE_COPY.details.actions}</h3>
+        <h3 id={`actions-${item.id}`}>{localizedQUEUE_COPY.details.actions}</h3>
         {restricted ? (
           <p className={styles.permissionNote} role="note">
             Some decision actions are hidden because this session does not have
@@ -212,17 +223,21 @@ export function QueueDetail({
 }
 
 export function QueueDetailNotFound({ id }: { id: string }) {
+  const t = useTranslations();
+  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   return (
     <main className={styles.page} id="main-content">
       <section className={styles.stateCard} role="status">
-        <p className={styles.eyebrow}>{QUEUE_COPY.details.unavailable}</p>
+        <p className={styles.eyebrow}>
+          {localizedQUEUE_COPY.details.unavailable}
+        </p>
         <h1>We couldn’t find “{id}”</h1>
         <p>
           It may have been resolved, moved, or removed from your permission
           scope.
         </p>
         <Link className={styles.secondaryButton} href="/internal/queues">
-          {QUEUE_COPY.details.back}
+          {localizedQUEUE_COPY.details.back}
         </Link>
       </section>
     </main>

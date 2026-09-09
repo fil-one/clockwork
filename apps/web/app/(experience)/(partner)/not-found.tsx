@@ -1,8 +1,8 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { buttonClassName, EmptyState } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * The partner group's not-found boundary, below `(partner)/layout.tsx` and so
@@ -10,6 +10,7 @@ import { t } from "@/src/i18n/en";
  * to the root 404 and the partner desk's navigation disappears with it.
  */
 export default function PartnerNotFound() {
+  const t = use(getTranslations());
   return (
     <main className="experience-main" id="main-content">
       <EmptyState

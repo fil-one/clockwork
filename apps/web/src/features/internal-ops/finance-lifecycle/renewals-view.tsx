@@ -1,3 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
+import { localizeCopy } from "@/src/i18n/copy";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { plural } from "@/src/i18n/en";
@@ -31,10 +34,12 @@ export function RenewalsView({
   provenance: SurfaceProvenance;
   invoiceProvenance: SurfaceProvenance;
 }) {
+  const t = use(getTranslations());
+  const localizedcopy = localizeCopy(copy, t);
   return (
     <FinancePageFrame
-      title={copy.title}
-      description={copy.description}
+      title={localizedcopy.title}
+      description={localizedcopy.description}
       provenance={provenance}
     >
       <section
@@ -85,7 +90,7 @@ export function RenewalsView({
                   "Notice",
                   "Service term",
                   "Status",
-                  copy.invoicedLabel,
+                  localizedcopy.invoicedLabel,
                 ]}
                 rowKeys={orders.map((order) => order.id)}
                 rows={orders.map((order) => [
@@ -107,7 +112,7 @@ export function RenewalsView({
                       ))}
                     </details>
                   </div>,
-                  order.route ?? copy.routeUnrecorded,
+                  order.route ?? localizedcopy.routeUnrecorded,
                   <strong>{order.noticeLabel}</strong>,
                   order.serviceTerm,
                   <StatusBadge
@@ -118,7 +123,9 @@ export function RenewalsView({
                     {order.statusLabel}
                   </StatusBadge>,
                   <div className={styles.truthStack}>
-                    <strong>{order.invoicedToDate ?? copy.noInvoices}</strong>
+                    <strong>
+                      {order.invoicedToDate ?? localizedcopy.noInvoices}
+                    </strong>
                     {order.invoiceCount > 0 ? (
                       <span>
                         {plural(
@@ -131,7 +138,7 @@ export function RenewalsView({
                     ) : null}
                   </div>,
                 ])}
-                emptyState={copy.empty}
+                emptyState={localizedcopy.empty}
               />
             </section>
           );

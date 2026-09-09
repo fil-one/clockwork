@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useEffect, useId, useState } from "react";
 
@@ -19,6 +21,8 @@ export function ReviewAction({
   summary: ReviewSummary;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
+  const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
   const reasonId = useId().replaceAll(":", "");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -45,8 +49,8 @@ export function ReviewAction({
 
   return (
     <Dialog
-      title={`${lifecycleCopy.review.dialogPrefix} ${summary.action}`}
-      description={lifecycleCopy.review.dialogDescription}
+      title={`${localizedlifecycleCopy.review.dialogPrefix} ${summary.action}`}
+      description={localizedlifecycleCopy.review.dialogDescription}
       trigger={
         <Button variant="secondary" size="small" disabled={disabled}>
           {triggerLabel}
@@ -68,7 +72,7 @@ export function ReviewAction({
           <dd>{summary.impact}</dd>
         </div>
         <div>
-          <dt>Evidence</dt>
+          <dt>{t("ui.116")}</dt>
           <dd>{summary.evidence}</dd>
         </div>
         <div>
@@ -103,7 +107,9 @@ export function ReviewAction({
         rows={3}
         required
       />
-      <p className={styles.actorNote}>{lifecycleCopy.review.actorNote}</p>
+      <p className={styles.actorNote}>
+        {localizedlifecycleCopy.review.actorNote}
+      </p>
       <div className={styles.reviewHandoff} role="note">
         <strong>Review only</strong>
         <span>
@@ -113,7 +119,7 @@ export function ReviewAction({
       </div>
       {reviewed ? (
         <p className={styles.statusMessage} role="status">
-          {lifecycleCopy.review.complete}
+          {localizedlifecycleCopy.review.complete}
         </p>
       ) : null}
     </Dialog>

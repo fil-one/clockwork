@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -30,6 +32,8 @@ export function GlobalSearch({
 }: {
   records: readonly SearchRecord[];
 }) {
+  const t = useTranslations();
+  const localizedSEARCH_COPY = localizeCopy(SEARCH_COPY, t);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -131,9 +135,9 @@ export function GlobalSearch({
   return (
     <main className={styles.searchPage} id="main-content">
       <header className={styles.searchHeader}>
-        <p className={styles.eyebrow}>{SEARCH_COPY.eyebrow}</p>
-        <h1>{SEARCH_COPY.title}</h1>
-        <p>{SEARCH_COPY.description}</p>
+        <p className={styles.eyebrow}>{localizedSEARCH_COPY.eyebrow}</p>
+        <h1>{localizedSEARCH_COPY.title}</h1>
+        <p>{localizedSEARCH_COPY.description}</p>
         <form
           className={styles.searchForm}
           role="search"
@@ -145,7 +149,7 @@ export function GlobalSearch({
             commit(typeof value === "string" ? value : "");
           }}
         >
-          <label htmlFor="global-search">{SEARCH_COPY.label}</label>
+          <label htmlFor="global-search">{localizedSEARCH_COPY.label}</label>
           <div>
             <input
               id="global-search"
@@ -156,21 +160,21 @@ export function GlobalSearch({
               defaultValue={query}
               onKeyDown={onKeyDown}
               aria-controls="global-search-results"
-              placeholder={SEARCH_COPY.placeholder}
+              placeholder={localizedSEARCH_COPY.placeholder}
               autoFocus
             />
-            <button type="submit">{SEARCH_COPY.action}</button>
+            <button type="submit">{localizedSEARCH_COPY.action}</button>
           </div>
           <p>
             <kbd>↑</kbd>
-            <kbd>↓</kbd> {SEARCH_COPY.keyboardHelp}
+            <kbd>↓</kbd> {localizedSEARCH_COPY.keyboardHelp}
           </p>
         </form>
       </header>
 
       {isPending ? (
         <p className={styles.searchProgress} role="status">
-          {SEARCH_COPY.searching}
+          {localizedSEARCH_COPY.searching}
         </p>
       ) : null}
       {!query ? (
@@ -178,10 +182,10 @@ export function GlobalSearch({
           className={styles.searchWelcome}
           aria-labelledby="search-scope-title"
         >
-          <h2 id="search-scope-title">{SEARCH_COPY.scopeTitle}</h2>
-          <p>{SEARCH_COPY.scopeDescription}</p>
+          <h2 id="search-scope-title">{localizedSEARCH_COPY.scopeTitle}</h2>
+          <p>{localizedSEARCH_COPY.scopeDescription}</p>
           <ul>
-            {SEARCH_COPY.scope.map((item) => (
+            {localizedSEARCH_COPY.scope.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
@@ -198,7 +202,7 @@ export function GlobalSearch({
                 commit("");
               }}
             >
-              {SEARCH_COPY.clear}
+              {localizedSEARCH_COPY.clear}
             </Button>
           }
         />
@@ -206,13 +210,13 @@ export function GlobalSearch({
         <section
           id="global-search-results"
           className={styles.searchResults}
-          aria-label={SEARCH_COPY.resultsLabel}
+          aria-label={localizedSEARCH_COPY.resultsLabel}
         >
           <div className={styles.searchResultCount} aria-live="polite">
             <strong>
               {plural(results.length, "{count} result", "{count} results")}
             </strong>
-            <span>{SEARCH_COPY.grouped}</span>
+            <span>{localizedSEARCH_COPY.grouped}</span>
           </div>
           {groups.map((entry) => (
             <section
@@ -260,7 +264,7 @@ export function GlobalSearch({
                       <div className={styles.searchMeta}>
                         <span>{record.status}</span>
                         <details>
-                          <summary>{SEARCH_COPY.reference}</summary>
+                          <summary>{localizedSEARCH_COPY.reference}</summary>
                           <code>{record.id}</code>
                         </details>
                       </div>

@@ -1,3 +1,4 @@
+import { getTranslations } from "@/src/i18n/server";
 import {
   AccountOverview,
   type AccountOverviewProjection,
@@ -6,7 +7,7 @@ import { loadAccountOverviewAccount } from "@/src/features/customer-partner/cust
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
-import { plural, t } from "@/src/i18n/en";
+import { plural, t as englishTranslator } from "@/src/i18n/en";
 import {
   SurfaceActionGate,
   SurfacePermissionGate,
@@ -28,6 +29,7 @@ function text(
 function personNamed(
   records: readonly ProjectionRecord[],
   pattern: RegExp,
+  t = englishTranslator,
 ): string {
   const match = records.find((record) =>
     pattern.test(text(record.data, "value") ?? ""),
@@ -46,6 +48,7 @@ function titleCase(value: string): string {
 }
 
 async function AccountWorkspace() {
+  const t = await getTranslations();
   const [identity, roles, users, procurement] = await Promise.all([
     getRouteIdentity("customer"),
     getRouteRoles("customer"),
@@ -67,12 +70,12 @@ async function AccountWorkspace() {
     facts: [
       {
         label: t("account.owner"),
-        value: personNamed(users.records, /owner/iu),
+        value: personNamed(users.records, /owner/iu, t),
       },
       {
         label: t("account.billingContact"),
         value:
-          account.billingContact ?? personNamed(users.records, /billing/iu),
+          account.billingContact ?? personNamed(users.records, /billing/iu, t),
       },
       ...(account.invoiceDeliveryEmail
         ? [

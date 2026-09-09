@@ -1,8 +1,8 @@
+import { getTranslations } from "@/src/i18n/server";
 import { BrandLogo } from "@clockwork/ui";
 
 import { RegistrationForm } from "@/src/features/registration/registration-form";
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
 
 function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -13,6 +13,7 @@ export default async function RegistrationPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations();
   const query = await searchParams;
   const registrationToken = first(
     query.code ?? query.registration_token ?? query.registrationToken,

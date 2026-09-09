@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -54,11 +56,12 @@ function SelectFilter({
   options: ReadonlyArray<{ value: string; label: string }>;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslations();
   return (
     <label className={styles.filterField}>
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="all">All</option>
+        <option value="all">{t("ui.113")}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -76,7 +79,9 @@ function QueueState({
   kind: "empty" | "no-match";
   onReset: () => void;
 }) {
-  const content = QUEUE_COPY.states[kind];
+  const t = useTranslations();
+  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
+  const content = localizedQUEUE_COPY.states[kind];
   return (
     <section className={styles.stateCard} role="status">
       <h2>{content[0]}</h2>
@@ -87,7 +92,7 @@ function QueueState({
           type="button"
           onClick={onReset}
         >
-          {QUEUE_COPY.clearAll}
+          {localizedQUEUE_COPY.clearAll}
         </button>
       ) : null}
     </section>
@@ -122,6 +127,8 @@ function QueueTable({
   now: Date;
   onSelect: (id: string) => void;
 }) {
+  const t = useTranslations();
+  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   return (
     // The table is wider than the panel on a narrow viewport, so this element
     // scrolls. A scroll container that holds no focusable element of its own
@@ -131,14 +138,16 @@ function QueueTable({
     <div
       className={styles.tableScroller}
       role="region"
-      aria-label={QUEUE_COPY.tableRegionLabel}
+      aria-label={localizedQUEUE_COPY.tableRegionLabel}
       tabIndex={0}
     >
       <table className={styles.table}>
-        <caption className={styles.srOnly}>{QUEUE_COPY.resultCaption}</caption>
+        <caption className={styles.srOnly}>
+          {localizedQUEUE_COPY.resultCaption}
+        </caption>
         <thead>
           <tr>
-            {QUEUE_COPY.table.map((heading) => (
+            {localizedQUEUE_COPY.table.map((heading) => (
               <th key={heading} scope="col">
                 {heading}
               </th>
@@ -227,6 +236,8 @@ export function QueueWorkspace({
   actorId?: string | null;
   demoRefreshEnabled?: boolean;
 }) {
+  const t = useTranslations();
+  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -408,13 +419,13 @@ export function QueueWorkspace({
     <main className={styles.page} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>{QUEUE_COPY.eyebrow}</p>
-          <h1>{QUEUE_COPY.title}</h1>
-          <p>{QUEUE_COPY.description}</p>
+          <p className={styles.eyebrow}>{localizedQUEUE_COPY.eyebrow}</p>
+          <h1>{localizedQUEUE_COPY.title}</h1>
+          <p>{localizedQUEUE_COPY.description}</p>
         </div>
         <p className={styles.freshness}>
           <span aria-hidden="true" />
-          {QUEUE_COPY.freshness}{" "}
+          {localizedQUEUE_COPY.freshness}{" "}
           <time dateTime={generatedAt}>
             {formatOperationalTimestamp(generatedAt)}
           </time>
@@ -423,28 +434,28 @@ export function QueueWorkspace({
 
       {stale ? (
         <section className={styles.staleBanner} role="alert">
-          <strong>{QUEUE_COPY.staleTitle}</strong>
-          <span>{QUEUE_COPY.staleDescription}</span>
+          <strong>{localizedQUEUE_COPY.staleTitle}</strong>
+          <span>{localizedQUEUE_COPY.staleDescription}</span>
           <button
             type="button"
             disabled={refreshState === "pending"}
             onClick={() => void refreshProjection()}
           >
             {refreshState === "pending"
-              ? QUEUE_COPY.staleRefreshing
+              ? localizedQUEUE_COPY.staleRefreshing
               : refreshState === "failed"
-                ? QUEUE_COPY.staleRetry
-                : QUEUE_COPY.staleAction}
+                ? localizedQUEUE_COPY.staleRetry
+                : localizedQUEUE_COPY.staleAction}
           </button>
           {refreshState === "failed" ? (
-            <span role="status">{QUEUE_COPY.staleRefreshFailed}</span>
+            <span role="status">{localizedQUEUE_COPY.staleRefreshFailed}</span>
           ) : null}
         </section>
       ) : null}
 
       <nav
         className={styles.savedViews}
-        aria-label={QUEUE_COPY.savedViewsLabel}
+        aria-label={localizedQUEUE_COPY.savedViewsLabel}
       >
         {SAVED_VIEWS.map((view) => (
           <button
@@ -463,37 +474,37 @@ export function QueueWorkspace({
       <section className={styles.filters} aria-labelledby="queue-filters-title">
         <div className={styles.filterHeading}>
           <div>
-            <h2 id="queue-filters-title">{QUEUE_COPY.filtersTitle}</h2>
-            <p>{QUEUE_COPY.filtersDescription}</p>
+            <h2 id="queue-filters-title">{localizedQUEUE_COPY.filtersTitle}</h2>
+            <p>{localizedQUEUE_COPY.filtersDescription}</p>
           </div>
           <button type="button" onClick={reset}>
-            {QUEUE_COPY.clearAll}
+            {localizedQUEUE_COPY.clearAll}
           </button>
         </div>
         <div className={styles.filterGrid}>
           <label className={`${styles.filterField} ${styles.searchField}`}>
-            <span>{QUEUE_COPY.searchLabel}</span>
+            <span>{localizedQUEUE_COPY.searchLabel}</span>
             <input
               type="search"
               value={searchDraft}
-              placeholder={QUEUE_COPY.searchPlaceholder}
+              placeholder={localizedQUEUE_COPY.searchPlaceholder}
               onChange={(event) => setPendingText(event.target.value)}
             />
           </label>
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.type}
+            label={localizedQUEUE_COPY.filterLabels.type}
             value={filters.type}
             onChange={(type) => update({ type })}
             options={typeOptions}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.owner}
+            label={localizedQUEUE_COPY.filterLabels.owner}
             value={filters.owner}
             onChange={(owner) => update({ owner })}
             options={ownerOptions}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.backup}
+            label={localizedQUEUE_COPY.filterLabels.backup}
             value={filters.backup}
             onChange={(backup) => update({ backup })}
             options={[
@@ -502,7 +513,7 @@ export function QueueWorkspace({
             ]}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.sla}
+            label={localizedQUEUE_COPY.filterLabels.sla}
             value={filters.sla}
             onChange={(sla) => update({ sla })}
             options={[
@@ -512,7 +523,7 @@ export function QueueWorkspace({
             ]}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.risk}
+            label={localizedQUEUE_COPY.filterLabels.risk}
             value={filters.risk}
             onChange={(risk) => update({ risk })}
             options={[
@@ -522,7 +533,7 @@ export function QueueWorkspace({
             ]}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.status}
+            label={localizedQUEUE_COPY.filterLabels.status}
             value={filters.status}
             onChange={(status) => update({ status })}
             options={[
@@ -533,7 +544,7 @@ export function QueueWorkspace({
             ]}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.age}
+            label={localizedQUEUE_COPY.filterLabels.age}
             value={filters.age}
             onChange={(age) => update({ age })}
             options={[
@@ -543,7 +554,7 @@ export function QueueWorkspace({
             ]}
           />
           <SelectFilter
-            label={QUEUE_COPY.filterLabels.sort}
+            label={localizedQUEUE_COPY.filterLabels.sort}
             value={filters.sort}
             onChange={(sort) => update({ sort })}
             options={[
@@ -565,20 +576,20 @@ export function QueueWorkspace({
           {filtered.length} {filtered.length === 1 ? "result" : "results"}
         </strong>
         {labels.length ? (
-          <ul aria-label={QUEUE_COPY.activeFilters}>
+          <ul aria-label={localizedQUEUE_COPY.activeFilters}>
             {labels.map((label) => (
               <li key={label}>{label}</li>
             ))}
           </ul>
         ) : (
-          <span>{QUEUE_COPY.noActiveFilters}</span>
+          <span>{localizedQUEUE_COPY.noActiveFilters}</span>
         )}
       </section>
 
       {isPending ? (
         <div className={styles.loading} role="status">
           <span aria-hidden="true" />
-          {QUEUE_COPY.updating}
+          {localizedQUEUE_COPY.updating}
         </div>
       ) : null}
       {items.length === 0 ? (
@@ -589,7 +600,7 @@ export function QueueWorkspace({
         <div className={styles.workspace} aria-busy={isPending}>
           <section
             className={styles.tablePanel}
-            aria-label={QUEUE_COPY.resultTableLabel}
+            aria-label={localizedQUEUE_COPY.resultTableLabel}
           >
             <QueueTable
               items={paginated}
@@ -599,7 +610,7 @@ export function QueueWorkspace({
             />
             <div className={styles.pagination}>
               <label>
-                {QUEUE_COPY.rowsPerPage}
+                {localizedQUEUE_COPY.rowsPerPage}
                 <select
                   value={filters.pageSize}
                   onChange={(event) =>
@@ -619,20 +630,20 @@ export function QueueWorkspace({
                 disabled={page <= 1}
                 onClick={() => update({ page: page - 1 })}
               >
-                {QUEUE_COPY.previous}
+                {localizedQUEUE_COPY.previous}
               </button>
               <button
                 type="button"
                 disabled={page >= pageCount}
                 onClick={() => update({ page: page + 1 })}
               >
-                {QUEUE_COPY.next}
+                {localizedQUEUE_COPY.next}
               </button>
             </div>
           </section>
           <aside
             className={styles.splitPanel}
-            aria-label={QUEUE_COPY.detailLabel}
+            aria-label={localizedQUEUE_COPY.detailLabel}
           >
             {selected ? (
               <QueueDetail item={selected} roles={roles} now={now} />

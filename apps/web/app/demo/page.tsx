@@ -1,3 +1,5 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import { notFound } from "next/navigation";
 
 import type { DemoPersona } from "@clockwork/testing/personas";
@@ -9,7 +11,6 @@ import {
   demoPersonaSurfacesEnabled,
 } from "@/src/auth/demo-persona";
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
 
 import styles from "./demo-landing.module.css";
 
@@ -28,6 +29,7 @@ function initials(name: string): string {
 }
 
 function PersonaRow({ persona }: { persona: DemoPersona }) {
+  const t = use(getTranslations());
   return (
     <li className={styles.row}>
       <span className={styles.mark} aria-hidden="true">
@@ -69,6 +71,7 @@ function PersonaGroup({
 }
 
 export default function Page() {
+  const t = use(getTranslations());
   if (!demoPersonaSurfacesEnabled(process.env)) notFound();
   return (
     <main className={styles.main} id="main-content">

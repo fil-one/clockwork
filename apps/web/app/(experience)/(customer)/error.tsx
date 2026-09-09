@@ -1,10 +1,9 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useEffect } from "react";
 
 import { Button } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * The customer group's error boundary.
@@ -27,6 +26,7 @@ export default function CustomerExperienceError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations();
   useEffect(() => {
     console.error("Customer experience route error", { digest: error.digest });
   }, [error]);

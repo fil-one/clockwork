@@ -1,3 +1,5 @@
+import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
+import { translateInterfaceText, type Translator } from "@/src/i18n/copy";
 import "server-only";
 
 import type { Route } from "next";
@@ -48,13 +50,19 @@ export interface OperationsHomeData {
   staleChannels: readonly ProjectionChannel[];
 }
 
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
 export async function loadOperationsHome(
   now: Date = new Date(),
+  t: Translator = englishTranslator,
+  locale = "en-US",
 ): Promise<OperationsHomeData> {
+  const number = (count: number) => new Intl.NumberFormat(locale).format(count);
+  const countText = (
+    count: number,
+    key: "cases" | "records" | "orders" | "exports" | "priority",
+  ) =>
+    t(`operations.${key}.${count === 1 ? "one" : "other"}` as MessageId, {
+      count: number(count),
+    });
   const [queues, provisioning, collections, orders, reports] =
     await Promise.all([
       loadPortalRecords("internal", "queues"),
@@ -87,8 +95,8 @@ export async function loadOperationsHome(
   const signals: OperationalSignal[] = [
     {
       label: "Queue work",
-      value: plural(queues.recordCount, "case", "cases"),
-      detail: `${plural(highRiskQueues, "case needs", "cases need")} priority attention.`,
+      value: countText(queues.recordCount, "cases"),
+      detail: countText(highRiskQueues, "priority"),
       channel: "queues",
       generatedAt: queues.generatedAt,
       stale: queues.stale,
@@ -98,8 +106,11 @@ export async function loadOperationsHome(
     },
     {
       label: "Provisioning",
-      value: plural(provisioning.recordCount, "record", "records"),
-      detail: `${plural(provisioningSummary.providerOperations, "provider operation", "provider operations")} and ${plural(provisioningSummary.terminations, "termination", "terminations")}.`,
+      value: countText(provisioning.recordCount, "records"),
+      detail: t("operations.providerSummary", {
+        operations: number(provisioningSummary.providerOperations),
+        terminations: number(provisioningSummary.terminations),
+      }),
       channel: "provisioning",
       generatedAt: provisioning.generatedAt,
       stale: provisioning.stale,
@@ -110,7 +121,10 @@ export async function loadOperationsHome(
     {
       label: "Collections",
       value: collectionSummary.overdueTotal ?? "No amount recorded",
-      detail: `${plural(collectionSummary.overdueCount, "invoice is", "invoices are")} past due, out of ${plural(collectionSummary.openCount, "open invoice", "open invoices")}.`,
+      detail: t("operations.invoiceSummary", {
+        overdue: number(collectionSummary.overdueCount),
+        open: number(collectionSummary.openCount),
+      }),
       channel: "collections",
       generatedAt: collections.generatedAt,
       stale: collections.stale,
@@ -120,7 +134,7 @@ export async function loadOperationsHome(
     },
     {
       label: "Renewal notice",
-      value: plural(noticeDue, "order", "orders"),
+      value: countText(noticeDue, "orders"),
       detail:
         "Orders whose contractual notice date has passed or falls inside 30 days.",
       channel: "orders",
@@ -132,7 +146,7 @@ export async function loadOperationsHome(
     },
     {
       label: "Report exports",
-      value: plural(reports.recordCount, "export", "exports"),
+      value: countText(reports.recordCount, "exports"),
       detail: "Exports recorded against your operator session.",
       channel: "reports",
       generatedAt: reports.generatedAt,
@@ -146,7 +160,16 @@ export async function loadOperationsHome(
   const instants = signals.map((signal) => Date.parse(signal.generatedAt));
   const newest = Math.max(...instants.filter(Number.isFinite));
   return {
-    signals,
+    signals: signals.map((signal) => ({
+      ...signal,
+      label: translateInterfaceText(signal.label, t),
+      action: translateInterfaceText(signal.action, t),
+      detail: translateInterfaceText(signal.detail, t),
+      value:
+        signal.value === "No amount recorded"
+          ? translateInterfaceText(signal.value, t)
+          : signal.value,
+    })),
     generatedAt: Number.isFinite(newest)
       ? new Date(newest).toISOString()
       : now.toISOString(),

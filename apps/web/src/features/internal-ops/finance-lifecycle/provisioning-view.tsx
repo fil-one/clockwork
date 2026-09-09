@@ -1,3 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
+import { localizeCopy } from "@/src/i18n/copy";
 import Link from "next/link";
 
 import { StatusBadge, Table } from "@clockwork/ui";
@@ -31,12 +34,14 @@ export function ProvisioningView({
   work: readonly ProvisioningWork[];
   provenance: SurfaceProvenance;
 }) {
+  const t = use(getTranslations());
+  const localizedcopy = localizeCopy(copy, t);
   const summary = summarizeProvisioningWork(work);
 
   return (
     <FinancePageFrame
-      title={copy.title}
-      description={copy.description}
+      title={localizedcopy.title}
+      description={localizedcopy.description}
       provenance={provenance}
     >
       <section
@@ -44,57 +49,57 @@ export function ProvisioningView({
         aria-label="Provisioning work by kind"
       >
         <article className={styles.summaryCard}>
-          <p>{copy.providerOperations}</p>
+          <p>{localizedcopy.providerOperations}</p>
           <strong>{summary.providerOperations}</strong>
           <span>Provider calls the platform is driving to completion</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{copy.terminations}</p>
+          <p>{localizedcopy.terminations}</p>
           <strong>{summary.terminations}</strong>
           <span>Services ending, with their teardown and final billing</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{copy.highRisk}</p>
+          <p>{localizedcopy.highRisk}</p>
           <strong>{summary.highRisk}</strong>
           <span>Items that need immediate operator attention</span>
         </article>
       </section>
 
       <div className={styles.warningNotice} role="note">
-        <strong>{copy.retryTitle}</strong>
-        <span>{copy.retryBody}</span>
-        <Link href="/internal/recovery">{copy.recoveryLink}</Link>
+        <strong>{localizedcopy.retryTitle}</strong>
+        <span>{localizedcopy.retryBody}</span>
+        <Link href="/internal/recovery">{localizedcopy.recoveryLink}</Link>
       </div>
 
       {summary.unclassified > 0 ? (
         <div className={styles.notice} role="note">
-          <strong>{copy.unclassified(summary.unclassified)}</strong>
+          <strong>{localizedcopy.unclassified(summary.unclassified)}</strong>
         </div>
       ) : null}
 
       <section className={styles.section} aria-labelledby="recovery-table">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="recovery-table">{copy.tableHeading}</h2>
-            <p>{copy.description}</p>
+            <h2 id="recovery-table">{localizedcopy.tableHeading}</h2>
+            <p>{localizedcopy.description}</p>
           </div>
           <span className={styles.sectionMeta}>
             {plural(work.length, "{count} record", "{count} records")}
           </span>
         </header>
         {work.length === 0 ? (
-          <p className={styles.empty}>{copy.empty}</p>
+          <p className={styles.empty}>{localizedcopy.empty}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={copy.caption}
+            caption={localizedcopy.caption}
             captionHidden
             density="compact"
             headers={[
               "Record",
               "Kind",
               "Provider",
-              copy.attemptsLabel,
+              localizedcopy.attemptsLabel,
               "Status",
               "Next action",
             ]}
@@ -117,7 +122,7 @@ export function ProvisioningView({
               item.kindLabel,
               item.provider ?? "Not recorded",
               item.attemptCount === null ? (
-                copy.noAttempts
+                localizedcopy.noAttempts
               ) : (
                 <strong>{item.attemptCount}</strong>
               ),
