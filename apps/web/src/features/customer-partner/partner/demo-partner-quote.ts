@@ -163,6 +163,25 @@ function createdQuotes(state: DemoAdapterState): StoredQuote[] {
     .filter(isStoredQuote);
 }
 
+function projectedPartnerQuote(quote: StoredQuote): PartnerRecord {
+  const transfer = moneySchema.safeParse(quote.snapshot.total);
+  const resale = moneySchema.safeParse(quote.snapshot.partnerResaleTotal);
+  return {
+    ...quote.record,
+    ...(transfer.success && resale.success
+      ? {
+          quotePricing: {
+            transferPrice: displayMoney(
+              transfer.data.currency,
+              transfer.data.minor,
+            ),
+            resalePrice: displayMoney(resale.data.currency, resale.data.minor),
+          },
+        }
+      : {}),
+  };
+}
+
 export function demoCreatedPartnerQuotes(
   state: DemoAdapterState,
   partnerAccountId: string,
@@ -176,7 +195,7 @@ export function demoCreatedPartnerQuotes(
           ? -1
           : 0,
     )
-    .map((quote) => quote.record);
+    .map(projectedPartnerQuote);
 }
 
 export function demoPartnerQuoteRecord(
@@ -184,13 +203,14 @@ export function demoPartnerQuoteRecord(
   partnerAccountId: string,
   recordKey: string,
 ): PartnerRecord | undefined {
-  return createdQuotes(state).find(
+  const found = createdQuotes(state).find(
     (quote) =>
       quote.partnerAccountId === partnerAccountId &&
       (quote.record.id === recordKey ||
         quote.aggregateId === recordKey ||
         `quote-${quote.aggregateId}` === recordKey),
-  )?.record;
+  );
+  return found ? projectedPartnerQuote(found) : undefined;
 }
 
 export function demoPartnerQuoteContext(
