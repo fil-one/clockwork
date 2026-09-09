@@ -12,6 +12,7 @@ import {
 } from "@/src/auth/demo-persona";
 import { brandAsset } from "@/src/features/shell/brand-assets";
 
+import { DemoLanguageSelector } from "./demo-language-selector";
 import styles from "./demo-landing.module.css";
 
 export const metadata = { title: "Guided demo" };
@@ -49,13 +50,14 @@ function PersonaRow({ persona }: { persona: DemoPersona }) {
 }
 
 function PersonaGroup({
+  id,
   heading,
   personas,
 }: {
+  id: string;
   heading: string;
   personas: readonly DemoPersona[];
 }) {
-  const id = `demo-group-${heading.replaceAll(/\W+/g, "-").toLowerCase()}`;
   return (
     <section className={styles.group} aria-labelledby={id}>
       <h2 id={id} className={styles.groupHeading}>
@@ -81,17 +83,20 @@ export default function Page() {
           src={brandAsset()}
           name={t("app.name")}
         />
+        <DemoLanguageSelector />
         <p className={styles.eyebrow}>{t("demo.landing.eyebrow")}</p>
         <h1 className={styles.title}>{t("demo.landing.title")}</h1>
         <p className={styles.description}>{t("demo.landing.description")}</p>
       </header>
       <PersonaGroup
+        id="demo-group-customers-and-partners"
         heading={t("demo.landing.external")}
         personas={demoPersonaCatalog.filter(
           (persona) => !persona.isInternalStaff,
         )}
       />
       <PersonaGroup
+        id="demo-group-fil-one-staff"
         heading={t("demo.landing.internal")}
         personas={demoPersonaCatalog.filter(
           (persona) => persona.isInternalStaff,
