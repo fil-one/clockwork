@@ -4,6 +4,7 @@
 !.env.example
 .next/
 .netlify/
+.trigger/
 deno.lock
 .next-*/
 next-env.d.ts

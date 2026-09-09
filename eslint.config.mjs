@@ -10,6 +10,7 @@ export default tseslint.config(
       // Deploy adapter output. Generated into the app directory during a build
       // and not part of the compiled project.
       "**/.netlify/**",
+      "**/.trigger/**",
       // Release reports and downloaded test browsers are generated artifacts.
       "**/.artifacts/**",
       "**/coverage/**",
