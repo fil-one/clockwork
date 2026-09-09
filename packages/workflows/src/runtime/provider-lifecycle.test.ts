@@ -146,6 +146,32 @@ describe("authoritative lifecycle task handlers", () => {
     );
   });
 
+  it("uses the same occurrence identity for Trigger Date payloads and serialized replays", () => {
+    const { handlers } = dependencies();
+    const handler = handlers.get("lifecycle-pocs-proposal-v1");
+    const invocation = {
+      taskId: "lifecycle-pocs-proposal-v1",
+      triggerRunId: "run-schedule",
+      attempt: 1,
+      idempotencyKey: "lifecycle:schedule:date-regression",
+      payload: { timestamp: "2026-09-09T02:20:00.000Z" },
+    };
+    const expected = handler?.aggregate(invocation);
+    expect(expected).toMatchObject({ aggregateVersion: 1 });
+    expect(
+      handler?.aggregate({
+        ...invocation,
+        payload: { timestamp: new Date(invocation.payload.timestamp) },
+      }),
+    ).toEqual(expected);
+    expect(() =>
+      handler?.aggregate({
+        ...invocation,
+        payload: { timestamp: new Date("invalid") },
+      }),
+    ).toThrow("LIFECYCLE_TASK_AGGREGATE_ID_REQUIRED");
+  });
+
   it("requires an aggregate version for non-scheduled invocations", () => {
     const { handlers } = dependencies();
     const handler = handlers.get("lifecycle-agreements-envelope-dispatch-v1");

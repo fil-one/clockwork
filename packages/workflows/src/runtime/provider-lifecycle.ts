@@ -293,8 +293,13 @@ function identityFromPayload(invocation: LifecycleTaskInvocation): {
   // Trigger scheduled payloads do not carry a domain aggregate. Treat each UTC
   // schedule occurrence as an immutable scheduler aggregate; the selected
   // executor then queries due domain records and returns a replay-safe summary.
-  const timestamp = payload.timestamp;
-  if (typeof timestamp === "string" && Number.isFinite(Date.parse(timestamp))) {
+  const timestamp =
+    payload.timestamp instanceof Date
+      ? payload.timestamp.getTime()
+      : typeof payload.timestamp === "string"
+        ? Date.parse(payload.timestamp)
+        : Number.NaN;
+  if (Number.isFinite(timestamp)) {
     const digest = createHash("sha256")
       .update(invocation.taskId)
       .update("\0")
