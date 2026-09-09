@@ -428,12 +428,12 @@ export const config = {
     {
       // Netlify's Next edge handoff can consume raw request bodies even when
       // middleware returns an unmodified pass-through. Both API namespaces and
-      // the narrowly scoped demo payment namespace go directly to
+      // the narrowly scoped demo mutation endpoints go directly to
       // self-authenticating route boundaries. Server Actions also bypass this
       // proxy, then authenticate from their sealed session or demo grant and
       // enforce release-proof origin at the destination.
       source:
-        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)|api/demo/payments(?:/|$)).*)",
+        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)|api/demo/payments(?:/|$)|api/demo/orders/provision(?:/|$)|demo/quote/[a-f0-9]{64}/respond(?:/|$)).*)",
       missing: [
         { type: "header", key: "next-action" },
         {
