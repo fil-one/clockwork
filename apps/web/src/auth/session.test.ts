@@ -16,13 +16,16 @@ const authMocks = vi.hoisted(() => ({
   findMfaReceipt: vi.fn(),
   requestHeaders: new Map<string, string>(),
   requestCookies: new Map<string, string>(),
-  refreshSession: vi.fn(),
+  authenticateCookie: vi.fn(),
+  loadSealedSession: vi.fn(),
   withAuth: vi.fn(),
 }));
 
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   getTokenClaims: authMocks.getTokenClaims,
-  refreshSession: authMocks.refreshSession,
+  getWorkOS: () => ({
+    userManagement: { loadSealedSession: authMocks.loadSealedSession },
+  }),
   withAuth: authMocks.withAuth,
 }));
 
@@ -164,10 +167,18 @@ describe("WorkOS commerce session mapping", () => {
     authMocks.findMfaReceipt.mockResolvedValue(undefined);
     authMocks.assistedCookie = undefined;
     authMocks.withAuth.mockResolvedValue(workosSession());
-    authMocks.refreshSession.mockResolvedValue(workosSession());
+    authMocks.requestCookies.set("wos-session", "sealed-session");
+    authMocks.loadSealedSession.mockReturnValue({
+      authenticate: authMocks.authenticateCookie,
+    });
+    authMocks.authenticateCookie.mockResolvedValue({
+      authenticated: true,
+      ...workosSession(),
+    });
     authMocks.resolveWorkosIdentity.mockResolvedValue(commerceIdentity());
     authMocks.listAuthorizedMemberships.mockResolvedValue([membership()]);
     authMocks.getTokenClaims.mockResolvedValue({
+      sub: fixture.workosUserId,
       amr: ["pwd", "mfa"],
       auth_time: Math.floor(Date.now() / 1000),
     });
@@ -262,7 +273,7 @@ describe("WorkOS commerce session mapping", () => {
     expect(authMocks.withAuth).toHaveBeenCalledOnce();
   });
 
-  it("authenticates a skipped fetch action from the sealed cookie refresh path", async () => {
+  it("authenticates a skipped fetch action from the read-only sealed cookie path", async () => {
     authMocks.requestHeaders.set("next-action", "a".repeat(40));
     authMocks.requestHeaders.set("origin", "https://commerce.clockwork.test");
     authMocks.requestHeaders.set("host", "commerce.clockwork.test");
@@ -271,7 +282,11 @@ describe("WorkOS commerce session mapping", () => {
       userId: fixture.commerceUserId,
       authenticationSource: "workos",
     });
-    expect(authMocks.refreshSession).toHaveBeenCalledOnce();
+    expect(authMocks.authenticateCookie).toHaveBeenCalledOnce();
+    expect(authMocks.loadSealedSession).toHaveBeenCalledWith({
+      sessionData: "sealed-session",
+      cookiePassword: process.env.WORKOS_COOKIE_PASSWORD,
+    });
     expect(authMocks.withAuth).not.toHaveBeenCalled();
   });
 
@@ -280,8 +295,29 @@ describe("WorkOS commerce session mapping", () => {
       "content-type",
       "multipart/form-data; boundary=x",
     );
-    authMocks.refreshSession.mockResolvedValue({ user: null });
+    authMocks.authenticateCookie.mockResolvedValue({
+      authenticated: false,
+      reason: "invalid_jwt",
+    });
 
+    await expect(getCommerceSession()).rejects.toThrow(
+      "WorkOS authentication is required",
+    );
+    expect(authMocks.resolveWorkosIdentity).not.toHaveBeenCalled();
+  });
+
+  it("can authenticate again during the read-only post-action render", async () => {
+    authMocks.requestHeaders.set("next-action", "a".repeat(40));
+    await getCommerceSession();
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      userId: fixture.commerceUserId,
+    });
+    expect(authMocks.authenticateCookie).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a sealed identity that differs from the verified token subject", async () => {
+    authMocks.requestHeaders.set("next-action", "a".repeat(40));
+    authMocks.getTokenClaims.mockResolvedValue({ sub: "another-user" });
     await expect(getCommerceSession()).rejects.toThrow(
       "WorkOS authentication is required",
     );
@@ -656,6 +692,7 @@ describe("WorkOS commerce session mapping", () => {
     vi.stubEnv("WORKOS_MFA_ASSURANCE_CLAIM", "acr");
     vi.stubEnv("WORKOS_MFA_ASSURANCE_VALUES", "urn:workos:mfa");
     authMocks.getTokenClaims.mockResolvedValue({
+      sub: fixture.workosUserId,
       amr: ["mfa"],
       acr: "urn:workos:mfa",
     });

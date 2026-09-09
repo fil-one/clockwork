@@ -357,12 +357,13 @@ export default async function proxy(
         workosProxy && !isWebhook
           ? await workosProxy(tracedRequest, event)
           : undefined;
+      // AuthKit appends PKCE and refreshed session cookies directly to headers.
+      // Rehydrate NextResponse's cookie collection before cookies.set below;
+      // otherwise that stale collection overwrites the provider cookies.
       response =
-        authResponse instanceof NextResponse
-          ? authResponse
-          : authResponse instanceof Response
-            ? new NextResponse(authResponse.body, authResponse)
-            : NextResponse.next({ request: { headers: forwardedHeaders } });
+        authResponse instanceof Response
+          ? new NextResponse(authResponse.body, authResponse)
+          : NextResponse.next({ request: { headers: forwardedHeaders } });
     }
     if (!request.cookies.has("clockwork-csrf"))
       response.cookies.set(

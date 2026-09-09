@@ -13,6 +13,7 @@ const configured = Boolean(
 export const GET = configured
   ? handleAuth({
       returnPathname: "/",
+      ...(process.env.APP_ORIGIN ? { baseURL: process.env.APP_ORIGIN } : {}),
       onSuccess: async ({ organizationId, user }) => {
         if (!organizationId) return;
         await resolveWorkosIdentity(getServiceDatabase(), {

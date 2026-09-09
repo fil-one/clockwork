@@ -33,7 +33,7 @@ import {
 import { findMfaReceipt, resolveWorkosIdentity } from "@clockwork/db";
 import {
   getTokenClaims,
-  refreshSession,
+  getWorkOS,
   type UserInfo,
   withAuth,
 } from "@workos-inc/authkit-nextjs";
@@ -230,16 +230,35 @@ function releaseProofRequestOrigin(
 }
 
 /**
- * AuthKit's `withAuth` intentionally refuses a request that did not traverse
- * its proxy. Server Actions skip that proxy to preserve their body, so they
- * authenticate from the sealed cookie through AuthKit's public refresh path;
- * `refreshSession` also writes the rotated cookie through Next's cookie store.
+ * Actions skip AuthKit's proxy to preserve their body. Authenticate their
+ * sealed cookie without rotating it: Next renders the action response with
+ * the same POST headers, but its cookie store is read-only during that render.
+ * Normal navigations remain responsible for refreshing expired sessions.
  */
 export async function getVerifiedWorkosSession(): Promise<UserInfo> {
   const requestHeaders = await headers();
-  const resolved = isDirectServerAction(requestHeaders)
-    ? await refreshSession()
-    : await withAuth();
+  if (isDirectServerAction(requestHeaders)) {
+    const cookieStore = await cookies();
+    const sessionData = cookieStore.get(
+      process.env.WORKOS_COOKIE_NAME || "wos-session",
+    )?.value;
+    const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD;
+    if (!sessionData || !cookiePassword)
+      throw new Error("WorkOS authentication is required");
+    const resolved = await getWorkOS()
+      .userManagement.loadSealedSession({
+        sessionData,
+        cookiePassword,
+      })
+      .authenticate();
+    if (!resolved.authenticated || !resolved.user)
+      throw new Error("WorkOS authentication is required");
+    const claims = await getTokenClaims(resolved.accessToken);
+    if (claims.sub !== resolved.user.id)
+      throw new Error("WorkOS authentication is required");
+    return resolved;
+  }
+  const resolved = await withAuth();
   if (!resolved.user) throw new Error("WorkOS authentication is required");
   return resolved;
 }

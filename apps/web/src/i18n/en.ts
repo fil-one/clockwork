@@ -458,7 +458,7 @@ export const en = {
     "The address may have changed, or the record may no longer be visible to this account.",
   "state.fatal.title": "This action cannot continue",
   "state.fatal.description":
-    "The record is unchanged. Contact support with the request ID so the cause can be reviewed.",
+    "Reload to check the latest record before trying again. If the problem continues, contact support with the request ID.",
   "detail.eyebrow": "Artifact record",
   "detail.description":
     "Identifiers, governing references, evidence, documents, and the latest audit events for this immutable version.",
