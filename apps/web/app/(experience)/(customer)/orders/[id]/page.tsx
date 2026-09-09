@@ -39,7 +39,10 @@ export default async function Page({
              * could type: the order's persisted identifier appears nowhere they
              * can read it.
              */}
-            {guidedDemo && record?.projectionId && record.version ? (
+            {guidedDemo &&
+            !record?.allowedActions?.includes(
+              "request_renewal",
+            ) ? null : guidedDemo && record?.projectionId && record.version ? (
               <ProjectionActionButtons
                 audience="customer"
                 channel="orders"

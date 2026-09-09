@@ -205,6 +205,21 @@ describe("DemoQuoteFlow", () => {
     expect(
       ((await store.read()) as DemoQuoteState).projectionOverrides[quoteId],
     ).toMatchObject({ version: 3, data: { status: "accepted" } });
+    const orderProjection = await new ExplicitDemoProjectionSource(store).find({
+      session,
+      audience: "customer",
+      channel: "orders",
+      accountId,
+      recordKey: `order-${order.id}`,
+      now,
+    });
+    expect(orderProjection).toMatchObject({
+      data: {
+        status: "pending",
+        statusLabel: "Accepted · awaiting provisioning",
+        authoritative: { status: "accepted" },
+      },
+    });
     const acceptedProjection = await new ExplicitDemoProjectionSource(
       store,
     ).find({
