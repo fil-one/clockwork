@@ -1,3 +1,4 @@
+import type { DemoQuoteState } from "@/src/features/experience-server/demo-quote-flow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -237,4 +238,121 @@ it("restores separate prices for drafts saved before the pricing display update"
   expect(
     demoPartnerQuoteRecord(legacy, demoAccountIds.referral, body.id),
   ).toBeUndefined();
+});
+
+it("issues two bound documents, protects transfer prices, and safely replays", async () => {
+  const { DemoExperienceRepository } =
+    await import("@/src/features/experience-server/demo-experience-repository");
+  const { DemoEvidenceGateway } =
+    await import("@/src/features/experience-server/evidence-gateway");
+  const options = { store, now: "2026-08-18T12:00:00.000Z" };
+  await handleDemoPartnerQuoteCommand(
+    request("partner-lifecycle-create-01"),
+    partner,
+    options,
+  );
+  const repository = new DemoExperienceRepository(
+    store,
+    () => new DemoEvidenceGateway(),
+  );
+  const documents: { requestId: string; documentId: string }[] = [];
+  for (const audience of ["partner", "end_client"] as const) {
+    const response = await handleDemoPartnerQuoteCommand(
+      request(`partner-prepare-${audience}`, {
+        id: body.id,
+        accountId: body.accountId,
+        expectedVersion: 1,
+        action: "prepare_artifact",
+        payload: {
+          audience,
+          issuedAt: options.now,
+          retainUntil: "2033-08-18T12:00:00.000Z",
+        },
+      }),
+      partner,
+      options,
+    );
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
+      record: {
+        data: { artifactRequest: { requestId: string; documentId: string } };
+      };
+    };
+    const prepared = result.record.data.artifactRequest;
+    documents.push(prepared);
+    const kind =
+      audience === "partner"
+        ? "partner_transfer_quote"
+        : "partner_resale_quote";
+    const rendered = await repository.findArtifact(
+      partner,
+      kind,
+      prepared.requestId,
+      "partner-test-render",
+    );
+    expect(rendered.representation.byteLength).not.toBe("0");
+    await expect(
+      repository.findArtifact(
+        {
+          ...partner,
+          accountIds: [demoAccountIds.resaleEndClient],
+          roles: ["owner"],
+        },
+        kind,
+        prepared.requestId,
+        "cross-account-download",
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+  }
+  const state = (await store.read()) as DemoQuoteState;
+  const [transferDocument, resaleDocument] = documents;
+  if (!transferDocument || !resaleDocument) throw new Error("Missing document");
+  const resale = state.commercialArtifactRequests?.[resaleDocument.requestId];
+  expect(JSON.stringify(resale?.definition)).toContain(
+    '"minorUnits":"3000000"',
+  );
+  expect(JSON.stringify(resale?.definition)).not.toContain("2640000");
+  const command = {
+    id: body.id,
+    accountId: body.accountId,
+    action: "issue",
+    expectedVersion: 1,
+    payload: {
+      artifactIssuedAt: options.now,
+      renderedDocumentId: transferDocument.documentId,
+      partnerDocumentId: resaleDocument.documentId,
+    },
+  };
+  const first = await handleDemoPartnerQuoteCommand(
+    request("partner-final-issue-01", command),
+    partner,
+    options,
+  );
+  expect(first.status).toBe(200);
+  const replay = await handleDemoPartnerQuoteCommand(
+    request("partner-final-issue-01", command),
+    partner,
+    options,
+  );
+  expect(await replay.json()).toEqual(await first.json());
+  expect(
+    demoPartnerQuoteRecord(
+      await store.read(),
+      demoAccountIds.reseller,
+      body.id,
+    ),
+  ).toMatchObject({
+    status: "open",
+    recordVersion: 2,
+    documents: [
+      { kind: "partner_transfer_quote" },
+      { kind: "partner_resale_quote" },
+    ],
+  });
+  const stale = await handleDemoPartnerQuoteCommand(
+    request("partner-stale-issue-01", command),
+    partner,
+    options,
+  );
+  expect(stale.status).toBe(409);
 });

@@ -107,9 +107,9 @@ export const ar = {
   "cp.commercial.agreementReview": "مراجعة الاتفاقية وقبولها",
   "cp.commercial.orderReview": "مراجعة الالتزام الناتج",
   "cp.commercial.orderConfirmation":
-    "راجعت عرض السعر المقبول والاتفاقية الحاكمة وأمر الشراء وبداية الخدمة ونهايتها والالتزام الناتج.",
+    "راجعت عرض السعر الصادر والاتفاقية الحاكمة وأمر الشراء وبداية الخدمة ونهايتها والالتزام الناتج.",
   "cp.commercial.orderTermsHelp":
-    "تستند شروط الطلب إلى عرض السعر المقبول {quoteReference} بالإصدار {quoteVersion} وإلى {agreementTitle} بالإصدار {agreementVersion}. لا يحل مرجع أمر الشراء محل هذه الشروط المثبّتة ولا يغيّرها.",
+    "تستند شروط الطلب إلى عرض السعر الصادر {quoteReference} بالإصدار {quoteVersion} وإلى {agreementTitle} بالإصدار {agreementVersion}. لا يحل مرجع أمر الشراء محل هذه الشروط المثبّتة ولا يغيّرها.",
   "cp.commercial.orderArtifactRetention":
     "يُحتفظ بنموذج الطلب المُنشأ وأدلة قبوله لمدة {years} سنة من لحظة القبول المسجّلة.",
   "cp.commercial.estimatedSpend": "الإنفاق التقديري",

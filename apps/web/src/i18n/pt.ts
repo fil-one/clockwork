@@ -113,9 +113,9 @@ export const pt = {
   "cp.commercial.agreementReview": "Revisar e aceitar o contrato",
   "cp.commercial.orderReview": "Revisar o compromisso resultante",
   "cp.commercial.orderConfirmation":
-    "Revisei a cotação aceita, o contrato aplicável, o pedido de compra, o início e o término do serviço e o compromisso resultante.",
+    "Revisei a cotação emitida, o contrato aplicável, o pedido de compra, o início e o término do serviço e o compromisso resultante.",
   "cp.commercial.orderTermsHelp":
-    "Os termos do pedido vêm da cotação aceita {quoteReference}, versão {quoteVersion}, e de {agreementTitle}, versão {agreementVersion}. Uma referência de pedido de compra não substitui nem altera esses termos fixados.",
+    "Os termos do pedido vêm da cotação emitida {quoteReference}, versão {quoteVersion}, e de {agreementTitle}, versão {agreementVersion}. Uma referência de pedido de compra não substitui nem altera esses termos fixados.",
   "cp.commercial.orderArtifactRetention":
     "O formulário de pedido gerado e a evidência de sua aceitação são mantidos por {years} anos a partir do instante de aceitação registrado.",
   "cp.commercial.estimatedSpend": "Gasto estimado",

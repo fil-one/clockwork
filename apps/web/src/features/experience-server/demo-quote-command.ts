@@ -134,7 +134,7 @@ function commandFrom(
   const quoteId = uuid(body, "id");
   const accountId = uuid(body, "accountId");
   const payload = record(body.payload);
-  if (action === "create") {
+  if (action === "create" || action === "revise") {
     if (text(payload, "route") !== "direct")
       throw new ExperienceProblem(
         422,
@@ -143,6 +143,12 @@ function commandFrom(
       );
     return {
       action,
+      ...(action === "revise"
+        ? {
+            expectedVersion: positiveVersion(body),
+            revisionId: uuid(payload, "revisionId"),
+          }
+        : {}),
       quoteId,
       accountId,
       priceBookId: uuid(payload, "priceBookId"),

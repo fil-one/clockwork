@@ -12,6 +12,7 @@ import {
 import {
   createQuoteDraft,
   issueQuote,
+  reviseQuote,
   priceQuote,
   type QuoteSnapshot,
 } from "@clockwork/domain/core";
@@ -42,7 +43,9 @@ export interface DemoQuoteLineCommand {
 
 export type DemoQuoteCommand =
   | {
-      readonly action: "create";
+      readonly action: "create" | "revise";
+      readonly expectedVersion?: number;
+      readonly revisionId?: string;
       readonly quoteId: string;
       readonly accountId: string;
       readonly priceBookId: string;
@@ -89,8 +92,9 @@ export interface DemoQuoteCommercialArtifactRequest {
   readonly subjectId: string;
   readonly commercialAccountId: string;
   readonly audienceAccountId: string;
-  readonly audience: "end_client";
-  readonly documentKind: "direct_quote";
+  readonly audience: "end_client" | "partner";
+  readonly documentKind:
+    "direct_quote" | "partner_transfer_quote" | "partner_resale_quote";
   readonly sourceHash: string;
   readonly definition: CommercialArtifactDefinition;
   readonly retainUntil: string;
@@ -182,7 +186,7 @@ function quoteArtifactDefinition(
 
 function existingQuote(
   state: DemoQuoteState,
-  command: Exclude<DemoQuoteCommand, { action: "create" }>,
+  command: Exclude<DemoQuoteCommand, { action: "create" | "revise" }>,
 ): DemoCreatedQuote {
   const quote = state.createdQuotes?.[command.quoteId];
   if (!quote)
@@ -213,8 +217,36 @@ function transition(
   data: Record<string, unknown>;
 } {
   const occurredAt = now.toISOString();
-  if (command.action === "create") {
-    const prior = state.createdQuotes?.[command.quoteId];
+  if (command.action === "create" || command.action === "revise") {
+    const previous =
+      command.action === "revise"
+        ? state.createdQuotes?.[command.quoteId]
+        : undefined;
+    if (
+      command.action === "revise" &&
+      (!previous || previous.snapshot.accountId !== command.accountId)
+    )
+      throw new ExperienceProblem(404, "NOT_FOUND", "Quote was not found");
+    if (
+      previous &&
+      (previous.rowVersion !== command.expectedVersion ||
+        previous.snapshot.seriesId !== command.seriesId ||
+        previous.snapshot.priceBook.id !== command.priceBookId)
+    )
+      throw new ExperienceProblem(
+        409,
+        "VERSION_CONFLICT",
+        "The revision must use the current quote version, series and price book",
+      );
+    const newId =
+      command.action === "revise" ? command.revisionId : command.quoteId;
+    if (!newId)
+      throw new ExperienceProblem(
+        422,
+        "INVALID_BODY",
+        "A revision identifier is required",
+      );
+    const prior = state.createdQuotes?.[newId];
     if (prior)
       throw new ExperienceProblem(
         409,
@@ -247,8 +279,8 @@ function transition(
           : "The quote could not be priced",
       );
     }
-    const snapshot = createQuoteDraft({
-      id: command.quoteId,
+    let snapshot = createQuoteDraft({
+      id: newId,
       seriesId: command.seriesId,
       accountId: command.accountId,
       priceBook: { id: book.id, version: book.version },
@@ -261,6 +293,25 @@ function transition(
       createdBy: session.userId,
       createdAt: occurredAt,
     });
+    let superseded: DemoCreatedQuote | undefined;
+    if (previous) {
+      try {
+        const revised = reviseQuote(previous.snapshot, snapshot);
+        snapshot = revised.revision;
+        superseded = {
+          ...previous,
+          snapshot: revised.prior,
+          rowVersion: previous.rowVersion + 1,
+          updatedAt: occurredAt,
+        };
+      } catch (error) {
+        throw new ExperienceProblem(
+          422,
+          "INVALID_STATE",
+          error instanceof Error ? error.message : "Quote cannot be revised",
+        );
+      }
+    }
     const created: DemoCreatedQuote = {
       snapshot,
       rowVersion: 1,
@@ -276,7 +327,11 @@ function transition(
     return {
       state: {
         ...state,
-        createdQuotes: { ...state.createdQuotes, [snapshot.id]: created },
+        createdQuotes: {
+          ...state.createdQuotes,
+          ...(superseded ? { [superseded.snapshot.id]: superseded } : {}),
+          [snapshot.id]: created,
+        },
       },
       rowVersion: created.rowVersion,
       data: {
@@ -289,7 +344,10 @@ function transition(
     };
   }
 
-  const stored = existingQuote(state, command);
+  const stored = existingQuote(
+    state,
+    command as Exclude<DemoQuoteCommand, { action: "create" | "revise" }>,
+  );
   if (command.action === "prepare_artifact") {
     if (stored.snapshot.status !== "draft")
       throw new ExperienceProblem(
@@ -348,6 +406,12 @@ function transition(
     };
   }
 
+  if (command.action !== "issue")
+    throw new ExperienceProblem(
+      422,
+      "ACTION_NOT_ALLOWED",
+      "Invalid quote action",
+    );
   const request = Object.values(state.commercialArtifactRequests ?? {}).find(
     (candidate): candidate is DemoQuoteCommercialArtifactRequest =>
       typeof candidate === "object" &&

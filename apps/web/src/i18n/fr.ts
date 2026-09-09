@@ -117,9 +117,9 @@ export const fr = {
   "cp.commercial.agreementReview": "Vérifier et accepter l’accord",
   "cp.commercial.orderReview": "Vérifier l’engagement qui en découle",
   "cp.commercial.orderConfirmation":
-    "J’ai vérifié le devis accepté, l’accord applicable, le bon de commande, les dates de début et de fin du service et l’engagement qui en découle.",
+    "J’ai vérifié le devis émis, l’accord applicable, le bon de commande, les dates de début et de fin du service et l’engagement qui en découle.",
   "cp.commercial.orderTermsHelp":
-    "Les conditions de la commande proviennent du devis accepté {quoteReference}, version {quoteVersion}, et de {agreementTitle}, version {agreementVersion}. Une référence de bon de commande ne remplace ni ne modifie ces conditions fixées.",
+    "Les conditions de la commande proviennent du devis émis {quoteReference}, version {quoteVersion}, et de {agreementTitle}, version {agreementVersion}. Une référence de bon de commande ne remplace ni ne modifie ces conditions fixées.",
   "cp.commercial.orderArtifactRetention":
     "Le bon de commande généré et les preuves de son acceptation sont conservés pendant {years} ans à compter de l’instant d’acceptation enregistré.",
   "cp.commercial.estimatedSpend": "Dépense estimée",

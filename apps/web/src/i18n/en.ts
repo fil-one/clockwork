@@ -105,9 +105,9 @@ export const en = {
   "cp.commercial.agreementReview": "Review and accept agreement",
   "cp.commercial.orderReview": "Review resulting commitment",
   "cp.commercial.orderConfirmation":
-    "I reviewed the accepted quote, governing agreement, purchase order, service start, service end, and resulting commitment.",
+    "I reviewed the issued quote, governing agreement, purchase order, service start, service end, and resulting commitment.",
   "cp.commercial.orderTermsHelp":
-    "Order terms come from accepted quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
+    "Order terms come from issued quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
   "cp.commercial.orderArtifactRetention":
     "The rendered order form and its acceptance evidence are retained for {years} years from the recorded acceptance instant.",
   "cp.commercial.estimatedSpend": "Estimated spend",
@@ -549,7 +549,7 @@ export const en = {
     "No active governing agreement is recorded for this account.",
   "orders.accept.unavailable.title": "No acceptable quote is selected",
   "orders.accept.unavailable.description":
-    "Order acceptance starts from an accepted quote in this account. Choose one from the quote ledger.",
+    "Order acceptance starts from an issued quote in this account. Choose one from the quote ledger.",
   "orders.accept.unavailable.action": "Open the quote ledger",
   "orders.accept.validation.po": "Enter the purchase order reference.",
   "orders.accept.validation.serviceStart": "Choose the service start date.",

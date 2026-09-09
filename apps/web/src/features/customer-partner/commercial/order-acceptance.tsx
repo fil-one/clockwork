@@ -676,7 +676,7 @@ export function OrderAcceptance({
           <h1>{localizedcustomerPartnerCopy.commercial.orderReview}</h1>
           <p className={styles.description}>
             This legal and financial confirmation creates the resulting service
-            commitment from an accepted quote.
+            commitment from an issued quote.
           </p>
         </div>
         <LeaveDraftControl

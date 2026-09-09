@@ -814,7 +814,12 @@ export class DemoExperienceRepository implements ExperienceRepository {
     kind: ArtifactKind,
     subjectId: string,
   ): Promise<ResolvedArtifactSource | undefined> {
-    if (kind === "order_form" || kind === "direct_quote") {
+    if (
+      kind === "order_form" ||
+      kind === "direct_quote" ||
+      kind === "partner_transfer_quote" ||
+      kind === "partner_resale_quote"
+    ) {
       const request = Object.values(
         (await this.#read()).commercialArtifactRequests ?? {},
       ).find(
@@ -1054,7 +1059,10 @@ export class DemoExperienceRepository implements ExperienceRepository {
     requestId: string,
   ): Promise<ArtifactDownloadRecord> {
     const prepared =
-      kind === "order_form" || kind === "direct_quote"
+      kind === "order_form" ||
+      kind === "direct_quote" ||
+      kind === "partner_transfer_quote" ||
+      kind === "partner_resale_quote"
         ? await this.#preparedArtifact(id)
         : undefined;
     if (prepared)

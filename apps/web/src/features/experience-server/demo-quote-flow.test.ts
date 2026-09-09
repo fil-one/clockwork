@@ -317,3 +317,84 @@ describe("DemoQuoteFlow", () => {
     });
   });
 });
+
+it("revises an issued quote atomically without changing its commercial snapshot", async () => {
+  const store = createMemoryDemoStore();
+  const flow = new DemoQuoteFlow(store);
+  await flow.execute({
+    session,
+    command: create,
+    idempotencyKey: "revision-create-key",
+    requestHash: hash("a"),
+    now,
+  });
+  // A prior issuance is an immutable historical fact; revisions create another ID.
+  await store.update((current) => {
+    const state = current as DemoQuoteState;
+    const prior = state.createdQuotes?.[quoteId];
+    if (!prior) throw new Error("Missing prior quote");
+    return {
+      ...state,
+      createdQuotes: {
+        [quoteId]: {
+          ...prior,
+          snapshot: {
+            ...prior.snapshot,
+            status: "issued" as const,
+            issuedAt: now.toISOString(),
+            immutableSnapshot: "original-commercial-evidence",
+          },
+          rowVersion: 2,
+        },
+      },
+    };
+  });
+  const revisionId = "70000000-0000-4000-8000-000000000099";
+  const line = create.lines[0];
+  if (!line) throw new Error("Missing quote line");
+  const command = {
+    ...create,
+    action: "revise" as const,
+    revisionId,
+    expectedVersion: 2,
+    lines: [{ ...line, quantity: "50" }],
+  };
+  await flow.execute({
+    session,
+    command,
+    idempotencyKey: "revision-save-key",
+    requestHash: hash("b"),
+    now,
+  });
+  const state = (await store.read()) as DemoQuoteState;
+  expect(state.createdQuotes?.[quoteId]).toMatchObject({
+    rowVersion: 3,
+    snapshot: {
+      status: "superseded",
+      immutableSnapshot: "original-commercial-evidence",
+      lines: [{ quantity: "42" }],
+    },
+  });
+  expect(state.createdQuotes?.[revisionId]).toMatchObject({
+    rowVersion: 1,
+    snapshot: {
+      status: "draft",
+      revision: 2,
+      previousRevisionId: quoteId,
+      seriesId: create.seriesId,
+      lines: [{ quantity: "50" }],
+    },
+  });
+  await expect(
+    flow.execute({
+      session,
+      command: {
+        ...command,
+        revisionId: "70000000-0000-4000-8000-000000000098",
+      },
+      idempotencyKey: "revision-stale-key",
+      requestHash: hash("c"),
+      now,
+    }),
+  ).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+});

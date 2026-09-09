@@ -116,8 +116,8 @@ function nextStep(
       };
     if (actions.includes("edit"))
       return {
-        href: `/quotes/new?revises=${reference}`,
-        label: "Create revised draft",
+        href: "/quotes/new",
+        label: "Create a new quote",
       };
     return null;
   }
@@ -164,9 +164,19 @@ function DetailActions({
       </span>
     );
   return (
-    <Link className={styles.primary} href={step.href}>
-      {step.label}
-    </Link>
+    <>
+      <Link className={styles.primary} href={step.href}>
+        {step.label}
+      </Link>
+      {record.kind === "quotes" && record.status === "open" ? (
+        <Link
+          className={styles.secondary}
+          href={`/quotes/new?revises=${encodeURIComponent(recordKey)}`}
+        >
+          Create revised draft
+        </Link>
+      ) : null}
+    </>
   );
 }
 
