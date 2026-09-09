@@ -187,7 +187,9 @@ export function demoPartnerQuoteRecord(
   return createdQuotes(state).find(
     (quote) =>
       quote.partnerAccountId === partnerAccountId &&
-      (quote.record.id === recordKey || quote.aggregateId === recordKey),
+      (quote.record.id === recordKey ||
+        quote.aggregateId === recordKey ||
+        `quote-${quote.aggregateId}` === recordKey),
   )?.record;
 }
 
@@ -404,7 +406,7 @@ export async function handleDemoPartnerQuoteCommand(
         createdBy: session.userId,
         createdAt: now,
       });
-      const reference = `PQ-DEMO-${command.id.slice(0, 8).toUpperCase()}`;
+      const reference = `quote-${command.id}`;
       const line = command.payload.lines[0];
       if (!line) throw new Error("Partner quote line disappeared");
       const record: PartnerRecord = {
@@ -412,6 +414,16 @@ export async function handleDemoPartnerQuoteCommand(
         name: `${relationship.endClient.name} · ${line.sku}`,
         context: `${command.payload.route === "distributor" ? "Two-tier distributor" : "Resale"} · ${line.region} · ${line.quantity} TB · ${line.termMonths} months`,
         status: "draft",
+        quotePricing: {
+          transferPrice: displayMoney(
+            priced.total.currency,
+            priced.total.minor,
+          ),
+          resalePrice: displayMoney(
+            command.payload.partnerResaleTotal.currency,
+            command.payload.partnerResaleTotal.minor,
+          ),
+        },
         risk: priced.marginResult === "exception_required" ? "high" : "low",
         owner: "Partner commercial team",
         value: `${displayMoney(priced.total.currency, priced.total.minor)} transfer / ${displayMoney(command.payload.partnerResaleTotal.currency, command.payload.partnerResaleTotal.minor)} resale`,

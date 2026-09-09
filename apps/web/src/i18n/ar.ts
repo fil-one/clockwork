@@ -1,6 +1,37 @@
 import type { MessageCatalog } from "./en";
 
 export const ar = {
+  "quotes.form.description":
+    "اختر عرضًا وحدد السعة والمدة، ثم راجع مسودة عرض السعر.",
+  "quotes.form.offerHelp": "اختر عرضًا متاحًا للمنطقة التي تحتاجها.",
+  "quotes.form.reviewTitle": "مراجعة المسودة",
+  "quotes.form.reviewDescription":
+    "يُحسب السعر عند إنشاء المسودة. بعد ذلك، افتح المسودة المحفوظة لتجهيز مستندها وإصدار عرض السعر. يمكنك مراجعة العرض الصادر قبل قبول الطلب.",
+  "quotes.form.expiryHelp": "استخدم التاريخ والوقت المحليين لديك.",
+  "quotes.form.expiryFuture": "اختر تاريخ انتهاء لاحقًا للوقت الحالي.",
+  "quotes.form.stageTerms": "السعة والمدة والانتهاء",
+  "quotes.form.stageReview": "مراجعة المسودة",
+  "quotes.form.partnerDescription":
+    "اختر عرضًا وعميلاً نهائيًا، ثم حدد سعر إعادة البيع. تحسب Fil One سعر التحويل الخاص بك عند إنشاء المسودة.",
+
+  "quotes.issue.title": "إكمال عرض السعر",
+  "quotes.issue.description":
+    "جهّز مستند عرض السعر المحفوظ ليصبح متاحًا للقبول. إصدار عرض السعر لا ينشئ طلبًا.",
+  "quotes.issue.action": "تجهيز عرض السعر وإصداره",
+  "quotes.issue.working": "جارٍ تجهيز عرض السعر…",
+  "quotes.issue.retry": "متابعة عرض السعر",
+  "quotes.issue.accept": "مراجعة الطلب وقبوله",
+  "quotes.issue.refresh":
+    "حدّث هذه الصفحة للتحقق من أحدث نسخة من عرض السعر وصلاحيات الوصول، ثم أعد المحاولة.",
+  "quotes.issue.pricingReview":
+    "تحتاج هذه المسودة إلى مراجعة السعر قبل إصدارها. تواصل مع فريق Fil One.",
+  "quotes.issue.documentUnavailable":
+    "تعذّر التحقق من مستند عرض السعر. لم يُصدر أي عرض سعر. أعد المحاولة.",
+  "quotes.issue.rendering":
+    "لا يزال المستند قيد التجهيز. تابع عرض السعر للتحقق مرة أخرى.",
+  "quotes.issue.synchronizing":
+    "تم إصدار عرض السعر. لا تزال حالته قيد التحديث؛ تابع عرض السعر للتحقق مرة أخرى.",
+
   "cp.common.loadingTitle": "جارٍ تحميل السجلات",
   "cp.common.loadingBody": "جارٍ جلب أحدث السجلات.",
   "cp.common.emptyTitle": "لا توجد بيانات بعد",
@@ -630,7 +661,7 @@ export const ar = {
   "partner.detail.quote.revise": "إنشاء مراجعة",
   "partner.detail.quote.issue.title": "الإصدار مشروط",
   "partner.detail.quote.issue.description":
-    "تُعدّ Fil One مستندات منفصلة للعميل النهائي والشريك وتربطها أولاً. يظهر الإجراء بعد جاهزية المستندين لفتح المراجعة والتأكيد.",
+    "يجب على فريق عمليات القنوات تجهيز مستندات منفصلة للعميل والشريك قبل إصدار عرض السعر. تواصل مع دعم الشركاء للمتابعة.",
   "partner.detail.quote.cancel.title": "الإلغاء غير متاح هنا",
   "partner.detail.quote.cancel.description":
     "تتولى عمليات القنوات إلغاء عروض أسعار الشركاء. تواصل معها لإلغاء هذا العرض.",
@@ -644,7 +675,7 @@ export const ar = {
   "partner.quote.new.disabled.created":
     "تم إنشاء المسودة المسعّرة. افتحها من قائمة عروض الأسعار للمتابعة.",
   "partner.quote.new.success":
-    "تم إنشاء المسودة بأسعار الخادم. راجع سعر التحويل الذي أعاده الخادم قبل استخدام إجراء الإصدار.",
+    "تم إنشاء المسودة مع السعر. افتحها لمراجعة الأسعار المحفوظة والخطوات التالية.",
   "partner.quote.new.failure": "تعذّر إنشاء عرض السعر.",
   "support.title": "متابعة الدعم",
   "support.description":

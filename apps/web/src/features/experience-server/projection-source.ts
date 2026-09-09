@@ -36,7 +36,7 @@ import {
   DEMO_DEFAULT_PARTNER_ACCOUNT,
   type DemoCreatedOrder,
 } from "./demo-portal-records";
-import type { DemoCreatedQuote } from "./demo-quote-flow";
+import type { DemoCreatedQuote, DemoQuoteState } from "./demo-quote-flow";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
@@ -380,6 +380,23 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
     const snapshot = quote.snapshot;
     const issued = snapshot.status === "issued";
     const presentationStatus = issued ? "open" : snapshot.status;
+    const quoteState = state as DemoQuoteState;
+    const artifacts = Object.values(quoteState.commercialArtifactRequests ?? {})
+      .filter(
+        (request) =>
+          request.subjectType === "quote" &&
+          request.subjectId === snapshot.id &&
+          request.commercialAccountId === snapshot.accountId &&
+          request.documentId === snapshot.renderedDocumentId &&
+          quoteState.artifactDeliveries?.[request.id]?.documentId ===
+            request.documentId,
+      )
+      .map((request) => ({
+        kind: "direct_quote" as const,
+        id: request.id,
+        label: "Quote document",
+        state: "stored" as const,
+      }));
     return {
       id: demoUuid(`projection:quote:${snapshot.id}`),
       key: `quote-${snapshot.id}`,
@@ -393,6 +410,7 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
       freshnessMode: "source",
       data: {
         kind: "quotes",
+        artifacts,
         id: `quote-${snapshot.id}`,
         title: `Direct capacity quote · ${quote.displayNumber}`,
         description: `${snapshot.lines.length} priced ${snapshot.lines.length === 1 ? "line" : "lines"} · direct purchase`,
@@ -424,6 +442,7 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
         paymentTermsDays: quote.paymentTermsDays,
         authoritative: {
           status: snapshot.status,
+          marginFloorResult: snapshot.marginResult,
           revision: snapshot.revision,
           accountId: snapshot.accountId,
           priceBookId: snapshot.priceBook.id,

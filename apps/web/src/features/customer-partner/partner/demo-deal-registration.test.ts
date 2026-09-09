@@ -212,3 +212,28 @@ it("enforces the current configured request maximum and retains its snapshot ato
     initialProtectionDays: 30,
   });
 });
+
+it("does not describe a referral registration as a resale", async () => {
+  const referral = { ...partner, accountIds: [demoAccountIds.referral] };
+  const command = {
+    ...body,
+    accountId: demoAccountIds.referral,
+    payload: {
+      ...body.payload,
+      partnerAccountId: demoAccountIds.referral,
+      endClientAccountId: demoAccountIds.endClient,
+    },
+  };
+  const response = await handleDemoDealRegistrationCommand(
+    request("referral-route-label-0001", command),
+    referral,
+    { store, now: "2026-08-18T12:00:00.000Z" },
+  );
+  expect(response.status).toBe(200);
+  const records = demoCreatedRegistrations(
+    await store.read(),
+    demoAccountIds.referral,
+  );
+  expect(records[0]?.context).toBe("240 TB · 90-day protection requested");
+  expect(records[0]?.id).toContain(body.id.toUpperCase());
+});

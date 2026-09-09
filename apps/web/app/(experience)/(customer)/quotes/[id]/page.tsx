@@ -1,6 +1,7 @@
+import { QuoteIssue } from "@/src/features/customer-partner/commercial/quote-issue";
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 
 export default async function Page({
@@ -9,14 +10,27 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [roles, record] = await Promise.all([
-    getRouteRoles("customer"),
+  const [identity, record] = await Promise.all([
+    getRouteIdentity("customer"),
     loadCommercialRecord("quotes", id),
   ]);
-  const canWrite = roles.some((role) => role === "owner" || role === "admin");
+  const canWrite = identity.role === "owner" || identity.role === "admin";
   return (
     <SurfacePermissionGate audience="customer" requiredPermission="quote:read">
-      <CommercialRecordDetail canMutate={canWrite} id={id} record={record} />
+      <CommercialRecordDetail
+        canMutate={canWrite}
+        id={id}
+        record={record}
+        actions={
+          canWrite && record?.status === "draft" && record.aggregateId ? (
+            <QuoteIssue
+              accountId={identity.accountId}
+              quoteId={record.aggregateId}
+              recordKey={id}
+            />
+          ) : undefined
+        }
+      />
     </SurfacePermissionGate>
   );
 }

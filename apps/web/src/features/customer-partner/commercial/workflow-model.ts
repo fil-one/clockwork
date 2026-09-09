@@ -81,6 +81,7 @@ export function validateQuoteStage(
   draft: QuoteDraft,
   accounts: readonly SelectorOption[],
   offers: readonly QuoteOfferOption[],
+  now: Date = new Date(),
 ): QuoteErrors {
   const errors: QuoteErrors = {};
   if (stage === 1) {
@@ -99,6 +100,8 @@ export function validateQuoteStage(
     const expiry = new Date(draft.expiresAt);
     if (!draft.expiresAt || Number.isNaN(expiry.valueOf()))
       errors.expiresAt = "Enter the date and time when this quote expires.";
+    else if (expiry.getTime() <= now.getTime())
+      errors.expiresAt = "Choose an expiry after the current time.";
   }
   return errors;
 }

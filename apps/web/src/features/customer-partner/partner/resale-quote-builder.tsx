@@ -142,7 +142,11 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
     quoteId: string;
     payload: ReturnType<typeof resaleQuotePayload>;
   } | null>(null);
-  const stages = localizedcustomerPartnerCopy.commercial.quoteStages;
+  const stages = [
+    t("cp.commercial.quoteStages.0"),
+    t("quotes.form.stageTerms"),
+    t("quotes.form.stageReview"),
+  ];
   const partnerPriced = partnerPricedRoute(context.route);
 
   /**
@@ -253,11 +257,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             {quoteRouteLabel(context.route)} quote
           </p>
           <h1>Create a partner quote</h1>
-          <p>
-            Choose recognizable commercial options. Fil One submits the existing
-            IDs, calculates transfer pricing, and returns the authoritative
-            draft.
-          </p>
+          <p>{t("quotes.form.partnerDescription")}</p>
         </div>
         <LeaveDraftControl
           armed={unsaved}
@@ -517,7 +517,14 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           ) : null}
           {notice ? (
             <p className={styles.success} role="status">
-              {notice}
+              {notice}{" "}
+              {submissionRef.current ? (
+                <Link
+                  href={`/partner/quotes/quote-${submissionRef.current.quoteId}`}
+                >
+                  {t("quotes.builder.createdLink")}
+                </Link>
+              ) : null}
             </p>
           ) : null}
         </form>

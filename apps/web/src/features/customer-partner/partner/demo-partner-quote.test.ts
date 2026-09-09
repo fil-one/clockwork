@@ -189,3 +189,26 @@ describe("durable partner quote demo", () => {
     ).toHaveLength(0);
   });
 });
+
+it("keeps quotes with the same UUID timestamp prefix separately addressable", async () => {
+  const secondId = "78000000-0000-4000-8000-000000000002";
+  for (const [id, key] of [
+    [body.id, "quote-collision-first-001"],
+    [secondId, "quote-collision-second-002"],
+  ] as const) {
+    const response = await handleDemoPartnerQuoteCommand(
+      request(key, { ...body, id }),
+      partner,
+      { store, now: "2026-08-18T12:00:00.000Z" },
+    );
+    expect(response.status).toBe(200);
+  }
+  const state = await store.read();
+  const quotes = demoCreatedPartnerQuotes(state, demoAccountIds.reseller);
+  expect(new Set(quotes.map((quote) => quote.recordKey)).size).toBe(2);
+  for (const id of [body.id, secondId]) {
+    expect(
+      demoPartnerQuoteRecord(state, demoAccountIds.reseller, `quote-${id}`)?.id,
+    ).toBe(`quote-${id}`);
+  }
+});

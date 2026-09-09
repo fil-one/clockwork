@@ -1,3 +1,4 @@
+import { formatMoney } from "@/src/features/shared/format";
 import "server-only";
 
 import type { Route } from "next";
@@ -733,12 +734,37 @@ function partnerDetailRoute(
   return href as Route;
 }
 
+function partnerQuotePricing(
+  data: Readonly<Record<string, unknown>>,
+): PartnerRecord["quotePricing"] {
+  const value = data.authoritative;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined;
+  const facts = value as Record<string, unknown>;
+  const currency = facts.currency;
+  if (currency !== "USD" && currency !== "EUR" && currency !== "GBP")
+    return undefined;
+  if (
+    typeof facts.totalMinor !== "string" ||
+    !/^\d+$/.test(facts.totalMinor) ||
+    typeof facts.partnerResaleTotalMinor !== "string" ||
+    !/^\d+$/.test(facts.partnerResaleTotalMinor)
+  )
+    return undefined;
+  return {
+    transferPrice: formatMoney(facts.totalMinor, currency),
+    resalePrice: formatMoney(facts.partnerResaleTotalMinor, currency),
+  };
+}
+
 function partnerRecord(
   record: ProjectionRecord,
   surface: PartnerSurfaceKey,
 ): PartnerRecord {
   const data = record.data;
+  const pricing = surface === "quotes" ? partnerQuotePricing(data) : undefined;
   return {
+    ...(pricing ? { quotePricing: pricing } : {}),
     id: text(data, "id"),
     name: text(data, "name"),
     context: contextLine(data),

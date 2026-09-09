@@ -227,11 +227,11 @@ export async function handleDemoDealRegistrationCommand(
         "The named end client is outside this partner relationship",
       );
     const now = input.now ?? new Date().toISOString();
-    const reference = `REG-DEMO-${command.id.slice(0, 8).toUpperCase()}`;
+    const reference = `REG-DEMO-${command.id.toUpperCase()}`;
     const record: PartnerRecord = {
       id: reference,
       name: `${endClient.name} · ${command.payload.workload}`,
-      context: `Resale · ${command.payload.expectedVolume} TB · ${command.payload.protectionDays}-day protection requested`,
+      context: `${command.payload.expectedVolume} TB · ${command.payload.protectionDays}-day protection requested`,
       status: "pending",
       risk: "medium",
       owner: "Fil One channel operations",

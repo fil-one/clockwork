@@ -24,7 +24,10 @@ async function completeStageOne(user: ReturnType<typeof userEvent.setup>) {
 async function completeStageTwo(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("Committed capacity (TB)"), "120");
   await user.type(screen.getByLabelText("Term (months)"), "12");
-  await user.type(screen.getByLabelText("Quote expiry"), "2026-08-31T17:00");
+  await user.type(
+    screen.getByLabelText("Quote expiry"),
+    new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 16),
+  );
   await user.click(screen.getByRole("button", { name: "Continue" }));
 }
 
@@ -63,7 +66,7 @@ describe("three-stage quote builder", () => {
       authoritativeQuoteOffer.priceBookId,
     );
     expect(
-      screen.getByText(/selected price-book ID remains hidden/u),
+      screen.getByText(/Choose an available offer for the region/u),
     ).toBeVisible();
   });
 
@@ -170,13 +173,11 @@ describe("three-stage quote builder", () => {
     await completeStageOne(user);
     expect(
       screen.getByRole("heading", {
-        name: "Capacity, term, direct route, and expiry",
+        name: "Capacity, term, and expiry",
       }),
     ).toBeVisible();
     await completeStageTwo(user);
-    expect(
-      screen.getByRole("heading", { name: "Review and issue" }),
-    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Review draft" })).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Create priced draft" }),
     ).toBeEnabled();

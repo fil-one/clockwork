@@ -2,6 +2,39 @@ import type { MessageCatalog } from "./en";
 
 /** Spanish interface copy. Identifiers, legal records and user data are not translated. */
 export const es = {
+  "quotes.form.description":
+    "Elige una oferta, indica la capacidad y el plazo y revisa el borrador.",
+  "quotes.form.offerHelp":
+    "Elige una oferta disponible para la región que necesitas.",
+  "quotes.form.reviewTitle": "Revisa tu borrador",
+  "quotes.form.reviewDescription":
+    "Al crear el borrador se calcula el precio. Después, abre el borrador guardado para preparar su documento y emitir la oferta. Podrás revisarla antes de aceptar un pedido.",
+  "quotes.form.expiryHelp": "Usa tu fecha y hora locales.",
+  "quotes.form.expiryFuture":
+    "Elige un vencimiento posterior a la hora actual.",
+  "quotes.form.stageTerms": "Capacidad, plazo y vencimiento",
+  "quotes.form.stageReview": "Revisar borrador",
+  "quotes.form.partnerDescription":
+    "Elige una oferta y un cliente final e indica tu precio de reventa. Fil One calcula tu precio de transferencia al crear el borrador.",
+
+  "quotes.issue.title": "Completa esta oferta",
+  "quotes.issue.description":
+    "Prepara el documento de la oferta guardada para que se pueda aceptar. Emitir una oferta no crea un pedido.",
+  "quotes.issue.action": "Preparar y emitir oferta",
+  "quotes.issue.working": "Preparando oferta…",
+  "quotes.issue.retry": "Continuar esta oferta",
+  "quotes.issue.accept": "Revisar y aceptar pedido",
+  "quotes.issue.refresh":
+    "Actualiza esta página para comprobar la oferta y tu acceso e inténtalo de nuevo.",
+  "quotes.issue.pricingReview":
+    "Es necesario revisar el precio de este borrador antes de emitirlo. Contacta con tu equipo de Fil One.",
+  "quotes.issue.documentUnavailable":
+    "No se pudo verificar el documento. No se ha emitido ninguna oferta. Inténtalo de nuevo.",
+  "quotes.issue.rendering":
+    "El documento sigue preparándose. Continúa esta oferta para comprobarlo de nuevo.",
+  "quotes.issue.synchronizing":
+    "La oferta se ha emitido. Su estado aún se está actualizando; continúa para comprobarlo.",
+
   "cp.common.loadingTitle": "Cargando registros",
   "cp.common.loadingBody": "Se están recuperando los registros más recientes.",
   "cp.common.emptyTitle": "Todavía no hay nada aquí",
@@ -660,7 +693,7 @@ export const es = {
   "partner.detail.quote.revise": "Crear revisión",
   "partner.detail.quote.issue.title": "La emisión está condicionada",
   "partner.detail.quote.issue.description":
-    "Fil One prepara y vincula primero documentos separados para el cliente y el socio. La acción aparece cuando ambos están listos y abre la revisión y confirmación.",
+    "El equipo de operaciones de canal debe preparar documentos separados para el cliente y el socio antes de emitir esta oferta. Contacta con soporte para socios para continuar.",
   "partner.detail.quote.cancel.title": "La cancelación no está disponible aquí",
   "partner.detail.quote.cancel.description":
     "Operaciones de canal gestiona la cancelación de cotizaciones de socios. Contacta con el equipo para cancelar esta cotización.",
@@ -674,7 +707,7 @@ export const es = {
   "partner.quote.new.disabled.created":
     "El borrador con precio ya se creó. Ábrelo desde las cotizaciones para continuar.",
   "partner.quote.new.success":
-    "Borrador creado con precios del servidor. Revisa el precio de transferencia devuelto antes de usar la acción Emitir.",
+    "Se ha creado el borrador con precio. Ábrelo para revisar los precios guardados y los siguientes pasos.",
   "partner.quote.new.failure": "No se pudo crear la cotización.",
   "support.title": "Consulta de soporte",
   "support.description":

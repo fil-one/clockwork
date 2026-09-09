@@ -25,7 +25,6 @@ import {
   customerQuoteRoute,
   firstQuoteError,
   quotePayload,
-  quoteStageLabels,
   prefilledQuoteDraft,
   resolveSelectorId,
   validateQuoteStage,
@@ -173,6 +172,11 @@ export function QuoteBuilder({
   origin?: QuoteOrigin;
 }) {
   const t = useTranslations();
+  const stages = [
+    t("cp.commercial.quoteStages.0"),
+    t("quotes.form.stageTerms"),
+    t("quotes.form.stageReview"),
+  ];
   const accountOptions: readonly SelectorOption[] = [
     {
       id: account.id,
@@ -311,10 +315,7 @@ export function QuoteBuilder({
         <div>
           <p className={styles.taskContext}>Quote draft · no commitment yet</p>
           <h1>Create a quote</h1>
-          <p className={styles.description}>
-            Build the commercial offer in three stages. Human-readable choices
-            resolve to active server identifiers only when submitted.
-          </p>
+          <p className={styles.description}>{t("quotes.form.description")}</p>
         </div>
         <LeaveDraftControl
           armed={unsaved}
@@ -362,7 +363,7 @@ export function QuoteBuilder({
           tabIndex={-1}
         >
           <ol className={styles.steps} aria-label="Quote creation stages">
-            {quoteStageLabels.map((label, index) => {
+            {stages.map((label, index) => {
               const number = (index + 1) as QuoteStage;
               const className =
                 number === stage
@@ -384,7 +385,7 @@ export function QuoteBuilder({
 
           <div>
             <p className={styles.taskContext}>Stage {stage} of 3</p>
-            <h2 id="quote-stage-heading">{quoteStageLabels[stage - 1]}</h2>
+            <h2 id="quote-stage-heading">{stages[stage - 1]}</h2>
           </div>
 
           {stage === 1 ? (
@@ -401,7 +402,7 @@ export function QuoteBuilder({
                 />
                 <SearchableSelector
                   error={errors.offer}
-                  help="Search by offer details; the selected price-book ID remains hidden."
+                  help={t("quotes.form.offerHelp")}
                   id="offer"
                   label="Offer"
                   onChange={(value) => {
@@ -495,13 +496,20 @@ export function QuoteBuilder({
                   </p>
                 </fieldset>
                 <Field
-                  error={errors.expiresAt}
+                  error={
+                    errors.expiresAt ===
+                    "Choose an expiry after the current time."
+                      ? t("quotes.form.expiryFuture")
+                      : errors.expiresAt
+                  }
                   id="expiresAt"
                   label="Quote expiry"
                 >
                   <input
                     aria-describedby={
-                      errors.expiresAt ? "expiresAt-error" : undefined
+                      errors.expiresAt
+                        ? "expiresAt-error expiresAt-help"
+                        : "expiresAt-help"
                     }
                     aria-invalid={Boolean(errors.expiresAt) || undefined}
                     id="expiresAt"
@@ -511,6 +519,9 @@ export function QuoteBuilder({
                     type="datetime-local"
                     value={draft.expiresAt}
                   />
+                  <p id="expiresAt-help" className={styles.muted}>
+                    {t("quotes.form.expiryHelp")}
+                  </p>
                 </Field>
               </div>
             </fieldset>
@@ -518,12 +529,9 @@ export function QuoteBuilder({
 
           {stage === 3 ? (
             <section aria-labelledby="quote-review-heading">
-              <h3 id="quote-review-heading">Draft boundary</h3>
+              <h3 id="quote-review-heading">{t("quotes.form.reviewTitle")}</h3>
               <p className={styles.notice}>
-                Review customer, offer, region, capacity, term, route, parties,
-                and expiry. This step creates a server-priced draft. Issuance is
-                available only after the rendered artifact is prepared and
-                bound, so this screen does not infer an open status.
+                {t("quotes.form.reviewDescription")}
               </p>
               <ul className={styles.reviewList}>
                 <li>
@@ -567,6 +575,7 @@ export function QuoteBuilder({
               {stage > 1 ? (
                 <button
                   className={styles.secondary}
+                  disabled={pending}
                   onClick={() =>
                     setStage((current) => (current - 1) as QuoteStage)
                   }

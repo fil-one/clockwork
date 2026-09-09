@@ -57,3 +57,29 @@ describe("partner quote detail creation actions", () => {
     },
   );
 });
+
+it("shows the saved transfer and resale amounts on that quote's detail", async () => {
+  mocks.loadPartnerRecords.mockResolvedValue({
+    records: [
+      {
+        id: "quote-current",
+        recordKey: "quote-current",
+        name: "Current customer quote",
+        context: "Resale",
+        status: "draft",
+        risk: "low",
+        owner: "Partner",
+        value: "Commercial position",
+        secondary: "Expires tomorrow",
+        quotePricing: {
+          transferPrice: "£39,600.00",
+          resalePrice: "£50,000.00",
+        },
+      },
+    ],
+  });
+  render(await PartnerQuoteDetail({ id: "quote-current" }));
+  expect(screen.getByText("£39,600.00")).toBeVisible();
+  expect(screen.getByText("£50,000.00")).toBeVisible();
+  expect(screen.queryByText("Not recorded")).toBeNull();
+});

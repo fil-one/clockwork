@@ -11,7 +11,7 @@ export type BuyQuoteProjectionLookup =
       rowVersion: number;
       totalMinor?: string;
       currency?: "USD" | "EUR" | "GBP";
-      marginResult?: string;
+      marginResult?: string | undefined;
     }
   | { status: "pending" }
   | { status: "unavailable" }
