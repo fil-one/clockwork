@@ -564,7 +564,7 @@ export const de = {
     "Bestellungen, Bereitstellung, Berechtigungen, Nutzung, Änderungen und Laufzeiten ohne erneute Eingabe.",
   "orders.amendment": "Vertragsänderung anfordern",
   "orders.accept.source":
-    "Angenommenes Angebot {reference} · Version {version}",
+    "Ausgestelltes Angebot {reference} · Version {version}",
   "orders.accept.agreement.unknown":
     "Für dieses Konto ist keine aktive maßgebliche Vereinbarung erfasst.",
   "orders.accept.unavailable.title": "Kein annehmbares Angebot ausgewählt",

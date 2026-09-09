@@ -553,7 +553,7 @@ export const pt = {
   "orders.description":
     "Ordens de compra, provisionamento, direitos, uso, aditivos e prazos sem redigitação.",
   "orders.amendment": "Solicitar aditivo",
-  "orders.accept.source": "Proposta aceita {reference} · versão {version}",
+  "orders.accept.source": "Proposta emitida {reference} · versão {version}",
   "orders.accept.agreement.unknown":
     "Nenhum acordo ativo aplicável está registrado para esta conta.",
   "orders.accept.unavailable.title": "Nenhuma proposta aceitável selecionada",

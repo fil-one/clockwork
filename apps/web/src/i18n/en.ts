@@ -544,7 +544,7 @@ export const en = {
   "orders.description":
     "Purchase orders, provisioning, entitlements, usage, amendments, and term status without re-keying.",
   "orders.amendment": "Request an amendment",
-  "orders.accept.source": "Accepted quote {reference} · version {version}",
+  "orders.accept.source": "Issued quote {reference} · version {version}",
   "orders.accept.agreement.unknown":
     "No active governing agreement is recorded for this account.",
   "orders.accept.unavailable.title": "No acceptable quote is selected",

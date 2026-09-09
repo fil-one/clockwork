@@ -26,7 +26,7 @@ import type { PreparedOrderFormLookup } from "./prepared-order-form";
 import { orderReviewSummary } from "./workflow-model";
 
 const reviewLabels = {
-  quote: "Accepted quote",
+  quote: "Issued quote",
   agreement: "Governing agreement",
   purchaseOrder: "Purchase order",
   serviceStart: "Service start",
@@ -747,7 +747,7 @@ export function OrderAcceptance({
               className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
             >
               <div>
-                <p className={styles.taskContext}>Accepted commercial source</p>
+                <p className={styles.taskContext}>Issued commercial source</p>
                 <h2>
                   {quote.title} · version {quote.version}
                 </h2>
