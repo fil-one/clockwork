@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import "server-only";
 
 import { cookies, headers } from "next/headers";
@@ -196,7 +197,15 @@ export async function getRouteSession(
       authenticationSource: "local",
     };
   }
-  const session = await getCachedCommerceSession();
+  const session = await getCachedCommerceSession().catch((error: unknown) => {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "Privileged commerce roles require an MFA-policy-enforced session"
+    )
+      redirect("/access/mfa");
+    throw error;
+  });
   if (!session.selectedAccountId)
     throw new Error("Selected commerce account is unavailable");
   return {
@@ -266,7 +275,11 @@ export async function getRouteIdentity(
 }
 
 export async function getAuthenticatedHome(): Promise<
-  "/dashboard" | "/partner" | "/internal" | "/choose-organization"
+  | "/dashboard"
+  | "/partner"
+  | "/internal"
+  | "/choose-organization"
+  | "/access/mfa"
 > {
   if (!providerAuthenticationConfigured()) {
     if (explicitDemoIdentityEnabled()) return "/dashboard";
@@ -281,6 +294,12 @@ export async function getAuthenticatedHome(): Promise<
     );
     return selected?.home ?? "/choose-organization";
   } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message ===
+        "Privileged commerce roles require an MFA-policy-enforced session"
+    )
+      return "/access/mfa";
     if (
       error instanceof Error &&
       error.message === "Organization selection is required"

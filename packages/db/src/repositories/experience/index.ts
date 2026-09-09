@@ -4,3 +4,5 @@ export * from "./authoritative-command";
 export * from "./prepared-order-form";
 export * from "./prepared-quote-artifact";
 export * from "./quote-offers";
+
+export * from "./mfa";

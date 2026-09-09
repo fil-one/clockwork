@@ -720,8 +720,56 @@ export const experienceArtifactDeliveries = pgTable(
   ],
 );
 
+export const experienceMfaAttempts = pgTable(
+  "experience_mfa_attempts",
+  {
+    workosUserId: text("workos_user_id").primaryKey(),
+    windowStartedAt: timestamp("window_started_at", {
+      withTimezone: true,
+    }).notNull(),
+    attempts: integer("attempts").notNull(),
+  },
+  (table) => [
+    check(
+      "experience_mfa_attempts_attempts_check",
+      sql`${table.attempts} between 1 and 5`,
+    ),
+  ],
+);
+
+export const experienceMfaReceipts = pgTable(
+  "experience_mfa_receipts",
+  {
+    challengeId: text("challenge_id").primaryKey(),
+    sessionId: text("session_id").notNull(),
+    workosUserId: text("workos_user_id").notNull(),
+    workosOrganizationId: text("workos_organization_id").notNull(),
+    factorId: text("factor_id").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '8 hours'`),
+  },
+  (table) => [
+    index("experience_mfa_receipt_session_idx").on(
+      table.sessionId,
+      table.workosUserId,
+      table.workosOrganizationId,
+      table.verifiedAt.desc(),
+    ),
+    check(
+      "experience_mfa_receipt_window_check",
+      sql`${table.expiresAt} > ${table.verifiedAt} and ${table.expiresAt} <= ${table.verifiedAt} + interval '8 hours'`,
+    ),
+  ],
+);
+
 /** Root schema composition must spread this object into runtimeSchema. */
 export const experienceSchema = {
+  experienceMfaAttempts,
+  experienceMfaReceipts,
   experienceAssistedSessions,
   experienceReleaseProofSessions,
   experiencePortalProjections,

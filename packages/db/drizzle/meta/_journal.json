@@ -78,6 +78,13 @@
       "when": 1788913417508,
       "tag": "0010_tired_sally_floyd",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788915067370,
+      "tag": "0011_real_bishop",
+      "breakpoints": true
     }
   ]
 }
