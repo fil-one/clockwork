@@ -107,6 +107,7 @@ const ORDER_FORM_POLL_ATTEMPTS = 15;
 const ORDER_FORM_POLL_INTERVAL_MS = 1_000;
 
 export interface AcceptableQuote {
+  lineCount?: number;
   id: string;
   reference: string;
   title: string;
@@ -239,6 +240,7 @@ export function OrderAcceptance({
   quote,
   agreement,
   partialRead = false,
+  audience = "customer",
 }: {
   account: { id: string; name: string };
   signerUserId: string;
@@ -251,6 +253,7 @@ export function OrderAcceptance({
    * is disclosed rather than absorbed.
    */
   partialRead?: boolean;
+  audience?: "customer" | "partner";
 }) {
   const t = useTranslations();
   const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
@@ -536,7 +539,10 @@ export function OrderAcceptance({
        */
       const acceptedAt = acceptedAtRef.current ?? new Date().toISOString();
       acceptedAtRef.current = acceptedAt;
-      orderLineIdsRef.current ??= [uuidV7()];
+      orderLineIdsRef.current ??= Array.from(
+        { length: quote.lineCount ?? 1 },
+        () => uuidV7(),
+      );
       const keyRef = creating ? createKeyRef : prepareKeyRef;
       const idempotencyKey = keyRef.current ?? crypto.randomUUID();
       keyRef.current = idempotencyKey;
@@ -683,7 +689,7 @@ export function OrderAcceptance({
           armed={unsaved}
           className={styles.secondary ?? ""}
           discardClassName={styles.secondary ?? ""}
-          href="/orders"
+          href={audience === "partner" ? "/partner/orders" : "/orders"}
           label="Return to orders"
         />
       </header>
@@ -705,7 +711,11 @@ export function OrderAcceptance({
           </p>
           <Link
             className={styles.primary}
-            href={`/orders/order-${createdOrderId}`}
+            href={
+              audience === "partner"
+                ? `/partner/orders/${createdOrderId}`
+                : `/orders/order-${createdOrderId}`
+            }
           >
             {t("orders.accept.createdLink")}
           </Link>
@@ -948,7 +958,13 @@ export function OrderAcceptance({
                   {createdOrderId ? (
                     <>
                       {" "}
-                      <Link href={`/orders/order-${createdOrderId}`}>
+                      <Link
+                        href={
+                          audience === "partner"
+                            ? `/partner/orders/${createdOrderId}`
+                            : `/orders/order-${createdOrderId}`
+                        }
+                      >
                         {t("orders.accept.createdLink")}
                       </Link>
                     </>
@@ -1025,7 +1041,10 @@ export function OrderAcceptance({
         <section className={styles.state} role="alert">
           <h2>{t("orders.accept.unavailable.title")}</h2>
           <p>{t("orders.accept.unavailable.description")}</p>
-          <Link className={styles.secondary} href="/quotes">
+          <Link
+            className={styles.secondary}
+            href={audience === "partner" ? "/partner/quotes" : "/quotes"}
+          >
             {t("orders.accept.unavailable.action")}
           </Link>
         </section>

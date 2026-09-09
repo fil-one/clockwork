@@ -76,7 +76,7 @@ export interface DemoCreatedQuote {
   readonly snapshot: QuoteSnapshot;
   readonly rowVersion: number;
   readonly displayNumber: string;
-  readonly locale: "en-US";
+  readonly locale: "en-US" | "en-GB";
   readonly paymentTermsDays: 30;
   readonly buyerDomain: string;
   readonly agreementId: string;
@@ -324,7 +324,7 @@ function transition(
     const created: DemoCreatedQuote = {
       snapshot,
       rowVersion: 1,
-      displayNumber: `Q-${snapshot.id}`,
+      displayNumber: `Q-${snapshot.id.slice(-12).toUpperCase()}`,
       locale: "en-US",
       paymentTermsDays: 30,
       buyerDomain: "meridian-archive.test",

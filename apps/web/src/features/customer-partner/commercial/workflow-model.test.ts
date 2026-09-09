@@ -166,7 +166,7 @@ describe("quote workflow model", () => {
       agreement: "Cloud Service Agreement · version 3.2 · active",
       purchaseOrder: "PO-NA-1092",
       serviceStart: "Aug 15, 2026",
-      commitment: "120 TB · $55,440.00 estimated annual spend",
+      commitment: "120 TB · $55,440.00 quoted commitment",
     });
   });
 });

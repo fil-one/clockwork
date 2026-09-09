@@ -94,6 +94,7 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/partner/portfolio": <Users size={19} strokeWidth={1.8} />,
   "/partner/registrations": <Handshake size={19} strokeWidth={1.8} />,
   "/partner/quotes": <ScrollText size={19} strokeWidth={1.8} />,
+  "/partner/orders": <ScrollText size={19} strokeWidth={1.8} />,
   "/partner/billing": <ReceiptText size={19} strokeWidth={1.8} />,
   "/partner/commissions": <BadgeDollarSign size={19} strokeWidth={1.8} />,
   "/partner/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
@@ -177,6 +178,7 @@ const navigationSections: Readonly<
       hrefs: [
         "/partner/registrations",
         "/partner/quotes",
+        "/partner/orders",
         "/partner/sandboxes",
         "/partner/marketplace",
       ],

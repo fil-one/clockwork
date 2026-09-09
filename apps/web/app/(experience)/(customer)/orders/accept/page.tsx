@@ -1,3 +1,4 @@
+import { loadQuoteRevisionSource } from "@/src/features/experience-server/quote-revision-source";
 import {
   OrderAcceptance,
   type GoverningAgreement,
@@ -112,6 +113,10 @@ async function OrderAcceptanceWorkspace({
   // remains available for ordinary entry from the navigation.
   const selected = selectAcceptanceQuote(quotes.records, requested);
   const quote = selected ? toAcceptableQuote(selected) : null;
+  if (quote && selected) {
+    const source = await loadQuoteRevisionSource(selected.recordKey);
+    if (source) quote.lineCount = source.lines.length;
+  }
   return (
     <OrderAcceptance
       account={{ id: identity.accountId, name: identity.accountName }}

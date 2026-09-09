@@ -488,7 +488,8 @@ describe("the created order", () => {
       status: "accepted",
       statusLabel: "Accepted · order created",
       tone: "success",
-      nextAction: `Track order ${created.id}`,
+      nextAction: `Track your order · ${created.poNumber}`,
+      nextActionHref: `/orders/order-${created.id}`,
       allowedActions: [],
     });
     await expect(
@@ -536,4 +537,39 @@ describe("the acceptance book", () => {
         demoProjectionRecordId("customer", "quotes", quote.recordKey),
       ).toBeTypeOf("string");
   });
+});
+
+it("dispatches the accepted order once to the demo provisioner without claiming service activation", async () => {
+  const { created } = await walk();
+  const { submitDemoProvisioning } = await import("./demo-provision-order");
+  await expect(
+    submitDemoProvisioning({ orderId: created.id }, session, store),
+  ).rejects.toThrow("Internal operations");
+  const operator = {
+    ...session,
+    isInternalStaff: true,
+    roles: ["internal_operator"] as const,
+  };
+  const result = await submitDemoProvisioning(
+    { orderId: created.id },
+    operator,
+    store,
+  );
+  expect(result.operationId).toMatch(/^provision_fake_/);
+  expect(
+    await submitDemoProvisioning({ orderId: created.id }, operator, store),
+  ).toEqual(result);
+  const source = new ExplicitDemoProjectionSource(store);
+  const record = await source.find({
+    session,
+    audience: "customer",
+    channel: "orders",
+    accountId: demoAccountIds.direct,
+    recordKey: `order-${created.id}`,
+    now: new Date(now.getTime() + 86400000),
+  });
+  expect(record.stale).toBe(false);
+  expect(record.data.authoritative).toEqual({ status: "provisioning" });
+  expect(record.data.statusLabel).toBe("Provisioning · demo request submitted");
+  expect(record.data.status).toBe("provisioning");
 });

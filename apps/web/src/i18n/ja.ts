@@ -1,6 +1,30 @@
 import type { MessageCatalog } from "./en";
 
 export const ja = {
+  "clientReview.eyebrow": "お客様による確認 · デモ",
+  "clientReview.title": "お見積もり",
+  "clientReview.respond": "パートナーに回答する",
+  "clientReview.name": "お名前",
+  "clientReview.response": "回答",
+  "clientReview.note": "購入参照番号または変更のご要望",
+  "clientReview.requestOrder": "注文を依頼する",
+  "clientReview.requestChanges": "変更を依頼する",
+  "clientReview.decline": "見積もりを辞退する",
+  "clientReview.attest":
+    "記載されたお客様に代わり、このデモ見積もりを確認しています。",
+  "clientReview.boundary":
+    "ご意向をパートナーの確認用に記録します。法的拘束力のある契約の締結、支払い、サービスの有効化は行われません。",
+  "clientReview.submit": "パートナーのワークスペースに回答を送信",
+  "clientReview.saving": "保存中…",
+  "clientReview.receivedOrder": "注文依頼を受け付けました",
+  "clientReview.receivedChanges": "変更依頼を受け付けました",
+  "clientReview.receivedDecline": "見積もりを辞退しました",
+  "clientReview.visible":
+    "パートナーは見積もりワークスペースでこの回答を確認できます。",
+  "clientReview.seller":
+    "販売者であるパートナーが購入手続きと請求を担当します。",
+  "clientReview.valid": "改訂 {revision} · 有効期限 {date}",
+
   "quotes.form.description":
     "オファーを選択し、容量と期間を設定して、見積もりの下書きを確認します。",
   "quotes.form.offerHelp":

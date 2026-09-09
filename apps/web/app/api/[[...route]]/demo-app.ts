@@ -703,3 +703,71 @@ export async function handle(request: Request): Promise<Response> {
     },
   );
 }
+
+export async function handleDemoProvisionOrder(
+  request: Request,
+): Promise<Response> {
+  if (new URL(request.url).pathname !== "/api/demo/orders/provision")
+    return queueRefreshProblem(
+      request,
+      404,
+      "DEMO_QUEUE_REFRESH_NOT_FOUND",
+      "This demo operation is not available at the requested path.",
+    );
+  const demoAccessSecret = demoAccessConfiguration(process.env);
+  if (
+    demoAccessSecret &&
+    !(await verifyDemoAccessCookie(
+      cookieValue(request.headers.get("cookie"), demoAccessCookieName),
+      demoAccessSecret,
+    ))
+  )
+    return demoAccessProblem(request);
+  if (request.method !== "POST")
+    return queueRefreshProblem(
+      request,
+      405,
+      "METHOD_NOT_ALLOWED",
+      "Queue refresh requires POST.",
+    );
+  const proofFailure = validateMutationProof(request);
+  if (proofFailure) return proofFailure;
+  const idempotencyFailure = validateOrderIdempotency(request);
+  if (idempotencyFailure) return idempotencyFailure;
+  const identity = await demoCoreSession(request);
+  if ("response" in identity) return identity.response;
+  if (
+    !identity.session.isInternalStaff ||
+    !identity.session.roles.some((role) =>
+      hasPermission(role, "system:operate"),
+    )
+  )
+    return queueRefreshProblem(
+      request,
+      403,
+      "PROVISIONING_FORBIDDEN",
+      "Internal operations authority is required.",
+    );
+  try {
+    const body = await request.text();
+    if (body.length > 1024) return new Response(null, { status: 413 });
+    const { submitDemoProvisioning } =
+      await import("@/src/features/experience-server/demo-provision-order");
+    return Response.json(
+      await submitDemoProvisioning(JSON.parse(body), identity.session),
+      { headers: { "cache-control": "private, no-store" } },
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        detail:
+          error instanceof Error
+            ? error.message
+            : "Unable to submit provisioning.",
+      },
+      { status: 422 },
+    );
+  }
+}
+
+export { validateMutationProof as validateDemoMutationProof };

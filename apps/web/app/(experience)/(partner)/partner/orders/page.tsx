@@ -1,0 +1,10 @@
+import { PartnerOrders } from "@/src/features/customer-partner/partner/partner-orders";
+import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+export const dynamic = "force-dynamic";
+export default function Page() {
+  return (
+    <SurfacePermissionGate audience="partner" requiredPermission="order:read">
+      <PartnerOrders />
+    </SurfacePermissionGate>
+  );
+}

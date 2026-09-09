@@ -2,6 +2,30 @@ import type { MessageCatalog } from "./en";
 
 /** French interface copy; contractual documents retain their original language. */
 export const fr = {
+  "clientReview.eyebrow": "Examen client · démonstration",
+  "clientReview.title": "Votre devis",
+  "clientReview.respond": "Répondre à votre partenaire",
+  "clientReview.name": "Votre nom",
+  "clientReview.response": "Réponse",
+  "clientReview.note": "Référence d’achat ou modifications demandées",
+  "clientReview.requestOrder": "Demander une commande",
+  "clientReview.requestChanges": "Demander des modifications",
+  "clientReview.decline": "Refuser le devis",
+  "clientReview.attest":
+    "J’examine ce devis de démonstration pour le client indiqué.",
+  "clientReview.boundary":
+    "Votre intention est enregistrée pour examen par le partenaire. Cela ne crée aucun contrat contraignant, ne déclenche aucun paiement et n’active aucun service.",
+  "clientReview.submit": "Envoyer la réponse au partenaire",
+  "clientReview.saving": "Enregistrement…",
+  "clientReview.receivedOrder": "Demande de commande reçue",
+  "clientReview.receivedChanges": "Demande de modifications reçue",
+  "clientReview.receivedDecline": "Devis refusé",
+  "clientReview.visible":
+    "Votre partenaire peut consulter cette réponse dans son espace de devis.",
+  "clientReview.seller":
+    "Votre partenaire est le vendeur et gère les modalités d’achat et la facturation.",
+  "clientReview.valid": "Révision {revision} · Valable jusqu’au {date}",
+
   "quotes.form.description":
     "Choisissez une offre, la capacité et la durée, puis vérifiez votre brouillon.",
   "quotes.form.offerHelp":

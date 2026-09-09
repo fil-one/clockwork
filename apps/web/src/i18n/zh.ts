@@ -1,6 +1,27 @@
 import type { MessageCatalog } from "./en";
 
 export const zh = {
+  "clientReview.eyebrow": "客户审核 · 演示",
+  "clientReview.title": "您的报价",
+  "clientReview.respond": "回复合作伙伴",
+  "clientReview.name": "您的姓名",
+  "clientReview.response": "回复",
+  "clientReview.note": "采购参考编号或所需修改",
+  "clientReview.requestOrder": "申请下单",
+  "clientReview.requestChanges": "请求修改",
+  "clientReview.decline": "拒绝报价",
+  "clientReview.attest": "我正在代表指定客户审核此演示报价。",
+  "clientReview.boundary":
+    "此操作仅记录您的意向，供合作伙伴审核。它不会形成有约束力的合同、扣款或开通服务。",
+  "clientReview.submit": "将回复发送至合作伙伴工作区",
+  "clientReview.saving": "正在保存…",
+  "clientReview.receivedOrder": "已收到下单申请",
+  "clientReview.receivedChanges": "已收到修改请求",
+  "clientReview.receivedDecline": "已拒绝报价",
+  "clientReview.visible": "合作伙伴可以在报价工作区查看此回复。",
+  "clientReview.seller": "合作伙伴是卖方，负责采购安排和开票。",
+  "clientReview.valid": "修订版 {revision} · 有效期至 {date}",
+
   "quotes.form.description": "选择方案，设置容量和期限，然后审核报价草稿。",
   "quotes.form.offerHelp": "选择所需区域中可用的方案。",
   "quotes.form.reviewTitle": "审核草稿",

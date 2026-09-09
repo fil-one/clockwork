@@ -49,6 +49,7 @@ export interface CommercialRecord {
   href: string;
   term: string;
   nextAction: string;
+  nextActionHref?: string;
   /** Customer-facing agreement version or quote revision, never a row lock. */
   version?: string;
   /** Customer-facing reference when it differs from the projection record key. */

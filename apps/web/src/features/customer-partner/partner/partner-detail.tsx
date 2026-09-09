@@ -1,3 +1,4 @@
+import { PartnerQuoteControls } from "./partner-quote-controls";
 import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
@@ -216,6 +217,7 @@ export async function PartnerPortfolioDetail({
         />
       </section>
       <PriceBoundary pricing={record.quotePricing} />
+
       <div className={styles.detailsGrid}>
         <section className={styles.detailCard}>
           <h2>{localizedcommon.nextAction}</h2>
@@ -246,7 +248,10 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
   ]);
   if (!record) return <MissingRecord backHref="/partner/quotes" />;
   const role = currentPartnerRole(roles) ?? "partner_seller";
-  const actions = validPartnerQuoteActions(record.status, role);
+  const actions = validPartnerQuoteActions(record.status, role).filter(
+    (action) =>
+      !record.allowedActions || record.allowedActions.includes(action),
+  );
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
@@ -268,6 +273,67 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         </span>
       </header>
       <PriceBoundary pricing={record.quotePricing} />
+      {record.orderId ? (
+        <section className={styles.detailCard}>
+          <h2>Supply order</h2>
+          <Link href={`/partner/orders/${record.orderId}` as Route}>
+            Track your supply order
+          </Link>
+        </section>
+      ) : record.quoteCommand &&
+        record.status === "open" &&
+        role === "partner_admin" ? (
+        <section className={styles.detailCard}>
+          <h2>Order from Fil One</h2>
+          <p>
+            Review and accept the supply order at your confidential transfer
+            price. Your client contract and resale billing remain your
+            responsibility.
+          </p>
+          <Link
+            className={styles.buttonLink}
+            href={
+              `/partner/quotes/${encodeURIComponent(record.id)}/order` as Route
+            }
+          >
+            Review supply order
+          </Link>
+        </section>
+      ) : null}
+      {record.clientResponse ? (
+        <section className={styles.detailCard}>
+          <h2>Client response</h2>
+          <p>
+            {record.clientResponse.decision === "request_order"
+              ? "Purchase request received. Confirm the order terms with your client before placing the supply order."
+              : record.clientResponse.decision === "request_changes"
+                ? "Changes requested. Prepare a revised quote and share the new version."
+                : "The client declined this quote."}
+          </p>
+          <p>
+            {record.clientResponse.name} ·{" "}
+            {new Date(record.clientResponse.at).toLocaleString("en-GB")}
+          </p>
+          <p>{record.clientResponse.note}</p>
+        </section>
+      ) : null}
+      {record.quoteCommand ? (
+        <PartnerQuoteControls
+          command={record.quoteCommand}
+          canShare={record.status === "open"}
+          canCancel={actions.includes("cancel")}
+        />
+      ) : (
+        <section className={styles.detailCard}>
+          <h2>Example quote</h2>
+          <p>
+            This walkthrough record has no editable source. Create a priced
+            quote from your current catalogue to edit, issue documents, and
+            collect a client response.
+          </p>
+          <Link href="/partner/quotes/new">Create a priced quote</Link>
+        </section>
+      )}
       {record.documents?.length ? (
         <section className={styles.detailCard} aria-label="Issued documents">
           <h2>Issued documents</h2>
@@ -299,8 +365,19 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         </div>
         <div className={styles.actions}>
           {actions.includes("edit") || actions.includes("revise") ? (
-            <Link className={styles.buttonLink} href="/partner/quotes/new">
-              Create a new quote
+            <Link
+              className={styles.buttonLink}
+              href={
+                record.quoteCommand
+                  ? (`/partner/quotes/new?revises=${encodeURIComponent(record.id)}` as Route)
+                  : "/partner/quotes/new"
+              }
+            >
+              {record.quoteCommand
+                ? record.status === "draft"
+                  ? "Edit draft"
+                  : "Create revised quote"
+                : "Create a new quote"}
             </Link>
           ) : null}
         </div>
@@ -313,7 +390,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
             <Link href="/partner/support">{t("nav.partner.support")}</Link>
           </p>
         ) : null}
-        {actions.includes("cancel") ? (
+        {actions.includes("cancel") && !record.quoteCommand ? (
           <p className={styles.gate}>
             <strong>{t("partner.detail.quote.cancel.title")}:</strong>{" "}
             {t("partner.detail.quote.cancel.description")}

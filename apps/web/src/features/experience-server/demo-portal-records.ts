@@ -1,3 +1,4 @@
+import type { AcceptedOrder } from "@clockwork/domain/core";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { formatMoney } from "@/src/features/shared/format";
@@ -938,6 +939,13 @@ export const demoAdditionalRecords: readonly DemoPortalRecord[] = [
 /** What the create pass recorded. Written by `DemoOrderAcceptance.create`. */
 export interface DemoCreatedOrder {
   readonly id: string;
+  readonly domainOrder?: AcceptedOrder;
+  readonly organizationId?: string;
+  readonly provisioning?: {
+    operationId: string;
+    submittedAt: string;
+    actorId: string;
+  };
   readonly quoteRecordKey: string;
   readonly accountId: string;
   readonly audienceAccountId: string;
@@ -992,8 +1000,10 @@ export function demoCreatedOrderRecord(
         id: demoCreatedOrderKey(order.id),
         title: `Committed capacity · ${order.poNumber}`,
         description: `Accepted from ${order.quoteReference} · order form on file`,
-        status: "pending",
-        statusLabel: "Accepted · awaiting provisioning",
+        status: order.provisioning ? "provisioning" : "pending",
+        statusLabel: order.provisioning
+          ? "Provisioning · demo request submitted"
+          : "Accepted · awaiting provisioning",
         tone: "warning",
         risk: "low",
         owner: order.signerName,
@@ -1001,9 +1011,13 @@ export function demoCreatedOrderRecord(
         valueLabel: "Committed spend",
         dateLabel: `Accepted ${order.acceptedAt.slice(0, 10)}`,
         term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,
-        nextAction: `Service starts ${order.serviceStartsOn}. Track provisioning before treating this service as active.`,
+        nextAction: order.provisioning
+          ? "The demo provisioner received this order. Service activation awaits a provider completion result."
+          : `Service starts ${order.serviceStartsOn}. Your accepted order is queued for the provisioning team.`,
       }),
-      authoritative: { status: "accepted" },
+      authoritative: {
+        status: order.provisioning ? "provisioning" : "accepted",
+      },
       // The bound evidence, carried on the record it bound. The seeded rows get
       // theirs from the artifact catalogue's attachment index; this one was not
       // in the catalogue when the process started, so it names its own.
