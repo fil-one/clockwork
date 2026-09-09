@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
+import type { DemoAdapterState } from "@clockwork/testing/demo-state";
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
@@ -211,4 +212,29 @@ it("keeps quotes with the same UUID timestamp prefix separately addressable", as
       demoPartnerQuoteRecord(state, demoAccountIds.reseller, `quote-${id}`)?.id,
     ).toBe(`quote-${id}`);
   }
+});
+
+it("restores separate prices for drafts saved before the pricing display update", async () => {
+  await handleDemoPartnerQuoteCommand(
+    request("legacy-partner-price-display-0001"),
+    partner,
+    { store, now: "2026-08-18T12:00:00.000Z" },
+  );
+  const legacy = JSON.parse(
+    JSON.stringify(await store.read(), (key: string, value: unknown) =>
+      key === "quotePricing" ? undefined : value,
+    ),
+  ) as DemoAdapterState;
+  const detail = demoPartnerQuoteRecord(
+    legacy,
+    demoAccountIds.reseller,
+    body.id,
+  );
+  expect(detail?.quotePricing).toEqual({
+    transferPrice: "£26,400.00",
+    resalePrice: "£30,000.00",
+  });
+  expect(
+    demoPartnerQuoteRecord(legacy, demoAccountIds.referral, body.id),
+  ).toBeUndefined();
 });
