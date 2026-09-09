@@ -67,7 +67,21 @@ export function mapExternalGateRow(
   row: typeof externalGates.$inferSelect,
 ): ExternalGateRecord {
   return {
-    ...row,
+    id: row.id,
+    title: row.title,
+    owner: row.owner,
+    inputRequired: row.inputRequired,
+    affectedFeature: row.affectedFeature,
+    severity: row.severity,
+    simulatorDetails: row.simulatorDetails,
+    lastActivationTestedBy: row.lastActivationTestedBy,
+    activationEvidenceReference: row.activationEvidenceReference,
+    reviewOn: row.reviewOn,
+    statusReason: row.statusReason,
+    emergencyDisabledBy: row.emergencyDisabledBy,
+    emergencyDisableReason: row.emergencyDisableReason,
+    emergencyDisableEvidenceReference: row.emergencyDisableEvidenceReference,
+    rowVersion: row.rowVersion,
     gateKey: ExternalGateKeySchema.parse(row.gateKey),
     configuredStatus: ExternalGateConfiguredStatusSchema.parse(
       row.configuredStatus,
