@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
+  // Next dev must not generate source files during clean release qualification.
+  agentRules: false,
   allowedDevOrigins: ["127.0.0.1"],
   distDir: process.env.CLOCKWORK_NEXT_DIST_DIR ?? ".next",
   poweredByHeader: false,

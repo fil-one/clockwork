@@ -30,7 +30,7 @@ import {
   resolveProviderAssistedSession,
   type AssistedSessionView,
 } from "@/src/features/internal-ops/assisted-session/repository";
-import { resolveWorkosIdentity } from "@clockwork/db";
+import { findMfaReceipt, resolveWorkosIdentity } from "@clockwork/db";
 import {
   getTokenClaims,
   refreshSession,
@@ -542,8 +542,16 @@ async function workosCommerceSession(
   // Assurance first, policy second: an organization added to the variable
   // before its factor policy exists, or one whose policy is later relaxed,
   // cannot make a single-factor session read as verified.
+  const receiptTime = session.impersonator
+    ? undefined
+    : await findMfaReceipt(database, {
+        sessionId: session.sessionId,
+        workosUserId: session.user.id,
+        workosOrganizationId: session.organizationId,
+      });
   const mfaVerified =
-    (await sessionAssuranceVerified(session.accessToken)) &&
+    ((await sessionAssuranceVerified(session.accessToken)) ||
+      receiptTime !== undefined) &&
     assuranceOrganizations.some((organizationId) =>
       policyOrganizations.includes(organizationId),
     );
@@ -553,9 +561,13 @@ async function workosCommerceSession(
   ).catch(() => undefined);
   const authTime = recentClaims?.auth_time;
   const recentAuthenticationVerified =
-    typeof authTime === "number" &&
-    Number.isFinite(authTime) &&
-    Math.floor(Date.now() / 1000) - authTime <= 300;
+    (typeof authTime === "number" &&
+      Number.isFinite(authTime) &&
+      Math.floor(Date.now() / 1000) >= authTime &&
+      Math.floor(Date.now() / 1000) - authTime <= 300) ||
+    (receiptTime !== undefined &&
+      receiptTime <= Date.now() &&
+      Date.now() - receiptTime <= 300_000);
   const accountIds = activeAssistedSession
     ? [activeAssistedSession.targetAccountId]
     : isInternalStaff

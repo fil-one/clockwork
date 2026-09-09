@@ -10,7 +10,7 @@ runs. A bump that changes the version key silently drops the patch — pnpm does
 not warn — so the version in `patchedDependencies` must move with the
 dependency, or the patch must be deleted deliberately.
 
-## `next@16.2.12.patch`
+## `next@16.3.3.patch`
 
 **What:** adds `nonce: ctx.nonce` to the `<script>` element built by
 `create-component-styles-and-scripts`.

@@ -73,3 +73,24 @@ capabilities at boot and constructs only the providers needed by enabled new or
 recovery work. Restart it after enabling a capability whose provider was
 omitted; unconfigured provider calls are explicit denials, never simulated
 successes.
+
+## WorkOS session MFA
+
+A production WorkOS Magic Auth login can require and successfully verify TOTP
+without including an `amr` assurance claim in its access token. Clockwork does
+not infer MFA from that login, factor enrollment, or the organization policy.
+Privileged users are sent to `/access/mfa` to verify an actual WorkOS challenge.
+The server selects the signed-in user's factor and stores a verification receipt
+bound to the verified WorkOS user, organization, and session IDs.
+
+Receipts expire after eight hours. Sensitive actions require authentication or a
+fresh MFA receipt within five minutes; `/access/mfa` can renew verification. The
+durable attempt budget permits five submissions per user per ten minutes,
+including submissions from different login sessions. Runtime database
+credentials cannot read or insert receipts; service credentials cannot update or
+delete them. Impersonated sessions cannot use the target user's receipt as actor
+assurance. The configured MFA organization allowlist remains required.
+
+For bootstrap accounts enrolled under an operator's authority, transfer the
+authenticator setup material privately to that operator before handoff. Never
+commit QR codes, factor secrets, email codes, or session credentials.

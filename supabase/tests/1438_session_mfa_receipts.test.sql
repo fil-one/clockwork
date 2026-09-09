@@ -1,0 +1,17 @@
+begin;
+select plan(10);
+set local search_path=public,extensions;
+select ok(not has_table_privilege('clockwork_runtime','public.experience_mfa_receipts','SELECT'),'runtime cannot read MFA receipts');
+select ok(not has_table_privilege('clockwork_runtime','public.experience_mfa_receipts','INSERT'),'runtime cannot forge MFA receipts');
+select ok(not has_table_privilege('clockwork_service','public.experience_mfa_receipts','UPDATE'),'service cannot rewrite verification');
+select ok(not has_table_privilege('clockwork_service','public.experience_mfa_receipts','DELETE'),'service cannot erase verification');
+set local role clockwork_service;
+select lives_ok($$insert into experience_mfa_receipts(challenge_id,session_id,workos_user_id,workos_organization_id,factor_id) values('test-challenge','test-session','test-user','test-org','test-factor')$$,'service records actual verification');
+select is((select count(*)::integer from experience_mfa_receipts where session_id='test-session' and workos_user_id='test-user' and workos_organization_id='test-org' and verified_at<=now() and expires_at>now()),1,'bound current receipt is visible');
+select is((select count(*)::integer from experience_mfa_receipts where session_id='other-session' and workos_user_id='test-user' and workos_organization_id='test-org'),0,'different session has no assurance');
+select throws_ok($$insert into experience_mfa_receipts(challenge_id,session_id,workos_user_id,workos_organization_id,factor_id) values('test-challenge','other','test-user','test-org','test-factor')$$,'23505',null,'challenge cannot be replayed into another session');
+select throws_ok($$insert into experience_mfa_receipts(challenge_id,session_id,workos_user_id,workos_organization_id,factor_id,expires_at) values('too-long','test-session','test-user','test-org','test-factor',now()+interval '9 hours')$$,'23514',null,'receipt lifetime cannot exceed eight hours');
+select throws_ok($$insert into experience_mfa_attempts(workos_user_id,window_started_at,attempts) values('test-user',now(),6)$$,'23514',null,'attempt count is bounded');
+reset role;
+select * from finish();
+rollback;

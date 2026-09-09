@@ -13,6 +13,7 @@ const authMocks = vi.hoisted(() => ({
   resolveProviderAssistedSession: vi.fn(),
   resolveReleaseProofIdentity: vi.fn(),
   resolveWorkosIdentity: vi.fn(),
+  findMfaReceipt: vi.fn(),
   requestHeaders: new Map<string, string>(),
   requestCookies: new Map<string, string>(),
   refreshSession: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
 
 vi.mock("@clockwork/db", () => ({
   resolveWorkosIdentity: authMocks.resolveWorkosIdentity,
+  findMfaReceipt: authMocks.findMfaReceipt,
 }));
 
 vi.mock("@/src/auth/identity-repository", async (importOriginal) => ({
@@ -159,6 +161,7 @@ describe("WorkOS commerce session mapping", () => {
     authMocks.requestHeaders.clear();
     authMocks.requestCookies.clear();
     configuredEnvironment();
+    authMocks.findMfaReceipt.mockResolvedValue(undefined);
     authMocks.assistedCookie = undefined;
     authMocks.withAuth.mockResolvedValue(workosSession());
     authMocks.refreshSession.mockResolvedValue(workosSession());
@@ -173,6 +176,19 @@ describe("WorkOS commerce session mapping", () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+  });
+
+  it("accepts an actual session-bound MFA receipt when WorkOS omits assurance claims", async () => {
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.findMfaReceipt.mockResolvedValue(Date.now());
+    const session = await getCommerceSession();
+    expect(session.mfaVerified).toBe(true);
+    expect(session.recentAuthenticationVerified).toBe(true);
+    expect(authMocks.findMfaReceipt).toHaveBeenCalledWith(expect.anything(), {
+      sessionId: workosSession().sessionId,
+      workosUserId: workosSession().user.id,
+      workosOrganizationId: workosSession().organizationId,
+    });
   });
 
   it("maps only the selected server membership to its commerce account", async () => {
