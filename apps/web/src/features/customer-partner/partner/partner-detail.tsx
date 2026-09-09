@@ -74,16 +74,14 @@ async function partnerRecordFor(
   );
 }
 
-/**
- * The partner projection carries one commercial position per record, never a
- * separated transfer and resale figure. Both boundaries are labelled so the
- * redaction rule stays visible, and each states that its own number is not
- * recorded rather than borrowing one that belongs to a different record.
- */
-function PriceBoundary() {
+/** Show separated prices only when the authorized record supplies both. */
+function PriceBoundary({
+  pricing,
+}: {
+  pricing?: PartnerRecord["quotePricing"];
+}) {
   const t = use(getTranslations());
   const localizedpartnerCopy = localizeCopy(partnerCopy, t);
-  const notRecorded = t("partner.detail.notRecorded");
   return (
     <section
       className={styles.boundary}
@@ -91,17 +89,16 @@ function PriceBoundary() {
     >
       <div>
         <h2>{localizedpartnerCopy.transferPrice}</h2>
-        <strong>{notRecorded}</strong>
+        {pricing ? <strong>{pricing.transferPrice}</strong> : null}
         <p>{t("partner.detail.transfer.description")}</p>
       </div>
       <div>
         <h2>{localizedpartnerCopy.partnerPrice}</h2>
-        <strong>{notRecorded}</strong>
+        {pricing ? <strong>{pricing.resalePrice}</strong> : null}
         <p>{t("partner.detail.resale.description")}</p>
       </div>
       <div>
         <h2>{localizedpartnerCopy.merchantOfRecord}</h2>
-        <strong>{notRecorded}</strong>
         <p>{t("partner.detail.merchant.description")}</p>
       </div>
     </section>
@@ -217,7 +214,7 @@ export async function PartnerPortfolioDetail({
           description={t("partner.detail.term.unavailable.description")}
         />
       </section>
-      <PriceBoundary />
+      <PriceBoundary pricing={record.quotePricing} />
       <div className={styles.detailsGrid}>
         <section className={styles.detailCard}>
           <h2>{localizedcommon.nextAction}</h2>
@@ -269,7 +266,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           {record.status}
         </span>
       </header>
-      <PriceBoundary />
+      <PriceBoundary pricing={record.quotePricing} />
       <section className={styles.summary} aria-labelledby="valid-actions-title">
         <div className={styles.sectionHeader}>
           <div>
@@ -289,7 +286,8 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         {actions.includes("issue") ? (
           <p className={styles.gate}>
             <strong>{t("partner.detail.quote.issue.title")}:</strong>{" "}
-            {t("partner.detail.quote.issue.description")}
+            {t("partner.detail.quote.issue.description")}{" "}
+            <Link href="/partner/support">{t("nav.partner.support")}</Link>
           </p>
         ) : null}
         {actions.includes("cancel") ? (

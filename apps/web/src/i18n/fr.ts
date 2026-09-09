@@ -2,6 +2,39 @@ import type { MessageCatalog } from "./en";
 
 /** French interface copy; contractual documents retain their original language. */
 export const fr = {
+  "quotes.form.description":
+    "Choisissez une offre, la capacité et la durée, puis vérifiez votre brouillon.",
+  "quotes.form.offerHelp":
+    "Choisissez une offre disponible dans la région souhaitée.",
+  "quotes.form.reviewTitle": "Vérifier votre brouillon",
+  "quotes.form.reviewDescription":
+    "La création du brouillon calcule votre prix. Ouvrez ensuite le brouillon enregistré pour préparer son document et émettre le devis. Vous pourrez le vérifier avant d’accepter une commande.",
+  "quotes.form.expiryHelp": "Utilisez votre date et heure locales.",
+  "quotes.form.expiryFuture":
+    "Choisissez une expiration après l’heure actuelle.",
+  "quotes.form.stageTerms": "Capacité, durée et expiration",
+  "quotes.form.stageReview": "Vérifier le brouillon",
+  "quotes.form.partnerDescription":
+    "Choisissez une offre et un client final, puis fixez votre prix de revente. Fil One calcule votre prix de transfert à la création du brouillon.",
+
+  "quotes.issue.title": "Finaliser ce devis",
+  "quotes.issue.description":
+    "Préparez le document de ce devis enregistré pour permettre son acceptation. Émettre un devis ne crée pas de commande.",
+  "quotes.issue.action": "Préparer et émettre le devis",
+  "quotes.issue.working": "Préparation du devis…",
+  "quotes.issue.retry": "Poursuivre ce devis",
+  "quotes.issue.accept": "Vérifier et accepter la commande",
+  "quotes.issue.refresh":
+    "Actualisez cette page pour vérifier le devis et vos droits d’accès, puis réessayez.",
+  "quotes.issue.pricingReview":
+    "Le prix de ce brouillon doit être vérifié avant son émission. Contactez votre équipe Fil One.",
+  "quotes.issue.documentUnavailable":
+    "Le document du devis n’a pas pu être vérifié. Aucun devis n’a été émis. Réessayez.",
+  "quotes.issue.rendering":
+    "Le document est en cours de préparation. Poursuivez ce devis pour vérifier à nouveau.",
+  "quotes.issue.synchronizing":
+    "Le devis a été émis. Son statut est en cours de mise à jour ; poursuivez pour vérifier à nouveau.",
+
   "cp.common.loadingTitle": "Chargement des données",
   "cp.common.loadingBody":
     "Les données les plus récentes sont en cours de récupération.",
@@ -665,7 +698,7 @@ export const fr = {
   "partner.detail.quote.revise": "Créer une révision",
   "partner.detail.quote.issue.title": "L’émission est soumise à conditions",
   "partner.detail.quote.issue.description":
-    "Fil One prépare et lie d’abord des documents distincts pour le client final et le partenaire. L’action apparaît lorsque les deux sont prêts, puis ouvre l’examen et la confirmation.",
+    "L’équipe des opérations partenaires doit préparer des documents distincts pour le client et le partenaire avant d’émettre ce devis. Contactez l’assistance partenaires pour continuer.",
   "partner.detail.quote.cancel.title": "L’annulation n’est pas disponible ici",
   "partner.detail.quote.cancel.description":
     "Les opérations de canal gèrent l’annulation des devis partenaires. Contactez-les pour annuler ce devis.",
@@ -680,7 +713,7 @@ export const fr = {
   "partner.quote.new.disabled.created":
     "Le brouillon chiffré a été créé. Ouvrez-le depuis la liste des devis pour continuer.",
   "partner.quote.new.success":
-    "Brouillon créé à partir des tarifs du serveur. Vérifiez le prix de transfert renvoyé avant d’utiliser l’action Émettre.",
+    "Le brouillon chiffré a été créé. Ouvrez-le pour vérifier les prix enregistrés et les étapes suivantes.",
   "partner.quote.new.failure": "Le devis n’a pas pu être créé.",
   "support.title": "Suivi de l’assistance",
   "support.description":

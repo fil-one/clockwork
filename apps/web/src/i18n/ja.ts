@@ -1,6 +1,38 @@
 import type { MessageCatalog } from "./en";
 
 export const ja = {
+  "quotes.form.description":
+    "オファーを選択し、容量と期間を設定して、見積もりの下書きを確認します。",
+  "quotes.form.offerHelp":
+    "必要なリージョンで利用できるオファーを選択してください。",
+  "quotes.form.reviewTitle": "下書きを確認",
+  "quotes.form.reviewDescription":
+    "下書きを作成すると価格が計算されます。次に、保存済みの下書きを開いて見積書を作成し、発行します。注文を承諾する前に発行済みの見積もりを確認できます。",
+  "quotes.form.expiryHelp": "現地の日付と時刻を入力してください。",
+  "quotes.form.expiryFuture": "現在より後の有効期限を選択してください。",
+  "quotes.form.stageTerms": "容量、期間、有効期限",
+  "quotes.form.stageReview": "下書きを確認",
+  "quotes.form.partnerDescription":
+    "オファーとエンドクライアントを選択し、再販価格を設定します。Fil Oneは下書き作成時に仕切価格を計算します。",
+
+  "quotes.issue.title": "見積もりを完成させる",
+  "quotes.issue.description":
+    "保存済みの見積書を作成し、承諾できる状態にします。見積もりを発行しても注文は確定しません。",
+  "quotes.issue.action": "見積書を作成して発行",
+  "quotes.issue.working": "見積書を作成中…",
+  "quotes.issue.retry": "この見積もりを続ける",
+  "quotes.issue.accept": "注文を確認して承諾",
+  "quotes.issue.refresh":
+    "このページを更新して、最新の見積もりとアクセス権を確認してから、もう一度お試しください。",
+  "quotes.issue.pricingReview":
+    "この下書きを発行するには価格の審査が必要です。Fil Oneの担当者にお問い合わせください。",
+  "quotes.issue.documentUnavailable":
+    "見積書を確認できませんでした。見積もりは発行されていません。もう一度お試しください。",
+  "quotes.issue.rendering":
+    "書類を作成中です。この見積もりを続けて、再度確認してください。",
+  "quotes.issue.synchronizing":
+    "見積もりは発行されました。ステータスを更新中です。この見積もりを続けて再度確認してください。",
+
   "cp.common.loadingTitle": "記録を読み込み中",
   "cp.common.loadingBody": "最新の記録を取得しています。",
   "cp.common.emptyTitle": "まだ記録がありません",
@@ -624,7 +656,7 @@ export const ja = {
   "partner.detail.quote.revise": "改訂版を作成",
   "partner.detail.quote.issue.title": "発行には条件があります",
   "partner.detail.quote.issue.description":
-    "Fil One は顧客用とパートナー用の文書を別々に準備して紐付けます。両方が揃うと、確認・承認の操作が表示されます。",
+    "この見積もりの発行前に、チャネル運営チームが顧客用とパートナー用の書類をそれぞれ準備する必要があります。続行するにはパートナーサポートにお問い合わせください。",
   "partner.detail.quote.cancel.title": "ここではキャンセルできません",
   "partner.detail.quote.cancel.description":
     "パートナー見積もりのキャンセルはチャネル運用チームが担当します。チームに連絡してください。",
@@ -639,7 +671,7 @@ export const ja = {
   "partner.quote.new.disabled.created":
     "価格計算済みの下書きを作成しました。続行するには見積もり一覧から開いてください。",
   "partner.quote.new.success":
-    "サーバーの価格で下書きを作成しました。発行操作の前に、返された仕入価格を確認してください。",
+    "価格付きの下書きを作成しました。開いて、保存された価格と次の手順を確認してください。",
   "partner.quote.new.failure": "見積もりを作成できませんでした。",
   "support.title": "サポート状況",
   "support.description":

@@ -1,6 +1,40 @@
 import type { MessageCatalog } from "./en";
 
 export const de = {
+  "quotes.form.description":
+    "Wählen Sie ein Angebot, Kapazität und Laufzeit. Prüfen Sie anschließend den Entwurf.",
+  "quotes.form.offerHelp":
+    "Wählen Sie ein verfügbares Angebot für Ihre gewünschte Region.",
+  "quotes.form.reviewTitle": "Entwurf prüfen",
+  "quotes.form.reviewDescription":
+    "Beim Erstellen des Entwurfs wird Ihr Preis berechnet. Öffnen Sie dann den gespeicherten Entwurf, um das Dokument vorzubereiten und das Angebot auszustellen. Vor Annahme einer Bestellung können Sie es prüfen.",
+  "quotes.form.expiryHelp":
+    "Verwenden Sie Ihr lokales Datum und Ihre lokale Uhrzeit.",
+  "quotes.form.expiryFuture":
+    "Wählen Sie einen Ablaufzeitpunkt in der Zukunft.",
+  "quotes.form.stageTerms": "Kapazität, Laufzeit und Ablauf",
+  "quotes.form.stageReview": "Entwurf prüfen",
+  "quotes.form.partnerDescription":
+    "Wählen Sie ein Angebot und einen Endkunden und legen Sie Ihren Wiederverkaufspreis fest. Fil One berechnet beim Erstellen des Entwurfs Ihren Transferpreis.",
+
+  "quotes.issue.title": "Angebot fertigstellen",
+  "quotes.issue.description":
+    "Bereiten Sie das Dokument dieses gespeicherten Angebots zur Annahme vor. Durch die Ausstellung entsteht noch keine Bestellung.",
+  "quotes.issue.action": "Angebot vorbereiten und ausstellen",
+  "quotes.issue.working": "Angebot wird vorbereitet…",
+  "quotes.issue.retry": "Dieses Angebot fortsetzen",
+  "quotes.issue.accept": "Bestellung prüfen und annehmen",
+  "quotes.issue.refresh":
+    "Aktualisieren Sie diese Seite, um das Angebot und Ihre Zugriffsrechte zu prüfen. Versuchen Sie es dann erneut.",
+  "quotes.issue.pricingReview":
+    "Vor der Ausstellung muss der Preis dieses Entwurfs geprüft werden. Wenden Sie sich an Ihr Fil One-Team.",
+  "quotes.issue.documentUnavailable":
+    "Das Angebotsdokument konnte nicht verifiziert werden. Es wurde kein Angebot ausgestellt. Versuchen Sie es erneut.",
+  "quotes.issue.rendering":
+    "Das Dokument wird noch vorbereitet. Setzen Sie dieses Angebot fort, um erneut zu prüfen.",
+  "quotes.issue.synchronizing":
+    "Das Angebot wurde ausgestellt. Der Status wird noch aktualisiert. Setzen Sie fort, um erneut zu prüfen.",
+
   "cp.common.loadingTitle": "Datensätze werden geladen",
   "cp.common.loadingBody": "Die neuesten Datensätze werden abgerufen.",
   "cp.common.emptyTitle": "Noch keine Einträge",
@@ -657,7 +691,7 @@ export const de = {
   "partner.detail.quote.revise": "Revision erstellen",
   "partner.detail.quote.issue.title": "Ausgabe unterliegt Voraussetzungen",
   "partner.detail.quote.issue.description":
-    "Fil One bereitet getrennte Endkunden- und Partnerdokumente vor. Erst wenn beide bereit und verknüpft sind, erscheint die Aktion zur Prüfung und Bestätigung.",
+    "Das Channel-Team muss vor der Ausstellung getrennte Kunden- und Partnerdokumente vorbereiten. Wenden Sie sich an den Partnersupport, um fortzufahren.",
   "partner.detail.quote.cancel.title": "Stornierung hier nicht verfügbar",
   "partner.detail.quote.cancel.description":
     "Partnerangebote werden durch den Kanalbetrieb storniert. Wenden Sie sich zur Stornierung an dieses Team.",
@@ -671,7 +705,7 @@ export const de = {
   "partner.quote.new.disabled.created":
     "Der bepreiste Entwurf wurde erstellt. Öffnen Sie ihn in der Angebotsliste.",
   "partner.quote.new.success":
-    "Entwurf mit Serverpreisen erstellt. Prüfen Sie den gelieferten Transferpreis vor der zulässigen Ausgabeaktion.",
+    "Der bepreiste Entwurf wurde erstellt. Öffnen Sie ihn, um die gespeicherten Preise und nächsten Schritte zu prüfen.",
   "partner.quote.new.failure": "Das Angebot konnte nicht erstellt werden.",
   "support.title": "Supportübersicht",
   "support.description":

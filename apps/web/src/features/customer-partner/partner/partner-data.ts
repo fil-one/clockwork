@@ -30,6 +30,7 @@ export interface PartnerRecord {
   projectionId?: string;
   recordKey?: string;
   allowedActions?: readonly string[];
+  quotePricing?: { transferPrice: string; resalePrice: string };
 }
 
 export type PartnerSurfaceKey =

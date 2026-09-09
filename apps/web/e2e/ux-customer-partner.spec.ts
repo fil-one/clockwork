@@ -128,7 +128,7 @@ test("owner creates a priced draft from the session account", async ({
   await expect(
     page.getByRole("heading", {
       level: 2,
-      name: "Capacity, term, direct route, and expiry",
+      name: "Capacity, term, and expiry",
     }),
   ).toBeVisible();
   await expect(page.getByRole("radio", { name: /Direct/u })).toBeChecked();

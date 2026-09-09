@@ -169,3 +169,27 @@ describe("quote workflow model", () => {
     });
   });
 });
+
+it("rejects expiry at or before submission time, including a draft left open", () => {
+  const expiry = new Date(validDraft.expiresAt);
+  for (const delta of [0, 1, 60_000]) {
+    expect(
+      validateQuoteStage(
+        2,
+        validDraft,
+        accounts,
+        authoritativeQuoteOffers,
+        new Date(expiry.getTime() + delta),
+      ).expiresAt,
+    ).toBe("Choose an expiry after the current time.");
+  }
+  expect(
+    validateQuoteStage(
+      2,
+      validDraft,
+      accounts,
+      authoritativeQuoteOffers,
+      new Date(expiry.getTime() - 60_000),
+    ),
+  ).toEqual({});
+});

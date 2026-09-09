@@ -34,7 +34,10 @@ it("creates a persisted priced draft through the explicit demo builder", async (
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.type(screen.getByLabelText("Committed capacity (TB)"), "42");
   await user.type(screen.getByLabelText("Term (months)"), "12");
-  await user.type(screen.getByLabelText("Quote expiry"), "2026-08-31T17:00");
+  await user.type(
+    screen.getByLabelText("Quote expiry"),
+    new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 16),
+  );
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(screen.getByRole("button", { name: "Create priced draft" }));
 

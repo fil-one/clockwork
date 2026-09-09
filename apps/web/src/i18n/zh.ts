@@ -1,6 +1,35 @@
 import type { MessageCatalog } from "./en";
 
 export const zh = {
+  "quotes.form.description": "选择方案，设置容量和期限，然后审核报价草稿。",
+  "quotes.form.offerHelp": "选择所需区域中可用的方案。",
+  "quotes.form.reviewTitle": "审核草稿",
+  "quotes.form.reviewDescription":
+    "创建草稿时将计算价格。随后打开已保存的草稿，准备文档并发布报价。您可以在接受订单前审核已发布的报价。",
+  "quotes.form.expiryHelp": "请使用当地日期和时间。",
+  "quotes.form.expiryFuture": "请选择晚于当前时间的到期时间。",
+  "quotes.form.stageTerms": "容量、期限和到期时间",
+  "quotes.form.stageReview": "审核草稿",
+  "quotes.form.partnerDescription":
+    "选择方案和最终客户，然后设置转售价格。创建草稿时，Fil One 将计算您的转移价格。",
+
+  "quotes.issue.title": "完成此报价",
+  "quotes.issue.description":
+    "准备已保存报价的文档，使其可供接受。发布报价不会创建订单。",
+  "quotes.issue.action": "准备并发布报价",
+  "quotes.issue.working": "正在准备报价…",
+  "quotes.issue.retry": "继续此报价",
+  "quotes.issue.accept": "审核并接受订单",
+  "quotes.issue.refresh":
+    "请刷新此页面，检查最新报价和您的访问权限，然后重试。",
+  "quotes.issue.pricingReview":
+    "此草稿需要完成价格审核后才能发布。请联系您的 Fil One 团队。",
+  "quotes.issue.documentUnavailable":
+    "无法验证报价文档。尚未发布任何报价。请重试。",
+  "quotes.issue.rendering": "文档仍在准备中。请继续此报价以再次检查。",
+  "quotes.issue.synchronizing":
+    "报价已发布。状态仍在更新，请继续此报价以再次检查。",
+
   "cp.common.loadingTitle": "正在加载记录",
   "cp.common.loadingBody": "正在获取最新记录。",
   "cp.common.emptyTitle": "暂无内容",
@@ -580,7 +609,7 @@ export const zh = {
   "partner.detail.quote.revise": "创建修订",
   "partner.detail.quote.issue.title": "发出受前置条件限制",
   "partner.detail.quote.issue.description":
-    "Fil One 先准备并绑定独立的终端客户与合作伙伴文档。两者就绪后，才显示审查和确认操作。",
+    "渠道运营团队必须先分别准备客户文档和合作伙伴文档，才能发布此报价。请联系合作伙伴支持团队以继续。",
   "partner.detail.quote.cancel.title": "此处无法取消",
   "partner.detail.quote.cancel.description":
     "合作伙伴报价取消由渠道运营团队处理。请联系该团队。",
@@ -593,7 +622,7 @@ export const zh = {
   "partner.quote.new.disabled.created":
     "定价草稿已创建。请从报价列表打开以继续。",
   "partner.quote.new.success":
-    "已按服务器定价创建草稿。在执行有效的发出操作前，请审查服务器返回的转移价格。",
+    "已创建包含价格的草稿。请打开草稿，查看已保存的价格和后续步骤。",
   "partner.quote.new.failure": "无法创建报价。",
   "support.title": "支持概览",
   "support.description":

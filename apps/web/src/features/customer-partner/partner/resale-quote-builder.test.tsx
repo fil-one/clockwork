@@ -364,10 +364,15 @@ describe("resale quote builder submission states", () => {
     await user.click(screen.getByRole("checkbox"));
     await user.click(submit);
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Draft created from server pricing",
+      "The priced draft was created.",
     );
     expect(screen.queryByRole("alert")).toBeNull();
     expect(submit).toBeDisabled();
-    expect(screen.getByText(/priced draft was created/)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Open the created draft" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/partner\/quotes\/quote-/),
+    );
   });
 });

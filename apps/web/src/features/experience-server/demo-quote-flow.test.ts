@@ -8,6 +8,7 @@ import {
   type DemoQuoteCommand,
   type DemoQuoteState,
 } from "./demo-quote-flow";
+import { ExplicitDemoProjectionSource } from "./projection-source";
 import { DemoOrderAcceptance } from "./demo-order-acceptance";
 import { DemoExperienceRepository } from "./demo-experience-repository";
 import { DemoEvidenceGateway } from "./evidence-gateway";
@@ -141,6 +142,23 @@ describe("DemoQuoteFlow", () => {
       rowVersion: 2,
       snapshot: { status: "issued", renderedDocumentId: artifact.documentId },
     });
+
+    const quoteProjection = await new ExplicitDemoProjectionSource(store).find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId,
+      recordKey: `quote-${quoteId}`,
+      now,
+    });
+    expect(quoteProjection.data.artifacts).toEqual([
+      {
+        kind: "direct_quote",
+        id: artifact.requestId,
+        label: "Quote document",
+        state: "stored",
+      },
+    ]);
 
     const acceptance = new DemoOrderAcceptance(store);
     const acceptanceCommand = {

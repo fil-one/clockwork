@@ -1005,3 +1005,27 @@ describe("Buy quote bridge", () => {
     });
   });
 });
+
+it("maps separate partner quote prices only from complete authorized money fields", async () => {
+  const facts = {
+    totalMinor: "3960000",
+    partnerResaleTotalMinor: "5000000",
+    currency: "GBP",
+  };
+  returns([
+    projection({ data: { ...partnerPayload([]), authoritative: facts } }),
+  ]);
+  expect((await loadPartnerRecords("quotes")).records[0]?.quotePricing).toEqual(
+    { transferPrice: "£39,600.00", resalePrice: "£50,000.00" },
+  );
+  for (const authoritative of [
+    { ...facts, currency: "unknown" },
+    { ...facts, totalMinor: "not-money" },
+    { ...facts, partnerResaleTotalMinor: undefined },
+  ]) {
+    returns([projection({ data: { ...partnerPayload([]), authoritative } })]);
+    expect(
+      (await loadPartnerRecords("quotes")).records[0]?.quotePricing,
+    ).toBeUndefined();
+  }
+});

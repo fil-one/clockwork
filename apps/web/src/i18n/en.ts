@@ -1,4 +1,35 @@
 export const en = {
+  "quotes.form.description":
+    "Choose an offer, set your capacity and term, then review your quote draft.",
+  "quotes.form.offerHelp": "Choose an available offer for the region you need.",
+  "quotes.form.reviewTitle": "Review your draft",
+  "quotes.form.reviewDescription":
+    "Creating this draft calculates your price. Next, open the saved draft to prepare its document and issue the quote. You can review the issued quote before accepting an order.",
+  "quotes.form.expiryHelp": "Use your local date and time.",
+  "quotes.form.expiryFuture": "Choose an expiry after the current time.",
+  "quotes.form.stageTerms": "Capacity, term, and expiry",
+  "quotes.form.stageReview": "Review draft",
+  "quotes.form.partnerDescription":
+    "Choose an offer and end client, then set your resale price. Fil One calculates your transfer price when you create the draft.",
+
+  "quotes.issue.title": "Finish this quote",
+  "quotes.issue.description":
+    "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
+  "quotes.issue.action": "Prepare and issue quote",
+  "quotes.issue.working": "Preparing quote…",
+  "quotes.issue.retry": "Continue this quote",
+  "quotes.issue.accept": "Review and accept order",
+  "quotes.issue.refresh":
+    "Refresh this page to check the latest quote and your access, then try again.",
+  "quotes.issue.pricingReview":
+    "This draft needs pricing review before it can be issued. Contact your Fil One team.",
+  "quotes.issue.documentUnavailable":
+    "The quote document could not be verified. Nothing was issued. Try again.",
+  "quotes.issue.rendering":
+    "The document is still being prepared. Continue this quote to check again.",
+  "quotes.issue.synchronizing":
+    "The quote was issued. Its status is still updating; continue this quote to check again.",
+
   "cp.common.loadingTitle": "Loading records",
   "cp.common.loadingBody": "The latest records are being retrieved.",
   "cp.common.emptyTitle": "Nothing here yet",
@@ -638,7 +669,7 @@ export const en = {
   "partner.detail.quote.revise": "Create revision",
   "partner.detail.quote.issue.title": "Issue is gated",
   "partner.detail.quote.issue.description":
-    "Fil One prepares and binds separate end-client and partner artifacts first. The action appears once both artifacts are ready, then opens review and confirmation.",
+    "Channel operations must prepare separate customer and partner documents before issuing this quote. Contact partner support to continue.",
   "partner.detail.quote.cancel.title": "Cancellation is unavailable here",
   "partner.detail.quote.cancel.description":
     "Cancelling a partner quote is handled by channel operations. Contact them to cancel this quote.",
@@ -652,7 +683,7 @@ export const en = {
   "partner.quote.new.disabled.created":
     "The priced draft was created. Open it from the quotes collection to continue.",
   "partner.quote.new.success":
-    "Draft created from server pricing. Review the server-returned transfer price before using the valid Issue action.",
+    "The priced draft was created. Open it to review the saved prices and next steps.",
   "partner.quote.new.failure": "The quote could not be created.",
   "support.title": "Support visibility",
   "support.description":

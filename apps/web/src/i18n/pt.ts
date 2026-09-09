@@ -1,6 +1,39 @@
 import type { MessageCatalog } from "./en";
 
 export const pt = {
+  "quotes.form.description":
+    "Escolha uma oferta, defina a capacidade e o prazo e revise o rascunho.",
+  "quotes.form.offerHelp":
+    "Escolha uma oferta disponível para a região desejada.",
+  "quotes.form.reviewTitle": "Revise seu rascunho",
+  "quotes.form.reviewDescription":
+    "A criação do rascunho calcula seu preço. Depois, abra o rascunho salvo para preparar o documento e emitir a cotação. Você poderá revisá-la antes de aceitar um pedido.",
+  "quotes.form.expiryHelp": "Use sua data e hora locais.",
+  "quotes.form.expiryFuture":
+    "Escolha um vencimento posterior ao horário atual.",
+  "quotes.form.stageTerms": "Capacidade, prazo e vencimento",
+  "quotes.form.stageReview": "Revisar rascunho",
+  "quotes.form.partnerDescription":
+    "Escolha uma oferta e um cliente final e defina seu preço de revenda. A Fil One calcula seu preço de transferência ao criar o rascunho.",
+
+  "quotes.issue.title": "Concluir esta cotação",
+  "quotes.issue.description":
+    "Prepare o documento da cotação salva para que ela possa ser aceita. Emitir uma cotação não cria um pedido.",
+  "quotes.issue.action": "Preparar e emitir cotação",
+  "quotes.issue.working": "Preparando cotação…",
+  "quotes.issue.retry": "Continuar esta cotação",
+  "quotes.issue.accept": "Revisar e aceitar pedido",
+  "quotes.issue.refresh":
+    "Atualize esta página para verificar a cotação e seu acesso e tente novamente.",
+  "quotes.issue.pricingReview":
+    "O preço deste rascunho precisa ser revisado antes da emissão. Entre em contato com sua equipe da Fil One.",
+  "quotes.issue.documentUnavailable":
+    "Não foi possível verificar o documento. Nenhuma cotação foi emitida. Tente novamente.",
+  "quotes.issue.rendering":
+    "O documento ainda está sendo preparado. Continue esta cotação para verificar novamente.",
+  "quotes.issue.synchronizing":
+    "A cotação foi emitida. O status ainda está sendo atualizado; continue para verificar novamente.",
+
   "cp.common.loadingTitle": "Carregando registros",
   "cp.common.loadingBody": "Os registros mais recentes estão sendo obtidos.",
   "cp.common.emptyTitle": "Ainda não há nada aqui",
@@ -649,7 +682,7 @@ export const pt = {
   "partner.detail.quote.revise": "Criar revisão",
   "partner.detail.quote.issue.title": "A emissão está condicionada",
   "partner.detail.quote.issue.description":
-    "A Fil One prepara e vincula documentos separados para cliente final e parceiro. A ação aparece quando ambos estão prontos e abre a revisão e confirmação.",
+    "A equipe de operações de canais deve preparar documentos separados para o cliente e o parceiro antes de emitir esta cotação. Entre em contato com o suporte a parceiros para continuar.",
   "partner.detail.quote.cancel.title":
     "O cancelamento não está disponível aqui",
   "partner.detail.quote.cancel.description":
@@ -664,7 +697,7 @@ export const pt = {
   "partner.quote.new.disabled.created":
     "O rascunho com preço foi criado. Abra-o na lista de propostas para continuar.",
   "partner.quote.new.success":
-    "Rascunho criado com preços do servidor. Revise o preço de transferência antes de usar a ação Emitir.",
+    "O rascunho com preço foi criado. Abra-o para revisar os preços salvos e os próximos passos.",
   "partner.quote.new.failure": "Não foi possível criar a proposta.",
   "support.title": "Consulta de suporte",
   "support.description":
