@@ -1,6 +1,30 @@
 import type { MessageCatalog } from "./en";
 
 export const pt = {
+  "clientReview.eyebrow": "Análise do cliente · demonstração",
+  "clientReview.title": "Sua cotação",
+  "clientReview.respond": "Responder ao seu parceiro",
+  "clientReview.name": "Seu nome",
+  "clientReview.response": "Resposta",
+  "clientReview.note": "Referência de compra ou alterações solicitadas",
+  "clientReview.requestOrder": "Solicitar um pedido",
+  "clientReview.requestChanges": "Solicitar alterações",
+  "clientReview.decline": "Recusar cotação",
+  "clientReview.attest":
+    "Estou analisando esta cotação de demonstração para o cliente indicado.",
+  "clientReview.boundary":
+    "Sua intenção será registrada para análise pelo parceiro. Isso não cria um contrato vinculante, não realiza cobranças nem ativa o serviço.",
+  "clientReview.submit": "Enviar resposta ao espaço do parceiro",
+  "clientReview.saving": "Salvando…",
+  "clientReview.receivedOrder": "Solicitação de pedido recebida",
+  "clientReview.receivedChanges": "Solicitação de alterações recebida",
+  "clientReview.receivedDecline": "Cotação recusada",
+  "clientReview.visible":
+    "Seu parceiro pode ver esta resposta no espaço de cotações.",
+  "clientReview.seller":
+    "Seu parceiro é o vendedor e cuida da compra e do faturamento.",
+  "clientReview.valid": "Revisão {revision} · Válida até {date}",
+
   "quotes.form.description":
     "Escolha uma oferta, defina a capacidade e o prazo e revise o rascunho.",
   "quotes.form.offerHelp":

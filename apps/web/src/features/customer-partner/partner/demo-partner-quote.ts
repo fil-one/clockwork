@@ -1,3 +1,6 @@
+import { isStoredQuote, type StoredQuote } from "./demo-partner-quote-state";
+export { isStoredQuote, type StoredQuote } from "./demo-partner-quote-state";
+import type { DemoQuoteState } from "@/src/features/experience-server/demo-quote-flow";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -10,7 +13,12 @@ import {
   QuantitySchema,
   uuidV7,
 } from "@clockwork/contracts";
-import { createQuoteDraft, priceQuote } from "@clockwork/domain/core";
+import {
+  createQuoteDraft,
+  priceQuote,
+  reviseQuote,
+  type QuoteSnapshot,
+} from "@clockwork/domain/core";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type {
   DemoAdapterState,
@@ -73,9 +81,11 @@ const commandSchema = z
   .object({
     id: z.uuid(),
     accountId: z.uuid(),
-    action: z.literal("create"),
+    action: z.enum(["create", "revise", "edit"]),
+    expectedVersion: z.number().int().positive().optional(),
     payload: z
       .object({
+        revisionId: z.uuid().optional(),
         priceBookId: z.uuid(),
         seriesId: z.uuid(),
         route: z.enum(["resale", "distributor"]),
@@ -101,15 +111,6 @@ const commandSchema = z
   })
   .strict();
 
-export interface StoredQuote {
-  readonly kind: "demo_partner_quote";
-  readonly aggregateId: string;
-  readonly partnerAccountId: string;
-  readonly record: PartnerRecord;
-  readonly createdAt: string;
-  readonly snapshot: Readonly<Record<string, unknown>>;
-}
-
 interface StoredReceipt {
   readonly kind: "demo_partner_quote_receipt";
   readonly requestHash: string;
@@ -128,19 +129,6 @@ class PartnerQuoteProblem extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-export function isStoredQuote(value: unknown): value is StoredQuote {
-  return (
-    isRecord(value) &&
-    value.kind === "demo_partner_quote" &&
-    typeof value.aggregateId === "string" &&
-    typeof value.partnerAccountId === "string" &&
-    typeof value.createdAt === "string" &&
-    isRecord(value.record) &&
-    typeof value.record.id === "string" &&
-    isRecord(value.snapshot)
-  );
 }
 
 function isStoredReceipt(value: unknown): value is StoredReceipt {
@@ -168,6 +156,8 @@ function projectedPartnerQuote(quote: StoredQuote): PartnerRecord {
   const resale = moneySchema.safeParse(quote.snapshot.partnerResaleTotal);
   return {
     ...quote.record,
+    ...(quote.orderId ? { orderId: quote.orderId } : {}),
+    ...(quote.clientResponse ? { clientResponse: quote.clientResponse } : {}),
     quoteCommand: {
       quoteId: quote.aggregateId,
       accountId: String(quote.snapshot.accountId),
@@ -222,6 +212,7 @@ export function demoPartnerQuoteContext(
   state: DemoAdapterState,
   partnerAccountId: string,
   partnerAccountName: string,
+  reference?: string,
 ): PartnerQuoteContext | undefined {
   const relationship = relationships[partnerAccountId];
   if (!relationship) return undefined;
@@ -246,7 +237,66 @@ export function demoPartnerQuoteContext(
           currency: book.currency,
         })),
     );
+  let revision: PartnerQuoteContext["revision"];
+  if (reference) {
+    const prior = createdQuotes(state).find(
+      (quote) =>
+        quote.partnerAccountId === partnerAccountId &&
+        (quote.record.id === reference || quote.aggregateId === reference),
+    );
+    if (!prior) return undefined;
+    const snapshot = prior.snapshot as unknown as QuoteSnapshot;
+    if (
+      prior.orderId ||
+      !["draft", "issued", "expired", "rejected"].includes(snapshot.status)
+    )
+      return undefined;
+    const mapped = snapshot.lines.map((line) => ({
+      line,
+      offer: offers.find(
+        (offer) =>
+          offer.priceBookId === snapshot.priceBook.id &&
+          offer.sku === line.sku &&
+          offer.region === line.region,
+      ),
+    }));
+    if (
+      !mapped.length ||
+      mapped.some((item) => !item.offer) ||
+      !snapshot.partnerResaleTotal
+    )
+      return undefined;
+    const first = mapped[0];
+    if (!first?.offer) return undefined;
+    revision = {
+      quoteId: snapshot.id,
+      version: prior.record.recordVersion ?? 1,
+      seriesId: snapshot.seriesId,
+      action: snapshot.status === "draft" ? "edit" : "revise",
+      initialDraft: {
+        ...(snapshot.status === "draft"
+          ? { expiresAt: snapshot.expiresAt }
+          : {}),
+        offerName: first.offer.name,
+        capacity: first.line.quantity,
+        termMonths: String(first.line.termMonths),
+        endClientName: relationship.endClient.name,
+        resalePrice: (Number(snapshot.partnerResaleTotal.minor) / 100).toFixed(
+          2,
+        ),
+      },
+      lines: mapped.slice(1).map(({ line, offer }) => {
+        if (!offer) throw new Error("The original offer is unavailable.");
+        return {
+          offerId: offer.id,
+          capacity: line.quantity,
+          termMonths: String(line.termMonths),
+        };
+      }),
+    };
+  }
   return {
+    ...(revision ? { revision } : {}),
     partnerAccountId,
     partnerAccountName,
     route: relationship.route,
@@ -342,7 +392,9 @@ export async function handleDemoPartnerQuoteCommand(
     const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (
       isRecord(body) &&
-      (body.action === "prepare_artifact" || body.action === "issue")
+      ["prepare_artifact", "issue", "share", "cancel"].includes(
+        String(body.action),
+      )
     ) {
       const { handlePartnerLifecycle } =
         await import("./demo-partner-lifecycle");
@@ -389,7 +441,61 @@ export async function handleDemoPartnerQuoteCommand(
         result = prior.response;
         return state;
       }
-      if (state.projectionOverrides[`${quotePrefix}${command.id}`])
+      const existing =
+        state.projectionOverrides[`${quotePrefix}${command.id}`]?.data;
+      const previous = isStoredQuote(existing) ? existing : undefined;
+      const targetId =
+        command.action === "revise" ? command.payload.revisionId : command.id;
+      if (!targetId)
+        throw new PartnerQuoteProblem(
+          422,
+          "REVISION_REQUIRED",
+          "A revision identity is required.",
+        );
+      if (command.action !== "create") {
+        if (
+          !previous ||
+          previous.partnerAccountId !== command.payload.partnerAccountId ||
+          previous.snapshot.accountId !== command.accountId
+        )
+          throw new PartnerQuoteProblem(
+            403,
+            "PARTNER_QUOTE_SCOPE_FORBIDDEN",
+            "This quote is outside your account.",
+          );
+        if (previous.orderId)
+          throw new PartnerQuoteProblem(
+            422,
+            "QUOTE_ACCEPTED",
+            "An ordered quote cannot be edited or revised.",
+          );
+        if (previous.record.recordVersion !== command.expectedVersion)
+          throw new PartnerQuoteProblem(
+            409,
+            "VERSION_CONFLICT",
+            "The quote changed. Reload before editing.",
+          );
+        if (
+          previous.snapshot.seriesId !== command.payload.seriesId ||
+          (previous.snapshot.priceBook as { id?: string })?.id !==
+            command.payload.priceBookId
+        )
+          throw new PartnerQuoteProblem(
+            422,
+            "REVISION_CONTEXT_CHANGED",
+            "Keep this revision on its original series and price book.",
+          );
+        if (command.action === "edit" && previous.snapshot.status !== "draft")
+          throw new PartnerQuoteProblem(
+            422,
+            "QUOTE_IMMUTABLE",
+            "Only a draft can be edited. Create a revision of an issued quote.",
+          );
+      }
+      if (
+        command.action !== "edit" &&
+        state.projectionOverrides[`${quotePrefix}${targetId}`]
+      )
         throw new PartnerQuoteProblem(
           409,
           "PARTNER_QUOTE_EXISTS",
@@ -425,8 +531,8 @@ export async function handleDemoPartnerQuoteCommand(
             : "The quote could not be priced",
         );
       }
-      const snapshot = createQuoteDraft({
-        id: command.id,
+      let snapshot = createQuoteDraft({
+        id: targetId,
         seriesId: command.payload.seriesId,
         accountId: command.accountId,
         endClientAccountId: command.payload.endClientAccountId,
@@ -444,13 +550,55 @@ export async function handleDemoPartnerQuoteCommand(
         createdBy: session.userId,
         createdAt: now,
       });
-      const reference = `quote-${command.id}`;
+      let priorUpdate: StoredQuote | undefined;
+      if (previous && command.action === "revise") {
+        let revised: ReturnType<typeof reviseQuote>;
+        try {
+          revised = reviseQuote(
+            previous.snapshot as unknown as QuoteSnapshot,
+            snapshot,
+          );
+        } catch (error) {
+          throw new PartnerQuoteProblem(
+            422,
+            "REVISION_REFUSED",
+            error instanceof Error
+              ? error.message
+              : "This quote cannot be revised.",
+          );
+        }
+        snapshot = revised.revision;
+        priorUpdate = {
+          ...previous,
+          snapshot: revised.prior as unknown as Record<string, unknown>,
+          record: {
+            ...previous.record,
+            status: "canceled",
+            secondary: `Superseded by revision ${snapshot.revision}`,
+            allowedActions: ["download"],
+            recordVersion: (previous.record.recordVersion ?? 1) + 1,
+          },
+        };
+      } else if (previous) {
+        snapshot = {
+          ...snapshot,
+          revision: Number(previous.snapshot.revision),
+          ...(typeof previous.snapshot.previousRevisionId === "string"
+            ? { previousRevisionId: previous.snapshot.previousRevisionId }
+            : {}),
+        };
+      }
+      const version =
+        command.action === "edit"
+          ? (previous?.record.recordVersion ?? 1) + 1
+          : 1;
+      const reference = `quote-${targetId}`;
       const line = command.payload.lines[0];
       if (!line) throw new Error("Partner quote line disappeared");
       const record: PartnerRecord = {
         id: reference,
         name: `${relationship.endClient.name} · ${line.sku}`,
-        context: `${command.payload.route === "distributor" ? "Two-tier distributor" : "Resale"} · ${line.region} · ${line.quantity} TB · ${line.termMonths} months`,
+        context: `${command.payload.route === "distributor" ? "Two-tier distributor" : "Resale"} · ${command.payload.lines.map((line) => `${line.region} · ${line.quantity} TB · ${line.termMonths} months`).join("; ")}`,
         status: "draft",
         quotePricing: {
           transferPrice: displayMoney(
@@ -467,16 +615,16 @@ export async function handleDemoPartnerQuoteCommand(
         value: `${displayMoney(priced.total.currency, priced.total.minor)} transfer / ${displayMoney(command.payload.partnerResaleTotal.currency, command.payload.partnerResaleTotal.minor)} resale`,
         secondary: `Draft · expires ${new Date(command.payload.expiresAt).toLocaleDateString("en-GB", { timeZone: "UTC" })}`,
         href: `/partner/quotes/${reference}` as Route,
-        recordVersion: 1,
+        recordVersion: version,
         recordKey: reference,
-        allowedActions: ["edit", "issue"],
+        allowedActions: ["edit", "issue", "cancel"],
       };
       result = {
         record: {
-          id: command.id,
+          id: targetId,
           resource: "quotes",
           accountId: command.accountId,
-          rowVersion: 1,
+          rowVersion: version,
           data: {
             status: snapshot.status,
             reference,
@@ -493,14 +641,32 @@ export async function handleDemoPartnerQuoteCommand(
       return {
         ...state,
         revision: state.revision + 1,
+        ...(command.action === "edit"
+          ? {
+              commercialArtifactRequests: Object.fromEntries(
+                Object.entries(
+                  (state as DemoQuoteState).commercialArtifactRequests ?? {},
+                ).filter(([, request]) => request.subjectId !== targetId),
+              ),
+            }
+          : {}),
         projectionOverrides: {
           ...state.projectionOverrides,
-          [`${quotePrefix}${command.id}`]: {
-            version: 1,
+          ...(priorUpdate
+            ? {
+                [`${quotePrefix}${command.id}`]: {
+                  version: priorUpdate.record.recordVersion ?? 1,
+                  updatedAt: now,
+                  data: { ...priorUpdate },
+                },
+              }
+            : {}),
+          [`${quotePrefix}${targetId}`]: {
+            version,
             updatedAt: now,
             data: {
               kind: "demo_partner_quote",
-              aggregateId: command.id,
+              aggregateId: targetId,
               partnerAccountId: command.payload.partnerAccountId,
               record,
               createdAt: now,

@@ -30,6 +30,8 @@ export interface PartnerRecord {
   projectionId?: string;
   recordKey?: string;
   allowedActions?: readonly string[];
+  orderId?: string;
+  clientResponse?: { decision: string; name: string; note: string; at: string };
   quoteCommand?: { quoteId: string; accountId: string; version: number };
   documents?: readonly {
     id: string;

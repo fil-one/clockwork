@@ -1,6 +1,30 @@
 import type { MessageCatalog } from "./en";
 
 export const ar = {
+  "clientReview.eyebrow": "مراجعة العميل · عرض تجريبي",
+  "clientReview.title": "عرض السعر الخاص بك",
+  "clientReview.respond": "الرد على شريكك",
+  "clientReview.name": "اسمك",
+  "clientReview.response": "الرد",
+  "clientReview.note": "مرجع الشراء أو التعديلات المطلوبة",
+  "clientReview.requestOrder": "طلب إنشاء طلب شراء",
+  "clientReview.requestChanges": "طلب تعديلات",
+  "clientReview.decline": "رفض عرض السعر",
+  "clientReview.attest":
+    "أراجع عرض السعر التجريبي هذا نيابةً عن العميل المذكور.",
+  "clientReview.boundary":
+    "يُسجّل هذا الإجراء رغبتك لمراجعتها من الشريك. ولا يُنشئ عقدًا ملزمًا، ولا يخصم أي مبلغ، ولا يُفعّل الخدمة.",
+  "clientReview.submit": "إرسال الرد إلى مساحة عمل الشريك",
+  "clientReview.saving": "جارٍ الحفظ…",
+  "clientReview.receivedOrder": "تم استلام طلب الشراء",
+  "clientReview.receivedChanges": "تم استلام طلب التعديلات",
+  "clientReview.receivedDecline": "تم رفض عرض السعر",
+  "clientReview.visible":
+    "يمكن لشريكك الاطّلاع على هذا الرد في مساحة عمل عروض الأسعار.",
+  "clientReview.seller":
+    "شريكك هو البائع ويتولى ترتيبات الشراء وإصدار الفواتير.",
+  "clientReview.valid": "الإصدار {revision} · صالح حتى {date}",
+
   "quotes.form.description":
     "اختر عرضًا وحدد السعة والمدة، ثم راجع مسودة عرض السعر.",
   "quotes.form.offerHelp": "اختر عرضًا متاحًا للمنطقة التي تحتاجها.",

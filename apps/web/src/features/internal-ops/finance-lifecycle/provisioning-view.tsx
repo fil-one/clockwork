@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import { localizeCopy } from "@/src/i18n/copy";
@@ -30,7 +31,9 @@ function riskTone(
 export function ProvisioningView({
   work,
   provenance,
+  children,
 }: {
+  children?: ReactNode;
   work: readonly ProvisioningWork[];
   provenance: SurfaceProvenance;
 }) {
@@ -44,6 +47,7 @@ export function ProvisioningView({
       description={localizedcopy.description}
       provenance={provenance}
     >
+      {children}
       <section
         className={styles.summaryGrid}
         aria-label="Provisioning work by kind"

@@ -237,7 +237,11 @@ async function loadOffers(input: {
   });
 }
 
-async function ResaleQuoteWorkspace() {
+async function ResaleQuoteWorkspace({
+  reference,
+}: {
+  reference?: string | undefined;
+}) {
   const now = new Date();
   const [identity, session] = await Promise.all([
     getRouteIdentity("partner"),
@@ -248,6 +252,7 @@ async function ResaleQuoteWorkspace() {
       await configuredDemoStateStore().read(),
       identity.accountId,
       identity.accountName,
+      reference,
     );
     if (!context) return <NothingToQuote missing="agreement" />;
     if (!partnerPricedRoute(context.route))
@@ -289,13 +294,18 @@ async function ResaleQuoteWorkspace() {
   );
 }
 
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ revises?: string }>;
+}) {
+  const { revises } = await searchParams;
   return (
     <SurfacePermissionGate
       audience="partner"
       requiredPermission="partner:quote:write"
     >
-      <ResaleQuoteWorkspace />
+      <ResaleQuoteWorkspace reference={revises} />
     </SurfacePermissionGate>
   );
 }

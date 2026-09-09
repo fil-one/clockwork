@@ -104,6 +104,7 @@ export const navigation: Readonly<
     { href: "/partner/portfolio", label: "nav.partner.portfolio" },
     { href: "/partner/registrations", label: "nav.partner.registrations" },
     { href: "/partner/quotes", label: "nav.partner.quotes" },
+    { href: "/partner/orders", label: "nav.orders" },
     {
       href: "/partner/billing",
       label: "nav.partner.billing",

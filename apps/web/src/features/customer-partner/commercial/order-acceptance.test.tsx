@@ -349,6 +349,22 @@ describe("order acceptance two-pass bridge", () => {
     );
   });
 
+  it("binds a distinct order-line identifier for every quoted line across both passes", async () => {
+    storeOrderForm();
+    renderSurface({ quote: { ...quote, lineCount: 3 } });
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    await elapse(2_000);
+    const first = commandCall(0).command.payload.orderLineIds;
+    expect(first).toHaveLength(3);
+    expect(new Set(first as string[]).size).toBe(3);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: createLabel }));
+      await Promise.resolve();
+    });
+    expect(commandCall(1).command.payload.orderLineIds).toEqual(first);
+  });
+
   it.each(["production", "demo"] as const)(
     "polls the bodyless artifact GET for the %s prepare response",
     async (shape) => {

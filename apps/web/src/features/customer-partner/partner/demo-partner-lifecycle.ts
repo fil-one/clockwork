@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
@@ -20,13 +20,13 @@ import type {
   DemoQuoteState,
   DemoQuoteCommercialArtifactRequest,
 } from "@/src/features/experience-server/demo-quote-flow";
-import { isStoredQuote } from "./demo-partner-quote";
+import { isStoredQuote } from "./demo-partner-quote-state";
 
 const schema = z.object({
   id: z.uuid(),
   accountId: z.uuid(),
   expectedVersion: z.number().int().positive(),
-  action: z.enum(["prepare_artifact", "issue"]),
+  action: z.enum(["prepare_artifact", "issue", "share", "cancel"]),
   payload: z.record(z.string(), z.unknown()),
 });
 class Refusal extends Error {
@@ -84,12 +84,96 @@ export async function handlePartnerLifecycle(
           "This quote is outside your partner account.",
         );
       const snapshot = stored.snapshot as unknown as QuoteSnapshot;
+      if (stored.orderId)
+        throw new Refusal(
+          422,
+          "QUOTE_ACCEPTED",
+          "This quote is already bound to a supply order.",
+        );
       if ((stored.record.recordVersion ?? 1) !== command.expectedVersion)
         throw new Refusal(
           409,
           "VERSION_CONFLICT",
           "The quote changed. Reload its details.",
         );
+      if (command.action === "share" || command.action === "cancel") {
+        if (
+          !(
+            command.action === "cancel" ? ["draft", "issued"] : ["issued"]
+          ).includes(snapshot.status)
+        )
+          throw new Refusal(
+            422,
+            "INVALID_STATE",
+            "This action is unavailable for the quote's current state.",
+          );
+        if (
+          command.action === "share" &&
+          Date.parse(snapshot.expiresAt) <= Date.parse(now)
+        )
+          throw new Refusal(
+            422,
+            "QUOTE_EXPIRED",
+            "Revise the expired quote before sharing.",
+          );
+        const overrides = { ...state.projectionOverrides };
+        let data: Record<string, unknown>;
+        if (command.action === "share") {
+          const token = randomBytes(32).toString("hex");
+          const shareKey = `demo-client-review:${createHash("sha256").update(token).digest("hex")}`;
+          overrides[shareKey] = {
+            version: 1,
+            updatedAt: now,
+            data: { quoteId: snapshot.id, version: command.expectedVersion },
+          };
+          data = { reviewPath: `/demo/quote/${token}` };
+        } else {
+          const reason = z
+            .string()
+            .trim()
+            .min(8)
+            .max(2000)
+            .parse(command.payload.reason);
+          overrides[storageKey] = {
+            version: command.expectedVersion + 1,
+            updatedAt: now,
+            data: {
+              ...stored,
+              snapshot: { ...snapshot, status: "rejected" },
+              record: {
+                ...stored.record,
+                status: "canceled",
+                secondary: `Withdrawn: ${reason}`,
+                recordVersion: command.expectedVersion + 1,
+                allowedActions: ["revise", "download"],
+              },
+            },
+          };
+          data = { status: "canceled" };
+        }
+        result = {
+          record: {
+            id: command.id,
+            accountId: command.accountId,
+            resource: "quotes",
+            rowVersion:
+              command.expectedVersion + (command.action === "cancel" ? 1 : 0),
+            data,
+          },
+          auditEventId: uuidV7(),
+          outboxMessageId: uuidV7(),
+        };
+        overrides[receiptKey] = {
+          version: 1,
+          updatedAt: now,
+          data: { requestHash, response: result },
+        };
+        return {
+          ...state,
+          revision: state.revision + 1,
+          projectionOverrides: overrides,
+        };
+      }
       if (snapshot.status !== "draft")
         throw new Refusal(422, "INVALID_STATE", "Only a draft can be issued.");
       if (Date.parse(snapshot.expiresAt) <= Date.parse(now))
@@ -275,7 +359,7 @@ export async function handlePartnerLifecycle(
             status: "open",
             recordVersion: command.expectedVersion + 1,
             secondary: `Issued · expires ${snapshot.expiresAt.slice(0, 10)}`,
-            allowedActions: ["download"],
+            allowedActions: ["download", "revise", "cancel"],
             documents,
           },
         };

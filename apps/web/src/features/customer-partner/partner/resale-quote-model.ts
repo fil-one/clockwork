@@ -1,3 +1,4 @@
+import type { EditableQuoteLine } from "../commercial/quote-lines";
 import { uuidV7 } from "@clockwork/contracts";
 
 /**
@@ -75,6 +76,14 @@ export interface EndClientOption {
  * checked-in constant.
  */
 export interface PartnerQuoteContext {
+  revision?: {
+    quoteId: string;
+    version: number;
+    seriesId: string;
+    action: "edit" | "revise";
+    initialDraft: Partial<ResaleQuoteDraft>;
+    lines: readonly EditableQuoteLine[];
+  };
   partnerAccountId: string;
   partnerAccountName: string;
   route: QuoteRoute;
@@ -112,6 +121,10 @@ function twoDigits(value: number): string {
  */
 export function defaultQuoteExpiry(now: Date): string {
   const expiry = new Date(now.getTime() + quoteExpiryLeadDays * 86_400_000);
+  return localQuoteExpiry(expiry);
+}
+
+export function localQuoteExpiry(expiry: Date): string {
   return (
     `${expiry.getFullYear()}-${twoDigits(expiry.getMonth() + 1)}-` +
     `${twoDigits(expiry.getDate())}T${twoDigits(expiry.getHours())}:` +

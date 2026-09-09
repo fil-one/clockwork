@@ -1,4 +1,5 @@
 "use client";
+import { localQuoteExpiry } from "./resale-quote-model";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
@@ -35,6 +36,11 @@ import {
 } from "./resale-quote-model";
 import { attributionStatement } from "./partner-rules";
 import styles from "./partner.module.css";
+import {
+  QuoteLines,
+  validateAdditionalLines,
+  type EditableQuoteLine,
+} from "../commercial/quote-lines";
 
 export type MissingQuoteInput =
   "agreement" | "referralRoute" | "offers" | "endClients";
@@ -126,10 +132,26 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   // date compiled into the bundle. One clock read seeds both the editable draft
   // and the pristine copy the unsaved-work check compares against, so the
   // derived expiry can never be mistaken for something the seller typed.
-  const [pristine] = useState<ResaleQuoteDraft>(() =>
-    emptyResaleQuoteDraft(new Date()),
-  );
+  const [pristine] = useState<ResaleQuoteDraft>(() => ({
+    ...emptyResaleQuoteDraft(new Date()),
+    ...context.revision?.initialDraft,
+    ...(context.revision?.initialDraft.expiresAt
+      ? {
+          expiresAt: localQuoteExpiry(
+            new Date(context.revision.initialDraft.expiresAt),
+          ),
+        }
+      : {}),
+  }));
   const [draft, setDraft] = useState<ResaleQuoteDraft>(pristine);
+  const [lines, setLines] = useState<readonly EditableQuoteLine[]>(
+    context.revision?.lines ?? [],
+  );
+  const [lineError, setLineError] = useState<string>();
+  const lineOffers = context.offers.map((offer) => ({
+    ...offer,
+    label: offer.name,
+  }));
   const [errors, setErrors] = useState<QuoteValidation>({});
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
@@ -157,7 +179,12 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
    * `update()` clears `succeeded` on any further edit, so the pair tracks the
    * submission rather than the visit.
    */
-  const unsaved = (draftIsDirty(draft, pristine) || confirmed) && !succeeded;
+  const unsaved =
+    (draftIsDirty(draft, pristine) ||
+      confirmed ||
+      JSON.stringify(lines) !==
+        JSON.stringify(context.revision?.lines ?? [])) &&
+    !succeeded;
   useUnsavedChangesWarning(unsaved);
 
   function update<K extends keyof ResaleQuoteDraft>(
@@ -184,7 +211,22 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
       );
   }
 
+  function updateLines(nextLines: EditableQuoteLine[]) {
+    setLines(nextLines);
+    setLineError(undefined);
+    update("expiresAt", draft.expiresAt);
+  }
+  function checkLines() {
+    const problem = validateAdditionalLines(
+      lines,
+      lineOffers,
+      resolveOption(draft.offerName, context.offers)?.priceBookId,
+    );
+    setLineError(problem);
+    return problem;
+  }
   function advance() {
+    if (stage === 2 && checkLines()) return;
     // Expiry is validated against the clock at the moment of the interaction,
     // so a stale tab cannot accept an expiry that has already passed.
     const nextErrors = validateResaleQuoteStage(
@@ -200,6 +242,10 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (checkLines()) {
+      setStage(2);
+      return;
+    }
     const nextErrors = validateResaleQuoteStage(3, draft, context, new Date());
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
@@ -208,19 +254,54 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
     setNotice("");
     setFailure("");
     try {
-      submissionRef.current ??= {
-        idempotencyKey: crypto.randomUUID(),
-        quoteId: uuidV7(),
-        payload: resaleQuotePayload(draft, context),
-      };
+      if (!submissionRef.current) {
+        const payload = resaleQuotePayload(draft, context);
+        payload.lines.push(
+          ...lines.map((line) => {
+            const offer = context.offers.find(
+              (item) => item.id === line.offerId,
+            );
+            if (!offer)
+              throw new Error("Select an available offer for every line.");
+            return {
+              lineId: uuidV7(),
+              sku: offer.sku,
+              region: offer.region,
+              quantity: line.capacity,
+              termMonths: Number(line.termMonths),
+            };
+          }),
+        );
+        submissionRef.current = {
+          idempotencyKey: crypto.randomUUID(),
+          quoteId:
+            context.revision?.action === "edit"
+              ? context.revision.quoteId
+              : uuidV7(),
+          payload,
+        };
+      }
       const submission = submissionRef.current;
       await sendCoreCommand(
         {
           resource: "quotes",
-          id: submission.quoteId,
+          id: context.revision?.quoteId ?? submission.quoteId,
           accountId: submission.payload.endClientAccountId,
-          action: "create",
-          payload: submission.payload,
+          action: context.revision?.action ?? "create",
+          ...(context.revision
+            ? { expectedVersion: context.revision.version }
+            : {}),
+          payload: {
+            ...submission.payload,
+            ...(context.revision
+              ? {
+                  seriesId: context.revision.seriesId,
+                  ...(context.revision.action === "revise"
+                    ? { revisionId: submission.quoteId }
+                    : {}),
+                }
+              : {}),
+          },
         },
         { idempotencyKey: submission.idempotencyKey },
       );
@@ -256,7 +337,13 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           <p className={styles.eyebrow}>
             {quoteRouteLabel(context.route)} quote
           </p>
-          <h1>Create a partner quote</h1>
+          <h1>
+            {context.revision
+              ? context.revision.action === "edit"
+                ? "Edit partner draft"
+                : "Revise partner quote"
+              : "Create a partner quote"}
+          </h1>
           <p>{t("quotes.form.partnerDescription")}</p>
         </div>
         <LeaveDraftControl
@@ -459,9 +546,28 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 ) : null}
               </>
             ) : null}
+            {stage === 2 ? (
+              <QuoteLines
+                lines={lines}
+                offers={lineOffers}
+                {...(offer ? { priceBookId: offer.priceBookId } : {})}
+                onChange={updateLines}
+              />
+            ) : null}
+            {lineError ? <p role="alert">{lineError}</p> : null}
             {stage === 3 ? (
               <div className={styles.full}>
                 <ul className={styles.summaryList}>
+                  {lines.map((line, index) => (
+                    <li key={`line-${index}`}>
+                      Line {index + 2}:{" "}
+                      {
+                        context.offers.find((item) => item.id === line.offerId)
+                          ?.name
+                      }{" "}
+                      · {line.capacity} TB · {line.termMonths} months
+                    </li>
+                  ))}
                   {summary.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -553,7 +659,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               {draft.endClientName || "Not selected"}
             </li>
             <li>
-              <strong>Commitment:</strong>{" "}
+              <strong>First line:</strong>{" "}
               {draft.capacity ? `${draft.capacity} TB` : "Not recorded"} ·{" "}
               {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
             </li>
@@ -584,6 +690,18 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               {attributionStatement(context.route, context.partnerAccountName)}
             </li>
           </ul>
+          {lines.length ? (
+            <ul>
+              {lines.map((line, index) => (
+                <li key={index}>
+                  <strong>Line {index + 2}:</strong>{" "}
+                  {context.offers.find((offer) => offer.id === line.offerId)
+                    ?.sku ?? "Choose an offer"}{" "}
+                  · {line.capacity || "—"} TB · {line.termMonths || "—"} months
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <details className={styles.technical}>
             <summary>
               {localizedcustomerPartnerCopy.common.technicalDetails}

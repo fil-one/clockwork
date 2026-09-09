@@ -176,6 +176,6 @@ export function orderReviewSummary(input: {
     agreement: `${input.agreementTitle} · version ${input.agreementVersion} · active`,
     purchaseOrder: input.poNumber || "No purchase order supplied",
     serviceStart: input.serviceStart || "Not selected",
-    commitment: `${input.scope} · ${input.spend} estimated annual spend`,
+    commitment: `${input.scope} · ${input.spend} quoted commitment`,
   };
 }

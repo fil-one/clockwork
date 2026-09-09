@@ -382,7 +382,11 @@ export async function CommercialRecordDetail({
         <p id="next-action-title">
           {localizedcustomerPartnerCopy.common.nextAction}
         </p>
-        <strong>{record.nextAction}</strong>
+        {record.nextActionHref ? (
+          <Link href={record.nextActionHref as Route}>{record.nextAction}</Link>
+        ) : (
+          <strong>{record.nextAction}</strong>
+        )}
       </section>
 
       <div className={styles.detailGrid}>

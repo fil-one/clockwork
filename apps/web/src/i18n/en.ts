@@ -1,4 +1,28 @@
 export const en = {
+  "clientReview.eyebrow": "Client review · demonstration",
+  "clientReview.title": "Your quotation",
+  "clientReview.respond": "Respond to your partner",
+  "clientReview.name": "Your name",
+  "clientReview.response": "Response",
+  "clientReview.note": "Purchase reference or requested changes",
+  "clientReview.requestOrder": "Request an order",
+  "clientReview.requestChanges": "Request changes",
+  "clientReview.decline": "Decline quotation",
+  "clientReview.attest":
+    "I am reviewing this demonstration quote for the named client.",
+  "clientReview.boundary":
+    "This records your intent for partner review. It does not create a binding contract, charge a payment method, or activate service.",
+  "clientReview.submit": "Send response to partner workspace",
+  "clientReview.saving": "Saving…",
+  "clientReview.receivedOrder": "Purchase request received",
+  "clientReview.receivedChanges": "Change request received",
+  "clientReview.receivedDecline": "Quotation declined",
+  "clientReview.visible":
+    "Your partner can see this response in their quote workspace.",
+  "clientReview.seller":
+    "Your partner is the seller and handles purchase arrangements and billing.",
+  "clientReview.valid": "Revision {revision} · Valid until {date}",
+
   "quotes.form.description":
     "Choose an offer, set your capacity and term, then review your quote draft.",
   "quotes.form.offerHelp": "Choose an available offer for the region you need.",

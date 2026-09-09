@@ -616,7 +616,15 @@ function commercialRecord(
     dateLabel: text(data, "dateLabel"),
     href: recordRoute(kind, record.recordKey),
     term: text(data, "term"),
-    nextAction: text(data, "nextAction"),
+    nextAction:
+      typeof data.nextActionHref === "string" &&
+      /^Track order [a-f0-9-]+$/u.test(text(data, "nextAction"))
+        ? "Track your order"
+        : text(data, "nextAction"),
+    ...(typeof data.nextActionHref === "string" &&
+    /^\/orders\/order-[a-f0-9-]+$/u.test(data.nextActionHref)
+      ? { nextActionHref: data.nextActionHref }
+      : {}),
     ...(displayVersion ? { version: displayVersion } : {}),
     ...(reference ? { reference } : {}),
     projectionVersion: record.version,

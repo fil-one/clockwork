@@ -1,4 +1,5 @@
 import "server-only";
+import { isStoredQuote } from "@/src/features/customer-partner/partner/demo-partner-quote";
 
 import { createHash } from "node:crypto";
 
@@ -599,7 +600,30 @@ function selectQuote(
   state: DemoOrderAcceptanceState,
   command: DemoOrderCommand,
 ): DemoAcceptanceQuote {
-  const created = state.createdQuotes?.[command.quoteId];
+  let created = state.createdQuotes?.[command.quoteId];
+  const partnerStored =
+    state.projectionOverrides[`demo-partner-quote:${command.quoteId}`]?.data;
+  if (!created && isStoredQuote(partnerStored)) {
+    const snapshot = partnerStored.snapshot as unknown as QuoteSnapshot;
+    if (partnerStored.record.status === "accepted")
+      throw new ExperienceProblem(
+        422,
+        "INVALID_STATE",
+        "This quote already has an order.",
+      );
+    created = {
+      snapshot,
+      rowVersion: partnerStored.record.recordVersion ?? 1,
+      updatedAt: partnerStored.createdAt,
+      displayNumber: `PQ-${snapshot.id.slice(-12).toUpperCase()}`,
+      buyerDomain: "aster-house.test",
+      locale: "en-GB",
+      paymentTermsDays: 30,
+      agreementId: demoUuid(`demo-buyer-agreement:${snapshot.accountId}`),
+      agreementVersion: 1,
+      agreementEffectiveOn: "2026-01-01",
+    };
+  }
   const quote = created
     ? createdAcceptanceQuote(created)
     : demoAcceptanceQuoteBook.find(
@@ -611,7 +635,10 @@ function selectQuote(
       "DEMO_QUOTE_NOT_ACCEPTABLE",
       "This demo quote cannot be accepted. Only an issued quote can be, and the demo issues the open ones — open the renewal from the quotes ledger to walk the acceptance.",
     );
-  if (quote.accountId !== command.accountId)
+  if (
+    quote.accountId !== command.accountId &&
+    quote.snapshot?.partnerAccountId !== command.accountId
+  )
     throw new ExperienceProblem(
       403,
       "DEMO_QUOTE_ACCOUNT_MISMATCH",
@@ -645,6 +672,17 @@ function derive(
       "Order signer must be the authenticated acting user",
     );
   const snapshot = demoQuoteSnapshot(quote, now);
+  const partnerId = snapshot.partnerAccountId;
+  if (
+    partnerId &&
+    (!session.accountIds.includes(partnerId) ||
+      !session.roles.includes("partner_admin"))
+  )
+    throw new ExperienceProblem(
+      403,
+      "PARTNER_ORDER_FORBIDDEN",
+      "The quote's partner administrator must accept the supply order.",
+    );
   let order: AcceptedOrder;
   try {
     order = acceptOrder({
@@ -652,6 +690,21 @@ function derive(
       quote: snapshot,
       agreement: demoGoverningAgreement(quote),
       buyer: demoBuyer(quote),
+      ...(partnerId
+        ? {
+            partner: {
+              ...demoBuyer({ ...quote, accountId: partnerId }),
+              roles: ["partner"] as const,
+            },
+            partnerAgreement: {
+              id: demoUuid(`demo-partner-agreement:${partnerId}`),
+              accountId: partnerId,
+              version: 1,
+              status: "active" as const,
+              effectiveOn: "2026-01-01",
+            },
+          }
+        : {}),
       signerUserId: command.signerUserId,
       authorityTitle: command.authorityTitle,
       authorityAttested: command.authorityAttested,
@@ -731,7 +784,7 @@ function prepareInState(
     subjectId: order.id,
     commercialAccountId: order.accountId,
     audienceAccountId: order.invoicingAccountId,
-    audience: "end_client",
+    audience: order.partnerAccountId ? "partner" : "end_client",
     documentKind: "order_form",
     sourceHash,
     definition,
@@ -769,8 +822,18 @@ function sameCreatedOrder(
   left: DemoCreatedOrder,
   right: DemoCreatedOrder,
 ): boolean {
-  const { immutableAt: leftImmutableAt, ...leftComparable } = left;
-  const { immutableAt: rightImmutableAt, ...rightComparable } = right;
+  const {
+    immutableAt: leftImmutableAt,
+    provisioning: leftProvisioning,
+    ...leftComparable
+  } = left;
+  void leftProvisioning;
+  const {
+    immutableAt: rightImmutableAt,
+    provisioning: rightProvisioning,
+    ...rightComparable
+  } = right;
+  void rightProvisioning;
   void leftImmutableAt;
   void rightImmutableAt;
   return JSON.stringify(leftComparable) === JSON.stringify(rightComparable);
@@ -834,6 +897,10 @@ function createInState(
   );
   const created: DemoCreatedOrder = {
     id: order.id,
+    domainOrder: order,
+    ...(session.organizationId
+      ? { organizationId: session.organizationId }
+      : {}),
     quoteRecordKey: quote.recordKey,
     accountId: order.accountId,
     audienceAccountId: order.invoicingAccountId,
@@ -874,8 +941,14 @@ function createInState(
     "quotes",
     quote.recordKey,
   );
+  const partnerKey = `demo-partner-quote:${quoteId}`;
+  const partnerStored = state.projectionOverrides[partnerKey]?.data;
   const sourceVersion =
-    seededVersion ?? state.createdQuotes?.[quoteId]?.rowVersion;
+    seededVersion ??
+    state.createdQuotes?.[quoteId]?.rowVersion ??
+    (isStoredQuote(partnerStored)
+      ? partnerStored.record.recordVersion
+      : undefined);
   if (sourceVersion === undefined)
     throw new Error(`DEMO_ACCEPTANCE_QUOTE_NOT_PROJECTED:${quote.recordKey}`);
   return {
@@ -888,6 +961,26 @@ function createInState(
       },
       projectionOverrides: {
         ...state.projectionOverrides,
+        ...(isStoredQuote(partnerStored)
+          ? {
+              [partnerKey]: {
+                version: (partnerStored.record.recordVersion ?? 1) + 1,
+                updatedAt: now.toISOString(),
+                data: {
+                  ...partnerStored,
+                  record: {
+                    ...partnerStored.record,
+                    status: "accepted",
+                    secondary: `Supply order accepted · ${stored.poNumber}`,
+                    recordVersion:
+                      (partnerStored.record.recordVersion ?? 1) + 1,
+                    allowedActions: ["download"],
+                  },
+                  orderId: stored.id,
+                },
+              },
+            }
+          : {}),
         [quoteId]: {
           version: (currentOverride?.version ?? sourceVersion) + 1,
           updatedAt: now.toISOString(),
@@ -896,7 +989,8 @@ function createInState(
             status: "accepted",
             statusLabel: "Accepted · order created",
             tone: "success",
-            nextAction: `Track order ${stored.id}`,
+            nextAction: `Track your order · ${stored.poNumber}`,
+            nextActionHref: `/orders/order-${stored.id}`,
             allowedActions: [],
           },
         },

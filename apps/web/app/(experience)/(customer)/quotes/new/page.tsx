@@ -1,3 +1,4 @@
+import { loadQuoteRevisionSource } from "@/src/features/experience-server/quote-revision-source";
 import {
   QuoteBuilder,
   type QuoteOrigin,
@@ -49,26 +50,20 @@ async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
   let origin = originalOrigin;
   let initialDraft: Parameters<typeof QuoteBuilder>[0]["initialDraft"] =
     parseQuotePrefill(params);
+  let initialLines: Parameters<typeof QuoteBuilder>[0]["initialLines"] = [];
   let offers = offerResult.status === "available" ? offerResult.offers : [];
   if (origin?.kind === "revision") {
-    const { records } = await loadPortalRecords("customer", "quotes");
-    const prior = records.find(
-      (record) => record.recordKey === origin?.reference,
-    );
-    const source = prior?.data.authoritative as
-      | {
-          seriesId?: string;
-          priceBookId?: string;
-          status?: string;
-          lines?: {
-            sku: string;
-            region: string;
-            quantity: string;
-            termMonths: number;
-          }[];
-        }
-      | undefined;
-    const line = source?.lines?.length === 1 ? source.lines[0] : undefined;
+    const source = await loadQuoteRevisionSource(origin.reference);
+    const line = source?.lines?.[0];
+    const matchedLines = source?.lines?.map((line) => ({
+      line,
+      offer: offers.find(
+        (candidate) =>
+          candidate.priceBookId === source.priceBookId &&
+          candidate.sku === line.sku &&
+          candidate.region === line.region,
+      ),
+    }));
     const offer = offers.find(
       (candidate) =>
         candidate.priceBookId === source?.priceBookId &&
@@ -76,18 +71,19 @@ async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
         candidate.region === line?.region,
     );
     if (
-      prior &&
+      source &&
       source?.seriesId &&
       source.priceBookId &&
       line &&
       offer &&
+      matchedLines?.every((item) => item.offer) &&
       ["issued", "expired", "rejected"].includes(source.status ?? "")
     ) {
       origin = {
         ...origin,
         revision: {
-          quoteId: prior.aggregateId,
-          version: prior.version,
+          quoteId: source.quoteId,
+          version: source.version,
           seriesId: source.seriesId,
           priceBookId: source.priceBookId,
         },
@@ -95,6 +91,14 @@ async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
       offers = offers.filter(
         (candidate) => candidate.priceBookId === source.priceBookId,
       );
+      initialLines = matchedLines.slice(1).map(({ line, offer }) => {
+        if (!offer) throw new Error("The original offer is unavailable.");
+        return {
+          offerId: offer.id,
+          capacity: line.quantity,
+          termMonths: String(line.termMonths),
+        };
+      });
       initialDraft = {
         capacity: line.quantity,
         termMonths: String(line.termMonths),
@@ -112,6 +116,7 @@ async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
           : "authoritative"
       }
       initialDraft={initialDraft}
+      initialLines={initialLines}
       offers={offers}
       {...(origin ? { origin } : {})}
     />

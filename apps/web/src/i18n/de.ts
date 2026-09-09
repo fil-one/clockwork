@@ -1,6 +1,30 @@
 import type { MessageCatalog } from "./en";
 
 export const de = {
+  "clientReview.eyebrow": "Kundenprüfung · Demo",
+  "clientReview.title": "Ihr Angebot",
+  "clientReview.respond": "Ihrem Partner antworten",
+  "clientReview.name": "Ihr Name",
+  "clientReview.response": "Antwort",
+  "clientReview.note": "Bestellreferenz oder Änderungswünsche",
+  "clientReview.requestOrder": "Bestellung anfragen",
+  "clientReview.requestChanges": "Änderungen anfragen",
+  "clientReview.decline": "Angebot ablehnen",
+  "clientReview.attest":
+    "Ich prüfe dieses Demoangebot für den genannten Kunden.",
+  "clientReview.boundary":
+    "Ihre Absicht wird zur Prüfung durch den Partner erfasst. Dadurch entsteht kein verbindlicher Vertrag, es erfolgt keine Abbuchung und kein Dienst wird aktiviert.",
+  "clientReview.submit": "Antwort an den Partner senden",
+  "clientReview.saving": "Wird gespeichert…",
+  "clientReview.receivedOrder": "Bestellanfrage eingegangen",
+  "clientReview.receivedChanges": "Änderungsanfrage eingegangen",
+  "clientReview.receivedDecline": "Angebot abgelehnt",
+  "clientReview.visible":
+    "Ihr Partner kann diese Antwort in seinem Angebotsbereich sehen.",
+  "clientReview.seller":
+    "Ihr Partner ist der Verkäufer und kümmert sich um Kaufabwicklung und Rechnungsstellung.",
+  "clientReview.valid": "Revision {revision} · Gültig bis {date}",
+
   "quotes.form.description":
     "Wählen Sie ein Angebot, Kapazität und Laufzeit. Prüfen Sie anschließend den Entwurf.",
   "quotes.form.offerHelp":

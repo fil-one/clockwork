@@ -19,6 +19,11 @@ import {
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import {
+  QuoteLines,
+  validateAdditionalLines,
+  type EditableQuoteLine,
+} from "./quote-lines";
 import { SearchableSelector } from "./searchable-selector";
 import {
   emptyQuoteDraft,
@@ -85,7 +90,15 @@ function expiryLabel(value: string) {
       }).format(parsed);
 }
 
-function Summary({ draft }: { draft: QuoteDraft }) {
+function Summary({
+  draft,
+  lines,
+  offers,
+}: {
+  draft: QuoteDraft;
+  lines: readonly EditableQuoteLine[];
+  offers: readonly QuoteOfferOption[];
+}) {
   const t = useTranslations();
   const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
@@ -128,6 +141,18 @@ function Summary({ draft }: { draft: QuoteDraft }) {
           <dd>{expiryLabel(draft.expiresAt)}</dd>
         </div>
       </dl>
+      {lines.length ? (
+        <ul>
+          {lines.map((line, index) => (
+            <li key={index}>
+              Line {index + 2}:{" "}
+              {offers.find((offer) => offer.id === line.offerId)?.label ??
+                "Choose an offer"}{" "}
+              · {line.capacity || "—"} TB · {line.termMonths || "—"} months
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <p className={styles.notice}>
         Pricing and availability are confirmed by the server when the quote is
         issued. This summary is not a commitment.
@@ -168,12 +193,14 @@ function Field({
 export function QuoteBuilder({
   account,
   initialDraft,
+  initialLines = [],
   offers,
   origin,
 }: {
   account: QuoteAccount;
   catalogueMode: "authoritative" | "simulated";
   initialDraft?: Partial<Omit<QuoteDraft, "account">>;
+  initialLines?: readonly EditableQuoteLine[];
   offers: readonly QuoteOfferOption[];
   origin?: QuoteOrigin;
 }) {
@@ -195,6 +222,12 @@ export function QuoteBuilder({
     initialDraft
       ? prefilledQuoteDraft(account.name, initialDraft)
       : emptyQuoteDraft(account.name),
+  );
+  const [lines, setLines] =
+    useState<readonly EditableQuoteLine[]>(initialLines);
+  const [lineError, setLineError] = useState<string>();
+  const selectedOffer = offers.find(
+    (item) => item.id === resolveSelectorId(draft.offer, offers),
   );
   const [errors, setErrors] = useState<QuoteErrors>({});
   const [pending, setPending] = useState(false);
@@ -223,7 +256,10 @@ export function QuoteBuilder({
         : emptyQuoteDraft(account.name),
     [account.name, initialDraft],
   );
-  const unsaved = draftIsDirty(draft, pristine) && !createdQuoteId;
+  const unsaved =
+    (draftIsDirty(draft, pristine) ||
+      JSON.stringify(lines) !== JSON.stringify(initialLines)) &&
+    !createdQuoteId;
   useUnsavedChangesWarning(unsaved);
 
   const update = (field: QuoteField, value: string) => {
@@ -248,7 +284,21 @@ export function QuoteBuilder({
     }, 0);
   };
 
+  const updateLines = (nextLines: EditableQuoteLine[]) => {
+    setLines(nextLines);
+    setLineError(undefined);
+    update("expiresAt", draft.expiresAt);
+  };
   const next = () => {
+    if (stage === 2) {
+      const problem = validateAdditionalLines(
+        lines,
+        offers,
+        selectedOffer?.priceBookId,
+      );
+      setLineError(problem);
+      if (problem) return;
+    }
     const nextErrors = validateQuoteStage(stage, draft, accountOptions, offers);
     setErrors(nextErrors);
     const firstError = firstQuoteError(nextErrors);
@@ -261,6 +311,16 @@ export function QuoteBuilder({
   };
 
   const issue = async () => {
+    const problem = validateAdditionalLines(
+      lines,
+      offers,
+      selectedOffer?.priceBookId,
+    );
+    setLineError(problem);
+    if (problem) {
+      setStage(2);
+      return;
+    }
     const allErrors = {
       ...validateQuoteStage(1, draft, accountOptions, offers),
       ...validateQuoteStage(2, draft, accountOptions, offers),
@@ -287,7 +347,23 @@ export function QuoteBuilder({
         throw new Error(
           "This quote cannot be revised here. Return to its details and refresh.",
         );
-      quoteInputRef.current ??= quotePayload(draft, accountOptions, offers);
+      if (!quoteInputRef.current) {
+        const input = quotePayload(draft, accountOptions, offers);
+        input.payload.lines.push(
+          ...lines.map((line) => {
+            const offer = offers.find((item) => item.id === line.offerId);
+            if (!offer) throw new Error("Choose an offer for every line.");
+            return {
+              lineId: uuidV7(),
+              sku: offer.sku,
+              region: offer.region,
+              quantity: line.capacity,
+              termMonths: Number(line.termMonths),
+            };
+          }),
+        );
+        quoteInputRef.current = input;
+      }
       const input = quoteInputRef.current;
       idempotencyKeyRef.current ??= crypto.randomUUID();
       quoteIdRef.current ??= uuidV7();
@@ -546,6 +622,21 @@ export function QuoteBuilder({
             </fieldset>
           ) : null}
 
+          {stage === 2 ? (
+            <QuoteLines
+              lines={lines}
+              offers={offers}
+              {...(selectedOffer
+                ? { priceBookId: selectedOffer.priceBookId }
+                : {})}
+              onChange={updateLines}
+            />
+          ) : null}
+          {lineError ? (
+            <p role="alert" className={styles.errorMessage}>
+              {lineError}
+            </p>
+          ) : null}
           {stage === 3 ? (
             <section aria-labelledby="quote-review-heading">
               <h3 id="quote-review-heading">{t("quotes.form.reviewTitle")}</h3>
@@ -553,6 +644,15 @@ export function QuoteBuilder({
                 {t("quotes.form.reviewDescription")}
               </p>
               <ul className={styles.reviewList}>
+                {lines.map((line, index) => (
+                  <li key={index}>
+                    <span>Line {index + 2}</span>
+                    <strong>
+                      {offers.find((item) => item.id === line.offerId)?.label} ·{" "}
+                      {line.capacity} TB · {line.termMonths} months
+                    </strong>
+                  </li>
+                ))}
                 <li>
                   <span>Offer and region</span>
                   <strong>
@@ -629,7 +729,7 @@ export function QuoteBuilder({
             </div>
           </div>
         </div>
-        <Summary draft={draft} />
+        <Summary draft={draft} lines={lines} offers={offers} />
       </div>
     </main>
   );

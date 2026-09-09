@@ -364,7 +364,7 @@ function createdOrderRecords(state: DemoAdapterState): DemoRecord[] {
       accountId: record.accountId,
       version: record.version,
       updatedAt: record.updatedAt,
-      freshnessMode: "source",
+      freshnessMode: "request",
       data: record.data,
     };
   });
@@ -380,7 +380,9 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
     const snapshot = quote.snapshot;
     const issued = snapshot.status === "issued";
     const presentationStatus = issued ? "open" : snapshot.status;
-    const quoteState = state as DemoQuoteState;
+    const quoteState = state as DemoQuoteState & {
+      acceptedQuoteOrders?: Readonly<Record<string, string>>;
+    };
     const artifacts = Object.values(quoteState.commercialArtifactRequests ?? {})
       .filter(
         (request) =>
@@ -413,6 +415,11 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
       data: {
         kind: "quotes",
         artifacts,
+        ...(quoteState.acceptedQuoteOrders?.[snapshot.id]
+          ? {
+              nextActionHref: `/orders/order-${quoteState.acceptedQuoteOrders[snapshot.id]}`,
+            }
+          : {}),
         id: `quote-${snapshot.id}`,
         title: `Direct capacity quote · ${quote.displayNumber}`,
         description: `${snapshot.lines.length} priced ${snapshot.lines.length === 1 ? "line" : "lines"} · direct purchase`,

@@ -2,6 +2,30 @@ import type { MessageCatalog } from "./en";
 
 /** Spanish interface copy. Identifiers, legal records and user data are not translated. */
 export const es = {
+  "clientReview.eyebrow": "Revisión del cliente · demostración",
+  "clientReview.title": "Su cotización",
+  "clientReview.respond": "Responder a su socio comercial",
+  "clientReview.name": "Su nombre",
+  "clientReview.response": "Respuesta",
+  "clientReview.note": "Referencia de compra o cambios solicitados",
+  "clientReview.requestOrder": "Solicitar un pedido",
+  "clientReview.requestChanges": "Solicitar cambios",
+  "clientReview.decline": "Rechazar cotización",
+  "clientReview.attest":
+    "Estoy revisando esta cotización de demostración para el cliente indicado.",
+  "clientReview.boundary":
+    "Esto registra su intención para que el socio comercial la revise. No crea un contrato vinculante, no realiza cobros ni activa el servicio.",
+  "clientReview.submit": "Enviar respuesta al espacio del socio",
+  "clientReview.saving": "Guardando…",
+  "clientReview.receivedOrder": "Solicitud de pedido recibida",
+  "clientReview.receivedChanges": "Solicitud de cambios recibida",
+  "clientReview.receivedDecline": "Cotización rechazada",
+  "clientReview.visible":
+    "Su socio puede ver esta respuesta en su espacio de cotizaciones.",
+  "clientReview.seller":
+    "Su socio comercial es el vendedor y gestiona la compra y la facturación.",
+  "clientReview.valid": "Revisión {revision} · Válida hasta {date}",
+
   "quotes.form.description":
     "Elige una oferta, indica la capacidad y el plazo y revisa el borrador.",
   "quotes.form.offerHelp":
