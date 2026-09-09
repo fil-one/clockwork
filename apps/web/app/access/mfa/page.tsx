@@ -49,6 +49,7 @@ export default async function Page({
               required
             />
             <Button type="submit">Verify and continue</Button>
+            <Link href="/sign-in">Sign in again</Link>
           </form>
         ) : (
           <Link

@@ -474,6 +474,11 @@ function ShellUtilities({
         >
           <strong>{profile.name}</strong>
           <p>{profile.email}</p>
+          {providerBacked && audience === "internal" && (
+            <p>
+              <Link href="/access/mfa">{t("app.verifyAuthentication")}</Link>
+            </p>
+          )}
           <form action={signOutCommerceSession}>
             <Button type="submit" variant="secondary" size="small">
               {t("app.signOut")}
