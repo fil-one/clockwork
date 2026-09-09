@@ -16,6 +16,10 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // without recording why fails the suite.
 const acceptedHighAdvisories = new Map([
   [
+    "GHSA-7pqw-9j4j-h8q3",
+    "extract-zip arbitrary writes via symlink entries: no fixed published release (<=2.0.1). Same build-only Netlify emulator dependency as GHSA-jmr9-qjv8-65gv; the deployment builds trusted repository sources and never extracts untrusted function archives.",
+  ],
+  [
     "GHSA-w3rx-r6r6-pgpr",
     "image-size ICNS infinite loop: every published version (<=2.0.2) is vulnerable and npm reports the patched range as `<0.0.0`, so no upgrade or override exists. Reached only through apps/web > @storybook/nextjs-vite > vite-plugin-storybook-nextjs, which is Storybook build tooling and never parses untrusted images at runtime.",
   ],
@@ -33,12 +37,12 @@ const acceptedHighAdvisories = new Map([
 // `pnpm.overrides` block. If an override is dropped the resolved version slides
 // back under the advisory's vulnerable range and this catches it.
 const pinnedTransitives = [
-  { name: "js-yaml", minimum: "4.3.1", override: "js-yaml@<4.3.1" },
+  { name: "js-yaml", minimum: "4.3.2", override: "js-yaml@<4.3.2" },
   { name: "nanoid", minimum: "3.3.18", override: "nanoid@<3.3.18" },
 ];
 
 // Direct catalog dependency, upgraded rather than overridden.
-const catalogFloors = [{ name: "hono", minimum: "4.12.34" }];
+const catalogFloors = [{ name: "hono", minimum: "4.13.5" }];
 
 // The accepted advisories are accepted only because the package has no fixed
 // release at all. That is a fact about the registry, not about this repository,

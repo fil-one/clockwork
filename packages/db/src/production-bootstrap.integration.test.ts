@@ -16,12 +16,14 @@ const databaseUrl =
 const local = ["127.0.0.1", "localhost"].includes(
   new URL(databaseUrl).hostname,
 );
+if (!local)
+  throw new Error("Integration tests require a loopback database URL");
 const client = postgres(databaseUrl, { max: 1, ssl: false, prepare: false });
 afterAll(() => client.end());
 
 // The complete apply path runs against real tables in a transaction that always
 // rolls back. This test never targets a deployed host or leaves bootstrap users.
-describe.skipIf(!local)("fresh production bootstrap transaction", () => {
+describe("fresh production bootstrap transaction", () => {
   it("creates real persisted disabled controls, identities, references and an idempotent immutable receipt atomically", async () => {
     const rollback = new Error("ROLLBACK_BOOTSTRAP_FIXTURE");
     const now = new Date();

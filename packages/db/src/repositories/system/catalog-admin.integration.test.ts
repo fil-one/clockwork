@@ -19,6 +19,8 @@ const url =
   process.env.DIRECT_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 const local = ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname);
+if (!local)
+  throw new Error("Integration tests require a loopback database URL");
 const { db, client } = createRuntimeDatabase({
   url,
   role: "clockwork_service",
@@ -26,7 +28,7 @@ const { db, client } = createRuntimeDatabase({
 });
 afterAll(() => client.end());
 
-describe.skipIf(!local)("catalog mapping repository transaction", () => {
+describe("catalog mapping repository transaction", () => {
   it("audits draft writes, refuses stale and frozen changes, and leaves no fixture history", async () => {
     const rollback = new Error("ROLLBACK_CATALOG_FIXTURE");
     const bookId = randomUUID(),

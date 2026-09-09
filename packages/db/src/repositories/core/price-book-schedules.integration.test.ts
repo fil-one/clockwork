@@ -24,6 +24,8 @@ import { FixtureTaxPort } from "./tax-fixture";
 const url = process.env.DIRECT_DATABASE_URL;
 const local =
   url && ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname);
+if (!local)
+  throw new Error("Integration tests require a loopback database URL");
 const { db, client } = createRuntimeDatabase({
   url: url ?? "postgresql://localhost/clockwork",
   role: "clockwork_service",
@@ -31,7 +33,7 @@ const { db, client } = createRuntimeDatabase({
 });
 afterAll(() => client.end());
 
-describe.skipIf(!local)("approved price-book schedules", () => {
+describe("approved price-book schedules", () => {
   it("freezes exact approvals, honors controls and dates, cancels safely and executes only once", async () => {
     const rollback = new Error("ROLLBACK_SCHEDULE_FIXTURE");
     const result = await db
