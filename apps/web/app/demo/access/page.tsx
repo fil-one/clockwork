@@ -10,6 +10,8 @@ import {
 } from "@/src/auth/demo-access";
 import { brandAsset } from "@/src/features/shell/brand-assets";
 
+import { DemoLanguageSelector } from "../demo-language-selector";
+
 export const metadata = { title: "Demo access" };
 
 export default async function Page({
@@ -29,6 +31,7 @@ export default async function Page({
           src={brandAsset()}
           name={t("app.name")}
         />
+        <DemoLanguageSelector />
         <p className="eyebrow">{t("demo.access.eyebrow")}</p>
         <h1>{t("demo.access.title")}</h1>
         <p>{t("demo.access.description")}</p>
