@@ -2,10 +2,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const deleted: string[] = [];
 const redirected: string[] = [];
+let providerCookiePresent = false;
+let providerConfigured = false;
 
 vi.mock("next/headers", () => ({
   cookies: () =>
     Promise.resolve({
+      has: (name: string) => name === "wos-session" && providerCookiePresent,
       delete: (name: string) => {
         deleted.push(name);
       },
@@ -31,6 +34,7 @@ const getCommerceSession =
 vi.mock("@/src/auth/session", () => ({
   assistedSessionCookieName: "clockwork-assisted-session",
   getCommerceSession: async () => getCommerceSession(),
+  workosAuthenticationConfigured: () => providerConfigured,
 }));
 
 const { signOutCommerceSession } = await import("@/src/auth/sign-out");
@@ -42,6 +46,8 @@ async function runSignOut(): Promise<void> {
 
 describe("signOutCommerceSession", () => {
   beforeEach(() => {
+    providerCookiePresent = false;
+    providerConfigured = false;
     deleted.length = 0;
     redirected.length = 0;
     signOutProvider.mockClear();
@@ -81,9 +87,18 @@ describe("signOutCommerceSession", () => {
     expect(signOutProvider).not.toHaveBeenCalled();
   });
 
+  it("ends an expired provider session instead of restoring it on navigation", async () => {
+    providerConfigured = true;
+    providerCookiePresent = true;
+    getCommerceSession.mockRejectedValue(new Error("expired access token"));
+    await runSignOut();
+    expect(signOutProvider).toHaveBeenCalledOnce();
+  });
+
   it("still clears cookies when the session cannot be read", async () => {
     getCommerceSession.mockRejectedValue(new Error("expired"));
     await runSignOut();
     expect(deleted).toContain("clockwork-demo-persona");
+    expect(deleted).toContain("wos-session");
   });
 });

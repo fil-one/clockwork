@@ -9,6 +9,7 @@ import { releaseProofCookieName } from "@/src/auth/release-proof";
 import {
   assistedSessionCookieName,
   getCommerceSession,
+  workosAuthenticationConfigured,
 } from "@/src/auth/session";
 
 /**
@@ -37,6 +38,14 @@ export async function signOutCommerceSession(): Promise<never> {
   cookieStore.delete(releaseProofCookieName);
   cookieStore.delete(demoPersonaCookieName);
 
-  if (authenticationSource === "workos") await signOut({ returnTo: "/" });
+  const providerCookieName = process.env.WORKOS_COOKIE_NAME || "wos-session";
+  // Logging out must also work after the access token expires. Otherwise the
+  // next navigation refreshes the surviving cookie and silently signs back in.
+  if (
+    authenticationSource === "workos" ||
+    (workosAuthenticationConfigured() && cookieStore.has(providerCookieName))
+  )
+    await signOut({ returnTo: process.env.APP_ORIGIN || "/" });
+  cookieStore.delete(providerCookieName);
   redirect("/");
 }
