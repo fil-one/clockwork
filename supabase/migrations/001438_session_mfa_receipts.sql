@@ -24,7 +24,7 @@ alter table public.experience_mfa_attempts force row level security;
 alter table public.experience_mfa_receipts enable row level security;
 alter table public.experience_mfa_receipts force row level security;
 revoke all on public.experience_mfa_attempts, public.experience_mfa_receipts
-  from public, anon, authenticated, clockwork_runtime;
+  from public, anon, authenticated, clockwork_runtime, clockwork_service;
 grant select, insert, update on public.experience_mfa_attempts to clockwork_service;
 grant select, insert on public.experience_mfa_receipts to clockwork_service;
 create policy experience_mfa_attempts_service on public.experience_mfa_attempts
