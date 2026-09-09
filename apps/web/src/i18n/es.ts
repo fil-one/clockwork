@@ -563,7 +563,7 @@ export const es = {
   "orders.description":
     "Órdenes de compra, aprovisionamiento, derechos, uso, modificaciones y plazos sin volver a introducir datos.",
   "orders.amendment": "Solicitar modificación",
-  "orders.accept.source": "Cotización aceptada {reference} · versión {version}",
+  "orders.accept.source": "Cotización emitida {reference} · versión {version}",
   "orders.accept.agreement.unknown":
     "No consta un acuerdo vigente para esta cuenta.",
   "orders.accept.unavailable.title":

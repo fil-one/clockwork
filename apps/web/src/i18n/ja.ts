@@ -533,7 +533,7 @@ export const ja = {
   "orders.description":
     "発注書、プロビジョニング、利用権、使用量、変更、期間の状態を再入力せずに管理します。",
   "orders.amendment": "契約変更を申請",
-  "orders.accept.source": "受諾済み見積もり {reference} · バージョン {version}",
+  "orders.accept.source": "発行済み見積もり {reference} · バージョン {version}",
   "orders.accept.agreement.unknown":
     "このアカウントに適用される有効な契約は記録されていません。",
   "orders.accept.unavailable.title": "受諾可能な見積もりが選択されていません",

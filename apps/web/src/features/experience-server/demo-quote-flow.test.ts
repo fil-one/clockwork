@@ -205,6 +205,53 @@ describe("DemoQuoteFlow", () => {
     expect(
       ((await store.read()) as DemoQuoteState).projectionOverrides[quoteId],
     ).toMatchObject({ version: 3, data: { status: "accepted" } });
+    const orderProjection = await new ExplicitDemoProjectionSource(store).find({
+      session,
+      audience: "customer",
+      channel: "orders",
+      accountId,
+      recordKey: `order-${order.id}`,
+      now,
+    });
+    expect(orderProjection).toMatchObject({
+      data: {
+        status: "pending",
+        statusLabel: "Accepted · awaiting provisioning",
+        authoritative: { status: "accepted" },
+      },
+    });
+    const acceptedProjection = await new ExplicitDemoProjectionSource(
+      store,
+    ).find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId,
+      recordKey: `quote-${quoteId}`,
+      now,
+    });
+    expect(acceptedProjection).toMatchObject({
+      version: 3,
+      data: {
+        status: "accepted",
+        authoritative: { status: "accepted" },
+        allowedActions: [],
+      },
+    });
+    await expect(
+      flow.execute({
+        session,
+        command: {
+          ...create,
+          action: "revise",
+          expectedVersion: 2,
+          revisionId: "70000000-0000-4000-8000-000000000088",
+        },
+        idempotencyKey: "accepted-revision-key",
+        requestHash: hash("f"),
+        now,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
   });
 
   it("binds each idempotency key to the exact request hash", async () => {

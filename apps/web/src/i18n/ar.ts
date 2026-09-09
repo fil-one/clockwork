@@ -538,7 +538,7 @@ export const ar = {
   "orders.description":
     "أوامر الشراء والتهيئة والاستحقاقات والاستخدام والتعديلات وحالة المدة دون إعادة إدخال البيانات.",
   "orders.amendment": "طلب تعديل تعاقدي",
-  "orders.accept.source": "عرض السعر المقبول {reference} · الإصدار {version}",
+  "orders.accept.source": "عرض السعر الصادر {reference} · الإصدار {version}",
   "orders.accept.agreement.unknown":
     "لا توجد اتفاقية حاكمة نشطة مسجلة لهذا الحساب.",
   "orders.accept.unavailable.title": "لم يتم اختيار عرض سعر قابل للقبول",

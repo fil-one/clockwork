@@ -70,9 +70,7 @@ describe("order acceptance", () => {
     const chain = screen.getByRole("list", {
       name: "Commercial promise chain",
     });
-    expect(chain).toHaveTextContent(
-      "Accepted quote Q-2026-0165-v2 · version 2",
-    );
+    expect(chain).toHaveTextContent("Issued quote Q-2026-0165-v2 · version 2");
     expect(chain).toHaveTextContent("Order authority and service start");
     expect(chain).toHaveTextContent(
       "Service commitment and provisioning state",

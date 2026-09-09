@@ -495,7 +495,7 @@ export const zh = {
   "orders.description":
     "采购订单、资源开通、权益、用量、修订及期限状态，无需重复录入。",
   "orders.amendment": "申请修订",
-  "orders.accept.source": "已接受报价 {reference} · 版本 {version}",
+  "orders.accept.source": "已出具报价 {reference} · 版本 {version}",
   "orders.accept.agreement.unknown": "此账户没有已记录的有效适用协议。",
   "orders.accept.unavailable.title": "未选择可接受的报价",
   "orders.accept.unavailable.description":

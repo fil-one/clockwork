@@ -569,7 +569,7 @@ export const fr = {
   "orders.description":
     "Bons de commande, provisionnement, droits, usage, avenants et échéances sans ressaisie.",
   "orders.amendment": "Demander un avenant",
-  "orders.accept.source": "Devis accepté {reference} · version {version}",
+  "orders.accept.source": "Devis émis {reference} · version {version}",
   "orders.accept.agreement.unknown":
     "Aucun accord actif applicable n’est enregistré pour ce compte.",
   "orders.accept.unavailable.title":

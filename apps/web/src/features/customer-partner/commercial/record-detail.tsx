@@ -156,6 +156,8 @@ function DetailActions({
   canMutate: boolean;
 }) {
   const step = nextStep(record, recordKey);
+  if (record.kind === "orders" && record.orderLifecycleStatus === "accepted")
+    return null;
   if (!step) return null;
   if (!canMutate)
     return (

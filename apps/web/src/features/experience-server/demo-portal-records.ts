@@ -1003,6 +1003,7 @@ export function demoCreatedOrderRecord(
         term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,
         nextAction: `Service starts ${order.serviceStartsOn}. Track provisioning before treating this service as active.`,
       }),
+      authoritative: { status: "accepted" },
       // The bound evidence, carried on the record it bound. The seeded rows get
       // theirs from the artifact catalogue's attachment index; this one was not
       // in the catalogue when the process started, so it names its own.
