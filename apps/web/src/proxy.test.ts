@@ -32,6 +32,8 @@ describe("request telemetry proxy", () => {
       "/api/experience",
       "/api/demo/payments",
       "/api/demo/payments/sessions",
+      "/api/demo/orders/provision",
+      `/demo/quote/${"a".repeat(64)}/respond`,
     ])
       expect(matcher.test(path), path).toBe(false);
     for (const path of [
@@ -42,6 +44,10 @@ describe("request telemetry proxy", () => {
       "/api/demo/projections/queues/refresh",
       "/api/demo/paymentss",
       "/api/demo/payments-x",
+      "/api/demo/orders",
+      "/api/demo/orders/provision-other",
+      `/demo/quote/${"a".repeat(64)}`,
+      `/demo/quote/${"a".repeat(64)}/respond-other`,
     ])
       expect(matcher.test(path), path).toBe(true);
   });
