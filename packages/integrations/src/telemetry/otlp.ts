@@ -81,6 +81,19 @@ function resolveOtlpConfiguration(
   allowInsecureLocalhost = false,
 ): ResolvedOtlpConfiguration {
   const disabled = environment.OTEL_SDK_DISABLED === "true";
+  // Hosting platforms may inject their own exporter protocol, credentials and
+  // resource encoding. An explicitly disabled sink must not parse or consume
+  // that unrelated configuration during application startup.
+  if (disabled)
+    return {
+      disabled: true,
+      endpoint: null,
+      protocol: "http/protobuf",
+      serviceName: environment.OTEL_SERVICE_NAME?.trim() || "clockwork-runtime",
+      resourceAttributes: {},
+      headerNames: [],
+      headers: {},
+    };
   const protocol =
     environment.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL ??
     environment.OTEL_EXPORTER_OTLP_PROTOCOL ??
@@ -95,7 +108,6 @@ function resolveOtlpConfiguration(
       ? tracesEndpoint(genericEndpoint, true)
       : null;
   if (
-    !disabled &&
     endpoint &&
     runtimeEnvironment === "production" &&
     !endpoint.startsWith("https://") &&
