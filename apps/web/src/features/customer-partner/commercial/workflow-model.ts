@@ -59,7 +59,7 @@ export function emptyQuoteDraft(accountName: string): QuoteDraft {
 
 export function prefilledQuoteDraft(
   accountName: string,
-  initial: Partial<Pick<QuoteDraft, "capacity" | "termMonths">>,
+  initial: Partial<Omit<QuoteDraft, "account">>,
 ): QuoteDraft {
   return { ...emptyQuoteDraft(accountName), ...initial };
 }
@@ -172,7 +172,7 @@ export function orderReviewSummary(input: {
   spend: string;
 }): OrderReviewSummary {
   return {
-    quote: `${input.quoteTitle} · version ${input.quoteVersion} · accepted`,
+    quote: `${input.quoteTitle} · version ${input.quoteVersion} · issued; awaiting acceptance`,
     agreement: `${input.agreementTitle} · version ${input.agreementVersion} · active`,
     purchaseOrder: input.poNumber || "No purchase order supplied",
     serviceStart: input.serviceStart || "Not selected",

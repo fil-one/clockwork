@@ -418,7 +418,13 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
         description: `${snapshot.lines.length} priced ${snapshot.lines.length === 1 ? "line" : "lines"} · direct purchase`,
         reference: quote.displayNumber,
         status: presentationStatus,
-        statusLabel: issued ? "Issued · ready for acceptance" : "Draft",
+        statusLabel: issued
+          ? "Issued · ready for acceptance"
+          : snapshot.status === "draft"
+            ? "Draft"
+            : snapshot.status === "superseded"
+              ? "Superseded by a revised quote"
+              : snapshot.status,
         tone: issued ? "warning" : "neutral",
         risk:
           snapshot.marginResult === "exception_required" ||
@@ -432,7 +438,11 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
         term: `Net ${quote.paymentTermsDays} · agreement version ${quote.agreementVersion}`,
         nextAction: issued
           ? "Review and accept the issued quote"
-          : "Prepare and issue the quote document",
+          : snapshot.status === "draft"
+            ? "Prepare and issue the quote document"
+            : snapshot.status === "superseded"
+              ? "Continue with the revised quote in the quote ledger"
+              : "View the quote history",
         allowedActions: issued ? ["accept", "expire"] : [],
         totalMinor: snapshot.total.minor,
         currency: snapshot.total.currency,
@@ -447,6 +457,15 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
           marginFloorResult: snapshot.marginResult,
           revision: snapshot.revision,
           accountId: snapshot.accountId,
+          seriesId: snapshot.seriesId,
+          lines: snapshot.lines.map(
+            ({ sku, region, quantity, termMonths }) => ({
+              sku,
+              region,
+              quantity,
+              termMonths,
+            }),
+          ),
           priceBookId: snapshot.priceBook.id,
           priceBookVersion: snapshot.priceBook.version,
         },

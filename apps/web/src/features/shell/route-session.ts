@@ -290,7 +290,16 @@ export async function getAuthenticatedHome(): Promise<
   | "/access/mfa"
 > {
   if (!providerAuthenticationConfigured()) {
-    if (explicitDemoIdentityEnabled()) return "/dashboard";
+    if (explicitDemoIdentityEnabled()) {
+      if (demoPersonaSurfacesEnabled(process.env)) {
+        const persona = resolveDemoPersona({
+          header: (await headers()).get(DEMO_PERSONA_HEADER),
+          cookie: (await cookies()).get(demoPersonaCookieName)?.value,
+        });
+        if (persona) return demoPersonaMembership(persona).home;
+      }
+      return "/dashboard";
+    }
     throw new Error(
       "Portal identity is unavailable without an explicit non-production demo adapter",
     );

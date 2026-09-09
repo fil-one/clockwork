@@ -107,9 +107,9 @@ export const ja = {
   "cp.commercial.agreementReview": "契約を確認して同意",
   "cp.commercial.orderReview": "発生する義務を確認",
   "cp.commercial.orderConfirmation":
-    "承諾済みの見積もり、適用される契約、発注書、サービス開始日・終了日、および発生する義務を確認しました。",
+    "発行済みの見積もり、適用される契約、発注書、サービス開始日・終了日、および発生する義務を確認しました。",
   "cp.commercial.orderTermsHelp":
-    "注文条件は、承諾済み見積もり{quoteReference}（バージョン{quoteVersion}）と{agreementTitle}（バージョン{agreementVersion}）に基づきます。発注書参照番号は、これらの確定条件を置き換えたり変更したりするものではありません。",
+    "注文条件は、発行済み見積もり{quoteReference}（バージョン{quoteVersion}）と{agreementTitle}（バージョン{agreementVersion}）に基づきます。発注書参照番号は、これらの確定条件を置き換えたり変更したりするものではありません。",
   "cp.commercial.orderArtifactRetention":
     "生成された注文書と承諾の証拠は、記録された承諾時点から{years}年間保存されます。",
   "cp.commercial.estimatedSpend": "推定費用",

@@ -30,6 +30,12 @@ export interface PartnerRecord {
   projectionId?: string;
   recordKey?: string;
   allowedActions?: readonly string[];
+  quoteCommand?: { quoteId: string; accountId: string; version: number };
+  documents?: readonly {
+    id: string;
+    kind: "partner_transfer_quote" | "partner_resale_quote";
+    label: string;
+  }[];
   quotePricing?: { transferPrice: string; resalePrice: string };
 }
 

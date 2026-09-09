@@ -117,9 +117,9 @@ describe("forward step references", () => {
     view.unmount();
   });
 
-  it("sends the quote's record key to the revision builder", async () => {
+  it("sends the issued quote's record key to the revision builder", async () => {
     expect(
-      await forwardStep("quotes", recordKeys.quotes, { status: "draft" }),
+      await forwardStep("quotes", recordKeys.quotes, { status: "open" }),
     ).toContain(`/quotes/new?revises=${encodeURIComponent(recordKeys.quotes)}`);
   });
 

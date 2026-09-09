@@ -96,7 +96,7 @@ describe("order acceptance", () => {
 
     const purchaseOrder = screen.getByLabelText("Purchase order");
     expect(purchaseOrder).toHaveAccessibleDescription(
-      /accepted quote Q-2026-0165-v2 version 2 and Cloud Service Agreement version 3.2/u,
+      /issued quote Q-2026-0165-v2 version 2 and Cloud Service Agreement version 3.2/u,
     );
     expect(purchaseOrder).toHaveAccessibleDescription(
       /does not replace or change those pinned terms/u,

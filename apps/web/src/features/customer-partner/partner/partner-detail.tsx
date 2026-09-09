@@ -22,6 +22,7 @@ import {
 
 import type { PartnerRecord, PartnerSurfaceKey } from "./partner-data";
 import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
+import { PartnerQuoteIssue } from "./partner-quote-issue";
 import { demoPartnerQuoteRecord } from "./demo-partner-quote";
 import styles from "./partner.module.css";
 
@@ -267,6 +268,26 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         </span>
       </header>
       <PriceBoundary pricing={record.quotePricing} />
+      {record.documents?.length ? (
+        <section className={styles.detailCard} aria-label="Issued documents">
+          <h2>Issued documents</h2>
+          <p>
+            Send only the end-client quotation to your client. Keep the transfer
+            quote within your commercial team.
+          </p>
+          <div className={styles.actions}>
+            {record.documents.map((document) => (
+              <a
+                key={document.id}
+                className={styles.buttonLink}
+                href={`/api/experience/artifacts/${document.kind}/${document.id}`}
+              >
+                {document.label} · PDF
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <section className={styles.summary} aria-labelledby="valid-actions-title">
         <div className={styles.sectionHeader}>
           <div>
@@ -283,7 +304,9 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
             </Link>
           ) : null}
         </div>
-        {actions.includes("issue") ? (
+        {actions.includes("issue") && record.quoteCommand ? (
+          <PartnerQuoteIssue command={record.quoteCommand} />
+        ) : actions.includes("issue") ? (
           <p className={styles.gate}>
             <strong>{t("partner.detail.quote.issue.title")}:</strong>{" "}
             {t("partner.detail.quote.issue.description")}{" "}
@@ -296,7 +319,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
             {t("partner.detail.quote.cancel.description")}
           </p>
         ) : null}
-        {actions.includes("download") ? (
+        {actions.includes("download") && !record.documents?.length ? (
           <p className={styles.gate}>
             <strong>{t("partner.detail.quote.download.title")}:</strong>{" "}
             {t("partner.detail.quote.download.description")}

@@ -116,9 +116,9 @@ export const de = {
   "cp.commercial.agreementReview": "Vereinbarung prüfen und annehmen",
   "cp.commercial.orderReview": "Resultierende Verpflichtung prüfen",
   "cp.commercial.orderConfirmation":
-    "Ich habe das angenommene Angebot, die maßgebliche Vereinbarung, die Bestellung, den Servicebeginn, das Serviceende und die resultierende Verpflichtung geprüft.",
+    "Ich habe das ausgestellte Angebot, die maßgebliche Vereinbarung, die Bestellung, den Servicebeginn, das Serviceende und die resultierende Verpflichtung geprüft.",
   "cp.commercial.orderTermsHelp":
-    "Die Auftragsbedingungen stammen aus dem angenommenen Angebot {quoteReference}, Version {quoteVersion}, und {agreementTitle}, Version {agreementVersion}. Eine Bestellreferenz ersetzt oder ändert diese festgelegten Bedingungen nicht.",
+    "Die Auftragsbedingungen stammen aus dem ausgestellten Angebot {quoteReference}, Version {quoteVersion}, und {agreementTitle}, Version {agreementVersion}. Eine Bestellreferenz ersetzt oder ändert diese festgelegten Bedingungen nicht.",
   "cp.commercial.orderArtifactRetention":
     "Das erzeugte Auftragsformular und der Annahmenachweis werden ab dem erfassten Annahmezeitpunkt für {years} Jahre aufbewahrt.",
   "cp.commercial.estimatedSpend": "Geschätzte Ausgaben",

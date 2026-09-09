@@ -45,6 +45,12 @@ export interface QuoteOrigin {
   kind: "revision" | "poc";
   reference: string;
   resolved: boolean;
+  revision?: {
+    quoteId: string;
+    version: number;
+    seriesId: string;
+    priceBookId: string;
+  };
 }
 
 function originLabel(origin: QuoteOrigin, t = englishTranslator): string {
@@ -167,7 +173,7 @@ export function QuoteBuilder({
 }: {
   account: QuoteAccount;
   catalogueMode: "authoritative" | "simulated";
-  initialDraft?: Partial<Pick<QuoteDraft, "capacity" | "termMonths">>;
+  initialDraft?: Partial<Omit<QuoteDraft, "account">>;
   offers: readonly QuoteOfferOption[];
   origin?: QuoteOrigin;
 }) {
@@ -277,6 +283,10 @@ export function QuoteBuilder({
     setMessage("");
     setErrorMessage("");
     try {
+      if (origin?.kind === "revision" && !origin.revision)
+        throw new Error(
+          "This quote cannot be revised here. Return to its details and refresh.",
+        );
       quoteInputRef.current ??= quotePayload(draft, accountOptions, offers);
       const input = quoteInputRef.current;
       idempotencyKeyRef.current ??= crypto.randomUUID();
@@ -286,10 +296,19 @@ export function QuoteBuilder({
       await sendCoreCommand(
         {
           resource: "quotes",
-          id: quoteIdRef.current,
+          id: origin?.revision?.quoteId ?? quoteIdRef.current,
           accountId: input.accountId,
-          action: "create",
-          payload: input.payload,
+          action: origin?.revision ? "revise" : "create",
+          ...(origin?.revision
+            ? { expectedVersion: origin.revision.version }
+            : {}),
+          payload: origin?.revision
+            ? {
+                ...input.payload,
+                seriesId: origin.revision.seriesId,
+                revisionId: quoteIdRef.current,
+              }
+            : input.payload,
         },
         { idempotencyKey: idempotencyKeyRef.current },
       );
@@ -314,7 +333,7 @@ export function QuoteBuilder({
       <header className={styles.header}>
         <div>
           <p className={styles.taskContext}>Quote draft · no commitment yet</p>
-          <h1>Create a quote</h1>
+          <h1>{origin?.revision ? "Revise quote" : "Create a quote"}</h1>
           <p className={styles.description}>{t("quotes.form.description")}</p>
         </div>
         <LeaveDraftControl

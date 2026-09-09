@@ -93,9 +93,9 @@ export const zh = {
   "cp.commercial.agreementReview": "审核并接受协议",
   "cp.commercial.orderReview": "审核由此产生的承诺",
   "cp.commercial.orderConfirmation":
-    "我已审阅接受的报价、适用协议、采购订单、服务开始和结束时间，以及由此产生的承诺。",
+    "我已审阅已出具的报价、适用协议、采购订单、服务开始和结束时间，以及由此产生的承诺。",
   "cp.commercial.orderTermsHelp":
-    "订单条款来自已接受的报价 {quoteReference}（版本 {quoteVersion}）和 {agreementTitle}（版本 {agreementVersion}）。采购订单编号不会替代或更改这些已固定的条款。",
+    "订单条款来自已出具的报价 {quoteReference}（版本 {quoteVersion}）和 {agreementTitle}（版本 {agreementVersion}）。采购订单编号不会替代或更改这些已固定的条款。",
   "cp.commercial.orderArtifactRetention":
     "生成的订单表单及其接受凭证将从记录的接受时刻起保留 {years} 年。",
   "cp.commercial.estimatedSpend": "预计支出",

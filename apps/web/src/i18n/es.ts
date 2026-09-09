@@ -115,9 +115,9 @@ export const es = {
   "cp.commercial.agreementReview": "Revisar y aceptar el acuerdo",
   "cp.commercial.orderReview": "Revisar el compromiso resultante",
   "cp.commercial.orderConfirmation":
-    "He revisado la cotización aceptada, el acuerdo aplicable, la orden de compra, el inicio y el fin del servicio y el compromiso resultante.",
+    "He revisado la cotización emitida, el acuerdo aplicable, la orden de compra, el inicio y el fin del servicio y el compromiso resultante.",
   "cp.commercial.orderTermsHelp":
-    "Las condiciones del pedido provienen de la cotización aceptada {quoteReference}, versión {quoteVersion}, y de {agreementTitle}, versión {agreementVersion}. La referencia de una orden de compra no sustituye ni modifica esas condiciones fijadas.",
+    "Las condiciones del pedido provienen de la cotización emitida {quoteReference}, versión {quoteVersion}, y de {agreementTitle}, versión {agreementVersion}. La referencia de una orden de compra no sustituye ni modifica esas condiciones fijadas.",
   "cp.commercial.orderArtifactRetention":
     "El formulario de pedido generado y la evidencia de su aceptación se conservan durante {years} años desde el instante de aceptación registrado.",
   "cp.commercial.estimatedSpend": "Gasto estimado",

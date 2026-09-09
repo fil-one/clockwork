@@ -161,7 +161,8 @@ describe("quote workflow model", () => {
         spend: "$55,440.00",
       }),
     ).toEqual({
-      quote: "Compliance replica renewal · version 2 · accepted",
+      quote:
+        "Compliance replica renewal · version 2 · issued; awaiting acceptance",
       agreement: "Cloud Service Agreement · version 3.2 · active",
       purchaseOrder: "PO-NA-1092",
       serviceStart: "Aug 15, 2026",

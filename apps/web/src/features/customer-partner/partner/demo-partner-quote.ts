@@ -101,7 +101,7 @@ const commandSchema = z
   })
   .strict();
 
-interface StoredQuote {
+export interface StoredQuote {
   readonly kind: "demo_partner_quote";
   readonly aggregateId: string;
   readonly partnerAccountId: string;
@@ -130,7 +130,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isStoredQuote(value: unknown): value is StoredQuote {
+export function isStoredQuote(value: unknown): value is StoredQuote {
   return (
     isRecord(value) &&
     value.kind === "demo_partner_quote" &&
@@ -168,6 +168,11 @@ function projectedPartnerQuote(quote: StoredQuote): PartnerRecord {
   const resale = moneySchema.safeParse(quote.snapshot.partnerResaleTotal);
   return {
     ...quote.record,
+    quoteCommand: {
+      quoteId: quote.aggregateId,
+      accountId: String(quote.snapshot.accountId),
+      version: quote.record.recordVersion ?? 1,
+    },
     ...(transfer.success && resale.success
       ? {
           quotePricing: {
@@ -334,9 +339,22 @@ export async function handleDemoPartnerQuoteCommand(
       .update("\0")
       .update(bytes)
       .digest("hex");
-    const command = commandSchema.parse(
-      JSON.parse(new TextDecoder().decode(bytes)),
-    );
+    const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (
+      isRecord(body) &&
+      (body.action === "prepare_artifact" || body.action === "issue")
+    ) {
+      const { handlePartnerLifecycle } =
+        await import("./demo-partner-lifecycle");
+      return await handlePartnerLifecycle(
+        body,
+        session,
+        idempotencyKey,
+        requestHash,
+        input,
+      );
+    }
+    const command = commandSchema.parse(body);
     const relationship = relationships[command.payload.partnerAccountId];
     const partnerTier = relationship?.tier;
     if (

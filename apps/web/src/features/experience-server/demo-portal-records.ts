@@ -972,10 +972,9 @@ export function demoCreatedOrderKey(orderId: string): string {
 /**
  * The created order, as the orders channel serves it.
  *
- * `status: "active"` and the empty `allowedActions` are the honest reading of
- * what the demo did: the order and its commitment exist, and no further
- * customer action is available on it here. Every figure comes off the record
- * the create pass wrote; nothing is restated.
+ * Acceptance establishes the commitment, not a provisioned service. Keep the
+ * order pending until a provisioning result exists, including after its planned
+ * start date. Every figure comes from the accepted record.
  */
 export function demoCreatedOrderRecord(
   order: DemoCreatedOrder,
@@ -993,16 +992,16 @@ export function demoCreatedOrderRecord(
         id: demoCreatedOrderKey(order.id),
         title: `Committed capacity · ${order.poNumber}`,
         description: `Accepted from ${order.quoteReference} · order form on file`,
-        status: "active",
-        statusLabel: "Active · accepted in this session",
-        tone: "success",
+        status: "pending",
+        statusLabel: "Accepted · awaiting provisioning",
+        tone: "warning",
         risk: "low",
         owner: order.signerName,
         value: formatMoney(order.totalMinor, order.currency),
         valueLabel: "Committed spend",
         dateLabel: `Accepted ${order.acceptedAt.slice(0, 10)}`,
         term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,
-        nextAction: "Provisioning follows the service start date",
+        nextAction: `Service starts ${order.serviceStartsOn}. Track provisioning before treating this service as active.`,
       }),
       // The bound evidence, carried on the record it bound. The seeded rows get
       // theirs from the artifact catalogue's attachment index; this one was not
