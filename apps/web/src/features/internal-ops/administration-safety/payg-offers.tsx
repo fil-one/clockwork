@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -270,6 +271,7 @@ function OfferForm({
   onSave: (terms: PaygOfferTerms) => Promise<void>;
   busy: boolean;
 }) {
+  const t = useTranslations();
   const terms = offer?.terms;
   const [customerPolicyConfigured, setCustomerPolicyConfigured] = useState(
     Boolean(terms?.customerAcquisition),
@@ -413,7 +415,7 @@ function OfferForm({
         </p>
         <div className={styles.toolbar}>
           <label className={styles.field}>
-            Currency
+            {t("ui.120")}
             <select
               name="currency"
               defaultValue={terms?.payg.currency ?? "USD"}

@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useActionState, useId } from "react";
 
@@ -38,6 +39,7 @@ export function MigrationDecisionAction({
   triggerLabel: string;
   summary: ReviewSummary;
 }) {
+  const t = useTranslations();
   const formId = useId().replaceAll(":", "");
   const [state, action, pending] = useActionState(
     recordDemoMigrationDecision,
@@ -77,7 +79,7 @@ export function MigrationDecisionAction({
             <dd>{summary.impact}</dd>
           </div>
           <div>
-            <dt>Evidence</dt>
+            <dt>{t("ui.116")}</dt>
             <dd>{summary.evidence}</dd>
           </div>
           <div>

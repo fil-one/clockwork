@@ -1,11 +1,12 @@
+import { getTranslations } from "@/src/i18n/server";
 import { Button, EmptyState } from "@clockwork/ui";
 
 import { chooseCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
 import { getOrganizationChoices } from "@/src/features/shell/route-session";
-import { t } from "@/src/i18n/en";
 
 export default async function ChooseOrganizationPage() {
+  const t = await getTranslations();
   const memberships = await getOrganizationChoices();
   return (
     <main className="permission-view" id="main-content">

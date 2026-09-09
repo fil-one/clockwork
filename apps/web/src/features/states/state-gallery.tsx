@@ -1,3 +1,5 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import {
@@ -7,7 +9,7 @@ import {
   type ApplicationState,
 } from "@clockwork/ui";
 
-import { t, type MessageId } from "@/src/i18n/en";
+import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
 
 export const stateGalleryStateKeys = [
   "loading",
@@ -85,7 +87,7 @@ const designedStates = [
   description: MessageId;
 }[];
 
-function stateAction(state: ApplicationState) {
+function stateAction(state: ApplicationState, t = englishTranslator) {
   if (
     state === "loading" ||
     state === "offline" ||
@@ -108,6 +110,7 @@ function stateAction(state: ApplicationState) {
 }
 
 export function StateGallery() {
+  const t = use(getTranslations());
   return (
     <main className="experience-main" id="main-content">
       <header className="page-header">
@@ -130,7 +133,7 @@ export function StateGallery() {
             key={state.state}
             state={state.state}
             title={t(state.title)}
-            action={stateAction(state.state)}
+            action={stateAction(state.state, t)}
           />
         ))}
       </section>

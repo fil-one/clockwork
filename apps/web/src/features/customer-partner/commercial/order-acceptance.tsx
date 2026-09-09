@@ -1,4 +1,7 @@
 "use client";
+import { localizeCopy } from "@/src/i18n/copy";
+
+import { useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,7 +10,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
-import { t } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import { anyEntered } from "../draft-state";
@@ -250,6 +252,8 @@ export function OrderAcceptance({
    */
   partialRead?: boolean;
 }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [poNumber, setPoNumber] = useState("");
   const [serviceStart, setServiceStart] = useState("");
   /**
@@ -669,7 +673,7 @@ export function OrderAcceptance({
           <p className={styles.taskContext}>
             Binding acceptance · creates a commitment
           </p>
-          <h1>{customerPartnerCopy.commercial.orderReview}</h1>
+          <h1>{localizedcustomerPartnerCopy.commercial.orderReview}</h1>
           <p className={styles.description}>
             This legal and financial confirmation creates the resulting service
             commitment from an accepted quote.
@@ -774,7 +778,7 @@ export function OrderAcceptance({
                       value={poNumber}
                     />
                     <p className={styles.description} id="po-terms-note">
-                      {customerPartnerCopy.commercial.orderTermsHelp
+                      {localizedcustomerPartnerCopy.commercial.orderTermsHelp
                         .replace("{quoteReference}", quote.reference)
                         .replace("{quoteVersion}", quote.version)
                         .replace(
@@ -899,7 +903,7 @@ export function OrderAcceptance({
                 ))}
               </ul>
               <p className={styles.description}>
-                {customerPartnerCopy.commercial.orderArtifactRetention.replace(
+                {localizedcustomerPartnerCopy.commercial.orderArtifactRetention.replace(
                   "{years}",
                   String(ARTIFACT_RETENTION_YEARS),
                 )}
@@ -923,7 +927,9 @@ export function OrderAcceptance({
                   required
                   type="checkbox"
                 />
-                <span>{customerPartnerCopy.commercial.orderConfirmation}</span>
+                <span>
+                  {localizedcustomerPartnerCopy.commercial.orderConfirmation}
+                </span>
               </label>
               {statusMessage ? (
                 <p className={styles.successMessage} role="status">

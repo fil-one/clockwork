@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -18,7 +19,6 @@ import {
 import { trustedSigningUrl } from "@/src/features/contracts/provider-navigation";
 import type { EsignReturnStatus } from "@/src/features/experience-server/model";
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
 
 type SigningState =
   | "review"
@@ -44,6 +44,7 @@ export function SigningExperience({
   returnState?: string;
   agreementId?: string;
 }) {
+  const t = useTranslations();
   const [state, setState] = useState<SigningState>(
     mode === "return" ? "loading" : "review",
   );

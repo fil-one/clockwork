@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,7 @@ import {
   readProjectionAction,
   sendProjectionAction,
 } from "@/src/features/contracts/experience-client";
-import { t, type MessageId } from "@/src/i18n/en";
+import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
 
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { canRunProjectionAction } from "./projection-authorization";
@@ -57,7 +58,7 @@ const irreversibleActions = new Set([
   "void",
 ]);
 
-export function actionLabel(action: string): string {
+export function actionLabel(action: string, t = englishTranslator): string {
   const id = actionLabels[action];
   return id ? t(id) : action.replaceAll("_", " ");
 }
@@ -99,6 +100,7 @@ export function ProjectionActionButtons({
   actions: readonly string[];
   roles: readonly string[];
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const keys = useRef(new Map<string, string>());
   const messages = useRef(new Map<string, HTMLParagraphElement | null>());
@@ -148,10 +150,10 @@ export function ProjectionActionButtons({
           message:
             receipt.authoritativeVersion === null
               ? t("projection.action.appliedUnknownVersion", {
-                  action: actionLabel(action),
+                  action: actionLabel(action, t),
                 })
               : t("projection.action.applied", {
-                  action: actionLabel(action),
+                  action: actionLabel(action, t),
                   version: receipt.authoritativeVersion,
                 }),
         });
@@ -159,7 +161,7 @@ export function ProjectionActionButtons({
         report(action, {
           tone: "error",
           message: t("projection.action.rejected", {
-            action: actionLabel(action),
+            action: actionLabel(action, t),
             status: receipt.status,
             code: receipt.resultCode ?? "AUTHORITATIVE_COMMAND_REJECTED",
           }),
@@ -169,7 +171,9 @@ export function ProjectionActionButtons({
     }
     report(action, {
       tone: "progress",
-      message: t("projection.action.timeout", { action: actionLabel(action) }),
+      message: t("projection.action.timeout", {
+        action: actionLabel(action, t),
+      }),
       recheck: actionRequestId,
     });
   };
@@ -188,7 +192,7 @@ export function ProjectionActionButtons({
     report(action, {
       tone: "progress",
       message: t("projection.action.submitting", {
-        action: actionLabel(action),
+        action: actionLabel(action, t),
       }),
     });
     const idempotencyKey = keys.current.get(action) ?? crypto.randomUUID();
@@ -208,7 +212,7 @@ export function ProjectionActionButtons({
         report(action, {
           tone: "progress",
           message: t("projection.action.queued", {
-            action: actionLabel(action),
+            action: actionLabel(action, t),
           }),
         });
         await awaitReceipt(action, queued.id);
@@ -222,7 +226,7 @@ export function ProjectionActionButtons({
     report(action, {
       tone: "progress",
       message: t("projection.action.rechecking", {
-        action: actionLabel(action),
+        action: actionLabel(action, t),
       }),
     });
     void awaitReceipt(action, actionRequestId)
@@ -244,7 +248,7 @@ export function ProjectionActionButtons({
             aria-describedby={feedback[action] ? messageId(action) : undefined}
             {...(destructive ? {} : { onClick: () => run(action) })}
           >
-            {running ? t("projection.action.pending") : actionLabel(action)}
+            {running ? t("projection.action.pending") : actionLabel(action, t)}
           </Button>
         );
         if (!destructive) return control;
@@ -252,7 +256,7 @@ export function ProjectionActionButtons({
           <Dialog
             key={`${action}:${confirmations}`}
             title={t("projection.action.confirm.title", {
-              action: actionLabel(action),
+              action: actionLabel(action, t),
             })}
             description={t("projection.action.confirm.description", {
               record: recordKey,
@@ -273,7 +277,7 @@ export function ProjectionActionButtons({
                   );
                 }}
               >
-                {actionLabel(action)}
+                {actionLabel(action, t)}
               </Button>
             }
           >

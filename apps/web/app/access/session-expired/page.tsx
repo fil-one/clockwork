@@ -1,10 +1,13 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { BrandLogo, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
-import { t } from "@/src/i18n/en";
+
 export default function Page() {
+  const t = use(getTranslations());
   return (
     <main className="access-main">
       <section className="access-card">

@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState } from "react";
 
@@ -269,6 +271,8 @@ export function MigrationsView({
   guidedDemo?: boolean;
   decisions?: readonly DemoMigrationDecision[];
 }) {
+  const t = useTranslations();
+  const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
   const ambiguousCount = illustrativeMigrations.filter(
     (record) => record.candidates.length > 1,
   ).length;
@@ -278,17 +282,20 @@ export function MigrationsView({
 
   return (
     <FinancePageFrame
-      title={lifecycleCopy.migrations.title}
-      description={lifecycleCopy.migrations.description}
+      title={localizedlifecycleCopy.migrations.title}
+      description={localizedlifecycleCopy.migrations.description}
       provenance={
         guidedDemo
           ? { kind: "guided" }
-          : { kind: "unwired", detail: lifecycleCopy.migrations.unwired }
+          : {
+              kind: "unwired",
+              detail: localizedlifecycleCopy.migrations.unwired,
+            }
       }
     >
       <div className={styles.notice} role="note">
-        <strong>{lifecycleCopy.migrations.illustrativeTitle}</strong>
-        <span>{lifecycleCopy.migrations.illustrativeBody}</span>
+        <strong>{localizedlifecycleCopy.migrations.illustrativeTitle}</strong>
+        <span>{localizedlifecycleCopy.migrations.illustrativeBody}</span>
       </div>
 
       <section

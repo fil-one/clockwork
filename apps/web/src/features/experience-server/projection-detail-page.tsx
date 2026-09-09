@@ -1,3 +1,4 @@
+import { getTranslations } from "@/src/i18n/server";
 import { EmptyState } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "./projection-action-buttons";
@@ -151,6 +152,7 @@ export async function ProjectionDetailPage({
   /** Read-only evidence the route adds beneath the records, such as a derivation. */
   supporting?: ReactNode;
 }) {
+  const t = await getTranslations();
   const [projection, roles] = await Promise.all([
     loadPortalRecords(audience, channel),
     getRouteRoles(audience),
@@ -252,7 +254,8 @@ export async function ProjectionDetailPage({
                 <header className={styles.recordHeader}>
                   <div>
                     <p className={styles.recordReference}>
-                      Reference {record.recordKey} · version {record.version}
+                      {t("partner.detail.reference")}
+                      {record.recordKey} · version {record.version}
                     </p>
                     <h3>{label(record)}</h3>
                     {text(record, "description") ? (
@@ -353,10 +356,11 @@ export async function ProjectionDetailPage({
                 </div>
 
                 <details className={styles.technical}>
-                  <summary>Audit evidence</summary>
+                  <summary>{t("ui.98")}</summary>
                   <p>System record {record.recordKey}</p>
                   <p>
-                    Updated {formatOperationalTimestamp(record.sourceUpdatedAt)}
+                    {t("ui.9")}
+                    {formatOperationalTimestamp(record.sourceUpdatedAt)}
                   </p>
                 </details>
               </article>

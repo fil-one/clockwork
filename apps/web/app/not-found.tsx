@@ -1,14 +1,15 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { buttonClassName, EmptyState } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * Root 404. Without this, an unmatched path falls through to the framework
  * default, which carries no brand, no navigation and no way back.
  */
 export default function NotFound() {
+  const t = use(getTranslations());
   return (
     <main className="permission-view" id="main-content">
       <EmptyState

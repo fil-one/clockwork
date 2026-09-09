@@ -1,11 +1,11 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
 import { hasPermission, roles as commerceRoles } from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
 import { buttonClassName } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 import { roleCanAccess, type ExperienceAudience } from "./navigation";
 import { PermissionSessionProvider } from "./permission-session";
@@ -30,6 +30,7 @@ function permitted(
 }
 
 function Denied() {
+  const t = use(getTranslations());
   return (
     <main className="permission-view" id="main-content">
       <section className="state-card state-card--warning" role="alert">

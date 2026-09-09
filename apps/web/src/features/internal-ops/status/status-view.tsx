@@ -1,3 +1,6 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
+import { localizeCopy } from "@/src/i18n/copy";
 import Link from "next/link";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
@@ -13,64 +16,66 @@ export function IntegrationStatusView({
   queues: OperationalQueueStatus;
   now?: Date;
 }) {
+  const t = use(getTranslations());
+  const localizedintegrationStatusCopy = localizeCopy(integrationStatusCopy, t);
   const readable = queues.deadLettersReadable && queues.webhooksReadable;
   return (
     <FinancePageFrame
-      title={integrationStatusCopy.page.title}
-      description={integrationStatusCopy.page.description}
+      title={localizedintegrationStatusCopy.page.title}
+      description={localizedintegrationStatusCopy.page.description}
       provenance={
         readable
           ? {
               kind: "read",
-              source: integrationStatusCopy.source,
+              source: localizedintegrationStatusCopy.source,
               readAt: now.toISOString(),
             }
           : {
               kind: "unreadable",
-              source: integrationStatusCopy.sourceUnavailable,
+              source: localizedintegrationStatusCopy.sourceUnavailable,
             }
       }
     >
       <section
         className={styles.summaryGrid}
-        aria-label={integrationStatusCopy.queues.label}
+        aria-label={localizedintegrationStatusCopy.queues.label}
       >
         <article className={styles.summaryCard}>
-          <p>{integrationStatusCopy.queues.dispatch}</p>
+          <p>{localizedintegrationStatusCopy.queues.dispatch}</p>
           <strong>{queues.dispatch}</strong>
-          <span>{integrationStatusCopy.queues.denominator}</span>
+          <span>{localizedintegrationStatusCopy.queues.denominator}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{integrationStatusCopy.queues.provisioning}</p>
+          <p>{localizedintegrationStatusCopy.queues.provisioning}</p>
           <strong>{queues.provisioning}</strong>
-          <span>{integrationStatusCopy.queues.denominator}</span>
+          <span>{localizedintegrationStatusCopy.queues.denominator}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{integrationStatusCopy.queues.workflow}</p>
+          <p>{localizedintegrationStatusCopy.queues.workflow}</p>
           <strong>{queues.workflow}</strong>
-          <span>{integrationStatusCopy.queues.denominator}</span>
+          <span>{localizedintegrationStatusCopy.queues.denominator}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{integrationStatusCopy.queues.webhook}</p>
+          <p>{localizedintegrationStatusCopy.queues.webhook}</p>
           <strong>{queues.webhook}</strong>
-          <span>{integrationStatusCopy.queues.denominator}</span>
+          <span>{localizedintegrationStatusCopy.queues.denominator}</span>
         </article>
       </section>
       {readable ? null : (
         <div className={styles.warningNotice} role="alert">
           <strong>Operational queue read incomplete.</strong>
-          <span>{integrationStatusCopy.queues.unreadable}</span>
+          <span>{localizedintegrationStatusCopy.queues.unreadable}</span>
         </div>
       )}
       <section className={styles.notice} aria-label="Queue actions">
         <strong>Open the underlying records</strong>
         <span>
           <Link href="/internal/recovery">
-            {integrationStatusCopy.queues.recoveryLink}
+            {localizedintegrationStatusCopy.queues.recoveryLink}
           </Link>
           {" · "}
           <Link href="/internal/webhook-replay">
-            {integrationStatusCopy.queues.webhookLink}
+            {localizedintegrationStatusCopy.queues.webhookLink}
           </Link>
         </span>
       </section>

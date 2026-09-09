@@ -1,3 +1,6 @@
+import { localizeCopy } from "@/src/i18n/copy";
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -16,7 +19,6 @@ import {
   getRouteIdentity,
   getRouteRoles,
 } from "@/src/features/shell/route-session";
-import { t } from "@/src/i18n/en";
 
 import type { PartnerRecord, PartnerSurfaceKey } from "./partner-data";
 import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
@@ -27,6 +29,7 @@ const common = customerPartnerCopy.common;
 const partnerCopy = customerPartnerCopy.partner;
 
 function MissingRecord({ backHref }: { backHref: Route }) {
+  const t = use(getTranslations());
   return (
     <main className={styles.main} id="main-content">
       <div className={styles.state}>
@@ -78,6 +81,8 @@ async function partnerRecordFor(
  * recorded rather than borrowing one that belongs to a different record.
  */
 function PriceBoundary() {
+  const t = use(getTranslations());
+  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   const notRecorded = t("partner.detail.notRecorded");
   return (
     <section
@@ -85,17 +90,17 @@ function PriceBoundary() {
       aria-label={t("partner.detail.quote.boundary")}
     >
       <div>
-        <h2>{partnerCopy.transferPrice}</h2>
+        <h2>{localizedpartnerCopy.transferPrice}</h2>
         <strong>{notRecorded}</strong>
         <p>{t("partner.detail.transfer.description")}</p>
       </div>
       <div>
-        <h2>{partnerCopy.partnerPrice}</h2>
+        <h2>{localizedpartnerCopy.partnerPrice}</h2>
         <strong>{notRecorded}</strong>
         <p>{t("partner.detail.resale.description")}</p>
       </div>
       <div>
-        <h2>{partnerCopy.merchantOfRecord}</h2>
+        <h2>{localizedpartnerCopy.merchantOfRecord}</h2>
         <strong>{notRecorded}</strong>
         <p>{t("partner.detail.merchant.description")}</p>
       </div>
@@ -104,9 +109,12 @@ function PriceBoundary() {
 }
 
 function CommercialSummary({ record }: { record: PartnerRecord }) {
+  const t = use(getTranslations());
+  const localizedcommon = localizeCopy(common, t);
+  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   return (
     <section className={styles.detailCard}>
-      <h2>{common.commercialSummary}</h2>
+      <h2>{localizedcommon.commercialSummary}</h2>
       <dl>
         <div>
           <dt>{t("partner.detail.position")}</dt>
@@ -125,16 +133,18 @@ function CommercialSummary({ record }: { record: PartnerRecord }) {
           <dd>{record.risk}</dd>
         </div>
       </dl>
-      <p className={styles.gate}>{partnerCopy.boundary}</p>
+      <p className={styles.gate}>{localizedpartnerCopy.boundary}</p>
       <ProjectionEvidence record={record} />
     </section>
   );
 }
 
 function ProjectionEvidence({ record }: { record: PartnerRecord }) {
+  const t = use(getTranslations());
+  const localizedcommon = localizeCopy(common, t);
   return (
     <details className={styles.technical}>
-      <summary>{common.technicalDetails}</summary>
+      <summary>{localizedcommon.technicalDetails}</summary>
       <p>
         {t("partner.detail.reference")}: <code>{record.id}</code>
       </p>
@@ -166,6 +176,8 @@ export async function PartnerPortfolioDetail({
    */
   actions?: ReactNode;
 }) {
+  const t = await getTranslations();
+  const localizedcommon = localizeCopy(common, t);
   const record = await partnerRecordFor("portfolio", id);
   if (!record) return <MissingRecord backHref="/partner/portfolio" />;
   return (
@@ -193,7 +205,7 @@ export async function PartnerPortfolioDetail({
       <section className={styles.term} aria-labelledby="client-term-title">
         <div className={styles.termHeader}>
           <div>
-            <p className={styles.eyebrow}>{common.termState}</p>
+            <p className={styles.eyebrow}>{localizedcommon.termState}</p>
             <h2 id="client-term-title">{t("partner.detail.portfolio.term")}</h2>
           </div>
           <strong>{record.secondary}</strong>
@@ -208,7 +220,7 @@ export async function PartnerPortfolioDetail({
       <PriceBoundary />
       <div className={styles.detailsGrid}>
         <section className={styles.detailCard}>
-          <h2>{common.nextAction}</h2>
+          <h2>{localizedcommon.nextAction}</h2>
           <dl>
             <div>
               <dt>{t("partner.detail.milestone")}</dt>
@@ -228,6 +240,8 @@ export async function PartnerPortfolioDetail({
 }
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
+  const t = await getTranslations();
+  const localizedcommon = localizeCopy(common, t);
   const [record, roles] = await Promise.all([
     partnerRecordFor("quotes", id),
     getRouteRoles("partner"),
@@ -259,7 +273,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
       <section className={styles.summary} aria-labelledby="valid-actions-title">
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.eyebrow}>{common.nextAction}</p>
+            <p className={styles.eyebrow}>{localizedcommon.nextAction}</p>
             <h2 id="valid-actions-title">
               {t("partner.detail.quote.actions")}
             </h2>

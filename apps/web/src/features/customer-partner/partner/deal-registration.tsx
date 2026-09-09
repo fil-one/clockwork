@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,9 +38,10 @@ import styles from "./partner.module.css";
  * would post an end client the database has never heard of.
  */
 function NothingToRegister() {
+  const t = useTranslations();
   return (
     <section className={styles.workflow} aria-labelledby="deal-registration">
-      <h2 id="deal-registration">Register a deal</h2>
+      <h2 id="deal-registration">{t("action.register")}</h2>
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
@@ -70,9 +72,10 @@ function NothingToRegister() {
  * the first is how a broken read comes to look like a settled commercial fact.
  */
 export function RegistrationDirectoryUnavailable() {
+  const t = useTranslations();
   return (
     <section className={styles.workflow} aria-labelledby="deal-registration">
-      <h2 id="deal-registration">Register a deal</h2>
+      <h2 id="deal-registration">{t("action.register")}</h2>
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
@@ -108,6 +111,7 @@ export function DealRegistration({
 }
 
 function RegistrationForm({ context }: { context: DealRegistrationContext }) {
+  const t = useTranslations();
   const router = useRouter();
   const [draft, setDraft] = useState<DealRegistrationDraft>(() =>
     emptyDealRegistrationDraft(context.channelPolicy?.defaultProtectionDays),
@@ -211,7 +215,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
 
   return (
     <section className={styles.workflow} aria-labelledby="deal-registration">
-      <h2 id="deal-registration">Register a deal</h2>
+      <h2 id="deal-registration">{t("action.register")}</h2>
       <p className={styles.muted}>
         Name an opportunity and request its protection window. Fil One submits
         the existing account identifiers; the decision, the protection clock,
@@ -337,7 +341,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
         ) : null}
       </form>
       <details className={styles.technical}>
-        <summary>Technical details</summary>
+        <summary>{t("ui.96")}</summary>
         <p>
           Partner account ID: <code>{context.partnerAccountId}</code>
         </p>

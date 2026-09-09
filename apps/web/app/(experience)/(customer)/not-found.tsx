@@ -1,8 +1,8 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { buttonClassName, EmptyState } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * The customer group's not-found boundary.
@@ -16,6 +16,7 @@ import { t } from "@/src/i18n/en";
  * inside `AppShell` and the reader keeps their navigation.
  */
 export default function CustomerNotFound() {
+  const t = use(getTranslations());
   return (
     <main className="experience-main" id="main-content">
       <EmptyState

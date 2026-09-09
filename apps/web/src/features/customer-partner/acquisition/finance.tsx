@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -22,6 +24,7 @@ export function AcquisitionFinance({
   demo: boolean;
   available: boolean;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
@@ -75,9 +78,9 @@ export function AcquisitionFinance({
                 {request.offer.notices.retention.version}
               </p>
               <dl>
-                <dt>Account</dt>
+                <dt>{t("nav.account")}</dt>
                 <dd>{request.accountId}</dd>
-                <dt>Organization</dt>
+                <dt>{t("nav.group.organization")}</dt>
                 <dd>{request.organizationId}</dd>
                 <dt>Approved offer</dt>
                 <dd>{request.offer.id}</dd>

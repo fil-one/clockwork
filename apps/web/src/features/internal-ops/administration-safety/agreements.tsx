@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useMemo, useState, type ReactNode } from "react";
 
@@ -29,6 +31,8 @@ export function AgreementAdministration({
    */
   publishAction?: ReactNode;
 }) {
+  const t = useTranslations();
+  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const [query, setQuery] = useState("");
   const [jurisdiction, setJurisdiction] = useState("All");
   const [state, setState] = useState("All");
@@ -65,7 +69,7 @@ export function AgreementAdministration({
   if (!selected) return null;
 
   return (
-    <AdministrationPage {...adminSafetyCopy.agreements}>
+    <AdministrationPage {...localizedadminSafetyCopy.agreements}>
       <section
         className={styles.panel}
         aria-labelledby="agreement-versions-title"
@@ -97,7 +101,7 @@ export function AgreementAdministration({
               value={jurisdiction}
               onChange={(event) => setJurisdiction(event.currentTarget.value)}
             >
-              <option>All</option>
+              <option>{t("ui.113")}</option>
               <option>United States</option>
               <option>European Union</option>
               <option>United Kingdom</option>
@@ -109,10 +113,10 @@ export function AgreementAdministration({
               value={state}
               onChange={(event) => setState(event.currentTarget.value)}
             >
-              <option>All</option>
-              <option>Active</option>
+              <option>{t("ui.113")}</option>
+              <option>{t("status.active")}</option>
               <option>Approved</option>
-              <option>Draft</option>
+              <option>{t("status.draft")}</option>
               <option>Retired</option>
             </select>
           </label>
@@ -209,7 +213,7 @@ export function AgreementAdministration({
           />
           <dl className={styles.metaGrid}>
             <div>
-              <dt>Version</dt>
+              <dt>{t("ui.122")}</dt>
               <dd>
                 {selected.version} · {selected.state}
               </dd>

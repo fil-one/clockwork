@@ -1,6 +1,16 @@
 import { t } from "@/src/i18n/en";
 
-export type SupportedLocale = "en-US" | "en-GB" | "es-ES";
+export type SupportedLocale =
+  | "en-US"
+  | "en-GB"
+  | "es-ES"
+  | "es"
+  | "fr-FR"
+  | "de-DE"
+  | "ja-JP"
+  | "pt-BR"
+  | "zh-Hans-CN"
+  | "ar-AE";
 export type SupportedCurrency = "USD" | "EUR" | "GBP";
 
 export function formatMoney(
@@ -21,7 +31,10 @@ export function formatMoney(
   const formatted = parts
     .map((part) =>
       part.type === "fraction"
-        ? fraction.toString().padStart(2, "0")
+        ? new Intl.NumberFormat(locale, {
+            useGrouping: false,
+            minimumIntegerDigits: 2,
+          }).format(fraction)
         : part.value,
     )
     .join("");

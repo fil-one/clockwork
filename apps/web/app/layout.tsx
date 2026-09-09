@@ -1,3 +1,6 @@
+import { catalogs } from "@/src/i18n";
+import { LanguageProvider } from "@/src/i18n/client";
+import { getLocale } from "@/src/i18n/server";
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
@@ -63,6 +66,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
+  const locale = await getLocale();
   const incomingTrace = parseTraceparent(
     (await headers()).get("traceparent") ?? undefined,
   );
@@ -78,26 +82,37 @@ export default async function RootLayout({
     : undefined;
   return (
     <html
-      lang="en"
+      lang={
+        locale === "zh"
+          ? "zh-Hans"
+          : locale === "ar"
+            ? "ar-AE"
+            : locale === "pt"
+              ? "pt-BR"
+              : locale
+      }
+      dir={locale === "ar" ? "rtl" : "ltr"}
       data-scroll-behavior="smooth"
       className={brandFontVariables}
     >
       <body>
-        {children}
-        {persona ? (
-          <DemoPersonaSwitcher
-            personas={demoPersonaCatalog.map(
-              ({ key, displayName, jobTitle }) => ({
-                value: key,
-                label: `${displayName} · ${jobTitle}`,
-              }),
-            )}
-            current={persona.key}
-            personaName={persona.displayName}
-            journey={demoJourneyView(persona.key)}
-          />
-        ) : null}
-        <WebVitals {...(traceparent ? { traceparent } : {})} />
+        <LanguageProvider locale={locale} catalog={catalogs[locale]}>
+          {children}
+          {persona ? (
+            <DemoPersonaSwitcher
+              personas={demoPersonaCatalog.map(
+                ({ key, displayName, jobTitle }) => ({
+                  value: key,
+                  label: `${displayName} · ${jobTitle}`,
+                }),
+              )}
+              current={persona.key}
+              personaName={persona.displayName}
+              journey={demoJourneyView(persona.key)}
+            />
+          ) : null}
+          <WebVitals {...(traceparent ? { traceparent } : {})} />
+        </LanguageProvider>
       </body>
     </html>
   );

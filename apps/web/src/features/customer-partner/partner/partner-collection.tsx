@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -42,18 +44,21 @@ const copy = customerPartnerCopy.common;
 const partnerCopy = customerPartnerCopy.partner;
 
 export function PartnerSurfacePermission() {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   return (
     <div className={styles.state}>
       <ApplicationStatePanel
         state="permission"
-        title={copy.permissionTitle}
-        description={copy.permissionBody}
+        title={localizedcopy.permissionTitle}
+        description={localizedcopy.permissionBody}
       />
     </div>
   );
 }
 
 function RecordTitle({ record }: { record: PartnerRecord }) {
+  const t = useTranslations();
   return (
     <>
       {record.href ? (
@@ -64,7 +69,10 @@ function RecordTitle({ record }: { record: PartnerRecord }) {
         <strong>{record.name}</strong>
       )}
       <span className={styles.meta}>{record.context}</span>
-      <span className={styles.id}>Reference {record.id}</span>
+      <span className={styles.id}>
+        {t("partner.detail.reference")}
+        {record.id}
+      </span>
       {!record.href ? (
         <span className={styles.meta}>
           Summary only · follow the contextual gate on this page
@@ -100,9 +108,11 @@ function RecordsTable({
   sort: PartnerSort;
   onSort: (next: PartnerSort) => void;
 }) {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   const headers = [
     config.columns[0],
-    copy.status,
+    localizedcopy.status,
     "Risk and owner",
     config.columns[1],
     config.columns[2],
@@ -166,6 +176,7 @@ function RecordCards({
   records: readonly PartnerRecord[];
   surface: PartnerSurfaceKey;
 }) {
+  const t = useTranslations();
   return (
     <div className={styles.mobileCards}>
       {records.map((record) => (
@@ -180,11 +191,11 @@ function RecordCards({
           </div>
           <div className={styles.cardValues}>
             <div>
-              <span>Commercial position</span>
+              <span>{t("partner.detail.position")}</span>
               <strong>{record.value}</strong>
             </div>
             <div>
-              <span>Next milestone</span>
+              <span>{t("partner.detail.milestone")}</span>
               <strong>{record.secondary}</strong>
               {surface === "registrations" ? (
                 <span className={styles.meta}>
@@ -193,11 +204,11 @@ function RecordCards({
               ) : null}
             </div>
             <div>
-              <span>Owner</span>
+              <span>{t("partner.detail.owner")}</span>
               <strong>{record.owner}</strong>
             </div>
             <div>
-              <span>Risk</span>
+              <span>{t("ui.89")}</span>
               <strong>{record.risk}</strong>
             </div>
           </div>
@@ -214,6 +225,8 @@ function PriceBoundary({
   surface: PartnerSurfaceKey;
   partnerName: string;
 }) {
+  const t = useTranslations();
+  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   if (
     !["portfolio", "quotes", "billing", "renewals", "commissions"].includes(
       surface,
@@ -227,19 +240,19 @@ function PriceBoundary({
   return (
     <section className={styles.boundary} aria-label="Commercial price boundary">
       <div>
-        <h2>{partnerCopy.transferPrice}</h2>
+        <h2>{localizedpartnerCopy.transferPrice}</h2>
         <p>Private partner cost from the approved Fil One price book.</p>
       </div>
       <div>
-        <h2>{partnerCopy.partnerPrice}</h2>
+        <h2>{localizedpartnerCopy.partnerPrice}</h2>
         <p>
           Set and controlled by {partnerName}; shown to the named end client.
         </p>
       </div>
       <div>
-        <h2>{partnerCopy.merchantOfRecord}</h2>
+        <h2>{localizedpartnerCopy.merchantOfRecord}</h2>
         <p>
-          {merchant}. {partnerCopy.boundary}
+          {merchant}. {localizedpartnerCopy.boundary}
         </p>
       </div>
     </section>
@@ -258,6 +271,8 @@ function RenewalPanel({
   record: PartnerRecord | undefined;
   renewalContext?: RenewalCommandContext;
 }) {
+  const t = useTranslations();
+  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -326,7 +341,7 @@ function RenewalPanel({
   }
   return (
     <section className={styles.workflow} aria-labelledby="renewal-review-title">
-      <h2 id="renewal-review-title">{partnerCopy.renewalReview}</h2>
+      <h2 id="renewal-review-title">{localizedpartnerCopy.renewalReview}</h2>
       {!reviewing ? (
         <>
           <p className={styles.muted}>
@@ -415,6 +430,8 @@ export function PartnerCollection({
    */
   renewalContext?: RenewalCommandContext;
 }) {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -476,14 +493,14 @@ export function PartnerCollection({
 
       <form
         className={styles.filters}
-        aria-label={copy.filters}
+        aria-label={localizedcopy.filters}
         onSubmit={(event) => {
           event.preventDefault();
           setQuery("q", queryDraft);
         }}
       >
         <label className={styles.field}>
-          {copy.search}
+          {localizedcopy.search}
           <span className={styles.searchControl}>
             <input
               type="search"
@@ -497,24 +514,24 @@ export function PartnerCollection({
           </span>
         </label>
         <label className={styles.field}>
-          {copy.status}
+          {localizedcopy.status}
           <select
             value={state.status}
             onChange={(event) => setQuery("status", event.target.value)}
           >
             <option value="all">All statuses</option>
             <option value="attention">Needs attention</option>
-            <option value="draft">Draft</option>
+            <option value="draft">{t("status.draft")}</option>
             <option value="open">Open</option>
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
+            <option value="active">{t("status.active")}</option>
+            <option value="pending">{t("status.pending")}</option>
             <option value="accepted">Accepted</option>
-            <option value="paid">Paid</option>
-            <option value="blocked">Blocked</option>
+            <option value="paid">{t("status.paid")}</option>
+            <option value="blocked">{t("status.blocked")}</option>
           </select>
         </label>
         <label className={styles.field}>
-          {copy.risk}
+          {localizedcopy.risk}
           <select
             value={state.risk}
             onChange={(event) => setQuery("risk", event.target.value)}
@@ -526,7 +543,7 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {copy.owner}
+          {localizedcopy.owner}
           <select
             value={state.owner}
             onChange={(event) => setQuery("owner", event.target.value)}
@@ -540,7 +557,7 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {copy.sort}
+          {localizedcopy.sort}
           <select
             value={state.sort}
             onChange={(event) => setQuery("sort", event.target.value)}
@@ -561,7 +578,7 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {copy.pageSize}
+          {localizedcopy.pageSize}
           <select
             value={state.pageSize}
             onChange={(event) => setQuery("pageSize", event.target.value)}
@@ -572,7 +589,7 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {copy.view}
+          {localizedcopy.view}
           <select
             value={state.view}
             onChange={(event) => setQuery("view", event.target.value)}
@@ -602,8 +619,8 @@ export function PartnerCollection({
           <div className={styles.state}>
             <ApplicationStatePanel
               state="empty"
-              title={copy.noMatchTitle}
-              description={copy.noMatchBody}
+              title={localizedcopy.noMatchTitle}
+              description={localizedcopy.noMatchBody}
               action={
                 <Button
                   variant="secondary"
@@ -638,7 +655,7 @@ export function PartnerCollection({
                 disabled={page.page <= 1}
                 onClick={() => setQuery("page", page.page - 1)}
               >
-                {copy.previous}
+                {localizedcopy.previous}
               </Button>
               <Button
                 size="small"
@@ -646,7 +663,7 @@ export function PartnerCollection({
                 disabled={page.page >= page.pageCount}
                 onClick={() => setQuery("page", page.page + 1)}
               >
-                {copy.next}
+                {localizedcopy.next}
               </Button>
             </div>
           </nav>

@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { Button, Dialog, Textarea } from "@clockwork/ui";
 import { useId, useState, useTransition } from "react";
@@ -30,6 +32,8 @@ export function ReplayDecision({
   eventType: string;
   payloadHash: string;
 }) {
+  const t = useTranslations();
+  const localizedwebhookReplayCopy = localizeCopy(webhookReplayCopy, t);
   const reasonId = useId().replaceAll(":", "");
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
@@ -38,7 +42,7 @@ export function ReplayDecision({
 
   function submit() {
     if (reason.trim().length < 8) {
-      setMessage(webhookReplayCopy.outcome.reasonRequired);
+      setMessage(localizedwebhookReplayCopy.outcome.reasonRequired);
       return;
     }
     const formData = new FormData();
@@ -58,18 +62,18 @@ export function ReplayDecision({
       setStarted(false);
       setMessage(
         (result.code ? failure[result.code] : undefined) ??
-          webhookReplayCopy.outcome.failed,
+          localizedwebhookReplayCopy.outcome.failed,
       );
     });
   }
 
   return (
     <Dialog
-      title={`${webhookReplayCopy.action} ${providerEventId}`}
-      description={webhookReplayCopy.effect}
+      title={`${localizedwebhookReplayCopy.action} ${providerEventId}`}
+      description={localizedwebhookReplayCopy.effect}
       trigger={
         <Button variant="secondary" size="small">
-          {webhookReplayCopy.action}
+          {localizedwebhookReplayCopy.action}
         </Button>
       }
       footer={
@@ -80,29 +84,29 @@ export function ReplayDecision({
           disabled={pending}
         >
           {pending
-            ? webhookReplayCopy.pending
-            : webhookReplayCopy.confirmAccept}
+            ? localizedwebhookReplayCopy.pending
+            : localizedwebhookReplayCopy.confirmAccept}
         </Button>
       }
     >
       <dl className={styles.reviewGrid}>
         <div>
-          <dt>{webhookReplayCopy.detail.callback}</dt>
+          <dt>{localizedwebhookReplayCopy.detail.callback}</dt>
           <dd>
             {provider} · {providerEventId}
           </dd>
         </div>
         <div>
-          <dt>{webhookReplayCopy.detail.eventType}</dt>
+          <dt>{localizedwebhookReplayCopy.detail.eventType}</dt>
           <dd>{eventType}</dd>
         </div>
         <div>
-          <dt>{webhookReplayCopy.detail.payloadHash}</dt>
+          <dt>{localizedwebhookReplayCopy.detail.payloadHash}</dt>
           <dd>{payloadHash}</dd>
         </div>
         <div>
-          <dt>{webhookReplayCopy.detail.repeatSubmission}</dt>
-          <dd>{webhookReplayCopy.repeatSubmission}</dd>
+          <dt>{localizedwebhookReplayCopy.detail.repeatSubmission}</dt>
+          <dd>{localizedwebhookReplayCopy.repeatSubmission}</dd>
         </div>
       </dl>
       <Textarea
@@ -110,8 +114,8 @@ export function ReplayDecision({
         name="reason"
         rows={3}
         value={reason}
-        label={webhookReplayCopy.reasonLabel}
-        help={webhookReplayCopy.reasonHelp}
+        label={localizedwebhookReplayCopy.reasonLabel}
+        help={localizedwebhookReplayCopy.reasonHelp}
         onChange={(event) => {
           setReason(event.currentTarget.value);
           if (message) setMessage("");
@@ -125,7 +129,7 @@ export function ReplayDecision({
       ) : null}
       {started && !message ? (
         <p className={styles.statusMessage} role="status">
-          {webhookReplayCopy.outcome.started}
+          {localizedwebhookReplayCopy.outcome.started}
         </p>
       ) : null}
     </Dialog>

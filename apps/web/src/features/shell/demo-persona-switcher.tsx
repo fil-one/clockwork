@@ -1,12 +1,11 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 
 import { Button, buttonClassName, Dialog, Select } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 import styles from "./demo-persona-switcher.module.css";
 
@@ -61,6 +60,7 @@ function JourneySteps({
   journey: DemoJourneyView;
   pathname: string;
 }) {
+  const t = useTranslations();
   // The step whose route the presenter is on, or the first one until they move.
   const activeIndex = Math.max(
     0,
@@ -111,6 +111,7 @@ export function DemoPersonaSwitcher({
   personaName: string;
   journey?: DemoJourneyView | undefined;
 }) {
+  const t = useTranslations();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [resetting, setResetting] = useState(false);

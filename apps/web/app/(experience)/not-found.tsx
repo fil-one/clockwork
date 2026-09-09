@@ -1,8 +1,8 @@
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 
 import { buttonClassName, EmptyState } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 /**
  * The experience group's shell-less 404, and the last one before the root.
@@ -14,6 +14,7 @@ import { t } from "@/src/i18n/en";
  * inventing a second look for the same outcome.
  */
 export default function ExperienceNotFound() {
+  const t = use(getTranslations());
   return (
     <main className="permission-view" id="main-content">
       <EmptyState

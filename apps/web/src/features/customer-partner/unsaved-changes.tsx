@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -88,6 +90,8 @@ export function LeaveDraftControl({
   discardClassName?: string;
   keepClassName?: string;
 }) {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   const [confirming, setConfirming] = useState(false);
   const keepRef = useRef<HTMLButtonElement>(null);
   const promptId = useId();
@@ -126,7 +130,8 @@ export function LeaveDraftControl({
       data-unsaved-prompt="open"
     >
       <p id={promptId} role="alert">
-        <strong>{copy.unsavedTitle}</strong> {copy.unsavedBody}
+        <strong>{localizedcopy.unsavedTitle}</strong>{" "}
+        {localizedcopy.unsavedBody}
       </p>
       <div className={styles.promptActions}>
         <button
@@ -135,10 +140,10 @@ export function LeaveDraftControl({
           ref={keepRef}
           type="button"
         >
-          {copy.unsavedKeep}
+          {localizedcopy.unsavedKeep}
         </button>
         <Link className={discardClassName} href={href}>
-          {copy.unsavedDiscard}
+          {localizedcopy.unsavedDiscard}
         </Link>
       </div>
     </div>

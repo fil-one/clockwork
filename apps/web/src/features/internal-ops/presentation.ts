@@ -1,8 +1,11 @@
 /** Product-facing timestamp used across operator surfaces. */
-export function formatOperationalTimestamp(value: string): string {
+export function formatOperationalTimestamp(
+  value: string,
+  locale = "en-US",
+): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return "Recently";
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",

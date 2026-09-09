@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState, useTransition } from "react";
 
@@ -70,12 +72,14 @@ export function CorrectionDialog({
   kind: CorrectionKind;
   subject: SerializableSubject;
 }) {
+  const t = useTranslations();
+  const localizedcorrectionCopy = localizeCopy(correctionCopy, t);
   const [input, setInput] = useState<CorrectionInput>(() => emptyInput(kind));
   const [refusals, setRefusals] = useState<readonly CorrectionRefusal[]>([]);
   const [message, setMessage] = useState("");
   const [recorded, setRecorded] = useState("");
   const [pending, startTransition] = useTransition();
-  const labels = correctionCopy.kinds[kind];
+  const labels = localizedcorrectionCopy.kinds[kind];
   const reasons: readonly string[] = providerReasons[kind];
 
   const domain: CorrectionSubject = {
@@ -135,35 +139,35 @@ export function CorrectionDialog({
           onClick={submit}
           disabled={pending || Boolean(recorded)}
         >
-          {pending ? correctionCopy.submitting : labels.confirm}
+          {pending ? localizedcorrectionCopy.submitting : labels.confirm}
         </Button>
       }
     >
       <dl className={styles.reviewGrid}>
         <div>
-          <dt>{correctionCopy.subject}</dt>
+          <dt>{localizedcorrectionCopy.subject}</dt>
           <dd>
             {subject.reference}
             <span className={styles.id}> {subject.invoiceId}</span>
           </dd>
         </div>
         <div>
-          <dt>{correctionCopy.effectTerm}</dt>
+          <dt>{localizedcorrectionCopy.effectTerm}</dt>
           <dd>{labels.effect}</dd>
         </div>
         <div>
-          <dt>{correctionCopy.reversibleTerm}</dt>
+          <dt>{localizedcorrectionCopy.reversibleTerm}</dt>
           <dd>{labels.reversible}</dd>
         </div>
       </dl>
 
       <Input
-        label={correctionCopy.fields.amount}
+        label={localizedcorrectionCopy.fields.amount}
         name="amountMinor"
         inputMode="numeric"
         value={input.amountMinor}
         onChange={(event) => set("amountMinor", event.currentTarget.value)}
-        help={correctionCopy.fields.amountHelp(
+        help={localizedcorrectionCopy.fields.amountHelp(
           subject.currency,
           subject.amountLabel,
         )}
@@ -172,7 +176,7 @@ export function CorrectionDialog({
 
       {reasons.length > 0 ? (
         <Select
-          label={correctionCopy.fields.providerReason}
+          label={localizedcorrectionCopy.fields.providerReason}
           name="providerReason"
           value={input.providerReason}
           onChange={(event) => set("providerReason", event.currentTarget.value)}
@@ -180,19 +184,19 @@ export function CorrectionDialog({
             value: reason,
             label: reason.replaceAll("_", " "),
           }))}
-          help={correctionCopy.fields.providerReasonHelp}
+          help={localizedcorrectionCopy.fields.providerReasonHelp}
         />
       ) : null}
 
       {kind === "dispute" ? null : (
         <Textarea
-          label={correctionCopy.fields.internalReason}
+          label={localizedcorrectionCopy.fields.internalReason}
           name="internalReasonCode"
           value={input.internalReasonCode}
           onChange={(event) =>
             set("internalReasonCode", event.currentTarget.value)
           }
-          help={correctionCopy.fields.internalReasonHelp}
+          help={localizedcorrectionCopy.fields.internalReasonHelp}
           rows={2}
           required
         />
@@ -200,11 +204,11 @@ export function CorrectionDialog({
 
       {kind === "credit_note" ? null : (
         <Input
-          label={correctionCopy.fields.payment}
+          label={localizedcorrectionCopy.fields.payment}
           name="paymentId"
           value={input.paymentId}
           onChange={(event) => set("paymentId", event.currentTarget.value)}
-          help={correctionCopy.fields.paymentHelp}
+          help={localizedcorrectionCopy.fields.paymentHelp}
           required
         />
       )}
@@ -212,35 +216,35 @@ export function CorrectionDialog({
       {kind === "dispute" ? (
         <>
           <Input
-            label={correctionCopy.fields.disputeReference}
+            label={localizedcorrectionCopy.fields.disputeReference}
             name="stripeDisputeId"
             value={input.stripeDisputeId}
             onChange={(event) =>
               set("stripeDisputeId", event.currentTarget.value)
             }
-            help={correctionCopy.fields.disputeReferenceHelp}
+            help={localizedcorrectionCopy.fields.disputeReferenceHelp}
             required
           />
           <Input
-            label={correctionCopy.fields.evidenceDue}
+            label={localizedcorrectionCopy.fields.evidenceDue}
             name="evidenceDueAt"
             type="datetime-local"
             value={input.evidenceDueAt}
             onChange={(event) =>
               set("evidenceDueAt", event.currentTarget.value)
             }
-            help={correctionCopy.fields.evidenceDueHelp}
+            help={localizedcorrectionCopy.fields.evidenceDueHelp}
             required
           />
         </>
       ) : null}
 
-      <p className={styles.actorNote}>{correctionCopy.authority}</p>
+      <p className={styles.actorNote}>{localizedcorrectionCopy.authority}</p>
 
       {refusals.length > 0 ? (
         <ul className={styles.blocked} role="alert">
           {refusals.map((refusal) => (
-            <li key={refusal}>{correctionCopy.refusals[refusal]}</li>
+            <li key={refusal}>{localizedcorrectionCopy.refusals[refusal]}</li>
           ))}
         </ul>
       ) : null}
@@ -253,17 +257,19 @@ export function CorrectionDialog({
 
       {recorded ? (
         <p className={styles.statusMessage} role="status">
-          {correctionCopy.recorded(recorded)}
+          {localizedcorrectionCopy.recorded(recorded)}
         </p>
       ) : null}
 
       <details className={styles.disclosure}>
-        <summary>{correctionCopy.refusalsSummary}</summary>
+        <summary>{localizedcorrectionCopy.refusalsSummary}</summary>
         <ul>
           {(
-            Object.keys(correctionCopy.refusals) as readonly CorrectionRefusal[]
+            Object.keys(
+              localizedcorrectionCopy.refusals,
+            ) as readonly CorrectionRefusal[]
           ).map((refusal) => (
-            <li key={refusal}>{correctionCopy.refusals[refusal]}</li>
+            <li key={refusal}>{localizedcorrectionCopy.refusals[refusal]}</li>
           ))}
         </ul>
       </details>

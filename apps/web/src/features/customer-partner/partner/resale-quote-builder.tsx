@@ -1,4 +1,7 @@
 "use client";
+import { localizeCopy } from "@/src/i18n/copy";
+
+import { useTranslations } from "@/src/i18n/client";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -14,7 +17,6 @@ import {
   useUnsavedChangesWarning,
 } from "@/src/features/customer-partner/unsaved-changes";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
-import { t } from "@/src/i18n/en";
 
 import {
   emptyResaleQuoteDraft,
@@ -117,6 +119,8 @@ export function ResaleQuoteBuilder({
 }
 
 function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
+  const t = useTranslations();
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   // Derived from the clock this form was opened against, never from a calendar
   // date compiled into the bundle. One clock read seeds both the editable draft
@@ -138,7 +142,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
     quoteId: string;
     payload: ReturnType<typeof resaleQuotePayload>;
   } | null>(null);
-  const stages = customerPartnerCopy.commercial.quoteStages;
+  const stages = localizedcustomerPartnerCopy.commercial.quoteStages;
   const partnerPriced = partnerPricedRoute(context.route);
 
   /**
@@ -420,7 +424,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 </label>
                 {partnerPriced ? (
                   <label className={styles.field}>
-                    {customerPartnerCopy.partner.partnerPrice} (
+                    {localizedcustomerPartnerCopy.partner.partnerPrice} (
                     {offer?.currency ?? endClient?.quoteCurrency ?? "major"}{" "}
                     major units)
                     <input
@@ -463,7 +467,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   ))}
                 </ul>
                 <p className={styles.gate}>
-                  {customerPartnerCopy.partner.boundary}
+                  {localizedcustomerPartnerCopy.partner.boundary}
                 </p>
                 <label className={styles.confirm}>
                   <input
@@ -489,7 +493,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               </Button>
             ) : null}
             {stage < 3 ? (
-              <Button onClick={advance}>Continue</Button>
+              <Button onClick={advance}>{t("demo.access.submit")}</Button>
             ) : (
               <Button
                 type="submit"
@@ -523,7 +527,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           aria-labelledby="quote-summary-title"
         >
           <h2 id="quote-summary-title">
-            {customerPartnerCopy.commercial.quoteSummary}
+            {localizedcustomerPartnerCopy.commercial.quoteSummary}
           </h2>
           <ul className={styles.summaryList}>
             <li>
@@ -547,7 +551,9 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
             </li>
             <li>
-              <strong>{customerPartnerCopy.partner.partnerPrice}:</strong>{" "}
+              <strong>
+                {localizedcustomerPartnerCopy.partner.partnerPrice}:
+              </strong>{" "}
               {!partnerPriced
                 ? "Not set on a referral"
                 : draft.resalePrice
@@ -555,11 +561,15 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   : "Not set"}
             </li>
             <li>
-              <strong>{customerPartnerCopy.partner.transferPrice}:</strong>{" "}
+              <strong>
+                {localizedcustomerPartnerCopy.partner.transferPrice}:
+              </strong>{" "}
               Server-priced after draft creation
             </li>
             <li>
-              <strong>{customerPartnerCopy.partner.merchantOfRecord}:</strong>{" "}
+              <strong>
+                {localizedcustomerPartnerCopy.partner.merchantOfRecord}:
+              </strong>{" "}
               {merchantOfRecordName(context)}
             </li>
             <li>
@@ -568,7 +578,9 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             </li>
           </ul>
           <details className={styles.technical}>
-            <summary>{customerPartnerCopy.common.technicalDetails}</summary>
+            <summary>
+              {localizedcustomerPartnerCopy.common.technicalDetails}
+            </summary>
             <p>
               Price book ID: <code>{offer?.priceBookId ?? "Unresolved"}</code>
             </p>

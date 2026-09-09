@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState } from "react";
 
@@ -50,6 +52,8 @@ export function ReportsView({
   accounts: readonly ReportAccountOption[];
   provenance: SurfaceProvenance;
 }) {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   const [selectedReport, setSelectedReport] = useState("");
   const [accountId, setAccountId] = useState("");
   const [exporting, setExporting] = useState<ReportName | null>(null);
@@ -101,8 +105,8 @@ export function ReportsView({
 
   return (
     <FinancePageFrame
-      title={copy.title}
-      description={copy.description}
+      title={localizedcopy.title}
+      description={localizedcopy.description}
       provenance={provenance}
     >
       <form
@@ -116,7 +120,7 @@ export function ReportsView({
           value={selectedReport}
           onChange={(event) => setSelectedReport(event.currentTarget.value)}
           options={[
-            { value: "", label: copy.allReports },
+            { value: "", label: localizedcopy.allReports },
             ...reportNames.map((report) => ({
               value: report,
               label: label(report),
@@ -129,23 +133,23 @@ export function ReportsView({
       <section className={styles.section} aria-labelledby="recorded-exports">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="recorded-exports">{copy.exportsHeading}</h2>
-            <p>{copy.exportsCaption}</p>
+            <h2 id="recorded-exports">{localizedcopy.exportsHeading}</h2>
+            <p>{localizedcopy.exportsCaption}</p>
           </div>
           <span className={styles.sectionMeta}>
             {plural(visibleExports.length, "{count} export", "{count} exports")}
           </span>
         </header>
         {exportRecords.length === 0 ? (
-          <p className={styles.empty}>{copy.exportsEmpty}</p>
+          <p className={styles.empty}>{localizedcopy.exportsEmpty}</p>
         ) : visibleExports.length === 0 ? (
           <p className={styles.empty}>
-            {copy.exportsFilterEmpty(label(selectedReport))}
+            {localizedcopy.exportsFilterEmpty(label(selectedReport))}
           </p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={copy.exportsCaption}
+            caption={localizedcopy.exportsCaption}
             captionHidden
             density="compact"
             headers={["Report", "Status", "Document", "Recorded"]}
@@ -169,7 +173,7 @@ export function ReportsView({
               record.documentId ? (
                 <span className={styles.id}>{record.documentId}</span>
               ) : (
-                copy.documentPending
+                localizedcopy.documentPending
               ),
               <time dateTime={record.updatedAt}>
                 {formatOperationalTimestamp(record.updatedAt)}
@@ -182,8 +186,8 @@ export function ReportsView({
       <section className={styles.section} aria-labelledby="supported-exports">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="supported-exports">{copy.catalogueHeading}</h2>
-            <p>{copy.catalogueDescription}</p>
+            <h2 id="supported-exports">{localizedcopy.catalogueHeading}</h2>
+            <p>{localizedcopy.catalogueDescription}</p>
           </div>
         </header>
 
@@ -193,7 +197,7 @@ export function ReportsView({
           onSubmit={(event) => event.preventDefault()}
         >
           <Select
-            label="Account"
+            label={t("nav.account")}
             name="accountId"
             value={accountId}
             onChange={(event) => setAccountId(event.currentTarget.value)}

@@ -1,10 +1,9 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useEffect } from "react";
 
 import { Button } from "@clockwork/ui";
-
-import { t } from "@/src/i18n/en";
 
 export default function ExperienceError({
   error,
@@ -13,6 +12,7 @@ export default function ExperienceError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations();
   useEffect(() => {
     console.error("Experience route error", { digest: error.digest });
   }, [error]);

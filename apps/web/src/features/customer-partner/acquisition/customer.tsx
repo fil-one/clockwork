@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -36,6 +38,7 @@ export function CustomerAcquisition({
   demo: boolean;
   available: boolean;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [offerId, setOfferId] = useState(view.offers[0]?.id ?? "");
   const [organizationId, setOrganizationId] = useState(
@@ -98,7 +101,7 @@ export function CustomerAcquisition({
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Storage on your terms</p>
-          <h1>PAYG and trials</h1>
+          <h1>{t("nav.internal.paygOffers")}</h1>
           <p>
             Review no-term usage pricing, request a trial, and follow your
             service handoff.
@@ -151,7 +154,7 @@ export function CustomerAcquisition({
                 </select>
               </label>
               <label>
-                Organization
+                {t("nav.group.organization")}
                 <select
                   value={organizationId}
                   disabled={busy || mode === "convert_to_payg"}

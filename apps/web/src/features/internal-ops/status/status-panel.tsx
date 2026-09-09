@@ -1,4 +1,6 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
+import { localizeCopy } from "@/src/i18n/copy";
 
 import { useEffect, useState } from "react";
 
@@ -55,6 +57,8 @@ function tone(status: LaneStatus["status"]) {
 }
 
 export function StatusPanel() {
+  const t = useTranslations();
+  const localizedintegrationStatusCopy = localizeCopy(integrationStatusCopy, t);
   const [results, setResults] = useState<Readonly<Record<Lane, LaneResult>>>(
     () => ({
       core: { state: "loading" },
@@ -96,9 +100,9 @@ export function StatusPanel() {
       <header className={styles.sectionHeader}>
         <div>
           <h2 id="service-configuration">
-            {integrationStatusCopy.lanes.heading}
+            {localizedintegrationStatusCopy.lanes.heading}
           </h2>
-          <p>{integrationStatusCopy.lanes.detail}</p>
+          <p>{localizedintegrationStatusCopy.lanes.detail}</p>
         </div>
       </header>
       <div className={styles.reportList}>
@@ -109,14 +113,16 @@ export function StatusPanel() {
               <div>
                 <h3>{laneLabels[lane]}</h3>
                 {result.state === "loading" ? (
-                  <p role="status">{integrationStatusCopy.lanes.loading}</p>
+                  <p role="status">
+                    {localizedintegrationStatusCopy.lanes.loading}
+                  </p>
                 ) : result.state === "unavailable" ? (
                   <>
                     <p role="alert">
-                      {integrationStatusCopy.lanes.unavailable}
+                      {localizedintegrationStatusCopy.lanes.unavailable}
                     </p>
                     <p>
-                      {integrationStatusCopy.lanes.readAt(
+                      {localizedintegrationStatusCopy.lanes.readAt(
                         formatOperationalTimestamp(result.readAt),
                       )}
                     </p>
@@ -137,7 +143,7 @@ export function StatusPanel() {
                       )}
                     </dl>
                     <p>
-                      {integrationStatusCopy.lanes.readAt(
+                      {localizedintegrationStatusCopy.lanes.readAt(
                         formatOperationalTimestamp(result.readAt),
                       )}
                     </p>

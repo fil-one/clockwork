@@ -1,3 +1,7 @@
+"use client";
+import { useTranslations } from "@/src/i18n/client";
+
+import { localizeCopy } from "@/src/i18n/copy";
 import { customerPartnerCopy } from "./copy";
 import { formatSurfaceTimestamp, type SurfaceFormatting } from "./formatting";
 import styles from "./projection-freshness.module.css";
@@ -67,6 +71,8 @@ export function ProjectionFreshnessNotice({
   formatting: SurfaceFormatting;
   className?: string;
 }) {
+  const t = useTranslations();
+  const localizedcopy = localizeCopy(copy, t);
   const readAt = (
     <time dateTime={freshness.generatedAt}>
       {formatSurfaceTimestamp(freshness.generatedAt, formatting)}
@@ -78,9 +84,10 @@ export function ProjectionFreshnessNotice({
         className={`${styles.staleBanner} ${styles.partialBanner} ${className}`.trim()}
         role="alert"
       >
-        <strong>{copy.freshnessPartialTitle}</strong>
+        <strong>{localizedcopy.freshnessPartialTitle}</strong>
         <span>
-          {copy.freshnessPartialBody} {copy.freshnessReadAt} {readAt}
+          {localizedcopy.freshnessPartialBody} {localizedcopy.freshnessReadAt}{" "}
+          {readAt}
         </span>
       </section>
     );
@@ -88,7 +95,8 @@ export function ProjectionFreshnessNotice({
     return (
       <p className={`${styles.freshness} ${className}`.trim()} role="status">
         <span aria-hidden="true" className={styles.dot} />
-        {copy.freshnessCurrent} · {copy.freshnessReadAt} {readAt}
+        {localizedcopy.freshnessCurrent} · {localizedcopy.freshnessReadAt}{" "}
+        {readAt}
       </p>
     );
   return (
@@ -96,11 +104,12 @@ export function ProjectionFreshnessNotice({
       className={`${styles.staleBanner} ${className}`.trim()}
       role="alert"
     >
-      <strong>{copy.freshnessStaleTitle}</strong>
+      <strong>{localizedcopy.freshnessStaleTitle}</strong>
       <span>
-        {copy.freshnessStaleBody} {copy.freshnessReadAt} {readAt}
+        {localizedcopy.freshnessStaleBody} {localizedcopy.freshnessReadAt}{" "}
+        {readAt}
       </span>
-      <RefreshProjection label={copy.freshnessAction} />
+      <RefreshProjection label={localizedcopy.freshnessAction} />
     </section>
   );
 }

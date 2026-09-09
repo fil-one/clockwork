@@ -1,10 +1,13 @@
+import { localizeCopy } from "@/src/i18n/copy";
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 
 import { StatusBadge } from "@clockwork/ui";
 
-import { t } from "@/src/i18n/en";
+import { t as englishTranslator } from "@/src/i18n/en";
 
 import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
@@ -19,7 +22,10 @@ export interface AccountOverviewProjection {
   areaMeta: { users: string; procurement: string };
 }
 
-function accountAreas(meta: AccountOverviewProjection["areaMeta"]) {
+function accountAreas(
+  meta: AccountOverviewProjection["areaMeta"],
+  t = englishTranslator,
+) {
   return [
     {
       title: "Users and access",
@@ -58,20 +64,24 @@ export function AccountOverview({
    */
   actions?: ReactNode;
 }) {
+  const t = use(getTranslations());
+  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Customer workspace</p>
-          <h1>{copy.accountTitle}</h1>
-          <p className={styles.description}>{copy.accountDescription}</p>
+          <p className={styles.eyebrow}>{t("ui.103")}</p>
+          <h1>{localizedcopy.accountTitle}</h1>
+          <p className={styles.description}>
+            {localizedcopy.accountDescription}
+          </p>
         </div>
       </header>
 
       <section className={styles.panel} aria-labelledby="organization-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Organization</p>
+            <p className={styles.eyebrow}>{t("nav.group.organization")}</p>
             <h2 id="organization-title">{projection.accountName}</h2>
             <p>{projection.organizationName}</p>
           </div>
@@ -96,7 +106,7 @@ export function AccountOverview({
         </div>
         {canManageAccount ? (
           <div className={styles.accountGrid}>
-            {accountAreas(projection.areaMeta).map((area) => (
+            {accountAreas(projection.areaMeta, t).map((area) => (
               <Link
                 className={styles.accountCard}
                 href={area.href}
@@ -109,7 +119,9 @@ export function AccountOverview({
             ))}
           </div>
         ) : (
-          <p className={styles.permissionNote}>{copy.accountPermissionNote}</p>
+          <p className={styles.permissionNote}>
+            {localizedcopy.accountPermissionNote}
+          </p>
         )}
       </section>
 

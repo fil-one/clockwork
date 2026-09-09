@@ -1,3 +1,6 @@
+import { localizeCopy } from "@/src/i18n/copy";
+import { getTranslations } from "@/src/i18n/server";
+import { use } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -8,7 +11,6 @@ import {
   formatSurfaceTimestamp,
   type SurfaceFormatting,
 } from "@/src/features/customer-partner/formatting";
-import { t } from "@/src/i18n/en";
 
 import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
@@ -57,7 +59,9 @@ export function PartnerDashboard({
   /** Locale and zone of the partner reading, from the active route session. */
   formatting: SurfaceFormatting;
 }) {
-  const copy = customerPartnerCopy.partner;
+  const t = use(getTranslations());
+  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const copy = localizedcustomerPartnerCopy.partner;
   const isAdmin = currentPartnerRole(roles) === "partner_admin";
   const visibleWork = projection.work.filter(
     (item) => isAdmin || !item.adminOnly,
@@ -176,7 +180,7 @@ export function PartnerDashboard({
                 <th scope="col">Required evidence</th>
                 <th scope="col">Due / exposure</th>
                 <th scope="col">
-                  <span className="sr-only">Action</span>
+                  <span className="sr-only">{t("ui.10")}</span>
                 </th>
               </tr>
             </thead>
@@ -194,7 +198,7 @@ export function PartnerDashboard({
                       href={item.href}
                       data-record-version={item.recordVersion}
                     >
-                      Open record
+                      {t("action.open")}
                     </Link>
                   </td>
                 </tr>
