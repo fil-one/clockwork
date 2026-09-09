@@ -407,7 +407,9 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
       accountId: snapshot.accountId,
       version: quote.rowVersion,
       updatedAt: quote.updatedAt,
-      freshnessMode: "source",
+      // This view is rebuilt from the authoritative demo store on every read.
+      // An unchanged quote is not a lagging projection.
+      freshnessMode: "request",
       data: {
         kind: "quotes",
         artifacts,

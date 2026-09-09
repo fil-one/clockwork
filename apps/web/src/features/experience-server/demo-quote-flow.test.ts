@@ -81,6 +81,23 @@ describe("DemoQuoteFlow", () => {
     expect(replay.replayed).toBe(true);
     expect(replay.result).toEqual(created.result);
 
+    // Returning to an unchanged draft after a pause must still allow issuance.
+    const later = new Date("2026-08-18T13:00:00.000Z");
+    const savedDraft = await new ExplicitDemoProjectionSource(store).find({
+      session,
+      audience: "customer",
+      channel: "quotes",
+      accountId,
+      recordKey: `quote-${quoteId}`,
+      now: later,
+    });
+    expect(savedDraft).toMatchObject({
+      stale: false,
+      version: 1,
+      projectedAt: later.toISOString(),
+      data: { authoritative: { status: "draft" } },
+    });
+
     const prepared = await flow.execute({
       session,
       command: {
