@@ -34,6 +34,7 @@ export const en = {
   "demo.panel.resetting": "Resetting…",
   "demo.panel.reset.failed": "The demo data could not be reset.",
   "demo.panel.browse": "All personas",
+  "app.verifyAuthentication": "Verify identity for sensitive changes",
   "app.signOut": "Sign out",
   "app.skip": "Skip to main content",
   "app.nav.primary": "Primary navigation",

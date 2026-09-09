@@ -95,6 +95,7 @@ function resolveOtlpConfiguration(
       ? tracesEndpoint(genericEndpoint, true)
       : null;
   if (
+    !disabled &&
     endpoint &&
     runtimeEnvironment === "production" &&
     !endpoint.startsWith("https://") &&

@@ -23,10 +23,19 @@ const authMocks = vi.hoisted(() => ({
 
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   getTokenClaims: authMocks.getTokenClaims,
-  getWorkOS: () => ({
-    userManagement: { loadSealedSession: authMocks.loadSealedSession },
-  }),
   withAuth: authMocks.withAuth,
+}));
+
+vi.mock("@workos-inc/node", () => ({
+  WorkOS: class {
+    userManagement = { loadSealedSession: authMocks.loadSealedSession };
+    constructor(_apiKey: string, options: { clientId: string }) {
+      if (options.clientId !== "client_test_clockwork")
+        throw new Error(
+          "Explicit clientId is required for cookie verification",
+        );
+    }
+  },
 }));
 
 vi.mock("@clockwork/db", () => ({

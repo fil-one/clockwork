@@ -16,6 +16,20 @@ const span: TelemetrySpanRecord = {
 };
 
 describe("OTLP HTTP telemetry", () => {
+  it("does not require HTTPS for an explicitly disabled platform exporter", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const sink = new OtlpHttpTelemetrySink({
+      environment: {
+        OTEL_SDK_DISABLED: "true",
+        OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector.internal:4318",
+      },
+      runtimeEnvironment: "production",
+      fetch: fetcher,
+    });
+    await sink.export([span]);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("uses standard vendor-neutral OTLP variables and hides header values from public config", () => {
     const config = readOtlpConfiguration(
       {

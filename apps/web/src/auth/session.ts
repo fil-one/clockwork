@@ -33,11 +33,11 @@ import {
 import { findMfaReceipt, resolveWorkosIdentity } from "@clockwork/db";
 import {
   getTokenClaims,
-  getWorkOS,
   type UserInfo,
   withAuth,
 } from "@workos-inc/authkit-nextjs";
 import { cookies, headers } from "next/headers";
+import { WorkOS } from "@workos-inc/node";
 
 import {
   demoAccessConfiguration,
@@ -229,6 +229,18 @@ function releaseProofRequestOrigin(
     : undefined;
 }
 
+let sealedSessionClient: WorkOS | undefined;
+function getSealedSessionClient(): WorkOS {
+  const apiKey = process.env.WORKOS_API_KEY;
+  const clientId = process.env.WORKOS_CLIENT_ID;
+  if (!apiKey || !clientId)
+    throw new Error("WorkOS authentication is required");
+  // AuthKit constructs its own client without an explicit clientId. Its token
+  // refresh calls pass that ID per request, but the read-only cookie verifier
+  // needs it on the client to locate the application's JWKS in bundled builds.
+  return (sealedSessionClient ??= new WorkOS(apiKey, { clientId }));
+}
+
 /**
  * Actions skip AuthKit's proxy to preserve their body. Authenticate their
  * sealed cookie without rotating it: Next renders the action response with
@@ -245,7 +257,7 @@ export async function getVerifiedWorkosSession(): Promise<UserInfo> {
     const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD;
     if (!sessionData || !cookiePassword)
       throw new Error("WorkOS authentication is required");
-    const resolved = await getWorkOS()
+    const resolved = await getSealedSessionClient()
       .userManagement.loadSealedSession({
         sessionData,
         cookiePassword,
