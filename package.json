@@ -80,8 +80,6 @@
   "pnpm": {
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-w3rx-r6r6-pgpr",
-        "GHSA-5p2g-fcmc-qvqq",
         "GHSA-jmr9-qjv8-65gv",
         "GHSA-7pqw-9j4j-h8q3"
       ]
@@ -112,6 +110,7 @@
       "toml@<4.2.0": "4.2.0",
       "js-yaml@<4.3.2": "4.3.2",
       "sharp@<0.35.4": "0.35.4",
+      "image-size@<2.0.4": "2.0.4",
       "svgo@>=4 <4.1.0": "4.1.0"
     },
     "patchedDependencies": {

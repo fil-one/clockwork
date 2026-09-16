@@ -140,18 +140,18 @@ named.
   dependency chains are updated; the accepted audit has no unexplained advisory
   or retry-masked provider/build failure. This marker had regressed and was
   re-earned in `0f68e36`: the audit found 10 live advisories, 6 high. Upgrading
-  `hono` to 4.12.34 and overriding `js-yaml` and `nanoid` closes 8. The
-  remaining build-path exceptions are the 2 `image-size` advisories, where every
-  published version is vulnerable and npm reports the patched range as `<0.0.0`,
-  reached only through Storybook build tooling, plus `extract-zip` through the
-  pinned Netlify CLI's local zipped-function emulator. The deployment workflow
-  does not accept or extract untrusted function archives, and npm likewise
-  reports no patched `extract-zip` release. They are accepted in
-  `pnpm.auditConfig.ignoreGhsas` with a written reason and bound by a test that
-  fails if the manifest silences an advisory with no reason, if a new high
-  advisory appears, or if either package publishes above the version that
-  justified the acceptance. A dependency marker is a claim about a moving
-  external set, so it is true as of the last run and not durably.
+  `hono` to 4.12.34 and overriding `js-yaml` and `nanoid` closes 8. The 2
+  `image-size` advisories closed when the project (now on Codeberg) shipped the
+  fixes in 2.0.3; GitHub's advisory data still reports no patched range, so
+  `image-size` is overridden to 2.0.4 and pinned by the test. The remaining
+  build-path exception is `extract-zip` through the pinned Netlify CLI's local
+  zipped-function emulator. The deployment workflow does not accept or extract
+  untrusted function archives, and npm reports no patched `extract-zip` release.
+  It is accepted in `pnpm.auditConfig.ignoreGhsas` with a written reason and
+  bound by a test that fails if the manifest silences an advisory with no
+  reason, if a new high advisory appears, or if the package publishes above the
+  version that justified the acceptance. A dependency marker is a claim about a
+  moving external set, so it is true as of the last run and not durably.
 - **P0-15 — Release-gate closure `[COMPLETE]`:** all repository-controlled
   frozen-install, static, database, unit, integration, provider-replay,
   document, migration, telemetry-redaction, security, build, browser, visual,

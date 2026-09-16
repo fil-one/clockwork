@@ -166,8 +166,8 @@ something that has actually broken here:
    2. Confirm the record says **Annual renewal · committed capacity** and
       **Issued · awaiting acceptance**. Choose **Review and accept order**. The
       destination must be `/orders/accept?quote=quote-direct-renewal-v2`, and
-      its promise chain must name **Accepted quote Q-2026-0312 · version 2**;
-      the route key and projection-row version are not the commercial quote
+      its promise chain must name **Issued quote Q-2026-0312 · version 2**; the
+      route key and projection-row version are not the commercial quote
       identity.
    3. Enter **Purchase order** `PO-DEMO-0312`, **Service start** `2027-01-01`,
       **Service end** `2027-12-31`, and **Authority title**
@@ -178,8 +178,8 @@ something that has actually broken here:
       PO and service term. Then choose **Create the order and commitment**.
    5. Confirm **Order created. Its commitment and provisioning state are now
       authoritative.**, follow **Open the created order**, and verify the
-      resulting record says **Committed capacity · PO-DEMO-0312** and **Active ·
-      accepted in this session**. Reopen `/quotes/quote-direct-renewal-v2`: it
+      resulting record says **Committed capacity · PO-DEMO-0312** and **Accepted
+      · awaiting provisioning**. Reopen `/quotes/quote-direct-renewal-v2`: it
       must now say **Accepted · order created** and must not offer **Review and
       accept order** again.
    6. Use **Restore demo data** and confirm **Reset demo**. The created-order
