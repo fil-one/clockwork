@@ -20,14 +20,6 @@ const acceptedHighAdvisories = new Map([
     "extract-zip arbitrary writes via symlink entries: no fixed published release (<=2.0.1). Same build-only Netlify emulator dependency as GHSA-jmr9-qjv8-65gv; the deployment builds trusted repository sources and never extracts untrusted function archives.",
   ],
   [
-    "GHSA-w3rx-r6r6-pgpr",
-    "image-size ICNS infinite loop: every published version (<=2.0.2) is vulnerable and npm reports the patched range as `<0.0.0`, so no upgrade or override exists. Reached only through apps/web > @storybook/nextjs-vite > vite-plugin-storybook-nextjs, which is Storybook build tooling and never parses untrusted images at runtime.",
-  ],
-  [
-    "GHSA-5p2g-fcmc-qvqq",
-    "image-size JXL/HEIF infinite loop: same package, same absent patched range, same build-only reach.",
-  ],
-  [
     "GHSA-jmr9-qjv8-65gv",
     "extract-zip symlink traversal: every published version (<=2.0.1) is vulnerable and npm reports the patched range as `<0.0.0`, so no upgrade exists. Reached through the pinned netlify-cli > @netlify/dev > @netlify/functions-dev local zipped-function emulator; Clockwork's deploy workflow builds and publishes the repository and does not extract untrusted function archives.",
   ],
@@ -39,6 +31,10 @@ const acceptedHighAdvisories = new Map([
 const pinnedTransitives = [
   { name: "js-yaml", minimum: "4.3.2", override: "js-yaml@<4.3.2" },
   { name: "nanoid", minimum: "3.3.18", override: "nanoid@<3.3.18" },
+  // image-size fixed its ICNS and JXL/HEIF infinite loops in 2.0.3 (Codeberg,
+  // where the project moved); GitHub's advisory data still reports no patched
+  // range, so pnpm audit needs the override to see the fix.
+  { name: "image-size", minimum: "2.0.4", override: "image-size@<2.0.4" },
 ];
 
 // Direct catalog dependency, upgraded rather than overridden.
@@ -48,10 +44,7 @@ const catalogFloors = [{ name: "hono", minimum: "4.13.5" }];
 // release at all. That is a fact about the registry, not about this repository,
 // so it is checked against the registry rather than asserted once and trusted:
 // the day either package publishes anything above this, the acceptance expires.
-const unpatchedPackages = [
-  { name: "image-size", highestPublished: "2.0.2" },
-  { name: "extract-zip", highestPublished: "2.0.1" },
-];
+const unpatchedPackages = [{ name: "extract-zip", highestPublished: "2.0.1" }];
 
 function compareSemver(left, right) {
   const parse = (value) => value.split(".").map((part) => Number(part));

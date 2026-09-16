@@ -99,6 +99,7 @@ overrides:
   toml@<4.2.0: 4.2.0
   js-yaml@<4.3.2: 4.3.2
   sharp@<0.35.4: 0.35.4
+  image-size@<2.0.4: 2.0.4
   svgo@>=4 <4.1.0: 4.1.0
 
 patchedDependencies:
@@ -5571,9 +5572,9 @@ packages:
   image-meta@0.2.2:
     resolution: {integrity: sha512-3MOLanc3sb3LNGWQl1RlQlNWURE5g32aUphrDyFeCsxBTk08iE3VNe4CwsUZ0Qs1X+EfX0+r29Sxdpza4B+yRA==}
 
-  image-size@2.0.2:
-    resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
-    engines: {node: '>=16.x'}
+  image-size@2.0.4:
+    resolution: {integrity: sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==}
+    engines: {node: '>=18'}
     hasBin: true
 
   import-fresh@3.3.1:
@@ -9910,7 +9911,7 @@ snapshots:
       dot-prop: 9.0.0
       empathic: 2.0.1
       env-paths: 3.0.0
-      image-size: 2.0.2
+      image-size: 2.0.4
       js-image-generator: 1.0.4
       parse-gitignore: 2.0.0
       semver: 7.8.5
@@ -14091,7 +14092,7 @@ snapshots:
 
   image-meta@0.2.2: {}
 
-  image-size@2.0.2: {}
+  image-size@2.0.4: {}
 
   import-fresh@3.3.1:
     dependencies:
@@ -17117,7 +17118,7 @@ snapshots:
   vite-plugin-storybook-nextjs@3.3.1(next@16.3.3(patch_hash=cca58ff6d331ba5331f5e76725c359ab8aaca8bce299455dff529bd60b342a2a)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))(typescript@5.9.3)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)(yaml@2.9.0)):
     dependencies:
       '@next/env': 16.0.0
-      image-size: 2.0.2
+      image-size: 2.0.4
       magic-string: 0.30.21
       module-alias: 2.3.4
       next: 16.3.3(patch_hash=cca58ff6d331ba5331f5e76725c359ab8aaca8bce299455dff529bd60b342a2a)(@opentelemetry/api@1.9.1)(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

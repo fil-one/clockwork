@@ -341,8 +341,12 @@ test.describe("direct buyer flagship journey", () => {
           name: "Review resulting commitment",
         }),
       ).toBeVisible();
+      // The promise chain names the quote by the state it is actually in at
+      // this point: issued, and not yet accepted. `f1050bf` ("Correct accepted
+      // quote and order lifecycle presentation", #55) renamed the label from
+      // "Accepted quote" for exactly that reason.
       await expect(
-        page.getByText("Accepted quote Q-2026-0312 · version 2"),
+        page.getByText("Issued quote Q-2026-0312 · version 2"),
       ).toBeVisible();
 
       await page
@@ -406,10 +410,14 @@ test.describe("direct buyer flagship journey", () => {
           name: /Committed capacity · PO-DEMO-0312/u,
         }),
       ).toBeVisible();
+      // A just-accepted order is not yet provisioned, so it does not claim to
+      // be active. `2f4f640` ("Complete demo quote revisions and partner
+      // document issuance", #54) replaced "Active · accepted in this session"
+      // with the state the record is actually in.
       await expect(
         page
           .locator("main#main-content > header")
-          .getByText("Active · accepted in this session", { exact: true }),
+          .getByText("Accepted · awaiting provisioning", { exact: true }),
       ).toBeVisible();
 
       await page.goto("/quotes/quote-direct-renewal-v2");
@@ -873,8 +881,14 @@ test.describe("playable product-demo workflows", () => {
       await page.getByRole("button", { name: "Continue" }).click();
       await page.getByRole("checkbox").check();
       await page.getByRole("button", { name: "Create priced draft" }).click();
+      // The builder's own success status, plus the link it can only offer once
+      // the server returned a priced draft id. `2d842b2` moved this copy into
+      // `partner.quote.new.success` and `c8683e3` (#51) added the link.
       await expect(
-        page.getByText(/Draft created from server pricing/),
+        page.getByRole("status").getByText(/The priced draft was created/),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Open the created draft" }),
       ).toBeVisible();
       await page.goto("/partner/quotes");
       await expect(
