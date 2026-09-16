@@ -83,13 +83,16 @@ export default defineConfig({
    * only on CI, so a local run still reports a stuck expectation in five
    * seconds.
    *
-   * Deliberately not paired with a raised whole-test budget here. Over five
-   * runs each, adding `timeout: 120_000` turned `demo.spec.ts` "demo reset"
-   * from green into three failures: that test clicks the demo panel about a
-   * second after navigating to it, and a busier machine loses the race against
-   * hydration, so the click lands on an unhydrated button and the panel never
-   * opens. The two projects that do need a longer test budget set it
-   * themselves below.
+   * The whole-test budget is raised per project rather than here, because only
+   * two projects need it; `demo.spec.ts` sets its own on every test that does.
+   *
+   * A longer budget also makes the machine busier, which is enough to lose a
+   * race a shorter one hid: adding `timeout: 120_000` while measuring turned
+   * `demo.spec.ts` "demo reset" into three failures in five runs, because it
+   * clicked the demo panel before the shell had hydrated. That spec now waits
+   * on the shell's `data-hydrated` marker, and the same five runs are green,
+   * but it is worth knowing that widening a budget here can surface races
+   * elsewhere rather than only papering over slowness.
    */
   ...(process.env.CI ? { expect: { timeout: 20_000 } } : {}),
   ...(workerCount ? { workers: workerCount } : {}),
