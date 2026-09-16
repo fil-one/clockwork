@@ -231,6 +231,12 @@ variable "rds_proxy" {
   default     = true
 }
 
+variable "db_provisioner" {
+  description = "run the Lambda that creates the app database and its IAM user at apply time. Off for an app whose migration task creates the database itself."
+  type        = bool
+  default     = true
+}
+
 variable "db_bastion" {
   description = "create the SSH bastion host beside the database"
   type        = bool

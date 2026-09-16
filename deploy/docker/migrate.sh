@@ -71,6 +71,16 @@ process.stdout.write(
 ')"
 export DIRECT_DATABASE_URL
 
+# The database is created here rather than by an apply-time Lambda: this task
+# already holds the master credentials, and one fewer thing lives in the
+# private subnets. The maintenance database is the connection target until
+# the application database exists.
+MAINTENANCE_DATABASE_URL="${DIRECT_DATABASE_URL%/*}/postgres${DIRECT_DATABASE_URL#*"/${PGDATABASE}"}"
+if [ "$(psql "$MAINTENANCE_DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "select 1 from pg_database where datname = '${PGDATABASE}'")" != "1" ]; then
+  echo "migrate: creating database ${PGDATABASE}"
+  psql "$MAINTENANCE_DATABASE_URL" -v ON_ERROR_STOP=1 -c "create database \"${PGDATABASE}\""
+fi
+
 echo "migrate: preparing ${PGDATABASE} at ${PGHOST}"
 psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -f /app/deploy/docker/rds-prelude.sql
 

@@ -40,7 +40,7 @@ locals {
   is_production = terraform.workspace == "prod"
   # must match the backend block in ../shared/main.tf
   shared_state_key = "filone/clockwork/shared.tfstate"
-  # the database the provisioner creates and the migration task migrates
+  # the database the migration task creates and migrates
   db_database                     = "${terraform.workspace}_${var.app}"
   authorization_context_secret_id = var.authorization_context_secret_id != "" ? var.authorization_context_secret_id : "${terraform.workspace}-initial"
 
@@ -123,6 +123,9 @@ module "app" {
   # the app logs in with passwords, which the proxy refuses; see storoku/README.md
   rds_proxy  = false
   db_bastion = false
+  # the migration task creates the database itself, so neither the provisioner
+  # Lambda nor the Secrets Manager endpoint it would need exists
+  db_provisioner = false
 
   # every entry becomes a Secrets Manager secret injected as an env var of the same name
   # nonsensitive() on the test alone: a sensitive condition marks the whole map

@@ -12,4 +12,6 @@ module "vpc" {
   app         = var.app
   environment = var.environment
   create_nat  = !var.public_tasks
+  # the endpoint exists for the provisioner Lambda, which is the only private-subnet workload
+  secretsmanager_endpoint = var.db_provisioner
 }

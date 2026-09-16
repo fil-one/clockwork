@@ -65,10 +65,13 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
    Upstream admits the private and database CIDRs only, which is correct for
    private-subnet tasks and leaves public-subnet tasks refused.
 10. **Secrets Manager endpoint without a NAT gateway.** `vpc/main.tf` adds an
-    interface endpoint for Secrets Manager when `create_nat = false`, and always
-    creates `endpoint_sg`. The database provisioner Lambda runs in the private
-    subnets and reads the RDS master secret; with no NAT and no endpoint it
-    hangs until Lambda kills it.
+    interface endpoint for Secrets Manager when `create_nat = false` and
+    `secretsmanager_endpoint` (new `vpc/variables.tf` input, default `true`) is
+    set, and always creates `endpoint_sg`. The database provisioner Lambda runs
+    in the private subnets and reads the RDS master secret; with no NAT and no
+    endpoint it hangs until Lambda kills it. Clockwork runs no provisioner
+    (patch 17), so `app/vpc.tf` passes `db_provisioner` through and the endpoint
+    is not created.
 11. **Fargate architecture.** `deployment/variables.tf` and `app/variables.tf`
     gain `cpu_architecture` (default `ARM64`, the upstream value);
     `deployment/ecs_task.tf` uses it. Clockwork keeps the default and builds
@@ -98,3 +101,8 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     `code_deploy.sh` writes the deployment id it created to
     `.last-deployment-id` in the root directory, so `wait-deploy.sh` waits on
     that deployment rather than on whatever `list-deployments` returns first.
+17. **Optional provisioner.** `app/variables.tf` gains `db_provisioner` (default
+    `true`); `app/postgres.tf` creates the provisioner Lambda only when it is
+    set. Clockwork's migration task runs as the master user and creates the
+    database itself (`deploy/docker/migrate.sh`), which leaves nothing in the
+    private subnets that needs Secrets Manager.

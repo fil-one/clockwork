@@ -269,7 +269,7 @@ resource "aws_vpc_endpoint" "sns" {
 // Manager, and the database provisioner Lambda runs there and reads the
 // master secret. One interface endpoint is a fraction of a NAT gateway.
 resource "aws_vpc_endpoint" "secretsmanager" {
-  count               = var.create_nat ? 0 : 1
+  count               = !var.create_nat && var.secretsmanager_endpoint ? 1 : 0
   vpc_id              = aws_vpc.vpc.id
   service_name        = "com.amazonaws.${data.aws_region.current.region}.secretsmanager"
   vpc_endpoint_type   = "Interface"

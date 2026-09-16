@@ -34,8 +34,7 @@ The app stack (`app/`, workspace `staging` or `prod`):
 
 - a VPC across three availability zones. Tasks run in the public subnets with a
   public IP and take inbound traffic only from the load balancer's security
-  group, so there are no NAT gateways; one interface endpoint lets the database
-  provisioner reach Secrets Manager from the private subnets
+  group, so there are no NAT gateways and no interface endpoints
 - an ALB with an ACM certificate; the hostname's A record aliases it
 - an ECS cluster and service on Fargate (arm64, Graviton), deployed blue/green
   by CodeDeploy with rollback on failure. Staging runs 0.5 vCPU / 1 GB, one to
@@ -145,9 +144,9 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
    make smoke
    ```
 
-   The first `apply` creates the database and the internet route the migration
-   task needs, so `migrate` follows it here and precedes it on every later
-   deploy. From then on the pipeline owns the stage.
+   The first `apply` creates the internet route the migration task needs, so
+   `migrate` follows it here and precedes it on every later deploy. From then on
+   the pipeline owns the stage.
 
 ## The pipeline
 
@@ -189,12 +188,12 @@ non-zero exit (`run-migrate.sh`, which also prints the task's log). The task
 runs `deploy/docker/migrate.sh` as the RDS master user, whose credentials ECS
 injects from the master secret:
 
-1. applies `deploy/docker/rds-prelude.sql` to the database the provisioner
-   created during `apply`: the `extensions` schema Supabase ships and RDS does
-   not, and empty `anon`, `authenticated` and `service_role` roles so the
-   migrations' `revoke` statements have something to revoke from. The migrations
-   also grant to and assign ownership to `postgres`, which is the master user
-   name the RDS module sets
+1. creates the database if it does not exist, then applies
+   `deploy/docker/rds-prelude.sql`: the `extensions` schema Supabase ships and
+   RDS does not, and empty `anon`, `authenticated` and `service_role` roles so
+   the migrations' `revoke` statements have something to revoke from. The
+   migrations also grant to and assign ownership to `postgres`, which is the
+   master user name the RDS module sets
 2. `supabase db push` applies `supabase/migrations` in order, tracked in
    `supabase_migrations.schema_migrations`, with the same statement semantics
    the migrations were written against
@@ -239,16 +238,15 @@ when it is first needed.
 
 At `us-east-2` list prices, before data transfer:
 
-| Item                                          | staging | production |
-| --------------------------------------------- | ------- | ---------- |
-| Application load balancer                     | $20     | $20        |
-| Fargate, always on, one task                  | $14     | $29        |
-| RDS PostgreSQL and storage                    | $14     | $211       |
-| Secrets Manager interface endpoint, three AZs | $22     | $22        |
-| Secrets, KMS keys, logs                       | $10     | $10        |
+| Item                         | staging | production |
+| ---------------------------- | ------- | ---------- |
+| Application load balancer    | $20     | $20        |
+| Fargate, always on, one task | $14     | $29        |
+| RDS PostgreSQL and storage   | $14     | $211       |
+| Secrets, KMS keys, logs      | $10     | $10        |
 
-Roughly $80 for staging and $290 for production. The interface endpoint replaces
-three NAT gateways at about $100.
+Roughly $60 for staging and $270 for production. Three NAT gateways would add
+about $100 to each.
 
 ## Still to decide
 

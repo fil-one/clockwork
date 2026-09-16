@@ -23,7 +23,7 @@ module "databases" {
 }
 
 module "postgres-provisioner" {
-  count       = var.create_db ? 1 : 0
+  count       = var.create_db && var.db_provisioner ? 1 : 0
   source      = "../postgres-provisioner"
   app         = var.app
   environment = var.environment
