@@ -71,9 +71,9 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     hangs until Lambda kills it.
 11. **Fargate architecture.** `deployment/variables.tf` and `app/variables.tf`
     gain `cpu_architecture` (default `ARM64`, the upstream value);
-    `deployment/ecs_task.tf` uses it. Clockwork builds `linux/amd64` images
-    because the fil-one organization's GitHub plan has no arm64 hosted runners
-    for private repositories.
+    `deployment/ecs_task.tf` uses it. Clockwork keeps the default and builds
+    `linux/arm64` images; the variable exists so the architecture can follow the
+    runner fleet without a module edit.
 12. **Hostname override.** `app/variables.tf` gains `hostname` (default `""`);
     `app/locals.tf` uses it for the certificate, the Route53 record and
     `PUBLIC_URL` when set. Staging lives in its own AWS account with its own

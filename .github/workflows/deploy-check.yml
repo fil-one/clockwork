@@ -50,7 +50,7 @@ jobs:
           deploy/docker/*.sh
 
   image:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
         working-directory: deploy
       - name: Build the image
         run:
-          docker buildx build --platform linux/amd64 -t clockwork:check --load .
+          docker buildx build --platform linux/arm64 -t clockwork:check --load .
       - name: Check the migration tooling is in the image
         run:
           docker run --rm --entrypoint sh clockwork:check -c 'psql --version &&

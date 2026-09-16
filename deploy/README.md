@@ -37,9 +37,9 @@ The app stack (`app/`, workspace `staging` or `prod`):
   group, so there are no NAT gateways; one interface endpoint lets the database
   provisioner reach Secrets Manager from the private subnets
 - an ALB with an ACM certificate; the hostname's A record aliases it
-- an ECS cluster and service on Fargate (x86_64), deployed blue/green by
-  CodeDeploy with rollback on failure. Staging runs 0.5 vCPU / 1 GB, one to two
-  tasks; production 1 vCPU / 2 GB, one to four
+- an ECS cluster and service on Fargate (arm64, Graviton), deployed blue/green
+  by CodeDeploy with rollback on failure. Staging runs 0.5 vCPU / 1 GB, one to
+  two tasks; production 1 vCPU / 2 GB, one to four
 - RDS PostgreSQL 17: staging `db.t4g.micro`, single-AZ, 20 GB; production
   `db.t4g.large`, multi-AZ, 100 GB. Encrypted, TLS required, seven daily
   backups, a final snapshot on destroy, deletion protection on, the master
@@ -131,9 +131,9 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
    (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID`, `WORKOS_COOKIE_PASSWORD`,
    `WORKOS_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
    `TRIGGER_SECRET_KEY`). The failure notification needs one repository secret,
-   `SLACK_BOT_TOKEN`, the same bot token fil-one/fil-one uses. Deployment branch
-   rules and required reviewers on an environment need a paid GitHub plan; the
-   workflow itself deploys nothing but `main`.
+   `SLACK_BOT_TOKEN`, the same bot token fil-one/fil-one uses. Restrict each
+   environment's deployment branches to `main`; the workflow refuses other
+   branches too. Required reviewers on `production` are optional.
 
 7. Deploy the stage by hand the first time:
 
@@ -242,12 +242,12 @@ At `us-east-2` list prices, before data transfer:
 | Item                                          | staging | production |
 | --------------------------------------------- | ------- | ---------- |
 | Application load balancer                     | $20     | $20        |
-| Fargate, always on, one task                  | $18     | $36        |
+| Fargate, always on, one task                  | $14     | $29        |
 | RDS PostgreSQL and storage                    | $14     | $211       |
 | Secrets Manager interface endpoint, three AZs | $22     | $22        |
 | Secrets, KMS keys, logs                       | $10     | $10        |
 
-Roughly $85 for staging and $300 for production. The interface endpoint replaces
+Roughly $80 for staging and $290 for production. The interface endpoint replaces
 three NAT gateways at about $100.
 
 ## Still to decide
@@ -278,7 +278,3 @@ three NAT gateways at about $100.
   `fil.org`; confirm the list.
 - **Deploy role scope.** The deploy role carries AdministratorAccess, as
   FilOne's own deploy roles do. Narrowing it is a follow-up.
-- **Architecture.** Images are `linux/amd64` because the organization's GitHub
-  plan has no arm64 hosted runners for private repositories. Moving to Graviton
-  is `cpu_architecture = "ARM64"` in `app/variables.tf` and
-  `PLATFORM=linux/arm64` in the Makefile.

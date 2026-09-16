@@ -49,7 +49,7 @@ variable "shared_state_bucket" {
 variable "cpu_architecture" {
   description = "Fargate architecture; must match the image the Makefile builds (PLATFORM)"
   type        = string
-  default     = "X86_64"
+  default     = "ARM64"
 }
 
 variable "authorization_context_secret_id" {

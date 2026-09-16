@@ -28,8 +28,8 @@ TF_STATE_BUCKET ?= filone-terraform-state-$(TF_VAR_allowed_account_id)
 export TF_VAR_shared_state_bucket := $(TF_STATE_BUCKET)
 BACKEND_CONFIG = -backend-config="bucket=$(TF_STATE_BUCKET)" -backend-config="region=$(TF_VAR_region)"
 
-# Must match cpu_architecture in app/variables.tf (X86_64).
-PLATFORM ?= linux/amd64
+# Must match cpu_architecture in app/variables.tf (ARM64).
+PLATFORM ?= linux/arm64
 
 ECR_URI = $(TF_VAR_allowed_account_id).dkr.ecr.$(TF_VAR_region).amazonaws.com
 ECR_REPO = $(ECR_URI)/$(TF_VAR_app)-ecr

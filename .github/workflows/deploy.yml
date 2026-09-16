@@ -5,8 +5,8 @@ name: Deploy
 # deploys production the same way. A failure anywhere stops the pipeline
 # before production and posts to #filone-alerts. workflow_dispatch re-runs
 # the pipeline for the head of main by hand; a dispatch from any other
-# branch is refused here rather than by an environment rule, which the
-# organization's GitHub plan does not offer for private repositories.
+# branch is refused here as well as by the environments' deployment branch
+# rules.
 on:
   workflow_run:
     workflows: [CI]
