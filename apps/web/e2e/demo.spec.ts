@@ -277,7 +277,13 @@ test.describe("demo landing", () => {
     // Mara Voss is the direct buyer, whose journey has two steps, so the list
     // has both a current step and a later one.
     await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-    await expect(page.locator(".experience-shell")).toBeVisible();
+    // The shell is server-rendered, so its being visible says nothing about
+    // whether the panel's toggle has a click handler yet. Wait for the shell's
+    // own hydration marker before clicking it.
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
 
     await page.getByRole("button", { name: "Open demo controls" }).click();
     const panel = page.getByRole("complementary", { name: "Demo controls" });
@@ -430,6 +436,13 @@ test.describe("direct buyer flagship journey", () => {
         page.getByRole("link", { name: "Review and accept order" }),
       ).toHaveCount(0);
 
+      // Everything asserted since the `goto` above is server-rendered markup,
+      // which the toggle's click handler does not wait for. The shell's
+      // hydration marker is the signal that it does.
+      await expect(page.locator(".experience-shell")).toHaveAttribute(
+        "data-hydrated",
+        "true",
+      );
       await page.getByRole("button", { name: "Open demo controls" }).click();
       await page
         .getByRole("complementary", { name: "Demo controls" })
@@ -1043,7 +1056,15 @@ test.describe("demo reset", () => {
       .getByRole("link", { name: /^Start as / })
       .first()
       .click();
-    await expect(page.locator(".experience-shell")).toBeVisible();
+    // A visible shell is server-rendered markup: the toggle below is in the
+    // HTML well before React attaches its click handler, and a click that
+    // lands in that window is swallowed, leaving the panel closed. The shell
+    // sets `data-hydrated` from a mount effect, so it is the signal that the
+    // handler exists.
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
 
     await page.evaluate(() =>
       window.localStorage.setItem("clockwork-demo:probe", "dirty"),
