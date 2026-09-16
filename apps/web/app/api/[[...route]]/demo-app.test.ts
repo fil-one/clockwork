@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
 
@@ -91,6 +99,19 @@ const orderProofHeaders = {
   cookie: `clockwork-csrf=${csrfToken}`,
   "x-csrf-token": csrfToken,
 };
+
+/**
+ * The order lane is the one destination that is run rather than simulated, and
+ * `demo-app.ts` loads it on demand -- so the first order command pays for a
+ * module graph covering the domain, the document renderer and the demo state
+ * store. That is about a second on an idle machine and many times that on a
+ * contended CI runner, and charged to whichever test routes an order first it
+ * is the whole of a 5s budget. Loading it here leaves each test's timer
+ * measuring the routing decision it asserts on.
+ */
+beforeAll(async () => {
+  await import("@/src/features/experience-server/demo-order-command");
+}, 60_000);
 
 beforeEach(() => {
   vi.clearAllMocks();

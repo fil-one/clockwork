@@ -125,6 +125,13 @@ describe("renderer failures keep their cause", () => {
     });
   });
 
+  /**
+   * The one test here that renders for real: the mock is handed back the
+   * module's own `renderToBuffer`, so the time is a full @react-pdf/renderer
+   * pass over the fixture -- about a fifth of a second unloaded, and enough
+   * more on a CI runner rendering in parallel to overrun the 5s default. The
+   * budget below matches the package's other real-render suites.
+   */
   it("logs nothing, and still produces a PDF, when the render succeeds", async () => {
     const original = mocks.original.current;
     if (!original) throw new Error("The renderer module was not loaded.");
@@ -140,5 +147,5 @@ describe("renderer failures keep their cause", () => {
       "%PDF-",
     );
     expect(logged).toHaveLength(0);
-  });
+  }, 30_000);
 });

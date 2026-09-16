@@ -277,7 +277,13 @@ test.describe("demo landing", () => {
     // Mara Voss is the direct buyer, whose journey has two steps, so the list
     // has both a current step and a later one.
     await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-    await expect(page.locator(".experience-shell")).toBeVisible();
+    // The shell is server-rendered, so its being visible says nothing about
+    // whether the panel's toggle has a click handler yet. Wait for the shell's
+    // own hydration marker before clicking it.
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
 
     await page.getByRole("button", { name: "Open demo controls" }).click();
     const panel = page.getByRole("complementary", { name: "Demo controls" });
@@ -341,8 +347,12 @@ test.describe("direct buyer flagship journey", () => {
           name: "Review resulting commitment",
         }),
       ).toBeVisible();
+      // The promise chain names the quote by the state it is actually in at
+      // this point: issued, and not yet accepted. `f1050bf` ("Correct accepted
+      // quote and order lifecycle presentation", #55) renamed the label from
+      // "Accepted quote" for exactly that reason.
       await expect(
-        page.getByText("Accepted quote Q-2026-0312 · version 2"),
+        page.getByText("Issued quote Q-2026-0312 · version 2"),
       ).toBeVisible();
 
       await page
@@ -406,10 +416,14 @@ test.describe("direct buyer flagship journey", () => {
           name: /Committed capacity · PO-DEMO-0312/u,
         }),
       ).toBeVisible();
+      // A just-accepted order is not yet provisioned, so it does not claim to
+      // be active. `2f4f640` ("Complete demo quote revisions and partner
+      // document issuance", #54) replaced "Active · accepted in this session"
+      // with the state the record is actually in.
       await expect(
         page
           .locator("main#main-content > header")
-          .getByText("Active · accepted in this session", { exact: true }),
+          .getByText("Accepted · awaiting provisioning", { exact: true }),
       ).toBeVisible();
 
       await page.goto("/quotes/quote-direct-renewal-v2");
@@ -422,6 +436,13 @@ test.describe("direct buyer flagship journey", () => {
         page.getByRole("link", { name: "Review and accept order" }),
       ).toHaveCount(0);
 
+      // Everything asserted since the `goto` above is server-rendered markup,
+      // which the toggle's click handler does not wait for. The shell's
+      // hydration marker is the signal that it does.
+      await expect(page.locator(".experience-shell")).toHaveAttribute(
+        "data-hydrated",
+        "true",
+      );
       await page.getByRole("button", { name: "Open demo controls" }).click();
       await page
         .getByRole("complementary", { name: "Demo controls" })
@@ -873,8 +894,14 @@ test.describe("playable product-demo workflows", () => {
       await page.getByRole("button", { name: "Continue" }).click();
       await page.getByRole("checkbox").check();
       await page.getByRole("button", { name: "Create priced draft" }).click();
+      // The builder's own success status, plus the link it can only offer once
+      // the server returned a priced draft id. `2d842b2` moved this copy into
+      // `partner.quote.new.success` and `c8683e3` (#51) added the link.
       await expect(
-        page.getByText(/Draft created from server pricing/),
+        page.getByRole("status").getByText(/The priced draft was created/),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Open the created draft" }),
       ).toBeVisible();
       await page.goto("/partner/quotes");
       await expect(
@@ -1029,7 +1056,15 @@ test.describe("demo reset", () => {
       .getByRole("link", { name: /^Start as / })
       .first()
       .click();
-    await expect(page.locator(".experience-shell")).toBeVisible();
+    // A visible shell is server-rendered markup: the toggle below is in the
+    // HTML well before React attaches its click handler, and a click that
+    // lands in that window is swallowed, leaving the panel closed. The shell
+    // sets `data-hydrated` from a mount effect, so it is the signal that the
+    // handler exists.
+    await expect(page.locator(".experience-shell")).toHaveAttribute(
+      "data-hydrated",
+      "true",
+    );
 
     await page.evaluate(() =>
       window.localStorage.setItem("clockwork-demo:probe", "dirty"),

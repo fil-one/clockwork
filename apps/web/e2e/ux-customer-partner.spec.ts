@@ -139,7 +139,7 @@ test("owner creates a priced draft from the session account", async ({
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(
-    page.getByRole("heading", { level: 3, name: "Draft boundary" }),
+    page.getByRole("heading", { level: 3, name: "Review your draft" }),
   ).toBeVisible();
   const create = page.getByRole("button", { name: "Create priced draft" });
   await create.click();
@@ -311,15 +311,20 @@ test("owner reviews complete persisted order commitments before acceptance", asy
       name: "Review resulting commitment",
     }),
   ).toBeVisible();
-  // Both authoritative inputs keep their reference and version attached.
+  // Both authoritative inputs keep their reference and version attached. The
+  // quote is named by the state it is in while this page is open: issued, and
+  // awaiting the acceptance this form is about to record. `f1050bf` (#55)
+  // renamed the promise-chain label and `2f4f640` (#54) the review summary.
   await expect(
-    page.getByText("Accepted quote Q-2026-0184-v3 · version 3"),
+    page.getByText("Issued quote Q-2026-0184-v3 · version 3"),
   ).toBeVisible();
   const review = page.getByRole("complementary", {
     name: "Review before accepting",
   });
   await expect(
-    review.getByText("Enterprise committed capacity · version 3 · accepted"),
+    review.getByText(
+      "Enterprise committed capacity · version 3 · issued; awaiting acceptance",
+    ),
   ).toBeVisible();
   await expect(
     review.getByText("Cloud Service Agreement · version 3.2 · active"),
