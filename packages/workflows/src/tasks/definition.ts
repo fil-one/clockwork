@@ -42,8 +42,15 @@ export interface TaskDefinition<TPayload = unknown> {
   /** A delivery older than this is dropped unrun; for tasks a later tick supersedes. */
   readonly deliveryTtlMs?: number;
   readonly retry: TaskRetryPolicy;
-  readonly parse: (raw: unknown) => TPayload;
-  readonly run: (payload: TPayload, ctx: TaskContext) => Promise<unknown>;
+  /**
+   * Method syntax, not a property, on purpose: a registry holding every task
+   * side by side needs `TaskDefinition<ScheduledPayload>` to be usable as a
+   * `TaskDefinition`, and a payload-typed property makes the type invariant.
+   * The payload a definition hands its own `run` always came from its own
+   * `parse`, so the bivariance costs nothing here.
+   */
+  parse(raw: unknown): TPayload;
+  run(payload: TPayload, ctx: TaskContext): Promise<unknown>;
 }
 
 export interface ScheduledPayload {

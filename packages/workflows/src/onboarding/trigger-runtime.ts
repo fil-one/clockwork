@@ -1,9 +1,8 @@
 import { createHash } from "node:crypto";
 
-import { schedules, task } from "@trigger.dev/sdk";
-
 import type { RuntimeBoundaryInstrumentation } from "@clockwork/integrations";
 
+import { defineScheduledTask, defineTask } from "../tasks/definition";
 import { LIFECYCLE_RETRY_POLICY } from "./durable";
 
 export interface LifecycleTaskInvocation {
@@ -165,7 +164,7 @@ async function executeConfiguredLifecycleTask(
   }
 }
 
-const triggerRetry = {
+const lifecycleRetry = {
   maxAttempts: LIFECYCLE_RETRY_POLICY.maxAttempts,
   factor: LIFECYCLE_RETRY_POLICY.factor,
   minTimeoutInMs: LIFECYCLE_RETRY_POLICY.minDelayMs,
@@ -174,15 +173,15 @@ const triggerRetry = {
 } as const;
 
 export function defineLifecycleTask<const TId extends string>(id: TId) {
-  return task({
+  return defineTask({
     id,
-    retry: triggerRetry,
-    run: async (payload: unknown, { ctx }) =>
+    retry: lifecycleRetry,
+    run: async (payload: unknown, ctx) =>
       executeLifecycleTask(
         taskInvocation({
           taskId: id,
-          triggerRunId: ctx.run.id,
-          attempt: ctx.attempt.number,
+          triggerRunId: ctx.runId,
+          attempt: ctx.attempt,
           payload,
         }),
       ),
@@ -193,16 +192,16 @@ export function defineLifecycleScheduledTask<const TId extends string>(
   id: TId,
   cron: string,
 ) {
-  return schedules.task({
+  return defineScheduledTask({
     id,
-    cron: { pattern: cron, timezone: "UTC" },
-    retry: triggerRetry,
-    run: async (payload, { ctx }) =>
+    cron,
+    retry: lifecycleRetry,
+    run: async (payload, ctx) =>
       executeLifecycleTask(
         taskInvocation({
           taskId: id,
-          triggerRunId: ctx.run.id,
-          attempt: ctx.attempt.number,
+          triggerRunId: ctx.runId,
+          attempt: ctx.attempt,
           payload,
         }),
       ),

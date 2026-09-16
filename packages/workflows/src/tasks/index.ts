@@ -11,20 +11,29 @@ export {
   type TaskStage,
 } from "./definition";
 export {
+  loadAllTaskModules,
+  productionTaskImporters,
+  type TaskModuleImporter,
+} from "./load";
+export {
   getTask,
   listScheduledTasks,
   listTasks,
-  loadAllTaskModules,
-  productionTaskImporters,
   registerTask,
   resetTaskRegistryForTests,
   type ScheduledTaskDefinition,
-  type TaskModuleImporter,
 } from "./registry";
 export {
+  SqsTaskSubmitter,
+  type SqsTaskSubmitterOptions,
+} from "./sqs-submitter";
+export {
   configuredTaskRuntime,
+  resolveTaskSubmitter,
+  taskSubmitterConfigured,
   type TaskRuntimeKind,
   type TaskSubmission,
   type TaskSubmissionReceipt,
   type TaskSubmitter,
 } from "./submitter";
+export { TriggerTaskSubmitter } from "./trigger-submitter";

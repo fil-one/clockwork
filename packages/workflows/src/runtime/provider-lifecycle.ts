@@ -290,14 +290,18 @@ function identityFromPayload(invocation: LifecycleTaskInvocation): {
       scheduled: false,
     };
 
-  // Trigger scheduled payloads do not carry a domain aggregate. Treat each UTC
+  // Scheduled payloads do not carry a domain aggregate. Treat each UTC
   // schedule occurrence as an immutable scheduler aggregate; the selected
   // executor then queries due domain records and returns a replay-safe summary.
+  // The task contract names the occurrence `scheduledAt`; `timestamp` is what a
+  // Trigger schedule delivered directly, and a persisted invocation can still
+  // carry either, so both identify the same tick.
+  const tick = payload.scheduledAt ?? payload.timestamp;
   const timestamp =
-    payload.timestamp instanceof Date
-      ? payload.timestamp.getTime()
-      : typeof payload.timestamp === "string"
-        ? Date.parse(payload.timestamp)
+    tick instanceof Date
+      ? tick.getTime()
+      : typeof tick === "string"
+        ? Date.parse(tick)
         : Number.NaN;
   if (Number.isFinite(timestamp)) {
     const digest = createHash("sha256")

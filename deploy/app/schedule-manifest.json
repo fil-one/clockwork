@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "schedules": [
+    {
+      "taskId": "core.schedule.commission-settlement.v1",
+      "cron": "0 6 1 */3 *",
+      "scheduleExpression": "cron(0 6 1 */3 ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.dunning.v1",
+      "cron": "0 7 * * *",
+      "scheduleExpression": "cron(0 7 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.partner-credit.v1",
+      "cron": "0 6 * * *",
+      "scheduleExpression": "cron(0 6 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.payg-close.v1",
+      "cron": "0 3 * * *",
+      "scheduleExpression": "cron(0 3 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.price-book-activation.v1",
+      "cron": "* * * * *",
+      "scheduleExpression": "cron(* * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.procurement-certificate-expiry.v1",
+      "cron": "0 4 * * *",
+      "scheduleExpression": "cron(0 4 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.report-export-monthly.v1",
+      "cron": "0 8 1 * *",
+      "scheduleExpression": "cron(0 8 1 * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.report-export-weekly.v1",
+      "cron": "0 8 * * 1",
+      "scheduleExpression": "cron(0 8 ? * 2 *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.sync-overage.v1",
+      "cron": "15 * * * *",
+      "scheduleExpression": "cron(15 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.three-way-reconciliation.v1",
+      "cron": "0 5 1 * *",
+      "scheduleExpression": "cron(0 5 1 * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "core.schedule.usage-reconciliation.v1",
+      "cron": "30 2 * * *",
+      "scheduleExpression": "cron(30 2 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-agreements-signature-reminder-v1",
+      "cron": "30 * * * *",
+      "scheduleExpression": "cron(30 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-exceptions-escalation-v1",
+      "cron": "*/15 * * * *",
+      "scheduleExpression": "cron(*/15 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-migrations-scheduled-batch-v1",
+      "cron": "0 2 * * *",
+      "scheduleExpression": "cron(0 2 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-offboarding-retention-release-v1",
+      "cron": "10 * * * *",
+      "scheduleExpression": "cron(10 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-offboarding-retrieval-window-v1",
+      "cron": "0 * * * *",
+      "scheduleExpression": "cron(0 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-onboarding-procurement-reminders-v1",
+      "cron": "15 * * * *",
+      "scheduleExpression": "cron(15 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-onboarding-screening-refresh-v1",
+      "cron": "0 * * * *",
+      "scheduleExpression": "cron(0 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-pocs-expiry-v1",
+      "cron": "10 * * * *",
+      "scheduleExpression": "cron(10 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-pocs-milestones-v1",
+      "cron": "5 * * * *",
+      "scheduleExpression": "cron(5 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-pocs-proposal-v1",
+      "cron": "20 * * * *",
+      "scheduleExpression": "cron(20 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-provisioning-stuck-recovery-v1",
+      "cron": "*/15 * * * *",
+      "scheduleExpression": "cron(*/15 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-quotes-expiry-alerts-v1",
+      "cron": "45 * * * *",
+      "scheduleExpression": "cron(45 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-renewals-auto-renew-evaluation-v1",
+      "cron": "30 8 * * *",
+      "scheduleExpression": "cron(30 8 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-renewals-notice-windows-v1",
+      "cron": "15 8 * * *",
+      "scheduleExpression": "cron(15 8 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "lifecycle-renewals-term-alerts-v1",
+      "cron": "0 8 * * *",
+      "scheduleExpression": "cron(0 8 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "system.outbox.dispatch.v1",
+      "cron": "* * * * *",
+      "scheduleExpression": "cron(* * * * ? *)",
+      "stages": ["staging", "production"]
+    }
+  ]
+}

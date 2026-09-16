@@ -24,6 +24,7 @@ import {
 
 import { lifecycleWorkflowRegistry } from "../lifecycle";
 import { createLifecycleTaskOutboxHandlers } from "../system/lifecycle-task-dispatch";
+import { registerAllTriggerTasks } from "../tasks/trigger-adapter";
 import { productionTaskImporters } from "../trigger/discovery";
 import {
   createProductionWorkflowAdapterFactory,
@@ -273,13 +274,7 @@ describe("production workflow adapter factory", () => {
     const bundle = await withDatabase((db) =>
       factory.create({
         db,
-        environment: {
-          runtimeEnvironment: "test",
-          directDatabaseUrl:
-            "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
-          triggerProjectRef: "proj_clockwork_test",
-          triggerSecretKey: "tr_clockwork_test_secret",
-        },
+        environment: { runtimeEnvironment: "test" },
         source: {},
       }),
     );
@@ -339,12 +334,7 @@ describe("production workflow adapter factory", () => {
       withDatabase((db) =>
         factory.create({
           db,
-          environment: {
-            runtimeEnvironment: "production",
-            directDatabaseUrl: "postgresql://service@db.example/clockwork",
-            triggerProjectRef: "proj_clockwork_production",
-            triggerSecretKey: "tr_clockwork_production_secret",
-          },
+          environment: { runtimeEnvironment: "production" },
           source: {},
         }),
       ),
@@ -369,13 +359,7 @@ describe("production workflow adapter factory", () => {
       withDatabase((db) =>
         factory.create({
           db,
-          environment: {
-            runtimeEnvironment: "test",
-            directDatabaseUrl:
-              "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
-            triggerProjectRef: "proj_clockwork_test",
-            triggerSecretKey: "tr_clockwork_test_secret",
-          },
+          environment: { runtimeEnvironment: "test" },
           source: {},
         }),
       ),
@@ -456,7 +440,7 @@ describe("every lifecycle registry identifier reaches tasks.trigger", () => {
   const reached = new Map<string, string>();
 
   beforeAll(async () => {
-    for (const importTasks of productionTaskImporters) await importTasks();
+    await registerAllTriggerTasks(productionTaskImporters);
 
     const bundle = await withDatabase((db) =>
       createProductionWorkflowAdapterFactory({
@@ -468,13 +452,7 @@ describe("every lifecycle registry identifier reaches tasks.trigger", () => {
         clock: () => now,
       }).create({
         db,
-        environment: {
-          runtimeEnvironment: "test",
-          directDatabaseUrl:
-            "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
-          triggerProjectRef: "proj_clockwork_test",
-          triggerSecretKey: "tr_clockwork_test_secret",
-        },
+        environment: { runtimeEnvironment: "test" },
         source: {},
       }),
     );
@@ -589,13 +567,7 @@ describe("provider activation failures keep their cause", () => {
       factory
         .create({
           db,
-          environment: {
-            runtimeEnvironment: "test",
-            directDatabaseUrl:
-              "postgresql://clockwork:clockwork@127.0.0.1:54322/clockwork",
-            triggerProjectRef: "proj_clockwork_test",
-            triggerSecretKey: "tr_clockwork_test_secret",
-          },
+          environment: { runtimeEnvironment: "test" },
           source: {},
         })
         .then(

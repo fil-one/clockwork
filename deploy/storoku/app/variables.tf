@@ -74,10 +74,12 @@ variable "buckets" {
 variable "queues" {
   description = "sqs queues to create"
   type = list(object({
-    name                      = string
-    fifo                      = optional(bool, false)
-    high_throughput           = optional(bool, false)
-    message_retention_seconds = optional(number, 0)
+    name                       = string
+    fifo                       = optional(bool, false)
+    high_throughput            = optional(bool, false)
+    message_retention_seconds  = optional(number, 0)
+    visibility_timeout_seconds = optional(number, 300)
+    max_receive_count          = optional(number, 4)
   }))
   default = []
 }
@@ -241,4 +243,10 @@ variable "db_bastion" {
   description = "create the SSH bastion host beside the database"
   type        = bool
   default     = true
+}
+
+variable "stop_timeout" {
+  description = "seconds a container gets between SIGTERM and SIGKILL. Raise it for an app that drains work on shutdown."
+  type        = number
+  default     = 30
 }

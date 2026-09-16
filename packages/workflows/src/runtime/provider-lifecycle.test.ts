@@ -1,8 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProviderRuntimeDeniedError } from "@clockwork/integrations";
 
 import { lifecycleWorkflowRegistry } from "../lifecycle";
+import {
+  configureLifecycleTaskRuntime,
+  defineLifecycleScheduledTask,
+  type LifecycleTaskInvocation,
+  resetLifecycleTaskRuntimeForTests,
+} from "../onboarding/trigger-runtime";
+import { resetTaskRegistryForTests } from "../tasks/registry";
 import {
   type AuthoritativeLifecycleTaskStore,
   createAuthoritativeLifecycleHandlers,
@@ -96,7 +103,46 @@ function dependencies(authoritative?: {
   };
 }
 
+afterEach(() => resetLifecycleTaskRuntimeForTests());
+
 describe("authoritative lifecycle task handlers", () => {
+  it("identifies the occurrence a registered lifecycle schedule dispatches", async () => {
+    const { handlers } = dependencies();
+    const taskId = "lifecycle-renewals-term-alerts-v1";
+    // The registered definition is the one both runtime adapters run, so the
+    // payload it builds is the payload the handler has to identify.
+    resetTaskRegistryForTests();
+    const definition = defineLifecycleScheduledTask(taskId, "0 8 * * *");
+    const invocations: LifecycleTaskInvocation[] = [];
+    configureLifecycleTaskRuntime({
+      claim: (invocation) => {
+        invocations.push(invocation);
+        return Promise.resolve({ status: "claimed", leaseToken: "lease-1" });
+      },
+      execute: () => Promise.resolve({ alerts: 0 }),
+      complete: () => Promise.resolve(),
+      fail: () => Promise.resolve(),
+    });
+
+    const dispatch = async (scheduledAt: string, attempt: number) => {
+      await definition.run(definition.parse({ scheduledAt }), {
+        runId: `run-${scheduledAt}-${attempt}`,
+        attempt,
+        scheduledAt,
+      });
+      const invocation = invocations.at(-1);
+      if (!invocation) throw new Error("no invocation captured");
+      return handlers.get(taskId)?.aggregate(invocation);
+    };
+
+    const first = await dispatch("2026-09-09T08:00:00.000Z", 1);
+    expect(first).toMatchObject({ aggregateVersion: 1 });
+    // A retry of the same tick claims the same scheduler aggregate row.
+    expect(await dispatch("2026-09-09T08:00:00.000Z", 4)).toEqual(first);
+    expect(await dispatch("2026-09-10T08:00:00.000Z", 1)).not.toEqual(first);
+    resetTaskRegistryForTests();
+  });
+
   it("registers a concrete handler for every lifecycle task ID", () => {
     const { handlers } = dependencies();
     expect([...handlers.keys()].sort()).toEqual(
@@ -138,7 +184,7 @@ describe("authoritative lifecycle task handlers", () => {
       triggerRunId: "run-schedule-1",
       attempt: 1,
       idempotencyKey: "lifecycle:schedule:123456",
-      payload: { timestamp: "2026-07-31T16:00:00.000Z" },
+      payload: { scheduledAt: "2026-07-31T16:00:00.000Z" },
     };
     const handler = handlers.get(scheduledInvocation.taskId);
     expect(handler?.aggregate(scheduledInvocation)).toEqual(
@@ -149,27 +195,31 @@ describe("authoritative lifecycle task handlers", () => {
   it("uses the same occurrence identity for Trigger Date payloads and serialized replays", () => {
     const { handlers } = dependencies();
     const handler = handlers.get("lifecycle-pocs-proposal-v1");
+    const tick = "2026-09-09T02:20:00.000Z";
     const invocation = {
       taskId: "lifecycle-pocs-proposal-v1",
       triggerRunId: "run-schedule",
       attempt: 1,
       idempotencyKey: "lifecycle:schedule:date-regression",
-      payload: { timestamp: "2026-09-09T02:20:00.000Z" },
+      payload: { scheduledAt: tick },
     };
     const expected = handler?.aggregate(invocation);
     expect(expected).toMatchObject({ aggregateVersion: 1 });
-    expect(
-      handler?.aggregate({
-        ...invocation,
-        payload: { timestamp: new Date(invocation.payload.timestamp) },
-      }),
-    ).toEqual(expected);
-    expect(() =>
-      handler?.aggregate({
-        ...invocation,
-        payload: { timestamp: new Date("invalid") },
-      }),
-    ).toThrow("LIFECYCLE_TASK_AGGREGATE_ID_REQUIRED");
+    // The occurrence identity is the tick, however it was carried: the
+    // scheduled payload the task contract defines, and the `timestamp` a
+    // Trigger schedule delivered before it, as a Date or serialized.
+    for (const payload of [
+      { timestamp: tick },
+      { timestamp: new Date(tick) },
+    ] as const)
+      expect(handler?.aggregate({ ...invocation, payload })).toEqual(expected);
+    for (const payload of [
+      { scheduledAt: "not-a-timestamp" },
+      { timestamp: new Date("invalid") },
+    ] as const)
+      expect(() => handler?.aggregate({ ...invocation, payload })).toThrow(
+        "LIFECYCLE_TASK_AGGREGATE_ID_REQUIRED",
+      );
   });
 
   it("requires an aggregate version for non-scheduled invocations", () => {

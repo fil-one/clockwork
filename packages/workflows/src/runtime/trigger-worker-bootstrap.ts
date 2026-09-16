@@ -1,34 +1,38 @@
-import { DatabasePaygBillingRepository } from "../core/database-payg";
-import { configurePaygScheduleRepository } from "../core/payg-scheduled-runtime";
-import { configurePriceBookScheduleRepository } from "../core/price-book-scheduled-runtime";
-import { DatabasePriceBookScheduleRepository } from "@clockwork/db";
-import {
-  configureDatabaseTransactionInstrumentation,
-  createRuntimeDatabase,
-  DatabaseSystemCapabilityAdmin,
-  DatabaseSystemCapabilityGuard,
-  type RuntimeDatabase,
-} from "@clockwork/db";
-import {
-  ClockworkTelemetry,
-  OtlpHttpTelemetrySink,
-  RuntimeBoundaryInstrumentation,
-} from "@clockwork/integrations";
+import { createRuntimeDatabase, type RuntimeDatabase } from "@clockwork/db";
 
 import {
-  createProductionWorkflowRuntime,
-  type ProductionWorkflowRuntimeInput,
-} from "./production";
-import { deriveWorkflowCapabilityProfile } from "./capability-profile";
-import {
-  createEnvironmentWorkflowAdapterFactory,
-  WorkflowEnvironmentAdapterConfigurationError,
-} from "./environment-production-adapters";
+  activateWorkflowRuntime,
+  createWorkflowRuntime,
+  resetWorkflowRuntimeBootstrapForTests,
+  WorkflowBootstrapConfigurationError,
+  workflowRuntimeStatus,
+  type ActivatableWorkflowRuntime,
+  type ProductionWorkflowAdapterFactory,
+  type ProductionWorkflowRuntime,
+  type WorkflowRuntimeEnvironment,
+} from "./workflow-runtime";
 
-export type ProductionWorkflowRuntime = ReturnType<
-  typeof createProductionWorkflowRuntime
->;
+export {
+  activateWorkflowRuntime,
+  createWorkflowRuntime,
+  resetWorkflowRuntimeBootstrapForTests,
+  validateWorkflowRuntimeEnvironment,
+  WorkflowBootstrapConfigurationError,
+  workflowRuntimeStatus,
+  type ActivatableWorkflowRuntime,
+  type CreateWorkflowRuntimeInput,
+  type ProductionWorkflowAdapterBundle,
+  type ProductionWorkflowAdapterFactory,
+  type ProductionWorkflowRuntime,
+  type WorkflowRuntimeEnvironment,
+  type WorkflowRuntimeEnvironmentSource,
+} from "./workflow-runtime";
 
+/**
+ * The Trigger.dev worker's entry point: the environment it alone requires, and
+ * its own database connection. Everything past that is
+ * `createWorkflowRuntime`, which the SQS host reaches by the same route.
+ */
 export const productionWorkflowExternalInputs = [
   {
     component: "trigger_worker",
@@ -130,21 +134,7 @@ export const productionWorkflowExternalInputs = [
 ] as const;
 
 export const productionWorkflowInternalCompositionGaps = [] as const;
-
-export class WorkflowBootstrapConfigurationError extends Error {
-  public readonly code = "WORKFLOW_BOOTSTRAP_INCOMPLETE";
-
-  public constructor(
-    public readonly missing: readonly string[],
-    public readonly externalGates: readonly string[],
-  ) {
-    super(`WORKFLOW_BOOTSTRAP_INCOMPLETE:${missing.join(",")}`);
-    this.name = "WorkflowBootstrapConfigurationError";
-  }
-}
-
-export interface TriggerWorkerEnvironment {
-  runtimeEnvironment: "development" | "test" | "production";
+export interface TriggerWorkerEnvironment extends WorkflowRuntimeEnvironment {
   directDatabaseUrl: string;
   triggerProjectRef: string;
   triggerSecretKey: string;
@@ -213,20 +203,12 @@ export function validateTriggerWorkerEnvironment(
     triggerSecretKey,
   };
 }
-
-export type ProductionWorkflowAdapterBundle = Omit<
-  ProductionWorkflowRuntimeInput,
-  "db"
->;
-
-export interface ProductionWorkflowAdapterFactory {
-  create(input: {
-    db: RuntimeDatabase;
-    environment: TriggerWorkerEnvironment;
-    source: TriggerWorkerEnvironmentSource;
-  }): Promise<ProductionWorkflowAdapterBundle>;
-}
-
+/**
+ * The worker opens its own direct connection -- no pooler in front of it, so a
+ * transaction survives a long provider call -- and hands it to the neutral
+ * bootstrap. A failure closes the client rather than leaving the pool open
+ * behind a process that will not serve.
+ */
 export async function createEnvironmentProductionWorkflowRuntime(
   input: {
     source?: TriggerWorkerEnvironmentSource;
@@ -242,83 +224,18 @@ export async function createEnvironmentProductionWorkflowRuntime(
 ): Promise<ProductionWorkflowRuntime> {
   const source = input.source ?? process.env;
   const environment = validateTriggerWorkerEnvironment(source);
-  const telemetryEnvironment = {
-    ...source,
-    ...(!source.OTEL_EXPORTER_OTLP_ENDPOINT &&
-    !source.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-      ? { OTEL_SDK_DISABLED: "true" }
-      : {}),
-  };
-  const telemetry = new ClockworkTelemetry(
-    new OtlpHttpTelemetrySink({
-      environment: telemetryEnvironment,
-      runtimeEnvironment: environment.runtimeEnvironment,
-    }),
-  );
-  const instrumentation = new RuntimeBoundaryInstrumentation(telemetry);
-  configureDatabaseTransactionInstrumentation({
-    trace: (transaction) =>
-      instrumentation.db({
-        name: `db.${transaction.kind}_transaction`,
-        correlation: { requestId: transaction.requestId },
-        attributes: {
-          "clockwork.operation": `db.${transaction.kind}_transaction`,
-          "db.operation.name": transaction.kind,
-          "db.system.name": "postgresql",
-        },
-        operation: () => transaction.operation(),
-      }),
-  });
   const { client, db } = createRuntimeDatabase({
     url: environment.directDatabaseUrl,
     role: "clockwork_service",
   });
   try {
-    let adapterFactory = input.adapterFactory;
-    if (!adapterFactory) {
-      const capabilities = input.readCapabilities
-        ? await input.readCapabilities(db)
-        : await new DatabaseSystemCapabilityAdmin(db).list({
-            requestId: `workflow-bootstrap:capabilities:${crypto.randomUUID()}`,
-          });
-      try {
-        adapterFactory = createEnvironmentWorkflowAdapterFactory(
-          source,
-          instrumentation,
-          telemetry,
-          deriveWorkflowCapabilityProfile(capabilities),
-        );
-      } catch (error) {
-        if (error instanceof WorkflowEnvironmentAdapterConfigurationError)
-          throw new WorkflowBootstrapConfigurationError(
-            error.missing,
-            error.externalGates,
-          );
-        throw error;
-      }
-    }
-    const adapters = await adapterFactory.create({ db, environment, source });
-    configurePriceBookScheduleRepository(
-      new DatabasePriceBookScheduleRepository(db),
-    );
-    configurePaygScheduleRepository({
-      billingMonths: (now) =>
-        new DatabasePaygBillingRepository(db).billingMonths(now),
-      closeMonth: async (period) => {
-        const capability = await new DatabaseSystemCapabilityGuard(db).require({
-          capabilities: ["billing"],
-          recovery: false,
-          requestId: `payg-schedule:${period.month}`,
-        });
-        if (!capability.allowed)
-          throw new Error("PAYG_BILLING_CAPABILITY_DISABLED");
-        return new DatabasePaygBillingRepository(db).closeMonth(period);
-      },
-    });
-    return createProductionWorkflowRuntime({
+    return await createWorkflowRuntime({
       db,
-      ...adapters,
-      instrumentation,
+      source,
+      ...(input.adapterFactory ? { adapterFactory: input.adapterFactory } : {}),
+      ...(input.readCapabilities
+        ? { readCapabilities: input.readCapabilities }
+        : {}),
     });
   } catch (error) {
     await client.end();
@@ -326,42 +243,18 @@ export async function createEnvironmentProductionWorkflowRuntime(
   }
 }
 
-export interface ActivatableWorkflowRuntime {
-  activate(): void;
-}
-
-let activation:
-  | { status: "activating"; promise: Promise<ActivatableWorkflowRuntime> }
-  | { status: "active"; promise: Promise<ActivatableWorkflowRuntime> }
-  | undefined;
-
 export function triggerWorkerBootstrapStatus():
   "inactive" | "activating" | "active" {
-  return activation?.status ?? "inactive";
+  return workflowRuntimeStatus();
 }
 
 export function activateTriggerWorkerRuntime(
   load: () => Promise<ActivatableWorkflowRuntime> = () =>
     createEnvironmentProductionWorkflowRuntime(),
 ): Promise<ActivatableWorkflowRuntime> {
-  if (activation) return activation.promise;
-  const promise = Promise.resolve()
-    .then(load)
-    .then((runtime) => {
-      runtime.activate();
-      activation = { status: "active", promise };
-      return runtime;
-    })
-    .catch((error: unknown) => {
-      activation = undefined;
-      throw error;
-    });
-  activation = { status: "activating", promise };
-  return promise;
+  return activateWorkflowRuntime(load);
 }
 
 export function resetTriggerWorkerBootstrapForTests(): void {
-  if (process.env.NODE_ENV === "production")
-    throw new Error("WORKFLOW_BOOTSTRAP_RESET_FORBIDDEN");
-  activation = undefined;
+  resetWorkflowRuntimeBootstrapForTests();
 }

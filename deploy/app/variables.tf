@@ -52,6 +52,17 @@ variable "cpu_architecture" {
   default     = "ARM64"
 }
 
+variable "task_runtime" {
+  description = "which runtime hosts background tasks: \"sqs\" (the queue and scheduler in this root) or \"trigger\" (Trigger.dev Cloud)"
+  type        = string
+  default     = "sqs"
+
+  validation {
+    condition     = contains(["sqs", "trigger"], var.task_runtime)
+    error_message = "The task_runtime value must be either \"sqs\" or \"trigger\"."
+  }
+}
+
 variable "authorization_context_secret_id" {
   description = "id of the active row in private.authorization_secrets; defaults to <workspace>-initial until bootstrap:production issues a manifest id"
   type        = string
