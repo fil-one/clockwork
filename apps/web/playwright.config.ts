@@ -64,6 +64,34 @@ export default defineConfig({
   fullyParallel: !serial,
   forbidOnly: true,
   retries: 0,
+  /**
+   * Playwright's 5s default for an expectation assumes a server that only has
+   * to answer. These suites run against `next dev`, which compiles a route the
+   * first time anything asks for it, and compiles the server functions behind
+   * an interaction the first time one is invoked.
+   *
+   * Measured against a cleared `.next` on an idle laptop, a cold route costs
+   * 330ms to 2.67s where the same route costs 40ms to 220ms once warm. The
+   * macos-15 runner walks these suites about four times slower than that
+   * laptop (the demo project takes 6.4 minutes there against 1.3 to 1.8 here),
+   * which puts the worst cold compile near thirteen seconds and charges it to
+   * whichever expectation reaches that route first. Both macOS shards failed a
+   * different arbitrary test on every run that way, always on a 5s
+   * expectation, while the same specs passed locally; with `retries: 0` and
+   * the customer-partner journeys serial, one failure skipped the 45 behind
+   * it. 20s covers the measured worst case with room to spare, and applies
+   * only on CI, so a local run still reports a stuck expectation in five
+   * seconds.
+   *
+   * Deliberately not paired with a raised whole-test budget here. Over five
+   * runs each, adding `timeout: 120_000` turned `demo.spec.ts` "demo reset"
+   * from green into three failures: that test clicks the demo panel about a
+   * second after navigating to it, and a busier machine loses the race against
+   * hydration, so the click lands on an unhydrated button and the panel never
+   * opens. The two projects that do need a longer test budget set it
+   * themselves below.
+   */
+  ...(process.env.CI ? { expect: { timeout: 20_000 } } : {}),
   ...(workerCount ? { workers: workerCount } : {}),
   outputDir: path.join(artifactRoot, "playwright-output"),
   reporter: process.env.CI
@@ -113,6 +141,12 @@ export default defineConfig({
         "visual.spec.ts",
         "demo.spec.ts",
       ],
+      // These specs set no per-test budget of their own, so they take the 30s
+      // default, and one cold compile inside a multi-step journey is enough to
+      // exceed it: that is how `ux-customer-partner.spec.ts` failed on CI with
+      // "Test timeout of 30000ms exceeded". `demo.spec.ts` keeps the default
+      // because it sets its own budget on every test that needs one.
+      ...(process.env.CI ? { timeout: 90_000 } : {}),
       use: { ...devices["Desktop Chrome"] },
     },
     {
@@ -120,6 +154,7 @@ export default defineConfig({
       testMatch: "visual.spec.ts",
       dependencies: ["functional-chromium"],
       fullyParallel: false,
+      ...(process.env.CI ? { timeout: 90_000 } : {}),
       use: { ...devices["Desktop Chrome"] },
     },
     {
