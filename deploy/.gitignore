@@ -1,0 +1,15 @@
+# storoku:ignore
+# Deployment
+.env.production.local
+.env.terraform
+.terraform
+.tfworkspace
+app/code_deploy.sh
+app/.last-deployment-id
+shared/builds
+app/builds
+
+# The repo root ignores .env.* at any depth. These two are templates, not
+# secrets, and the bootstrap in README.md expects them in the repo.
+!.env.terraform.tpl
+!.env.production.local.tpl

@@ -1,0 +1,57 @@
+# Build context for the clockwork web image.
+.git
+.github
+node_modules
+**/node_modules
+.turbo
+**/.turbo
+.next
+**/.next
+.next-*
+**/.next-*
+.netlify
+**/.netlify
+.trigger
+.artifacts
+.clockwork-archives
+coverage
+**/coverage
+dist
+**/dist
+playwright-report
+**/playwright-report
+test-results
+**/test-results
+storybook-static
+**/storybook-static
+supabase/.branches
+supabase/.temp
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Infrastructure. The image is built from the application tree; the Terraform
+# root modules, their state and provider plugins, and the storoku scaffolding
+# are inputs to the deploy, not to the build. Only deploy/docker and the
+# rendered build env below travel in.
+deploy/app
+deploy/shared
+deploy/storoku
+deploy/.terraform*
+
+# Secrets and local environment: never in an image layer.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+# The one exception, and it is build input rather than a secret: the deploy
+# Makefile renders this file per environment and the builder stage copies it to
+# apps/web, where `next build` reads the NEXT_PUBLIC_* values it inlines into
+# the client bundles. Named exactly, so no other rendered env file follows it in.
+!deploy/.env.production.local
+
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+*storybook.log

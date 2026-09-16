@@ -1,0 +1,130 @@
+# storoku:ignore
+name: Deploy environment
+
+# Reusable: builds the image, migrates the database, applies the stage and
+# smoke-tests it, inside one GitHub environment. deploy.yml calls it for
+# staging and then production, and refuses anything but main. The
+# environment supplies AWS_ROLE_ARN, the settings and the secrets.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment, staging or production
+        required: true
+        type: string
+      workspace:
+        description: OpenTofu workspace, staging or prod
+        required: true
+        type: string
+      ref:
+        description: commit to deploy
+        required: true
+        type: string
+
+env:
+  TOFU_VERSION: 1.12.5
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment:
+      name: ${{ inputs.environment }}
+      url: https://${{ vars.CLOCKWORK_HOSTNAME }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      DEPLOY_ENV: ci
+      TF_WORKSPACE: ${{ inputs.workspace }}
+      TF_VAR_app: clockwork
+      TF_VAR_region: ${{ vars.AWS_REGION }}
+      TF_VAR_allowed_account_id: ${{ vars.AWS_ACCOUNT_ID }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_VAR_hostname: ${{ vars.CLOCKWORK_HOSTNAME }}
+      TF_VAR_domain_base: ${{ vars.CLOCKWORK_HOSTNAME }}
+      TF_VAR_github_environment: ${{ inputs.environment }}
+      CLOCKWORK_INTERNAL_EMAIL_DOMAINS:
+        ${{ vars.CLOCKWORK_INTERNAL_EMAIL_DOMAINS }}
+      TRIGGER_PROJECT_REF: ${{ vars.TRIGGER_PROJECT_REF }}
+      CLOCKWORK_PLATFORM_ISSUER_JSON: ${{ vars.CLOCKWORK_PLATFORM_ISSUER_JSON }}
+      CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR:
+        ${{ vars.CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR }}
+      TF_VAR_workos_api_key: ${{ secrets.WORKOS_API_KEY }}
+      TF_VAR_workos_client_id: ${{ secrets.WORKOS_CLIENT_ID }}
+      TF_VAR_workos_cookie_password: ${{ secrets.WORKOS_COOKIE_PASSWORD }}
+      TF_VAR_workos_webhook_secret: ${{ secrets.WORKOS_WEBHOOK_SECRET }}
+      TF_VAR_stripe_secret_key: ${{ secrets.STRIPE_SECRET_KEY }}
+      TF_VAR_stripe_webhook_secret: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      TF_VAR_trigger_secret_key: ${{ secrets.TRIGGER_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      # An undefined GitHub variable is an empty string, which would reach
+      # the image (an origin of https://) before anything could object.
+      - name: Check the environment is configured
+        run: |
+          missing=""
+          for name in AWS_ROLE_ARN AWS_REGION AWS_ACCOUNT_ID TF_STATE_BUCKET CLOCKWORK_HOSTNAME; do
+            eval "value=\${$name:-}"
+            [ -n "$value" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "GitHub environment '${{ inputs.environment }}' is missing variables:$missing" >&2
+            exit 1
+          fi
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          CLOCKWORK_HOSTNAME: ${{ vars.CLOCKWORK_HOSTNAME }}
+
+      # The repository refuses a second push of an existing tag, so a re-run
+      # of a failed attempt gets its own.
+      - name: Name the image
+        run:
+          echo "IMAGE_TAG=${TF_WORKSPACE}-$(git rev-parse --short HEAD)-${{
+          github.run_attempt }}" >> "$GITHUB_ENV"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          # run-migrate.sh parses `tofu output -raw`, which the wrapper would pad
+          tofu_wrapper: false
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Initialise
+        run: make init
+        working-directory: deploy
+
+      - name: Build and push the image
+        run: make docker-push
+        working-directory: deploy
+
+      - name: Migrate the database
+        run: make migrate
+        working-directory: deploy
+
+      - name: Apply
+        run: make apply
+        working-directory: deploy
+
+      - name: Wait for the deployment
+        run: make wait-deploy
+        working-directory: deploy
+
+      - name: Smoke test
+        run: make smoke
+        working-directory: deploy

@@ -9,3 +9,5 @@ pnpm-lock.yaml
 **/.next-*/**
 deno.lock
 .github/CODEOWNERS
+# OpenTofu provider caches under deploy/, present after a local `make init`.
+**/.terraform/**
