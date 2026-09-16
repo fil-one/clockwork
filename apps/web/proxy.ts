@@ -423,6 +423,15 @@ export default async function proxy(
 // icons, and the Open Graph card are fetched by browsers before sign-in and by
 // link unfurlers that never hold a session, so an auth redirect would silently
 // replace them with a sign-in page. Every exemption names a static asset path.
+//
+// `healthcheck` is the one exemption that is not an asset. A load balancer
+// probe carries no cookies, so AuthKit would redirect it to sign-in and the
+// demo password gate would redirect it to the gate page; either way the target
+// never turns healthy and the deployment never finishes. Exempting it here
+// rather than in `unauthenticatedPaths` keeps the probe off the identity
+// provider entirely, and keeps the anonymous-path list the shape
+// `route-authentication.test.ts` pins it to. The handler reads nothing, so
+// there is no tenant data on the far side of the exemption.
 export const config = {
   matcher: [
     {
@@ -433,7 +442,7 @@ export const config = {
       // proxy, then authenticate from their sealed session or demo grant and
       // enforce release-proof origin at the destination.
       source:
-        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)|api/demo/payments(?:/|$)|api/demo/orders/provision(?:/|$)|demo/quote/[a-f0-9]{64}/respond(?:/|$)).*)",
+        "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|opengraph-image.png|brand/|healthcheck(?:/|$)|demo/access/submit|signing/demo-provider/complete|api/(?:v1|experience)(?:/|$)|api/demo/payments(?:/|$)|api/demo/orders/provision(?:/|$)|demo/quote/[a-f0-9]{64}/respond(?:/|$)).*)",
       missing: [
         { type: "header", key: "next-action" },
         {

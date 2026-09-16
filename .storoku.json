@@ -1,0 +1,39 @@
+{
+  "app": "clockwork",
+  "privateKeyEnvVar": "",
+  "didEnvVar": "",
+  "port": 3000,
+  "js": {
+    "next": true,
+    "entryPoint": "",
+    "scripts": []
+  },
+  "domainBase": "clockwork.fil.one",
+  "cloudflare": false,
+  "createDB": true,
+  "caches": null,
+  "topics": null,
+  "queues": null,
+  "buckets": [
+    {
+      "name": "evidence",
+      "public": false
+    }
+  ],
+  "secrets": [
+    { "name": "WORKOS_API_KEY", "variable": true },
+    { "name": "WORKOS_CLIENT_ID", "variable": true },
+    { "name": "WORKOS_COOKIE_PASSWORD", "variable": true },
+    { "name": "WORKOS_WEBHOOK_SECRET", "variable": true },
+    { "name": "STRIPE_SECRET_KEY", "variable": true },
+    { "name": "STRIPE_WEBHOOK_SECRET", "variable": true },
+    { "name": "TRIGGER_SECRET_KEY", "variable": true },
+    { "name": "CLOCKWORK_RUNTIME_DATABASE_PASSWORD", "variable": false },
+    { "name": "CLOCKWORK_SERVICE_DATABASE_PASSWORD", "variable": false },
+    { "name": "AUTHORIZATION_CONTEXT_SECRET", "variable": false },
+    { "name": "CLOCKWORK_TELEMETRY_INGEST_SECRET", "variable": false }
+  ],
+  "tables": null,
+  "networks": null,
+  "writeToContainer": true
+}

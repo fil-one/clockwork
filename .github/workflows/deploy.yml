@@ -1,0 +1,78 @@
+# storoku:ignore
+name: Deploy
+
+# Every green CI run on main deploys staging, smoke-tests it, and then
+# deploys production the same way. A failure anywhere stops the pipeline
+# before production and posts to #filone-alerts. workflow_dispatch re-runs
+# the pipeline for the head of main by hand; a dispatch from any other
+# branch is refused here as well as by the environments' deployment branch
+# rules.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main') || (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success')
+    uses: ./.github/workflows/terraform.yml
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      environment: staging
+      workspace: staging
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
+
+  production:
+    needs: staging
+    uses: ./.github/workflows/terraform.yml
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      environment: production
+      workspace: prod
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
+
+  notify-failure:
+    needs: [staging, production]
+    if: failure()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: slackapi/slack-github-action@v2
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "filone-alerts",
+              "text": ${{ toJSON(format('Clockwork deploy failed (staging: {0}, production: {1}). Commit: {2} by @{3}. Details: {4}/{5}/actions/runs/{6}', needs.staging.result, needs.production.result, github.event.workflow_run.head_sha || github.sha, github.actor, github.server_url, github.repository, github.run_id)) }},
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ${{ toJSON(format(':warning: *Clockwork deploy failed* (staging: {0}, production: {1}) · <{2}/{3}/actions/runs/{4}|Details>', needs.staging.result, needs.production.result, github.server_url, github.repository, github.run_id)) }}
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ${{ toJSON(format('Commit: `{0}` by <https://github.com/{1}|@{1}>', github.event.workflow_run.head_sha || github.sha, github.actor)) }}
+                  }
+                }
+              ]
+            }

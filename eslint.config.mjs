@@ -11,6 +11,9 @@ export default tseslint.config(
       // and not part of the compiled project.
       "**/.netlify/**",
       "**/.trigger/**",
+      // OpenTofu provider and module caches under deploy/, present after a
+      // local `make init`; the Lambda module ships JavaScript fixtures.
+      "**/.terraform/**",
       // Release reports and downloaded test browsers are generated artifacts.
       "**/.artifacts/**",
       "**/coverage/**",

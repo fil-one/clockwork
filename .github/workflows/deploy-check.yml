@@ -1,0 +1,69 @@
+name: Deploy check
+
+# Pull-request checks for the deployment: formatting and validation of both
+# OpenTofu roots, the shell scripts, and an image build. Nothing here touches
+# AWS.
+on:
+  pull_request:
+    paths:
+      - deploy/**
+      - Dockerfile
+      - .dockerignore
+      - supabase/**
+      - apps/web/next.config.ts
+      - .github/workflows/deploy.yml
+      - .github/workflows/terraform.yml
+      - .github/workflows/deploy-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TOFU_VERSION: 1.12.5
+
+jobs:
+  tofu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+      - run: tofu fmt -check -diff deploy/app deploy/shared
+      - run: tofu -chdir=deploy/shared init -backend=false -input=false
+      - run: tofu -chdir=deploy/shared validate
+      - run: tofu -chdir=deploy/app init -backend=false -input=false
+      - run: tofu -chdir=deploy/app validate
+
+  shell:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run:
+          shellcheck deploy/run-migrate.sh deploy/wait-deploy.sh deploy/smoke.sh
+          deploy/docker/*.sh
+
+  image:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Render a placeholder environment file
+        run: |
+          cp .env.terraform.tpl .env.terraform
+          make .env.production.local
+        working-directory: deploy
+      - name: Build the image
+        run:
+          docker buildx build --platform linux/arm64 -t clockwork:check --load .
+      - name: Check the migration tooling is in the image
+        run:
+          docker run --rm --entrypoint sh clockwork:check -c 'psql --version &&
+          supabase --version && test -x /app/deploy/docker/migrate.sh'

@@ -1,10 +1,34 @@
+import { join } from "node:path";
+
 import type { NextConfig } from "next";
+
+// A container image serves the standalone server Next emits; the hosted targets
+// do not. ADR 0001 deploys to Vercel and the demo runs through
+// @netlify/plugin-nextjs, and both want the default output -- standalone would
+// leave their adapters copying a server they never start. So the Dockerfile
+// asks for it by environment rather than every build producing it.
+const standalone = process.env.CLOCKWORK_NEXT_STANDALONE === "1";
 
 const config: NextConfig = {
   // Next dev must not generate source files during clean release qualification.
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1"],
   distDir: process.env.CLOCKWORK_NEXT_DIST_DIR ?? ".next",
+  // Absent rather than set to undefined: `exactOptionalPropertyTypes` is on, so
+  // `output: undefined` is a different thing from no `output` and Next's type
+  // rejects it.
+  //
+  // `outputFileTracingRoot` names the workspace root rather than leaving Next
+  // to infer one. Inference reads the lockfiles it can find, and in a pnpm
+  // monorepo it can settle on `apps/web`, which leaves every `packages/*`
+  // dependency out of the traced tree and the standalone server unable to
+  // resolve them at startup.
+  ...(standalone
+    ? {
+        output: "standalone" as const,
+        outputFileTracingRoot: join(import.meta.dirname, "../.."),
+      }
+    : {}),
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: [
