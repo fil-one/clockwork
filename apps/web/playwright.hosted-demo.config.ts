@@ -31,8 +31,11 @@ const artifactRoot = path.resolve(
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "demo.spec.ts",
-  // Local visual baselines deliberately wait for the development HMR runtime.
-  // Hosted qualification reuses every transaction journey and its a11y checks.
+  // The visual baselines were reviewed on the pinned macOS runner against the
+  // release shard's fixture state, and this site serves shared demo state that
+  // anyone with the password can have changed. Hosted qualification therefore
+  // takes every transaction journey and its a11y checks, and leaves the
+  // screenshots to the release shard.
   grepInvert: /visual demo/,
   fullyParallel: false,
   forbidOnly: true,

@@ -21,11 +21,15 @@ from the candidate migrations/seed, use its own database URLs, and stop it in
 `finally`. CI shards run in separate machines and publish the same isolation
 contract for the join validator.
 
-The UI shard explicitly selects the non-production `demo` adapter. The proof
-shard explicitly selects the database adapter, production environment, canonical
-localhost origin, production build directory, and release-proof authentication.
-Persona headers, account headers, route interception, and first-party page
-mocking are forbidden in proof.
+The UI shard explicitly selects the non-production `demo` adapter and drives a
+development server, because its journeys authenticate by persona header. The
+demo shard builds the application into its own output directory and serves that
+build, with the demo deploy opt-in and canonical origin a built server requires:
+nothing compiles while its journeys run, which is what the deployed demo does
+too. The proof shard explicitly selects the database adapter, production
+environment, canonical localhost origin, production build directory, and
+release-proof authentication. Persona headers, account headers, route
+interception, and first-party page mocking are forbidden in proof.
 
 ## Assertion and artifact equivalence
 

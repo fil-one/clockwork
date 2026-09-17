@@ -118,11 +118,13 @@ personas, order/PDF, finance, cloning/import, scheduled pricing, policies,
 customer trial/conversion/cancellation handoff, partners, settings, sandbox
 payments and reset against the packaged deployment. It uses the existing remote
 server and resets shared fictional data. The local demo suite contains 21
-journeys: these 17 transactional cases plus four development-only visual cases.
-The visual cases stay in local qualification; their HMR readiness check does not
-apply to a production build. Hosted authentication traces are disabled to avoid
-retaining the real access password. The target is restricted to this demo's
-canonical or deploy-specific Netlify origin.
+journeys: these 17 transactional cases plus four visual cases. The visual cases
+stay in local qualification: their baselines were reviewed against the release
+shard's fixture state on the pinned macOS runner, and the hosted site serves the
+shared demo state that anyone with the password can have changed. Hosted
+authentication traces are disabled to avoid retaining the real access password.
+The target is restricted to this demo's canonical or deploy-specific Netlify
+origin.
 
 After it passes, publish that same verified deployment with Netlify's
 [`restoreSiteDeploy` operation](https://open-api.netlify.com/#operation/restoreSiteDeploy):
