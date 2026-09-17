@@ -23,10 +23,16 @@ export
 endif
 
 # One state bucket per account. The app root reads the shared root's state
-# from the same bucket.
+# from the same bucket. The bucket's region is its own setting: production's
+# bucket predates this deployment and lives in us-west-2 while the stage is
+# in us-east-2. Empty counts as unset, since CI passes every variable.
 TF_STATE_BUCKET ?= filone-terraform-state-$(TF_VAR_allowed_account_id)
+ifeq ($(strip $(TF_STATE_REGION)),)
+TF_STATE_REGION := $(TF_VAR_region)
+endif
 export TF_VAR_shared_state_bucket := $(TF_STATE_BUCKET)
-BACKEND_CONFIG = -backend-config="bucket=$(TF_STATE_BUCKET)" -backend-config="region=$(TF_VAR_region)"
+export TF_VAR_shared_state_region := $(TF_STATE_REGION)
+BACKEND_CONFIG = -backend-config="bucket=$(TF_STATE_BUCKET)" -backend-config="region=$(TF_STATE_REGION)"
 
 # Must match cpu_architecture in app/variables.tf (ARM64).
 PLATFORM ?= linux/arm64

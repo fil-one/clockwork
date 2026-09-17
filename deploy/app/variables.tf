@@ -46,6 +46,11 @@ variable "shared_state_bucket" {
   type        = string
 }
 
+variable "shared_state_region" {
+  description = "region of that bucket; the Makefile derives it from TF_STATE_REGION"
+  type        = string
+}
+
 variable "cpu_architecture" {
   description = "Fargate architecture; must match the image the Makefile builds (PLATFORM)"
   type        = string

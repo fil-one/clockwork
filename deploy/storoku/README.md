@@ -18,11 +18,11 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
 ## Patches carried over from storage-qualification
 
 1. `app/remote.tf` reads the shared state location from `shared_state_bucket`,
-   `shared_state_key` and `region` (declared in `app/variables.tf` with no
-   defaults) instead of Storacha's hard-coded bucket and region. `var.appState`
-   is unused but stays declared so the module interface matches upstream.
-   storage-qualification's copy of this patch left the region at `us-west-2`;
-   here the state lives in `us-east-2`.
+   `shared_state_key` and `shared_state_region` (declared in `app/variables.tf`
+   with no defaults) instead of Storacha's hard-coded bucket and region.
+   `var.appState` is unused but stays declared so the module interface matches
+   upstream. storage-qualification's copy of this patch left the region at
+   `us-west-2`; here the state lives in `us-east-2`.
 2. `deployment/ecs_task.tf` adds `dynamodb:ConditionCheckItem` to the task
    role's table policy. Inert here (no tables).
 3. `ga/main.tf`: `client_ip_preservation_enabled = true` on the accelerator

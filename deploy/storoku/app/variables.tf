@@ -191,7 +191,7 @@ variable "shared_state_bucket" {
   type        = string
 }
 
-variable "region" {
+variable "shared_state_region" {
   description = "region of the shared state bucket"
   type        = string
 }

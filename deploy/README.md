@@ -74,7 +74,11 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
    ```
 
 2. `cp .env.terraform.tpl .env.terraform` and set the account's values (the
-   template carries staging's, with production's in a comment).
+   template carries staging's, with production's in a comment). Production's
+   state bucket predates this deployment and lives in `us-west-2`, which is what
+   `TF_STATE_REGION` is for; the stage itself is in `us-east-2`. Production's
+   state bucket predates this deployment and lives in `us-west-2`, which is what
+   `TF_STATE_REGION` is for; the stage itself is in `us-east-2`.
 
 3. Put the supplied secrets in
    `~/.config/fil-one/clockwork/<workspace>.secrets.env`, mode 0600, one
@@ -114,17 +118,19 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
 6. Create the GitHub environment (`staging` or `production`) under the
    repository's settings and set:
 
-   | Variable                                  | Value                                                     |
-   | ----------------------------------------- | --------------------------------------------------------- |
-   | `AWS_ROLE_ARN`                            | the `github_deploy_role_arn` output of step 4             |
-   | `AWS_ACCOUNT_ID`                          | the account id                                            |
-   | `AWS_REGION`                              | `us-east-2`                                               |
-   | `TF_STATE_BUCKET`                         | the bucket from step 1                                    |
-   | `CLOCKWORK_HOSTNAME`                      | the stage's hostname                                      |
-   | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`        | the staff email domains, comma separated                  |
-   | `CLOCKWORK_PLATFORM_ISSUER_JSON`          | the approved issuing legal entity, one line of JSON       |
-   | `CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR` | the click-through acceptance threshold, in minor units    |
-   | `TRIGGER_PROJECT_REF`                     | the Trigger.dev project, once there is one (may be empty) |
+   | Variable                                  | Value                                                                                 |
+   | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+   | `AWS_ROLE_ARN`                            | the `github_deploy_role_arn` output of step 4                                         |
+   | `AWS_ACCOUNT_ID`                          | the account id                                                                        |
+   | `AWS_REGION`                              | `us-east-2`                                                                           |
+   | `TF_STATE_BUCKET`                         | the bucket from step 1                                                                |
+   | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
+   | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
+   | `CLOCKWORK_HOSTNAME`                      | the stage's hostname                                                                  |
+   | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`        | the staff email domains, comma separated                                              |
+   | `CLOCKWORK_PLATFORM_ISSUER_JSON`          | the approved issuing legal entity, one line of JSON                                   |
+   | `CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR` | the click-through acceptance threshold, in minor units                                |
+   | `TRIGGER_PROJECT_REF`                     | the Trigger.dev project, once there is one (may be empty)                             |
 
    and the same secrets as the file in step 3, under their plain names
    (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID`, `WORKOS_COOKIE_PASSWORD`,
