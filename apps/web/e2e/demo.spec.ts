@@ -3,6 +3,12 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { DEMO_SEED_VERSION } from "@clockwork/testing/demo-seed";
 
+import {
+  expectShellHydrated,
+  gotoHydrated,
+  reloadHydrated,
+} from "./shell-hydration";
+
 /**
  * The demo surfaces exist only behind the deploy opt-in and a configured
  * password, which the `demo` release shard mints per run. Release
@@ -240,38 +246,6 @@ async function resetDemoData(page: Page) {
     redirected: false,
     receipt: { target: "demo", seedVersion: DEMO_SEED_VERSION },
   });
-}
-
-/**
- * A visible control is server-rendered markup. Its click handler exists only
- * once React has attached, and a click or a fill issued before that is written
- * to markup no component is listening to and is silently lost: the surface
- * never changes, and the next expectation waits out its whole budget for a
- * confirmation nothing is producing. Three consecutive `demo` shards on main
- * failed that way, a different journey each time, all of them at a
- * `toBeVisible` on the result of an interaction rather than at the interaction
- * itself. The shell sets `data-hydrated` from a mount effect, so it is the
- * signal that the handlers exist.
- *
- * Every document load needs it: a `goto`, a `reload`, and the persona redirect
- * that lands on a fresh surface. A client transition inside the shell does not,
- * because React renders and attaches that surface in one commit.
- */
-async function expectShellHydrated(page: Page) {
-  await expect(page.locator(".experience-shell")).toHaveAttribute(
-    "data-hydrated",
-    "true",
-  );
-}
-
-async function gotoHydrated(page: Page, destination: string) {
-  await page.goto(destination);
-  await expectShellHydrated(page);
-}
-
-async function reloadHydrated(page: Page) {
-  await page.reload();
-  await expectShellHydrated(page);
 }
 
 /**

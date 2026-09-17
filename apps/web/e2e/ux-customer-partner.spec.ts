@@ -2,6 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
+import { gotoHydrated, reloadHydrated } from "./shell-hydration";
+
 // These journeys change the demo persona header between customer and partner
 // sessions, so keeping this feature file serial avoids cross-route compilation
 // and navigation races in the local Next development server.
@@ -44,7 +46,7 @@ test("owner dashboard leads with decisions and one commercial term", async ({
   page,
 }) => {
   await usePersona(page, "owner");
-  await page.goto("/dashboard");
+  await gotoHydrated(page, "/dashboard");
 
   await expect(
     page.getByRole("heading", { name: "Needs attention" }),
@@ -114,7 +116,7 @@ test("owner creates a priced draft from the session account", async ({
     });
   });
 
-  await page.goto("/quotes/new");
+  await gotoHydrated(page, "/quotes/new");
   await expect(
     page.getByRole("heading", { level: 1, name: "Create a quote" }),
   ).toBeVisible();
@@ -205,7 +207,7 @@ test("Buy preserves capacity routing and pricing-review boundaries at desktop an
     { width: 320, height: 800 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/buy");
+    await gotoHydrated(page, "/buy");
     await expect(
       page.getByRole("heading", { level: 1, name: "Buy storage" }),
     ).toBeVisible();
@@ -344,7 +346,7 @@ test("order acceptance requires an explicit attestation before it binds", async 
     accepted = true;
     await route.abort();
   });
-  await page.goto("/orders/accept");
+  await gotoHydrated(page, "/orders/accept");
   await page.getByRole("textbox", { name: "Purchase order" }).fill("PO-77120");
   await page.getByRole("textbox", { name: "Service start" }).fill("2026-09-01");
   await page.getByRole("textbox", { name: "Service end" }).fill("2027-08-31");
@@ -366,7 +368,7 @@ test("offboarding review reflects the selected named service", async ({
   page,
 }) => {
   await usePersona(page, "owner");
-  await page.goto("/account/offboarding");
+  await gotoHydrated(page, "/account/offboarding");
   await expect(
     page.getByRole("heading", { level: 1, name: "Review service offboarding" }),
   ).toBeVisible();
@@ -414,7 +416,7 @@ test("billing prepares a safe provider handoff while payment truth stays webhook
     });
   });
 
-  await page.goto("/billing/INV-2026-0781");
+  await gotoHydrated(page, "/billing/INV-2026-0781");
   await expect(
     page.getByText("Awaiting provider confirmation").first(),
   ).toBeVisible();
@@ -460,7 +462,7 @@ test("partner seller can search the named portfolio but cannot open partner bill
     desk.getByRole("heading", { name: "Commercial boundary" }),
   ).toBeVisible();
 
-  await page.goto("/partner/portfolio");
+  await gotoHydrated(page, "/partner/portfolio");
   const search = page.getByPlaceholder("Search end clients");
   await search.fill("Halcyon");
   await page.getByRole("button", { name: "Apply" }).click();
@@ -521,14 +523,14 @@ test("partner collection state survives reload and browser history", async ({
   page,
 }) => {
   await usePersona(page, "partner_admin");
-  await page.goto("/partner/portfolio");
+  await gotoHydrated(page, "/partner/portfolio");
   const filters = page.getByRole("form", { name: "Filters" });
   const search = filters.getByRole("searchbox", { name: "Search" });
   await search.fill("Halcyon");
   await filters.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(/q=Halcyon/);
 
-  await page.reload();
+  await reloadHydrated(page);
   await expect(search).toHaveValue("Halcyon");
   await filters
     .getByRole("combobox", { name: "Risk", exact: true })
@@ -590,7 +592,7 @@ test("partner admin reviews financial boundaries before any renewal request", as
   page,
 }) => {
   await usePersona(page, "partner_admin");
-  await page.goto("/partner/renewals");
+  await gotoHydrated(page, "/partner/renewals");
   await page
     .getByRole("button", { name: "Review Halcyon Research Cooperative" })
     .click();

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { gotoHydrated } from "./shell-hydration";
+
 /**
  * Keyboard and assistive-technology behaviour that a scanner cannot see.
  *
@@ -48,7 +50,7 @@ test.describe("keyboard wayfinding", () => {
   test("the skip link moves focus into the main landmark, not just the scroll position", async ({
     page,
   }) => {
-    await page.goto("/internal/queues");
+    await gotoHydrated(page, "/internal/queues");
     await expect(
       page.getByRole("heading", { level: 1, name: "Operational queues" }),
     ).toBeVisible();
@@ -69,7 +71,7 @@ test.describe("keyboard wayfinding", () => {
   });
 
   test("a client transition announces the destination", async ({ page }) => {
-    await page.goto("/internal");
+    await gotoHydrated(page, "/internal");
     const live = page.locator(".cw-shell__banner [aria-live='polite']");
     await expect(live).toHaveCount(1);
 
@@ -135,7 +137,7 @@ test.describe("operator search input", () => {
   test("keeps every character typed into the queue filter", async ({
     page,
   }) => {
-    await page.goto("/internal/queues");
+    await gotoHydrated(page, "/internal/queues");
     const field = page.getByLabel("Search work");
     await field.click();
     await field.pressSequentially("collections", { delay: 25 });
@@ -148,7 +150,7 @@ test.describe("operator search input", () => {
   test("moves real focus through global search results and claims no virtual cursor", async ({
     page,
   }) => {
-    await page.goto("/internal/search?q=collections");
+    await gotoHydrated(page, "/internal/search?q=collections");
     const field = page.getByRole("searchbox", {
       name: "Search accounts, records, and documents",
     });
