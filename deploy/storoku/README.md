@@ -106,3 +106,9 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     set. Clockwork's migration task runs as the master user and creates the
     database itself (`deploy/docker/migrate.sh`), which leaves nothing in the
     private subnets that needs Secrets Manager.
+18. **Database sizing inputs and quieter logs.** `app/variables.tf` gains
+    `db_instance_class`, `db_multi_az`, `db_allocated_storage` and
+    `db_performance_insights_retention_period` (all null, meaning upstream's
+    choice by stage); `app/postgres.tf` applies them. `postgres/main.tf`'s
+    parameter group logs DDL and statements over one second instead of every
+    statement at one millisecond, which billed each query to CloudWatch.

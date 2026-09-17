@@ -237,6 +237,30 @@ variable "db_provisioner" {
   default     = true
 }
 
+variable "db_instance_class" {
+  description = "RDS instance class; null keeps upstream's choice by stage"
+  type        = string
+  default     = null
+}
+
+variable "db_multi_az" {
+  description = "RDS multi-AZ; null keeps upstream's choice by stage"
+  type        = bool
+  default     = null
+}
+
+variable "db_allocated_storage" {
+  description = "RDS storage in GB; null keeps upstream's choice by stage"
+  type        = number
+  default     = null
+}
+
+variable "db_performance_insights_retention_period" {
+  description = "Performance Insights retention in days (7 is the free tier); null keeps upstream's choice by stage"
+  type        = number
+  default     = null
+}
+
 variable "db_bastion" {
   description = "create the SSH bastion host beside the database"
   type        = bool

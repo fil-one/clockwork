@@ -40,9 +40,11 @@ The app stack (`app/`, workspace `staging` or `prod`):
   by CodeDeploy with rollback on failure. Staging runs 0.5 vCPU / 1 GB, one to
   two tasks; production 1 vCPU / 2 GB, one to four
 - RDS PostgreSQL 17: staging `db.t4g.micro`, single-AZ, 20 GB; production
-  `db.t4g.large`, multi-AZ, 100 GB. Encrypted, TLS required, seven daily
-  backups, a final snapshot on destroy, deletion protection on, the master
-  password in Secrets Manager rotated every fifteen days
+  `db.t4g.medium`, single-AZ, 50 GB (`production_db_*` variables in
+  `app/variables.tf`; multi-AZ is one of them). Encrypted, TLS required, seven
+  daily backups with point-in-time restore, a final snapshot on destroy,
+  deletion protection on, the master password in Secrets Manager rotated every
+  fifteen days
 - the migration task definition, `<workspace>-clockwork-migrate`
 - Secrets Manager entries for every application secret (see [Secrets](#secrets))
 - the S3 evidence bucket `<workspace>-clockwork-evidence`, with Object Lock and
@@ -242,10 +244,11 @@ At `us-east-2` list prices, before data transfer:
 | ---------------------------- | ------- | ---------- |
 | Application load balancer    | $20     | $20        |
 | Fargate, always on, one task | $14     | $29        |
-| RDS PostgreSQL and storage   | $14     | $211       |
+| RDS PostgreSQL and storage   | $14     | $53        |
 | Secrets, KMS keys, logs      | $10     | $10        |
 
-Roughly $60 for staging and $270 for production. Three NAT gateways would add
+Roughly $60 for staging and $110 for production; multi-AZ would add about
+$50 to production. Three NAT gateways would add
 about $100 to each.
 
 ## Still to decide

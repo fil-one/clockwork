@@ -9,13 +9,14 @@ module "databases" {
   app         = var.app
   environment = var.environment
 
+  # upstream sizes by stage; a caller may pin any of the four
   db_config = {
-    allocated_storage                     = local.is_production ? 100 : 20
-    multi_az                              = local.is_production
+    allocated_storage                     = coalesce(var.db_allocated_storage, local.is_production ? 100 : 20)
+    multi_az                              = var.db_multi_az != null ? var.db_multi_az : local.is_production
     proxy                                 = local.is_production && var.rds_proxy
     proxy_user                            = local.is_production && var.rds_proxy ? local.db_username : ""
-    instance_class                        = local.is_production ? "db.t4g.large" : "db.t4g.micro"
-    performance_insights_retention_period = local.is_production ? 31 : 7
+    instance_class                        = coalesce(var.db_instance_class, local.is_production ? "db.t4g.large" : "db.t4g.micro")
+    performance_insights_retention_period = coalesce(var.db_performance_insights_retention_period, local.is_production ? 31 : 7)
     bastion                               = var.db_bastion
   }
 
