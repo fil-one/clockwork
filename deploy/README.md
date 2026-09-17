@@ -76,8 +76,6 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
 2. `cp .env.terraform.tpl .env.terraform` and set the account's values (the
    template carries staging's, with production's in a comment). Production's
    state bucket predates this deployment and lives in `us-west-2`, which is what
-   `TF_STATE_REGION` is for; the stage itself is in `us-east-2`. Production's
-   state bucket predates this deployment and lives in `us-west-2`, which is what
    `TF_STATE_REGION` is for; the stage itself is in `us-east-2`.
 
 3. Put the supplied secrets in
@@ -124,7 +122,6 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
    | `AWS_ACCOUNT_ID`                          | the account id                                                                        |
    | `AWS_REGION`                              | `us-east-2`                                                                           |
    | `TF_STATE_BUCKET`                         | the bucket from step 1                                                                |
-   | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
    | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
    | `CLOCKWORK_HOSTNAME`                      | the stage's hostname                                                                  |
    | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`        | the staff email domains, comma separated                                              |
