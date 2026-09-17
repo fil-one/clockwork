@@ -26,7 +26,14 @@ resource "aws_iam_role" "github_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:${var.github_environment}"
+          # GitHub issues one of two subject shapes: the name-based one, and
+          # the immutable one keyed by owner and repository ids, which newer
+          # repositories (this one) default to. Trust both so a rename or a
+          # change of the repository's subject setting cannot lock CI out.
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.github_repository}:environment:${var.github_environment}",
+            "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repository_name}@${var.github_repository_id}:environment:${var.github_environment}",
+          ]
         }
       }
     }]

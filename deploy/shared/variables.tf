@@ -29,3 +29,25 @@ variable "github_repository" {
   type        = string
   default     = "fil-one/clockwork"
 }
+
+# The immutable subject form names the owner and repository by id. Both ids
+# come from `gh api repos/fil-one/clockwork --jq '[.owner.id, .id]'`.
+variable "github_owner" {
+  type    = string
+  default = "fil-one"
+}
+
+variable "github_owner_id" {
+  type    = string
+  default = "276426624"
+}
+
+variable "github_repository_name" {
+  type    = string
+  default = "clockwork"
+}
+
+variable "github_repository_id" {
+  type    = string
+  default = "1319729323"
+}
