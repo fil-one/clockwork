@@ -2,6 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
+import { gotoHydrated } from "./shell-hydration";
+
 const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
 const OFFER =
   "Fictional immutable storage capacity · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2";
@@ -149,7 +151,7 @@ test("direct buyer sends a protected priced-draft command and receives its recei
     });
   });
 
-  await page.goto("/quotes/new");
+  await gotoHydrated(page, "/quotes/new");
   await expect(
     page.getByRole("heading", { level: 1, name: "Create a quote" }),
   ).toBeVisible();
@@ -235,7 +237,7 @@ test("billing prepares a Stripe handoff while payment truth remains webhook-deri
       }),
     });
   });
-  await page.goto("/billing/INV-2026-0781");
+  await gotoHydrated(page, "/billing/INV-2026-0781");
   await expect(
     page.getByText("Awaiting provider confirmation").first(),
   ).toBeVisible();
@@ -268,7 +270,7 @@ test("internal assisted review names the immutable actor before starting a serve
   await page.setExtraHTTPHeaders({
     "x-clockwork-persona": "internal_operator",
   });
-  await page.goto("/internal/assisted");
+  await gotoHydrated(page, "/internal/assisted");
   await expect(
     page.getByRole("complementary", { name: "Assisted mode active" }),
   ).toHaveCount(0);

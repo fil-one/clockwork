@@ -3,6 +3,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { resetDemoExperience } from "@clockwork/testing/demo-reset";
 import { FileDemoAdapterStateStore } from "@clockwork/testing/demo-state";
 
+import { gotoHydrated } from "./shell-hydration";
+
 /**
  * Queue actions write to the durable demo adapter state, so the record would
  * carry no permitted action on a second run. Restoring the pristine state keeps
@@ -118,7 +120,7 @@ test.describe("internal operator operations journey", () => {
     page,
   }) => {
     await resetDurableDemoState();
-    await page.goto("/internal/queues/EXC-COL-008");
+    await gotoHydrated(page, "/internal/queues/EXC-COL-008");
     await expect(
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
@@ -140,6 +142,9 @@ test.describe("internal operator operations journey", () => {
     page,
   }) => {
     await resetDurableDemoState();
+    // The one load here that deliberately does not wait for the shell to
+    // hydrate. Nothing below touches a React handler: the field is uncontrolled
+    // and the submit is the browser's own, which is the whole point.
     await page.goto("/internal/search");
     await page
       .getByRole("searchbox", {
@@ -166,7 +171,7 @@ test.describe("internal operator operations journey", () => {
     // projection. Reset at the fixture-dependent test boundary so a failed or
     // interrupted sibling cannot make search results depend on execution order.
     await resetDurableDemoState();
-    await page.goto("/internal/search");
+    await gotoHydrated(page, "/internal/search");
     await expect(
       page.getByRole("heading", { level: 1, name: "Global search" }),
     ).toBeVisible();
@@ -204,7 +209,7 @@ test.describe("internal operator operations journey", () => {
     await expect(page.getByText(/Activation is fail-closed/)).toBeVisible();
     await expectAxeClean(page);
 
-    await page.goto("/internal/assisted");
+    await gotoHydrated(page, "/internal/assisted");
     await expect(page.getByLabel("Assisted mode active")).toHaveCount(0);
     await expect(
       page.getByText("The staff actor never changes."),
@@ -232,7 +237,7 @@ test.describe("internal operator operations journey", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 800 });
-    await page.goto("/internal");
+    await gotoHydrated(page, "/internal");
     const trigger = page.getByRole("button", { name: "Open navigation" });
     await expectTouchTarget(trigger);
     await trigger.click();
@@ -300,7 +305,7 @@ test.describe("finance approver journey", () => {
   }) => {
     await resetDurableDemoState();
     try {
-      await page.goto("/internal/approvals");
+      await gotoHydrated(page, "/internal/approvals");
       await expect(
         page.getByRole("heading", { level: 1, name: "Approval decisions" }),
       ).toBeVisible();
