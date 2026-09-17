@@ -1,7 +1,7 @@
-import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 import { z } from "zod";
 
 import type { LifecycleTaskInvocation } from "../onboarding/trigger-runtime";
+import { resolveTaskSubmitter, type TaskSubmitter } from "../tasks/submitter";
 import type { OutboxTopicHandler } from "./outbox-dispatcher";
 
 const EventEnvelopeSchema = z.object({
@@ -57,17 +57,19 @@ function payloadCarryingInvocationKey(
  * slow provisioning call starve every message behind it, and collapses a
  * hundred effects into a single provider run the runbooks cannot search.
  */
-export class TriggerLifecycleTaskSubmitter implements LifecycleTaskSubmissionPort {
-  public async submit(invocation: LifecycleTaskInvocation): Promise<unknown> {
-    const idempotencyKey = await idempotencyKeys.create(
-      invocation.idempotencyKey,
-      { scope: "global" },
-    );
-    return tasks.trigger(
-      invocation.taskId,
-      payloadCarryingInvocationKey(invocation),
-      { idempotencyKey },
-    );
+export class QueuedLifecycleTaskSubmitter implements LifecycleTaskSubmissionPort {
+  private readonly submitter: TaskSubmitter;
+
+  public constructor(submitter: TaskSubmitter = resolveTaskSubmitter()) {
+    this.submitter = submitter;
+  }
+
+  public submit(invocation: LifecycleTaskInvocation): Promise<unknown> {
+    return this.submitter.submit({
+      taskId: invocation.taskId,
+      payload: payloadCarryingInvocationKey(invocation),
+      idempotencyKey: invocation.idempotencyKey,
+    });
   }
 }
 

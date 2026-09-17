@@ -224,3 +224,9 @@ variable "cpu_architecture" {
   type        = string
   default     = "ARM64"
 }
+
+variable "stop_timeout" {
+  description = "seconds a container gets between SIGTERM and SIGKILL. Raise it for an app that drains work on shutdown."
+  type        = number
+  default     = 30
+}

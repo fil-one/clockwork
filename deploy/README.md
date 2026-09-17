@@ -49,6 +49,42 @@ The app stack (`app/`, workspace `staging` or `prod`):
   versioning, which the evidence store requires
 - a CloudWatch log group, `<workspace>-clockwork-ecs-cluster-log`, kept 14 days
   in staging and a year in production
+- the background-task queue, its scheduler and its alarm (see
+  [Background tasks](#background-tasks))
+
+## Background tasks
+
+Every background task — the outbox dispatcher, the lifecycle tasks, the crons —
+runs in the deployment's own account. Four pieces:
+
+- **The queue.** `<workspace>-clockwork-workflows.fifo`, FIFO with
+  high-throughput mode. The message group is the task id, so one task's messages
+  stay ordered while different tasks run in parallel. A message is leased for
+  300 seconds and a run that outlives its lease extends it; eight failed
+  receives move it to `<workspace>-clockwork-workflows-deadletter.fifo`.
+- **The scheduler.** One EventBridge Scheduler rule per cron, in the
+  `<workspace>-clockwork-tasks` group, built from `app/schedule-manifest.json`.
+  That file is generated from the task registry by `pnpm generate:schedules`, so
+  a task's cron is declared in TypeScript next to the task and
+  `pnpm check:generated` fails a build whose manifest has drifted. Each rule
+  sends `{ taskId, scheduledAt }` to the queue under a role that can do nothing
+  but send to that one queue.
+- **The poller.** In the web container, not a separate service: it receives from
+  the queue, looks the task up in the registry, runs it, and deletes the
+  message. A failure returns the message with the backoff the task's retry
+  policy asks for. `CLOCKWORK_TASK_POLL_CONCURRENCY` (default 4) caps the runs
+  in flight.
+- **The alarm.** Any message on the dead-letter queue raises
+  `<workspace>-clockwork-workflows-dead-letter` to the `workflow-alarms` SNS
+  topic. A task only lands there after eight receives, so the alarm means a task
+  that keeps failing, not a task that failed.
+
+`task_runtime` chooses the host. It defaults to `sqs`, the arrangement above,
+and passes `CLOCKWORK_TASK_RUNTIME` to the container. Set it to `trigger` and
+the same tasks run in Trigger.dev Cloud instead, submitted with
+`TRIGGER_SECRET_KEY`; the queue and schedules still exist but nothing reads
+them. Task code is identical either way (see
+[ADR 0010](../docs/adr/0010-vendor-neutral-task-runtime.md)).
 
 ## One-time bootstrap
 
@@ -250,13 +286,6 @@ about $100 to each.
 
 ## Still to decide
 
-- **Trigger.dev.** The workflow worker runs in Trigger.dev Cloud, deployed with
-  the Trigger CLI, and connects to the database on `DIRECT_DATABASE_URL`. The
-  database here is reachable only inside the VPC, so the worker cannot run
-  against it as-is. Until that is settled (a public endpoint with a restricted
-  security group, or self-hosting) the portal serves reads and writes but
-  nothing scheduled runs: the outbox dispatcher and every cron are Trigger
-  tasks.
 - **The evidence service.** The evidence bucket exists with Object Lock and the
   task role can use it, but only the API's artifact reader touches it. Writing
   evidence and verifying the bucket's configuration belong to the evidence

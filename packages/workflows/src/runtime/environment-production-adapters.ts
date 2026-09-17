@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 
 import {
   DatabaseCrmAccountRecordStore,
@@ -37,10 +36,11 @@ import {
   type RuntimeBoundaryInstrumentation,
 } from "@clockwork/integrations";
 
+import { resolveTaskSubmitter, type TaskSubmitter } from "../tasks/submitter";
 import type {
   ProductionWorkflowAdapterFactory,
-  TriggerWorkerEnvironmentSource,
-} from "./trigger-worker-bootstrap";
+  WorkflowRuntimeEnvironmentSource,
+} from "./workflow-runtime";
 import type {
   CommercialArtifactParty,
   CommercialArtifactRenderer,
@@ -168,7 +168,7 @@ export class WorkflowEnvironmentAdapterConfigurationError extends Error {
 }
 
 function required(
-  source: TriggerWorkerEnvironmentSource,
+  source: WorkflowRuntimeEnvironmentSource,
   name: string,
   gate: string,
 ): string {
@@ -179,7 +179,7 @@ function required(
 }
 
 function json<T>(
-  source: TriggerWorkerEnvironmentSource,
+  source: WorkflowRuntimeEnvironmentSource,
   name: string,
   gate: string,
   schema: z.ZodType<T>,
@@ -192,19 +192,24 @@ function json<T>(
   }
 }
 
-class TriggerCoreWorkflowTaskSubmitter implements CoreWorkflowTaskSubmitter {
-  public async submit(
-    input: Parameters<CoreWorkflowTaskSubmitter["submit"]>[0],
-  ) {
-    const idempotencyKey = await idempotencyKeys.create(input.idempotencyKey, {
-      scope: "global",
+class QueuedCoreWorkflowTaskSubmitter implements CoreWorkflowTaskSubmitter {
+  private readonly submitter: TaskSubmitter;
+
+  public constructor(submitter: TaskSubmitter = resolveTaskSubmitter()) {
+    this.submitter = submitter;
+  }
+
+  public submit(input: Parameters<CoreWorkflowTaskSubmitter["submit"]>[0]) {
+    return this.submitter.submit({
+      taskId: input.taskId,
+      payload: input.payload,
+      idempotencyKey: input.idempotencyKey,
     });
-    return tasks.trigger(input.taskId, input.payload, { idempotencyKey });
   }
 }
 
 function transport(
-  source: TriggerWorkerEnvironmentSource,
+  source: WorkflowRuntimeEnvironmentSource,
   prefix: string,
   provider: string,
   gate: string,
@@ -229,9 +234,9 @@ function transport(
     : inner;
 }
 
-/** Builds the default Trigger worker composition exclusively from registered env inputs. */
+/** Builds the default worker composition exclusively from registered env inputs. */
 export function createEnvironmentWorkflowAdapterFactory(
-  source: TriggerWorkerEnvironmentSource,
+  source: WorkflowRuntimeEnvironmentSource,
   instrumentation?: RuntimeBoundaryInstrumentation,
   telemetry?: ClockworkTelemetry,
   capabilityProfile?: WorkflowCapabilityProfile,
@@ -415,7 +420,7 @@ export function createEnvironmentWorkflowAdapterFactory(
       "AUTHORIZATION_CONTEXT_SECRET",
       "EXT-ACC-01",
     ),
-    coreTaskSubmitter: new TriggerCoreWorkflowTaskSubmitter(),
+    coreTaskSubmitter: new QueuedCoreWorkflowTaskSubmitter(),
     ...(capabilityProfile
       ? { activationGateKeys: capabilityProfile.gateKeys }
       : {}),

@@ -15,7 +15,7 @@ the demo.
 | Migrations      | Reviewed SQL under `supabase/migrations` is canonical and append-only; pgTAP tests run against a from-zero rebuild                                |
 | Identity        | WorkOS AuthKit; authorization enforced in the API and domain layers, with row-level security as defense in depth                                  |
 | Payments        | Stripe as the billing and payments engine                                                                                                         |
-| Workflows       | Trigger.dev for durable jobs, schedules, waits, bounded retries, and idempotency                                                                  |
+| Workflows       | Durable jobs, schedules, waits, bounded retries and idempotency, on Trigger.dev or on SQS (`CLOCKWORK_TASK_RUNTIME`)                              |
 | Documents       | React PDF, deterministic output, immutable S3-style evidence storage                                                                              |
 | Everything else | E-signature, CRM, provisioning, accounting, screening, support, and marketplaces cross **typed provider ports** with behaviorally realistic fakes |
 
@@ -35,7 +35,7 @@ clockwork/
 ├── packages/domain/           # Pure state machines and commerce rules
 ├── packages/db/               # Drizzle schema, repositories, transactions, outbox
 ├── packages/integrations/     # Stripe, WorkOS, e-sign, CRM, accounting adapters
-├── packages/workflows/        # Trigger.dev workflows and schedules
+├── packages/workflows/        # Background tasks, workflows and schedules
 ├── packages/documents/        # Quotes, order forms, statements, certificates
 ├── packages/ui/               # Design system and Storybook
 ├── packages/testing/          # Fakes, fixtures, personas, builders, demo reset
@@ -90,6 +90,8 @@ deterministic fakes rather than live providers. A few worth knowing:
 | `DIRECT_DATABASE_URL`                             | Accepted by migration tooling only, never by the runtime                              |
 | `AUTHORIZATION_CONTEXT_SECRET` / `..._SECRET_ID`  | Signs the tenant authorization context; supports overlap-safe rotation                |
 | `CLOCKWORK_EXPERIENCE_ADAPTER`                    | `database` for real data, `demo` for deterministic fixtures                           |
+| `CLOCKWORK_TASK_RUNTIME`                          | `trigger` for Trigger.dev Cloud, `sqs` for the queue and in-process poller            |
+| `WORKFLOWS_QUEUE_ID`                              | The task queue URL, injected by the deployment; read by the `sqs` runtime only        |
 
 Production never uses `postgres` or `service_role`; runtime roles are
 `NOBYPASSRLS`, and browser bundles receive no database credentials. See

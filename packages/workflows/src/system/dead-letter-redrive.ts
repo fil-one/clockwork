@@ -1,5 +1,4 @@
-import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
-
+import { resolveTaskSubmitter, type TaskSubmitter } from "../tasks/submitter";
 import {
   executeLifecycleTask,
   lifecycleTaskRedrive,
@@ -64,9 +63,9 @@ export type DeadLetterRedriveResult =
 
 /**
  * Web/API submission boundary, matching the external-gate activation
- * submitter. The durable runtime is activated in the Trigger worker, so a
- * server action reaches a lifecycle task through the queue rather than by
- * executing it in the request process.
+ * submitter. The durable runtime is activated in whichever process hosts the
+ * tasks, so a server action reaches a lifecycle task through the queue rather
+ * than by executing it in the request process.
  *
  * The worker rebuilds its own invocation from the payload, which is why replay
  * authority does not survive the queue hop. It does not need to: the recovery
@@ -74,14 +73,18 @@ export type DeadLetterRedriveResult =
  * requires a replay marker is not the one this re-entry takes, and the operator
  * and reason are already on the audit decision.
  */
-export class TriggerLifecycleRedriveSubmitter implements LifecycleTaskSubmissionPort {
-  public async submit(invocation: LifecycleTaskInvocation): Promise<unknown> {
-    const idempotencyKey = await idempotencyKeys.create(
-      invocation.idempotencyKey,
-      { scope: "global" },
-    );
-    return tasks.trigger(invocation.taskId, invocation.payload, {
-      idempotencyKey,
+export class QueuedLifecycleRedriveSubmitter implements LifecycleTaskSubmissionPort {
+  private readonly submitter: TaskSubmitter;
+
+  public constructor(submitter: TaskSubmitter = resolveTaskSubmitter()) {
+    this.submitter = submitter;
+  }
+
+  public submit(invocation: LifecycleTaskInvocation): Promise<unknown> {
+    return this.submitter.submit({
+      taskId: invocation.taskId,
+      payload: invocation.payload,
+      idempotencyKey: invocation.idempotencyKey,
     });
   }
 }
@@ -92,8 +95,8 @@ export class TriggerLifecycleRedriveSubmitter implements LifecycleTaskSubmission
  * and never reaches here.
  *
  * The default submission executes the task in this process, which only works
- * inside the Trigger worker. A caller in the web or API process passes
- * `TriggerLifecycleRedriveSubmitter`.
+ * inside the task host. A caller in the web or API process passes
+ * `QueuedLifecycleRedriveSubmitter`.
  */
 export async function submitDeadLetterRedrive(
   dispatch: DeadLetterRedriveDispatch,

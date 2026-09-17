@@ -1,6 +1,4 @@
-import { schedules } from "@trigger.dev/sdk";
-
-import { durableRetryPolicy } from "../policy";
+import { defineScheduledTask } from "../tasks/definition";
 import {
   coreScheduleDefinitions,
   submitCoreScheduleOccurrence,
@@ -17,19 +15,15 @@ type CoreScheduleDefinitionId = (typeof coreScheduleDefinitions)[number]["id"];
 function defineCoreSchedule(id: CoreScheduleDefinitionId) {
   const definition = coreScheduleDefinitions.find((entry) => entry.id === id);
   if (!definition) throw new Error(`CORE_SCHEDULE_NOT_DEFINED:${id}`);
-  return schedules.task({
+  return defineScheduledTask({
     id: definition.id,
-    cron: {
-      pattern: definition.cron,
-      timezone: "UTC",
-      environments: ["STAGING", "PRODUCTION"],
-    },
-    retry: durableRetryPolicy,
-    run: (payload, { ctx }) =>
+    cron: definition.cron,
+    stages: ["staging", "production"],
+    run: (payload, ctx) =>
       submitCoreScheduleOccurrence({
         scheduleId: definition.id,
-        scheduledAt: payload.timestamp.toISOString(),
-        triggerRunId: ctx.run.id,
+        scheduledAt: payload.scheduledAt,
+        triggerRunId: ctx.runId,
       }),
   });
 }

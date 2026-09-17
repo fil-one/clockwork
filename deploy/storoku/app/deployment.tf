@@ -32,4 +32,5 @@ module "deployment" {
   env_files        = module.env_files
   public_tasks     = var.public_tasks
   cpu_architecture = var.cpu_architecture
+  stop_timeout     = var.stop_timeout
 }

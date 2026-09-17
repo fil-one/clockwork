@@ -106,3 +106,20 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     set. Clockwork's migration task runs as the master user and creates the
     database itself (`deploy/docker/migrate.sh`), which leaves nothing in the
     private subnets that needs Secrets Manager.
+18. **Configurable queue visibility and redrive, and dead-letter outputs.**
+    `sqs/variables.tf` gains `visibility_timeout_seconds` (default 300, the
+    upstream value) and `max_receive_count` (default 4, the upstream value);
+    `sqs/main.tf` uses both, and the visibility timeout now applies to FIFO
+    queues as well, where upstream left it null and took the 30-second account
+    default. `sqs/outputs.tf` adds `dead_letter_id` and `dead_letter_arn`.
+    `app/variables.tf` queue entries accept both settings and `app/sqs.tf`
+    passes them. The workflows queue runs tasks that take minutes, and its
+    dead-letter queue is what the workflow alarm watches
+    (`deploy/app/alarms.tf`).
+19. **Container stop timeout.** `deployment/variables.tf` gains `stop_timeout`
+    (default 30, the upstream Fargate value); `deployment/ecs_task.tf` sets it
+    as `stopTimeout` on the container, and `app/variables.tf` and
+    `app/deployment.tf` pass it through. The web container hosts the task
+    poller, and on SIGTERM it stops receiving and waits up to 100 seconds for
+    the runs in flight before exiting (`apps/web/src/task-host.ts`); the root
+    passes 120 so Fargate does not kill the container mid-drain.

@@ -20,6 +20,7 @@ resource "aws_ecs_task_definition" "app" {
       cpu                   = var.config.cpu
       memory                 = var.config.memory
       essential              = true
+      stopTimeout            = var.stop_timeout
       readonlyRootFilesystem = var.config.readonly
       portMappings = [
         {

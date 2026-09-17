@@ -47,7 +47,8 @@ import {
   WorkosWebhookVerifier,
 } from "@clockwork/integrations";
 import { denialSpanAttributes } from "@clockwork/integrations/telemetry";
-import { TriggerExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
+import { QueuedExternalGateActivationTaskSubmitter } from "@clockwork/workflows/system";
+import { taskSubmitterConfigured } from "@clockwork/workflows/tasks";
 
 import { withRawApiAuthentication } from "@/src/auth/raw-api-boundary";
 import { WorkosNextSessionResolver } from "@/src/auth/session";
@@ -162,10 +163,9 @@ const externalGateActivationTests = createExternalGateActivationSimulator({
 const externalGateAdministration = serviceDatabase
   ? {
       exceptionRoster: new DatabaseExceptionRosterAdminService(serviceDatabase),
-      ...(configuredEnvironment("TRIGGER_SECRET_KEY") &&
-      configuredEnvironment("TRIGGER_PROJECT_REF")
+      ...(taskSubmitterConfigured(process.env)
         ? {
-            activationTasks: new TriggerExternalGateActivationTaskSubmitter(),
+            activationTasks: new QueuedExternalGateActivationTaskSubmitter(),
           }
         : {}),
     }

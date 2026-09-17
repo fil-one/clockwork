@@ -1,21 +1,18 @@
-import { task } from "@trigger.dev/sdk";
 import { WEBHOOK_REPLAY_TASK_ID } from "@clockwork/db";
 import { z } from "zod";
 
-import { durableRetryPolicy } from "../policy";
+import { defineTask } from "../tasks/definition";
 import { executeConfiguredWebhookReplay } from "./runtime";
 
 const PayloadSchema = z.object({ workflowRunId: z.uuid() }).strict();
 
-export const webhookReplayTask = task({
+export const webhookReplayTask = defineTask({
   id: WEBHOOK_REPLAY_TASK_ID,
-  retry: durableRetryPolicy,
-  run: (raw: unknown, { ctx }) => {
-    const payload = PayloadSchema.parse(raw);
-    return executeConfiguredWebhookReplay({
+  schema: PayloadSchema,
+  run: (payload, ctx) =>
+    executeConfiguredWebhookReplay({
       workflowRunId: payload.workflowRunId,
-      triggerRunId: ctx.run.id,
-      attempt: ctx.attempt.number,
-    });
-  },
+      triggerRunId: ctx.runId,
+      attempt: ctx.attempt,
+    }),
 });

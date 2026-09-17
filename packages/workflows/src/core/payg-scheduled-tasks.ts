@@ -1,14 +1,9 @@
-import { schedules } from "@trigger.dev/sdk";
-import { durableRetryPolicy } from "../policy";
+import { defineScheduledTask } from "../tasks/definition";
 import { runPaygBillingSweep } from "./payg-scheduled-runtime";
 
-export const paygBillingCloseSchedule = schedules.task({
+export const paygBillingCloseSchedule = defineScheduledTask({
   id: "core.schedule.payg-close.v1",
-  cron: {
-    pattern: "0 3 * * *",
-    timezone: "UTC",
-    environments: ["STAGING", "PRODUCTION"],
-  },
-  retry: durableRetryPolicy,
-  run: (payload) => runPaygBillingSweep(payload.timestamp.toISOString()),
+  cron: "0 3 * * *",
+  stages: ["staging", "production"],
+  run: (payload) => runPaygBillingSweep(payload.scheduledAt),
 });

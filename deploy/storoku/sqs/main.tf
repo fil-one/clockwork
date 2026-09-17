@@ -5,11 +5,11 @@ resource "aws_sqs_queue" "queue" {
   deduplication_scope         = var.fifo && var.high_throughput ? "messageGroup" : null
   fifo_throughput_limit       = var.fifo && var.high_throughput ? "perMessageGroupId" : null
   content_based_deduplication = var.fifo ? true : null
-  visibility_timeout_seconds  = !var.fifo ? 300 : null
+  visibility_timeout_seconds  = var.visibility_timeout_seconds
   message_retention_seconds   = var.message_retention_seconds > 0 ? var.message_retention_seconds : null
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.queue_deadletter.arn
-    maxReceiveCount     = 4
+    maxReceiveCount     = var.max_receive_count
   })
   tags = {
     Name = "${var.environment}-${var.app}-${var.name}${var.fifo ? ".fifo" : ""}"
