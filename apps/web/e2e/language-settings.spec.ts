@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { catalogs, type Locale } from "../src/i18n";
 
+import { gotoHydrated } from "./shell-hydration";
+
 // Visits use separate browser contexts: a preference must never become global.
 for (const language of Object.keys(catalogs) as Locale[]) {
   test(`saved ${language} preference survives navigation and reload`, async ({
@@ -8,7 +10,7 @@ for (const language of Object.keys(catalogs) as Locale[]) {
     context,
   }) => {
     const copy = catalogs[language];
-    await page.goto("/settings");
+    await gotoHydrated(page, "/settings");
     await page.locator('select[name="language"]').selectOption(language);
     await page
       .getByRole("button", { name: "Save language", exact: true })
@@ -43,7 +45,7 @@ for (const language of Object.keys(catalogs) as Locale[]) {
         .first(),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/settings");
+    await gotoHydrated(page, "/settings");
     await expect(
       page.getByRole("heading", { name: copy["settings.title"], exact: true }),
     ).toBeVisible();

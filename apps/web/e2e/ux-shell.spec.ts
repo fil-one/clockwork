@@ -3,6 +3,8 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { applyPersona } from "@clockwork/testing/playwright";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
+import { gotoHydrated } from "./shell-hydration";
+
 const customerDestinations = [
   "Overview",
   "Agreements",
@@ -47,11 +49,7 @@ async function openDashboard(
 ) {
   await applyPersona(page, "directOwner");
   await page.setViewportSize(viewport);
-  await page.goto("/dashboard");
-  await expect(page.locator(".experience-shell")).toHaveAttribute(
-    "data-hydrated",
-    "true",
-  );
+  await gotoHydrated(page, "/dashboard");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Welcome back",
   );
@@ -234,7 +232,7 @@ test("partner admin can reach every partner destination from the 320px drawer", 
     "x-clockwork-persona": "partner_admin",
   });
   await page.setViewportSize({ width: 320, height: 800 });
-  await page.goto("/partner");
+  await gotoHydrated(page, "/partner");
   const { drawer } = await openNavigation(page);
 
   for (const destination of partnerAdminDestinations) {
@@ -252,7 +250,7 @@ test("partner seller navigation and commands exclude admin-only work", async ({
     "x-clockwork-persona": "partner_seller",
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/partner");
+  await gotoHydrated(page, "/partner");
   const { drawer } = await openNavigation(page);
 
   await expect(

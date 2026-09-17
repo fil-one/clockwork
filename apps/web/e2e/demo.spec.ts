@@ -3,6 +3,12 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { DEMO_SEED_VERSION } from "@clockwork/testing/demo-seed";
 
+import {
+  expectShellHydrated,
+  gotoHydrated,
+  reloadHydrated,
+} from "./shell-hydration";
+
 /**
  * The demo surfaces exist only behind the deploy opt-in and a configured
  * password, which the `demo` release shard mints per run. Release
@@ -20,6 +26,13 @@ function configuredPassword(): string {
 
 const password = configuredPassword();
 
+/**
+ * `playwright.config.ts` serves this suite a build on CI and `next dev`
+ * everywhere else. Its condition is the password above and this one, and the
+ * password is required here, so this is the same answer.
+ */
+const builtServer = Boolean(process.env.CI);
+
 test("finance approves and cancels a future price schedule without retiring current pricing", async ({
   page,
 }) => {
@@ -27,8 +40,8 @@ test("finance approves and cancels a future price schedule without retiring curr
   await passGate(page);
   await resetDemoData(page);
   try {
-    await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-    await page.goto("/internal/price-books");
+    await startAs(page, "Mateo Silva");
+    await gotoHydrated(page, "/internal/price-books");
     const incumbent = page.getByRole("row", {
       name: /Direct commerce USD 2 USD.*Active/,
     });
@@ -80,16 +93,35 @@ test("finance approves and cancels a future price schedule without retiring curr
 });
 
 /**
- * The demo Playwright project deliberately runs against `next dev`. A page can
- * finish its document load before the dev runtime connects; capturing in that
- * interval lets Chromium's full-page metrics retain the wordmark's 3,863px
- * intrinsic width even after the stylesheet visibly clamps it. Waiting for the
- * runtime's connection event isolates screenshots from that development-only
- * bootstrap without sleeping or retrying the assertion.
+ * A page served by `next dev` can finish its document load before the dev
+ * runtime connects; capturing in that interval lets Chromium's full-page
+ * metrics retain the wordmark's 3,863px intrinsic width even after the
+ * stylesheet visibly clamps it. Waiting for the runtime's connection event
+ * isolates screenshots from that development-only bootstrap without sleeping or
+ * retrying the assertion.
+ *
+ * A built server has no such bootstrap and logs no such event, so there is
+ * nothing to wait for. `playwright.config.ts` decides which server this run
+ * gets, on the same signal.
  */
-function nextDevRuntimeReady(page: Page) {
+function nextDevRuntimeReady(page: Page): Promise<unknown> {
+  if (builtServer) return Promise.resolve();
   return page.waitForEvent("console", {
     predicate: (message) => message.text() === "[HMR] connected",
+  });
+}
+
+/**
+ * `next dev` mounts its indicator in a `nextjs-portal` element, which would
+ * otherwise sit in the corner of a full-page capture. A built server mounts
+ * none, and its Content-Security-Policy refuses an inline style without the
+ * per-request nonce, so there is nothing to hide and no way to inject the rule
+ * that would hide it.
+ */
+async function hideDevOverlay(page: Page) {
+  if (builtServer) return;
+  await page.addStyleTag({
+    content: "nextjs-portal { display: none !important; }",
   });
 }
 
@@ -216,6 +248,17 @@ async function resetDemoData(page: Page) {
   });
 }
 
+/**
+ * Starting a persona is a redirect that establishes the HttpOnly identity
+ * cookie and lands on that persona's home surface. A `goto` issued before the
+ * redirect completes cancels it and keeps the previous identity, so waiting for
+ * the surface it produced is both the identity guarantee and the hydration one.
+ */
+async function startAs(page: Page, name: string) {
+  await page.getByRole("link", { name: `Start as ${name}` }).click();
+  await expectShellHydrated(page);
+}
+
 test.describe("demo access gate", () => {
   test("refuses the wrong password and keeps the return path", async ({
     page,
@@ -265,10 +308,7 @@ test.describe("demo landing", () => {
     const start = page.getByRole("link", { name: /^Start as / }).first();
     await start.click();
     await expect(page).not.toHaveURL(/\/demo$/u);
-    await expect(page.locator(".experience-shell")).toHaveAttribute(
-      "data-hydrated",
-      "true",
-    );
+    await expectShellHydrated(page);
   });
 
   test("carries the persona into the panel and switches from it", async ({
@@ -276,14 +316,7 @@ test.describe("demo landing", () => {
   }) => {
     // Mara Voss is the direct buyer, whose journey has two steps, so the list
     // has both a current step and a later one.
-    await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-    // The shell is server-rendered, so its being visible says nothing about
-    // whether the panel's toggle has a click handler yet. Wait for the shell's
-    // own hydration marker before clicking it.
-    await expect(page.locator(".experience-shell")).toHaveAttribute(
-      "data-hydrated",
-      "true",
-    );
+    await startAs(page, "Mara Voss");
 
     await page.getByRole("button", { name: "Open demo controls" }).click();
     const panel = page.getByRole("complementary", { name: "Demo controls" });
@@ -310,10 +343,7 @@ test.describe("direct buyer flagship journey", () => {
       // Netlify preserves this selector on redirects; identity still comes
       // from the HttpOnly persona cookie. Allow only that exact known suffix.
       await expect(page).toHaveURL(/\/dashboard(?:\?persona=directBuyer)?$/u);
-      await expect(page.locator(".experience-shell")).toHaveAttribute(
-        "data-hydrated",
-        "true",
-      );
+      await expectShellHydrated(page);
 
       await page.getByRole("button", { name: "Open demo controls" }).click();
       const panel = page.getByRole("complementary", { name: "Demo controls" });
@@ -426,7 +456,7 @@ test.describe("direct buyer flagship journey", () => {
           .getByText("Accepted · awaiting provisioning", { exact: true }),
       ).toBeVisible();
 
-      await page.goto("/quotes/quote-direct-renewal-v2");
+      await gotoHydrated(page, "/quotes/quote-direct-renewal-v2");
       await expect(
         page
           .locator("main#main-content > header")
@@ -436,13 +466,6 @@ test.describe("direct buyer flagship journey", () => {
         page.getByRole("link", { name: "Review and accept order" }),
       ).toHaveCount(0);
 
-      // Everything asserted since the `goto` above is server-rendered markup,
-      // which the toggle's click handler does not wait for. The shell's
-      // hydration marker is the signal that it does.
-      await expect(page.locator(".experience-shell")).toHaveAttribute(
-        "data-hydrated",
-        "true",
-      );
       await page.getByRole("button", { name: "Open demo controls" }).click();
       await page
         .getByRole("complementary", { name: "Demo controls" })
@@ -477,8 +500,8 @@ test.describe("playable product-demo workflows", () => {
     await passGate(page);
     await resetDemoData(page);
     try {
-      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-      await page.goto("/internal/price-books");
+      await startAs(page, "Mateo Silva");
+      await gotoHydrated(page, "/internal/price-books");
       const downloadPromise = page.waitForEvent("download");
       await page.getByRole("button", { name: "Download price book" }).click();
       const download = await downloadPromise;
@@ -551,8 +574,8 @@ test.describe("playable product-demo workflows", () => {
     await passGate(page);
     await resetDemoData(page);
     try {
-      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-      await page.goto("/internal/price-books");
+      await startAs(page, "Mateo Silva");
+      await gotoHydrated(page, "/internal/price-books");
       const source = page.getByRole("row", {
         name: /Direct commerce USD 3 USD.*Proposed by commercial.policy@filone.test/,
       });
@@ -626,8 +649,8 @@ test.describe("playable product-demo workflows", () => {
     await resetDemoData(page);
 
     try {
-      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-      await page.goto("/internal/price-books");
+      await startAs(page, "Mateo Silva");
+      await gotoHydrated(page, "/internal/price-books");
       await expect(
         page.getByRole("heading", { level: 1, name: "Price books" }),
       ).toBeVisible();
@@ -717,8 +740,8 @@ test.describe("playable product-demo workflows", () => {
     await passGate(page);
     await resetDemoData(page);
     try {
-      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-      await page.goto("/internal/payg-offers");
+      await startAs(page, "Mateo Silva");
+      await gotoHydrated(page, "/internal/payg-offers");
       await expect(page.getByText(/Fictional policy workspace/)).toBeVisible();
       await page
         .getByRole("button", { name: /Fictional PAYG review scenario/ })
@@ -751,7 +774,7 @@ test.describe("playable product-demo workflows", () => {
           "Policy version 1 is approved. Sales activation is unchanged.",
         ),
       ).toBeVisible();
-      await page.reload();
+      await reloadHydrated(page);
       await page
         .getByRole("button", { name: /Fictional PAYG review scenario/ })
         .click();
@@ -782,8 +805,8 @@ test.describe("playable product-demo workflows", () => {
     await passGate(page);
     await resetDemoData(page);
     try {
-      await page.getByRole("link", { name: "Start as Mateo Silva" }).click();
-      await page.goto("/internal/channel-policy");
+      await startAs(page, "Mateo Silva");
+      await gotoHydrated(page, "/internal/channel-policy");
       const approval = page.getByRole("group", { name: "Approve policy" });
       await approval
         .getByLabel("Decision reason")
@@ -818,8 +841,8 @@ test.describe("playable product-demo workflows", () => {
     await resetDemoData(page);
 
     try {
-      await page.getByRole("link", { name: "Start as Ada Mercer" }).click();
-      await page.goto("/internal/queues");
+      await startAs(page, "Ada Mercer");
+      await gotoHydrated(page, "/internal/queues");
       const refresh = page.getByRole("button", { name: "Refresh data" });
       await expect(refresh).toBeVisible();
       const [response] = await Promise.all([
@@ -853,9 +876,9 @@ test.describe("playable product-demo workflows", () => {
     await resetDemoData(page);
 
     try {
-      await page.getByRole("link", { name: "Start as Priya Nair" }).click();
+      await startAs(page, "Priya Nair");
 
-      await page.goto("/partner/registrations");
+      await gotoHydrated(page, "/partner/registrations");
       await page.getByLabel("End client").fill("Aster House Media");
       await page
         .getByRole("option", { name: "Aster House Media", exact: true })
@@ -880,7 +903,7 @@ test.describe("playable product-demo workflows", () => {
         }),
       ).toBeVisible();
 
-      await page.goto("/partner/quotes/new");
+      await gotoHydrated(page, "/partner/quotes/new");
       await page
         .getByLabel("Offer and price book")
         .fill("LOCKED-STORAGE-TB · uk-south · Partner commerce GBP (GBP)");
@@ -910,7 +933,7 @@ test.describe("playable product-demo workflows", () => {
         }),
       ).toBeVisible();
 
-      await page.goto("/partner/renewals");
+      await gotoHydrated(page, "/partner/renewals");
       await page
         .getByRole("button", { name: "Review Halcyon Research Cooperative" })
         .click();
@@ -942,8 +965,8 @@ test.describe("playable product-demo workflows", () => {
     await resetDemoData(page);
 
     try {
-      await page.getByRole("link", { name: "Start as Mara Voss" }).click();
-      await page.goto("/account/notifications");
+      await startAs(page, "Mara Voss");
+      await gotoHydrated(page, "/account/notifications");
       const preference = page.getByRole("checkbox", {
         name: /Quote expiry warnings/,
       });
@@ -974,8 +997,8 @@ test.describe("playable product-demo workflows", () => {
     await resetDemoData(page);
 
     try {
-      await page.getByRole("link", { name: "Start as Theo Grant" }).click();
-      await page.goto("/billing/invoice-meridian-overdue");
+      await startAs(page, "Theo Grant");
+      await gotoHydrated(page, "/billing/invoice-meridian-overdue");
       await expect(
         page.getByText("Guided demo · payment sandbox"),
       ).toBeVisible();
@@ -1022,9 +1045,7 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await openGate(page);
     await runtimeReady;
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
+    await hideDevOverlay(page);
     await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
@@ -1038,9 +1059,7 @@ for (const viewport of [
     await passGate(page);
     await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
     await runtimeReady;
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
+    await hideDevOverlay(page);
     await expectVisualLayoutReady(page, viewport.width);
     await expect(page).toHaveScreenshot(
       `demo-landing${viewport.label === "320" ? "-320" : ""}.png`,
@@ -1056,15 +1075,7 @@ test.describe("demo reset", () => {
       .getByRole("link", { name: /^Start as / })
       .first()
       .click();
-    // A visible shell is server-rendered markup: the toggle below is in the
-    // HTML well before React attaches its click handler, and a click that
-    // lands in that window is swallowed, leaving the panel closed. The shell
-    // sets `data-hydrated` from a mount effect, so it is the signal that the
-    // handler exists.
-    await expect(page.locator(".experience-shell")).toHaveAttribute(
-      "data-hydrated",
-      "true",
-    );
+    await expectShellHydrated(page);
 
     await page.evaluate(() =>
       window.localStorage.setItem("clockwork-demo:probe", "dirty"),
@@ -1121,21 +1132,18 @@ test("customer trial, paid conversion and cancellation retain verified handoff s
         url.pathname === destination &&
         (url.search === "" || url.search === `?persona=${persona}`),
     );
-    await expect(page.locator(".experience-shell")).toHaveAttribute(
-      "data-hydrated",
-      "true",
-    );
+    await expectShellHydrated(page);
     await page.getByRole("button", { name: "Open demo controls" }).click();
     const panel = page.getByRole("complementary", { name: "Demo controls" });
     await expect(panel.getByLabel("Signed in as")).toHaveValue(persona);
   };
   const customer = async () => {
     await startPersona("Mara Voss", "directBuyer", "/dashboard");
-    await page.goto("/buy/payg");
+    await gotoHydrated(page, "/buy/payg");
   };
   const financeHandoff = async () => {
     await startPersona("Mateo Silva", "financeApprover", "/internal/approvals");
-    await page.goto("/internal/payg-requests");
+    await gotoHydrated(page, "/internal/payg-requests");
     await page
       .getByLabel("Resolution reason")
       .fill(
