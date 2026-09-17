@@ -77,6 +77,22 @@ docker-build: .env.production.local
 docker-push: docker-login .env.production.local
 	cd .. && docker buildx build --platform $(PLATFORM) -t $(IMAGE_REF) --push .
 
+# Every target that registers a task definition checks the tag first. ECS
+# retries a missing image for the whole CodeDeploy window (an hour) and only
+# then rolls back, so an `apply-app` without a `docker-push` for the same
+# commit used to cost an hour to find out. `make docker-push` pushes the tag
+# for this commit; IMAGE_TAG=<tag> reuses one the repository already holds.
+.PHONY: image-exists
+image-exists:
+	@aws ecr describe-images --region $(TF_VAR_region) --repository-name $(TF_VAR_app)-ecr \
+	    --image-ids imageTag=$(IMAGE_TAG) --output text >/dev/null 2>&1 || { \
+	  echo "error: $(IMAGE_REF) is not in ECR." >&2; \
+	  echo "  Run \`make docker-push\` first, or reuse a pushed tag with IMAGE_TAG=<tag>. Newest tags:" >&2; \
+	  aws ecr describe-images --region $(TF_VAR_region) --repository-name $(TF_VAR_app)-ecr \
+	      --query 'sort_by(imageDetails[?imageTags],&imagePushedAt)[-5:].imageTags[0]' --output text 2>/dev/null \
+	    | tr '\t' '\n' | sed 's/^/    /' >&2; \
+	  exit 1; }
+
 # --- init -------------------------------------------------------------------
 
 app/.terraform:
@@ -140,7 +156,7 @@ apply-shared: shared/.terraform
 	TF_WORKSPACE=default tofu -chdir=shared apply $(APPLY_ARGS)
 
 .PHONY: apply-app
-apply-app: app/.terraform .tfworkspace .env.production.local
+apply-app: app/.terraform .tfworkspace .env.production.local image-exists
 	tofu -chdir=app apply $(APP_VARS) $(APPLY_ARGS)
 
 .PHONY: apply
@@ -151,7 +167,7 @@ apply: apply-shared apply-app
 # tasks take traffic. The first deploy of a stage runs `apply` first
 # (README.md), because the task needs the VPC's internet route.
 .PHONY: migrate
-migrate: app/.terraform .tfworkspace .env.production.local
+migrate: app/.terraform .tfworkspace .env.production.local image-exists
 	tofu -chdir=app apply -target=aws_ecs_task_definition.migrate $(APP_VARS) $(APPLY_ARGS)
 	./run-migrate.sh
 
