@@ -1,6 +1,7 @@
 # ADR 0010: Vendor-neutral task runtime
 
-Status: Proposed, 2026-09-16. Supersedes the hosting decision in
+Status: Accepted, 2026-09-17, by the Head of Engineering standing in for the
+workflow owner. Supersedes the hosting decision in
 [ADR 0006](0006-trigger-workflows.md); the durability rules there stand.
 
 A task is defined once, against `packages/workflows/src/tasks/definition.ts`: an
