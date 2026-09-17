@@ -23,7 +23,7 @@ terraform {
 
 provider "aws" {
   allowed_account_ids = [var.allowed_account_id]
-  shared_state_region = var.shared_state_region
+  region              = var.region
   default_tags {
     tags = {
       Environment  = terraform.workspace
@@ -89,7 +89,7 @@ module "app" {
   source              = "../storoku/app"
   shared_state_bucket = var.shared_state_bucket
   shared_state_key    = local.shared_state_key
-  region              = var.region
+  shared_state_region = var.shared_state_region
   app                 = var.app
   appState            = var.app
   environment         = terraform.workspace
