@@ -85,6 +85,12 @@ COPY deploy/.env.production.local ./apps/web/.env.production.local
 
 RUN pnpm exec turbo run build --filter=@clockwork/web
 
+# The migrate task also applies the production bootstrap (deploy/docker/
+# migrate.sh). Its CLI is TypeScript over the workspace packages, and the
+# runner carries neither sources nor node_modules, so it ships as one file.
+RUN pnpm exec esbuild scripts/bootstrap-production.ts --bundle --platform=node \
+    --target=node24 --format=esm --outfile=bootstrap/bootstrap-production.mjs
+
 # ---------------------------------------------------------------------- runner
 FROM node:24.18.1-slim AS runner
 WORKDIR /app
@@ -141,6 +147,7 @@ COPY --from=builder --chown=clockwork:nodejs /app/apps/web/public ./apps/web/pub
 COPY --chown=clockwork:nodejs supabase/migrations ./supabase/migrations
 COPY --chown=clockwork:nodejs supabase/production-roles.sql ./supabase/production-roles.sql
 COPY --chown=clockwork:nodejs deploy/docker ./deploy/docker
+COPY --from=builder --chown=clockwork:nodejs /app/bootstrap ./bootstrap
 RUN chmod 0755 /app/deploy/docker/entrypoint.sh /app/deploy/docker/migrate.sh
 
 USER clockwork

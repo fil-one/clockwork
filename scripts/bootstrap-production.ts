@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import {
   applyProductionBootstrap,
   assertBootstrapTarget,
+  parseProductionBootstrap,
   productionBootstrapDigest,
   validateProductionBootstrap,
 } from "../packages/db/src/production-bootstrap";
@@ -18,31 +19,41 @@ async function main() {
     args.some(
       (arg) =>
         arg.startsWith("--") &&
-        !["--manifest", "--apply", "--expected-host"].includes(arg),
+        ![
+          "--manifest",
+          "--apply",
+          "--expected-host",
+          "--retire-secret-id",
+        ].includes(arg),
     )
   )
     throw new Error(
-      "Usage: pnpm bootstrap:production --manifest file.json [--apply --expected-host db.example.org]",
+      "Usage: pnpm bootstrap:production --manifest file.json [--apply --expected-host db.example.org [--retire-secret-id <id>]]",
     );
   try {
-    const manifest = validateProductionBootstrap(
-      JSON.parse(await readFile(path, "utf8")),
-    );
+    const document: unknown = JSON.parse(await readFile(path, "utf8"));
     if (args.includes("--apply")) {
       const databaseUrl = process.env.DIRECT_DATABASE_URL;
       const expectedHost = argument("--expected-host");
       const authorizationSecret = process.env.AUTHORIZATION_CONTEXT_SECRET;
       if (!databaseUrl || !expectedHost || !authorizationSecret)
         throw new Error("BOOTSTRAP_TARGET_AND_AUTHORIZATION_SECRET_REQUIRED");
+      // Shape only: the apply runs the full validation itself, after checking
+      // whether the manifest is already recorded, so a deploy that re-applies
+      // an old manifest is a no-op rather than a failure.
+      const manifest = parseProductionBootstrap(document);
       assertBootstrapTarget(manifest, databaseUrl, expectedHost);
+      const retireSecretId = argument("--retire-secret-id");
       const receipt = await applyProductionBootstrap({
         manifest,
         databaseUrl,
         expectedHost,
         authorizationSecret,
+        ...(retireSecretId ? { retireSecretId } : {}),
       });
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
     } else {
+      const manifest = validateProductionBootstrap(document);
       process.stdout.write(
         `${JSON.stringify({ status: "validated_only", id: manifest.id, manifestHash: productionBootstrapDigest(manifest), targetDatabaseHost: manifest.targetDatabaseHost, staffCount: manifest.staff.length, draftCatalogCount: manifest.catalog.length, providerReferenceCount: manifest.providerReferences.length, mappingCount: manifest.organizationMappings.length, capabilitiesEnabled: false }, null, 2)}\n`,
       );
