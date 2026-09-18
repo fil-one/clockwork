@@ -155,8 +155,14 @@ export type ProductionBootstrapManifest = z.infer<
   typeof ProductionBootstrapManifestSchema
 >;
 
+/** Shape only. `validateProductionBootstrap` adds the checks that depend on
+ * the clock and on the manifest as a whole. */
+export function parseProductionBootstrap(value: unknown) {
+  return ProductionBootstrapManifestSchema.parse(value);
+}
+
 export function validateProductionBootstrap(value: unknown, now = new Date()) {
-  const manifest = ProductionBootstrapManifestSchema.parse(value);
+  const manifest = parseProductionBootstrap(value);
   const ids = manifest.staff.map((person) => person.id);
   const workosIds = manifest.staff.map((person) => person.workosUserId);
   const emails = manifest.staff.map((person) => person.email.toLowerCase());
@@ -251,7 +257,11 @@ export async function applyProductionBootstrap(input: {
   now?: Date;
 }) {
   const now = input.now ?? new Date();
-  const manifest = validateProductionBootstrap(input.manifest, now);
+  // Shape first, the time-bound checks inside the transaction: a manifest that
+  // is already recorded is recognised and left alone before its MFA evidence
+  // is judged, because every deploy re-applies the same manifest long after
+  // that evidence has aged past the 24-hour window.
+  const manifest = parseProductionBootstrap(input.manifest);
   assertBootstrapTarget(manifest, input.databaseUrl, input.expectedHost);
   if (
     input.authorizationSecret.length < 32 ||
@@ -271,6 +281,7 @@ export async function applyProductionBootstrap(input: {
           throw new Error("BOOTSTRAP_MANIFEST_CONFLICT");
         return { status: "already_applied" as const, id: manifest.id, digest };
       }
+      validateProductionBootstrap(manifest, now);
       const secrets =
         await tx`select id from private.authorization_secrets limit 1`;
       if (secrets.length)

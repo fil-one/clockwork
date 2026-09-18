@@ -22,6 +22,14 @@ include $(CLOCKWORK_SECRETS_FILE)
 export
 endif
 
+# The production bootstrap manifest (docs/operations/production-bootstrap.md)
+# travels the same way: a file per workspace locally, the environment secret
+# CLOCKWORK_BOOTSTRAP_MANIFEST in CI. Without one the migration task skips
+# the bootstrap.
+CLOCKWORK_BOOTSTRAP_MANIFEST ?= $(HOME)/.config/fil-one/clockwork/$(TF_WORKSPACE).bootstrap-manifest.json
+TF_VAR_bootstrap_manifest ?= $(shell cat $(CLOCKWORK_BOOTSTRAP_MANIFEST) 2>/dev/null)
+export TF_VAR_bootstrap_manifest
+
 # One state bucket per account. The app root reads the shared root's state
 # from the same bucket. The bucket's region is its own setting: production's
 # bucket predates this deployment and lives in us-west-2 while the stage is

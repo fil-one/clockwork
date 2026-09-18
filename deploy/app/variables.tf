@@ -57,10 +57,16 @@ variable "cpu_architecture" {
   default     = "ARM64"
 }
 
-variable "authorization_context_secret_id" {
-  description = "id of the active row in private.authorization_secrets; defaults to <workspace>-initial until bootstrap:production issues a manifest id"
+variable "bootstrap_manifest" {
+  description = "the production bootstrap manifest as JSON (docs/operations/production-bootstrap.md); kept in Secrets Manager and applied by the migration task, which skips the bootstrap while this is empty"
   type        = string
+  sensitive   = true
   default     = ""
+
+  validation {
+    condition     = var.bootstrap_manifest == "" || can(jsondecode(var.bootstrap_manifest).id)
+    error_message = "bootstrap_manifest must be empty or the manifest's JSON."
+  }
 }
 
 # Supplied secrets. Locally they come from the workspace's secrets file (see

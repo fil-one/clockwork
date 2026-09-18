@@ -126,6 +126,17 @@ describe("fresh production bootstrap transaction", () => {
         expect((await applyProductionBootstrap(input)).status).toBe(
           "already_applied",
         );
+        // Every later migration run re-applies the same manifest, long after
+        // its MFA evidence has aged past the 24-hour window. That is a no-op,
+        // not a failure.
+        expect(
+          (
+            await applyProductionBootstrap({
+              ...input,
+              now: new Date(now.getTime() + 36 * 60 * 60 * 1000),
+            })
+          ).status,
+        ).toBe("already_applied");
         await expect(
           applyProductionBootstrap({
             ...input,

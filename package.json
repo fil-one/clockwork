@@ -63,6 +63,7 @@
     "@trigger.dev/sdk": "4.5.9",
     "@types/node": "24.13.3",
     "dependency-cruiser": "18.1.0",
+    "esbuild": "0.28.1",
     "eslint": "9.39.5",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import": "2.32.0",
