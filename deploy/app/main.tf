@@ -41,8 +41,13 @@ locals {
   # must match the backend block in ../shared/main.tf
   shared_state_key = "filone/clockwork/shared.tfstate"
   # the database the migration task creates and migrates
-  db_database                     = "${terraform.workspace}_${var.app}"
-  authorization_context_secret_id = var.authorization_context_secret_id != "" ? var.authorization_context_secret_id : "${terraform.workspace}-initial"
+  db_database = "${terraform.workspace}_${var.app}"
+  # The bootstrap manifest names the row the authorization secret lives in:
+  # bootstrap:<manifest id> once there is a manifest, <workspace>-initial
+  # before (deploy/docker/migrate.sh). The id is a UUID and not secret; the
+  # manifest as a whole is sensitive because it carries staff identities.
+  bootstrap                       = var.bootstrap_manifest != "" ? jsondecode(var.bootstrap_manifest) : null
+  authorization_context_secret_id = local.bootstrap != null ? "bootstrap:${try(nonsensitive(local.bootstrap.id), local.bootstrap.id)}" : "${terraform.workspace}-initial"
 
   # Minted here and stored in Secrets Manager; no person ever types them.
   # production-roles.sql sets the two role passwords and writes the
@@ -61,6 +66,7 @@ locals {
     STRIPE_SECRET_KEY      = var.stripe_secret_key
     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
     TRIGGER_SECRET_KEY     = var.trigger_secret_key
+    BOOTSTRAP_MANIFEST     = var.bootstrap_manifest
   }
 }
 

@@ -101,6 +101,7 @@ resource "aws_ecs_task_definition" "migrate" {
         { name = "PGDATABASE", value = local.db_database },
         { name = "PGSSLMODE", value = "require" },
         { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
+        { name = "DEPLOY_STAGE", value = terraform.workspace },
       ]
       secrets = concat(module.app.secrets, [
         { name = "RDS_MASTER_SECRET", valueFrom = module.app.database.secret_arn },
@@ -115,6 +116,15 @@ resource "aws_ecs_task_definition" "migrate" {
       }
     }
   ])
+
+  # A manifest written for the other stage would bootstrap this database with
+  # the wrong identities; the bootstrap itself only checks the database host.
+  lifecycle {
+    precondition {
+      condition     = local.bootstrap == null || try(nonsensitive(local.bootstrap.environment), local.bootstrap.environment) == (local.is_production ? "production" : "staging")
+      error_message = "The bootstrap manifest's environment does not match the ${terraform.workspace} workspace."
+    }
+  }
 }
 
 output "migrate_task_definition" {

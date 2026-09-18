@@ -61,6 +61,7 @@ jobs:
       TF_VAR_stripe_secret_key: ${{ secrets.STRIPE_SECRET_KEY }}
       TF_VAR_stripe_webhook_secret: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
       TF_VAR_trigger_secret_key: ${{ secrets.TRIGGER_SECRET_KEY }}
+      TF_VAR_bootstrap_manifest: ${{ secrets.CLOCKWORK_BOOTSTRAP_MANIFEST }}
     steps:
       - uses: actions/checkout@v4
         with:

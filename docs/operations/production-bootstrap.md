@@ -67,6 +67,12 @@ same manifest ID and digest returns the existing receipt; changing an applied
 manifest is refused. Existing commerce data, especially demo data, must never be
 reset by this command.
 
+In the AWS deployment the migration task (`deploy/docker/migrate.sh`) runs the
+apply on every deploy, with the manifest from the `BOOTSTRAP_MANIFEST` secret,
+after the migrations and before the role passwords. A manifest that is already
+recorded is a no-op however old its MFA evidence has become; a changed manifest
+is still refused. `deploy/README.md` says where each stage's manifest lives.
+
 After bootstrap, supply real provider secrets, verify external gates, and use
 Capabilities Admin for distinct-person activation. The worker reads persisted
 capabilities at boot and constructs only the providers needed by enabled new or
