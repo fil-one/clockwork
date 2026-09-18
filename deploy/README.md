@@ -116,18 +116,19 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
 6. Create the GitHub environment (`staging` or `production`) under the
    repository's settings and set:
 
-   | Variable                                  | Value                                                                                 |
-   | ----------------------------------------- | ------------------------------------------------------------------------------------- |
-   | `AWS_ROLE_ARN`                            | the `github_deploy_role_arn` output of step 4                                         |
-   | `AWS_ACCOUNT_ID`                          | the account id                                                                        |
-   | `AWS_REGION`                              | `us-east-2`                                                                           |
-   | `TF_STATE_BUCKET`                         | the bucket from step 1                                                                |
-   | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
-   | `CLOCKWORK_HOSTNAME`                      | the stage's hostname                                                                  |
-   | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`        | the staff email domains, comma separated                                              |
-   | `CLOCKWORK_PLATFORM_ISSUER_JSON`          | the approved issuing legal entity, one line of JSON                                   |
-   | `CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR` | the click-through acceptance threshold, in minor units                                |
-   | `TRIGGER_PROJECT_REF`                     | the Trigger.dev project, once there is one (may be empty)                             |
+   | Variable                                    | Value                                                                                 |
+   | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+   | `AWS_ROLE_ARN`                              | the `github_deploy_role_arn` output of step 4                                         |
+   | `AWS_ACCOUNT_ID`                            | the account id                                                                        |
+   | `AWS_REGION`                                | `us-east-2`                                                                           |
+   | `TF_STATE_BUCKET`                           | the bucket from step 1                                                                |
+   | `TF_STATE_REGION`                           | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
+   | `CLOCKWORK_HOSTNAME`                        | the stage's hostname                                                                  |
+   | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`          | the staff email domains, comma separated                                              |
+   | `CLOCKWORK_AUTHORIZATION_CONTEXT_SECRET_ID` | empty until the production bootstrap has run, then `bootstrap:<manifest id>`          |
+   | `CLOCKWORK_PLATFORM_ISSUER_JSON`            | the approved issuing legal entity, one line of JSON                                   |
+   | `CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR`   | the click-through acceptance threshold, in minor units                                |
+   | `TRIGGER_PROJECT_REF`                       | the Trigger.dev project, once there is one (may be empty)                             |
 
    and the same secrets as the file in step 3, under their plain names
    (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID`, `WORKOS_COOKIE_PASSWORD`,
@@ -215,6 +216,58 @@ The container's entrypoint composes `DATABASE_URL` and
 `CLOCKWORK_SERVICE_DATABASE_URL` from the host and database ECS injects and the
 role passwords from Secrets Manager, so no connection string is stored anywhere.
 
+## Reaching the database
+
+The database accepts connections only from inside the VPC. For anything a person
+runs against it by hand, raise the bastion for the session; the pipeline's next
+apply removes it, because CI never sets the variable:
+
+```sh
+IMAGE_TAG=<running tag> TF_VAR_db_bastion=true make apply-app
+DB=$(tofu -chdir=app output -raw database_address)
+EIP=$(aws ec2 describe-addresses --region us-east-2 \
+  --filters Name=tag:Name,Values=$TF_WORKSPACE-clockwork-bastion-host-eip \
+  --query 'Addresses[0].PublicIp' --output text)
+ssh -N -L 5432:$DB:5432 ec2-user@$EIP
+```
+
+The bastion is a `t4g.micro` in a public subnet that takes SSH from anywhere
+with the key pair in `storoku/postgres/main.tf`, and the database's security
+group admits it while it exists. `psql` then connects to `localhost:5432` as the
+master user, whose credentials are the `rds!db-...` entry in Secrets Manager.
+
+### Production bootstrap
+
+`pnpm bootstrap:production` (`docs/operations/production-bootstrap.md`) creates
+the staff organization and memberships; until it has run, every WorkOS sign-in
+ends in "WorkOS identity is not linked to exactly one commerce membership". It
+runs from a checkout, through the tunnel above, and needs two things this
+deployment does not give it by default:
+
+- The URL host has to be the database's real hostname (`localhost` is refused
+  for production and the host has to match the manifest's `targetDatabaseHost`),
+  so alias it to the tunnel for the session:
+  `echo "127.0.0.1 $DB" | sudo tee -a /etc/hosts`. `sslmode=require` does not
+  check the certificate's name, so TLS still works.
+- The authorization-secret register has to be empty, and `make migrate` has
+  already written `<workspace>-initial` to it. Delete that row right before the
+  apply; the bootstrap writes the same secret back as `bootstrap:<manifest id>`.
+
+```sh
+export DIRECT_DATABASE_URL=postgresql://<master user>:<url-encoded password>@$DB:5432/${TF_WORKSPACE}_clockwork?sslmode=require
+export AUTHORIZATION_CONTEXT_SECRET=$(aws secretsmanager get-secret-value --region us-east-2 \
+  --secret-id /clockwork/$TF_WORKSPACE/Secret/AUTHORIZATION_CONTEXT_SECRET/value --query SecretString --output text)
+pnpm bootstrap:production --manifest <manifest.json>                    # validate, no writes
+psql "$DIRECT_DATABASE_URL" -c "delete from private.authorization_secrets where id = '$TF_WORKSPACE-initial'"
+pnpm bootstrap:production --manifest <manifest.json> --apply --expected-host $DB
+```
+
+Then set `TF_VAR_authorization_context_secret_id=bootstrap:<manifest id>` in
+`.env.terraform` and the same value as the GitHub environment's
+`CLOCKWORK_AUTHORIZATION_CONTEXT_SECRET_ID`, and
+`IMAGE_TAG=<running tag> make apply-app`: the tasks restart naming the new row,
+and the bastion goes away with the same apply. Remove the `/etc/hosts` line.
+
 ## Secrets
 
 Every secret is a Secrets Manager entry at
@@ -235,11 +288,12 @@ variable in `app/variables.tf`, an entry in `supplied_secrets` in `app/main.tf`,
 and a line in `terraform.yml`.
 
 `AUTHORIZATION_CONTEXT_SECRET_ID` names the active row in
-`private.authorization_secrets` and starts as `<workspace>-initial`. After
-`pnpm bootstrap:production` has issued a manifest, set the
-`authorization_context_secret_id` variable to `bootstrap:<manifest id>` and
-apply. Rotating the secret itself is the overlap procedure in
-`docs/foundation-handoff.md`, which needs a second active id; the wiring here
+`private.authorization_secrets` and starts as `<workspace>-initial`. The
+production bootstrap replaces that row with `bootstrap:<manifest id>` (see
+[Reaching the database](#reaching-the-database)); the
+`authorization_context_secret_id` variable then carries the new id, locally and
+in the GitHub environment. Rotating the secret itself is the overlap procedure
+in `docs/foundation-handoff.md`, which needs a second active id; the wiring here
 carries one value at a time, so that procedure is a change to this directory
 when it is first needed.
 
@@ -278,7 +332,8 @@ about $100 to each.
   rendering answers 503 and the lifecycle service, public registration included,
   is not wired.
 - **Production bootstrap.** `pnpm bootstrap:production` runs once, by hand,
-  after the first migration, with the approved manifest.
+  after the first migration, with the approved manifest
+  ([how](#production-bootstrap)). Neither stage has run it yet.
 - **WorkOS environments.** Each stage needs its own WorkOS environment whose
   redirect URI is `https://<hostname>/auth/callback`.
 - **Staff email domains.** `CLOCKWORK_INTERNAL_EMAIL_DOMAINS` defaults to

@@ -48,6 +48,8 @@ jobs:
       TF_VAR_hostname: ${{ vars.CLOCKWORK_HOSTNAME }}
       TF_VAR_domain_base: ${{ vars.CLOCKWORK_HOSTNAME }}
       TF_VAR_github_environment: ${{ inputs.environment }}
+      TF_VAR_authorization_context_secret_id:
+        ${{ vars.CLOCKWORK_AUTHORIZATION_CONTEXT_SECRET_ID }}
       CLOCKWORK_INTERNAL_EMAIL_DOMAINS:
         ${{ vars.CLOCKWORK_INTERNAL_EMAIL_DOMAINS }}
       TRIGGER_PROJECT_REF: ${{ vars.TRIGGER_PROJECT_REF }}

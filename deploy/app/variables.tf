@@ -63,6 +63,12 @@ variable "authorization_context_secret_id" {
   default     = ""
 }
 
+variable "db_bastion" {
+  description = "keep an SSH bastion beside the database; off by default, raised for a session with TF_VAR_db_bastion=true (README.md, Reaching the database)"
+  type        = bool
+  default     = false
+}
+
 # Supplied secrets. Locally they come from the workspace's secrets file (see
 # the Makefile); in CI from the GitHub environment. An empty value leaves the
 # integration unconfigured, which the application treats as a denial.

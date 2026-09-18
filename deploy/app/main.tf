@@ -121,8 +121,11 @@ module "app" {
 
   create_db = true
   # the app logs in with passwords, which the proxy refuses; see storoku/README.md
-  rds_proxy  = false
-  db_bastion = false
+  rds_proxy = false
+  # nothing reaches the database from outside the VPC unless someone raises the
+  # bastion for a session; the pipeline never sets the variable, so its next
+  # apply removes it again
+  db_bastion = var.db_bastion
   # the migration task creates the database itself, so neither the provisioner
   # Lambda nor the Secrets Manager endpoint it would need exists
   db_provisioner = false
