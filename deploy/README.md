@@ -190,11 +190,13 @@ formatting and validation of both roots, ShellCheck, and an image build.
 ## Migrations
 
 `make migrate` registers the migration task definition for the image being
-deployed (`tofu apply -target=aws_ecs_task_definition.migrate`) and runs it as a
-one-off Fargate task inside the VPC, waiting for it to stop and failing on a
-non-zero exit (`run-migrate.sh`, which also prints the task's log). The task
-runs `deploy/docker/migrate.sh` as the RDS master user, whose credentials ECS
-injects from the master secret:
+deployed (`tofu apply -target=aws_ecs_task_definition.migrate`, with the secrets
+the task reads targeted alongside, since a secret's value is a resource of its
+own that the task definition does not depend on) and runs it as a one-off
+Fargate task inside the VPC, waiting for it to stop and failing on a non-zero
+exit (`run-migrate.sh`, which also prints the task's log). The task runs
+`deploy/docker/migrate.sh` as the RDS master user, whose credentials ECS injects
+from the master secret:
 
 1. creates the database if it does not exist, then applies
    `deploy/docker/rds-prelude.sql`: the `extensions` schema Supabase ships and
@@ -220,26 +222,34 @@ The bootstrap (`docs/operations/production-bootstrap.md`) creates the staff
 organization and memberships that every WorkOS sign-in is checked against; until
 it has run, a sign-in ends in "WorkOS identity is not linked to exactly one
 commerce membership". The migration task applies it from the
-`BOOTSTRAP_MANIFEST` secret: locally the file
+`BOOTSTRAP_MANIFEST` secret, which only that task reads: locally the file
 `~/.config/fil-one/clockwork/<workspace>.bootstrap-manifest.json`, in CI the
 environment secret `CLOCKWORK_BOOTSTRAP_MANIFEST`. Without one the task skips
-the step, so a stage deploys before its manifest exists.
+the step, so a stage deploys before its manifest exists. `make migrate` and
+`make apply-app` say so when the local file is absent; on a stage that already
+has its manifest, an apply without it removes the secret and names the interim
+secret row again, which changes nothing the application can see, and the next
+apply with the file puts it back.
 
 The manifest's `environment` has to name the stage and its `targetDatabaseHost`
 the `database_address` output, and its `mfaVerifiedAt` timestamps have to be
-within 24 hours of the run that first applies it. Once applied it is recorded,
-every later run is a no-op, and a changed manifest is refused.
-`pnpm bootstrap:production --manifest <file>` validates one without a database;
-its error is deliberately unspecific, so check the fields against
-`ProductionBootstrapManifestSchema` in
+within 24 hours of the run that first applies it. Once applied it is recorded
+and every later run is a no-op. It is the immutable record of the first staff,
+so later staff changes are made in the application; an edited secret stops every
+deploy at the migrate step with `BOOTSTRAP_MANIFEST_CONFLICT` until the recorded
+manifest is restored. `pnpm bootstrap:production --manifest <file>` validates
+one without a database; its error is deliberately unspecific, so check the
+fields against `ProductionBootstrapManifestSchema` in
 `packages/db/src/production-bootstrap.ts`. Secrets Manager holds up to 64 KB,
 which fits a manifest with an empty catalog.
 
 The manifest also decides the row the authorization secret lives in.
 `AUTHORIZATION_CONTEXT_SECRET_ID` is `bootstrap:<manifest id>` whenever a
-manifest is set and `<workspace>-initial` before, and the bootstrap refuses a
-database that already holds a row, so the task removes the initial row on the
-run that applies the manifest. The secret value is the same in both.
+manifest is set and `<workspace>-initial` before. The bootstrap refuses a
+database that already holds a row, so the task names the initial row for
+retirement and the bootstrap removes it inside its own transaction, writing the
+same secret back under the new id; a bootstrap that fails rolls that back too,
+and the release still serving keeps its row.
 
 The container's entrypoint composes `DATABASE_URL` and
 `CLOCKWORK_SERVICE_DATABASE_URL` from the host and database ECS injects and the

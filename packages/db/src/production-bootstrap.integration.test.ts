@@ -121,8 +121,26 @@ describe("fresh production bootstrap transaction", () => {
             "integration-only-context-secret-not-a-production-value",
           now,
         };
-        const first = await applyProductionBootstrap(input);
+        // A deployment writes the secret under an interim id before it has a
+        // manifest. That row still refuses the bootstrap unless it is named
+        // for retirement, and then it goes in the bootstrap's own transaction,
+        // so the register is never empty at any commit.
+        await tx`insert into private.authorization_secrets (id, secret, active) values ('staging-initial', ${input.authorizationSecret}, true)`;
+        await expect(applyProductionBootstrap(input)).rejects.toThrow(
+          "BOOTSTRAP_REQUIRES_EMPTY_AUTHORIZATION_SECRET_REGISTER",
+        );
+        const first = await applyProductionBootstrap({
+          ...input,
+          retireSecretId: "staging-initial",
+        });
         expect(first.status).toBe("applied");
+        expect(
+          (
+            await tx<
+              { id: string }[]
+            >`select id from private.authorization_secrets order by id`
+          ).map((row) => row.id),
+        ).toEqual([`bootstrap:${manifest.id}`]);
         expect((await applyProductionBootstrap(input)).status).toBe(
           "already_applied",
         );

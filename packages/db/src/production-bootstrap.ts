@@ -254,6 +254,10 @@ export async function applyProductionBootstrap(input: {
   databaseUrl: string;
   expectedHost: string;
   authorizationSecret: string;
+  /** An authorization-secret row a deployment wrote before it had a manifest.
+   * Removed in the bootstrap's own transaction, so the register is never
+   * empty at a commit; any other pre-existing row still refuses the apply. */
+  retireSecretId?: string;
   now?: Date;
 }) {
   const now = input.now ?? new Date();
@@ -282,6 +286,8 @@ export async function applyProductionBootstrap(input: {
         return { status: "already_applied" as const, id: manifest.id, digest };
       }
       validateProductionBootstrap(manifest, now);
+      if (input.retireSecretId)
+        await tx`delete from private.authorization_secrets where id = ${input.retireSecretId}`;
       const secrets =
         await tx`select id from private.authorization_secrets limit 1`;
       if (secrets.length)

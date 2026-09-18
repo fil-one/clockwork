@@ -19,11 +19,16 @@ async function main() {
     args.some(
       (arg) =>
         arg.startsWith("--") &&
-        !["--manifest", "--apply", "--expected-host"].includes(arg),
+        ![
+          "--manifest",
+          "--apply",
+          "--expected-host",
+          "--retire-secret-id",
+        ].includes(arg),
     )
   )
     throw new Error(
-      "Usage: pnpm bootstrap:production --manifest file.json [--apply --expected-host db.example.org]",
+      "Usage: pnpm bootstrap:production --manifest file.json [--apply --expected-host db.example.org [--retire-secret-id <id>]]",
     );
   try {
     const document: unknown = JSON.parse(await readFile(path, "utf8"));
@@ -38,11 +43,13 @@ async function main() {
       // an old manifest is a no-op rather than a failure.
       const manifest = parseProductionBootstrap(document);
       assertBootstrapTarget(manifest, databaseUrl, expectedHost);
+      const retireSecretId = argument("--retire-secret-id");
       const receipt = await applyProductionBootstrap({
         manifest,
         databaseUrl,
         expectedHost,
         authorizationSecret,
+        ...(retireSecretId ? { retireSecretId } : {}),
       });
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
     } else {

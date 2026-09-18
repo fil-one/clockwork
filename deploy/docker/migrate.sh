@@ -94,18 +94,18 @@ supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir /app --yes
 # that has one; every later run finds the manifest recorded and changes
 # nothing. It refuses a database that already holds an authorization secret,
 # and production-roles.sql wrote one as <stage>-initial on every run before
-# the manifest existed, so that row goes first. The bootstrap writes the same
-# secret back as bootstrap:<manifest id>, the id AUTHORIZATION_CONTEXT_SECRET_ID
-# carries from then on; the application checks signatures against every
-# active row, so the swap is invisible to it.
+# the manifest existed, so the bootstrap retires that row inside its own
+# transaction and writes the same secret back as bootstrap:<manifest id>, the
+# id AUTHORIZATION_CONTEXT_SECRET_ID carries from then on. A bootstrap that
+# fails rolls the whole thing back, initial row included, and the release
+# still serving keeps checking signatures against it.
 if [ -n "${BOOTSTRAP_MANIFEST:-}" ]; then
   require DEPLOY_STAGE
   manifest="$HOME/bootstrap-manifest.json"
   printf '%s' "$BOOTSTRAP_MANIFEST" > "$manifest"
   echo "migrate: applying the production bootstrap"
-  psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -c \
-    "delete from private.authorization_secrets where id = '${DEPLOY_STAGE}-initial' and not exists (select 1 from public.system_production_bootstraps)"
-  node /app/bootstrap/bootstrap-production.mjs --manifest "$manifest" --apply --expected-host "$PGHOST"
+  node /app/bootstrap/bootstrap-production.mjs --manifest "$manifest" --apply \
+    --expected-host "$PGHOST" --retire-secret-id "${DEPLOY_STAGE}-initial"
   rm -f "$manifest"
 fi
 

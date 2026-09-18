@@ -71,7 +71,10 @@ In the AWS deployment the migration task (`deploy/docker/migrate.sh`) runs the
 apply on every deploy, with the manifest from the `BOOTSTRAP_MANIFEST` secret,
 after the migrations and before the role passwords. A manifest that is already
 recorded is a no-op however old its MFA evidence has become; a changed manifest
-is still refused. `deploy/README.md` says where each stage's manifest lives.
+is still refused. That deployment writes the authorization secret under an
+interim id before it has a manifest, and passes `--retire-secret-id <id>` so the
+apply removes that one row inside its own transaction; any other row still
+refuses the apply. `deploy/README.md` says where each stage's manifest lives.
 
 After bootstrap, supply real provider secrets, verify external gates, and use
 Capabilities Admin for distinct-person activation. The worker reads persisted
