@@ -41,8 +41,19 @@ locals {
   # must match the backend block in ../shared/main.tf
   shared_state_key = "filone/clockwork/shared.tfstate"
   # the database the migration task creates and migrates
-  db_database                     = "${terraform.workspace}_${var.app}"
-  authorization_context_secret_id = var.authorization_context_secret_id != "" ? var.authorization_context_secret_id : "${terraform.workspace}-initial"
+  db_database = "${terraform.workspace}_${var.app}"
+  # The bootstrap manifest names the row the authorization secret lives in:
+  # bootstrap:<manifest id> once there is a manifest, <workspace>-initial
+  # before (deploy/docker/migrate.sh). The manifest is sensitive as a whole
+  # because it carries staff identities; its id and environment are not, and
+  # they are unmarked here, predicate included, so the task definitions they
+  # end up in stay readable in a plan. (A conditional on a sensitive predicate
+  # is sensitive whatever its branches are.)
+  has_bootstrap_manifest = try(nonsensitive(var.bootstrap_manifest != ""), var.bootstrap_manifest != "")
+  bootstrap_manifest_id  = local.has_bootstrap_manifest ? try(nonsensitive(jsondecode(var.bootstrap_manifest).id), jsondecode(var.bootstrap_manifest).id) : ""
+  bootstrap_environment  = local.has_bootstrap_manifest ? try(nonsensitive(jsondecode(var.bootstrap_manifest).environment), jsondecode(var.bootstrap_manifest).environment) : ""
+
+  authorization_context_secret_id = local.has_bootstrap_manifest ? "bootstrap:${local.bootstrap_manifest_id}" : "${terraform.workspace}-initial"
 
   # Minted here and stored in Secrets Manager; no person ever types them.
   # production-roles.sql sets the two role passwords and writes the

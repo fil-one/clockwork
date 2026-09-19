@@ -22,6 +22,18 @@ include $(CLOCKWORK_SECRETS_FILE)
 export
 endif
 
+# The production bootstrap manifest (docs/operations/production-bootstrap.md)
+# travels the same way: a file per workspace locally, the environment secret
+# CLOCKWORK_BOOTSTRAP_MANIFEST in CI. Without one the migration task skips
+# the bootstrap.
+CLOCKWORK_BOOTSTRAP_MANIFEST ?= $(HOME)/.config/fil-one/clockwork/$(TF_WORKSPACE).bootstrap-manifest.json
+TF_VAR_bootstrap_manifest ?= $(shell cat $(CLOCKWORK_BOOTSTRAP_MANIFEST) 2>/dev/null)
+export TF_VAR_bootstrap_manifest
+# Said out loud by the targets it matters to: an apply without the manifest
+# on a stage that already has one removes its secret and names the interim
+# secret row again, which changes nothing the application can see.
+BOOTSTRAP_MANIFEST_NOTE = $(if $(strip $(TF_VAR_bootstrap_manifest)),:,echo "note: no bootstrap manifest at $(CLOCKWORK_BOOTSTRAP_MANIFEST); the migration task skips the bootstrap")
+
 # One state bucket per account. The app root reads the shared root's state
 # from the same bucket. The bucket's region is its own setting: production's
 # bucket predates this deployment and lives in us-west-2 while the stage is
@@ -157,10 +169,25 @@ apply-shared: shared/.terraform
 
 .PHONY: apply-app
 apply-app: app/.terraform .tfworkspace .env.production.local image-exists
+	@$(BOOTSTRAP_MANIFEST_NOTE)
 	tofu -chdir=app apply $(APP_VARS) $(APPLY_ARGS)
 
 .PHONY: apply
 apply: apply-shared apply-app
+
+# Everything the migration task needs to start, and nothing that would move
+# the service. A targeted apply takes the target and what it is built from,
+# so the task definition alone leaves out what the task reads rather than
+# refers to: the values behind its secrets, and the execution role's
+# permission to read them. Both are separate resources that point at the
+# task's world instead of being pointed at by it.
+MIGRATE_TARGETS = -target=aws_ecs_task_definition.migrate \
+  -target=aws_security_group.migrate \
+  -target=aws_iam_role_policy.migrate_execution_secrets \
+  -target=aws_iam_role_policy_attachment.migrate_execution_ecs \
+  -target=aws_iam_role_policy_attachment.migrate_execution_rds \
+  -target=module.bootstrap_manifest \
+  -target=module.app.module.secrets
 
 # Register the migration task definition for this image and run it to
 # completion. Runs before `apply`, so the schema is in place when the new
@@ -168,7 +195,8 @@ apply: apply-shared apply-app
 # (README.md), because the task needs the VPC's internet route.
 .PHONY: migrate
 migrate: app/.terraform .tfworkspace .env.production.local image-exists
-	tofu -chdir=app apply -target=aws_ecs_task_definition.migrate $(APP_VARS) $(APPLY_ARGS)
+	@$(BOOTSTRAP_MANIFEST_NOTE)
+	tofu -chdir=app apply $(MIGRATE_TARGETS) $(APP_VARS) $(APPLY_ARGS)
 	./run-migrate.sh
 
 .PHONY: wait-deploy

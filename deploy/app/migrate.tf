@@ -54,8 +54,27 @@ resource "aws_iam_role_policy_attachment" "migrate_execution_rds" {
   policy_arn = module.app.database.access_policy_arn
 }
 
-# the app's own secrets: the role passwords and the authorization secret that
-# production-roles.sql writes into the database
+# The bootstrap manifest is a secret of this task alone: the web tasks never
+# read it, and it carries staff identities. Nothing is created while the stage
+# has no manifest.
+module "bootstrap_manifest" {
+  source      = "../storoku/secret"
+  app         = var.app
+  environment = terraform.workspace
+  kms         = module.app.kms
+  secrets     = local.has_bootstrap_manifest ? { BOOTSTRAP_MANIFEST = var.bootstrap_manifest } : {}
+}
+
+locals {
+  migrate_secrets = concat(
+    module.app.secrets,
+    [for name, arn in module.bootstrap_manifest.secrets : { name = name, valueFrom = arn }],
+    [{ name = "RDS_MASTER_SECRET", valueFrom = module.app.database.secret_arn }],
+  )
+}
+
+# the app's own secrets (the role passwords and the authorization secret that
+# production-roles.sql writes into the database) and the bootstrap manifest
 resource "aws_iam_role_policy" "migrate_execution_secrets" {
   name = "${terraform.workspace}-${var.app}-migrate-secrets"
   role = aws_iam_role.migrate_execution.id
@@ -65,7 +84,7 @@ resource "aws_iam_role_policy" "migrate_execution_secrets" {
       {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
-        Resource = [for secret in module.app.secrets : secret.valueFrom]
+        Resource = concat([for secret in module.app.secrets : secret.valueFrom], values(module.bootstrap_manifest.secrets))
       },
       {
         Effect   = "Allow"
@@ -101,10 +120,9 @@ resource "aws_ecs_task_definition" "migrate" {
         { name = "PGDATABASE", value = local.db_database },
         { name = "PGSSLMODE", value = "require" },
         { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
+        { name = "DEPLOY_STAGE", value = terraform.workspace },
       ]
-      secrets = concat(module.app.secrets, [
-        { name = "RDS_MASTER_SECRET", valueFrom = module.app.database.secret_arn },
-      ])
+      secrets = local.migrate_secrets
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -115,6 +133,15 @@ resource "aws_ecs_task_definition" "migrate" {
       }
     }
   ])
+
+  # A manifest written for the other stage would bootstrap this database with
+  # the wrong identities; the bootstrap itself only checks the database host.
+  lifecycle {
+    precondition {
+      condition     = !local.has_bootstrap_manifest || local.bootstrap_environment == (local.is_production ? "production" : "staging")
+      error_message = "The bootstrap manifest's environment does not match the ${terraform.workspace} workspace."
+    }
+  }
 }
 
 output "migrate_task_definition" {
