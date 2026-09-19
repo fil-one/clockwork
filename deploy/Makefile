@@ -175,17 +175,28 @@ apply-app: app/.terraform .tfworkspace .env.production.local image-exists
 .PHONY: apply
 apply: apply-shared apply-app
 
+# Everything the migration task needs to start, and nothing that would move
+# the service. A targeted apply takes the target and what it is built from,
+# so the task definition alone leaves out what the task reads rather than
+# refers to: the values behind its secrets, and the execution role's
+# permission to read them. Both are separate resources that point at the
+# task's world instead of being pointed at by it.
+MIGRATE_TARGETS = -target=aws_ecs_task_definition.migrate \
+  -target=aws_security_group.migrate \
+  -target=aws_iam_role_policy.migrate_execution_secrets \
+  -target=aws_iam_role_policy_attachment.migrate_execution_ecs \
+  -target=aws_iam_role_policy_attachment.migrate_execution_rds \
+  -target=module.bootstrap_manifest \
+  -target=module.app.module.secrets
+
 # Register the migration task definition for this image and run it to
 # completion. Runs before `apply`, so the schema is in place when the new
 # tasks take traffic. The first deploy of a stage runs `apply` first
-# (README.md), because the task needs the VPC's internet route. The secrets
-# the task reads travel with it: a Secrets Manager value is its own resource,
-# one the task definition does not depend on, and a task whose secret has no
-# value never starts.
+# (README.md), because the task needs the VPC's internet route.
 .PHONY: migrate
 migrate: app/.terraform .tfworkspace .env.production.local image-exists
 	@$(BOOTSTRAP_MANIFEST_NOTE)
-	tofu -chdir=app apply -target=aws_ecs_task_definition.migrate -target=module.bootstrap_manifest -target=module.app.module.secrets $(APP_VARS) $(APPLY_ARGS)
+	tofu -chdir=app apply $(MIGRATE_TARGETS) $(APP_VARS) $(APPLY_ARGS)
 	./run-migrate.sh
 
 .PHONY: wait-deploy
