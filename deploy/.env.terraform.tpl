@@ -8,6 +8,8 @@ TF_VAR_app=clockwork
 TF_VAR_allowed_account_id=654654381893
 TF_VAR_region=us-east-2
 TF_STATE_BUCKET=filone-terraform-state-654654381893
+# the bucket's own region; defaults to TF_VAR_region when left empty
+TF_STATE_REGION=us-east-2
 TF_VAR_hostname=clockwork-staging.fil.one
 TF_VAR_domain_base=clockwork-staging.fil.one
 TF_VAR_github_environment=staging
@@ -28,6 +30,7 @@ CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR=
 #   TF_WORKSPACE=prod
 #   TF_VAR_allowed_account_id=811430801166
 #   TF_STATE_BUCKET=filone-terraform-state-811430801166
+#   TF_STATE_REGION=us-west-2
 #   TF_VAR_hostname=clockwork.fil.one
 #   TF_VAR_domain_base=clockwork.fil.one
 #   TF_VAR_github_environment=production

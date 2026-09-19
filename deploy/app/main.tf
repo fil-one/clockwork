@@ -89,7 +89,7 @@ module "app" {
   source              = "../storoku/app"
   shared_state_bucket = var.shared_state_bucket
   shared_state_key    = local.shared_state_key
-  region              = var.region
+  shared_state_region = var.shared_state_region
   app                 = var.app
   appState            = var.app
   environment         = terraform.workspace

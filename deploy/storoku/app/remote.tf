@@ -5,6 +5,6 @@ data "terraform_remote_state" "shared" {
   config = {
     bucket = var.shared_state_bucket
     key    = var.shared_state_key
-    region = var.region
+    region = var.shared_state_region
   }
 }
