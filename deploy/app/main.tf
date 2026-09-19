@@ -123,6 +123,13 @@ module "app" {
   # the app logs in with passwords, which the proxy refuses; see storoku/README.md
   rds_proxy  = false
   db_bastion = false
+  # An internal portal: production runs a medium single-AZ instance with
+  # seven-day backups and point-in-time restore. Multi-AZ only shortens the
+  # failover during an AZ event or maintenance; flip db_multi_az to take it.
+  db_instance_class                        = local.is_production ? var.production_db_instance_class : null
+  db_multi_az                              = local.is_production ? var.production_db_multi_az : null
+  db_allocated_storage                     = local.is_production ? var.production_db_allocated_storage : null
+  db_performance_insights_retention_period = 7
   # the migration task creates the database itself, so neither the provisioner
   # Lambda nor the Secrets Manager endpoint it would need exists
   db_provisioner = false

@@ -81,13 +81,15 @@ locals {
 resource "aws_db_parameter_group" "postgres" {
   name   = "${var.environment}-${var.app}-rds-parameter-group"
   family = "postgres17"
+  # upstream logs every statement (all, 1 ms), which bills each query to
+  # CloudWatch; schema changes and slow statements are what an operator reads
   parameter {
     name  = "log_statement"
-    value = "all"
+    value = "ddl"
   }
   parameter {
     name  = "log_min_duration_statement"
-    value = "1"
+    value = "1000"
   }
   parameter {
     apply_method = "pending-reboot"

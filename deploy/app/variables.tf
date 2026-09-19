@@ -104,3 +104,21 @@ variable "trigger_secret_key" {
   sensitive = true
   default   = ""
 }
+
+# Production database sizing. Staging keeps upstream's db.t4g.micro.
+
+variable "production_db_instance_class" {
+  type    = string
+  default = "db.t4g.medium"
+}
+
+variable "production_db_multi_az" {
+  type    = bool
+  default = false
+}
+
+variable "production_db_allocated_storage" {
+  description = "GB"
+  type        = number
+  default     = 50
+}
