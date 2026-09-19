@@ -126,13 +126,13 @@ describe("durable partner quote demo", () => {
     const first = await handleDemoPartnerQuoteCommand(
       request("demo-partner-quote-replay-0001"),
       partner,
-      { store },
+      { store, now: "2026-08-18T12:00:00.000Z" },
     );
     expect(first.headers.get("idempotency-replayed")).toBe("false");
     const replay = await handleDemoPartnerQuoteCommand(
       request("demo-partner-quote-replay-0001"),
       partner,
-      { store },
+      { store, now: "2026-08-18T12:00:00.000Z" },
     );
     expect(replay.status).toBe(200);
     expect(replay.headers.get("idempotency-replayed")).toBe("true");
@@ -145,7 +145,7 @@ describe("durable partner quote demo", () => {
         },
       }),
       partner,
-      { store },
+      { store, now: "2026-08-18T12:00:00.000Z" },
     );
     expect(conflict.status).toBe(409);
     expect(
@@ -168,7 +168,7 @@ describe("durable partner quote demo", () => {
       const response = await handleDemoPartnerQuoteCommand(
         request(`demo-partner-quote-denied-${crypto.randomUUID()}`, command),
         partner,
-        { store },
+        { store, now: "2026-08-18T12:00:00.000Z" },
       );
       expect(response.status).toBe(403);
     }
@@ -181,7 +181,7 @@ describe("durable partner quote demo", () => {
     await handleDemoPartnerQuoteCommand(
       request("demo-partner-quote-reset-0001"),
       partner,
-      { store },
+      { store, now: "2026-08-18T12:00:00.000Z" },
     );
     expect(
       demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller),

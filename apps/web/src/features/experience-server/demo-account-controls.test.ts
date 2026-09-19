@@ -23,6 +23,12 @@ const session: SessionClaims = {
   recentAuthenticationVerified: true,
 };
 
+// The handler stamps its own clock and refuses an invite that does not expire
+// after it, and it takes no clock to stand in for that one. A fixed date would
+// pass until it arrived and fail every run from then on, so the expiry is
+// always a day out from whenever the suite runs.
+const inviteExpiresAt = new Date(Date.now() + 86_400_000).toISOString();
+
 function mutation(
   path: string,
   method: "POST" | "PUT",
@@ -173,7 +179,7 @@ describe("demo customer account controls", () => {
           accountId,
           email: "new.member@meridian-archive.test",
           role: "member",
-          expiresAt: "2026-09-30T17:00:00.000Z",
+          expiresAt: inviteExpiresAt,
         },
         "member-invite-key-0001",
       ),
