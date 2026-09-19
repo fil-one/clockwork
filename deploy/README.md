@@ -127,6 +127,7 @@ signed in to the account (`aws sso login --profile filone-sandbox`), GNU make.
    | `TF_STATE_REGION`                         | that bucket's region, when it differs from `AWS_REGION` (production's is `us-west-2`) |
    | `CLOCKWORK_HOSTNAME`                      | the stage's hostname                                                                  |
    | `CLOCKWORK_INTERNAL_EMAIL_DOMAINS`        | the staff email domains, comma separated                                              |
+   | `CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS`   | the stage's staff WorkOS organization ([Second factors](#second-factors))             |
    | `CLOCKWORK_PLATFORM_ISSUER_JSON`          | the approved issuing legal entity, one line of JSON                                   |
    | `CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR` | the click-through acceptance threshold, in minor units                                |
    | `TRIGGER_PROJECT_REF`                     | the Trigger.dev project, once there is one (may be empty)                             |
@@ -245,6 +246,21 @@ fields against `ProductionBootstrapManifestSchema` in
 `packages/db/src/production-bootstrap.ts`. Secrets Manager holds up to 64 KB,
 which fits a manifest with an empty catalog.
 
+### Second factors
+
+Privileged roles, which is every staff role, need a verified second factor
+before they hold a session. The application counts one only for an organization
+named in `WORKOS_MFA_POLICY_ORGANIZATION_IDS`, so that an organization whose
+WorkOS factor policy does not exist, or is later relaxed, cannot make a
+single-factor session read as verified. An empty list therefore admits nobody:
+the authenticator code is accepted, a receipt is written, and the session is
+still refused, which returns the signed-in user to `/access/mfa` indefinitely.
+
+Set it to the stage's staff organization, the same `workosOrganizationId` the
+bootstrap manifest carries. Each stage is its own WorkOS environment, so the ids
+differ. The pipeline refuses to deploy a stage whose environment leaves it
+empty; a first deploy by hand can still precede the organization existing.
+
 The manifest also decides the row the authorization secret lives in.
 `AUTHORIZATION_CONTEXT_SECRET_ID` is `bootstrap:<manifest id>` whenever a
 manifest is set and `<workspace>-initial` before. The bootstrap refuses a
@@ -325,7 +341,8 @@ about $100 to each.
   WorkOS organization and user ids, the legal entity, and a second person as
   finance approver.
 - **WorkOS environments.** Each stage needs its own WorkOS environment whose
-  redirect URI is `https://<hostname>/auth/callback`.
+  redirect URI is `https://<hostname>/auth/callback`, and whose staff
+  organization enforces a factor policy ([Second factors](#second-factors)).
 - **Staff email domains.** `CLOCKWORK_INTERNAL_EMAIL_DOMAINS` defaults to
   `fil.org`; confirm the list.
 - **Deploy role scope.** The deploy role carries AdministratorAccess, as

@@ -20,6 +20,13 @@ WORKOS_REDIRECT_URI=https://<%= ${TF_VAR_hostname:?} %>/auth/callback
 CLOCKWORK_TRUSTED_PROXY_HOPS=1
 INTERNAL_EMAIL_DOMAINS=<%= ${CLOCKWORK_INTERNAL_EMAIL_DOMAINS:-fil.org} %>
 
+# Privileged roles need a second factor, and the application counts one only
+# for an organization whose WorkOS factor policy it has been told to trust.
+# Empty means no privileged user can hold a session, so terraform.yml requires
+# this of any stage the pipeline deploys; it is rendered empty here because a
+# stage's first deploy by hand can precede its WorkOS organization.
+WORKOS_MFA_POLICY_ORGANIZATION_IDS=<%= ${CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS:-} %>
+
 # Commercial policy. The issuer is the approved legal entity every document is
 # issued by (EXT-LEGAL-01), as JSON; without it the persisted experience surface
 # refuses to render documents. The threshold is the order value in minor units

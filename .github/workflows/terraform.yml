@@ -50,6 +50,8 @@ jobs:
       TF_VAR_github_environment: ${{ inputs.environment }}
       CLOCKWORK_INTERNAL_EMAIL_DOMAINS:
         ${{ vars.CLOCKWORK_INTERNAL_EMAIL_DOMAINS }}
+      CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS:
+        ${{ vars.CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS }}
       TRIGGER_PROJECT_REF: ${{ vars.TRIGGER_PROJECT_REF }}
       CLOCKWORK_PLATFORM_ISSUER_JSON: ${{ vars.CLOCKWORK_PLATFORM_ISSUER_JSON }}
       CLOCKWORK_CLICK_THROUGH_THRESHOLD_MINOR:
@@ -68,11 +70,13 @@ jobs:
           ref: ${{ inputs.ref }}
 
       # An undefined GitHub variable is an empty string, which would reach
-      # the image (an origin of https://) before anything could object.
+      # the image (an origin of https://) before anything could object. The
+      # MFA organizations are here for the same reason: empty is a stage whose
+      # privileged users cannot hold a session, and nothing downstream says so.
       - name: Check the environment is configured
         run: |
           missing=""
-          for name in AWS_ROLE_ARN AWS_REGION AWS_ACCOUNT_ID TF_STATE_BUCKET CLOCKWORK_HOSTNAME; do
+          for name in AWS_ROLE_ARN AWS_REGION AWS_ACCOUNT_ID TF_STATE_BUCKET CLOCKWORK_HOSTNAME CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS; do
             eval "value=\${$name:-}"
             [ -n "$value" ] || missing="$missing $name"
           done
@@ -86,6 +90,8 @@ jobs:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
           CLOCKWORK_HOSTNAME: ${{ vars.CLOCKWORK_HOSTNAME }}
+          CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS:
+            ${{ vars.CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS }}
 
       # The repository refuses a second push of an existing tag, so a re-run
       # of a failed attempt gets its own.
