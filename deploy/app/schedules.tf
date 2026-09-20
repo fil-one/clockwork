@@ -17,6 +17,8 @@ locals {
   # put ticks on a queue nothing reads: they would sit until the retention
   # window, raise the backlog alarm, and all arrive at once on a switch back.
   schedules_enabled = var.task_runtime == "sqs"
+  # What EventBridge Scheduler replaces with the tick time, matched literally.
+  schedule_time_token = "<aws.scheduler.scheduled-time>"
   schedules = {
     for schedule in local.schedule_manifest.schedules :
     schedule.taskId => schedule
@@ -98,10 +100,13 @@ resource "aws_scheduler_schedule" "task" {
       message_group_id = each.key
     }
     # The tick time the task receives; the poller passes it through as the
-    # scheduled payload.
-    input = jsonencode({
-      taskId      = each.key
-      scheduledAt = "<aws.scheduler.scheduled-time>"
-    })
+    # scheduled payload. Scheduler substitutes the literal
+    # `<aws.scheduler.scheduled-time>`, and jsonencode would escape those
+    # angle brackets to < and >, leaving nothing for it to match:
+    # every tick would deliver the placeholder itself, the core schedule store
+    # would reject it as an invalid time, and identical bodies would collide
+    # on the queue's content-based deduplication. So the token is written
+    # literally and only the task id goes through jsonencode.
+    input = "{\"taskId\":${jsonencode(each.key)},\"scheduledAt\":\"${local.schedule_time_token}\"}"
   }
 }

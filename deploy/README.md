@@ -51,13 +51,13 @@ The app stack (`app/`, workspace `staging` or `prod`):
   versioning, which the evidence store requires
 - a CloudWatch log group, `<workspace>-clockwork-ecs-cluster-log`, kept 14 days
   in staging and a year in production
-- the background-task queue, its scheduler and its alarm (see
+- the background-task queue, its scheduler and its two alarms (see
   [Background tasks](#background-tasks))
 
 ## Background tasks
 
 Every background task — the outbox dispatcher, the lifecycle tasks, the crons —
-runs in the deployment's own account. Four pieces:
+runs in the deployment's own account:
 
 - **The queue.** `<workspace>-clockwork-workflows.fifo`, FIFO with
   high-throughput mode. The message group is the task id, so one task's messages
@@ -75,11 +75,20 @@ runs in the deployment's own account. Four pieces:
   the queue, looks the task up in the registry, runs it, and deletes the
   message. A failure returns the message with the backoff the task's retry
   policy asks for. `CLOCKWORK_TASK_POLL_CONCURRENCY` (default 4) caps the runs
-  in flight.
-- **The alarm.** Any message on the dead-letter queue raises
-  `<workspace>-clockwork-workflows-dead-letter` to the `workflow-alarms` SNS
-  topic. A task only lands there after eight receives, so the alarm means a task
-  that keeps failing, not a task that failed.
+  in flight **in one container**, and each web task runs a poller, so the
+  ceiling for a stage is that number times the service's task count: sixteen in
+  production, eight in staging. Size database pools and provider rate limits
+  against that, not against the four.
+- **The alarms.** Any message on the dead-letter queue raises
+  `<workspace>-clockwork-workflows-dead-letter`, and an oldest message older
+  than fifteen minutes raises `<workspace>-clockwork-workflows-backlog-age`.
+  Both publish to the `workflow-alarms` SNS topic. The first means a task that
+  keeps failing, since a message only lands there after eight receives; the
+  second is what reports a poller that never started, because the web tier stays
+  healthy either way. A task that declares a delivery TTL is dropped when it
+  expires rather than redelivered, so it reaches neither alarm: the outbox
+  dispatcher, whose TTL is a minute, is the one that behaves this way. Nothing
+  is subscribed to the topic yet ([Still to decide](#still-to-decide)).
 
 `task_runtime` chooses the host. It defaults to `sqs`, the arrangement above,
 and passes `CLOCKWORK_TASK_RUNTIME` to the container. Set it to `trigger` and
@@ -367,6 +376,10 @@ about $100 to each.
   are business decisions nobody has made yet. Until they are set, document
   rendering answers 503 and the lifecycle service, public registration included,
   is not wired.
+- **Where a workflow alarm goes.** Both alarms publish to the `workflow-alarms`
+  topic and nothing subscribes to it, so today they are visible only in the
+  CloudWatch console. An email or a chat destination is a decision nobody has
+  made; until it is made, a task failing every attempt is silent.
 - **Production bootstrap.** Neither stage has a manifest yet, so nobody can sign
   in ([Production bootstrap](#production-bootstrap)). The manifest needs the
   WorkOS organization and user ids, the legal entity, and a second person as

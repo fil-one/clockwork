@@ -313,10 +313,42 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
   // task ids still run in parallel, up to the concurrency cap.
   const lanes = new Map<string, Promise<void>>();
 
+  /**
+   * Holds a waiting message's lease until its lane frees up.
+   *
+   * A message queued behind another was received with it and carries the lease
+   * SQS set then. Only a running message is heartbeated, so a run that outlives
+   * the lease would let the message behind it come back into view and be
+   * delivered a second time, which is the duplicate the lane exists to prevent.
+   */
+  async function waitForLane(
+    prior: Promise<void>,
+    receiptHandle: string | undefined,
+  ): Promise<void> {
+    if (!receiptHandle) return prior;
+    let beat: Promise<unknown> = Promise.resolve();
+    const hold = setInterval(() => {
+      beat = changeVisibility(receiptHandle, visibilityTimeoutSeconds).catch(
+        (error: unknown) =>
+          log({ event: "TASK_HEARTBEAT_FAILED", ...summarizeError(error) }),
+      );
+    }, heartbeatIntervalMs);
+    try {
+      await prior;
+    } finally {
+      clearInterval(hold);
+      await beat;
+    }
+  }
+
   function accept(message: QueueMessage): void {
     const lane = message.Attributes?.MessageGroupId ?? "";
-    const run: Promise<void> = (lanes.get(lane) ?? Promise.resolve())
-      .then(() => handle(message))
+    const prior = lanes.get(lane);
+    const run: Promise<void> = (
+      prior === undefined
+        ? handle(message)
+        : waitForLane(prior, message.ReceiptHandle).then(() => handle(message))
+    )
       .catch((error: unknown) =>
         log({ event: "TASK_DISPATCH_FAILED", ...summarizeError(error) }),
       )

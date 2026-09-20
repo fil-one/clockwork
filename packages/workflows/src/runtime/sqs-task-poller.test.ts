@@ -478,6 +478,43 @@ describe("SQS task poller", () => {
     expect(queue.named("DeleteMessageCommand")).toHaveLength(3);
   });
 
+  it("keeps the lease alive on a message waiting for its lane", async () => {
+    vi.useFakeTimers();
+    const gate = deferred();
+    let started = 0;
+    defineTask({
+      id: "test.task.v1",
+      run: () => {
+        started += 1;
+        return gate.promise;
+      },
+    });
+    const queue = fakeQueue([
+      [message({ id: "message-1" }), message({ id: "message-2" })],
+    ]);
+    const poller = createSqsTaskPoller({
+      client: queue.client as never,
+      queueUrl,
+    });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(started).toBe(1);
+
+    // A lease is 300 seconds; the head is still running well past it.
+    await vi.advanceTimersByTimeAsync(360_000);
+    const extended = queue
+      .named("ChangeMessageVisibilityCommand")
+      .filter((call) => call.input.ReceiptHandle === "receipt-message-2");
+    expect(extended.length).toBeGreaterThan(0);
+    expect(extended[0]?.input).toMatchObject({ VisibilityTimeout: 300 });
+
+    gate.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(started).toBe(2);
+    await poller.stop();
+  });
+
   it("waits for a heartbeat already in flight before scheduling the retry", async () => {
     vi.useFakeTimers();
     const gate = deferred();
