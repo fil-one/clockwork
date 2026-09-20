@@ -17,6 +17,12 @@ AWS_PROFILE=filone-sandbox
 
 # Non-secret application settings rendered into .env.production.local
 CLOCKWORK_INTERNAL_EMAIL_DOMAINS=fil.org
+# The WorkOS organizations whose factor policy the application trusts, comma
+# separated. A verified authenticator only unlocks a privileged session for an
+# organization named here, so until this carries the stage's staff
+# organization every privileged sign-in loops back to /access/mfa. Each stage
+# is its own WorkOS environment, so the ids differ.
+CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS=
 TRIGGER_PROJECT_REF=
 # the approved issuing legal entity, as one line of JSON (README: Still to decide)
 CLOCKWORK_PLATFORM_ISSUER_JSON=
