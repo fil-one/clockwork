@@ -1,15 +1,9 @@
-import { schedules } from "@trigger.dev/sdk";
-import { durableRetryPolicy } from "../policy";
+import { defineScheduledTask } from "../tasks/definition";
 import { runPriceBookScheduleOccurrence } from "./price-book-scheduled-runtime";
 
-export const priceBookActivationSchedule = schedules.task({
+export const priceBookActivationSchedule = defineScheduledTask({
   id: "core.schedule.price-book-activation.v1",
-  cron: {
-    pattern: "* * * * *",
-    timezone: "UTC",
-    environments: ["STAGING", "PRODUCTION"],
-  },
-  retry: durableRetryPolicy,
-  run: (payload) =>
-    runPriceBookScheduleOccurrence(payload.timestamp.toISOString()),
+  cron: "* * * * *",
+  stages: ["staging", "production"],
+  run: (payload) => runPriceBookScheduleOccurrence(payload.scheduledAt),
 });

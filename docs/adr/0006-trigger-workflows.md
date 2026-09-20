@@ -1,6 +1,8 @@
 # ADR 0006: Trigger.dev durable workflow policy
 
-Status: Accepted, 2026-07-31
+Status: Accepted, 2026-07-31. Superseded in part by
+[ADR-0010](0010-vendor-neutral-task-runtime.md), which moves the hosting of
+these tasks behind a vendor-neutral runtime; the policy below still holds.
 
 Long-running and provider-facing work runs in Trigger.dev Cloud. Task IDs are
 lane-prefixed and permanently versioned. An invocation idempotency key is

@@ -1,17 +1,15 @@
-import { schedules } from "@trigger.dev/sdk";
-
-import { durableRetryPolicy } from "../policy";
+import { defineScheduledTask } from "../tasks/definition";
 import { executeConfiguredOutboxDispatcher } from "./outbox-dispatcher";
 
-export const outboxDispatcherTask = schedules.task({
+/**
+ * The dispatcher runs every minute and drains whatever is pending, so a
+ * delivery that waited out its minute has already been superseded by the next
+ * tick; dropping it unrun is cheaper than running a redundant sweep.
+ */
+export const outboxDispatcherTask = defineScheduledTask({
   id: "system.outbox.dispatch.v1",
-  cron: {
-    pattern: "* * * * *",
-    timezone: "UTC",
-    environments: ["STAGING", "PRODUCTION"],
-  },
-  ttl: "1m",
-  retry: durableRetryPolicy,
-  run: async (_raw: unknown, { ctx }) =>
-    executeConfiguredOutboxDispatcher(ctx.run.id),
+  cron: "* * * * *",
+  stages: ["staging", "production"],
+  deliveryTtlMs: 60_000,
+  run: (_payload, ctx) => executeConfiguredOutboxDispatcher(ctx.runId),
 });

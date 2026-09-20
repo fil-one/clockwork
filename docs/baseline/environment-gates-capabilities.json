@@ -41,6 +41,9 @@
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_URL",
+    "CLOCKWORK_TASK_POLL_CONCURRENCY",
+    "CLOCKWORK_TASK_RUNTIME",
+    "CLOCKWORK_TASK_VISIBILITY_SECONDS",
     "CLOCKWORK_TELEMETRY_INGEST_SECRET",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",
     "DATABASE_URL",
@@ -107,6 +110,7 @@
     "USAGE_PROVIDER_BASE_URL",
     "USAGE_PROVIDER_TOKEN",
     "WEBHOOK_MAX_BODY_BYTES",
+    "WORKFLOWS_QUEUE_ID",
     "WORKFLOW_PROVIDER_CONTROL_BASE_URL",
     "WORKFLOW_PROVIDER_CONTROL_TOKEN",
     "WORKOS_API_KEY",
@@ -428,6 +432,13 @@
       "source": ".env.example"
     },
     {
+      "key": "CLOCKWORK_TASK_RUNTIME",
+      "exampleDefault": "trigger",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
       "key": "TRIGGER_PROJECT_REF",
       "exampleDefault": "",
       "exampleState": "explicit-empty",
@@ -439,6 +450,27 @@
       "exampleDefault": "",
       "exampleState": "explicit-empty",
       "sensitive": true,
+      "source": ".env.example"
+    },
+    {
+      "key": "WORKFLOWS_QUEUE_ID",
+      "exampleDefault": "",
+      "exampleState": "explicit-empty",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_TASK_POLL_CONCURRENCY",
+      "exampleDefault": "4",
+      "exampleState": "local-default",
+      "sensitive": false,
+      "source": ".env.example"
+    },
+    {
+      "key": "CLOCKWORK_TASK_VISIBILITY_SECONDS",
+      "exampleDefault": "300",
+      "exampleState": "local-default",
+      "sensitive": false,
       "source": ".env.example"
     },
     {
@@ -799,7 +831,7 @@
       "source": ".env.example"
     }
   ],
-  "declaredCount": 97,
+  "declaredCount": 101,
   "staticallyReferencedEnvironment": [
     "APP_ORIGIN",
     "AUTHORIZATION_CONTEXT_SECRET",
@@ -2045,6 +2077,8 @@
     "CLOCKWORK_ENV",
     "CLOCKWORK_RUNTIME_DATABASE_PASSWORD",
     "CLOCKWORK_SERVICE_DATABASE_PASSWORD",
+    "CLOCKWORK_TASK_POLL_CONCURRENCY",
+    "CLOCKWORK_TASK_VISIBILITY_SECONDS",
     "CLOCKWORK_TELEMETRY_INGEST_SECRET",
     "CLOCKWORK_TRUSTED_PROXY_HOPS",
     "DOCUMENT_RENDERER_PROVIDER_BASE_URL",

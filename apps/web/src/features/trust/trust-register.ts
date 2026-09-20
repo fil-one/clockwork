@@ -378,7 +378,8 @@ export const trustIntegrations: readonly TrustIntegration[] = [
   },
   {
     name: "Trigger.dev",
-    purpose: "Background workflow execution.",
+    purpose:
+      "Background task execution, one of two runtimes selected by CLOCKWORK_TASK_RUNTIME; the other is SQS in the deployment's own account.",
     evidencePath: "trigger.config.ts",
     token: "@trigger.dev/sdk",
   },

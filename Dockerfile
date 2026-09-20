@@ -98,6 +98,11 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+# Next's own SIGTERM handler closes the server and calls process.exit(143) in
+# milliseconds, which would kill a background task mid-run. The instrumentation
+# hook owns the signal instead: it stops receiving, lets the runs in flight
+# land, and exits. See apps/web/src/task-host.ts.
+ENV NEXT_MANUAL_SIG_HANDLE=true
 # The Supabase CLI keeps per-user state under $HOME, so the runtime user needs
 # one it owns. Without it `supabase db push` fails on its own state file before
 # it reaches the database.

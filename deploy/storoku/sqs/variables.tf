@@ -25,6 +25,28 @@ variable "high_throughput" {
   default     = false
 }
 
+variable "visibility_timeout_seconds" {
+  description = "How long a received message stays invisible to other consumers. A consumer holding a message longer than this must extend it."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.visibility_timeout_seconds >= 0 && var.visibility_timeout_seconds <= 43200
+    error_message = "The visibility_timeout_seconds value must be between 0 and 43200 seconds (12 hours)."
+  }
+}
+
+variable "max_receive_count" {
+  description = "Receives of one message before the redrive policy moves it to the dead-letter queue."
+  type        = number
+  default     = 4
+
+  validation {
+    condition     = var.max_receive_count >= 1 && var.max_receive_count <= 1000
+    error_message = "The max_receive_count value must be between 1 and 1000."
+  }
+}
+
 variable "message_retention_seconds" {
   description = "The number of seconds Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute) to 1209600 (14 days)."
   type        = number

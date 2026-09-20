@@ -114,6 +114,9 @@ module "app" {
   # Next writes its render and fetch caches under .next at runtime
   write_to_container = true
   cpu_architecture   = var.cpu_architecture
+  # the container drains the tasks in flight on SIGTERM before it exits; the
+  # drain deadline is 100 seconds, and this is the ceiling it fits under
+  stop_timeout = 120
   deployment_config = {
     cpu         = local.is_production ? 1024 : 512
     memory      = local.is_production ? 2048 : 1024
@@ -127,6 +130,7 @@ module "app" {
   deployment_env_vars = [
     { name = "AWS_REGION", value = var.region },
     { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
+    { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
   ]
   image_tag = var.image_tag
 
@@ -150,10 +154,23 @@ module "app" {
   # sensitive, and the secret module's for_each then refuses it
   secrets          = merge(local.generated_secrets, { for name, value in local.supplied_secrets : name => value if nonsensitive(value) != "" })
   external_secrets = []
-  queues           = []
-  caches           = []
-  topics           = []
-  tables           = []
+  # One FIFO queue carries every background task. The message group is the task
+  # id, so a task's messages stay ordered while different tasks run in
+  # parallel. Visibility matches the poller's lease, which its heartbeat
+  # extends while a run is in flight; a task that exhausts eight receives is a
+  # task that keeps crashing, and the dead-letter queue raises the alarm.
+  queues = [
+    {
+      name                       = "workflows"
+      fifo                       = true
+      high_throughput            = true
+      visibility_timeout_seconds = 300
+      max_receive_count          = 8
+    },
+  ]
+  caches = []
+  topics = ["workflow-alarms"]
+  tables = []
   buckets = [
     {
       name        = "evidence"

@@ -3,40 +3,31 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type * as ScheduledRuntime from "./scheduled-runtime";
 import { coreScheduleDefinitions } from "./scheduled-runtime";
 
-interface CapturedSchedule {
-  id: string;
-  cron: { pattern: string; timezone: string };
-  retry: { randomize?: boolean };
-}
-
 type CoreScheduleDefinitionId = (typeof coreScheduleDefinitions)[number]["id"];
 
-const captured: CapturedSchedule[] = [];
-
-vi.mock("@trigger.dev/sdk", () => ({
-  schedules: {
-    task: (definition: CapturedSchedule) => {
-      captured.push(definition);
-      return { id: definition.id };
-    },
-  },
-}));
-
 afterEach(() => {
-  captured.length = 0;
   vi.resetModules();
   vi.doUnmock("./scheduled-runtime");
 });
 
+/**
+ * Defining a task registers it, so each reload starts from a fresh module
+ * graph: the registry the reloaded schedules write to is the one read back
+ * here, and the duplicate-id guard never sees the same task twice.
+ */
 async function load() {
   vi.resetModules();
-  captured.length = 0;
-  return import("./scheduled-tasks");
+  const registry = await import("../tasks/registry");
+  const tasks = (await import("./scheduled-tasks")) as unknown as Record<
+    string,
+    { id: string }
+  >;
+  return { tasks, captured: registry.listScheduledTasks() };
 }
 
 describe("core schedule task bindings", () => {
   it("pairs every export with the definition of the same name", async () => {
-    const tasks = (await load()) as Record<string, { id: string }>;
+    const { tasks, captured } = await load();
     const byName = new Map(
       coreScheduleDefinitions.map((entry) => [entry.id, entry]),
     );
@@ -59,7 +50,7 @@ describe("core schedule task bindings", () => {
     for (const [name, id] of Object.entries(expected)) {
       expect(tasks[name]?.id, name).toBe(id);
       const definition = captured.find((entry) => entry.id === id);
-      expect(definition?.cron.pattern, name).toBe(byName.get(id)?.cron);
+      expect(definition?.cron, name).toBe(byName.get(id)?.cron);
     }
     expect(captured).toHaveLength(coreScheduleDefinitions.length);
   });
@@ -80,19 +71,18 @@ describe("core schedule task bindings", () => {
         coreScheduleDefinitions: [...actual.coreScheduleDefinitions].reverse(),
       };
     });
-    const tasks = (await load()) as Record<string, { id: string }>;
+    const { tasks, captured } = await load();
     expect(tasks.syncOverageSchedule?.id).toBe("core.schedule.sync-overage.v1");
     expect(tasks.procurementCertificateExpirySchedule?.id).toBe(
       "core.schedule.procurement-certificate-expiry.v1",
     );
     expect(
-      captured.find((entry) => entry.id === "core.schedule.dunning.v1")?.cron
-        .pattern,
+      captured.find((entry) => entry.id === "core.schedule.dunning.v1")?.cron,
     ).toBe("0 7 * * *");
   });
 
-  it("randomizes the retry the schedules hand Trigger", async () => {
-    await load();
+  it("randomizes the retry the schedules carry", async () => {
+    const { captured } = await load();
     expect(captured).not.toHaveLength(0);
     for (const definition of captured)
       expect(definition.retry.randomize, definition.id).toBe(true);

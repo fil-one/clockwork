@@ -1,10 +1,10 @@
-import { idempotencyKeys, task, tasks } from "@trigger.dev/sdk";
 import { z } from "zod";
 
 import { ExternalGateKeySchema } from "@clockwork/domain/system";
 
-import { durableRetryPolicy } from "../policy";
 import { externalGateActivationTaskIds } from "../runtime/gate-activation";
+import { defineTask } from "../tasks/definition";
+import { resolveTaskSubmitter, type TaskSubmitter } from "../tasks/submitter";
 
 const ActivationPayloadSchema = z.object({
   taskKey: z.string().min(8).max(255),
@@ -23,8 +23,17 @@ export type ExternalGateActivationExecutor = (
   requestId: string,
 ) => Promise<unknown>;
 
-/** Web/API submission boundary; Trigger provides the durable idempotent queue. */
-export class TriggerExternalGateActivationTaskSubmitter {
+/**
+ * Web/API submission boundary; the configured runtime provides the durable
+ * idempotent queue.
+ */
+export class QueuedExternalGateActivationTaskSubmitter {
+  private readonly submitter: TaskSubmitter;
+
+  public constructor(submitter: TaskSubmitter = resolveTaskSubmitter()) {
+    this.submitter = submitter;
+  }
+
   public async enqueue(input: {
     gateKey: ExternalGateActivationTaskPayload["gateKey"];
     expectedGateRowVersion: number;
@@ -37,22 +46,19 @@ export class TriggerExternalGateActivationTaskSubmitter {
   }) {
     if (input.actor.kind !== "user")
       throw new Error("EXTERNAL_GATE_ACTIVATION_OPERATOR_REQUIRED");
-    const idempotencyKey = await idempotencyKeys.create(input.idempotencyKey, {
-      scope: "global",
-    });
-    const run = await tasks.trigger(
-      externalGateActivationTaskIds.activate,
-      ActivationPayloadSchema.parse({
+    const receipt = await this.submitter.submit({
+      taskId: externalGateActivationTaskIds.activate,
+      payload: ActivationPayloadSchema.parse({
         taskKey: input.taskKey,
         gateKey: input.gateKey,
         provider: input.provider,
         expectedGateRowVersion: input.expectedGateRowVersion,
         requestedBy: input.actor.id,
       }),
-      { idempotencyKey },
-    );
+      idempotencyKey: input.idempotencyKey,
+    });
     return {
-      runId: run.id,
+      runId: receipt.runId,
       taskKey: input.taskKey,
       gateKey: input.gateKey,
       provider: input.provider,
@@ -96,9 +102,11 @@ export function executeConfiguredExternalGateActivation(
  * with the identical handler and no caller of any kind; see
  * `externalGateActivationTaskIds`.
  */
-export const externalGateActivationTask = task({
+export const externalGateActivationTask = defineTask({
   id: externalGateActivationTaskIds.activate,
-  retry: durableRetryPolicy,
-  run: (payload: unknown, { ctx }) =>
-    executeConfiguredExternalGateActivation(payload, `task:${ctx.run.id}`),
+  schema: ActivationPayloadSchema,
+  run: (payload, ctx) =>
+    Promise.resolve(
+      executeConfiguredExternalGateActivation(payload, `task:${ctx.runId}`),
+    ),
 });
