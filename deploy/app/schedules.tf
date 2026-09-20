@@ -12,14 +12,21 @@
 locals {
   schedule_stage    = local.is_production ? "production" : "staging"
   schedule_manifest = jsondecode(file("${path.module}/schedule-manifest.json"))
+  # Only the selected runtime gets a cron. Trigger.dev schedules its own tasks,
+  # and the web host starts no poller in that mode, so a schedule here would
+  # put ticks on a queue nothing reads: they would sit until the retention
+  # window, raise the backlog alarm, and all arrive at once on a switch back.
+  schedules_enabled = var.task_runtime == "sqs"
   schedules = {
     for schedule in local.schedule_manifest.schedules :
     schedule.taskId => schedule
-    if contains(schedule.stages, local.schedule_stage)
+    if local.schedules_enabled && contains(schedule.stages, local.schedule_stage)
   }
 }
 
 resource "aws_scheduler_schedule_group" "tasks" {
+  count = local.schedules_enabled ? 1 : 0
+
   name = "${terraform.workspace}-${var.app}-tasks"
 }
 
@@ -35,14 +42,18 @@ data "aws_iam_policy_document" "scheduler_assume_role" {
 }
 
 resource "aws_iam_role" "scheduler" {
+  count = local.schedules_enabled ? 1 : 0
+
   name               = "${terraform.workspace}-${var.app}-scheduler"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
 }
 
 # The scheduler's whole job is to enqueue; it holds no other permission.
 resource "aws_iam_role_policy" "scheduler_send_message" {
+  count = local.schedules_enabled ? 1 : 0
+
   name = "${terraform.workspace}-${var.app}-scheduler-send-message"
-  role = aws_iam_role.scheduler.name
+  role = aws_iam_role.scheduler[0].name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -61,7 +72,7 @@ resource "aws_scheduler_schedule" "task" {
   # The task id alone: the group already carries the workspace, and a prefixed
   # name puts the longest task ids over the 64-character limit.
   name       = each.key
-  group_name = aws_scheduler_schedule_group.tasks.name
+  group_name = aws_scheduler_schedule_group.tasks[0].name
 
   # Caught here rather than as an opaque API error halfway through an apply.
   lifecycle {
@@ -81,7 +92,7 @@ resource "aws_scheduler_schedule" "task" {
 
   target {
     arn      = module.app.queue["workflows"].arn
-    role_arn = aws_iam_role.scheduler.arn
+    role_arn = aws_iam_role.scheduler[0].arn
     # Same grouping the application submitter uses: one task id, one ordered lane.
     sqs_parameters {
       message_group_id = each.key

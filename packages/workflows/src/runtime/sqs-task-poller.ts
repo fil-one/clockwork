@@ -245,8 +245,14 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
       Number(message.Attributes?.ApproximateReceiveCount ?? 1) || 1,
       1,
     );
+    // The heartbeat covers the run and nothing after it. A beat landing during
+    // the delete extends a message that is already gone; one landing during the
+    // retry's ChangeMessageVisibility overwrites the computed backoff with the
+    // full lease. Clearing the interval stops the next beat but not one already
+    // in the air, so stopping waits for it.
+    let beat: Promise<unknown> = Promise.resolve();
     const heartbeat = setInterval(() => {
-      void changeVisibility(receiptHandle, visibilityTimeoutSeconds).catch(
+      beat = changeVisibility(receiptHandle, visibilityTimeoutSeconds).catch(
         (error: unknown) =>
           log({
             event: "TASK_HEARTBEAT_FAILED",
@@ -255,15 +261,12 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
           }),
       );
     }, heartbeatIntervalMs);
-    // The heartbeat covers the run and nothing after it. A beat landing during
-    // the delete extends a message that is already gone; one landing during the
-    // retry's ChangeMessageVisibility overwrites the computed backoff with the
-    // full lease.
     let beating = true;
-    const stopHeartbeat = (): void => {
+    const stopHeartbeat = async (): Promise<void> => {
       if (!beating) return;
       beating = false;
       clearInterval(heartbeat);
+      await beat;
     };
     await acquire();
     try {
@@ -276,11 +279,11 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
           ...(body.scheduledAt ? { scheduledAt: body.scheduledAt } : {}),
         });
       } finally {
-        stopHeartbeat();
+        await stopHeartbeat();
       }
       await deleteMessage(receiptHandle);
     } catch (error) {
-      stopHeartbeat();
+      await stopHeartbeat();
       log({
         event: "TASK_FAILED",
         taskId: definition.id,
@@ -298,7 +301,7 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
         }),
       );
     } finally {
-      stopHeartbeat();
+      await stopHeartbeat();
       release();
     }
   }

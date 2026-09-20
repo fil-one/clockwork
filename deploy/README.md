@@ -84,8 +84,10 @@ runs in the deployment's own account. Four pieces:
 `task_runtime` chooses the host. It defaults to `sqs`, the arrangement above,
 and passes `CLOCKWORK_TASK_RUNTIME` to the container. Set it to `trigger` and
 the same tasks run in Trigger.dev Cloud instead, submitted with
-`TRIGGER_SECRET_KEY`; the queue and schedules still exist but nothing reads
-them. Task code is identical either way (see
+`TRIGGER_SECRET_KEY`. No schedule, schedule group or scheduler role is created
+in that mode, since Trigger.dev keeps its own cron and a tick here would land on
+a queue the container no longer reads. The queue itself stays, empty, so
+switching back does not rebuild it. Task code is identical either way (see
 [ADR 0010](../docs/adr/0010-vendor-neutral-task-runtime.md)).
 
 ## One-time bootstrap

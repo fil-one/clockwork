@@ -478,6 +478,62 @@ describe("SQS task poller", () => {
     expect(queue.named("DeleteMessageCommand")).toHaveLength(3);
   });
 
+  it("waits for a heartbeat already in flight before scheduling the retry", async () => {
+    vi.useFakeTimers();
+    const gate = deferred();
+    defineTask({ id: "test.task.v1", run: () => gate.promise });
+    const queue = fakeQueue([[message()]]);
+    // The first beat never answers until this is called, which is a beat still
+    // on the wire when the run fails.
+    let releaseBeat: (() => void) | undefined;
+    let firstBeat = true;
+    const client = {
+      send: (
+        command: {
+          constructor: { name: string };
+          input: Record<string, unknown>;
+        },
+        options?: { abortSignal?: AbortSignal },
+      ) => {
+        if (
+          command.constructor.name === "ChangeMessageVisibilityCommand" &&
+          firstBeat
+        ) {
+          firstBeat = false;
+          queue.calls.push({ name: command.constructor.name, ...command });
+          return new Promise((resolve) => {
+            releaseBeat = () => resolve({});
+          });
+        }
+        return queue.client.send(command, options);
+      },
+    };
+    const poller = createSqsTaskPoller({
+      client: client as never,
+      queueUrl,
+      random: () => 1,
+    });
+
+    poller.start();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(queue.named("ChangeMessageVisibilityCommand")).toHaveLength(1);
+
+    gate.reject(new Error("PROVIDER_UNAVAILABLE"));
+    await vi.advanceTimersByTimeAsync(0);
+    // The backoff is not applied while the beat could still land on top of it.
+    expect(queue.named("ChangeMessageVisibilityCommand")).toHaveLength(1);
+
+    releaseBeat?.();
+    await vi.waitUntil(
+      () => queue.named("ChangeMessageVisibilityCommand").length === 2,
+    );
+    expect(
+      queue.named("ChangeMessageVisibilityCommand")[1]?.input,
+    ).toMatchObject({
+      VisibilityTimeout: retryVisibilitySeconds(durableRetryPolicy, 1, () => 1),
+    });
+  });
+
   it("runs one message group at a time, in the order the batch arrived", async () => {
     const gates = [deferred(), deferred(), deferred()];
     const order: string[] = [];
