@@ -303,14 +303,25 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
     }
   }
 
+  // One lane per message group. FIFO returns a group's messages in order
+  // within a batch but does not serialize them, and the group is the task id,
+  // so without a lane two runs of the same task overlap and can commit out of
+  // order. A lane makes each message wait for the one before it; different
+  // task ids still run in parallel, up to the concurrency cap.
+  const lanes = new Map<string, Promise<void>>();
+
   function accept(message: QueueMessage): void {
-    const run: Promise<void> = handle(message)
+    const lane = message.Attributes?.MessageGroupId ?? "";
+    const run: Promise<void> = (lanes.get(lane) ?? Promise.resolve())
+      .then(() => handle(message))
       .catch((error: unknown) =>
         log({ event: "TASK_DISPATCH_FAILED", ...summarizeError(error) }),
       )
       .then(() => {
         inFlight.delete(run);
+        if (lanes.get(lane) === run) lanes.delete(lane);
       });
+    lanes.set(lane, run);
     inFlight.add(run);
   }
 
@@ -332,6 +343,7 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
             MessageSystemAttributeNames: [
               "ApproximateReceiveCount",
               "SentTimestamp",
+              "MessageGroupId",
             ],
           }),
           abort ? { abortSignal: abort.signal } : {},

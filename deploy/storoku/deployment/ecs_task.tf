@@ -414,7 +414,9 @@ resource "aws_iam_policy" "task_sns" {
 resource "aws_iam_role_policy_attachment" "task_sns" {
   count = length(var.topics) > 0 ? 1 : 0
 
-  role       = aws_iam_role.ecs_task_role.arn
+  # AttachRolePolicy takes a role name; an ARN is rejected outright. Every
+  # other attachment on this role passes the name.
+  role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.task_sns[0].arn
 }
 

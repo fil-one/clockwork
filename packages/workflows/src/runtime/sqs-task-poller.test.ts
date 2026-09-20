@@ -65,6 +65,8 @@ function message(
   overrides: {
     id?: string;
     taskId?: string;
+    /** Defaults to the task id, which is what both submitters send. */
+    groupId?: string;
     body?: Record<string, unknown>;
     receiveCount?: number;
     sentAt?: number;
@@ -84,6 +86,7 @@ function message(
     Attributes: {
       ApproximateReceiveCount: String(overrides.receiveCount ?? 1),
       SentTimestamp: String(overrides.sentAt ?? Date.now()),
+      MessageGroupId: overrides.groupId ?? overrides.taskId ?? "test.task.v1",
     },
   };
 }
@@ -443,11 +446,13 @@ describe("SQS task poller", () => {
         active -= 1;
       },
     });
+    // Distinct groups: the concurrency cap is what this measures, and
+    // messages sharing a group are serialized by the test below.
     const queue = fakeQueue([
       [
-        message({ id: "message-1" }),
-        message({ id: "message-2" }),
-        message({ id: "message-3" }),
+        message({ id: "message-1", groupId: "group-1" }),
+        message({ id: "message-2", groupId: "group-2" }),
+        message({ id: "message-3", groupId: "group-3" }),
       ],
     ]);
     const poller = createSqsTaskPoller({
@@ -471,6 +476,63 @@ describe("SQS task poller", () => {
 
     // stop() returns only once every accepted message has been accounted for.
     expect(queue.named("DeleteMessageCommand")).toHaveLength(3);
+  });
+
+  it("runs one message group at a time, in the order the batch arrived", async () => {
+    const gates = [deferred(), deferred(), deferred()];
+    const order: string[] = [];
+    let active = 0;
+    let peak = 0;
+    defineTask({
+      id: "test.task.v1",
+      run: async (payload: { value: number }) => {
+        active += 1;
+        peak = Math.max(peak, active);
+        order.push(`start-${payload.value}`);
+        await gates[payload.value - 1]?.promise;
+        order.push(`end-${payload.value}`);
+        active -= 1;
+      },
+    });
+    // One group, which is what a task id gives every message it sends.
+    const queue = fakeQueue([
+      [1, 2, 3].map((value) =>
+        message({
+          id: `message-${value}`,
+          body: {
+            taskId: "test.task.v1",
+            payload: { value },
+            idempotencyKey: `key-${value}`,
+          },
+        }),
+      ),
+    ]);
+    const poller = createSqsTaskPoller({
+      client: queue.client as never,
+      queueUrl,
+      concurrency: 3,
+    });
+
+    poller.start();
+    await vi.waitUntil(() => order.length === 1);
+    expect(peak).toBe(1);
+    expect(order).toEqual(["start-1"]);
+
+    for (const gate of gates) gate.resolve();
+    await vi.waitUntil(() => queue.named("DeleteMessageCommand").length === 3);
+    const stopped = poller.stop();
+    queue.releaseIdle();
+    await stopped;
+
+    expect(peak).toBe(1);
+    expect(order).toEqual([
+      "start-1",
+      "end-1",
+      "start-2",
+      "end-2",
+      "start-3",
+      "end-3",
+    ]);
   });
 });
 
