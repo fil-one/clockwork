@@ -42,6 +42,10 @@ locals {
   shared_state_key = "filone/clockwork/shared.tfstate"
   # the database the migration task creates and migrates
   db_database = "${terraform.workspace}_${var.app}"
+  # How long a received message is leased. The queue is built with it and the
+  # container is told it, because a value the poller passes on a receive wins
+  # over the queue's own and the two must not drift.
+  workflows_visibility_seconds = 300
   # The bootstrap manifest names the row the authorization secret lives in:
   # bootstrap:<manifest id> once there is a manifest, <workspace>-initial
   # before (deploy/docker/migrate.sh). The manifest is sensitive as a whole
@@ -131,6 +135,10 @@ module "app" {
     { name = "AWS_REGION", value = var.region },
     { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
+    # The poller sets a visibility timeout on every receive, and a per-message
+    # value wins over the queue's own. Both come from here so the lease the
+    # queue is built with is the lease a message actually gets.
+    { name = "CLOCKWORK_TASK_VISIBILITY_SECONDS", value = tostring(local.workflows_visibility_seconds) },
   ]
   image_tag = var.image_tag
 
@@ -164,7 +172,7 @@ module "app" {
       name                       = "workflows"
       fifo                       = true
       high_throughput            = true
-      visibility_timeout_seconds = 300
+      visibility_timeout_seconds = local.workflows_visibility_seconds
       max_receive_count          = 8
     },
   ]

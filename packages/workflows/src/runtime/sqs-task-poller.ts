@@ -27,6 +27,8 @@ const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_WAIT_SECONDS = 20;
 const MAX_MESSAGES_PER_RECEIVE = 10;
 const RECEIVE_FAILURE_PAUSE_MS = 1_000;
+/** How long a tick for a task this image lacks waits for one that has it. */
+const UNKNOWN_TASK_RETRY_SECONDS = 60;
 
 /**
  * The delay before a failed attempt becomes visible again.
@@ -187,18 +189,27 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
   }
 
   /**
-   * Hands a message nothing here can run straight back to the queue.
+   * Hands back a message this process cannot run.
    *
    * Deleting it would discard the work; holding the lease would make the eight
    * receives it takes to reach the dead-letter queue cost forty minutes, and on
-   * a FIFO queue it blocks that message group for all of them. A zero
-   * visibility gets it to the dead letter in seconds instead.
+   * a FIFO queue it blocks that message group for all of them.
+   *
+   * Unreadable bytes are nobody's work and go back with no delay, which reaches
+   * the dead letter in seconds. A task id this image does not know is a
+   * different case: a deploy applies a new schedule while the old image is
+   * still serving, so a tick for a task that only exists in the new one arrives
+   * here first. Returning it immediately would burn all eight receives before
+   * the rollout finished and throw the work away; a delay lets the new image
+   * take it, and still reaches the dead letter within the hour if no image
+   * ever claims it.
    */
-  async function redeliverNow(
+  async function redeliver(
     receiptHandle: string,
     reason: string,
+    seconds: number,
   ): Promise<void> {
-    await changeVisibility(receiptHandle, 0).catch((error: unknown) =>
+    await changeVisibility(receiptHandle, seconds).catch((error: unknown) =>
       log({
         event: "TASK_REDELIVERY_FAILED",
         reason,
@@ -227,13 +238,17 @@ export function createSqsTaskPoller(options: SqsPollerOptions): TaskPoller {
       // Unreadable bytes cannot be routed to an owner; the redrive policy
       // moves the message to the dead-letter queue for an operator to read.
       log({ event: "TASK_MESSAGE_INVALID", messageId: message.MessageId });
-      await redeliverNow(receiptHandle, "TASK_MESSAGE_INVALID");
+      await redeliver(receiptHandle, "TASK_MESSAGE_INVALID", 0);
       return;
     }
     const definition = getTask(body.taskId);
     if (!definition) {
       log({ event: "TASK_UNKNOWN", taskId: body.taskId });
-      await redeliverNow(receiptHandle, "TASK_UNKNOWN");
+      await redeliver(
+        receiptHandle,
+        "TASK_UNKNOWN",
+        UNKNOWN_TASK_RETRY_SECONDS,
+      );
       return;
     }
     if (expired(definition, message)) {

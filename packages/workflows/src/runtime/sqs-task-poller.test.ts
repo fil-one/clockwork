@@ -228,7 +228,7 @@ describe("SQS task poller", () => {
     await poller.stop();
   });
 
-  it("sends a message for an unknown task id back for immediate redelivery", async () => {
+  it("gives a message for an unknown task id time to reach an image that has it", async () => {
     const queue = fakeQueue([[message({ taskId: "test.retired.v1" })]]);
     const logged: Record<string, unknown>[] = [];
     const poller = createSqsTaskPoller({
@@ -244,15 +244,17 @@ describe("SQS task poller", () => {
     await poller.stop();
 
     // Deleting it would discard the work; the queue's redrive policy moves it
-    // to the dead-letter queue, where an operator can see it. Holding the
-    // five-minute lease eight times first would take forty minutes, and on a
-    // FIFO queue it blocks that message group the whole time.
+    // to the dead-letter queue, where an operator can see it. It goes back with
+    // a delay rather than at once: a deploy applies a new schedule while the
+    // old image still serves, so a tick for a task only the new image knows
+    // arrives here first, and eight immediate receives would throw it away
+    // before the rollout finished.
     expect(queue.named("DeleteMessageCommand")).toHaveLength(0);
     expect(
       queue.named("ChangeMessageVisibilityCommand")[0]?.input,
     ).toMatchObject({
       ReceiptHandle: "receipt-message-1",
-      VisibilityTimeout: 0,
+      VisibilityTimeout: 60,
     });
   });
 

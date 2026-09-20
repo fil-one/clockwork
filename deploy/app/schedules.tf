@@ -40,6 +40,18 @@ data "aws_iam_policy_document" "scheduler_assume_role" {
       type        = "Service"
       identifiers = ["scheduler.amazonaws.com"]
     }
+    # Only this account's schedules, and only the group they live in, as the
+    # task role in the same stack conditions its own service trust.
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.allowed_account_id]
+    }
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:scheduler:${var.region}:${var.allowed_account_id}:schedule/${terraform.workspace}-${var.app}-tasks/*"]
+    }
   }
 }
 
