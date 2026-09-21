@@ -27,7 +27,7 @@ export const RELEASE_SUITE_NAMES = Object.freeze([
  * carry no meaning.
  *
  * It is a DIFFERENT contract from `RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT`
- * and `_SHA256`, which pin the whole documented set exactly (100 variables) so
+ * and `_SHA256`, which pin the whole documented set exactly (104 variables) so
  * that any edit to `.env.example` has to be acknowledged here. Adding a name to
  * this list does not move that fingerprint; adding a variable to `.env.example`
  * does. The two are only related in one direction: a name added here must
@@ -85,9 +85,9 @@ export const RELEASE_FILE_CREDENTIAL_ENVIRONMENT = Object.freeze([
   "NPM_CONFIG_USERCONFIG",
 ]);
 
-export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT = 100;
+export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT = 104;
 export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256 =
-  "cb44b34b60df0e165c6422c49ce0976f35fe148d05b5bfaabc097e3a2a160633";
+  "667b657096334e2b8cab3f8d38346b2fac4220da4178be69b2fecfe0744ae7c2";
 
 export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   static: Object.freeze([

@@ -7,7 +7,7 @@ import {
 } from "@clockwork/db";
 import {
   submitDeadLetterRedrive,
-  TriggerLifecycleRedriveSubmitter,
+  QueuedLifecycleRedriveSubmitter,
   type LifecycleTaskSubmissionPort,
 } from "@clockwork/workflows/system";
 
@@ -46,7 +46,7 @@ export async function redriveRetriedWork(
     reason: string;
     requestId: string;
   },
-  submission: LifecycleTaskSubmissionPort = new TriggerLifecycleRedriveSubmitter(),
+  submission: LifecycleTaskSubmissionPort = new QueuedLifecycleRedriveSubmitter(),
 ): Promise<RedriveOutcome> {
   if (input.source === "outbox_message") return { status: "not_required" };
   try {

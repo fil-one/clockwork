@@ -60,19 +60,19 @@ import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 import { createProductionExperienceOutboxHandlers } from "../experience";
 import {
   createLifecycleTaskOutboxHandlers,
-  TriggerLifecycleTaskSubmitter,
+  QueuedLifecycleTaskSubmitter,
   type LifecycleTaskSubmissionPort,
 } from "../system/lifecycle-task-dispatch";
 import {
   createWebhookReplayOutboxHandler,
-  TriggerWebhookReplayTaskSubmitter,
+  QueuedWebhookReplayTaskSubmitter,
   type WebhookReplayTaskSubmitter,
 } from "../webhook-replay/outbox";
 import { ProductionWebhookReplayHandler } from "../webhook-replay/runtime";
 import type {
   ProductionWorkflowAdapterBundle,
   ProductionWorkflowAdapterFactory,
-} from "./trigger-worker-bootstrap";
+} from "./workflow-runtime";
 import { createAuthoritativeLifecycleHandlers } from "./provider-lifecycle";
 import {
   activationTaskKey,
@@ -480,7 +480,7 @@ export function createProductionWorkflowAdapterFactory(
       const configuredTopics = new Set(outboxHandlers.keys());
       const requiredHandlers = [
         createLifecycleTaskOutboxHandlers(
-          options.lifecycleTaskSubmitter ?? new TriggerLifecycleTaskSubmitter(),
+          options.lifecycleTaskSubmitter ?? new QueuedLifecycleTaskSubmitter(),
         ),
         createCoreWorkflowOutboxHandlers({
           db,
@@ -508,7 +508,7 @@ export function createProductionWorkflowAdapterFactory(
         "system.webhook_replay.requested",
         createWebhookReplayOutboxHandler(
           options.webhookReplayTaskSubmitter ??
-            new TriggerWebhookReplayTaskSubmitter(),
+            new QueuedWebhookReplayTaskSubmitter(),
         ),
       );
       const scheduledTopic = "core.schedule.dispatch.v1";

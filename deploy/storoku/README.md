@@ -112,3 +112,25 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     choice by stage); `app/postgres.tf` applies them. `postgres/main.tf`'s
     parameter group logs DDL and statements over one second instead of every
     statement at one millisecond, which billed each query to CloudWatch.
+19. **Configurable queue visibility and redrive, and dead-letter outputs.**
+    `sqs/variables.tf` gains `visibility_timeout_seconds` (default 300, the
+    upstream value) and `max_receive_count` (default 4, the upstream value);
+    `sqs/main.tf` uses both, and the visibility timeout now applies to FIFO
+    queues as well, where upstream left it null and took the 30-second account
+    default. `sqs/outputs.tf` adds `dead_letter_id` and `dead_letter_arn`.
+    `app/variables.tf` queue entries accept both settings and `app/sqs.tf`
+    passes them. The workflows queue runs tasks that take minutes, and its
+    dead-letter queue is what the workflow alarm watches
+    (`deploy/app/alarms.tf`).
+20. **Container stop timeout.** `deployment/variables.tf` gains `stop_timeout`
+    (default 30, the upstream Fargate value); `deployment/ecs_task.tf` sets it
+    as `stopTimeout` on the container, and `app/variables.tf` and
+    `app/deployment.tf` pass it through. The web container hosts the task
+    poller, and on SIGTERM it stops receiving and waits up to 100 seconds for
+    the runs in flight before exiting (`apps/web/src/task-host.ts`); the root
+    passes 120 so Fargate does not kill the container mid-drain.
+21. **The SNS policy attaches to a role name.** `deployment/ecs_task.tf`'s
+    `task_sns` attachment passed `aws_iam_role.ecs_task_role.arn`, while every
+    other attachment on that role passes `.name`. `AttachRolePolicy` takes a
+    name and rejects an ARN, so the first apply of a stage that declares a topic
+    fails. Nothing had declared one before the workflow alarm.

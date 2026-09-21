@@ -1,4 +1,3 @@
-import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 import {
   WEBHOOK_REPLAY_REQUESTED_TOPIC,
   WEBHOOK_REPLAY_TASK_ID,
@@ -6,6 +5,7 @@ import {
 import { z } from "zod";
 
 import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
+import { resolveTaskSubmitter, type TaskSubmitter } from "../tasks/submitter";
 
 const EnvelopeSchema = z
   .object({
@@ -31,19 +31,22 @@ export interface WebhookReplayTaskSubmitter {
   }): Promise<unknown>;
 }
 
-export class TriggerWebhookReplayTaskSubmitter implements WebhookReplayTaskSubmitter {
-  public async submit(input: {
+export class QueuedWebhookReplayTaskSubmitter implements WebhookReplayTaskSubmitter {
+  private readonly submitter: TaskSubmitter;
+
+  public constructor(submitter: TaskSubmitter = resolveTaskSubmitter()) {
+    this.submitter = submitter;
+  }
+
+  public submit(input: {
     workflowRunId: string;
     idempotencyKey: string;
   }): Promise<unknown> {
-    const idempotencyKey = await idempotencyKeys.create(input.idempotencyKey, {
-      scope: "global",
+    return this.submitter.submit({
+      taskId: WEBHOOK_REPLAY_TASK_ID,
+      payload: { workflowRunId: input.workflowRunId },
+      idempotencyKey: input.idempotencyKey,
     });
-    return tasks.trigger(
-      WEBHOOK_REPLAY_TASK_ID,
-      { workflowRunId: input.workflowRunId },
-      { idempotencyKey },
-    );
   }
 }
 

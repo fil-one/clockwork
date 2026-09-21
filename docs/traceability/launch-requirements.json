@@ -3677,7 +3677,7 @@
       ],
       "workflowProvider": [
         "packages/integrations/src/core/stripe/webhooks.ts#StripeFinancialWebhookVerifier",
-        "packages/workflows/src/trigger/discovery.ts#productionTaskImporters",
+        "packages/workflows/src/tasks/load.ts#productionTaskImporters",
         "packages/workflows/src/webhook-replay/runtime.ts#ProductionWebhookReplayHandler"
       ],
       "portalDocument": [

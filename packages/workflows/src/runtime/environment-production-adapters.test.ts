@@ -268,13 +268,7 @@ describe("runtime-bound notification delivery client", () => {
     };
     await withRuntimeBoundAdapters(inner, transport, bind).create({
       db,
-      environment: {
-        runtimeEnvironment: "test",
-        directDatabaseUrl:
-          "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-        triggerProjectRef: "proj_test",
-        triggerSecretKey: "tr_test_secret_key",
-      },
+      environment: { runtimeEnvironment: "test" },
       source: completeEnvironment,
     });
     expect(bind).toHaveBeenCalledWith(db);

@@ -1,10 +1,12 @@
 module "queues" {
-  for_each                  = { for queue in var.queues : queue.name => queue }
-  source                    = "../sqs"
-  app                       = var.app
-  environment               = var.environment
-  name                      = each.key
-  fifo                      = each.value.fifo
-  high_throughput           = each.value.high_throughput
-  message_retention_seconds = each.value.message_retention_seconds
+  for_each                   = { for queue in var.queues : queue.name => queue }
+  source                     = "../sqs"
+  app                        = var.app
+  environment                = var.environment
+  name                       = each.key
+  fifo                       = each.value.fifo
+  high_throughput            = each.value.high_throughput
+  message_retention_seconds  = each.value.message_retention_seconds
+  visibility_timeout_seconds = each.value.visibility_timeout_seconds
+  max_receive_count          = each.value.max_receive_count
 }

@@ -4,4 +4,6 @@ export * from "./gate-activation";
 export * from "./production-adapter-factory";
 export * from "./production";
 export * from "./provider-lifecycle";
+export * from "./sqs-task-poller";
 export * from "./trigger-worker-bootstrap";
+export * from "./workflow-runtime";

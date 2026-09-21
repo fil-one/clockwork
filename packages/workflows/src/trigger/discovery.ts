@@ -1,38 +1,23 @@
 import { activateTriggerWorkerRuntime } from "../runtime/trigger-worker-bootstrap";
+import type { TaskModuleImporter } from "../tasks/load";
+import { registerAllTriggerTasks } from "../tasks/trigger-adapter";
 
-export type TriggerTaskImporter = () => Promise<unknown>;
+export {
+  productionTaskImporters,
+  type TaskModuleImporter as TriggerTaskImporter,
+} from "../tasks/load";
 
 /**
- * Exported so a test can drive the same modules production discovers rather
- * than a second copy of the list.
+ * Trigger task modules are evaluated only after the durable runtime is active;
+ * importing them registers the tasks, and the adapter then presents every
+ * registered task to the Trigger SDK.
  */
-export const productionTaskImporters: readonly TriggerTaskImporter[] = [
-  () => import("../core/tasks"),
-  () => import("../core/scheduled-tasks"),
-  () => import("../core/payg-scheduled-tasks"),
-  () => import("../core/price-book-scheduled-tasks"),
-  () => import("../agreements/tasks"),
-  () => import("../exceptions/tasks"),
-  () => import("../migrations/tasks"),
-  () => import("../offboarding/tasks"),
-  () => import("../onboarding/tasks"),
-  () => import("../pocs/tasks"),
-  () => import("../provisioning/tasks"),
-  () => import("../quotes/tasks"),
-  () => import("../renewals/tasks"),
-  () => import("../system/tasks"),
-  () => import("../system/gate-activation-tasks"),
-  () => import("../webhook-replay/tasks"),
-];
-
-/** Trigger task modules are evaluated only after the durable runtime is active. */
 export async function bootstrapThenDiscoverTriggerTasks(
   input: {
     bootstrap?: () => Promise<unknown>;
-    taskImporters?: readonly TriggerTaskImporter[];
+    taskImporters?: readonly TaskModuleImporter[];
   } = {},
 ): Promise<void> {
   await (input.bootstrap ?? activateTriggerWorkerRuntime)();
-  for (const importTasks of input.taskImporters ?? productionTaskImporters)
-    await importTasks();
+  await registerAllTriggerTasks(input.taskImporters);
 }
