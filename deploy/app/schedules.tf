@@ -19,6 +19,8 @@ locals {
   schedules_enabled = var.task_runtime == "sqs"
   # What EventBridge Scheduler replaces with the tick time, matched literally.
   schedule_time_token = "<aws.scheduler.scheduled-time>"
+  schedule_group_name = "${terraform.workspace}-${var.app}-tasks"
+  schedule_group_arn  = "arn:aws:scheduler:${var.region}:${var.allowed_account_id}:schedule-group/${local.schedule_group_name}"
   schedules = {
     for schedule in local.schedule_manifest.schedules :
     schedule.taskId => schedule
@@ -29,7 +31,7 @@ locals {
 resource "aws_scheduler_schedule_group" "tasks" {
   count = local.schedules_enabled ? 1 : 0
 
-  name = "${terraform.workspace}-${var.app}-tasks"
+  name = local.schedule_group_name
 }
 
 data "aws_iam_policy_document" "scheduler_assume_role" {
@@ -40,8 +42,15 @@ data "aws_iam_policy_document" "scheduler_assume_role" {
       type        = "Service"
       identifiers = ["scheduler.amazonaws.com"]
     }
-    # Only this account's schedules, and only the group they live in, as the
-    # task role in the same stack conditions its own service trust.
+    # Only this account, and only schedules in this group, as the ECS task role
+    # in this stack conditions its own service trust.
+    #
+    # The source ARN has to be the group rather than a schedule: Scheduler
+    # presents the group when it assumes the role, and it checks at
+    # CreateSchedule that the role it was handed is assumable, so a condition
+    # naming a schedule can never match and every schedule fails with "The
+    # execution role you provide must allow AWS EventBridge Scheduler to assume
+    # the role."
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
@@ -50,7 +59,7 @@ data "aws_iam_policy_document" "scheduler_assume_role" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:scheduler:${var.region}:${var.allowed_account_id}:schedule/${terraform.workspace}-${var.app}-tasks/*"]
+      values   = [local.schedule_group_arn]
     }
   }
 }
