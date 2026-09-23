@@ -10,6 +10,7 @@ import {
   safeDemoReturnPath,
 } from "@/src/auth/demo-access";
 import { secureDemoRequest } from "@/src/auth/demo-deploy";
+import { isLocale, localeCookie, localeCookieOptions } from "@/src/i18n";
 
 /**
  * The body is read as text and parsed here rather than through `formData()`.
@@ -37,6 +38,25 @@ function seeOther(location: string): NextResponse {
   });
 }
 
+/**
+ * The language chosen at the gate travels with the password, so it holds
+ * whether or not the selector's own save reached the server first. It is set on
+ * a refusal too: the retry should read in the language the visitor picked.
+ */
+function carryLanguage(
+  response: NextResponse,
+  form: URLSearchParams,
+  request: Request,
+): NextResponse {
+  const language = form.get("language");
+  if (isLocale(language))
+    response.cookies.set(localeCookie, language, {
+      ...localeCookieOptions,
+      secure: secureDemoRequest(request),
+    });
+  return response;
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   const password = demoAccessConfiguration(process.env);
   if (!password) return new NextResponse(null, { status: 404 });
@@ -52,11 +72,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   const form = await submittedFields(request);
   const next = safeDemoReturnPath(field(form, "next"));
   if (!(await equalDemoSecret(field(form, "password"), password)))
-    return seeOther(
-      `${demoAccessRoute}?error=1&next=${encodeURIComponent(next)}`,
+    return carryLanguage(
+      seeOther(`${demoAccessRoute}?error=1&next=${encodeURIComponent(next)}`),
+      form,
+      request,
     );
   const grant = await issueDemoAccessCookie(password);
-  const response = seeOther(next);
+  const response = carryLanguage(seeOther(next), form, request);
   response.cookies.set(demoAccessCookieName, grant.value, {
     httpOnly: true,
     sameSite: "lax",

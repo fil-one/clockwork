@@ -287,6 +287,35 @@ test.describe("demo access gate", () => {
       }),
     ).toBeVisible();
   });
+
+  // A visitor picks a language and goes straight to the password. There is no
+  // separate save step to skip, and the choice must survive the gate even when
+  // the password is submitted before the selector's own save has answered.
+  test("keeps the language chosen at the gate without a save step", async ({
+    page,
+  }) => {
+    // The gate is outside the shell and has no hydration marker. It needs
+    // none: the selector belongs to the password form natively, so the choice
+    // is submitted whether or not its own save has run. Once that save does
+    // run the page re-renders in French, so the button is found by its form,
+    // not by a label that may be in either language.
+    const field = await openGate(page);
+    await page.getByRole("combobox", { name: "Language" }).selectOption("fr");
+    await field.fill(password);
+    await page.locator("#demo-access-form").getByRole("button").click();
+
+    await expect(page).toHaveURL(/\/demo$/u);
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Choisissez le profil avec lequel vous connecter",
+      }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await page.context().clearCookies({ name: "clockwork-language" });
+  });
 });
 
 test.describe("demo landing", () => {
