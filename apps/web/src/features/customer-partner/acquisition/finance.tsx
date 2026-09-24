@@ -6,12 +6,21 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { CustomerAcquisitionRequest } from "@clockwork/domain/core";
 import { resolveCustomerAcquisition } from "./actions";
-import { requestKindLabels } from "./customer";
+import { requestKindLabels, requestStatusLabels } from "./customer";
 import {
   AdministrationPage,
   styles,
   StatusPill,
+  type StatusTone,
 } from "@/src/features/internal-ops/administration-safety/ui";
+/** The chip colour follows the request's stored state, never its label. */
+const requestStatusTones: Readonly<
+  Record<CustomerAcquisitionRequest["status"], StatusTone>
+> = {
+  pending: "warning",
+  fulfilled: "success",
+  declined: "danger",
+};
 function field(data: FormData, key: string): string {
   const value = data.get(key);
   return typeof value === "string" ? value : "";
@@ -79,7 +88,10 @@ export function AcquisitionFinance({
                   second: request.organizationName,
                 })}
               </h2>
-              <StatusPill state={request.status} />
+              <StatusPill
+                state={t(requestStatusLabels[request.status])}
+                tone={requestStatusTones[request.status]}
+              />
             </div>
             <div className={styles.panelBody}>
               <p>

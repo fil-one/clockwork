@@ -138,7 +138,7 @@ export function AgreementAdministration({
               })}
             </p>
           </div>
-          <StatusPill state={t("adminGovernance.upToDate")} tone="warning" />
+          <StatusPill state={t("adminGovernance.upToDate")} tone="success" />
         </div>
         <div
           className={styles.toolbar}
@@ -254,7 +254,7 @@ export function AgreementAdministration({
                 ? "adminGovernance.agreements.legalAuthority"
                 : "adminGovernance.readOnly",
             )}
-            tone="warning"
+            tone={permitted ? "success" : "warning"}
           />
         </div>
         <form

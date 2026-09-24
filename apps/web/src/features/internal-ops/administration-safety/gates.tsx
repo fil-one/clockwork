@@ -31,6 +31,7 @@ import {
   gateGroupCaptions,
   gateGroupLabels,
   gateSeverityLabels,
+  gateSeverityTones,
   gateStateLabels,
   gateStateTones,
   gateStatusLabels,
@@ -477,7 +478,7 @@ export function GateRegister({
                         })
                       : t("adminGovernance.gates.noBlockers")
                   }
-                  tone="warning"
+                  tone={blockers ? "warning" : "success"}
                 />
               </div>
               <Table
@@ -556,7 +557,7 @@ export function GateRegister({
                   ),
                   <StatusPill
                     state={t(gateSeverityLabels[gate.severity])}
-                    tone="warning"
+                    tone={gateSeverityTones[gate.severity]}
                   />,
                   <div className={styles.stackCell}>
                     <small>

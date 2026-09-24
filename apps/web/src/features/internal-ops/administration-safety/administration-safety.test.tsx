@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/src/auth/actions", () => ({ startAssistedSession: vi.fn() }));
 
 import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 
@@ -10,6 +12,7 @@ import { LanguageProvider } from "@/src/i18n/client";
 import { AgreementAdministration } from "./agreements";
 
 import { ApprovalWorkspace } from "./approvals";
+import { AssistedMode } from "./assisted";
 import { accounts, agreementScanAt, agreementVersions } from "./data";
 import {
   assistedCommercialActionReady,
@@ -184,6 +187,44 @@ describe("status chip colour", () => {
     expect(screen.getByText("Blocked")).not.toHaveClass(styles.danger ?? "");
     expect(screen.getByText("Vigente")).toHaveClass(styles.success ?? "");
     expect(screen.getByText("Bloqueado")).toHaveClass(styles.danger ?? "");
+  });
+
+  /**
+   * These chips were all amber whatever they said, so "Up to date" and an
+   * authority the reader holds looked like warnings.
+   */
+  it("colours a current registry and a held authority as success", () => {
+    const { unmount } = render(
+      <AgreementAdministration
+        roles={["legal_approver"]}
+        versions={resolveDemoText(agreementVersions, "en")}
+        scannedAt={agreementScanAt}
+        readOnly
+      />,
+    );
+    expect(screen.getByText("Up to date")).toHaveClass(styles.success ?? "");
+    expect(screen.getByText("Legal authority")).toHaveClass(
+      styles.success ?? "",
+    );
+    unmount();
+    const { rerender } = render(
+      <ApprovalWorkspace roles={["finance_approver"]} />,
+    );
+    expect(screen.getByText("Authorized role")).toHaveClass(
+      styles.success ?? "",
+    );
+    rerender(<ApprovalWorkspace roles={["legal_approver"]} />);
+    expect(screen.getByText("Read only")).toHaveClass(styles.warning ?? "");
+    rerender(
+      <AssistedMode
+        roles={["internal_operator"]}
+        accounts={accounts}
+        actor="Ada Mercer"
+      />,
+    );
+    expect(screen.getByText("Can act for accounts")).toHaveClass(
+      styles.success ?? "",
+    );
   });
 
   it("colours translated agreement states from the state itself", () => {

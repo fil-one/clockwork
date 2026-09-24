@@ -115,7 +115,7 @@ export default async function Page() {
                     ? "adminGovernance.capabilities.newWorkEnabled"
                     : "adminGovernance.capabilities.newWorkDisabled",
                 )}
-                tone="warning"
+                tone={capability.enabled ? "success" : "warning"}
               />
             </div>
             <div className={styles.panelBody}>
