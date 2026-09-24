@@ -1,5 +1,6 @@
 "use client";
-import { useFormattingLocale } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { Translator } from "@/src/i18n";
 
 import { Table } from "@clockwork/ui";
 import { useState } from "react";
@@ -14,11 +15,46 @@ import {
   CommerceApiError,
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
+import { discountMatrixSummary, transferPriceList } from "./price-book-diff";
+import {
+  bookMoney,
+  commerceErrorText,
+  commitTypeLabel,
+  formatQuantity,
+  unitLabel,
+} from "./price-book-presentation";
 import { styles } from "./ui";
 
-function displayMoney(value: { currency: string; minor: string }) {
-  const minor = BigInt(value.minor);
-  return `${value.currency} ${minor / 100n}.${(minor % 100n).toString().padStart(2, "0")}`;
+/**
+ * Why a pasted document was refused, for the reader.
+ *
+ * The domain parser throws English: a `SyntaxError` from `JSON.parse`, a
+ * schema error listing the failing fields, or its own sentence. The first two
+ * get a translated sentence; the schema's field paths and messages are quoted
+ * as detail because they name what to fix.
+ */
+function importProblem(error: unknown, t: Translator): string {
+  if (error instanceof SyntaxError) return t("adminPricing.import.invalidJson");
+  if (
+    error instanceof Error &&
+    "issues" in error &&
+    Array.isArray(error.issues)
+  ) {
+    const detail = (
+      error.issues as readonly { path?: readonly unknown[]; message?: string }[]
+    )
+      .slice(0, 3)
+      .map((issue) =>
+        [issue.path?.map(String).join("."), issue.message]
+          .filter(Boolean)
+          .join(": "),
+      )
+      .join("; ");
+    return t("adminPricing.import.invalidDocument", { detail });
+  }
+  return error instanceof Error
+    ? t("adminPricing.import.invalidDocument", { detail: error.message })
+    : t("adminPricing.import.invalidJson");
 }
 
 export function PriceBookImport({
@@ -34,29 +70,24 @@ export function PriceBookImport({
   onBusy: (busy: boolean) => void;
   onImported: (id: string) => void;
 }) {
+  const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   const [document, setDocument] = useState<PriceBookExchange | null>(null);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [json, setJson] = useState("");
+  const bytes = new TextEncoder().encode(json).length;
   return (
     <details className={styles.panel}>
       <summary className={styles.panelBody}>
-        Import price-book JSON into a new draft
+        {t("adminPricing.import.summary")}
       </summary>
       <div className={styles.panelBody}>
-        <p>
-          Paste an economics-only v2 export from Download price book (maximum 1
-          MiB, 250 rates). Validate and review the preview first. Prices,
-          floors, transfer prices, tax/accounting codes and discount rules are
-          retained. New identities and fresh approval are required. Provider
-          bindings and approval history cannot be imported. Uploaded source
-          details are provenance, not verified authority.
-        </p>
+        <p>{t("adminPricing.import.intro")}</p>
         <label className={styles.field}>
-          Price-book JSON
+          {t("adminPricing.import.jsonLabel")}
           <textarea
-            aria-label="Price-book JSON"
+            aria-label={t("adminPricing.import.jsonLabel")}
             rows={8}
             maxLength={PRICE_BOOK_IMPORT_MAX_BYTES}
             disabled={!permitted || pending}
@@ -73,34 +104,33 @@ export function PriceBookImport({
           className={styles.buttonSecondary}
           disabled={!permitted || pending || !json}
           onClick={() => {
+            if (bytes > PRICE_BOOK_IMPORT_MAX_BYTES) {
+              setDocument(null);
+              setMessage(t("adminPricing.import.tooLarge"));
+              return;
+            }
             try {
               const parsed = parsePriceBookExchange(json);
               setDocument(parsed);
-              setMessage(
-                "Validated economics. Review the rates and target draft before importing.",
-              );
+              setMessage(t("adminPricing.import.validated"));
             } catch (error) {
               setDocument(null);
-              setMessage(
-                error instanceof Error
-                  ? error.message
-                  : "Invalid price-book JSON",
-              );
+              setMessage(importProblem(error, t));
             }
           }}
         >
-          Validate import preview
+          {t("adminPricing.import.validate")}
         </button>
         <p className={styles.resultMeta}>
-          {new TextEncoder()
-            .encode(json)
-            .length.toLocaleString(formattingLocale)}{" "}
-          / {PRICE_BOOK_IMPORT_MAX_BYTES.toLocaleString(formattingLocale)} bytes
+          {t("adminPricing.import.bytes", {
+            used: new Intl.NumberFormat(formattingLocale).format(bytes),
+            count: PRICE_BOOK_IMPORT_MAX_BYTES,
+          })}
         </p>
         {message ? <p role="status">{message}</p> : null}
         {document ? (
           <form
-            aria-label="Import price book"
+            aria-label={t("adminPricing.import.formLabel")}
             onSubmit={(event) => {
               event.preventDefault();
               if (!permitted || pending) return;
@@ -113,9 +143,7 @@ export function PriceBookImport({
                 document,
               });
               if (!parsed.success) {
-                setMessage(
-                  "Check the new draft name, version, effective date and reason.",
-                );
+                setMessage(t("adminPricing.import.checkDraft"));
                 return;
               }
               if (
@@ -126,7 +154,10 @@ export function PriceBookImport({
                 )
               ) {
                 setMessage(
-                  `${document.currency} version ${parsed.data.version} already exists. Choose a new version.`,
+                  t("adminPricing.import.versionExists", {
+                    currency: document.currency,
+                    version: parsed.data.version,
+                  }),
                 );
                 return;
               }
@@ -142,18 +173,19 @@ export function PriceBookImport({
                 .then(() => {
                   setDocument(null);
                   setJson("");
-                  setMessage(
-                    "Draft imported. Review its economics and catalog mappings before requesting fresh approval.",
-                  );
+                  setMessage(t("adminPricing.import.imported"));
                   onImported(id);
                 })
                 .catch((error: unknown) =>
                   setMessage(
-                    error instanceof CommerceApiError
-                      ? error.problemCode === "DUPLICATE"
-                        ? "The destination identity or currency/version already exists. Choose a new version."
-                        : error.message
-                      : "Import failed. Refresh and check the document and destination version.",
+                    error instanceof CommerceApiError &&
+                      error.problemCode === "DUPLICATE"
+                      ? t("adminPricing.import.duplicate")
+                      : commerceErrorText(
+                          error,
+                          t,
+                          "adminPricing.import.failed",
+                        ),
                   ),
                 )
                 .finally(() => {
@@ -163,38 +195,69 @@ export function PriceBookImport({
             }}
           >
             <h3>
-              Import preview · {document.currency} · {document.rateCards.length}{" "}
-              rates
+              {t("adminPricing.import.previewTitle", {
+                currency: document.currency,
+                count: document.rateCards.length,
+              })}
             </h3>
             <p>
-              Uploaded source: {document.source.name} v{document.source.version}
-              . Discount ceiling:{" "}
-              {document.discountMatrix?.defaultMaxDiscountBps ?? 0} bps;{" "}
-              {document.discountMatrix?.rules.length ?? 0} scoped rules.
+              {t("common.join.sentences", {
+                first: t("adminPricing.import.source", {
+                  book: t("adminPricing.bookName", {
+                    name: document.source.name,
+                    version: document.source.version,
+                  }),
+                }),
+                second: t("adminPricing.import.discount", {
+                  summary: discountMatrixSummary(
+                    document.discountMatrix,
+                    t,
+                    formattingLocale,
+                  ),
+                }),
+              })}
             </p>
             <Table
-              caption="Imported rate preview"
+              caption={t("adminPricing.import.tableCaption")}
               headers={[
-                "SKU / region",
-                "Unit",
-                "List / floor / overage",
-                "Minimum / trial limit",
-                "Transfer tiers",
-                "Tax / accounting",
+                t("adminPricing.import.header.skuRegion"),
+                t("adminPricing.import.header.unit"),
+                t("adminPricing.import.header.prices"),
+                t("adminPricing.import.header.minimum"),
+                t("adminPricing.rate.transferPrices"),
+                t("adminPricing.import.header.tax"),
               ]}
               rows={document.rateCards.map((rate) => [
                 `${rate.sku} / ${rate.region}`,
-                `${rate.unit} · ${rate.commitType}`,
-                `${displayMoney(rate.unitPrice)} / ${rate.floorPrice ? displayMoney(rate.floorPrice) : "Unconfigured"} / ${displayMoney(rate.overageRate)}`,
-                `${rate.minimumQuantity} / ${rate.trialLimit ?? "None"}`,
-                Object.entries(rate.partnerTransferPrices)
-                  .map(([tier, price]) => `${tier}: ${displayMoney(price)}`)
-                  .join(", ") || "None",
+                t("common.join.labels", {
+                  first: unitLabel(rate.unit, t),
+                  second: commitTypeLabel(rate.commitType, t),
+                }),
+                [
+                  bookMoney(rate.unitPrice, formattingLocale),
+                  rate.floorPrice
+                    ? bookMoney(rate.floorPrice, formattingLocale)
+                    : t("adminPricing.rate.notConfigured"),
+                  bookMoney(rate.overageRate, formattingLocale),
+                ].join(" / "),
+                [
+                  formatQuantity(rate.minimumQuantity, formattingLocale),
+                  rate.trialLimit
+                    ? formatQuantity(rate.trialLimit, formattingLocale)
+                    : t("common.none"),
+                ].join(" / "),
+                transferPriceList(
+                  Object.entries(rate.partnerTransferPrices).map(
+                    ([tier, value]) => ({ tier, value }),
+                  ),
+                  t,
+                  formattingLocale,
+                ),
                 `${rate.stripeTaxCode} / ${rate.qboIncomeAccount}`,
               ])}
             />
             <details>
-              <summary>Complete validated economics</summary>
+              <summary>{t("adminPricing.import.completeEconomics")}</summary>
               <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
                 {JSON.stringify(document, null, 2)}
               </pre>
@@ -203,9 +266,9 @@ export function PriceBookImport({
               className={styles.formGrid}
               disabled={!permitted || pending}
             >
-              <legend>New draft · approval not requested</legend>
+              <legend>{t("adminPricing.import.legend")}</legend>
               <label className={styles.field}>
-                Imported price-book name
+                {t("adminPricing.import.name")}
                 <input
                   name="name"
                   required
@@ -215,7 +278,7 @@ export function PriceBookImport({
                 />
               </label>
               <label className={styles.field}>
-                Imported price-book version
+                {t("adminPricing.import.version")}
                 <input
                   name="version"
                   required
@@ -234,7 +297,7 @@ export function PriceBookImport({
                 />
               </label>
               <label className={styles.field}>
-                Imported effective date
+                {t("adminPricing.import.effectiveFrom")}
                 <input
                   name="effectiveFrom"
                   type="date"
@@ -243,7 +306,7 @@ export function PriceBookImport({
                 />
               </label>
               <label className={styles.field}>
-                Import reason
+                {t("adminPricing.import.reason")}
                 <textarea
                   name="reason"
                   required
@@ -252,7 +315,9 @@ export function PriceBookImport({
                 />
               </label>
               <button type="submit" className={styles.button}>
-                {pending ? "Importing…" : "Create imported draft"}
+                {pending
+                  ? t("adminPricing.import.importing")
+                  : t("adminPricing.import.submit")}
               </button>
             </fieldset>
           </form>

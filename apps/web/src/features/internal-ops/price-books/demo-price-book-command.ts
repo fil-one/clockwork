@@ -21,6 +21,8 @@ import type {
 import { z } from "zod";
 
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
+import type { MessageId, MessageValues, Translator } from "@/src/i18n";
+import { getTranslations } from "@/src/i18n/server";
 
 import {
   currentDemoPriceBooks,
@@ -118,14 +120,29 @@ const decisionSchema = z
   .object({ reason: z.string().trim().min(8).max(1_000) })
   .strict();
 
+/**
+ * A refusal the finance user reads: the client shows a 422 `detail` verbatim.
+ * It carries a message ID, not a sentence, so `problem()` can word it in the
+ * language of the request that caused it.
+ */
 class DemoPriceBookProblem extends Error {
   public constructor(
     public readonly status: 403 | 404 | 409 | 422,
     public readonly code: string,
-    detail: string,
+    public readonly detailId: MessageId,
+    public readonly values: MessageValues = {},
   ) {
-    super(detail);
+    super(detailId);
   }
+}
+
+/**
+ * Validation messages from the domain package are English domain text; they
+ * are quoted inside a translated sentence because they name the rule that
+ * failed.
+ */
+function domainDetail(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 interface StoredReceipt {
@@ -147,6 +164,7 @@ function receipt(
   if (!isRecord(data) || data.kind !== "demo_price_book_receipt")
     return undefined;
   if (typeof data.requestHash !== "string" || !isRecord(data.response))
+    // i18n-exempt: internal invariant; surfaces as the translated 500 detail, never as this text
     throw new Error("Demo price-book receipt is invalid");
   return data as unknown as StoredReceipt;
 }
@@ -214,7 +232,7 @@ function requiredBook(
     throw new DemoPriceBookProblem(
       404,
       "NOT_FOUND",
-      "Price book was not found",
+      "adminPricing.command.notFound",
     );
   return book;
 }
@@ -224,7 +242,7 @@ function checkVersion(book: DemoPriceBook, expected: number | undefined) {
     throw new DemoPriceBookProblem(
       409,
       "VERSION_CONFLICT",
-      "Price book changed since it was read",
+      "adminPricing.command.versionConflict",
     );
 }
 
@@ -245,7 +263,8 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        error instanceof Error ? error.message : "Price-book import is invalid",
+        "adminPricing.command.importInvalid",
+        { detail: domainDetail(error) },
       );
     }
     const command = PriceBookImportCommandSchema.parse({
@@ -263,13 +282,13 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         409,
         "DUPLICATE",
-        "Price book currency and version already exist",
+        "adminPricing.command.duplicate",
       );
     if (input.id === document.source.id)
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "An import requires a new price-book identity",
+        "adminPricing.command.importIdentity",
       );
     const candidate = importedPriceBook(
       document,
@@ -330,13 +349,13 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         409,
         "DUPLICATE",
-        "Price book currency and version already exist",
+        "adminPricing.command.duplicate",
       );
     if (!source.rateCards.length)
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Add at least one rate before cloning this price book",
+        "adminPricing.command.cloneEmpty",
       );
     const rateIdMap = source.rateCards.map((rate) => ({
       sourceRateId: rate.id,
@@ -368,6 +387,7 @@ function mutateBooks(input: {
         : {}),
       rateCards: source.rateCards.map((rate, index) => {
         const mapping = rateIdMap[index];
+        // i18n-exempt: internal invariant; surfaces as the translated 500 detail, never as this text
         if (!mapping) throw new Error("Cloned rate identity is missing");
         return { ...structuredClone(rate), id: mapping.rateId };
       }),
@@ -392,7 +412,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Price book end date precedes its start date",
+        "adminPricing.command.endBeforeStart",
       );
     if (
       input.books.some(
@@ -405,7 +425,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         409,
         "DUPLICATE",
-        "Price book currency and version already exist",
+        "adminPricing.command.duplicate",
       );
     const created: DemoPriceBook = {
       id: input.id,
@@ -435,7 +455,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "No approved schedule exists for this draft",
+        "adminPricing.command.noSchedule",
       );
     const next: DemoPriceBook = {
       ...current,
@@ -459,7 +479,7 @@ function mutateBooks(input: {
     throw new DemoPriceBookProblem(
       422,
       "INVALID_STATE",
-      "This approved schedule is frozen; cancel it before changing the draft",
+      "adminPricing.command.scheduleFrozen",
     );
   if (input.action === "schedule_activation") {
     const { reason } = decisionSchema.parse(input.payload);
@@ -471,13 +491,13 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "TWO_AUTHORITY_REQUIRED",
-        "A different finance approver must approve the proposed schedule",
+        "adminPricing.command.scheduleDistinct",
       );
     if (current.effectiveFrom <= input.now.slice(0, 10))
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Advance approval requires a future effective date",
+        "adminPricing.command.scheduleFuture",
       );
     if (
       input.books.some(
@@ -489,7 +509,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "This currency already has an approved schedule",
+        "adminPricing.command.scheduleExists",
       );
     validatePriceBook(domainPriceBook(current));
     const next: DemoPriceBook = {
@@ -522,7 +542,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Only an unproposed draft can be edited; a different finance approver must reject activation before editing",
+        "adminPricing.command.editLocked",
       );
   }
   if (input.action === "remove_rate") {
@@ -531,7 +551,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         404,
         "NOT_FOUND",
-        "Rate card was not found in this draft",
+        "adminPricing.command.rateNotFound",
       );
     const rates = current.rateCards.filter((rate) => rate.id !== id);
     const next = {
@@ -556,7 +576,8 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        error instanceof Error ? error.message : "Discount matrix is invalid",
+        "adminPricing.command.discountInvalid",
+        { detail: domainDetail(error) },
       );
     }
     const next = {
@@ -572,7 +593,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Rate cards may only be added to a draft price book",
+        "adminPricing.command.rateDraftOnly",
       );
     const parsed = rateSchema.parse(input.payload);
     const existing =
@@ -583,7 +604,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         404,
         "NOT_FOUND",
-        "Rate card was not found in this draft",
+        "adminPricing.command.rateNotFound",
       );
     const { floorPrice, trialLimit, ...required } = parsed;
     const rate = {
@@ -617,7 +638,8 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        error instanceof Error ? error.message : "Rate card is invalid",
+        "adminPricing.command.rateInvalid",
+        { detail: domainDetail(error) },
       );
     }
     input.books[index] = next;
@@ -634,7 +656,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "TWO_AUTHORITY_REQUIRED",
-        "A different finance approver must reject a pending activation",
+        "adminPricing.command.rejectDistinct",
       );
     const next = {
       ...current,
@@ -653,7 +675,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Only an unproposed draft can be proposed for activation",
+        "adminPricing.command.proposeUnproposed",
       );
     try {
       validatePriceBook(domainPriceBook(current));
@@ -661,7 +683,8 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        error instanceof Error ? error.message : "Price book is invalid",
+        "adminPricing.command.bookInvalid",
+        { detail: domainDetail(error) },
       );
     }
     const next = {
@@ -687,7 +710,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "Cancel the approved schedule for this currency before activating a different version",
+        "adminPricing.command.activateScheduled",
       );
     if (
       current.status !== "draft" ||
@@ -697,7 +720,7 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "TWO_AUTHORITY_REQUIRED",
-        "A different finance approver must activate the proposed draft",
+        "adminPricing.command.activateDistinct",
       );
     try {
       validatePriceBook(domainPriceBook(current));
@@ -705,7 +728,8 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        error instanceof Error ? error.message : "Price book is invalid",
+        "adminPricing.command.bookInvalid",
+        { detail: domainDetail(error) },
       );
     }
     const occurredOn = input.now.slice(0, 10);
@@ -713,13 +737,13 @@ function mutateBooks(input: {
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "A price book cannot activate before its effective date",
+        "adminPricing.command.activateEarly",
       );
     if (current.effectiveTo && current.effectiveTo < occurredOn)
       throw new DemoPriceBookProblem(
         422,
         "INVALID_STATE",
-        "A price book cannot activate after its effective end date",
+        "adminPricing.command.activateLate",
       );
     for (const [otherIndex, other] of input.books.entries())
       if (other.currency === current.currency && other.status === "active")
@@ -748,7 +772,7 @@ function mutateBooks(input: {
     throw new DemoPriceBookProblem(
       422,
       "INVALID_STATE",
-      "Only an active price book can be retired",
+      "adminPricing.command.retireActiveOnly",
     );
   const next = {
     ...current,
@@ -762,7 +786,7 @@ function mutateBooks(input: {
   return next;
 }
 
-function problem(requestId: string, error: unknown): Response {
+function problem(requestId: string, error: unknown, t: Translator): Response {
   const known = error instanceof DemoPriceBookProblem;
   const validation =
     error instanceof z.ZodError || error instanceof SyntaxError;
@@ -775,14 +799,13 @@ function problem(requestId: string, error: unknown): Response {
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
-      title: "Price-book command refused",
+      title: "Price-book command refused", // i18n-exempt: RFC 9457 problem title, an API contract field; clients render `detail`
       status,
-      detail:
-        known || validation
-          ? error instanceof Error
-            ? error.message
-            : "The command is invalid"
-          : "The demo could not record the price-book command.",
+      detail: known
+        ? t(error.detailId, error.values)
+        : validation
+          ? t("adminPricing.command.validation")
+          : t("adminPricing.command.failed"),
       code,
       requestId,
       retryable: status >= 500,
@@ -815,7 +838,7 @@ export async function handleDemoPriceBookCommand(
       throw new DemoPriceBookProblem(
         403,
         "PRICE_BOOK_AUTHORITY_FORBIDDEN",
-        "Finance approval with recent MFA is required",
+        "adminPricing.command.forbidden",
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (
@@ -826,7 +849,7 @@ export async function handleDemoPriceBookCommand(
       throw new DemoPriceBookProblem(
         422,
         "IDEMPOTENCY_KEY_REQUIRED",
-        "A valid idempotency-key header is required",
+        "adminPricing.command.idempotencyRequired",
       );
     const bytes = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
@@ -849,7 +872,7 @@ export async function handleDemoPriceBookCommand(
           throw new DemoPriceBookProblem(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "The idempotency key is already bound to another command",
+            "adminPricing.command.idempotencyConflict",
           );
         replayed = true;
         result = priorReceipt.response;
@@ -880,6 +903,7 @@ export async function handleDemoPriceBookCommand(
         now,
       );
     });
+    // i18n-exempt: internal invariant; surfaces as the translated 500 detail, never as this text
     if (!result) throw new Error("Demo price-book command produced no result");
     return Response.json(result, {
       headers: {
@@ -889,6 +913,8 @@ export async function handleDemoPriceBookCommand(
       },
     });
   } catch (error) {
-    return problem(requestId, error);
+    // The route runs inside the request, so the language is the reader's
+    // cookie, the same one the pages read.
+    return problem(requestId, error, await getTranslations());
   }
 }

@@ -7,7 +7,26 @@ import {
   ratePaygPeriod,
   type PaygMeasurement,
 } from "@clockwork/domain/core";
-import { DemoCommercialPolicyRepository } from "./demo-policies";
+import { localeCookie, resolveLocale, type Locale } from "@/src/i18n";
+
+import {
+  DemoCommercialPolicyRepository,
+  localizeDemoPaygPolicy,
+} from "./demo-policies";
+
+/**
+ * The reader's interface language, from the same cookie the pages read, so a
+ * policy returned to the browser carries its demo-authored text in that
+ * language (the stored record stays English).
+ */
+function requestLocale(request: Request): Locale {
+  const prefix = `${localeCookie}=`;
+  const value = (request.headers.get("cookie") ?? "")
+    .split(/;\s*/u)
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length);
+  return resolveLocale(value);
+}
 const quantity = z
   .string()
   .regex(/^(0|[1-9]\d*)$/)
@@ -123,8 +142,13 @@ export async function handleDemoPaygPolicy(
         { code: "DEMO_BILLING_EVIDENCE_UNAVAILABLE" },
         { status: 503 },
       );
+    const locale = requestLocale(request);
     if (request.method === "GET")
-      return Response.json({ offers: await repo.listPayg() });
+      return Response.json({
+        offers: (await repo.listPayg()).map((offer) =>
+          localizeDemoPaygPolicy(offer, locale),
+        ),
+      });
     if (request.method !== "POST")
       return Response.json({ code: "METHOD_NOT_ALLOWED" }, { status: 405 });
     const requestId = request.headers.get("idempotency-key")?.trim();
@@ -135,12 +159,15 @@ export async function handleDemoPaygPolicy(
       );
     const command = PaygOfferCommandSchema.parse(await request.json());
     return Response.json(
-      await repo.commandPayg({
-        command,
-        userId: session.userId,
-        requestId,
-        now: new Date().toISOString(),
-      }),
+      localizeDemoPaygPolicy(
+        await repo.commandPayg({
+          command,
+          userId: session.userId,
+          requestId,
+          now: new Date().toISOString(),
+        }),
+        locale,
+      ),
     );
   } catch (error) {
     return Response.json(

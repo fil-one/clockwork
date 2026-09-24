@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import {
   DatabasePriceBookAdministrationReader,
   DatabasePriceBookImpactReader,
@@ -11,8 +13,14 @@ import {
   getRouteIdentity,
   getRouteSession,
 } from "@/src/features/shell/route-session";
+import { getLocale, getTranslations } from "@/src/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("adminPricing.priceBooks.title") };
+}
 
 const serviceDatabase = getOptionalServiceDatabase();
 const reader = serviceDatabase
@@ -20,12 +28,13 @@ const reader = serviceDatabase
   : undefined;
 
 export default async function Page() {
+  const locale = await getLocale();
   const [session, identity, priceBooks] = await Promise.all([
     getRouteSession("internal"),
     // The acting user decides which activation this reader may approve. The
     // server enforces the two-authority rule either way.
     getRouteIdentity("internal").catch(() => undefined),
-    loadPriceBookRecords(reader),
+    loadPriceBookRecords(reader, { locale }),
   ]);
   const impact = await loadPriceBookImpact({
     reader: serviceDatabase
@@ -37,7 +46,7 @@ export default async function Page() {
     internalReader: session.roles.some(
       (role) => role === "finance_approver" || role === "internal_operator",
     ),
-    demo: priceBooks.source === "Deterministic demo fixture",
+    demo: priceBooks.source === "demo",
     readAt: priceBooks.readAt,
   });
   return (

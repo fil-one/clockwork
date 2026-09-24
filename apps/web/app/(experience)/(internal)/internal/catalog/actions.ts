@@ -5,10 +5,17 @@ import { CatalogMappingSchema, DatabaseCatalogAdmin } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 
+/**
+ * What happened to a mapping save. A code, not a sentence: the form words it
+ * in the reader's language, and the authority rule it reports stays here.
+ */
+export type CatalogMappingResult =
+  "" | "forbidden" | "invalid" | "saved" | "conflict" | "frozen" | "failed";
+
 export async function saveCatalogMapping(
-  _previous: string,
+  _previous: CatalogMappingResult,
   data: FormData,
-): Promise<string> {
+): Promise<CatalogMappingResult> {
   const session = await requireRecentAuthentication();
   if (
     !session.providerBacked ||
@@ -21,7 +28,7 @@ export async function saveCatalogMapping(
       (role) => role === "internal_operator" || role === "finance_approver",
     )
   )
-    return "Mapping changes require a directly authenticated operator or finance approver with recent MFA.";
+    return "forbidden";
   const parsed = CatalogMappingSchema.safeParse({
     rateCardId: data.get("rateCardId"),
     providerSku: data.get("providerSku"),
@@ -31,8 +38,7 @@ export async function saveCatalogMapping(
     reason: data.get("reason"),
     expectedRowVersion: Number(data.get("expectedRowVersion")),
   });
-  if (!parsed.success)
-    return "Check the provider SKU, region, meter, evidence reference, and reason.";
+  if (!parsed.success) return "invalid";
   try {
     await new DatabaseCatalogAdmin(getServiceDatabase()).save({
       command: parsed.data,
@@ -41,12 +47,12 @@ export async function saveCatalogMapping(
     });
     revalidatePath("/internal/catalog");
     revalidatePath("/internal/price-books");
-    return "Draft mapping saved. Provider qualification and price-book approval remain required.";
+    return "saved";
   } catch (error) {
     if (error instanceof Error && error.message === "CATALOG_VERSION_CONFLICT")
-      return "The price book changed. Refresh and review the latest draft before saving again.";
+      return "conflict";
     if (error instanceof Error && error.message === "CATALOG_DRAFT_FROZEN")
-      return "This mapping is frozen. Reject the pending proposal or create a new draft version.";
-    return "The mapping could not be saved. Refresh and check your current authority and the source evidence.";
+      return "frozen";
+    return "failed";
   }
 }
