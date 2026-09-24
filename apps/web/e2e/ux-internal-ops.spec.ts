@@ -34,7 +34,7 @@ const INTERNAL_DESTINATIONS = [
   "Operations",
   "Global search",
   "Queues & approvals",
-  "Renewal command",
+  "Renewals desk",
   "Provisioning",
   "Recovery",
   "Migrations",
@@ -118,12 +118,15 @@ test.describe("internal operator operations journey", () => {
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "review exception" }).click();
-    // The receipt poll replaces the queued line with the authoritative result,
-    // so either terminal wording proves the version-bound submission landed.
+    // The receipt poll replaces the queued line with the authoritative result.
+    // Applying the action spends the record's last permitted action, so the
+    // refreshed record has no button left; the receipt has to outlive that.
     // The window covers the action route's first compile on a cold dev server
     // followed by the fifteen one-second receipt polls.
     await expect(
-      page.getByText(/review exception (is queued|applied)/),
+      page.getByText(
+        /^“review exception” was applied at authoritative version \d+\.$/i,
+      ),
     ).toBeVisible({ timeout: 60_000 });
     await page.reload();
     await expect(page.getByText("EXC-COL-008").first()).toBeVisible();
@@ -199,7 +202,9 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 2, name: group }),
       ).toBeVisible();
     }
-    await expect(page.getByText(/Activation is fail-closed/)).toBeVisible();
+    await expect(
+      page.getByText(/Activation is denied by default\./),
+    ).toBeVisible();
     await expectAxeClean(page);
 
     await gotoHydrated(page, "/internal/assisted");
@@ -262,7 +267,10 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 3, name: lane }),
       ).toBeVisible();
     }
-    await expect(page.getByText(/^Updated /)).toHaveCount(3);
+    // Each lane states when it was read ("Read Sep 24, 2026, 11:31 AM UTC").
+    await expect(
+      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M UTC$/),
+    ).toHaveCount(3);
     await expect(
       page.getByText("This status endpoint did not return a readable result."),
     ).toHaveCount(0);

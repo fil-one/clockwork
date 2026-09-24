@@ -84,7 +84,7 @@ async function openCommandPalette(page: Page) {
   await expect(palette).toBeVisible();
   await expect(palette).toHaveAttribute("aria-modal", "true");
   const search = palette.getByRole("combobox", {
-    name: "Search navigation, actions, and records",
+    name: "Search pages and actions",
   });
   await expect(search).toBeFocused();
   return { palette, search };
@@ -154,7 +154,7 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
     const { drawer, trigger } = await openNavigation(page);
 
     await expect(
-      drawer.getByText("Browse every destination.", { exact: true }),
+      drawer.getByText("Every page available to you.", { exact: true }),
     ).toBeVisible();
     const backgroundIsBlocked = await page
       .locator("#main-content")
@@ -267,9 +267,7 @@ test("partner seller navigation and commands exclude admin-only work", async ({
   await page.keyboard.press("Escape");
   const { palette, search } = await openCommandPalette(page);
   await search.fill("billing");
-  await expect(
-    palette.getByText("No results found", { exact: false }),
-  ).toBeVisible();
+  await expect(palette.getByText("No results", { exact: true })).toBeVisible();
 });
 
 test("command palette supports grouped search, no matches, and focus restoration", async ({
