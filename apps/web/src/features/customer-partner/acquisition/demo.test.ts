@@ -236,7 +236,7 @@ it("states the fictional offer and organization in the reader's language without
     });
     const before = required(english.offers[0]);
     const after = required(portuguese.offers[0]);
-    expect(after.name).toBe("Armazenamento fictício sem prazo");
+    expect(after.name).toBe("Armazenamento fictício sem fidelidade");
     expect(after.notices.serviceNotice).toMatch(/^Apenas uma demonstração/u);
     expect(portuguese.organizations[0]?.name).toBe(
       "Organização cliente fictícia",
