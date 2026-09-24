@@ -27,7 +27,7 @@ export const enumMessages = defineMessages({
   "status.awaiting": {
     en: "Awaiting action",
     es: "Pendiente de acción",
-    fr: "Action attendue",
+    fr: "En attente d’action",
     de: "Aktion ausstehend",
     ja: "操作待ち",
     pt: "Aguardando ação",
@@ -737,7 +737,7 @@ export const enumMessages = defineMessages({
   "region.usEast": {
     en: "US East",
     es: "EE. UU. Este",
-    fr: "Est des États-Unis",
+    fr: "USA Est",
     de: "USA Ost",
     ja: "米国東部",
     pt: "Leste dos EUA",
@@ -747,7 +747,7 @@ export const enumMessages = defineMessages({
   "region.euWest": {
     en: "EU West",
     es: "UE Oeste",
-    fr: "Ouest de l’UE",
+    fr: "UE Ouest",
     de: sameAsEnglish("EU West"),
     ja: "EU 西部",
     pt: "Oeste da UE",
@@ -757,7 +757,7 @@ export const enumMessages = defineMessages({
   "region.ukSouth": {
     en: "UK South",
     es: "Reino Unido Sur",
-    fr: "Sud du Royaume-Uni",
+    fr: "Royaume-Uni Sud",
     de: "UK Süd",
     ja: "英国南部",
     pt: "Sul do Reino Unido",
@@ -767,7 +767,7 @@ export const enumMessages = defineMessages({
   "region.usEast.site": {
     en: "US East · Virginia",
     es: "EE. UU. Este · Virginia",
-    fr: "Est des États-Unis · Virginie",
+    fr: "USA Est · Virginie",
     de: "USA Ost · Virginia",
     ja: "米国東部・バージニア",
     pt: "Leste dos EUA · Virgínia",
@@ -777,7 +777,7 @@ export const enumMessages = defineMessages({
   "region.euWest.site": {
     en: "EU West · Madrid",
     es: "UE Oeste · Madrid",
-    fr: "Ouest de l’UE · Madrid",
+    fr: "UE Ouest · Madrid",
     de: sameAsEnglish("EU West · Madrid"),
     ja: "EU 西部・マドリード",
     pt: "Oeste da UE · Madri",
@@ -787,7 +787,7 @@ export const enumMessages = defineMessages({
   "region.ukSouth.site": {
     en: "UK South · London",
     es: "Reino Unido Sur · Londres",
-    fr: "Sud du Royaume-Uni · Londres",
+    fr: "Royaume-Uni Sud · Londres",
     de: "UK Süd · London",
     ja: "英国南部・ロンドン",
     pt: "Sul do Reino Unido · Londres",
@@ -937,7 +937,7 @@ export const enumMessages = defineMessages({
   "recordKind.supportCase": {
     en: "Support case",
     es: "Caso de soporte",
-    fr: "Demande d’assistance",
+    fr: "Demande de support",
     de: "Supportfall",
     ja: "サポートケース",
     pt: "Chamado de suporte",

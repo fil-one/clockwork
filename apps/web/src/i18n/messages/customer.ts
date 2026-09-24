@@ -77,7 +77,7 @@ export const customerMessages = defineMessages({
   "quotes.issue.description": {
     en: "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
     es: "Prepara el documento de la oferta guardada para que se pueda aceptar. Emitir una oferta no crea un pedido.",
-    fr: "Préparez le document de ce devis enregistré pour permettre son acceptation. Émettre un devis ne crée pas de commande.",
+    fr: "Préparez le document de ce devis enregistré pour permettre son acceptation. L’émission d’un devis ne crée pas de commande.",
     de: "Bereiten Sie das Dokument dieses gespeicherten Angebots zur Annahme vor. Durch die Ausstellung entsteht noch keine Bestellung.",
     ja: "保存済みの見積書を作成し、承諾できる状態にします。見積もりを発行しても注文は確定しません。",
     pt: "Prepare o documento da cotação salva para que ela possa ser aceita. Emitir uma cotação não cria um pedido.",
@@ -117,7 +117,7 @@ export const customerMessages = defineMessages({
   "quotes.issue.accept": {
     en: "Review and accept order",
     es: "Revisar y aceptar pedido",
-    fr: "Vérifier et accepter la commande",
+    fr: "Examiner et accepter la commande",
     de: "Bestellung prüfen und annehmen",
     ja: "注文を確認して承諾",
     pt: "Revisar e aceitar pedido",
@@ -137,7 +137,7 @@ export const customerMessages = defineMessages({
   "quotes.issue.pricingReview": {
     en: "This draft needs pricing review before it can be issued. Contact your Fil One team.",
     es: "Es necesario revisar el precio de este borrador antes de emitirlo. Contacta con tu equipo de Fil One.",
-    fr: "Le prix de ce brouillon doit être vérifié avant son émission. Contactez votre équipe Fil One.",
+    fr: "Ce brouillon doit faire l’objet d’une revue tarifaire avant de pouvoir être émis. Contactez votre équipe Fil One.",
     de: "Vor der Ausstellung muss der Preis dieses Entwurfs geprüft werden. Wenden Sie sich an Ihr Fil One-Team.",
     ja: "この下書きを発行するには価格の審査が必要です。Fil Oneの担当者にお問い合わせください。",
     pt: "O preço deste rascunho precisa ser revisado antes da emissão. Entre em contato com sua equipe da Fil One.",
@@ -177,7 +177,7 @@ export const customerMessages = defineMessages({
   "cp.commercial.quoteStages.1": {
     en: "Capacity, term, direct route, and expiry",
     es: "Capacidad, duración, canal directo y vencimiento",
-    fr: "Capacité, durée, canal direct et expiration",
+    fr: "Capacité, durée, vente directe et expiration",
     de: "Kapazität, Laufzeit, Direktvertrieb und Ablauf",
     ja: "容量、期間、直接取引、有効期限",
     pt: "Capacidade, prazo, canal direto e vencimento",
@@ -217,7 +217,7 @@ export const customerMessages = defineMessages({
   "cp.commercial.agreementReview": {
     en: "Review and accept agreement",
     es: "Revisar y aceptar el acuerdo",
-    fr: "Vérifier et accepter l’accord",
+    fr: "Examiner et accepter l’accord",
     de: "Vereinbarung prüfen und annehmen",
     ja: "契約を確認して同意",
     pt: "Revisar e aceitar o contrato",
@@ -257,7 +257,7 @@ export const customerMessages = defineMessages({
   "cp.commercial.orderArtifactRetention": {
     en: "The rendered order form and its acceptance evidence are retained for {years} years from the recorded acceptance instant.",
     es: "El formulario de pedido generado y la evidencia de su aceptación se conservan durante {years} años desde el instante de aceptación registrado.",
-    fr: "Le bon de commande généré et les preuves de son acceptation sont conservés pendant {years} ans à compter de l’instant d’acceptation enregistré.",
+    fr: "Le formulaire de commande généré et les preuves de son acceptation sont conservés pendant {years} ans à compter de l’instant d’acceptation enregistré.",
     de: "Das erzeugte Auftragsformular und der Annahmenachweis werden ab dem erfassten Annahmezeitpunkt für {years} Jahre aufbewahrt.",
     ja: "生成された注文書と承諾の証拠は、記録された承諾時点から{years}年間保存されます。",
     pt: "O formulário de pedido gerado e a evidência de sua aceitação são mantidos por {years} anos a partir do instante de aceitação registrado.",
@@ -297,7 +297,7 @@ export const customerMessages = defineMessages({
   "cp.commercial.externalPayment": {
     en: "You will continue with the payment provider. The invoice is marked paid only after the provider confirms it.",
     es: "Continuarás con el proveedor de pagos. La factura solo se marcará como pagada cuando el proveedor lo confirme.",
-    fr: "Vous allez poursuivre auprès du prestataire de paiement. La facture ne sera marquée comme payée qu’après sa confirmation.",
+    fr: "Vous allez poursuivre auprès du prestataire de paiement. La facture n’est marquée comme payée qu’après confirmation du prestataire.",
     de: "Sie fahren beim Zahlungsanbieter fort. Die Rechnung wird erst nach dessen Bestätigung als bezahlt markiert.",
     ja: "決済プロバイダーに移動します。プロバイダーの確認後にのみ、請求書は支払い済みと表示されます。",
     pt: "Você continuará com o provedor de pagamentos. A fatura só será marcada como paga após a confirmação do provedor.",
@@ -397,7 +397,7 @@ export const customerMessages = defineMessages({
   "agreements.execute.accepted": {
     en: "Agreement executed. Your authority evidence is on the record.",
     es: "Acuerdo formalizado. La prueba de tu autoridad consta en el registro.",
-    fr: "Accord conclu. La preuve de votre pouvoir de signature figure au dossier.",
+    fr: "Accord conclu. La preuve de votre pouvoir de signature est enregistrée.",
     de: "Vereinbarung abgeschlossen. Ihr Befugnisnachweis ist dokumentiert.",
     ja: "契約を締結しました。権限の証跡は記録に保存されています。",
     pt: "Acordo firmado. A comprovação de sua autoridade está registrada.",
@@ -527,7 +527,7 @@ export const customerMessages = defineMessages({
   "orders.description": {
     en: "Purchase orders, provisioning, entitlements, usage, amendments, and term status without re-keying.",
     es: "Órdenes de compra, aprovisionamiento, derechos, uso, modificaciones y plazos sin volver a introducir datos.",
-    fr: "Bons de commande, provisionnement, droits, usage, avenants et échéances sans ressaisie.",
+    fr: "Bons de commande, provisionnement, droits d’utilisation, consommation, avenants et statut de la durée, sans ressaisie.",
     de: "Bestellungen, Bereitstellung, Berechtigungen, Nutzung, Änderungen und Laufzeiten ohne erneute Eingabe.",
     ja: "発注書、プロビジョニング、利用権、使用量、変更、期間の状態を再入力せずに管理します。",
     pt: "Ordens de compra, provisionamento, direitos, uso, aditivos e prazos sem redigitação.",
@@ -577,7 +577,7 @@ export const customerMessages = defineMessages({
   "orders.accept.unavailable.description": {
     en: "Order acceptance starts from an issued quote in this account. Choose one from the quote ledger.",
     es: "La aceptación del pedido comienza con una cotización aceptada de esta cuenta. Elige una del registro de cotizaciones.",
-    fr: "L’acceptation d’une commande commence par un devis accepté de ce compte. Choisissez-en un dans le registre des devis.",
+    fr: "L’acceptation d’une commande part d’un devis émis de ce compte. Choisissez-en un dans la liste des devis.",
     de: "Die Auftragsannahme beginnt mit einem angenommenen Angebot dieses Kontos. Wählen Sie es im Angebotsregister aus.",
     ja: "注文の受諾は、このアカウントの受諾済み見積もりから開始します。見積もり台帳で選択してください。",
     pt: "A aceitação do pedido começa por uma proposta aceita desta conta. Escolha uma no registro de propostas.",
@@ -587,7 +587,7 @@ export const customerMessages = defineMessages({
   "orders.accept.unavailable.action": {
     en: "Open the quote ledger",
     es: "Abrir registro de cotizaciones",
-    fr: "Ouvrir le registre des devis",
+    fr: "Ouvrir la liste des devis",
     de: "Angebotsregister öffnen",
     ja: "見積もり台帳を開く",
     pt: "Abrir registro de propostas",
@@ -617,7 +617,7 @@ export const customerMessages = defineMessages({
   "orders.accept.validation.authority": {
     en: "Enter the title that holds acceptance authority.",
     es: "Introduce el cargo con autoridad de aceptación.",
-    fr: "Saisissez la fonction disposant du pouvoir d’acceptation.",
+    fr: "Saisissez la fonction habilitée à accepter.",
     de: "Geben Sie die Funktion mit Annahmebefugnis an.",
     ja: "受諾権限を持つ役職を入力してください。",
     pt: "Informe o cargo com autoridade de aceitação.",
@@ -767,7 +767,7 @@ export const customerMessages = defineMessages({
   "account.offboarding.empty.title": {
     en: "No service is open to offboarding",
     es: "No hay servicios disponibles para dar de baja",
-    fr: "Aucun service ne peut faire l’objet d’une sortie",
+    fr: "Aucun service n’est éligible à une fin de service",
     de: "Kein Dienst für den Austritt verfügbar",
     ja: "利用終了を申請できるサービスがありません",
     pt: "Nenhum serviço disponível para encerramento",
@@ -777,7 +777,7 @@ export const customerMessages = defineMessages({
   "account.offboarding.empty.description": {
     en: "Offboarding starts from an active order in this account. Active commitments appear in orders and services.",
     es: "La baja comienza desde un pedido activo de esta cuenta. Los compromisos activos aparecen en pedidos y servicios.",
-    fr: "La sortie commence depuis une commande active de ce compte. Les engagements actifs figurent dans les commandes et services.",
+    fr: "Une fin de service part d’une commande active de ce compte. Les engagements actifs figurent dans les commandes et les services.",
     de: "Der Austritt beginnt bei einem aktiven Auftrag dieses Kontos. Aktive Verpflichtungen stehen unter Aufträge und Dienste.",
     ja: "利用終了はこのアカウントの有効な注文から開始します。継続中の契約は注文とサービスに表示されます。",
     pt: "O encerramento começa em um pedido ativo desta conta. Compromissos ativos aparecem em pedidos e serviços.",
@@ -817,7 +817,7 @@ export const customerMessages = defineMessages({
   "account.offboarding.requested": {
     en: "Offboarding request submitted for approval. Your service is still running.",
     es: "Solicitud de baja enviada para aprobación. Tu servicio sigue funcionando.",
-    fr: "Demande de sortie envoyée pour approbation. Votre service fonctionne toujours.",
+    fr: "Demande de fin de service envoyée pour approbation. Votre service fonctionne toujours.",
     de: "Austrittsanfrage zur Freigabe gesendet. Ihr Dienst läuft weiter.",
     ja: "利用終了申請を承認のために送信しました。サービスは引き続き稼働しています。",
     pt: "Solicitação de encerramento enviada para aprovação. Seu serviço continua funcionando.",
@@ -837,7 +837,7 @@ export const customerMessages = defineMessages({
   "account.offboarding.failed": {
     en: "The offboarding request could not be submitted.",
     es: "No se pudo enviar la solicitud de baja.",
-    fr: "La demande de sortie n’a pas pu être envoyée.",
+    fr: "La demande de fin de service n’a pas pu être envoyée.",
     de: "Die Austrittsanfrage konnte nicht gesendet werden.",
     ja: "利用終了申請を送信できませんでした。",
     pt: "Não foi possível enviar a solicitação de encerramento.",
@@ -958,7 +958,7 @@ export const customerMessages = defineMessages({
   "customer.collection.procurement.attachEvidence": {
     en: "Attach procurement evidence",
     es: "Adjuntar evidencia de compras",
-    fr: "Joindre une preuve liée aux achats",
+    fr: "Joindre un justificatif",
     de: "Nachweis für die Beschaffung anhängen",
     ja: "調達の証跡を添付",
     pt: "Anexar evidência de compras",
@@ -1212,7 +1212,7 @@ export const customerMessages = defineMessages({
   "customer.collection.marketplace.search": {
     en: "Search marketplace offers",
     es: "Buscar ofertas de Marketplace",
-    fr: "Rechercher des offres marketplace",
+    fr: "Rechercher des offres de marketplace",
     de: "Marketplace-Angebote suchen",
     ja: "マーケットプレイスのオファーを検索",
     pt: "Buscar ofertas do Marketplace",
@@ -1262,7 +1262,7 @@ export const customerMessages = defineMessages({
   "customer.collection.marketplace.providerNote": {
     en: "Marketplace status is provider-reported. Open the provider only from a selected offer and verify the account before continuing.",
     es: "El estado de Marketplace lo comunica el proveedor. Abra el proveedor solo desde una oferta seleccionada y compruebe la cuenta antes de continuar.",
-    fr: "Le statut marketplace est déclaré par le prestataire. N’ouvrez le prestataire qu’à partir d’une offre sélectionnée et vérifiez le compte avant de continuer.",
+    fr: "Le statut marketplace est déclaré par le prestataire. N’accédez au prestataire qu’à partir d’une offre sélectionnée et vérifiez le compte avant de continuer.",
     de: "Der Marketplace-Status wird vom Anbieter gemeldet. Öffnen Sie den Anbieter nur aus einem ausgewählten Angebot heraus und prüfen Sie das Konto, bevor Sie fortfahren.",
     ja: "マーケットプレイスのステータスはプロバイダーからの報告です。プロバイダーは選択したオファーからのみ開き、続行する前にアカウントを確認してください。",
     pt: "O status do Marketplace é informado pelo provedor. Abra o provedor somente a partir de uma oferta selecionada e verifique a conta antes de continuar.",
@@ -2109,7 +2109,7 @@ export const customerMessages = defineMessages({
   "customer.account.areas.users.description": {
     en: "Review roles, approval authority, MFA state, and pending invitations.",
     es: "Revise los roles, las facultades de aprobación, el estado de MFA y las invitaciones pendientes.",
-    fr: "Consultez les rôles, les pouvoirs d’approbation, l’état MFA et les invitations en attente.",
+    fr: "Consultez les rôles, les pouvoirs d’approbation, le statut MFA et les invitations en attente.",
     de: "Prüfen Sie Rollen, Genehmigungsbefugnisse, MFA-Status und ausstehende Einladungen.",
     ja: "ロール、承認権限、MFA の状態、保留中の招待を確認します。",
     pt: "Revise funções, alçadas de aprovação, status de MFA e convites pendentes.",
@@ -2211,7 +2211,7 @@ export const customerMessages = defineMessages({
   "customer.account.areas.offboarding.description": {
     en: "Review retrieval, final billing, retention exclusions, and teardown authority.",
     es: "Revise la recuperación de datos, la facturación final, las exclusiones de conservación y la autorización para el desmantelamiento.",
-    fr: "Examinez la récupération des données, la facturation finale, les exclusions de conservation et l’autorisation de démantèlement.",
+    fr: "Examinez la récupération des données, la facturation finale, les exclusions de conservation et l’habilitation de démantèlement.",
     de: "Prüfen Sie Datenabruf, Schlussabrechnung, Aufbewahrungsausnahmen und die Befugnis zum Rückbau.",
     ja: "データの取得、最終請求、保持の除外、撤去の権限を確認します。",
     pt: "Revise a recuperação de dados, o faturamento final, as exclusões de retenção e a autorização para o desmantelamento.",
@@ -2339,7 +2339,7 @@ export const customerMessages = defineMessages({
   "customer.dashboard.staleAsOf": {
     en: "Stale account facts from {time}",
     es: "Datos de la cuenta desactualizados, del {time}",
-    fr: "Données du compte non à jour, du {time}",
+    fr: "Données du compte non à jour (état au {time})",
     de: "Veraltete Kontodaten vom {time}",
     ja: "{time} 時点のアカウント情報（最新ではありません）",
     pt: "Dados da conta desatualizados, de {time}",
@@ -2757,7 +2757,7 @@ export const customerMessages = defineMessages({
   "customer.notifications.alert.renewalTermWindow.description": {
     en: "Advance notice that a service term is approaching the window in which it renews.",
     es: "Aviso anticipado de que la duración de un servicio se acerca al periodo en que se renueva.",
-    fr: "Préavis indiquant qu’une durée de service approche de la période où elle se renouvelle.",
+    fr: "Avertissement anticipé lorsqu’une durée de service approche de la période où elle se renouvelle.",
     de: "Vorabhinweis, dass sich eine Servicelaufzeit dem Zeitraum nähert, in dem sie sich verlängert.",
     ja: "サービス期間が契約更新の時期に近づいたことを事前にお知らせします。",
     pt: "Aviso antecipado de que o prazo de um serviço está se aproximando do período de renovação.",
@@ -2777,7 +2777,7 @@ export const customerMessages = defineMessages({
   "customer.notifications.alert.pocMilestone.description": {
     en: "Progress updates while a proof of concept is running, including success-test results.",
     es: "Actualizaciones de progreso mientras se ejecuta una prueba de concepto, incluidos los resultados de las pruebas de criterios de éxito.",
-    fr: "Points d’avancement pendant une preuve de concept, y compris les résultats des tests de réussite.",
+    fr: "Points d’avancement pendant une preuve de concept, y compris les résultats des critères de réussite.",
     de: "Fortschrittsmeldungen während eines laufenden Proof of Concept, einschließlich der Ergebnisse der Erfolgstests.",
     ja: "PoC の実施中に、成功基準テストの結果を含む進捗をお知らせします。",
     pt: "Atualizações de andamento durante uma prova de conceito, incluindo os resultados dos testes de sucesso.",
@@ -3028,7 +3028,7 @@ export const customerMessages = defineMessages({
   "customer.payg.noOffers": {
     en: "No approved, effective offer with customer terms is accepting requests right now. Your account team can help you with the next available offer.",
     es: "Ahora mismo no hay ninguna oferta aprobada y en vigor con condiciones para clientes que acepte solicitudes. Su equipo de cuenta puede ayudarle con la próxima oferta disponible.",
-    fr: "Aucune offre approuvée et en vigueur, avec des conditions client, n’accepte de demandes pour le moment. Votre équipe commerciale peut vous orienter vers la prochaine offre disponible.",
+    fr: "Aucune offre approuvée et en vigueur, avec des conditions client, n’accepte de demandes pour le moment. Votre chargé de compte peut vous orienter vers la prochaine offre disponible.",
     de: "Derzeit nimmt kein genehmigter, gültiger Tarif mit Kundenbedingungen Anfragen an. Ihr Account-Team hilft Ihnen beim nächsten verfügbaren Tarif.",
     ja: "顧客向け条件が設定された承認済みの有効なオファーで、現在申請を受け付けているものはありません。次に利用可能なオファーについては、担当チームにお問い合わせください。",
     pt: "No momento, nenhuma oferta aprovada e vigente com condições para clientes está aceitando solicitações. Sua equipe de conta pode ajudar com a próxima oferta disponível.",
@@ -3197,9 +3197,10 @@ export const customerMessages = defineMessages({
       other: "{count} días de gracia de solo lectura tras el vencimiento.",
     },
     fr: {
-      one: "{count} jour de grâce en lecture seule après l’expiration.",
-      many: "{count} de jours de grâce en lecture seule après l’expiration.",
-      other: "{count} jours de grâce en lecture seule après l’expiration.",
+      one: "{count} jour de période de grâce en lecture seule après l’expiration.",
+      many: "{count} de jours de période de grâce en lecture seule après l’expiration.",
+      other:
+        "{count} jours de période de grâce en lecture seule après l’expiration.",
     },
     de: {
       one: "{count} Tag Kulanzzeit mit Lesezugriff nach Ablauf.",
@@ -3326,7 +3327,7 @@ export const customerMessages = defineMessages({
   "customer.payg.cancelConversionReview": {
     en: "Cancel conversion review",
     es: "Cancelar la revisión de la conversión",
-    fr: "Annuler l’examen du passage",
+    fr: "Annuler l’examen de la conversion",
     de: "Prüfung der Umstellung abbrechen",
     ja: "移行の確認をキャンセル",
     pt: "Cancelar a revisão da conversão",
@@ -3346,7 +3347,7 @@ export const customerMessages = defineMessages({
   "customer.payg.consent": {
     en: "I have read and agree to the linked terms (version {terms}) and retention policy (version {retention}), and authorize this request for my organization.",
     es: "He leído y acepto las condiciones enlazadas (versión {terms}) y la política de conservación (versión {retention}), y autorizo esta solicitud para mi organización.",
-    fr: "J’ai lu et j’accepte les conditions en lien (version {terms}) et la politique de conservation (version {retention}), et j’autorise cette demande pour mon organisation.",
+    fr: "J’ai lu et j’accepte les conditions référencées (version {terms}) et la politique de conservation (version {retention}), et j’autorise cette demande pour mon organisation.",
     de: "Ich habe die verlinkten Bedingungen (Version {terms}) und die Aufbewahrungsrichtlinie (Version {retention}) gelesen, stimme ihnen zu und autorisiere diese Anfrage für meine Organisation.",
     ja: "リンク先の利用条件（バージョン {terms}）と保持ポリシー（バージョン {retention}）を読んで同意し、所属組織としてこの申請を承認します。",
     pt: "Li e concordo com os termos vinculados (versão {terms}) e com a política de retenção (versão {retention}), e autorizo esta solicitação para minha organização.",
@@ -3376,7 +3377,7 @@ export const customerMessages = defineMessages({
   "customer.payg.submitting": {
     en: "Submitting…",
     es: "Enviando…",
-    fr: "Envoi…",
+    fr: "Envoi en cours…",
     de: "Wird gesendet…",
     ja: "送信中…",
     pt: "Enviando…",
@@ -3416,7 +3417,7 @@ export const customerMessages = defineMessages({
   "customer.payg.alreadyPending": {
     en: "An activation or trial request is already pending for this organization. Its status appears below.",
     es: "Esta organización ya tiene pendiente una solicitud de activación o de periodo de prueba. Su estado aparece a continuación.",
-    fr: "Une demande d’activation ou d’essai est déjà en attente pour cette organisation. Son état figure ci-dessous.",
+    fr: "Une demande d’activation ou d’essai est déjà en attente pour cette organisation. Son statut figure ci-dessous.",
     de: "Für diese Organisation ist bereits ein Aktivierungs- oder Testphasenantrag offen. Den Status sehen Sie unten.",
     ja: "この組織には、有効化またはトライアルの申請がすでに保留中です。状況は下に表示されます。",
     pt: "Já existe uma solicitação de ativação ou de período de teste pendente para esta organização. O status aparece abaixo.",
@@ -3476,7 +3477,7 @@ export const customerMessages = defineMessages({
   "customer.payg.status.declined": {
     en: "Declined",
     es: "Declinada",
-    fr: "Déclinée",
+    fr: "Rejetée",
     de: "Abgelehnt",
     ja: "却下",
     pt: "Recusada",
@@ -3696,7 +3697,7 @@ export const customerMessages = defineMessages({
   "customer.payg.error.didNotComplete": {
     en: "The request did not complete. Refresh to check its status before retrying.",
     es: "La solicitud no se completó. Actualice la página para comprobar su estado antes de volver a intentarlo.",
-    fr: "La demande n’a pas abouti. Actualisez la page pour vérifier son état avant de réessayer.",
+    fr: "La demande n’a pas abouti. Actualisez la page pour vérifier son statut avant de réessayer.",
     de: "Die Anfrage wurde nicht abgeschlossen. Aktualisieren Sie die Seite und prüfen Sie den Status, bevor Sie es erneut versuchen.",
     ja: "申請は完了しませんでした。再試行する前に、ページを再読み込みして状況を確認してください。",
     pt: "A solicitação não foi concluída. Atualize a página para verificar o status antes de tentar novamente.",
@@ -3736,7 +3737,7 @@ export const customerMessages = defineMessages({
   "customer.payg.error.offerUnavailable": {
     en: "Customer terms are not available for this offer. Contact your account team.",
     es: "Las condiciones para clientes no están disponibles para esta oferta. Póngase en contacto con su equipo de cuenta.",
-    fr: "Les conditions client ne sont pas disponibles pour cette offre. Contactez votre équipe commerciale.",
+    fr: "Les conditions client ne sont pas disponibles pour cette offre. Contactez votre chargé de compte.",
     de: "Für diesen Tarif sind keine Kundenbedingungen verfügbar. Wenden Sie sich an Ihr Account-Team.",
     ja: "このオファーには顧客向けの条件がありません。担当チームにお問い合わせください。",
     pt: "Os termos para clientes não estão disponíveis para esta oferta. Entre em contato com sua equipe de conta.",
@@ -3756,7 +3757,7 @@ export const customerMessages = defineMessages({
   "customer.payg.error.requestPending": {
     en: "Your organization already has a pending request. Review its status below.",
     es: "Su organización ya tiene una solicitud pendiente. Revise su estado a continuación.",
-    fr: "Votre organisation a déjà une demande en attente. Consultez son état ci-dessous.",
+    fr: "Votre organisation a déjà une demande en attente. Consultez son statut ci-dessous.",
     de: "Für Ihre Organisation ist bereits eine Anfrage offen. Prüfen Sie den Status unten.",
     ja: "組織にはすでに保留中の申請があります。下で状況を確認してください。",
     pt: "Sua organização já tem uma solicitação pendente. Confira o status abaixo.",
@@ -3916,7 +3917,7 @@ export const customerMessages = defineMessages({
   "customer.payg.resolved.declined": {
     en: "Request declined with the recorded reason.",
     es: "Solicitud declinada con el motivo registrado.",
-    fr: "Demande déclinée avec le motif enregistré.",
+    fr: "Demande rejetée, avec le motif enregistré.",
     de: "Anfrage mit dem erfassten Grund abgelehnt.",
     ja: "記録した理由により申請を却下しました。",
     pt: "Solicitação recusada com o motivo registrado.",
@@ -3978,7 +3979,7 @@ export const customerMessages = defineMessages({
   "customer.paygFinance.unavailable": {
     en: "The request service is unavailable or your finance authority is insufficient.",
     es: "El servicio de solicitudes no está disponible o sus facultades financieras no son suficientes.",
-    fr: "Le service des demandes est indisponible ou vos droits financiers sont insuffisants.",
+    fr: "Le service des demandes est indisponible ou votre habilitation financière est insuffisante.",
     de: "Der Anfragedienst ist nicht verfügbar oder Ihre Finanzbefugnis reicht nicht aus.",
     ja: "申請サービスを利用できないか、財務権限が不足しています。",
     pt: "O serviço de solicitações está indisponível ou sua alçada financeira é insuficiente.",
@@ -4158,7 +4159,7 @@ export const customerMessages = defineMessages({
   "customer.paygFinance.decline": {
     en: "Decline request",
     es: "Declinar la solicitud",
-    fr: "Décliner la demande",
+    fr: "Rejeter la demande",
     de: "Anfrage ablehnen",
     ja: "申請を却下",
     pt: "Recusar a solicitação",

@@ -106,7 +106,7 @@ export const demoMessages = defineMessages({
   "demo.landing.start": {
     en: "Start as {name}",
     es: "Empezar como {name}",
-    fr: "Commencer en tant que {name}",
+    fr: "Commencer comme {name}",
     de: "Als {name} starten",
     ja: "{name} として開始",
     pt: "Começar como {name}",
@@ -270,7 +270,7 @@ export const demoMessages = defineMessages({
   "demo.persona.reseller.intent": {
     en: "Act on the partner agreement clock, then issue an end-client quote.",
     es: "Atender el plazo del acuerdo de socio y, después, emitir un presupuesto para un cliente final.",
-    fr: "Traiter l’échéance de l’accord partenaire, puis émettre un devis pour un client final.",
+    fr: "Traiter l’échéance de l’accord de partenariat, puis émettre un devis pour un client final.",
     de: "Auf die Frist der Partnervereinbarung reagieren und dann ein Angebot für einen Endkunden ausstellen.",
     ja: "パートナー契約の期限に対応してから、エンド顧客向けの見積もりを発行します。",
     pt: "Tratar o prazo do acordo de parceria e, em seguida, emitir uma cotação para um cliente final.",
@@ -412,7 +412,7 @@ export const demoMessages = defineMessages({
   "demo.journey.resellerAgreementAndQuote.reviewAgreement": {
     en: "Review the partner agreement before end-client activity.",
     es: "Revisar el acuerdo de socio antes de operar con clientes finales.",
-    fr: "Examiner l’accord partenaire avant toute activité avec des clients finaux.",
+    fr: "Examiner l’accord de partenariat avant toute activité avec des clients finaux.",
     de: "Die Partnervereinbarung prüfen, bevor Sie für Endkunden tätig werden.",
     ja: "エンド顧客との取引を始める前に、パートナー契約を確認します。",
     pt: "Revisar o acordo de parceria antes de atuar com clientes finais.",
@@ -462,7 +462,7 @@ export const demoMessages = defineMessages({
   "demo.journey.endClientUsage.title": {
     en: "Review usage without partner commercial data",
     es: "Revisar el consumo sin datos comerciales del socio",
-    fr: "Consulter l’utilisation sans les données commerciales du partenaire",
+    fr: "Consulter la consommation sans les données commerciales du partenaire",
     de: "Nutzung ohne kommerzielle Partnerdaten prüfen",
     ja: "パートナーの取引条件を含まない利用状況の確認",
     pt: "Revisar o uso sem dados comerciais do parceiro",
@@ -472,7 +472,7 @@ export const demoMessages = defineMessages({
   "demo.journey.endClientUsage.reviewUsage": {
     en: "Review service usage and term dates.",
     es: "Revisar el consumo del servicio y las fechas de vigencia.",
-    fr: "Examiner l’utilisation du service et les dates de début et de fin.",
+    fr: "Examiner la consommation du service et les dates de début et de fin.",
     de: "Servicenutzung und Laufzeitdaten prüfen.",
     ja: "サービスの利用状況と契約期間を確認します。",
     pt: "Revisar o uso do serviço e as datas de vigência.",
@@ -737,7 +737,7 @@ export const demoMessages = defineMessages({
   "demo.clientReview.validity": {
     en: "Revision {revision} · Valid until {date}",
     es: "Revisión {revision} · Válido hasta el {date}",
-    fr: "Révision {revision} · Valable jusqu’au {date}",
+    fr: "Révision {revision} · valable jusqu’au {date}",
     de: "Überarbeitung {revision} · Gültig bis {date}",
     ja: "改訂版 {revision}・有効期限 {date}",
     pt: "Revisão {revision} · Válida até {date}",

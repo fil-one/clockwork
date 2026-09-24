@@ -230,7 +230,7 @@ const portfolio: readonly PartnerFixture[] = [
     context: demoText({
       en: "Resale · US East · 280 TB committed",
       es: "Reventa · EE. UU. Este · 280 TB contratados",
-      fr: "Revente · Est des États-Unis · 280 To souscrits",
+      fr: "Revente · USA Est · 280 To souscrits",
       de: "Wiederverkauf · USA Ost · 280 TB vertraglich zugesagt",
       ja: "再販・米国東部・契約容量 280 TB",
       pt: "Revenda · Leste dos EUA · 280 TB contratados",
@@ -255,7 +255,7 @@ const portfolio: readonly PartnerFixture[] = [
     context: demoText({
       en: "Referral · EU West · 65 TB committed",
       es: "Recomendación · UE Oeste · 65 TB contratados",
-      fr: "Apport d’affaires · Ouest de l’UE · 65 To souscrits",
+      fr: "Apport d’affaires · UE Ouest · 65 To souscrits",
       de: "Empfehlung · EU West · 65 TB vertraglich zugesagt",
       ja: "紹介・EU 西部・契約容量 65 TB",
       pt: "Indicação · Oeste da UE · 65 TB contratados",
@@ -275,7 +275,7 @@ const portfolio: readonly PartnerFixture[] = [
     context: demoText({
       en: "Two-tier resale · UK South · 14 TB POC",
       es: "Reventa en dos niveles · Reino Unido Sur · POC de 14 TB",
-      fr: "Revente à deux niveaux · Sud du Royaume-Uni · POC de 14 To",
+      fr: "Revente à deux niveaux · Royaume-Uni Sud · POC de 14 To",
       de: "Zweistufiger Wiederverkauf · UK Süd · POC mit 14 TB",
       ja: "2階層の再販・英国南部・14 TB の PoC",
       pt: "Revenda em dois níveis · Sul do Reino Unido · POC de 14 TB",
@@ -334,7 +334,7 @@ const owners = {
   filOneSupport: demoText({
     en: "Fil One support",
     es: "Soporte de Fil One",
-    fr: "Assistance Fil One",
+    fr: "Support Fil One",
     de: "Support von Fil One",
     ja: "Fil One サポート",
     pt: "Suporte da Fil One",
@@ -410,7 +410,7 @@ const registrations: readonly PartnerFixture[] = [
     context: demoText({
       en: "Resale · competing registered claim",
       es: "Reventa · reclamación registrada en conflicto",
-      fr: "Revente · demande concurrente enregistrée",
+      fr: "Revente · réclamation concurrente enregistrée",
       de: "Wiederverkauf · konkurrierender registrierter Anspruch",
       ja: "再販・競合する登録済みの申請あり",
       pt: "Revenda · reivindicação registrada concorrente",
@@ -473,7 +473,7 @@ const disputes: readonly PartnerFixture[] = [
     context: demoText({
       en: "Invoice line dispute · usage evidence attached",
       es: "Disputa sobre una línea de factura · evidencia de uso adjunta",
-      fr: "Litige sur une ligne de facture · preuve d’utilisation jointe",
+      fr: "Litige sur une ligne de facture · preuve de consommation jointe",
       de: "Streitfall zu einer Rechnungsposition · Nutzungsnachweis beigefügt",
       ja: "請求書明細への異議・利用状況の証跡を添付",
       pt: "Contestação de item da fatura · evidência de uso anexada",
@@ -504,7 +504,7 @@ const quotes: readonly PartnerFixture[] = [
     context: demoText({
       en: "Resale · US East · 400 TB · 12 months",
       es: "Reventa · EE. UU. Este · 400 TB · 12 meses",
-      fr: "Revente · Est des États-Unis · 400 To · 12 mois",
+      fr: "Revente · USA Est · 400 To · 12 mois",
       de: "Wiederverkauf · USA Ost · 400 TB · 12 Monate",
       ja: "再販・米国東部・400 TB・12か月",
       pt: "Revenda · Leste dos EUA · 400 TB · 12 meses",
@@ -538,7 +538,7 @@ const quotes: readonly PartnerFixture[] = [
     context: demoText({
       en: "Two-tier resale · UK South · 80 TB · 12 months",
       es: "Reventa en dos niveles · Reino Unido Sur · 80 TB · 12 meses",
-      fr: "Revente à deux niveaux · Sud du Royaume-Uni · 80 To · 12 mois",
+      fr: "Revente à deux niveaux · Royaume-Uni Sud · 80 To · 12 mois",
       de: "Zweistufiger Wiederverkauf · UK Süd · 80 TB · 12 Monate",
       ja: "2階層の再販・英国南部・80 TB・12か月",
       pt: "Revenda em dois níveis · Sul do Reino Unido · 80 TB · 12 meses",
@@ -572,7 +572,7 @@ const quotes: readonly PartnerFixture[] = [
     context: demoText({
       en: "Referral · EU West · 65 TB · 24 months",
       es: "Recomendación · UE Oeste · 65 TB · 24 meses",
-      fr: "Apport d’affaires · Ouest de l’UE · 65 To · 24 mois",
+      fr: "Apport d’affaires · UE Ouest · 65 To · 24 mois",
       de: "Empfehlung · EU West · 65 TB · 24 Monate",
       ja: "紹介・EU 西部・65 TB・24か月",
       pt: "Indicação · Oeste da UE · 65 TB · 24 meses",
@@ -659,7 +659,7 @@ const commissions: readonly PartnerFixture[] = [
     name: demoText({
       en: "Q3 commission statement",
       es: "Liquidación de comisiones del tercer trimestre",
-      fr: "Relevé de commissions du troisième trimestre",
+      fr: "Relevé de commissions du T3",
       de: "Provisionsabrechnung Q3",
       ja: "第3四半期のコミッション明細書",
       pt: "Demonstrativo de comissões do terceiro trimestre",
@@ -778,7 +778,7 @@ const sandboxes: readonly PartnerFixture[] = [
     context: demoText({
       en: "US East · 10 TB cap · named keys",
       es: "EE. UU. Este · límite de 10 TB · claves nominativas",
-      fr: "Est des États-Unis · plafond de 10 To · clés nominatives",
+      fr: "USA Est · plafond de 10 To · clés nominatives",
       de: "USA Ost · Obergrenze 10 TB · personengebundene Schlüssel",
       ja: "米国東部・上限 10 TB・記名キー",
       pt: "Leste dos EUA · limite de 10 TB · chaves nominais",
@@ -806,7 +806,7 @@ const sandboxes: readonly PartnerFixture[] = [
     context: demoText({
       en: "UK South · 14 TB cap · four success tests",
       es: "Reino Unido Sur · límite de 14 TB · cuatro pruebas de éxito",
-      fr: "Sud du Royaume-Uni · plafond de 14 To · quatre tests de réussite",
+      fr: "Royaume-Uni Sud · plafond de 14 To · quatre critères de réussite",
       de: "UK Süd · Obergrenze 14 TB · vier Erfolgstests",
       ja: "英国南部・上限 14 TB・成功条件テスト 4件",
       pt: "Sul do Reino Unido · limite de 14 TB · quatro testes de sucesso",
@@ -949,7 +949,7 @@ const support: readonly PartnerFixture[] = [
     name: demoText({
       en: "Halcyon restore sample timing",
       es: "Tiempos de la muestra de restauración de Halcyon",
-      fr: "Délai de l’échantillon de restauration Halcyon",
+      fr: "Délai de restauration d’un échantillon · Halcyon",
       de: "Dauer der Wiederherstellungsprobe für Halcyon",
       ja: "Halcyon の復元サンプルの所要時間",
       pt: "Prazo da amostra de restauração da Halcyon",
@@ -959,7 +959,7 @@ const support: readonly PartnerFixture[] = [
     context: demoText({
       en: "End-client-visible summary · standard priority",
       es: "Resumen visible para el cliente final · prioridad estándar",
-      fr: "Résumé visible par le client final · priorité standard",
+      fr: "Résumé visible par le client final · priorité normale",
       de: "Für den Endkunden sichtbare Zusammenfassung · Standardpriorität",
       ja: "エンド顧客に表示される概要・通常の優先度",
       pt: "Resumo visível para o cliente final · prioridade padrão",
@@ -977,7 +977,7 @@ const support: readonly PartnerFixture[] = [
     name: demoText({
       en: "Atlas EU usage export",
       es: "Exportación del uso en la UE de Atlas",
-      fr: "Export de l’utilisation UE d’Atlas",
+      fr: "Export de la consommation UE d’Atlas",
       de: "EU-Nutzungsexport für Atlas",
       ja: "Atlas の EU 利用状況のエクスポート",
       pt: "Exportação do uso na UE da Atlas",

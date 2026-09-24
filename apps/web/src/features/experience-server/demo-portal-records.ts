@@ -234,7 +234,7 @@ const team = {
   partnerBilling: demoText({
     en: "Partner billing",
     es: "Facturación de socios",
-    fr: "Facturation partenaires",
+    fr: "Facturation partenaire",
     de: "Partnerabrechnung",
     ja: "パートナー請求担当",
     pt: "Faturamento de parceiros",
@@ -244,7 +244,7 @@ const team = {
   partnerFinance: demoText({
     en: "Partner finance",
     es: "Finanzas de socios",
-    fr: "Finance partenaires",
+    fr: "Finance partenaire",
     de: "Partnerfinanzen",
     ja: "パートナー財務担当",
     pt: "Financeiro de parceiros",
@@ -264,7 +264,7 @@ const team = {
   revenueOperations: demoText({
     en: "Revenue operations",
     es: "Operaciones de ingresos",
-    fr: "Opérations de revenus",
+    fr: "Opérations revenus",
     de: "Revenue Operations",
     ja: "レベニューオペレーション",
     pt: "Operações de receita",
@@ -356,7 +356,7 @@ const directJourney: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "400 TB · US East · 12 months · direct renewal",
         es: "400 TB · EE. UU. Este · 12 meses · renovación directa",
-        fr: "400 To · Est des États-Unis · 12 mois · renouvellement direct",
+        fr: "400 To · USA Est · 12 mois · renouvellement direct",
         de: "400 TB · USA Ost · 12 Monate · direkte Verlängerung",
         ja: "400 TB・米国東部・12か月・直接契約の更新",
         pt: "400 TB · Leste dos EUA · 12 meses · renovação direta",
@@ -503,7 +503,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       title: demoText({
         en: "POC conversion · field telemetry archive",
         es: "Conversión de la POC · archivo de telemetría de campo",
-        fr: "Conversion du POC · archive de télémétrie terrain",
+        fr: "Conversion de la POC · archive de télémétrie terrain",
         de: "POC-Umwandlung · Archiv für Feldtelemetrie",
         ja: "PoC の本契約移行・フィールドテレメトリーのアーカイブ",
         pt: "Conversão da POC · arquivo de telemetria de campo",
@@ -513,7 +513,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "60 TB · US West · annual · referral sourced",
         es: "60 TB · EE. UU. Oeste · anual · procedente de una recomendación",
-        fr: "60 To · Ouest des États-Unis · annuel · issu d’un apport d’affaires",
+        fr: "60 To · USA Ouest · annuel · issu d’un apport d’affaires",
         de: "60 TB · USA West · jährlich · über Empfehlung",
         ja: "60 TB・米国西部・年間・紹介経由",
         pt: "60 TB · Oeste dos EUA · anual · originado por indicação",
@@ -548,7 +548,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "PO-LF-0221 · 45 TB · US West · referral sourced",
         es: "PO-LF-0221 · 45 TB · EE. UU. Oeste · procedente de una recomendación",
-        fr: "PO-LF-0221 · 45 To · Ouest des États-Unis · issu d’un apport d’affaires",
+        fr: "PO-LF-0221 · 45 To · USA Ouest · issu d’un apport d’affaires",
         de: "PO-LF-0221 · 45 TB · USA West · über Empfehlung",
         ja: "PO-LF-0221・45 TB・米国西部・紹介経由",
         pt: "PO-LF-0221 · 45 TB · Oeste dos EUA · originado por indicação",
@@ -587,7 +587,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "45 TB committed · 28 TB stored · US West",
         es: "45 TB contratados · 28 TB almacenados · EE. UU. Oeste",
-        fr: "45 To souscrits · 28 To stockés · Ouest des États-Unis",
+        fr: "45 To souscrits · 28 To stockés · USA Ouest",
         de: "45 TB vertraglich zugesagt · 28 TB gespeichert · USA West",
         ja: "契約容量 45 TB・保存量 28 TB・米国西部",
         pt: "45 TB contratados · 28 TB armazenados · Oeste dos EUA",
@@ -633,7 +633,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "8 TB · three of three success tests passed",
         es: "8 TB · superadas las tres pruebas de éxito",
-        fr: "8 To · trois tests de réussite sur trois validés",
+        fr: "8 To · trois critères de réussite validés sur trois",
         de: "8 TB · alle drei Erfolgstests bestanden",
         ja: "8 TB・成功基準テスト 3 件すべてに合格",
         pt: "8 TB · aprovada nos três testes de sucesso",
@@ -719,7 +719,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "Adds 15 TB to the field archive after the POC conversion.",
         es: "Añade 15 TB al archivo de campo tras la conversión de la POC.",
-        fr: "Ajoute 15 To à l’archive terrain après la conversion du POC.",
+        fr: "Ajoute 15 To à l’archive terrain après la conversion de la POC.",
         de: "Erweitert das Feldarchiv nach der POC-Umwandlung um 15 TB.",
         ja: "PoC の本契約移行後、フィールドアーカイブに 15 TB を追加します。",
         pt: "Adiciona 15 TB ao arquivo de campo após a conversão da POC.",
@@ -757,7 +757,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "Platform engineer with read access to services and usage.",
         es: "Ingeniera de plataforma con acceso de lectura a servicios y uso.",
-        fr: "Ingénieure plateforme avec accès en lecture aux services et à l’utilisation.",
+        fr: "Ingénieure plateforme avec accès en lecture aux services et à la consommation.",
         de: "Plattform-Engineer mit Lesezugriff auf Dienste und Nutzung.",
         ja: "サービスと使用状況の閲覧権限を持つプラットフォームエンジニア。",
         pt: "Engenheira de plataforma com acesso de leitura a serviços e uso.",
@@ -937,7 +937,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       context: demoText({
         en: "Resale · EU West · 120 TB · 12 months",
         es: "Reventa · UE Oeste · 120 TB · 12 meses",
-        fr: "Revente · Ouest de l’UE · 120 To · 12 mois",
+        fr: "Revente · UE Ouest · 120 To · 12 mois",
         de: "Wiederverkauf · EU West · 120 TB · 12 Monate",
         ja: "再販・EU 西部・120 TB・12か月",
         pt: "Revenda · Oeste da UE · 120 TB · 12 meses",
@@ -977,7 +977,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       context: demoText({
         en: "Two-tier · EU West · 80 TB · 12 months",
         es: "Dos niveles · UE Oeste · 80 TB · 12 meses",
-        fr: "Deux niveaux · Ouest de l’UE · 80 To · 12 mois",
+        fr: "Deux niveaux · UE Ouest · 80 To · 12 mois",
         de: "Zweistufig · EU West · 80 TB · 12 Monate",
         ja: "2 階層販売・EU 西部・80 TB・12か月",
         pt: "Dois níveis · Oeste da UE · 80 TB · 12 meses",
@@ -1120,7 +1120,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       name: demoText({
         en: "Solace usage export",
         es: "Exportación de uso de Solace",
-        fr: "Export d’utilisation Solace",
+        fr: "Export de la consommation Solace",
         de: "Nutzungsexport für Solace",
         ja: "Solace の使用状況エクスポート",
         pt: "Exportação de uso da Solace",
@@ -1130,7 +1130,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       context: demoText({
         en: "Referral-visible summary · standard priority",
         es: "Resumen visible para el socio prescriptor · prioridad estándar",
-        fr: "Résumé visible par l’apporteur d’affaires · priorité standard",
+        fr: "Résumé visible par l’apporteur d’affaires · priorité normale",
         de: "Für den Empfehlungspartner sichtbare Zusammenfassung · Standardpriorität",
         ja: "紹介パートナーに表示される概要・標準優先度",
         pt: "Resumo visível ao parceiro de indicação · prioridade padrão",
@@ -1194,7 +1194,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       name: demoText({
         en: "Q3 distributor statement",
         es: "Liquidación del distribuidor del tercer trimestre",
-        fr: "Relevé distributeur du 3e trimestre",
+        fr: "Relevé distributeur du T3",
         de: "Distributorabrechnung Q3",
         ja: "第3四半期のディストリビューター明細書",
         pt: "Demonstrativo do distribuidor do 3º trimestre",
@@ -1204,7 +1204,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       context: demoText({
         en: "9 collections · 1 credit · no holdback",
         es: "9 cobros · 1 factura rectificativa · sin retención",
-        fr: "9 encaissements · 1 avoir · aucune retenue",
+        fr: "9 encaissements · 1 crédit · aucune retenue",
         de: "9 Zahlungseingänge · 1 Gutschrift · kein Einbehalt",
         ja: "回収 9 件・クレジットノート 1 件・留保額なし",
         pt: "9 recebimentos · 1 nota de crédito · sem valor retido",
@@ -1287,7 +1287,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     description: demoText({
       en: "Meridian's data processing addendum was superseded while the review was open.",
       es: "El anexo de tratamiento de datos de Meridian se sustituyó mientras la revisión seguía abierta.",
-      fr: "L’avenant relatif au traitement des données de Meridian a été remplacé alors que la revue était en cours.",
+      fr: "L’annexe relative au traitement des données de Meridian a été remplacée alors que la revue était en cours.",
       de: "Der Auftragsverarbeitungsvertrag von Meridian wurde ersetzt, während die Prüfung noch lief.",
       ja: "確認の途中で、Meridian のデータ処理補遺が新しい版に置き換えられました。",
       pt: "O adendo de tratamento de dados da Meridian foi substituído enquanto a revisão estava em andamento.",
@@ -1313,7 +1313,7 @@ const internalBook: readonly DemoPortalRecord[] = [
         value: demoText({
           en: "Data processing addendum v2",
           es: "Anexo de tratamiento de datos, versión 2",
-          fr: "Avenant relatif au traitement des données, version 2",
+          fr: "Annexe relative au traitement des données, version 2",
           de: "Auftragsverarbeitungsvertrag, Version 2",
           ja: "データ処理補遺（第 2 版）",
           pt: "Adendo de tratamento de dados, versão 2",
@@ -1383,7 +1383,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     description: demoText({
       en: "The EU West provisioning run failed after the provider accepted the order.",
       es: "El aprovisionamiento en la región UE Oeste falló después de que el proveedor aceptara el pedido.",
-      fr: "Le provisionnement dans la région Ouest de l’UE a échoué après l’acceptation de la commande par le prestataire.",
+      fr: "Le provisionnement dans la région UE Ouest a échoué après l’acceptation de la commande par le prestataire.",
       de: "Die Bereitstellung in der Region EU West ist fehlgeschlagen, nachdem der Anbieter den Auftrag angenommen hatte.",
       ja: "プロバイダーが注文を受け付けた後、EU 西部でのプロビジョニングが失敗しました。",
       pt: "O provisionamento na região Oeste da UE falhou depois que o provedor aceitou o pedido.",
@@ -1549,7 +1549,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     title: demoText({
       en: "Enterprise committed capacity · Meridian",
       es: "Capacidad contratada para empresas · Meridian",
-      fr: "Capacité souscrite entreprise · Meridian",
+      fr: "Capacité souscrite Entreprise · Meridian",
       de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
       ja: "エンタープライズ向け契約容量・Meridian",
       pt: "Capacidade contratada empresarial · Meridian",
@@ -1559,7 +1559,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     name: demoText({
       en: "Enterprise committed capacity · Meridian",
       es: "Capacidad contratada para empresas · Meridian",
-      fr: "Capacité souscrite entreprise · Meridian",
+      fr: "Capacité souscrite Entreprise · Meridian",
       de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
       ja: "エンタープライズ向け契約容量・Meridian",
       pt: "Capacidade contratada empresarial · Meridian",
@@ -1569,7 +1569,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     description: demoText({
       en: "400 TB · US East · annual · direct",
       es: "400 TB · EE. UU. Este · anual · directo",
-      fr: "400 To · Est des États-Unis · annuel · direct",
+      fr: "400 To · USA Est · annuel · vente directe",
       de: "400 TB · USA Ost · jährlich · direkt",
       ja: "400 TB・米国東部・年間・直接販売",
       pt: "400 TB · Leste dos EUA · anual · direto",
@@ -1616,7 +1616,7 @@ const internalBook: readonly DemoPortalRecord[] = [
       description: demoText({
         en: "PO-NA-1048 · 500 TB · US East · direct",
         es: "PO-NA-1048 · 500 TB · EE. UU. Este · directo",
-        fr: "PO-NA-1048 · 500 To · Est des États-Unis · direct",
+        fr: "PO-NA-1048 · 500 To · USA Est · vente directe",
         de: "PO-NA-1048 · 500 TB · USA Ost · direkt",
         ja: "PO-NA-1048・500 TB・米国東部・直接販売",
         pt: "PO-NA-1048 · 500 TB · Leste dos EUA · direto",

@@ -109,7 +109,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.review.policy": {
     en: "Policy basis",
     es: "Fundamento en la política",
-    fr: "Fondement dans la politique",
+    fr: "Politique applicable",
     de: "Grundlage in der Richtlinie",
     ja: "ポリシー上の根拠",
     pt: "Base na política",
@@ -201,7 +201,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.identifier.termination": {
     en: "Termination ID",
     es: "ID de la baja",
-    fr: "ID de la résiliation",
+    fr: "ID de la fin de service",
     de: "Kündigungs-ID",
     ja: "解約 ID",
     pt: "ID do encerramento",
@@ -343,7 +343,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.approvals.description": {
     en: "Review the affected record, evidence, policy basis and downstream effect before you record a decision and its reason.",
     es: "Revise el registro afectado, la evidencia, el fundamento en la política y el efecto posterior antes de registrar una decisión y su motivo.",
-    fr: "Examinez l’enregistrement concerné, les preuves, le fondement dans la politique et l’effet en aval avant d’enregistrer une décision motivée.",
+    fr: "Examinez l’enregistrement concerné, les preuves, la politique applicable et l’effet en aval avant d’enregistrer une décision motivée.",
     de: "Prüfen Sie den betroffenen Datensatz, die Nachweise, die Grundlage in der Richtlinie und die Folgewirkung, bevor Sie eine Entscheidung mit Begründung erfassen.",
     ja: "判断とその理由を記録する前に、対象の記録、証跡、ポリシー上の根拠、後続への影響を確認してください。",
     pt: "Revise o registro afetado, a evidência, a base na política e o efeito posterior antes de registrar uma decisão e o motivo dela.",
@@ -579,7 +579,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.approvals.authority": {
     en: "Authority",
     es: "Autoridad",
-    fr: "Autorité",
+    fr: "Habilitation",
     de: "Befugnis",
     ja: "権限",
     pt: "Autoridade",
@@ -639,7 +639,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.approvals.reasonHint": {
     en: "Required for approvals and rejections; retained with actor attribution.",
     es: "Obligatorio para aprobaciones y rechazos; se conserva con la atribución del autor.",
-    fr: "Obligatoire pour les approbations et les rejets\u202f; conservé avec l’identité de son auteur.",
+    fr: "Obligatoire pour les approbations et les rejets\u202f; conservé avec l’identification de l’auteur.",
     de: "Für Genehmigungen und Zurückweisungen erforderlich; wird mit Zuordnung zur handelnden Person aufbewahrt.",
     ja: "承認と却下のどちらにも必須です。操作者の情報とともに保持されます。",
     pt: "Obrigatório para aprovações e rejeições; mantido com a identificação do autor.",
@@ -659,7 +659,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.approvals.roleCannotDecideDetail": {
     en: "You may inspect evidence, but the matching finance, legal, or destructive-action authority must record the decision.",
     es: "Puede consultar la evidencia, pero la decisión debe registrarla la autoridad financiera, jurídica o de acciones destructivas que corresponda.",
-    fr: "Vous pouvez consulter les preuves, mais seule l’autorité financière, juridique ou chargée des actions destructives correspondante peut enregistrer la décision.",
+    fr: "Vous pouvez consulter les preuves, mais seule une personne disposant de l’habilitation correspondante (financière, juridique ou pour les actions destructives) peut enregistrer la décision.",
     de: "Sie können die Nachweise einsehen, die Entscheidung muss jedoch von einer Person mit der passenden Befugnis für Finanzen, Recht oder destruktive Aktionen erfasst werden.",
     ja: "証跡は閲覧できますが、判断の記録は対応する財務、法務、または破壊的操作の権限を持つ担当者が行う必要があります。",
     pt: "Você pode consultar a evidência, mas a decisão deve ser registrada pela autoridade financeira, jurídica ou de ações destrutivas correspondente.",
@@ -719,7 +719,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.approvals.handoff": {
     en: "Continue in the authorized workflow, where authority, actor separation, evidence, retention, and policy gates are revalidated.",
     es: "Continúe en el flujo autorizado, donde se vuelven a validar la autoridad, la separación de funciones, la evidencia, la conservación y los controles de la política.",
-    fr: "Poursuivez dans le processus autorisé, où l’autorité, la séparation des intervenants, les preuves, la conservation et les contrôles de la politique sont revalidés.",
+    fr: "Poursuivez dans le processus autorisé, où l’habilitation, la séparation des intervenants, les preuves, la conservation et les contrôles de la politique sont revalidés.",
     de: "Fahren Sie im berechtigten Ablauf fort. Dort werden Befugnis, Trennung der handelnden Personen, Nachweise, Aufbewahrung und Richtlinienprüfungen erneut validiert.",
     ja: "権限のあるワークフローで続行してください。そこで権限、操作者の分離、証跡、保持、ポリシー上のチェックが再検証されます。",
     pt: "Continue no fluxo autorizado, em que a autoridade, a separação entre os autores, a evidência, a retenção e os controles da política são validados novamente.",
@@ -937,7 +937,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.execution.attached": {
     en: "Attached",
     es: "Como anexo",
-    fr: "En annexe",
+    fr: "Document joint",
     de: "Als Anlage",
     ja: "添付",
     pt: "Como anexo",
@@ -1057,7 +1057,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.legalAuthority": {
     en: "Legal authority",
     es: "Autoridad jurídica",
-    fr: "Autorité juridique",
+    fr: "Habilitation juridique",
     de: "Rechtliche Befugnis",
     ja: "法務権限",
     pt: "Autoridade jurídica",
@@ -1067,7 +1067,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.review.impact": {
     en: "Makes this immutable, counsel-approved template eligible for activation on its effective date.",
     es: "Hace que esta plantilla inmutable, aprobada por la asesoría jurídica, pueda activarse en su fecha de entrada en vigor.",
-    fr: "Rend ce modèle immuable, approuvé par le service juridique, activable à sa date d’effet.",
+    fr: "Ce modèle, immuable et approuvé par le service juridique, devient activable à sa date d’effet.",
     de: "Macht diese unveränderliche, von der Rechtsabteilung genehmigte Vorlage zu ihrem Gültigkeitsdatum aktivierbar.",
     ja: "法務承認済みで変更不可のこのテンプレートを、発効日に有効化できる状態にします。",
     pt: "Torna este modelo imutável, aprovado pelo jurídico, apto para ativação na data de vigência.",
@@ -1097,7 +1097,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.review.policy": {
     en: "Agreement policy AG-2 requires counsel authority, semantic versioning, exact-text hashing and canonical-document evidence.",
     es: "La política de acuerdos AG-2 exige autoridad de la asesoría jurídica, versionado semántico, hash del texto exacto y evidencia del documento canónico.",
-    fr: "La politique des accords AG-2 exige l’autorité du service juridique, un versionnage sémantique, une empreinte du texte exact et la preuve du document de référence.",
+    fr: "La politique des accords AG-2 exige l’habilitation du service juridique, un versionnage sémantique, une empreinte du texte exact et la preuve du document de référence.",
     de: "Die Vereinbarungsrichtlinie AG-2 verlangt die Befugnis der Rechtsabteilung, semantische Versionierung, einen Hash des exakten Texts und den Nachweis des maßgeblichen Dokuments.",
     ja: "契約ポリシー AG-2 では、法務の権限、セマンティックバージョニング、原文のハッシュ化、正本ドキュメントの証跡が必要です。",
     pt: "A política de acordos AG-2 exige autoridade do jurídico, versionamento semântico, hash do texto exato e evidência do documento canônico.",
@@ -1177,7 +1177,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.legalAuthorityRequired": {
     en: "Legal approval authority is required.",
     es: "Se requiere autoridad de aprobación jurídica.",
-    fr: "L’autorité d’approbation juridique est requise.",
+    fr: "L’habilitation d’approbation juridique est requise.",
     de: "Eine rechtliche Genehmigungsbefugnis ist erforderlich.",
     ja: "法務の承認権限が必要です。",
     pt: "É necessária autoridade de aprovação jurídica.",
@@ -1227,7 +1227,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.handoff": {
     en: "Publish through the template workflow. Counsel authority, exact text hash, approval evidence, and effective date are verified there.",
     es: "Publique mediante el flujo de plantillas. Allí se verifican la autoridad de la asesoría jurídica, el hash del texto exacto, la evidencia de aprobación y la fecha de entrada en vigor.",
-    fr: "Publiez via le processus des modèles. L’autorité du service juridique, l’empreinte du texte exact, les preuves d’approbation et la date d’effet y sont vérifiées.",
+    fr: "Publiez via le processus des modèles. L’habilitation du service juridique, l’empreinte du texte exact, les preuves d’approbation et la date d’effet y sont vérifiées.",
     de: "Veröffentlichen Sie über den Vorlagen-Workflow. Dort werden Befugnis der Rechtsabteilung, Hash des exakten Texts, Genehmigungsnachweis und Gültigkeitsdatum geprüft.",
     ja: "テンプレートのワークフローから公開してください。法務の権限、原文のハッシュ、承認の証跡、発効日はそこで検証されます。",
     pt: "Publique pelo fluxo de modelos. A autoridade do jurídico, o hash do texto exato, a evidência de aprovação e a data de vigência são verificados lá.",
@@ -1381,7 +1381,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.agreements.registry.notApproved": {
     en: "Not approved",
     es: "Sin aprobar",
-    fr: "Non approuvé",
+    fr: "Sans approbation",
     de: "Nicht genehmigt",
     ja: "未承認",
     pt: "Não aprovado",
@@ -1723,7 +1723,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.gates.severity.launchBlocker": {
     en: "Launch blocker",
     es: "Bloquea el lanzamiento",
-    fr: "Bloque le lancement",
+    fr: "Bloquant pour le lancement",
     de: "Blockiert den Start",
     ja: "リリースを阻止",
     pt: "Bloqueia o lançamento",
@@ -1733,7 +1733,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.gates.severity.pathBlocker": {
     en: "Path blocker",
     es: "Bloquea un flujo",
-    fr: "Bloque un parcours",
+    fr: "Bloquant pour un parcours",
     de: "Blockiert einen Ablauf",
     ja: "一部の経路を阻止",
     pt: "Bloqueia um fluxo",
@@ -2013,7 +2013,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.gates.unavailable.owner": {
     en: "Platform operations",
     es: "Operaciones de plataforma",
-    fr: "Exploitation de la plateforme",
+    fr: "Opérations de la plateforme",
     de: "Plattformbetrieb",
     ja: "プラットフォーム運用",
     pt: "Operações da plataforma",
@@ -2183,7 +2183,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.gates.error.authority": {
     en: "Your authority or recent authentication could not be verified.",
     es: "No se ha podido verificar su autoridad o su autenticación reciente.",
-    fr: "Votre autorité ou votre authentification récente n’a pas pu être vérifiée.",
+    fr: "Votre habilitation ou votre authentification récente n’a pas pu être vérifiée.",
     de: "Ihre Befugnis oder Ihre aktuelle Authentifizierung konnte nicht bestätigt werden.",
     ja: "権限または直近の認証を確認できませんでした。",
     pt: "Não foi possível verificar sua autoridade ou sua autenticação recente.",
@@ -2245,7 +2245,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.description": {
     en: "Act for an account you select explicitly. You stay the recorded staff actor, and the server still checks your authority.",
     es: "Actúe en nombre de una cuenta que seleccione expresamente. Usted sigue constando como el empleado que actúa y el servidor sigue comprobando su autoridad.",
-    fr: "Agissez pour un compte que vous sélectionnez explicitement. Vous restez l’auteur enregistré de l’action et le serveur continue de vérifier votre autorité.",
+    fr: "Agissez pour un compte que vous sélectionnez explicitement. Vous restez l’auteur enregistré de l’action et le serveur continue de vérifier votre habilitation.",
     de: "Handeln Sie für ein ausdrücklich ausgewähltes Konto. Sie bleiben als handelnde Person erfasst, und der Server prüft Ihre Befugnis weiterhin.",
     ja: "明示的に選択したアカウントの代わりに操作します。記録上の操作者はあなたのままで、権限は引き続きサーバーで確認されます。",
     pt: "Aja em nome de uma conta que você seleciona explicitamente. Você continua registrado como autor da ação, e o servidor continua verificando sua autoridade.",
@@ -2255,7 +2255,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.authorityRequired": {
     en: "Assisted authority is required.",
     es: "Se requiere autoridad para el modo asistido.",
-    fr: "L’autorité du mode assisté est requise.",
+    fr: "L’habilitation au mode assisté est requise.",
     de: "Eine Befugnis für den Assistenzmodus ist erforderlich.",
     ja: "代理操作の権限が必要です。",
     pt: "É necessária autoridade para o modo assistido.",
@@ -2295,7 +2295,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.demo.heading": {
     en: "Assisted identity boundary",
     es: "Límite de identidad en el modo asistido",
-    fr: "Frontière d’identité du mode assisté",
+    fr: "Cloisonnement des identités en mode assisté",
     de: "Identitätsgrenze im Assistenzmodus",
     ja: "代理操作における ID の境界",
     pt: "Limite de identidade no modo assistido",
@@ -2325,7 +2325,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.authenticatedActor": {
     en: "Authenticated staff actor",
     es: "Empleado autenticado",
-    fr: "Membre du personnel authentifié",
+    fr: "Auteur de l’action authentifié",
     de: "Angemeldete handelnde Person",
     ja: "認証済みの操作者（社内）",
     pt: "Membro da equipe autenticado",
@@ -2385,7 +2385,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.demo.noSessionDetail": {
     en: "The production action is unavailable until the identity provider can bind the staff actor to a time-limited server session.",
     es: "La acción de producción no está disponible hasta que el proveedor de identidad pueda vincular al empleado que actúa con una sesión de servidor de duración limitada.",
-    fr: "L’action de production reste indisponible tant que le fournisseur d’identité ne peut pas lier le membre du personnel à une session serveur limitée dans le temps.",
+    fr: "L’action de production reste indisponible tant que le fournisseur d’identité ne peut pas lier l’auteur de l’action à une session serveur limitée dans le temps.",
     de: "Die Produktionsaktion ist erst verfügbar, wenn der Identitätsanbieter die handelnde Person an eine zeitlich begrenzte Serversitzung binden kann.",
     ja: "ID プロバイダーが操作者を時間制限付きのサーバーセッションに紐付けられるようになるまで、本番の操作は利用できません。",
     pt: "A ação de produção fica indisponível até que o provedor de identidade possa vincular o autor da ação a uma sessão de servidor com tempo limitado.",
@@ -2405,7 +2405,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.actorFixedDetail": {
     en: "The target account scopes the customer record. The authenticated staff actor, role and authorization come from the server session and cannot be edited here.",
     es: "La cuenta asistida delimita el registro del cliente. El empleado autenticado, su rol y su autorización proceden de la sesión del servidor y no se pueden editar aquí.",
-    fr: "Le compte cible délimite l’enregistrement client. Le membre du personnel authentifié, son rôle et ses autorisations proviennent de la session serveur et ne peuvent pas être modifiés ici.",
+    fr: "Le compte cible délimite l’enregistrement client. L’auteur de l’action authentifié, son rôle et ses autorisations proviennent de la session serveur et ne peuvent pas être modifiés ici.",
     de: "Das Zielkonto grenzt den Kundendatensatz ab. Angemeldete handelnde Person, Rolle und Berechtigung stammen aus der Serversitzung und können hier nicht bearbeitet werden.",
     ja: "対象アカウントによって顧客の記録の範囲が決まります。認証済みの操作者、ロール、認可はサーバーセッションから取得され、ここでは編集できません。",
     pt: "A conta assistida delimita o registro do cliente. O membro da equipe autenticado, a função e a autorização vêm da sessão do servidor e não podem ser editados aqui.",
@@ -2455,7 +2455,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.review.actor": {
     en: "Authenticated staff actor: {actor}",
     es: "Empleado autenticado que actúa: {actor}",
-    fr: "Membre du personnel authentifié\u00a0: {actor}",
+    fr: "Auteur de l’action authentifié\u00a0: {actor}",
     de: "Angemeldete handelnde Person: {actor}",
     ja: "認証済みの操作者：{actor}",
     pt: "Membro da equipe autenticado: {actor}",
@@ -2745,7 +2745,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.assisted.action.invoiceDispute.downstream": {
     en: "No credit, refund or invoice change happens until finance authority validates the request.",
     es: "No se aplica ningún abono, reembolso ni cambio en la factura hasta que la autoridad financiera valide la solicitud.",
-    fr: "Aucun avoir, remboursement ni modification de facture n’a lieu tant que l’autorité financière n’a pas validé la demande.",
+    fr: "Aucun avoir, remboursement ni modification de facture n’a lieu tant qu’un approbateur financier n’a pas validé la demande.",
     de: "Es erfolgt keine Gutschrift, Erstattung oder Rechnungsänderung, bis die Finanzbefugnis den Antrag bestätigt.",
     ja: "財務権限を持つ担当者が申請を承認するまで、クレジット、返金、請求書の変更は一切行われません。",
     pt: "Nenhum crédito, reembolso ou alteração de fatura ocorre até que a autoridade financeira valide a solicitação.",
@@ -2817,7 +2817,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.capabilities.description": {
     en: "Request activation with a distinct approver, or stop new work immediately. Recovery work has its own switch.",
     es: "Solicite la activación con un aprobador distinto o detenga de inmediato las operaciones nuevas. Las operaciones de recuperación tienen su propio interruptor.",
-    fr: "Demandez l’activation avec un approbateur distinct ou arrêtez immédiatement les nouvelles opérations. Les opérations de reprise ont leur propre commande.",
+    fr: "Demandez l’activation avec un approbateur distinct ou arrêtez immédiatement les nouvelles opérations. Les opérations de reprise se pilotent séparément.",
     de: "Beantragen Sie die Aktivierung bei einer anderen genehmigenden Person oder stoppen Sie neue Vorgänge sofort. Wiederherstellungsvorgänge haben einen eigenen Schalter.",
     ja: "別の承認者による有効化を申請するか、新規処理を直ちに停止します。復旧処理には専用の切り替えがあります。",
     pt: "Solicite a ativação com um aprovador distinto ou interrompa imediatamente as novas operações. As operações de recuperação têm um controle próprio.",
@@ -2987,7 +2987,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.capabilities.activationAuthority": {
     en: "Activation authority: {role}",
     es: "Autoridad de activación: {role}",
-    fr: "Autorité d’activation\u00a0: {role}",
+    fr: "Habilitation d’activation\u00a0: {role}",
     de: "Aktivierungsbefugnis: {role}",
     ja: "有効化の権限：{role}",
     pt: "Autoridade de ativação: {role}",
@@ -3399,7 +3399,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.channelPolicy.salesHandoffDetail": {
     en: "Capacity routed to the full quote flow",
     es: "Capacidad que se deriva al flujo completo de presupuestos",
-    fr: "Capacité orientée vers le parcours complet de devis",
+    fr: "Capacité à partir de laquelle la demande passe par le devis complet",
     de: "Kapazität, die in den vollständigen Angebotsprozess geht",
     ja: "通常の見積もりフローに回される容量",
     pt: "Capacidade encaminhada ao fluxo completo de cotação",
@@ -3675,7 +3675,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.channelPolicy.field.handoffThreshold": {
     en: "Sales handoff at capacity (TB)",
     es: "Capacidad de traspaso a ventas (TB)",
-    fr: "Capacité de transfert aux ventes (To)",
+    fr: "Seuil de transfert aux ventes (To)",
     de: "Kapazität für die Übergabe an den Vertrieb (TB)",
     ja: "営業に引き継ぐ容量（TB）",
     pt: "Capacidade para encaminhar a vendas (TB)",
@@ -4017,7 +4017,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.providers.registryUnavailable": {
     en: "Provider reference registry unavailable. Check the control database connection and your current authority, then refresh.",
     es: "El registro de referencias de proveedores no está disponible. Compruebe la conexión con la base de datos de control y su autoridad actual y, después, actualice la página.",
-    fr: "Registre des références des prestataires indisponible. Vérifiez la connexion à la base de données de contrôle et votre autorité actuelle, puis actualisez la page.",
+    fr: "Registre des références des prestataires indisponible. Vérifiez la connexion à la base de données de contrôle et vos habilitations actuelles, puis actualisez la page.",
     de: "Referenzregister der Anbieter nicht verfügbar. Prüfen Sie die Verbindung zur Steuerungsdatenbank und Ihre aktuelle Befugnis und aktualisieren Sie dann die Seite.",
     ja: "プロバイダー参照レジストリを利用できません。制御データベースへの接続と現在の権限を確認してから、再読み込みしてください。",
     pt: "Registro de referências de provedores indisponível. Verifique a conexão com o banco de dados de controle e sua autoridade atual e, depois, atualize a página.",
@@ -4077,7 +4077,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.providers.name.usage": {
     en: "Usage metering",
     es: "Medición del uso",
-    fr: "Mesure de l’utilisation",
+    fr: "Mesure de la consommation",
     de: "Nutzungsmessung",
     ja: "使用量の計測",
     pt: "Medição de uso",
@@ -4467,7 +4467,7 @@ export const adminGovernanceMessages = defineMessages({
   "adminGovernance.providers.result.failed": {
     en: "The reference could not be saved. Refresh and check your current authority and evidence.",
     es: "No se ha podido guardar la referencia. Actualice la página y compruebe su autoridad actual y la evidencia.",
-    fr: "La référence n’a pas pu être enregistrée. Actualisez la page et vérifiez votre autorité actuelle et les preuves.",
+    fr: "La référence n’a pas pu être enregistrée. Actualisez la page et vérifiez vos habilitations actuelles et les preuves.",
     de: "Die Referenz konnte nicht gespeichert werden. Aktualisieren Sie die Seite und prüfen Sie Ihre aktuelle Befugnis und den Nachweis.",
     ja: "参照を保存できませんでした。再読み込みして、現在の権限と証跡を確認してください。",
     pt: "Não foi possível salvar a referência. Atualize e verifique sua autoridade atual e a evidência.",

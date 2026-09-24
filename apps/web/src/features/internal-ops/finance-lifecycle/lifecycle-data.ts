@@ -56,7 +56,7 @@ export const illustrativeMigrations: readonly MigrationRecord[] = [
     sourceSystem: demoText({
       en: "Legacy billing (US)",
       es: "Facturación heredada (EE. UU.)",
-      fr: "Ancienne facturation (États-Unis)",
+      fr: "Ancien système de facturation (États-Unis)",
       de: "Altes Abrechnungssystem (USA)",
       ja: "旧請求システム（米国）",
       pt: "Faturamento legado (EUA)",

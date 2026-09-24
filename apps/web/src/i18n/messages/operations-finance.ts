@@ -29,7 +29,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.frame.provenance": {
     en: "Data status",
     es: "Estado de los datos",
-    fr: "Fraîcheur des données",
+    fr: "État des données",
     de: "Datenstand",
     ja: "データの状態",
     pt: "Situação dos dados",
@@ -247,7 +247,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.route.distributor": {
     en: "Distributor",
     es: "Distribuidor",
-    fr: "Distributeur",
+    fr: "Distribution",
     de: sameAsEnglish("Distributor"),
     ja: "ディストリビューター",
     pt: "Distribuidor",
@@ -577,7 +577,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.collections.description": {
     en: "Open invoices ordered by exposure and age, with the corrections a finance approver may raise against them.",
     es: "Facturas pendientes ordenadas por exposición y antigüedad, con las correcciones que un aprobador financiero puede tramitar sobre ellas.",
-    fr: "Factures ouvertes classées par exposition et ancienneté, avec les corrections qu’un approbateur financier peut engager.",
+    fr: "Factures ouvertes classées par exposition et ancienneté, avec les corrections qu’un approbateur financier peut y apporter.",
     de: "Offene Rechnungen nach Forderungshöhe und Alter, mit den Korrekturen, die eine genehmigende Person aus dem Finanzbereich veranlassen darf.",
     ja: "リスク額と経過日数の順に並べた未払い請求書と、財務承認者が起票できる修正です。",
     pt: "Faturas em aberto ordenadas por exposição e antiguidade, com as correções que um aprovador financeiro pode registrar.",
@@ -1428,7 +1428,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.provisioning.title": {
     en: "Provisioning work",
     es: "Tareas de aprovisionamiento",
-    fr: "Travaux de provisionnement",
+    fr: "Tâches de provisionnement",
     de: "Bereitstellungsaufgaben",
     ja: "プロビジョニング作業",
     pt: "Tarefas de provisionamento",
@@ -1448,7 +1448,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.provisioning.summaryLabel": {
     en: "Provisioning work by type",
     es: "Tareas de aprovisionamiento por tipo",
-    fr: "Travaux de provisionnement par type",
+    fr: "Tâches de provisionnement par type",
     de: "Bereitstellungsaufgaben nach Art",
     ja: "種類別のプロビジョニング作業",
     pt: "Tarefas de provisionamento por tipo",
@@ -1508,7 +1508,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.provisioning.retryTitle": {
     en: "Stopped work is handled in Recovery.",
     es: "El trabajo detenido se gestiona en Recuperación.",
-    fr: "Les travaux arrêtés sont traités dans Reprise.",
+    fr: "Les tâches arrêtées sont traitées dans l’espace Reprise.",
     de: "Angehaltene Aufgaben werden unter Wiederherstellung bearbeitet.",
     ja: "停止した作業は「復旧」で処理します。",
     pt: "Trabalhos interrompidos são tratados em Recuperação.",
@@ -1518,7 +1518,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.provisioning.retryBody": {
     en: "Open the recovery workspace to retry or abandon work that has used up its automatic attempts.",
     es: "Abra el espacio de recuperación para reintentar o abandonar el trabajo que ha agotado sus intentos automáticos.",
-    fr: "Ouvrez l’espace Reprise pour relancer ou abandonner les travaux qui ont épuisé leurs tentatives automatiques.",
+    fr: "Ouvrez l’espace Reprise pour relancer ou abandonner les tâches qui ont épuisé leurs tentatives automatiques.",
     de: "Öffnen Sie die Wiederherstellung, um Aufgaben mit ausgeschöpften automatischen Versuchen erneut auszuführen oder aufzugeben.",
     ja: "自動試行の上限に達した作業を再試行または中止するには、復旧ワークスペースを開いてください。",
     pt: "Abra o espaço de recuperação para tentar novamente ou abandonar trabalhos que esgotaram as tentativas automáticas.",
@@ -1618,7 +1618,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.provisioning.empty": {
     en: "No provisioning work needs attention in this workspace.",
     es: "Ninguna tarea de aprovisionamiento requiere atención en este espacio de trabajo.",
-    fr: "Aucun travail de provisionnement ne demande d’attention dans cet espace de travail.",
+    fr: "Aucune tâche de provisionnement ne demande d’intervention dans cet espace de travail.",
     de: "In diesem Arbeitsbereich erfordert keine Bereitstellungsaufgabe Aufmerksamkeit.",
     ja: "このワークスペースで対応が必要なプロビジョニング作業はありません。",
     pt: "Nenhuma tarefa de provisionamento exige atenção neste espaço de trabalho.",
@@ -2580,7 +2580,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.review.reasonHelp": {
     en: "Required. This reason is kept with the actor attribution and the review evidence.",
     es: "Obligatorio. Este motivo se conserva con la atribución de quien actúa y la evidencia de la revisión.",
-    fr: "Obligatoire. Ce motif est conservé avec l’attribution de l’auteur et les preuves de l’examen.",
+    fr: "Obligatoire. Ce motif est conservé avec l’identification de l’auteur et les preuves de l’examen.",
     de: "Pflichtfeld. Die Begründung wird mit der Zuordnung zur handelnden Person und den Prüfnachweisen gespeichert.",
     ja: "必須。この理由は、実行者の記録と確認の証跡とともに保存されます。",
     pt: "Obrigatório. Este motivo fica registrado com a atribuição de quem agiu e as evidências da revisão.",
@@ -2610,7 +2610,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.review.actorNote": {
     en: "Staff actor authority comes from the server session. Credit, screening, provider, retention and dual-control checks are re-run where they apply.",
     es: "La autoridad del personal que actúa procede de la sesión del servidor. Los controles de crédito, verificación, proveedor, conservación y doble control se vuelven a ejecutar cuando corresponde.",
-    fr: "L’habilitation de l’agent provient de la session serveur. Les contrôles de crédit, de filtrage, de prestataire, de conservation et de double validation sont réexécutés le cas échéant.",
+    fr: "L’habilitation de l’auteur de l’action provient de la session serveur. Les contrôles de crédit, de filtrage de conformité, de prestataire, de conservation et de double contrôle sont réexécutés le cas échéant.",
     de: "Die Befugnis der handelnden Mitarbeitenden stammt aus der Serversitzung. Bonitäts-, Screening-, Anbieter-, Aufbewahrungs- und Vier-Augen-Prüfungen laufen, wo zutreffend, erneut.",
     ja: "担当者の権限はサーバーのセッションから取得されます。与信、スクリーニング、プロバイダー、保持、二重承認の各審査は、該当する場合に再実行されます。",
     pt: "A autoridade do colaborador vem da sessão do servidor. As verificações de crédito, triagem, provedor, retenção e controle duplo são executadas novamente quando se aplicam.",
@@ -2774,7 +2774,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.reports.description": {
     en: "Report exports recorded against your operator session, and the supported exports you can generate now.",
     es: "Exportaciones de informes registradas en su sesión de operador y las exportaciones disponibles que puede generar ahora.",
-    fr: "Exports de rapports enregistrés pour votre session d’opérateur, et exports disponibles que vous pouvez générer maintenant.",
+    fr: "Exports de rapports enregistrés pour votre session d’opérateur, et exports que vous pouvez générer dès maintenant.",
     de: "In Ihrer Operator-Sitzung erfasste Berichtsexporte und die unterstützten Exporte, die Sie jetzt erzeugen können.",
     ja: "オペレーターのセッションで記録されたレポートのエクスポートと、今すぐ生成できるエクスポートです。",
     pt: "Exportações de relatórios registradas na sua sessão de operador e as exportações disponíveis que você pode gerar agora.",
@@ -3064,7 +3064,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.report.renewalChurnExposure": {
     en: "Renewal and churn exposure",
     es: "Exposición a renovaciones y bajas",
-    fr: "Exposition aux renouvellements et à l’attrition",
+    fr: "Renouvellements et risque d’attrition",
     de: "Verlängerungs- und Abwanderungsrisiko",
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
@@ -3418,7 +3418,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.reconciliation.variances.subheading": {
     en: "Exception cases raised by the usage and three-way reconciliation tasks.",
     es: "Casos de excepción generados por las tareas de conciliación de uso y de cuadre a tres bandas.",
-    fr: "Cas d’exception levés par les tâches de rapprochement de l’usage et de rapprochement à trois.",
+    fr: "Cas d’exception levés par les tâches de rapprochement de la consommation et de rapprochement à trois.",
     de: "Ausnahmefälle aus den Aufgaben zur Nutzungs- und Dreiwege-Abstimmung.",
     ja: "使用量照合と三者照合のタスクで作成された例外ケースです。",
     pt: "Casos de exceção gerados pelas tarefas de conciliação de uso e de conciliação tripla.",
@@ -3754,7 +3754,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.reconciliation.failure.forbidden": {
     en: "Your permission to operate billing reconciliation has changed.",
     es: "Su permiso para gestionar la conciliación de facturación ha cambiado.",
-    fr: "Votre autorisation d’exploiter le rapprochement de la facturation a changé.",
+    fr: "Vos droits sur le rapprochement de la facturation ont changé.",
     de: "Ihre Berechtigung für die Abrechnungsabstimmung hat sich geändert.",
     ja: "請求の照合を操作する権限が変更されました。",
     pt: "Sua permissão para operar a conciliação de faturamento mudou.",
@@ -3864,7 +3864,7 @@ export const operationsFinanceMessages = defineMessages({
   "operations.finance.reconciliation.classification.usageCorrection": {
     en: "Usage correction",
     es: "Corrección de uso",
-    fr: "Correction d’usage",
+    fr: "Correction de consommation",
     de: "Nutzungskorrektur",
     ja: "使用量の修正",
     pt: "Correção de uso",

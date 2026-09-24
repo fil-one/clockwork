@@ -42,7 +42,7 @@ const fixtureText = {
   reviewScenarioName: demoText({
     en: "Fictional PAYG review scenario",
     es: "Escenario ficticio de revisión de pago por uso",
-    fr: "Scénario fictif de revue du paiement à l’usage",
+    fr: "Scénario fictif d’examen du paiement à l’usage",
     de: "Fiktives Prüfszenario für nutzungsbasierte Abrechnung",
     ja: "従量課金レビュー用の架空シナリオ",
     pt: "Cenário fictício de revisão de pagamento conforme o uso",
@@ -82,7 +82,7 @@ const fixtureText = {
   serviceNotice: demoText({
     en: "Fictional demo only. Your request does not activate a provider tenant or start billing. A verified handoff is required before service begins.",
     es: "Solo es una demostración ficticia. Su solicitud no activa ningún inquilino del proveedor ni inicia la facturación. Antes de que empiece el servicio es necesario un traspaso verificado.",
-    fr: "Démonstration fictive uniquement. Votre demande n’active aucun locataire chez le prestataire et ne déclenche pas la facturation. Un transfert vérifié est requis avant le début du service.",
+    fr: "Démonstration fictive uniquement. Votre demande n’active aucun locataire chez le prestataire et ne déclenche pas la facturation. Une passation vérifiée est nécessaire avant le début du service.",
     de: "Nur fiktive Demo. Ihre Anfrage aktiviert keinen Mandanten beim Anbieter und startet keine Abrechnung. Vor Leistungsbeginn ist eine verifizierte Übergabe erforderlich.",
     ja: "架空のデモ専用です。この申請によってプロバイダーのテナントが有効化されたり、請求が開始されたりすることはありません。サービス開始前に、検証済みの引き継ぎが必要です。",
     pt: "Apenas demonstração fictícia. Sua solicitação não ativa um locatário do provedor nem inicia o faturamento. É necessária uma transferência verificada antes do início do serviço.",
@@ -112,7 +112,7 @@ const fixtureText = {
   channelEvidence: demoText({
     en: "Fictional demo channel program; not an approved live commercial policy.",
     es: "Programa de canal ficticio de la demostración; no es una política comercial real aprobada.",
-    fr: "Programme de canal fictif de la démo\u202f; il ne s’agit pas d’une politique commerciale réelle approuvée.",
+    fr: "Programme partenaires fictif de la démo\u202f; il ne s’agit pas d’une politique commerciale réelle approuvée.",
     de: "Fiktives Kanalprogramm der Demo; keine genehmigte, gültige Geschäftsrichtlinie.",
     ja: "デモ用の架空のチャネルプログラムです。承認済みの実際の商用ポリシーではありません。",
     pt: "Programa de canal fictício da demonstração; não é uma política comercial real aprovada.",

@@ -881,7 +881,7 @@ const supportRecords: readonly CustomerCollectionFixture[] = [
     title: demoText({
       en: "Restore sample timing",
       es: "Tiempos de restauración de una muestra",
-      fr: "Durée de restauration d’un échantillon",
+      fr: "Délai de restauration d’un échantillon",
       de: "Dauer der Wiederherstellung einer Stichprobe",
       ja: "サンプル復元の所要時間",
       pt: "Tempo de restauração de amostra",
@@ -891,7 +891,7 @@ const supportRecords: readonly CustomerCollectionFixture[] = [
     description: demoText({
       en: "Support is reviewing the latest sample recovery timings.",
       es: "Soporte está revisando los últimos tiempos de recuperación de la muestra.",
-      fr: "Le support examine les derniers temps de récupération de l’échantillon.",
+      fr: "Le support examine les derniers délais de restauration de l’échantillon.",
       de: "Der Support prüft die aktuellen Wiederherstellungszeiten der Stichprobe.",
       ja: "サポートが最新のサンプル復旧時間を確認しています。",
       pt: "O suporte está analisando os tempos de recuperação mais recentes da amostra.",
@@ -916,7 +916,7 @@ const supportRecords: readonly CustomerCollectionFixture[] = [
     title: demoText({
       en: "EU usage export",
       es: "Exportación del uso en la UE",
-      fr: "Export de l’usage dans l’UE",
+      fr: "Export de la consommation UE",
       de: "Export der EU-Nutzung",
       ja: "EU の使用量のエクスポート",
       pt: "Exportação de uso na UE",

@@ -144,7 +144,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.status.orderProvisioningDemoSubmitted": {
     en: "Provisioning · demo request submitted",
     es: "En aprovisionamiento · solicitud de demo enviada",
-    fr: "Provisionnement en cours · demande de démo envoyée",
+    fr: "Provisionnement · demande envoyée (démo)",
     de: "In Bereitstellung · Demo-Anfrage übermittelt",
     ja: "プロビジョニング中・デモ依頼を送信済み",
     pt: "Em provisionamento · solicitação de demonstração enviada",
@@ -314,7 +314,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.status.providerReplayRecorded": {
     en: "Provider replay recorded",
     es: "Reprocesamiento del proveedor registrado",
-    fr: "Nouveau traitement du prestataire enregistré",
+    fr: "Rejeu de l’événement du prestataire enregistré",
     de: "Erneute Verarbeitung beim Anbieter erfasst",
     ja: "プロバイダーの再処理を記録済み",
     pt: "Reprocessamento do provedor registrado",
@@ -385,7 +385,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.next.renewalNoticeOpens": {
     en: "Renewal notice opens {date}",
     es: "El preaviso de renovación se abre el {date}",
-    fr: "Le préavis de renouvellement s’ouvre le {date}",
+    fr: "La période de préavis de renouvellement s’ouvre le {date}",
     de: "Kündigungsfrist beginnt am {date}",
     ja: "契約更新の通知期間は{date}に開始",
     pt: "O aviso prévio de renovação começa em {date}",
@@ -415,7 +415,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.next.reviewAndPayBy": {
     en: "Review and pay by {date}",
     es: "Revisar y pagar antes del {date}",
-    fr: "Examiner et régler avant le {date}",
+    fr: "Examiner et régler au plus tard le {date}",
     de: "Bis {date} prüfen und bezahlen",
     ja: "{date}までに確認して支払い",
     pt: "Revisar e pagar até {date}",
@@ -465,7 +465,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.next.reconcileProviderEvent": {
     en: "Reconcile provider event before replay",
     es: "Conciliar el evento del proveedor antes de reprocesarlo",
-    fr: "Rapprocher l’événement du prestataire avant de le retraiter",
+    fr: "Rapprocher l’événement du prestataire avant de le rejouer",
     de: "Anbieterereignis vor der erneuten Verarbeitung abstimmen",
     ja: "再処理の前にプロバイダーのイベントを照合",
     pt: "Conciliar o evento do provedor antes de reprocessá-lo",
@@ -1097,7 +1097,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.value.servicesAndUsage": {
     en: "Services and usage",
     es: "Servicios y uso",
-    fr: "Services et utilisation",
+    fr: "Services et consommation",
     de: "Dienste und Nutzung",
     ja: "サービスと使用状況",
     pt: "Serviços e uso",
@@ -1203,9 +1203,9 @@ export const experienceDataMessages = defineMessages({
       other: "{count} identificados",
     },
     fr: {
-      one: "{count} nommé",
-      many: "{count} de nommés",
-      other: "{count} nommés",
+      one: "{count} désigné",
+      many: "{count} de désignés",
+      other: "{count} désignés",
     },
     de: {
       one: "{count} namentlich erfasst",
@@ -1367,7 +1367,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.date.completed": {
     en: "Completed {date}",
     es: "Completada el {date}",
-    fr: "Terminé le {date}",
+    fr: "Terminée le {date}",
     de: "Abgeschlossen am {date}",
     ja: "{date}に完了",
     pt: "Concluída em {date}",
@@ -1427,7 +1427,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.date.noticeActionDue": {
     en: "Notice action due {date}",
     es: "Acción de preaviso antes del {date}",
-    fr: "Action de préavis à réaliser avant le {date}",
+    fr: "Décision sur le préavis à prendre avant le {date}",
     de: "Kündigungsmaßnahme fällig am {date}",
     ja: "通知の対応期限 {date}",
     pt: "Ação de aviso prévio até {date}",
@@ -1437,7 +1437,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.date.endsOn": {
     en: "Ends {date}",
     es: "Finaliza el {date}",
-    fr: "Se termine le {date}",
+    fr: "Prend fin le {date}",
     de: "Endet am {date}",
     ja: "{date}に終了",
     pt: "Termina em {date}",
@@ -1628,7 +1628,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.desc.agreementFilOnePaperReferred": {
     en: "Fil One paper · version {version} · referred by {partner}",
     es: "Modelo de contrato de Fil One · versión {version} · recomendado por {partner}",
-    fr: "Modèle de contrat Fil One · version {version} · apporté par {partner}",
+    fr: "Contrat Fil One · version {version} · apporté par {partner}",
     de: "Vertragsvorlage von Fil One · Version {version} · empfohlen von {partner}",
     ja: "Fil One 標準契約書・バージョン {version}・{partner} の紹介",
     pt: "Modelo de contrato da Fil One · versão {version} · indicado por {partner}",
@@ -1638,7 +1638,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.desc.agreementFilOnePaperInForce": {
     en: "Fil One paper · version {version} · in force",
     es: "Modelo de contrato de Fil One · versión {version} · vigente",
-    fr: "Modèle de contrat Fil One · version {version} · en vigueur",
+    fr: "Contrat Fil One · version {version} · en vigueur",
     de: "Vertragsvorlage von Fil One · Version {version} · in Kraft",
     ja: "Fil One 標準契約書・バージョン {version}・有効",
     pt: "Modelo de contrato da Fil One · versão {version} · vigente",
@@ -1658,7 +1658,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.desc.openInvoiceSalesTax": {
     en: "Open invoice · includes the determined Washington sales tax",
     es: "Factura pendiente · incluye el impuesto sobre las ventas de Washington determinado",
-    fr: "Facture ouverte · inclut la taxe sur les ventes de l’État de Washington déterminée",
+    fr: "Facture ouverte · inclut la taxe sur les ventes calculée pour l’État de Washington",
     de: "Offene Rechnung · enthält die ermittelte Verkaufssteuer (US) für Washington",
     ja: "未払いの請求書・確定済みのワシントン州売上税を含む",
     pt: "Fatura em aberto · inclui o imposto sobre vendas de Washington apurado",
@@ -1754,7 +1754,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.title.createdQuote": {
     en: "Direct capacity quote · {reference}",
     es: "Presupuesto directo de capacidad · {reference}",
-    fr: "Devis de capacité en direct · {reference}",
+    fr: "Devis de capacité en vente directe · {reference}",
     de: "Direktangebot für Kapazität · {reference}",
     ja: "容量の直接見積もり・{reference}",
     pt: "Cotação direta de capacidade · {reference}",
@@ -1784,7 +1784,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.title.renewalReport": {
     en: "Renewal and churn exposure · {period}",
     es: "Exposición en renovaciones y bajas · {period}",
-    fr: "Exposition aux renouvellements et à l’attrition · {period}",
+    fr: "Renouvellements et risque d’attrition · {period}",
     de: "Verlängerungs- und Abwanderungsrisiko · {period}",
     ja: "契約更新と解約のリスク・{period}",
     pt: "Exposição em renovações e cancelamentos · {period}",
@@ -1794,7 +1794,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.owner.buyerWorkspace": {
     en: "Buyer workspace",
     es: "Espacio de trabajo del comprador",
-    fr: "Espace de travail de l’acheteur",
+    fr: "Espace acheteur",
     de: "Arbeitsbereich des Käufers",
     ja: "購入者のワークスペース",
     pt: "Espaço de trabalho do comprador",
@@ -1855,7 +1855,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.partner.paysAfterCollections": {
     en: "Paid out after collections settle",
     es: "Se paga cuando se liquiden los cobros",
-    fr: "Versée une fois les encaissements réglés",
+    fr: "Versement une fois les encaissements définitifs",
     de: "Auszahlung nach Abschluss der Zahlungseingänge",
     ja: "回収の確定後に支払い",
     pt: "Repassado após a liquidação das cobranças",
@@ -1956,7 +1956,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.artifact.pocSummary": {
     en: "POC summary {reference}",
     es: "Resumen de la POC {reference}",
-    fr: "Synthèse du POC {reference}",
+    fr: "Synthèse de la POC {reference}",
     de: "POC-Zusammenfassung {reference}",
     ja: "PoC サマリー {reference}",
     pt: "Resumo da POC {reference}",
@@ -1966,7 +1966,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.artifact.pocFinalReport": {
     en: "POC final report {reference}",
     es: "Informe final de la POC {reference}",
-    fr: "Rapport final du POC {reference}",
+    fr: "Rapport final de la POC {reference}",
     de: "POC-Abschlussbericht {reference}",
     ja: "PoC 最終報告書 {reference}",
     pt: "Relatório final da POC {reference}",
@@ -2006,7 +2006,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.artifact.transferQuote": {
     en: "Transfer quote {reference}",
     es: "Presupuesto a precio de cesión {reference}",
-    fr: "Devis au prix de cession {reference}",
+    fr: "Devis de cession {reference}",
     de: "Angebot zum Einkaufspreis {reference}",
     ja: "仕切価格の見積書 {reference}",
     pt: "Cotação com preço de repasse {reference}",
@@ -2056,7 +2056,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.artifact.renewalExposureExport": {
     en: "Renewal exposure export {reference}",
     es: "Exportación de exposición en renovaciones {reference}",
-    fr: "Export de l’exposition aux renouvellements {reference}",
+    fr: "Export des renouvellements à risque {reference}",
     de: "Export des Verlängerungsrisikos {reference}",
     ja: "契約更新リスクのエクスポート {reference}",
     pt: "Exportação da exposição em renovações {reference}",
@@ -2237,7 +2237,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.termAnnual": {
     en: "{account} annual term",
     es: "Duración anual de {account}",
-    fr: "Durée annuelle de {account}",
+    fr: "{account} · durée annuelle",
     de: "Jahreslaufzeit von {account}",
     ja: "{account} の年間契約期間",
     pt: "Prazo anual de {account}",
@@ -2297,7 +2297,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.servicePrimaryArchive": {
     en: "{account} primary archive",
     es: "Archivo principal de {account}",
-    fr: "Archive principale de {account}",
+    fr: "Archive principale {account}",
     de: "Primärarchiv von {account}",
     ja: "{account} のプライマリアーカイブ",
     pt: "Arquivo principal de {account}",
@@ -2337,7 +2337,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.capacityRefreshed": {
     en: "Usage data refreshed {relative}",
     es: "Datos de uso actualizados {relative}",
-    fr: "Données d’utilisation actualisées {relative}",
+    fr: "Données de consommation actualisées {relative}",
     de: "Nutzungsdaten {relative} aktualisiert",
     ja: "使用状況データを{relative}に更新",
     pt: "Dados de uso atualizados {relative}",
@@ -2347,7 +2347,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.activityMarketplaceSynced": {
     en: "Marketplace fulfillment synchronized",
     es: "Cumplimiento en Marketplace sincronizado",
-    fr: "Traitement Marketplace synchronisé",
+    fr: "Exécution marketplace synchronisée",
     de: "Marketplace-Abwicklung synchronisiert",
     ja: "マーケットプレイスの履行状況を同期済み",
     pt: "Atendimento do Marketplace sincronizado",
@@ -2357,7 +2357,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.activityAwsPrivateOffer": {
     en: "AWS private offer · provider-reported",
     es: "Oferta privada de AWS · según el proveedor",
-    fr: "Offre privée AWS · selon le prestataire",
+    fr: "Offre privée AWS · déclarée par le prestataire",
     de: "Privates Angebot von AWS · vom Anbieter gemeldet",
     ja: "AWS プライベートオファー・プロバイダー報告",
     pt: "Oferta privada da AWS · informado pelo provedor",
@@ -2440,7 +2440,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.partnerAgreementLabel": {
     en: "{partner} partner agreement · v{version}",
     es: "Acuerdo de socio de {partner} · v{version}",
-    fr: "Accord de partenariat de {partner} · v{version}",
+    fr: "Accord de partenariat · {partner} · v{version}",
     de: "Partnervereinbarung von {partner} · v{version}",
     ja: "{partner} のパートナー契約・v{version}",
     pt: "Acordo de parceria de {partner} · v{version}",
@@ -2510,7 +2510,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.partnerOrderServiceTerm": {
     en: "{order} service term",
     es: "Duración del servicio de {order}",
-    fr: "Durée du service de {order}",
+    fr: "{order} · durée du service",
     de: "Servicelaufzeit von {order}",
     ja: "{order} のサービス期間",
     pt: "Prazo do serviço de {order}",
@@ -2610,7 +2610,7 @@ export const experienceDataMessages = defineMessages({
   "experience.data.dashboard.workRenewalRouteEconomics": {
     en: "Renewal route and economics",
     es: "Modalidad de venta y economía de la renovación",
-    fr: "Mode de vente et économie du renouvellement",
+    fr: "Mode de vente et conditions financières du renouvellement",
     de: "Vertriebsweg und Wirtschaftlichkeit der Verlängerung",
     ja: "契約更新の販売形態と採算",
     pt: "Modalidade de venda e economia da renovação",

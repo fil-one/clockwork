@@ -52,7 +52,7 @@ const fixtureText = {
   partnerGbp: demoText({
     en: "Partner commerce GBP",
     es: "Venta a través de socios GBP",
-    fr: "Vente via les partenaires GBP",
+    fr: "Vente partenaires GBP",
     de: "Partnervertrieb GBP",
     ja: "パートナー販売 GBP",
     pt: "Venda por parceiros GBP",

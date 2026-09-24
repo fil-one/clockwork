@@ -47,7 +47,7 @@ export const commonMessages = defineMessages({
   "cp.common.emptyTitle": {
     en: "Nothing here yet",
     es: "Todavía no hay nada aquí",
-    fr: "Aucun élément pour le moment",
+    fr: "Aucun enregistrement pour le moment",
     de: "Noch keine Einträge",
     ja: "まだ記録がありません",
     pt: "Ainda não há nada aqui",
@@ -57,7 +57,7 @@ export const commonMessages = defineMessages({
   "cp.common.emptyBody": {
     en: "Records appear here as work starts on this account.",
     es: "Los registros aparecerán cuando comience la actividad en esta cuenta.",
-    fr: "Les données apparaîtront dès le début de l’activité sur ce compte.",
+    fr: "Les enregistrements apparaîtront ici dès que l’activité commencera sur ce compte.",
     de: "Datensätze erscheinen, sobald die Arbeit an diesem Konto beginnt.",
     ja: "このアカウントで作業が始まると記録が表示されます。",
     pt: "Os registros aparecerão quando as atividades desta conta começarem.",
@@ -97,7 +97,7 @@ export const commonMessages = defineMessages({
   "cp.common.permissionBody": {
     en: "Ask an account owner to grant the required access.",
     es: "Pide al titular de la cuenta que te conceda el acceso necesario.",
-    fr: "Demandez au propriétaire du compte de vous accorder l’accès requis.",
+    fr: "Demandez à un propriétaire du compte de vous accorder l’accès requis.",
     de: "Bitten Sie einen Kontoinhaber, Ihnen den erforderlichen Zugriff zu gewähren.",
     ja: "アカウント所有者に必要なアクセス権を依頼してください。",
     pt: "Peça a um titular da conta que conceda o acesso necessário.",
@@ -147,7 +147,7 @@ export const commonMessages = defineMessages({
   "cp.common.freshnessStaleTitle": {
     en: "These records may be out of date.",
     es: "Estos registros podrían estar desactualizados.",
-    fr: "Ces données sont peut-être obsolètes.",
+    fr: "Ces données ne sont peut-être plus à jour.",
     de: "Diese Datensätze sind möglicherweise veraltet.",
     ja: "この記録は最新でない可能性があります。",
     pt: "Estes registros podem estar desatualizados.",
@@ -227,7 +227,7 @@ export const commonMessages = defineMessages({
   "cp.common.unsavedKeep": {
     en: "Keep editing",
     es: "Seguir editando",
-    fr: "Continuer la modification",
+    fr: "Continuer la saisie",
     de: "Weiter bearbeiten",
     ja: "編集を続ける",
     pt: "Continuar editando",
@@ -297,7 +297,7 @@ export const commonMessages = defineMessages({
   "ui.16": {
     en: "stale",
     es: "desactualizado",
-    fr: "obsolète",
+    fr: "non à jour",
     de: "veraltet",
     ja: "更新が必要",
     pt: "desatualizado",
@@ -347,7 +347,7 @@ export const commonMessages = defineMessages({
   "ui.88": {
     en: "Status",
     es: "Estado",
-    fr: "État",
+    fr: "Statut",
     de: sameAsEnglish("Status"),
     ja: "ステータス",
     pt: sameAsEnglish("Status"),
@@ -387,7 +387,7 @@ export const commonMessages = defineMessages({
   "ui.92": {
     en: "View",
     es: "Vista",
-    fr: "Vue",
+    fr: "Affichage",
     de: "Ansicht",
     ja: "表示",
     pt: "Visualização",
@@ -447,7 +447,7 @@ export const commonMessages = defineMessages({
   "ui.101": {
     en: "Term state",
     es: "Estado del plazo",
-    fr: "État de la durée contractuelle",
+    fr: "Statut de la durée contractuelle",
     de: "Laufzeitstatus",
     ja: "契約期間の状態",
     pt: "Estado do prazo",
@@ -467,7 +467,7 @@ export const commonMessages = defineMessages({
   "ui.109": {
     en: "Offboarding",
     es: "Baja",
-    fr: "Sortie",
+    fr: "Fin de service",
     de: "Austritt",
     ja: "利用終了",
     pt: "Encerramento",
@@ -658,7 +658,7 @@ export const commonMessages = defineMessages({
   "app.footer": {
     en: "Fil One commerce records are synchronized from the operating ledger.",
     es: "Los registros comerciales de Fil One se sincronizan con el registro operativo.",
-    fr: "Les enregistrements commerciaux Fil One sont synchronisés avec le registre opérationnel.",
+    fr: "Les enregistrements commerciaux de Fil One sont synchronisés à partir du registre opérationnel.",
     de: "Die Commerce-Datensätze von Fil One werden mit dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳と同期されます。",
     pt: "Os registros comerciais do Fil One são sincronizados com o registro operacional.",
@@ -688,7 +688,7 @@ export const commonMessages = defineMessages({
   "nav.partner.support": {
     en: "Support",
     es: "Soporte",
-    fr: "Assistance",
+    fr: sameAsEnglish("Support"),
     de: sameAsEnglish("Support"),
     ja: "サポート",
     pt: "Suporte",
@@ -748,7 +748,7 @@ export const commonMessages = defineMessages({
   "action.returnHome": {
     en: "Return to your dashboard",
     es: "Volver a tu panel",
-    fr: "Revenir à votre tableau de bord",
+    fr: "Retour au tableau de bord",
     de: "Zu Ihrem Dashboard",
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao seu painel",
@@ -898,7 +898,7 @@ export const commonMessages = defineMessages({
   "state.fatal.description": {
     en: "Reload to check the latest record before trying again. If the problem continues, contact support with the request ID.",
     es: "Recarga para consultar el último registro antes de reintentar. Si el problema continúa, contacta con soporte e indica el ID de solicitud.",
-    fr: "Rechargez pour consulter le dernier enregistrement avant de réessayer. Si le problème persiste, contactez l’assistance avec l’ID de requête.",
+    fr: "Rechargez la page pour consulter le dernier enregistrement avant de réessayer. Si le problème persiste, contactez le support en indiquant l’ID de requête.",
     de: "Laden Sie den aktuellen Datensatz vor einem weiteren Versuch neu. Bei anhaltenden Problemen nennen Sie dem Support die Anfrage-ID.",
     ja: "再試行前に再読み込みして最新の記録を確認してください。問題が続く場合は、リクエスト ID を添えてサポートへ連絡してください。",
     pt: "Recarregue para conferir o registro atual antes de tentar novamente. Se persistir, contate o suporte com o ID da solicitação.",

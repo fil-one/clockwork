@@ -430,7 +430,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.description": {
     en: "Review rate-card versions, routes, floors and activation readiness. Activation decisions stay with finance approvers.",
     es: "Revise las versiones de las tarifas, las modalidades de venta, los precios mínimos y el estado de preparación para la activación. Las decisiones de activación corresponden a los aprobadores financieros.",
-    fr: "Examinez les versions des barèmes tarifaires, les modes de vente, les prix plancher et l’état de préparation à l’activation. Les décisions d’activation relèvent des approbateurs financiers.",
+    fr: "Examinez les versions des barèmes tarifaires, les modes de vente, les prix planchers et l’état de préparation à l’activation. Les décisions d’activation relèvent des approbateurs financiers.",
     de: "Prüfen Sie Preisblattversionen, Vertriebswege, Preisuntergrenzen und die Aktivierungsbereitschaft. Über Aktivierungen entscheiden genehmigende Personen aus dem Finanzbereich.",
     ja: "料金表のバージョン、販売形態、下限価格、有効化の準備状況を確認します。有効化の判断は財務承認者が行います。",
     pt: "Revise as versões das tabelas de tarifas, as modalidades de venda, os preços mínimos e a prontidão para ativação. As decisões de ativação cabem aos aprovadores financeiros.",
@@ -460,7 +460,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.link.channel": {
     en: "Configure channel and acquisition controls",
     es: "Configurar los controles de canal y captación",
-    fr: "Configurer les contrôles de canal et d’acquisition",
+    fr: "Configurer la politique de canal et les contrôles d’acquisition",
     de: "Kanal- und Akquisekontrollen konfigurieren",
     ja: "チャネルと顧客獲得の統制を設定",
     pt: "Configurar controles de canal e aquisição",
@@ -996,7 +996,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.activation.proposeHint": {
     en: "A second finance approver decides it. Floors, regions and version are checked again then.",
     es: "Decide un segundo aprobador financiero. En ese momento se vuelven a comprobar los precios mínimos, las regiones y la versión.",
-    fr: "Un second approbateur financier en décide. Les prix plancher, les régions et la version sont alors vérifiés à nouveau.",
+    fr: "Un second approbateur financier en décide. Les prix planchers, les régions et la version sont alors vérifiés à nouveau.",
     de: "Eine zweite genehmigende Person aus dem Finanzbereich entscheidet. Dabei werden Preisuntergrenzen, Regionen und Version erneut geprüft.",
     ja: "別の財務承認者が判断します。その際、下限価格、リージョン、バージョンが再確認されます。",
     pt: "Um segundo aprovador financeiro decide. Nesse momento, os preços mínimos, as regiões e a versão são verificados novamente.",
@@ -1116,7 +1116,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.activation.financeOnlyTitle": {
     en: "Finance approval authority is required.",
     es: "Se requiere facultad de aprobación financiera.",
-    fr: "Une habilitation d’approbation financière est requise.",
+    fr: "L’habilitation d’approbation financière est requise.",
     de: "Finanzielle Genehmigungsbefugnis erforderlich.",
     ja: "財務承認権限が必要です。",
     pt: "É necessária alçada de aprovação financeira.",
@@ -1340,7 +1340,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.review.policyBasis": {
     en: "Commercial policy CP-2 requires versioned rate cards, explicit routes, regional floors and two finance approvers.",
     es: "La política comercial CP-2 exige tarifas versionadas, modalidades de venta explícitas, precios mínimos por región y dos aprobadores financieros.",
-    fr: "La politique commerciale CP-2 exige des barèmes tarifaires versionnés, des modes de vente explicites, des prix plancher régionaux et deux approbateurs financiers.",
+    fr: "La politique commerciale CP-2 exige des barèmes tarifaires versionnés, des modes de vente explicites, des prix planchers régionaux et deux approbateurs financiers.",
     de: "Die kaufmännische Richtlinie CP-2 verlangt versionierte Preisblätter, ausdrücklich festgelegte Vertriebswege, regionale Preisuntergrenzen und zwei genehmigende Personen aus dem Finanzbereich.",
     ja: "商取引ポリシー CP-2 では、バージョン管理された料金表、明示された販売形態、リージョン別の下限価格、2名の財務承認者が必要です。",
     pt: "A política comercial CP-2 exige tabelas de tarifas versionadas, modalidades de venda explícitas, preços mínimos regionais e dois aprovadores financeiros.",
@@ -1510,7 +1510,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.rates.editLabel": {
     en: "Edit rate {sku} in {region}",
     es: "Editar la tarifa {sku} en {region}",
-    fr: "Modifier le tarif {sku} de {region}",
+    fr: "Modifier le tarif {sku} · {region}",
     de: "Preis {sku} in {region} bearbeiten",
     ja: "{region} の料金 {sku} を編集",
     pt: "Editar tarifa {sku} em {region}",
@@ -1520,7 +1520,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.rates.removeLabel": {
     en: "Remove rate {sku} in {region}",
     es: "Quitar la tarifa {sku} en {region}",
-    fr: "Retirer le tarif {sku} de {region}",
+    fr: "Retirer le tarif {sku} · {region}",
     de: "Preis {sku} in {region} entfernen",
     ja: "{region} の料金 {sku} を削除",
     pt: "Remover tarifa {sku} em {region}",
@@ -1740,7 +1740,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.schedule.demoNote": {
     en: "This fictional schedule demonstrates advance approval and cancellation; it does not run the production worker.",
     es: "Esta programación ficticia muestra la aprobación anticipada y la cancelación; no ejecuta el proceso de producción.",
-    fr: "Cette planification fictive illustre l’approbation anticipée et l’annulation\u202f; elle ne déclenche pas le processus de production.",
+    fr: "Cette planification fictive illustre l’approbation anticipée et l’annulation\u202f; elle n’exécute pas le traitement automatique de production.",
     de: "Dieser fiktive Zeitplan zeigt Vorabgenehmigung und Aufhebung; der Produktions-Worker wird dabei nicht ausgeführt.",
     ja: "この架空の予約は事前承認と取り消しを示すためのもので、本番のワーカーは実行されません。",
     pt: "Este agendamento fictício demonstra a aprovação antecipada e o cancelamento; ele não executa o processo de produção.",
@@ -1750,7 +1750,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.priceBooks.schedule.workerNote": {
     en: "From the effective date, the worker checks every minute and rechecks finance authority and the new-business control before changing current pricing.",
     es: "A partir de la fecha de entrada en vigor, el proceso comprueba cada minuto y vuelve a verificar la facultad financiera y el control de nuevo negocio antes de cambiar los precios vigentes.",
-    fr: "À partir de la date d’effet, le processus vérifie chaque minute et contrôle à nouveau l’habilitation financière et le contrôle des nouvelles affaires avant de modifier les tarifs en vigueur.",
+    fr: "À partir de la date d’effet, le traitement automatique vérifie chaque minute et contrôle à nouveau l’habilitation financière et le contrôle des nouvelles affaires avant de modifier les tarifs en vigueur.",
     de: "Ab dem Gültigkeitsdatum prüft der Worker jede Minute und kontrolliert die Finanzbefugnis sowie die Neugeschäftskontrolle erneut, bevor er die aktuellen Preise ändert.",
     ja: "適用開始日以降、ワーカーが毎分確認し、現行価格を変更する前に財務承認権限と新規取引の統制を再確認します。",
     pt: "A partir da data de vigência, o processo verifica a cada minuto e confere novamente a alçada financeira e o controle de novos negócios antes de alterar os preços vigentes.",
@@ -1851,10 +1851,10 @@ export const adminPricingMessages = defineMessages({
         "Copia las {count} tarifas guardadas en un nuevo borrador en {currency}, con sus precios mínimos, precios de cesión, códigos fiscales y contables y las reglas de descuento.",
     },
     fr: {
-      one: "Copie le tarif enregistré dans un nouveau brouillon en {currency}, avec son prix plancher, ses prix de cession, ses codes fiscaux et comptables et les règles de remise.",
-      many: "Copie {count} de tarifs enregistrés dans un nouveau brouillon en {currency}, avec leurs prix plancher, prix de cession, codes fiscaux et comptables et les règles de remise.",
+      one: "Copie {count} tarif enregistré dans un nouveau brouillon en {currency}, avec son prix plancher, ses prix de cession, ses codes fiscaux et comptables et les règles de remise.",
+      many: "Copie les {count} de tarifs enregistrés dans un nouveau brouillon en {currency}, avec leurs prix planchers, prix de cession, codes fiscaux et comptables et les règles de remise.",
       other:
-        "Copie les {count} tarifs enregistrés dans un nouveau brouillon en {currency}, avec leurs prix plancher, prix de cession, codes fiscaux et comptables et les règles de remise.",
+        "Copie les {count} tarifs enregistrés dans un nouveau brouillon en {currency}, avec leurs prix planchers, prix de cession, codes fiscaux et comptables et les règles de remise.",
     },
     de: {
       one: "Kopiert den gespeicherten Preis mit Preisuntergrenze, Partner-Einkaufspreisen, Steuer- und Buchungscodes sowie den Rabattregeln in einen neuen Entwurf in {currency}.",
@@ -2189,7 +2189,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.payg.description": {
     en: "Configure versioned usage pricing and trial rules. Drafts require a distinct finance approver. Approval records policy readiness; provider mappings, external gates, and account cutover still control activation.",
     es: "Configure precios por uso y reglas de periodo de prueba con control de versiones. Los borradores requieren la aprobación de otro aprobador financiero. La aprobación deja constancia de que la política está lista; la activación sigue dependiendo de las asignaciones del proveedor, los controles externos y el traspaso de la cuenta.",
-    fr: "Configurez des prix à l’usage et des règles d’essai versionnés. Les brouillons doivent être approuvés par un autre approbateur financier. L’approbation atteste que la politique est prête\u202f; l’activation reste soumise aux correspondances du prestataire, aux contrôles externes et à la bascule du compte.",
+    fr: "Configurez des prix à l’usage et des règles d’essai versionnés. Les brouillons doivent être approuvés par un autre approbateur financier. L’approbation atteste que la politique est prête\u202f; l’activation reste soumise aux correspondances du prestataire, aux prérequis externes et à la bascule du compte.",
     de: "Konfigurieren Sie versionierte nutzungsbasierte Preise und Regeln für Testphasen. Entwürfe müssen von einer anderen genehmigenden Person (Finanzen) genehmigt werden. Die Genehmigung dokumentiert, dass die Richtlinie bereit ist; die Aktivierung hängt weiterhin von Anbieterzuordnungen, externen Prüfungen und der Umstellung des Kontos ab.",
     ja: "バージョン管理された従量課金の料金とトライアルのルールを設定します。下書きの承認には、別の財務承認者が必要です。承認はポリシーの準備完了を記録するもので、有効化は引き続きプロバイダーのマッピング、外部ゲート、アカウントの切り替えによって制御されます。",
     pt: "Configure preços por uso e regras de período de teste com controle de versão. Os rascunhos exigem a aprovação de outro aprovador financeiro. A aprovação registra que a política está pronta; mapeamentos do provedor, controles externos e a transição da conta continuam controlando a ativação.",
@@ -2695,7 +2695,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.payg.form.effectiveFrom": {
     en: "Effective from",
     es: "Vigente desde",
-    fr: "En vigueur à partir du",
+    fr: "Date d’effet",
     de: "Gültig ab",
     ja: "適用開始日",
     pt: "Vigente a partir de",
@@ -2935,7 +2935,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.payg.form.counterAge": {
     en: "Maximum usage counter age (seconds)",
     es: "Antigüedad máxima del contador de uso (segundos)",
-    fr: "Âge maximal du compteur d’utilisation (secondes)",
+    fr: "Âge maximal du compteur de consommation (secondes)",
     de: "Maximales Alter des Nutzungszählers (Sekunden)",
     ja: "使用量カウンターの最大経過時間（秒）",
     pt: "Idade máxima do contador de uso (segundos)",
@@ -3857,7 +3857,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.payg.error.trialAccountNotCleared": {
     en: "The customer account must clear screening before a trial is claimed.",
     es: "La cuenta del cliente debe superar la verificación de cumplimiento antes de solicitar un periodo de prueba.",
-    fr: "Le compte client doit passer le contrôle de conformité avant toute demande d’essai.",
+    fr: "Le compte client doit avoir passé le filtrage de conformité avant toute demande d’essai.",
     de: "Das Kundenkonto muss die Compliance-Prüfung bestehen, bevor eine Testphase in Anspruch genommen wird.",
     ja: "トライアルを利用登録する前に、顧客アカウントが審査を通過している必要があります。",
     pt: "A conta do cliente precisa passar pela triagem antes de solicitar um período de teste.",
@@ -4665,7 +4665,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.simulation.guardrail.notConfigured": {
     en: "Price guardrails: no floor price is configured for this rate.",
     es: "Controles de precio: esta tarifa no tiene configurado un precio mínimo.",
-    fr: "Garde-fous tarifaires\u00a0: aucun prix plancher n’est configuré pour ce barème.",
+    fr: "Garde-fous tarifaires\u00a0: aucun prix plancher n’est configuré pour ce tarif.",
     de: "Preisgrenzen: Für dieses Preisblatt ist keine Preisuntergrenze konfiguriert.",
     ja: "価格ガードレール：この料金表には下限価格が設定されていません。",
     pt: "Salvaguardas de preço: nenhum preço mínimo configurado para esta tarifa.",
@@ -4735,7 +4735,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.diff.rateRemoved": {
     en: "Rate removed",
     es: "Tarifa eliminada",
-    fr: "Barème supprimé",
+    fr: "Tarif supprimé",
     de: "Preisblatt entfernt",
     ja: "料金表は削除済み",
     pt: "Tarifa removida",
@@ -4765,7 +4765,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.import.intro": {
     en: "Paste a price book exported from this page (v2 economics-only format; maximum 1 MiB and 250 rates). Validate and review the preview first. Prices, floors, transfer prices, tax and accounting codes and discount rules are kept. The draft gets new identities and needs fresh approval. Provider bindings and approval history cannot be imported. Source details in the file are provenance only, not verified authority.",
     es: "Pegue una lista de precios exportada desde esta página (formato v2 solo con datos económicos; máximo 1 MiB y 250 tarifas). Primero valide y revise la vista previa. Se conservan los precios, los precios mínimos, los precios de cesión, los códigos fiscales y contables y las reglas de descuento. El borrador recibe identificadores nuevos y necesita una nueva aprobación. Las vinculaciones con proveedores y el historial de aprobaciones no se pueden importar. Los datos de origen del archivo solo indican su procedencia; no constituyen una autorización verificada.",
-    fr: "Collez une grille tarifaire exportée depuis cette page (format v2, données économiques uniquement\u202f; 1\u00a0Mio et 250 barèmes au maximum). Validez et examinez d’abord l’aperçu. Les prix, prix planchers, prix de cession, codes fiscaux et comptables et règles de remise sont conservés. Le brouillon reçoit de nouveaux identifiants et doit être approuvé à nouveau. Les liaisons avec les prestataires et l’historique des approbations ne peuvent pas être importés. Les informations d’origine du fichier indiquent uniquement sa provenance, pas une autorité vérifiée.",
+    fr: "Collez une grille tarifaire exportée depuis cette page (format v2, données économiques uniquement\u202f; 1 Mio et 250 tarifs au maximum). Validez et examinez d’abord l’aperçu. Les prix, prix planchers, prix de cession, codes fiscaux et comptables et règles de remise sont conservés. Le brouillon reçoit de nouveaux identifiants et doit être approuvé à nouveau. Les liaisons avec les prestataires et l’historique des approbations ne peuvent pas être importés. Les informations d’origine du fichier indiquent uniquement sa provenance\u202f; elles ne font pas foi.",
     de: "Fügen Sie eine von dieser Seite exportierte Preisliste ein (Format v2, nur wirtschaftliche Daten; höchstens 1 MiB und 250 Preisblätter). Validieren und prüfen Sie zuerst die Vorschau. Preise, Preisuntergrenzen, Partner-Einkaufspreise, Steuer- und Buchungscodes sowie Rabattregeln bleiben erhalten. Der Entwurf erhält neue Kennungen und muss erneut genehmigt werden. Anbieterbindungen und der Genehmigungsverlauf können nicht importiert werden. Herkunftsangaben in der Datei belegen nur die Herkunft, keine geprüfte Befugnis.",
     ja: "このページからエクスポートした価格表を貼り付けてください（v2 形式、経済条件のみ。最大 1 MiB、料金表 250件まで）。まず検証し、プレビューを確認してください。価格、下限価格、仕切価格、税・会計コード、値引きルールは引き継がれます。下書きには新しい ID が割り当てられ、改めて承認が必要です。プロバイダーとの紐付けと承認履歴はインポートできません。ファイル内の出典情報は由来を示すだけで、検証済みの権限ではありません。",
     pt: "Cole uma tabela de preços exportada desta página (formato v2 só com dados econômicos; máximo de 1 MiB e 250 tarifas). Primeiro valide e revise a pré-visualização. Preços, preços mínimos, preços de repasse, códigos fiscais e contábeis e regras de desconto são mantidos. O rascunho recebe novos identificadores e precisa de nova aprovação. Vínculos com provedores e o histórico de aprovações não podem ser importados. Os dados de origem do arquivo indicam apenas a procedência, não uma autorização verificada.",
@@ -5321,7 +5321,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.impact.metric.openOrders": {
     en: "Accepted / provisioning / active / amended orders",
     es: "Pedidos aceptados, en aprovisionamiento, activos o modificados",
-    fr: "Commandes acceptées, en provisionnement, actives ou modifiées",
+    fr: "Commandes acceptées, en provisionnement, actives ou avec avenant",
     de: "Angenommene, in Bereitstellung befindliche, aktive oder geänderte Aufträge",
     ja: "受諾済み・プロビジョニング中・稼働中・変更済みの注文",
     pt: "Pedidos aceitos, em provisionamento, ativos ou com aditivo",
@@ -5472,7 +5472,7 @@ export const adminPricingMessages = defineMessages({
   "adminPricing.catalog.empty": {
     en: "No catalog rates exist. Create an initial draft with the safe production bootstrap or the price-book editor.",
     es: "No hay tarifas en el catálogo. Cree un borrador inicial con el arranque seguro de producción o con el editor de listas de precios.",
-    fr: "Le catalogue ne contient aucun tarif. Créez un brouillon initial avec l’amorçage sécurisé de production ou avec l’éditeur de grilles tarifaires.",
+    fr: "Le catalogue ne contient aucun tarif. Créez un brouillon initial avec l’initialisation sécurisée de production ou avec l’éditeur de grilles tarifaires.",
     de: "Es gibt keine Katalogpreise. Legen Sie einen ersten Entwurf mit dem sicheren Produktions-Bootstrap oder im Preislisten-Editor an.",
     ja: "カタログに料金がありません。安全な本番用ブートストラップまたは価格表エディターで最初の下書きを作成してください。",
     pt: "Não há tarifas no catálogo. Crie um rascunho inicial com o bootstrap seguro de produção ou com o editor de tabelas de preços.",

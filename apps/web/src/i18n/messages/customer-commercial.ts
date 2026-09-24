@@ -16,7 +16,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.agreements.eyebrow": {
     en: "Customer workspace · Governing terms",
     es: "Espacio de trabajo del cliente · Condiciones aplicables",
-    fr: "Espace de travail client · Conditions applicables",
+    fr: "Espace client · Conditions applicables",
     de: "Kunden-Arbeitsbereich · Maßgebliche Bedingungen",
     ja: "顧客ワークスペース・適用条件",
     pt: "Espaço de trabalho do cliente · Termos aplicáveis",
@@ -76,7 +76,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.quotes.eyebrow": {
     en: "Customer workspace · Price and expiry",
     es: "Espacio de trabajo del cliente · Precio y caducidad",
-    fr: "Espace de travail client · Prix et expiration",
+    fr: "Espace client · Prix et expiration",
     de: "Kunden-Arbeitsbereich · Preis und Gültigkeit",
     ja: "顧客ワークスペース・価格と有効期限",
     pt: "Espaço de trabalho do cliente · Preço e validade",
@@ -136,7 +136,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.orders.eyebrow": {
     en: "Customer workspace · Accepted commitments",
     es: "Espacio de trabajo del cliente · Compromisos aceptados",
-    fr: "Espace de travail client · Engagements acceptés",
+    fr: "Espace client · Engagements acceptés",
     de: "Kunden-Arbeitsbereich · Angenommene Verpflichtungen",
     ja: "顧客ワークスペース・承諾済みのコミットメント",
     pt: "Espaço de trabalho do cliente · Compromissos aceitos",
@@ -196,7 +196,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.services.eyebrow": {
     en: "Customer workspace · Delivery and usage",
     es: "Espacio de trabajo del cliente · Prestación y uso",
-    fr: "Espace de travail client · Fourniture et consommation",
+    fr: "Espace client · Fourniture et consommation",
     de: "Kunden-Arbeitsbereich · Leistungserbringung und Nutzung",
     ja: "顧客ワークスペース・提供と利用状況",
     pt: "Espaço de trabalho do cliente · Entrega e uso",
@@ -246,7 +246,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.pocs.eyebrow": {
     en: "Customer workspace · Evaluation controls",
     es: "Espacio de trabajo del cliente · Controles de evaluación",
-    fr: "Espace de travail client · Cadre d’évaluation",
+    fr: "Espace client · Cadre d’évaluation",
     de: "Kunden-Arbeitsbereich · Rahmen der Evaluierung",
     ja: "顧客ワークスペース・評価の管理",
     pt: "Espaço de trabalho do cliente · Controles de avaliação",
@@ -296,7 +296,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.collection.billing.eyebrow": {
     en: "Customer workspace · Invoices and payments",
     es: "Espacio de trabajo del cliente · Facturas y pagos",
-    fr: "Espace de travail client · Factures et paiements",
+    fr: "Espace client · Factures et paiements",
     de: "Kunden-Arbeitsbereich · Rechnungen und Zahlungen",
     ja: "顧客ワークスペース・請求書と支払い",
     pt: "Espaço de trabalho do cliente · Faturas e pagamentos",
@@ -368,7 +368,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.column.timing": {
     en: "Timing",
     es: "Fechas",
-    fr: "Échéances",
+    fr: "Dates",
     de: "Termine",
     ja: "日付",
     pt: "Datas",
@@ -398,7 +398,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.sort.updatedDesc": {
     en: "Recently updated",
     es: "Actualizados recientemente",
-    fr: "Mis à jour récemment",
+    fr: "Mise à jour la plus récente",
     de: "Zuletzt aktualisiert",
     ja: "更新日が新しい順",
     pt: "Atualizados recentemente",
@@ -408,7 +408,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.sort.updatedAsc": {
     en: "Oldest updated",
     es: "Actualizados hace más tiempo",
-    fr: "Mis à jour il y a le plus longtemps",
+    fr: "Mise à jour la plus ancienne",
     de: "Am längsten nicht aktualisiert",
     ja: "更新日が古い順",
     pt: "Atualizados há mais tempo",
@@ -468,7 +468,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.state.loadingTitle": {
     en: "Loading records",
     es: "Cargando registros",
-    fr: "Chargement des enregistrements",
+    fr: "Chargement des données",
     de: "Datensätze werden geladen",
     ja: "記録を読み込んでいます",
     pt: "Carregando registros",
@@ -478,7 +478,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.state.loadingBody": {
     en: "The latest records are being retrieved.",
     es: "Se están obteniendo los registros más recientes.",
-    fr: "Récupération des enregistrements les plus récents en cours.",
+    fr: "Les données les plus récentes sont en cours de récupération.",
     de: "Die neuesten Datensätze werden abgerufen.",
     ja: "最新の記録を取得しています。",
     pt: "Os registros mais recentes estão sendo obtidos.",
@@ -488,7 +488,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.state.errorTitle": {
     en: "Records could not be loaded",
     es: "No se han podido cargar los registros",
-    fr: "Impossible de charger les enregistrements",
+    fr: "Impossible de charger les données",
     de: "Datensätze konnten nicht geladen werden",
     ja: "記録を読み込めませんでした",
     pt: "Não foi possível carregar os registros",
@@ -528,7 +528,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.state.noMatchTitle": {
     en: "No records match these filters",
     es: "Ningún registro coincide con estos filtros",
-    fr: "Aucun enregistrement ne correspond à ces filtres",
+    fr: "Aucun résultat ne correspond à ces filtres",
     de: "Keine Datensätze entsprechen diesen Filtern",
     ja: "条件に一致する記録はありません",
     pt: "Nenhum registro corresponde a estes filtros",
@@ -652,7 +652,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.value.provisioningReady": {
     en: "{percent} ready",
     es: "{percent} completado",
-    fr: "{percent} effectué",
+    fr: "{percent} effectués",
     de: "{percent} abgeschlossen",
     ja: "進捗 {percent}",
     pt: "{percent} concluído",
@@ -1190,7 +1190,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.next.renewalNoticeOpens": {
     en: "Renewal notice opens {date}",
     es: "El plazo de preaviso de la renovación empieza el {date}",
-    fr: "La période de préavis de renouvellement commence le {date}",
+    fr: "La période de préavis de renouvellement s’ouvre le {date}",
     de: "Kündigungsfrist für die Verlängerung beginnt am {date}",
     ja: "契約更新の通知期間は {date} に開始",
     pt: "O aviso prévio da renovação começa em {date}",
@@ -1240,7 +1240,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.next.reviewAndPayBy": {
     en: "Review and pay by {date}",
     es: "Revisar y pagar a más tardar el {date}",
-    fr: "Vérifier et payer au plus tard le {date}",
+    fr: "Examiner et régler au plus tard le {date}",
     de: "Prüfen und bis spätestens {date} bezahlen",
     ja: "{date} までに確認して支払い",
     pt: "Revisar e pagar até {date}",
@@ -1413,7 +1413,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.detail.timing": {
     en: "Term / timing",
     es: "Vigencia / fechas",
-    fr: "Durée / échéances",
+    fr: "Durée et dates",
     de: "Laufzeit / Termine",
     ja: "期間・日付",
     pt: "Prazo / datas",
@@ -1643,7 +1643,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.detail.actor": {
     en: "Actor",
     es: "Autor",
-    fr: "Acteur",
+    fr: "Auteur",
     de: "Akteur",
     ja: "実行者",
     pt: "Autor",
@@ -1745,7 +1745,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.timeline.acceptedNoForm": {
     en: "Acceptance is recorded. Stored order form: Not yet recorded.",
     es: "La aceptación está registrada. Todavía no consta ningún formulario de pedido almacenado.",
-    fr: "L’acceptation est enregistrée. Aucun formulaire de commande stocké n’est encore enregistré.",
+    fr: "L’acceptation est enregistrée. Formulaire de commande stocké\u00a0: pas encore enregistré.",
     de: "Die Annahme ist erfasst. Ein gespeichertes Auftragsformular ist noch nicht erfasst.",
     ja: "承諾が記録されています。保存された注文書はまだ記録されていません。",
     pt: "A aceitação está registrada. Nenhum formulário de pedido armazenado foi registrado ainda.",
@@ -2386,7 +2386,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.review.commitment": {
     en: "{scope} · {spend} quoted commitment",
     es: "{scope} · compromiso presupuestado de {spend}",
-    fr: "{scope} · engagement de {spend} au devis",
+    fr: "{scope} · engagement chiffré\u00a0: {spend}",
     de: "{scope} · angebotene Verpflichtung über {spend}",
     ja: "{scope}・見積もり上のコミットメント {spend}",
     pt: "{scope} · compromisso cotado de {spend}",
@@ -2750,7 +2750,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.builder.chain.upstreamValue": {
     en: "Agreement and account authority",
     es: "Acuerdo y autoridad sobre la cuenta",
-    fr: "Accord et pouvoir sur le compte",
+    fr: "Accord et habilitation du compte",
     de: "Vereinbarung und Befugnis für das Konto",
     ja: "契約とアカウントの権限",
     pt: "Acordo e autoridade sobre a conta",
@@ -2980,7 +2980,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.builder.route.scope": {
     en: "This customer workspace creates direct quotes only. Partner quotes use the agreement-bound partner workspace, and marketplace purchases remain on their provider-backed surface.",
     es: "Este espacio de trabajo del cliente solo crea presupuestos de venta directa. Los presupuestos de socios se crean en el espacio de trabajo del socio, vinculado a su acuerdo, y las compras en marketplaces se mantienen en la plataforma del proveedor.",
-    fr: "Cet espace de travail client ne crée que des devis en vente directe. Les devis partenaires passent par l’espace de travail partenaire lié à son accord, et les achats sur une marketplace restent sur la plateforme du prestataire.",
+    fr: "Cet espace client ne crée que des devis en vente directe. Les devis partenaires passent par l’espace partenaire lié à son accord, et les achats sur une marketplace restent sur la plateforme du prestataire.",
     de: "In diesem Kunden-Arbeitsbereich werden nur Angebote im Direktvertrieb erstellt. Partnerangebote laufen über den an die Vereinbarung gebundenen Partner-Arbeitsbereich, Marketplace-Käufe bleiben auf der Plattform des Anbieters.",
     ja: "この顧客ワークスペースで作成できるのは、直接販売の見積もりのみです。パートナーの見積もりは契約に紐付いたパートナーワークスペースで作成し、マーケットプレイスでの購入はプロバイダー側の画面で行います。",
     pt: "Este espaço de trabalho do cliente cria apenas cotações de venda direta. As cotações de parceiros usam o espaço de trabalho do parceiro vinculado ao acordo, e as compras em marketplace continuam na plataforma do provedor.",
@@ -3090,7 +3090,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.builder.creating": {
     en: "Creating…",
     es: "Creando…",
-    fr: "Création…",
+    fr: "Création en cours…",
     de: "Wird erstellt…",
     ja: "作成中…",
     pt: "Criando…",
@@ -3296,7 +3296,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.issue.description": {
     en: "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
     es: "Prepare el documento del presupuesto y deje este presupuesto guardado disponible para su aceptación. Emitir un presupuesto no crea ningún pedido.",
-    fr: "Préparez le document du devis et rendez ce devis enregistré disponible pour acceptation. Émettre un devis ne passe pas de commande.",
+    fr: "Préparez le document du devis et rendez ce devis enregistré disponible pour acceptation. L’émission d’un devis ne crée pas de commande.",
     de: "Bereiten Sie das Angebotsdokument vor und stellen Sie dieses gespeicherte Angebot zur Annahme bereit. Die Ausstellung eines Angebots erteilt keinen Auftrag.",
     ja: "見積書を準備し、保存済みの見積もりを承諾できる状態にします。見積もりを発行しても注文は作成されません。",
     pt: "Prepare o documento da cotação e deixe esta cotação salva disponível para aceitação. Emitir uma cotação não cria um pedido.",
@@ -3346,7 +3346,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.issue.pricingReview": {
     en: "This draft needs pricing review before it can be issued. Contact your Fil One team.",
     es: "Este borrador necesita una revisión de precios antes de poder emitirse. Póngase en contacto con su equipo de Fil One.",
-    fr: "Ce brouillon doit faire l’objet d’une revue tarifaire avant de pouvoir être émis. Contactez votre équipe chez Fil One.",
+    fr: "Ce brouillon doit faire l’objet d’une revue tarifaire avant de pouvoir être émis. Contactez votre équipe Fil One.",
     de: "Dieser Entwurf muss vor der Ausstellung preislich geprüft werden. Wenden Sie sich an Ihr Team bei Fil One.",
     ja: "この下書きを発行するには価格の審査が必要です。Fil One の担当チームにお問い合わせください。",
     pt: "Este rascunho precisa de revisão de preço antes de ser emitido. Entre em contato com a sua equipe na Fil One.",
@@ -3390,7 +3390,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.buy.context": {
     en: "Customer workspace · Direct purchase",
     es: "Espacio de trabajo del cliente · Compra directa",
-    fr: "Espace de travail client · Achat direct",
+    fr: "Espace client · Achat direct",
     de: "Kunden-Arbeitsbereich · Direktkauf",
     ja: "顧客ワークスペース・直接購入",
     pt: "Espaço de trabalho do cliente · Compra direta",
@@ -3488,7 +3488,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.buy.step.price": {
     en: "Server price and document",
     es: "Precio del servidor y documento",
-    fr: "Prix du serveur et document",
+    fr: "Chiffrage par le serveur et document",
     de: "Serverpreis und Dokument",
     ja: "サーバーによる価格算出と書類",
     pt: "Preço do servidor e documento",
@@ -3577,9 +3577,9 @@ export const customerCommercialMessages = defineMessages({
       other: "{count} meses · fijo en esta página",
     },
     fr: {
-      one: "{count} mois · fixe sur cette page",
-      many: "{count} de mois · fixe sur cette page",
-      other: "{count} mois · fixe sur cette page",
+      one: "{count} mois · durée fixée sur cette page",
+      many: "{count} de mois · durée fixée sur cette page",
+      other: "{count} mois · durée fixée sur cette page",
     },
     de: {
       one: "{count} Monat · auf dieser Seite festgelegt",
@@ -3850,7 +3850,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.buy.nextOrder": {
     en: "A priced draft is not an order. In authoritative mode the quote must be issued, projected to this account, and then explicitly accepted with authority and service dates.",
     es: "Un borrador con precio no es un pedido. En el modo oficial, el presupuesto debe emitirse, reflejarse en esta cuenta y, después, aceptarse de forma expresa indicando la autoridad y las fechas del servicio.",
-    fr: "Un brouillon chiffré n’est pas une commande. En mode de référence, le devis doit être émis, reporté sur ce compte, puis accepté explicitement, avec le pouvoir d’engagement et les dates de service.",
+    fr: "Un brouillon chiffré n’est pas une commande. En mode réel, le devis doit être émis, reporté sur ce compte, puis accepté explicitement, avec le pouvoir d’engagement et les dates de service.",
     de: "Ein bepreister Entwurf ist kein Auftrag. Im maßgeblichen Modus muss das Angebot ausgestellt, in dieses Konto übernommen und anschließend ausdrücklich mit Befugnis und Servicedaten angenommen werden.",
     ja: "価格付きの下書きは注文ではありません。正式モードでは、見積もりを発行してこのアカウントに反映したうえで、権限とサービス期間を示して明示的に承諾する必要があります。",
     pt: "Um rascunho com preço não é um pedido. No modo oficial, a cotação precisa ser emitida, refletida nesta conta e depois aceita de forma explícita, com a autoridade e as datas do serviço.",
@@ -4498,7 +4498,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.offboarding.submitting": {
     en: "Submitting…",
     es: "Enviando…",
-    fr: "Envoi…",
+    fr: "Envoi en cours…",
     de: "Wird gesendet…",
     ja: "送信中…",
     pt: "Enviando…",
@@ -4572,7 +4572,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.agreement.source": {
     en: "Executing under agreement {reference}",
     es: "Formalización del acuerdo {reference}",
-    fr: "Conclusion de l’accord {reference}",
+    fr: "Conclusion au titre de l’accord {reference}",
     de: "Abschluss der Vereinbarung {reference}",
     ja: "契約 {reference} の締結",
     pt: "Formalização do acordo {reference}",
@@ -4742,7 +4742,7 @@ export const customerCommercialMessages = defineMessages({
   "customer.commercial.agreement.accepted": {
     en: "Agreement executed. Your authority evidence is on the record.",
     es: "Acuerdo formalizado. La evidencia de su autoridad consta en el registro.",
-    fr: "Accord conclu. La preuve de votre pouvoir est enregistrée.",
+    fr: "Accord conclu. La preuve de votre pouvoir de signature est enregistrée.",
     de: "Vereinbarung abgeschlossen. Ihr Befugnisnachweis ist erfasst.",
     ja: "契約を締結しました。権限の証跡は記録されています。",
     pt: "Acordo firmado. A evidência da sua autoridade está registrada.",

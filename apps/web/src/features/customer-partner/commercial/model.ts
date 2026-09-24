@@ -203,7 +203,7 @@ const legalTeam = demoText({
 const serviceOperations = demoText({
   en: "Service operations",
   es: "Operaciones del servicio",
-  fr: "Opérations du service",
+  fr: "Opérations de service",
   de: "Servicebetrieb",
   ja: "サービス運用チーム",
   pt: "Operações do serviço",
@@ -258,7 +258,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "Fil One paper · signed",
         es: "Modelo de Fil One · firmado",
-        fr: "Modèle Fil One · signé",
+        fr: "Contrat Fil One · signé",
         de: "Vorlage von Fil One · unterzeichnet",
         ja: "Fil One のひな形・署名済み",
         pt: "Modelo da Fil One · assinado",
@@ -362,7 +362,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "400 TB · US East · annual · direct",
         es: "400 TB · EE. UU. Este · anual · venta directa",
-        fr: "400 To · Est des États-Unis · annuel · vente directe",
+        fr: "400 To · USA Est · annuel · vente directe",
         de: "400 TB · USA Ost · jährlich · Direktvertrieb",
         ja: "400 TB・米国東部・年間・直接販売",
         pt: "400 TB · Leste dos EUA · anual · venda direta",
@@ -401,7 +401,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "80 TB · EU West · monthly commit · direct",
         es: "80 TB · UE Oeste · compromiso mensual · venta directa",
-        fr: "80 To · Ouest de l’UE · engagement mensuel · vente directe",
+        fr: "80 To · UE Ouest · engagement mensuel · vente directe",
         de: "80 TB · EU West · monatliche Zusage · Direktvertrieb",
         ja: "80 TB・EU 西部・月間コミット・直接販売",
         pt: "80 TB · Oeste da UE · compromisso mensal · venda direta",
@@ -440,7 +440,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "120 TB · UK South · annual · direct",
         es: "120 TB · Reino Unido Sur · anual · venta directa",
-        fr: "120 To · Sud du Royaume-Uni · annuel · vente directe",
+        fr: "120 To · Royaume-Uni Sud · annuel · vente directe",
         de: "120 TB · UK Süd · jährlich · Direktvertrieb",
         ja: "120 TB・英国南部・年間・直接販売",
         pt: "120 TB · Sul do Reino Unido · anual · venda direta",
@@ -479,7 +479,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "40 TB · US East · three months · direct",
         es: "40 TB · EE. UU. Este · tres meses · venta directa",
-        fr: "40 To · Est des États-Unis · trois mois · vente directe",
+        fr: "40 To · USA Est · trois mois · vente directe",
         de: "40 TB · USA Ost · drei Monate · Direktvertrieb",
         ja: "40 TB・米国東部・3か月・直接販売",
         pt: "40 TB · Leste dos EUA · três meses · venda direta",
@@ -508,7 +508,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "500 TB · US East · direct",
         es: "500 TB · EE. UU. Este · venta directa",
-        fr: "500 To · Est des États-Unis · vente directe",
+        fr: "500 To · USA Est · vente directe",
         de: "500 TB · USA Ost · Direktvertrieb",
         ja: "500 TB・米国東部・直接販売",
         pt: "500 TB · Leste dos EUA · venda direta",
@@ -543,7 +543,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "120 TB · EU West · direct",
         es: "120 TB · UE Oeste · venta directa",
-        fr: "120 To · Ouest de l’UE · vente directe",
+        fr: "120 To · UE Ouest · vente directe",
         de: "120 TB · EU West · Direktvertrieb",
         ja: "120 TB・EU 西部・直接販売",
         pt: "120 TB · Oeste da UE · venda direta",
@@ -573,7 +573,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "500 TB committed · 311 TB stored · US East",
         es: "500 TB contratados · 311 TB almacenados · EE. UU. Este",
-        fr: "500 To souscrits · 311 To stockés · Est des États-Unis",
+        fr: "500 To souscrits · 311 To stockés · USA Est",
         de: "500 TB vertraglich zugesagt · 311 TB gespeichert · USA Ost",
         ja: "契約容量 500 TB・保存済み 311 TB・米国東部",
         pt: "500 TB contratados · 311 TB armazenados · Leste dos EUA",
@@ -602,7 +602,7 @@ const fixtures: readonly CommercialFixture[] = [
       description: demoText({
         en: "120 TB committed · provisioning at 78% · EU West",
         es: "120 TB contratados · aprovisionamiento al 78\u00a0% · UE Oeste",
-        fr: "120 To souscrits · provisionnement à 78\u202f% · Ouest de l’UE",
+        fr: "120 To souscrits · provisionnement à 78 % · UE Ouest",
         de: "120 TB vertraglich zugesagt · Bereitstellung zu 78\u00a0% · EU West",
         ja: "契約容量 120 TB・プロビジョニング 78%・EU 西部",
         pt: "120 TB contratados · provisionamento em 78% · Oeste da UE",

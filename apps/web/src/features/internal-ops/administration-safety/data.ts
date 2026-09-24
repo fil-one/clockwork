@@ -139,7 +139,7 @@ export const approvalCases: readonly ApprovalCase[] = [
     policyBasis: demoText({
       en: "Commercial approval policy CP-4.2; below-floor pricing requires finance authority.",
       es: "Política de aprobación comercial CP-4.2: los precios por debajo del mínimo requieren autoridad financiera.",
-      fr: "Politique d’approbation commerciale CP-4.2\u00a0: un prix inférieur au plancher exige l’autorité financière.",
+      fr: "Politique d’approbation commerciale CP-4.2\u00a0: un prix inférieur au plancher exige l’habilitation financière.",
       de: "Richtlinie für kaufmännische Genehmigungen CP-4.2: Preise unter der Preisuntergrenze erfordern die Befugnis der Finanzabteilung.",
       ja: "商用承認ポリシー CP-4.2：下限価格を下回る価格設定には財務権限が必要です。",
       pt: "Política de aprovação comercial CP-4.2: preços abaixo do mínimo exigem autoridade financeira.",
@@ -222,7 +222,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       text: demoText({
         en: "Security addendum · two material variances",
         es: "Anexo de seguridad · dos desviaciones sustanciales",
-        fr: "Avenant de sécurité · deux écarts substantiels",
+        fr: "Annexe de sécurité · deux écarts substantiels",
         de: "Sicherheitsanhang · zwei wesentliche Abweichungen",
         ja: "セキュリティ付属書・重大な相違 2件",
         pt: "Adendo de segurança · duas divergências relevantes",
@@ -310,7 +310,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       demoText({
         en: "Counsel authority required",
         es: "Se requiere autoridad de la asesoría jurídica",
-        fr: "Autorité du service juridique requise",
+        fr: "Habilitation du service juridique requise",
         de: "Befugnis der Rechtsabteilung erforderlich",
         ja: "法務の権限が必要",
         pt: "Autoridade do jurídico necessária",
@@ -320,7 +320,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       demoText({
         en: "Execution provider ready",
         es: "Proveedor de formalización listo",
-        fr: "Prestataire de conclusion prêt",
+        fr: "Prestataire de signature électronique prêt",
         de: "Anbieter für den Abschluss von Vereinbarungen bereit",
         ja: "締結プロバイダーの準備完了",
         pt: "Provedor de assinatura pronto",
@@ -511,7 +511,7 @@ export const accounts: readonly DemoSelectOption[] = [
     description: demoText({
       en: "Direct buyer · active",
       es: "Cliente directo · cuenta activa",
-      fr: "Client direct · compte actif",
+      fr: "Acheteur direct · compte actif",
       de: "Direktkunde · Konto aktiv",
       ja: "直接購入・アカウント有効",
       pt: "Comprador direto · conta ativa",
@@ -618,7 +618,7 @@ export const agreementVersions: readonly AgreementVersion[] = [
     label: demoText({
       en: "Data Processing Addendum",
       es: "Anexo de tratamiento de datos",
-      fr: "Avenant relatif au traitement des données",
+      fr: "Annexe relative au traitement des données",
       de: "Vereinbarung zur Auftragsverarbeitung",
       ja: "データ処理補遺",
       pt: "Adendo de tratamento de dados",
@@ -719,7 +719,7 @@ const gateFixtures: readonly GateFixture[] = [
     capability: demoText({
       en: "Hosted runtime, MFA, and signed callbacks",
       es: "Entorno de ejecución alojado, MFA y devoluciones de llamada firmadas",
-      fr: "Environnement d’exécution hébergé, MFA et rappels signés",
+      fr: "Environnement d’exécution hébergé, MFA et webhooks signés",
       de: "Gehostete Laufzeitumgebung, MFA und signierte Callbacks",
       ja: "ホスト型ランタイム、MFA、署名付きコールバック",
       pt: "Ambiente de execução hospedado, MFA e retornos de chamada assinados",
@@ -741,7 +741,7 @@ const gateFixtures: readonly GateFixture[] = [
     reason: demoText({
       en: "Scoped hosted credentials and a passing callback test are required.",
       es: "Se requieren credenciales alojadas de alcance limitado y una prueba de devolución de llamada superada.",
-      fr: "Des identifiants hébergés à portée limitée et un test de rappel réussi sont requis.",
+      fr: "Des identifiants hébergés à portée limitée et un test de webhook réussi sont requis.",
       de: "Erforderlich sind gehostete Zugangsdaten mit eingeschränktem Geltungsbereich und ein bestandener Callback-Test.",
       ja: "スコープを限定したホスト環境の認証情報と、合格したコールバックテストが必要です。",
       pt: "São necessárias credenciais hospedadas com escopo definido e um teste de retorno de chamada aprovado.",
@@ -1029,7 +1029,7 @@ const gateFixtures: readonly GateFixture[] = [
     reason: demoText({
       en: "Accountant approval is required before activation.",
       es: "Se requiere la aprobación de un contable antes de la activación.",
-      fr: "L’approbation d’un expert-comptable est requise avant l’activation.",
+      fr: "L’approbation d’un comptable est requise avant l’activation.",
       de: "Vor der Aktivierung ist die Genehmigung durch die Buchhaltung erforderlich.",
       ja: "有効化の前に会計担当者の承認が必要です。",
       pt: "É necessária a aprovação de um contador antes da ativação.",
@@ -1099,7 +1099,7 @@ const gateFixtures: readonly GateFixture[] = [
     title: demoText({
       en: "Domains and callback records",
       es: "Dominios y registros de devolución de llamada",
-      fr: "Domaines et enregistrements de rappel",
+      fr: "Domaines et webhooks",
       de: "Domains und Callback-Einträge",
       ja: "ドメインとコールバックのレコード",
       pt: "Domínios e registros de retorno de chamada",
@@ -1119,7 +1119,7 @@ const gateFixtures: readonly GateFixture[] = [
     capability: demoText({
       en: "Custom domains, TLS, callbacks, and sender records",
       es: "Dominios personalizados, TLS, devoluciones de llamada y registros de remitente",
-      fr: "Domaines personnalisés, TLS, rappels et enregistrements d’expéditeur",
+      fr: "Domaines personnalisés, TLS, webhooks et enregistrements d’expéditeur",
       de: "Eigene Domains, TLS, Callbacks und Absendereinträge",
       ja: "カスタムドメイン、TLS、コールバック、送信者レコード",
       pt: "Domínios personalizados, TLS, retornos de chamada e registros de remetente",
@@ -1129,7 +1129,7 @@ const gateFixtures: readonly GateFixture[] = [
     activationTest: demoText({
       en: "Local callback test passed; DNS test not run",
       es: "Prueba local de devolución de llamada superada; prueba de DNS sin ejecutar",
-      fr: "Test local des rappels réussi\u202f; test DNS non exécuté",
+      fr: "Test local des webhooks réussi\u202f; test DNS non exécuté",
       de: "Lokaler Callback-Test bestanden; DNS-Test nicht ausgeführt",
       ja: "ローカルのコールバックテストは合格、DNS テストは未実行",
       pt: "Teste local de retorno de chamada aprovado; teste de DNS não executado",
@@ -1211,7 +1211,7 @@ const gateFixtures: readonly GateFixture[] = [
     title: demoText({
       en: "Teardown authority",
       es: "Autoridad de desmantelamiento",
-      fr: "Autorité de démantèlement",
+      fr: "Habilitation de démantèlement",
       de: "Befugnis für den Rückbau",
       ja: "撤去の権限",
       pt: "Autoridade de desmantelamento",
@@ -1253,7 +1253,7 @@ const gateFixtures: readonly GateFixture[] = [
     reason: demoText({
       en: "Recent-authentication and provider authority tests remain pending.",
       es: "Las pruebas de autenticación reciente y de autoridad del proveedor siguen pendientes.",
-      fr: "Les tests d’authentification récente et d’autorité du prestataire restent en attente.",
+      fr: "Les tests d’authentification récente et d’habilitation du prestataire restent en attente.",
       de: "Die Tests für aktuelle Authentifizierung und Anbieterbefugnis stehen weiterhin aus.",
       ja: "直近の認証とプロバイダー権限のテストは引き続き保留中です。",
       pt: "Os testes de autenticação recente e de autoridade do provedor continuam pendentes.",
@@ -1327,7 +1327,7 @@ const gateFixtures: readonly GateFixture[] = [
     title: demoText({
       en: "Production migration authority",
       es: "Autoridad de migración en producción",
-      fr: "Autorité de migration en production",
+      fr: "Habilitation de migration en production",
       de: "Befugnis für die Produktionsmigration",
       ja: "本番移行の権限",
       pt: "Autoridade de migração em produção",
@@ -1347,7 +1347,7 @@ const gateFixtures: readonly GateFixture[] = [
     capability: demoText({
       en: "Snapshot, resume, rollback, and readback",
       es: "Instantánea, reanudación, reversión y relectura",
-      fr: "Instantané, reprise, restauration et relecture",
+      fr: "Instantané, reprise, retour arrière et relecture",
       de: "Snapshot, Fortsetzen, Rollback und Rücklesen",
       ja: "スナップショット、再開、ロールバック、読み戻し",
       pt: "Snapshot, retomada, rollback e releitura",

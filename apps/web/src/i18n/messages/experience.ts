@@ -659,7 +659,7 @@ export const experienceMessages = defineMessages({
   "experience.workspace.internal": {
     en: "Operator workspace",
     es: "Espacio de trabajo del operador",
-    fr: "Espace de travail opérateur",
+    fr: "Espace opérateur",
     de: "Operator-Arbeitsbereich",
     ja: "オペレーターのワークスペース",
     pt: "Espaço de trabalho do operador",
@@ -669,7 +669,7 @@ export const experienceMessages = defineMessages({
   "experience.workspace.partner": {
     en: "Partner workspace",
     es: "Espacio de trabajo del socio",
-    fr: "Espace de travail partenaire",
+    fr: "Espace partenaire",
     de: "Partner-Arbeitsbereich",
     ja: "パートナーのワークスペース",
     pt: "Espaço de trabalho do parceiro",
@@ -679,7 +679,7 @@ export const experienceMessages = defineMessages({
   "experience.workspace.customer": {
     en: "Customer workspace",
     es: "Espacio de trabajo del cliente",
-    fr: "Espace de travail client",
+    fr: "Espace client",
     de: "Kunden-Arbeitsbereich",
     ja: "顧客のワークスペース",
     pt: "Espaço de trabalho do cliente",
@@ -1017,7 +1017,7 @@ export const experienceMessages = defineMessages({
   "experience.detail.fact.timing": {
     en: "Timing",
     es: "Fechas",
-    fr: "Échéances",
+    fr: "Dates",
     de: "Termine",
     ja: "日程",
     pt: "Datas",
@@ -1381,7 +1381,7 @@ export const experienceMessages = defineMessages({
   "experience.evidence.state.failed": {
     en: "Failed",
     es: "Fallida",
-    fr: "Échouée",
+    fr: "En échec",
     de: "Fehlgeschlagen",
     ja: "失敗",
     pt: "Com falha",
@@ -1582,7 +1582,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.description": {
     en: "Recent issued invoices on this account, traced from their retained commercial terms and usage to the billed amount.",
     es: "Facturas emitidas recientemente en esta cuenta, trazadas desde las condiciones comerciales y el uso conservados hasta el importe facturado.",
-    fr: "Factures émises récemment sur ce compte, retracées depuis les conditions commerciales et l’usage conservés jusqu’au montant facturé.",
+    fr: "Factures émises récemment sur ce compte, retracées depuis les conditions commerciales et la consommation conservées jusqu’au montant facturé.",
     de: "Kürzlich ausgestellte Rechnungen dieses Kontos, nachvollzogen von den gespeicherten Vertragsbedingungen und der Nutzung bis zum abgerechneten Betrag.",
     ja: "このアカウントで最近発行された請求書です。保存された取引条件と利用量から請求額までをたどります。",
     pt: "Faturas emitidas recentemente nesta conta, rastreadas desde as condições comerciais e o uso registrados até o valor faturado.",
@@ -1682,7 +1682,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.step.usage": {
     en: "Reconciled usage",
     es: "Uso conciliado",
-    fr: "Usage rapproché",
+    fr: "Consommation rapprochée",
     de: "Abgestimmte Nutzung",
     ja: "照合済みの利用量",
     pt: "Uso conciliado",
@@ -1752,7 +1752,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.note.entitlementMissing": {
     en: "No entitlement is provisioned for this line, so usage and commitment are empty.",
     es: "No hay ningún derecho de uso aprovisionado para esta línea, por lo que el uso y el compromiso están vacíos.",
-    fr: "Aucun droit d’utilisation n’est provisionné pour cette ligne\u202f; l’usage et l’engagement sont donc vides.",
+    fr: "Aucun droit d’utilisation n’est provisionné pour cette ligne\u202f; la consommation et l’engagement sont donc vides.",
     de: "Für diese Position ist kein Nutzungsrecht bereitgestellt, daher sind Nutzung und Zusage leer.",
     ja: "この明細に利用権がプロビジョニングされていないため、利用量と確約は空です。",
     pt: "Nenhum direito de uso foi provisionado para esta linha, então o uso e o compromisso estão vazios.",
@@ -1762,7 +1762,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.note.usageReconciliationMissing": {
     en: "No usage reconciliation covers this entitlement, so the metered quantity is unconfirmed.",
     es: "Ninguna conciliación de uso cubre este derecho de uso, por lo que la cantidad medida no está confirmada.",
-    fr: "Aucun rapprochement d’usage ne couvre ce droit d’utilisation\u202f; la quantité mesurée n’est donc pas confirmée.",
+    fr: "Aucun rapprochement de consommation ne couvre ce droit d’utilisation\u202f; la quantité mesurée n’est donc pas confirmée.",
     de: "Keine Nutzungsabstimmung deckt dieses Nutzungsrecht ab, daher ist die gemessene Menge unbestätigt.",
     ja: "この利用権を対象とする利用量の照合がないため、計測数量は未確認です。",
     pt: "Nenhuma conciliação de uso cobre este direito de uso, então a quantidade medida não está confirmada.",
@@ -1772,7 +1772,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.note.usageVarianceOpen": {
     en: "Source usage and ledger usage differ, and the variance is unresolved.",
     es: "El uso de origen y el uso registrado no coinciden, y la diferencia está sin resolver.",
-    fr: "L’usage source et l’usage enregistré diffèrent, et l’écart n’est pas résolu.",
+    fr: "La consommation source et la consommation enregistrée diffèrent, et l’écart n’est pas résolu.",
     de: "Quellnutzung und gebuchte Nutzung weichen voneinander ab, und die Abweichung ist ungeklärt.",
     ja: "元データの利用量と台帳の利用量が一致せず、差異は未解決です。",
     pt: "O uso na origem e o uso registrado divergem, e a divergência não foi resolvida.",
@@ -1922,7 +1922,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.usageEvidence": {
     en: "Usage and tax evidence",
     es: "Evidencias de uso e impuestos",
-    fr: "Justificatifs d’usage et de taxes",
+    fr: "Justificatifs de consommation et de taxes",
     de: "Nutzungs- und Steuernachweise",
     ja: "利用量と税の証跡",
     pt: "Evidências de uso e impostos",
@@ -1952,7 +1952,7 @@ export const experienceMessages = defineMessages({
   "experience.derivation.treatment.standard": {
     en: "Taxable",
     es: "Sujeto a impuestos",
-    fr: "Soumis à taxe",
+    fr: sameAsEnglish("Taxable"),
     de: "Steuerpflichtig",
     ja: "課税",
     pt: "Tributável",
@@ -2246,7 +2246,7 @@ export const experienceMessages = defineMessages({
   "experience.display.floorResult": {
     en: "Floor check: {result}",
     es: "Control de margen mínimo: {result}",
-    fr: "Contrôle de marge minimale\u00a0: {result}",
+    fr: "Contrôle du prix plancher\u00a0: {result}",
     de: "Mindestmargenprüfung: {result}",
     ja: "最低利益率チェック：{result}",
     pt: "Verificação de margem mínima: {result}",
@@ -2326,7 +2326,7 @@ export const experienceMessages = defineMessages({
   "experience.display.label.floorCheck": {
     en: "Floor check",
     es: "Control de margen mínimo",
-    fr: "Contrôle de marge minimale",
+    fr: "Contrôle du prix plancher",
     de: "Mindestmargenprüfung",
     ja: "最低利益率チェック",
     pt: "Verificação de margem mínima",
@@ -2666,7 +2666,7 @@ export const experienceMessages = defineMessages({
   "experience.display.label.screening": {
     en: "Screening",
     es: "Control de partes restringidas",
-    fr: "Contrôle des parties restreintes",
+    fr: "Filtrage de conformité",
     de: "Sanktionslistenprüfung",
     ja: "取引制限対象者の審査",
     pt: "Triagem de partes restritas",
@@ -2686,7 +2686,7 @@ export const experienceMessages = defineMessages({
   "experience.display.screening": {
     en: "Screening: {status}",
     es: "Control de partes restringidas: {status}",
-    fr: "Contrôle des parties restreintes\u00a0: {status}",
+    fr: "Filtrage de conformité\u00a0: {status}",
     de: "Sanktionslistenprüfung: {status}",
     ja: "取引制限対象者の審査：{status}",
     pt: "Triagem de partes restritas: {status}",
@@ -2996,7 +2996,7 @@ export const experienceMessages = defineMessages({
   "experience.display.report.renewalChurn": {
     en: "Renewal and churn exposure",
     es: "Exposición a renovaciones y bajas",
-    fr: "Exposition aux renouvellements et à l’attrition",
+    fr: "Renouvellements et risque d’attrition",
     de: "Verlängerungs- und Abwanderungsrisiko",
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
@@ -3016,7 +3016,7 @@ export const experienceMessages = defineMessages({
   "experience.display.report.funnelCycleTime": {
     en: "Funnel cycle time",
     es: "Tiempo de ciclo del embudo",
-    fr: "Durée du cycle de l’entonnoir",
+    fr: "Durée du cycle de vente",
     de: "Durchlaufzeit im Vertriebstrichter",
     ja: "ファネルのサイクルタイム",
     pt: "Tempo de ciclo do funil",

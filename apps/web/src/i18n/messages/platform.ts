@@ -341,7 +341,7 @@ export const platformMessages = defineMessages({
   "app.help.description": {
     en: "Guides, support, and service status",
     es: "Guías, soporte y estado del servicio",
-    fr: "Guides, assistance et état du service",
+    fr: "Guides, support et état du service",
     de: "Anleitungen, Support und Dienststatus",
     ja: "ガイド、サポート、サービス状況",
     pt: "Guias, suporte e status do serviço",
@@ -421,7 +421,7 @@ export const platformMessages = defineMessages({
   "app.account.choose.empty.description": {
     en: "This identity has no active commerce membership. An organization administrator can grant access, or you can sign out and use a different identity.",
     es: "Esta identidad no pertenece a ninguna organización con acceso comercial activo. Un administrador de la organización puede concederle acceso, o puede cerrar sesión y usar otra identidad.",
-    fr: "Cette identité ne dispose d’aucune appartenance commerciale active. Un administrateur peut vous accorder un accès, ou vous pouvez vous déconnecter et utiliser une autre identité.",
+    fr: "Cette identité ne dispose d’aucune appartenance commerciale active. Un administrateur de l’organisation peut vous accorder l’accès, ou vous pouvez vous déconnecter et utiliser une autre identité.",
     de: "Diese Identität hat keine aktive Commerce-Mitgliedschaft. Ein Administrator der Organisation kann Zugriff gewähren, oder Sie melden sich ab und verwenden eine andere Identität.",
     ja: "この ID には有効なコマースメンバーシップがありません。組織管理者にアクセス権を依頼するか、別の ID でログインしてください。",
     pt: "Esta identidade não tem vínculo comercial ativo. Um administrador pode conceder acesso, ou você pode sair e usar outra identidade.",
@@ -541,7 +541,7 @@ export const platformMessages = defineMessages({
   "session.permission.action": {
     en: "Return to dashboard",
     es: "Volver al panel",
-    fr: "Revenir au tableau de bord",
+    fr: "Retour au tableau de bord",
     de: "Zurück zum Dashboard",
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao painel",
@@ -661,7 +661,7 @@ export const platformMessages = defineMessages({
   "nav.support": {
     en: "Support",
     es: "Soporte",
-    fr: "Assistance",
+    fr: sameAsEnglish("Support"),
     de: sameAsEnglish("Support"),
     ja: "サポート",
     pt: "Suporte",
@@ -841,7 +841,7 @@ export const platformMessages = defineMessages({
   "nav.internal.webhookReplay": {
     en: "Webhook replay",
     es: "Reejecución de webhooks",
-    fr: "Réexécution des webhooks",
+    fr: "Rejeu des webhooks",
     de: "Webhook-Wiederholung",
     ja: "Webhook 再実行",
     pt: "Reexecução de webhooks",
@@ -951,7 +951,7 @@ export const platformMessages = defineMessages({
   "nav.internal.capabilities": {
     en: "Capabilities",
     es: "Funciones habilitadas",
-    fr: "Fonctionnalités activées",
+    fr: "Fonctionnalités",
     de: "Freigeschaltete Funktionen",
     ja: "機能の有効化",
     pt: "Funcionalidades habilitadas",
@@ -1151,7 +1151,7 @@ export const platformMessages = defineMessages({
   "states.title": {
     en: "Every state has a safe next step",
     es: "Cada estado tiene un siguiente paso seguro",
-    fr: "Chaque état propose une suite sûre",
+    fr: "Chaque état prévoit une étape suivante sûre",
     de: "Jeder Zustand hat einen sicheren nächsten Schritt",
     ja: "どの状態にも安全な次の手順があります",
     pt: "Cada estado tem um próximo passo seguro",
@@ -1201,7 +1201,7 @@ export const platformMessages = defineMessages({
   "state.partial.title": {
     en: "Usage is temporarily delayed",
     es: "Los datos de uso se han retrasado temporalmente",
-    fr: "Les données d’usage sont temporairement retardées",
+    fr: "Les données de consommation sont temporairement retardées",
     de: "Nutzungsdaten vorübergehend verzögert",
     ja: "使用量データが一時的に遅延しています",
     pt: "Dados de uso temporariamente atrasados",
@@ -1211,7 +1211,7 @@ export const platformMessages = defineMessages({
   "state.partial.description": {
     en: "Commercial records are current through {time}. Usage will fill in without changing totals.",
     es: "Los registros comerciales están actualizados hasta las {time}. Los datos de uso se completarán sin cambiar los totales.",
-    fr: "Les données commerciales sont à jour jusqu’à {time}. L’usage sera complété sans modifier les totaux.",
+    fr: "Les données commerciales sont à jour jusqu’à {time}. La consommation sera complétée sans modifier les totaux.",
     de: "Geschäftsdaten sind bis {time} aktuell. Nutzungsdaten werden ergänzt, ohne Summen zu ändern.",
     ja: "取引記録は{time}時点まで最新です。使用量は合計を変えずに後から補完されます。",
     pt: "Os registros comerciais estão atualizados até {time}. O uso será preenchido sem alterar os totais.",
@@ -1311,7 +1311,7 @@ export const platformMessages = defineMessages({
   "states.optimistic.description": {
     en: "If the contract rejects it, the previous value returns and focus moves to the explanation.",
     es: "Si el contrato lo rechaza, se restaura el valor anterior y el foco pasa a la explicación.",
-    fr: "Si le contrat la refuse, la valeur précédente est rétablie et le focus passe à l’explication.",
+    fr: "Si le contrat la rejette, la valeur précédente est rétablie et le focus passe à l’explication.",
     de: "Lehnt der Vertrag sie ab, wird der alte Wert wiederhergestellt und der Fokus zur Erklärung verschoben.",
     ja: "契約条件で拒否された場合、前の値に戻り、説明にフォーカスが移動します。",
     pt: "Se o contrato rejeitar, o valor anterior será restaurado e o foco irá para a explicação.",
@@ -1415,7 +1415,7 @@ export const platformMessages = defineMessages({
   "platform.shell.switch.notMember": {
     en: "You are not an authorized member of that account.",
     es: "No es miembro autorizado de esa cuenta.",
-    fr: "Vous n’êtes pas membre autorisé de ce compte.",
+    fr: "Vous n’êtes pas un membre autorisé de ce compte.",
     de: "Sie sind kein autorisiertes Mitglied dieses Kontos.",
     ja: "このアカウントの承認済みメンバーではありません。",
     pt: "Você não é um membro autorizado dessa conta.",
@@ -1942,7 +1942,7 @@ export const platformMessages = defineMessages({
   "signing.title": {
     en: "Review and sign",
     es: "Revisar y firmar",
-    fr: "Examiner et signer",
+    fr: "Consulter et signer",
     de: "Prüfen und unterzeichnen",
     ja: "内容の確認と署名",
     pt: "Revisar e assinar",
@@ -1952,7 +1952,7 @@ export const platformMessages = defineMessages({
   "signing.description": {
     en: "Your place is kept while the signing provider opens. No agreement becomes active until the provider’s completion notice arrives and is verified.",
     es: "Se conserva su posición mientras se abre el proveedor de firma. Ningún acuerdo entra en vigor hasta que se recibe y se verifica el aviso de finalización del proveedor.",
-    fr: "Votre position est conservée pendant l’ouverture du prestataire de signature. Aucun accord n’entre en vigueur tant que l’avis de finalisation du prestataire n’a pas été reçu et vérifié.",
+    fr: "Votre progression est conservée pendant l’ouverture de la session chez le prestataire de signature. Aucun accord n’entre en vigueur tant que l’avis de finalisation du prestataire n’a pas été reçu et vérifié.",
     de: "Ihre Position bleibt erhalten, während der Signaturanbieter geöffnet wird. Keine Vereinbarung tritt in Kraft, bevor die Abschlussmeldung des Anbieters eingegangen und geprüft ist.",
     ja: "署名プロバイダーを開いている間も、この画面の位置は保持されます。プロバイダーからの完了通知を受信して検証するまで、契約は有効になりません。",
     pt: "Sua posição é mantida enquanto o provedor de assinatura é aberto. Nenhum acordo entra em vigor até que o aviso de conclusão do provedor seja recebido e verificado.",
@@ -2072,7 +2072,7 @@ export const platformMessages = defineMessages({
   "signing.frame": {
     en: "Secure e-sign provider",
     es: "Proveedor seguro de firma electrónica",
-    fr: "Prestataire sécurisé de signature électronique",
+    fr: "Prestataire de signature électronique sécurisée",
     de: "Sicherer E-Signatur-Anbieter",
     ja: "安全な電子署名プロバイダー",
     pt: "Provedor seguro de assinatura eletrônica",
@@ -2082,7 +2082,7 @@ export const platformMessages = defineMessages({
   "signing.checking": {
     en: "Checking the saved envelope status…",
     es: "Comprobando el estado guardado del sobre…",
-    fr: "Vérification de l’état enregistré de l’enveloppe…",
+    fr: "Vérification du statut enregistré de l’enveloppe…",
     de: "Gespeicherter Umschlagstatus wird geprüft…",
     ja: "保存済みのエンベロープの状態を確認しています…",
     pt: "Verificando o status salvo do envelope…",
@@ -2122,7 +2122,7 @@ export const platformMessages = defineMessages({
   "signing.refresh": {
     en: "Refresh status",
     es: "Actualizar estado",
-    fr: "Actualiser l’état",
+    fr: "Actualiser le statut",
     de: "Status aktualisieren",
     ja: "状態を再確認",
     pt: "Atualizar status",
@@ -2392,7 +2392,7 @@ export const platformMessages = defineMessages({
   "platform.registration.tokenReceived": {
     en: "Verified sign-up details received. The one-time code has been removed from the address bar.",
     es: "Se han recibido los datos de alta verificados. El código de un solo uso se ha eliminado de la barra de direcciones.",
-    fr: "Informations d’inscription vérifiées reçues. Le code à usage unique a été retiré de la barre d’adresse.",
+    fr: "Les informations d’inscription vérifiées ont été reçues. Le code à usage unique a été retiré de la barre d’adresse.",
     de: "Verifizierte Registrierungsdaten empfangen. Der Einmalcode wurde aus der Adressleiste entfernt.",
     ja: "確認済みの登録情報を受け取りました。ワンタイムコードはアドレスバーから削除されています。",
     pt: "Dados de cadastro verificados recebidos. O código de uso único foi removido da barra de endereços.",
@@ -2602,7 +2602,7 @@ export const platformMessages = defineMessages({
   "platform.registration.invoiceDeliveryEmail": {
     en: "Invoice delivery email",
     es: "Correo electrónico para el envío de facturas",
-    fr: "E-mail de réception des factures",
+    fr: "E-mail d’envoi des factures",
     de: "E-Mail-Adresse für den Rechnungsversand",
     ja: "請求書送付先メールアドレス",
     pt: "E-mail para envio de faturas",
@@ -2784,7 +2784,7 @@ export const platformMessages = defineMessages({
   "platform.workflow.eyebrow": {
     en: "Server-backed action",
     es: "Acción registrada en el servidor",
-    fr: "Action enregistrée sur le serveur",
+    fr: "Action traitée par le serveur",
     de: "Serverseitige Aktion",
     ja: "サーバーで処理する操作",
     pt: "Ação registrada no servidor",
@@ -3440,7 +3440,7 @@ export const platformMessages = defineMessages({
   "platform.workflow.renewal.attestation": {
     en: "I am authorized to submit this renewal decision",
     es: "Tengo autorización para enviar esta decisión de renovación",
-    fr: "J’ai l’autorisation de soumettre cette décision de renouvellement",
+    fr: "Je dispose de l’habilitation nécessaire pour soumettre cette décision de renouvellement",
     de: "Ich bin berechtigt, diese Verlängerungsentscheidung zu übermitteln",
     ja: "この契約更新の決定を送信する権限があります",
     pt: "Tenho autorização para enviar esta decisão de renovação",
@@ -3616,7 +3616,7 @@ export const platformMessages = defineMessages({
   "platform.workflow.procurement.apName": {
     en: "Accounts payable contact name",
     es: "Nombre del contacto de cuentas por pagar",
-    fr: "Nom du contact en comptabilité fournisseurs",
+    fr: "Nom du contact de la comptabilité fournisseurs",
     de: "Name des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者の氏名",
     pt: "Nome do contato de contas a pagar",
@@ -3626,7 +3626,7 @@ export const platformMessages = defineMessages({
   "platform.workflow.procurement.apEmail": {
     en: "Accounts payable contact email",
     es: "Correo electrónico del contacto de cuentas por pagar",
-    fr: "E-mail du contact en comptabilité fournisseurs",
+    fr: "E-mail du contact de la comptabilité fournisseurs",
     de: "E-Mail-Adresse des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者のメールアドレス",
     pt: "E-mail do contato de contas a pagar",
@@ -3812,7 +3812,7 @@ export const platformMessages = defineMessages({
   "platform.workflow.report.renewalChurnExposure": {
     en: "Renewal and churn exposure",
     es: "Exposición a renovaciones y bajas",
-    fr: "Exposition aux renouvellements et à l’attrition",
+    fr: "Renouvellements et risque d’attrition",
     de: "Verlängerungs- und Abwanderungsrisiko",
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
@@ -4359,7 +4359,7 @@ export const platformMessages = defineMessages({
   "platform.trust.control.chainValidation": {
     en: "The integrity of the audit chain is asserted by tests that run against a real PostgreSQL instance rather than a mock.",
     es: "La integridad de la cadena de auditoría se comprueba con pruebas que se ejecutan contra una instancia real de PostgreSQL, no contra una simulación.",
-    fr: "L’intégrité de la chaîne d’audit est vérifiée par des tests exécutés sur une véritable instance PostgreSQL, et non sur un simulacre.",
+    fr: "L’intégrité de la chaîne d’audit est vérifiée par des tests exécutés sur une véritable instance PostgreSQL, et non sur un mock.",
     de: "Die Integrität der Audit-Kette wird durch Tests geprüft, die gegen eine echte PostgreSQL-Instanz statt gegen ein Mock laufen.",
     ja: "監査チェーンの整合性は、モックではなく実際の PostgreSQL インスタンスに対して実行されるテストで検証されています。",
     pt: "A integridade da cadeia de auditoria é verificada por testes executados em uma instância real do PostgreSQL, e não em uma simulação.",
@@ -4439,7 +4439,7 @@ export const platformMessages = defineMessages({
   "platform.trust.control.generatedContract": {
     en: "The published API contract is generated from the running application, and the suite fails if the committed contract has drifted from what the application actually serves.",
     es: "El contrato de API publicado se genera a partir de la aplicación en ejecución, y el conjunto de verificación falla si el contrato confirmado en el repositorio se ha desviado de lo que la aplicación sirve realmente.",
-    fr: "Le contrat d’API publié est généré à partir de l’application en cours d’exécution, et la suite échoue si le contrat versionné s’est écarté de ce que l’application sert réellement.",
+    fr: "La spécification d’API publiée est générée à partir de l’application en cours d’exécution, et la suite échoue si la spécification versionnée s’est écartée de ce que l’application sert réellement.",
     de: "Der veröffentlichte API-Vertrag wird aus der laufenden Anwendung erzeugt, und die Suite schlägt fehl, wenn der eingecheckte Vertrag von dem abweicht, was die Anwendung tatsächlich ausliefert.",
     ja: "公開されている API 仕様は実行中のアプリケーションから生成され、コミット済みの仕様がアプリケーションの実際の提供内容からずれている場合、検証スイートは失敗します。",
     pt: "O contrato de API publicado é gerado a partir da aplicação em execução, e o conjunto de verificação falha se o contrato versionado no repositório tiver divergido do que a aplicação realmente serve.",
@@ -4553,7 +4553,7 @@ export const platformMessages = defineMessages({
   "platform.trust.capability.providerTransport": {
     en: "Accounting export, notification delivery and usage ingest",
     es: "Exportación contable, envío de notificaciones e ingesta de uso",
-    fr: "Export comptable, envoi des notifications et ingestion de l’utilisation",
+    fr: "Export comptable, envoi des notifications et ingestion de la consommation",
     de: "Buchhaltungsexport, Benachrichtigungszustellung und Erfassung der Nutzungsdaten",
     ja: "会計データのエクスポート、通知の配信、利用状況の取り込み",
     pt: "Exportação contábil, envio de notificações e ingestão de uso",
@@ -4577,7 +4577,7 @@ export const platformMessages = defineMessages({
   "platform.trust.gap.noPolicyText": {
     en: "The Data Processing Addendum, security addendum, acceptable use policy, privacy policy, service-level agreement and support policy are counsel deliverables. The software models each of these document types and can execute and store them; the approved text is not in this repository, so this page publishes none of it.",
     es: "El anexo de tratamiento de datos, el anexo de seguridad, la política de uso aceptable, la política de privacidad, el acuerdo de nivel de servicio y la política de soporte son entregables de la asesoría jurídica. El software modela cada uno de estos tipos de documento y puede formalizarlos y almacenarlos; el texto aprobado no está en este repositorio, por lo que esta página no publica nada de él.",
-    fr: "L’annexe sur le traitement des données (DPA), l’annexe de sécurité, la politique d’utilisation acceptable, la politique de confidentialité, l’accord de niveau de service et la politique d’assistance sont des livrables des conseils juridiques. Le logiciel modélise chacun de ces types de documents et peut les conclure et les stocker\u202f; le texte approuvé ne figure pas dans ce dépôt, cette page n’en publie donc rien.",
+    fr: "L’annexe sur le traitement des données (DPA), l’annexe de sécurité, la politique d’utilisation acceptable, la politique de confidentialité, l’accord de niveau de service et la politique de support sont des livrables des conseils juridiques. Le logiciel modélise chacun de ces types de documents et peut les conclure et les stocker\u202f; le texte approuvé ne figure pas dans ce dépôt, cette page n’en publie donc rien.",
     de: "Der Auftragsverarbeitungsvertrag (Data Processing Addendum), der Sicherheitsanhang, die Richtlinie zur zulässigen Nutzung, die Datenschutzrichtlinie, das Service-Level-Agreement und die Supportrichtlinie werden von der Rechtsberatung geliefert. Die Software bildet jeden dieser Dokumenttypen ab und kann sie abschließen und speichern; der genehmigte Text ist nicht in diesem Repository enthalten, daher veröffentlicht diese Seite nichts davon.",
     ja: "データ処理補遺（DPA）、セキュリティ補遺、利用規定、プライバシーポリシー、サービスレベル契約（SLA）、サポートポリシーは、法務顧問が作成する成果物です。ソフトウェアはこれらの各文書タイプをモデル化しており、締結して保存できますが、承認済みの本文はこのリポジトリにないため、このページには一切掲載していません。",
     pt: "O Adendo de Processamento de Dados, o adendo de segurança, a política de uso aceitável, a política de privacidade, o acordo de nível de serviço e a política de suporte são entregas da assessoria jurídica. O software modela cada um desses tipos de documento e pode firmá-los e armazená-los; o texto aprovado não está neste repositório, por isso esta página não publica nada dele.",
@@ -4789,7 +4789,7 @@ export const platformMessages = defineMessages({
   "platform.developers.scheme.located": {
     en: "{name} ({type} in {location})",
     es: "{name} ({type} en {location})",
-    fr: "{name} ({type} via {location})",
+    fr: "{name} ({type} dans {location})",
     de: "{name} ({type} über {location})",
     ja: "{name}（{location} の {type}）",
     pt: "{name} ({type} em {location})",
@@ -5026,7 +5026,7 @@ export const platformMessages = defineMessages({
   "platform.developers.class.providerSignature.detail": {
     en: "No session, no permission and no account scope. The signature is the whole control: it is verified against the unparsed body, and the event id is claimed so a redelivery is deduplicated rather than applied twice. These routes are deliberately exempt from the CSRF and idempotency-key checks, and the browser proxy does not put sign-in in front of them.",
     es: "Sin sesión, sin permiso y sin ámbito de cuenta. La firma es todo el control: se verifica contra el cuerpo sin analizar y se registra el ID del evento, de modo que una reentrega se deduplica en lugar de aplicarse dos veces. Estas rutas quedan exentas a propósito de las comprobaciones de CSRF y de idempotency-key, y el proxy del navegador no les antepone el inicio de sesión.",
-    fr: "Ni session, ni autorisation, ni périmètre de compte. La signature constitue tout le contrôle\u00a0: elle est vérifiée sur le corps non analysé, et l’identifiant de l’événement est enregistré afin qu’une nouvelle livraison soit dédupliquée au lieu d’être appliquée deux fois. Ces routes sont volontairement exemptées des contrôles CSRF et idempotency-key, et le proxy du navigateur ne leur impose pas de connexion.",
+    fr: "Ni session, ni autorisation, ni périmètre de compte. La signature constitue tout le contrôle\u00a0: elle est vérifiée sur le corps non analysé, et l’identifiant de l’événement est enregistré afin qu’une nouvelle livraison soit dédoublonnée au lieu d’être appliquée deux fois. Ces routes sont volontairement exemptées des contrôles CSRF et de clé d’idempotence, et le proxy du navigateur ne leur impose pas de connexion.",
     de: "Keine Sitzung, keine Berechtigung, kein Kontobereich. Die Signatur ist die gesamte Kontrolle: sie wird gegen den nicht geparsten Anforderungstext geprüft, und die Ereignis-ID wird registriert, sodass eine erneute Zustellung dedupliziert statt doppelt angewendet wird. Diese Routen sind bewusst von den CSRF- und idempotency-key-Prüfungen ausgenommen, und der Browser-Proxy schaltet ihnen keine Anmeldung vor.",
     ja: "セッション、権限、アカウントスコープはいずれもありません。署名がすべての制御です。署名は解析前のボディに対して検証され、イベント ID が記録されるため、再送は二重に適用されず重複として除外されます。これらのルートは意図的に CSRF と idempotency-key のチェックの対象外で、ブラウザープロキシもサインインを要求しません。",
     pt: "Sem sessão, sem permissão e sem escopo de conta. A assinatura é todo o controle: ela é verificada contra o corpo não analisado, e o ID do evento é registrado para que uma reentrega seja desduplicada em vez de aplicada duas vezes. Essas rotas são deliberadamente isentas das verificações de CSRF e de idempotency-key, e o proxy do navegador não exige login antes delas.",
@@ -5126,7 +5126,7 @@ export const platformMessages = defineMessages({
   "platform.developers.group.caption": {
     en: "{tag} operations",
     es: "Operaciones de {tag}",
-    fr: "Opérations de {tag}",
+    fr: "Opérations du groupe {tag}",
     de: "Operationen in {tag}",
     ja: "{tag} のオペレーション",
     pt: "Operações de {tag}",

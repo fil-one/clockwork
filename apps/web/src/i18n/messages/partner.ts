@@ -17,7 +17,7 @@ export const partnerMessages = defineMessages({
   "cp.partner.agreementClock": {
     en: "Partner agreement clock",
     es: "Plazos del acuerdo de socio",
-    fr: "Échéances de l’accord partenaire",
+    fr: "Échéances de l’accord de partenariat",
     de: "Fristen der Partnervereinbarung",
     ja: "パートナー契約の期限",
     pt: "Prazos do acordo de parceiro",
@@ -57,7 +57,7 @@ export const partnerMessages = defineMessages({
   "cp.partner.boundary": {
     en: "Transfer pricing stays private to the partner. The end client sees the resale price set by the partner.",
     es: "El precio de cesión solo lo conoce el socio. El cliente final ve el precio de reventa que fija el socio.",
-    fr: "Le prix de cession reste confidentiel pour le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
+    fr: "Le prix de cession n’est visible que par le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
     de: "Der Einkaufspreis bleibt dem Partner vorbehalten. Der Endkunde sieht den vom Partner festgelegten Wiederverkaufspreis.",
     ja: "仕切価格はパートナーにのみ開示されます。エンド顧客には、パートナーが設定した再販価格が表示されます。",
     pt: "O preço de repasse é visível somente para o parceiro. O cliente final vê o preço de revenda definido pelo parceiro.",
@@ -97,7 +97,7 @@ export const partnerMessages = defineMessages({
   "partner.quotes.title": {
     en: "Partner and resale quotes",
     es: "Presupuestos de socio y de reventa",
-    fr: "Devis partenaire et de revente",
+    fr: "Devis partenaires et devis de revente",
     de: "Partner- und Wiederverkaufsangebote",
     ja: "パートナー見積もりと再販見積もり",
     pt: "Cotações de parceiro e de revenda",
@@ -177,7 +177,7 @@ export const partnerMessages = defineMessages({
   "partner.detail.milestone": {
     en: "Next milestone",
     es: "Próximo hito",
-    fr: "Prochain jalon",
+    fr: "Prochaine étape",
     de: "Nächster Meilenstein",
     ja: "次のマイルストーン",
     pt: "Próximo marco",
@@ -327,7 +327,7 @@ export const partnerMessages = defineMessages({
   "partner.detail.quote.issue.description": {
     en: "Channel operations must prepare separate customer and partner documents before this quote is issued. Contact partner support to continue.",
     es: "El equipo de operaciones de canal debe preparar documentos separados para el cliente y para el socio antes de emitir este presupuesto. Contacte con el soporte para socios para continuar.",
-    fr: "Les opérations de canal doivent préparer des documents distincts pour le client et pour le partenaire avant l’émission de ce devis. Contactez l’assistance partenaires pour continuer.",
+    fr: "L’équipe des opérations canal doit préparer des documents distincts pour le client et pour le partenaire avant l’émission de ce devis. Contactez le support partenaires pour continuer.",
     de: "Vor der Ausstellung dieses Angebots muss das Kanalteam getrennte Dokumente für Kunde und Partner vorbereiten. Wenden Sie sich an den Partnersupport, um fortzufahren.",
     ja: "この見積もりを発行する前に、チャネル運用チームが顧客用とパートナー用の書類をそれぞれ準備する必要があります。続行するにはパートナーサポートにお問い合わせください。",
     pt: "A equipe de operações de canal precisa preparar documentos separados para o cliente e para o parceiro antes de emitir esta cotação. Fale com o suporte a parceiros para continuar.",
@@ -347,7 +347,7 @@ export const partnerMessages = defineMessages({
   "partner.detail.quote.cancel.description": {
     en: "Channel operations cancels partner quotes. Contact them to cancel this quote.",
     es: "El equipo de operaciones de canal cancela los presupuestos de socio. Contacte con él para cancelar este presupuesto.",
-    fr: "Les opérations de canal annulent les devis partenaire. Contactez-les pour annuler ce devis.",
+    fr: "L’annulation des devis partenaires relève de l’équipe des opérations canal. Contactez-la pour annuler ce devis.",
     de: "Partnerangebote storniert das Kanalteam. Wenden Sie sich an das Team, um dieses Angebot zu stornieren.",
     ja: "パートナー見積もりのキャンセルはチャネル運用チームが行います。この見積もりをキャンセルするにはチームに連絡してください。",
     pt: "A equipe de operações de canal cancela as cotações de parceiro. Fale com ela para cancelar esta cotação.",
@@ -469,7 +469,7 @@ export const partnerMessages = defineMessages({
   "partner.collection.merchantResale": {
     en: "{partner} is the merchant of record on resale routes. Transfer pricing stays private to the partner. The end client sees the resale price set by the partner.",
     es: "En la modalidad de reventa, {partner} es el vendedor responsable de la transacción. El precio de cesión solo lo conoce el socio. El cliente final ve el precio de reventa que fija el socio.",
-    fr: "En mode revente, {partner} est le vendeur responsable de la transaction. Le prix de cession reste confidentiel pour le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
+    fr: "En mode revente, {partner} est le vendeur responsable de la transaction. Le prix de cession n’est visible que par le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
     de: "Im Vertriebsweg Wiederverkauf ist {partner} der Merchant of Record. Der Einkaufspreis bleibt dem Partner vorbehalten. Der Endkunde sieht den vom Partner festgelegten Wiederverkaufspreis.",
     ja: "再販形態では {partner} が販売主体です。仕切価格はパートナーにのみ開示されます。エンド顧客には、パートナーが設定した再販価格が表示されます。",
     pt: "Na modalidade de revenda, {partner} é o vendedor responsável pela transação. O preço de repasse é visível somente para o parceiro. O cliente final vê o preço de revenda definido pelo parceiro.",
@@ -479,7 +479,7 @@ export const partnerMessages = defineMessages({
   "partner.collection.merchantBilling": {
     en: "{partner} is the merchant of record for end-client resale; Fil One invoices the selected partner account. Transfer pricing stays private to the partner. The end client sees the resale price set by the partner.",
     es: "{partner} es el vendedor responsable de la transacción en la reventa al cliente final; Fil One factura a la cuenta de socio seleccionada. El precio de cesión solo lo conoce el socio. El cliente final ve el precio de reventa que fija el socio.",
-    fr: "{partner} est le vendeur responsable de la transaction pour la revente au client final\u202f; Fil One facture le compte partenaire sélectionné. Le prix de cession reste confidentiel pour le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
+    fr: "{partner} est le vendeur responsable de la transaction pour la revente au client final\u202f; Fil One facture le compte partenaire sélectionné. Le prix de cession n’est visible que par le partenaire. Le client final voit le prix de revente fixé par le partenaire.",
     de: "Beim Wiederverkauf an Endkunden ist {partner} der Merchant of Record; Fil One stellt die Rechnung an das ausgewählte Partnerkonto. Der Einkaufspreis bleibt dem Partner vorbehalten. Der Endkunde sieht den vom Partner festgelegten Wiederverkaufspreis.",
     ja: "エンド顧客への再販では {partner} が販売主体となり、Fil One は選択されたパートナーアカウントに請求します。仕切価格はパートナーにのみ開示されます。エンド顧客には、パートナーが設定した再販価格が表示されます。",
     pt: "Na revenda ao cliente final, {partner} é o vendedor responsável pela transação; a Fil One fatura a conta do parceiro selecionada. O preço de repasse é visível somente para o parceiro. O cliente final vê o preço de revenda definido pelo parceiro.",
@@ -499,7 +499,7 @@ export const partnerMessages = defineMessages({
   "partner.collection.summaryOnly": {
     en: "Summary only · see the notice on this page",
     es: "Solo resumen · consulte el aviso de esta página",
-    fr: "Résumé uniquement · consultez l’avis de cette page",
+    fr: "Résumé uniquement · voir l’avertissement sur cette page",
     de: "Nur Zusammenfassung · beachten Sie den Hinweis auf dieser Seite",
     ja: "概要のみ・このページの案内をご確認ください",
     pt: "Somente resumo · consulte o aviso desta página",
@@ -541,7 +541,7 @@ export const partnerMessages = defineMessages({
   "partner.renewal.explainer": {
     en: "A renewal request affects the next financial commitment and requires an explicit review.",
     es: "Una solicitud de renovación afecta al próximo compromiso financiero y requiere una revisión expresa.",
-    fr: "Une demande de renouvellement engage le prochain engagement financier et exige un examen explicite.",
+    fr: "Une demande de renouvellement modifie le prochain engagement financier et exige un examen explicite.",
     de: "Eine Verlängerungsanfrage betrifft die nächste finanzielle Verpflichtung und erfordert eine ausdrückliche Prüfung.",
     ja: "契約更新の依頼は次回の財務上の確約に影響するため、明示的な確認が必要です。",
     pt: "Uma solicitação de renovação afeta o próximo compromisso financeiro e exige uma revisão explícita.",
@@ -653,7 +653,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.portfolio.rule": {
     en: "Commercial position is scoped to each named end client; Fil One transfer pricing remains partner-private.",
     es: "La posición comercial se limita a cada cliente final designado; el precio de cesión de Fil One solo lo conoce el socio.",
-    fr: "La position commerciale est propre à chaque client final désigné\u202f; le prix de cession Fil One reste confidentiel pour le partenaire.",
+    fr: "La position commerciale est propre à chaque client final désigné\u202f; le prix de cession Fil One n’est visible que par le partenaire.",
     de: "Die geschäftliche Position gilt jeweils nur für den benannten Endkunden; der Einkaufspreis bei Fil One bleibt dem Partner vorbehalten.",
     ja: "取引状況は指定された各エンド顧客に限られ、Fil One の仕切価格はパートナーにのみ開示されます。",
     pt: "A posição comercial se restringe a cada cliente final indicado; o preço de repasse da Fil One é visível somente para o parceiro.",
@@ -843,7 +843,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.registrations.gate": {
     en: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision. This page derives sourced credit from an accepted registration, but influenced-credit and dispute decisions cannot be recorded here.",
     es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One; los perfiles de socio pueden aportar evidencias y seguir la decisión. Esta página calcula el crédito por origen a partir de un registro aceptado, pero aquí no se pueden registrar decisiones de crédito por influencia ni de disputas.",
-    fr: "Les décisions d’enregistrement relèvent des opérations de canal de Fil One\u202f; les rôles partenaires peuvent fournir des preuves et suivre la décision. Cette page déduit le crédit d’apport d’un enregistrement accepté, mais les décisions de crédit d’influence et de litige ne peuvent pas être enregistrées ici.",
+    fr: "Les décisions d’enregistrement relèvent de l’équipe des opérations canal de Fil One\u202f; les rôles partenaires peuvent fournir des preuves et suivre la décision. Cette page déduit le crédit d’apport d’un enregistrement accepté, mais les décisions de crédit d’influence et de litige ne peuvent pas être enregistrées ici.",
     de: "Über Registrierungen entscheidet das Kanalteam von Fil One; Partnerrollen können Nachweise einreichen und die Entscheidung verfolgen. Diese Seite leitet die Zuordnung als vom Partner gewonnen aus einer angenommenen Registrierung ab; Entscheidungen zu beeinflussten Deals und Streitfällen können hier nicht erfasst werden.",
     ja: "登録の判断は Fil One のチャネル運用チームが行います。パートナーのロールは証跡を提出し、判断の状況を確認できます。このページは承認された登録から発掘クレジットを算出しますが、影響クレジットや異議の判断はここでは記録できません。",
     pt: "As decisões sobre registros são tomadas pela equipe de operações de canal da Fil One; os perfis de parceiro podem enviar evidências e acompanhar a decisão. Esta página calcula o crédito de origem a partir de um registro aceito, mas decisões de crédito por influência e de contestações não podem ser registradas aqui.",
@@ -983,7 +983,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.quotes.title": {
     en: "Partner and resale quotes",
     es: "Presupuestos de socio y de reventa",
-    fr: "Devis partenaire et de revente",
+    fr: "Devis partenaires et devis de revente",
     de: "Partner- und Wiederverkaufsangebote",
     ja: "パートナー見積もりと再販見積もり",
     pt: "Cotações de parceiro e de revenda",
@@ -1223,7 +1223,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.commissions.description": {
     en: "See accruals, credits, holdbacks, and payouts without confusing estimates with collected revenue.",
     es: "Consulte devengos, créditos, retenciones y pagos sin confundir estimaciones con ingresos cobrados.",
-    fr: "Consultez les commissions acquises, avoirs, retenues et versements sans confondre estimations et revenus encaissés.",
+    fr: "Consultez les commissions acquises, les crédits, les retenues et les versements sans confondre estimations et revenus encaissés.",
     de: "Sehen Sie aufgelaufene Provisionen, Gutschriften, Einbehalte und Auszahlungen, ohne Schätzungen mit vereinnahmten Umsätzen zu verwechseln.",
     ja: "計上額、クレジット、留保額、支払いを、見積額と回収済み収益を混同せずに確認できます。",
     pt: "Veja comissões provisionadas, créditos, valores retidos e repasses sem confundir estimativas com receita recebida.",
@@ -1449,7 +1449,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.sandboxes.description": {
     en: "Track capacity caps, success tests, named access, and expiry before commercial conversion.",
     es: "Siga los límites de capacidad, las pruebas de éxito, los accesos nominativos y la caducidad antes de la conversión comercial.",
-    fr: "Suivez les plafonds de capacité, les tests de réussite, les accès nominatifs et l’expiration avant la conversion commerciale.",
+    fr: "Suivez les plafonds de capacité, les critères de réussite, les accès nominatifs et l’expiration avant la conversion commerciale.",
     de: "Verfolgen Sie Kapazitätsgrenzen, Erfolgstests, namentliche Zugänge und Ablauf vor der kommerziellen Umwandlung.",
     ja: "商用化の前に、容量上限、成功条件のテスト、指名アクセス、有効期限を確認します。",
     pt: "Acompanhe limites de capacidade, testes de sucesso, acessos nominais e validade antes da conversão comercial.",
@@ -1791,7 +1791,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.eyebrow": {
     en: "Partner desk · Visible support cases",
     es: "Espacio del socio · Casos de soporte visibles",
-    fr: "Espace partenaire · Demandes d’assistance visibles",
+    fr: "Espace partenaire · Demandes de support visibles",
     de: "Partnerbereich · Sichtbare Supportfälle",
     ja: "パートナー画面・表示可能なサポートケース",
     pt: "Espaço do parceiro · Chamados de suporte visíveis",
@@ -1801,7 +1801,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.title": {
     en: "Support",
     es: "Soporte",
-    fr: "Assistance",
+    fr: sameAsEnglish("Support"),
     de: sameAsEnglish("Support"),
     ja: "サポート",
     pt: "Suporte",
@@ -1811,7 +1811,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.description": {
     en: "Follow end-client support work with source-system freshness and visibility boundaries.",
     es: "Siga el trabajo de soporte de los clientes finales con la actualización del sistema de origen y sus límites de visibilidad.",
-    fr: "Suivez l’assistance des clients finaux avec la fraîcheur du système source et ses limites de visibilité.",
+    fr: "Suivez les demandes de support des clients finaux, avec la fraîcheur du système source et les limites de visibilité.",
     de: "Verfolgen Sie Supportvorgänge von Endkunden mit Aktualitätsangabe des Quellsystems und Sichtbarkeitsgrenzen.",
     ja: "エンド顧客のサポート対応を、元のシステムの更新状況と表示範囲の区分とともに確認します。",
     pt: "Acompanhe o suporte aos clientes finais com a atualização do sistema de origem e os limites de visibilidade.",
@@ -1821,7 +1821,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.rule": {
     en: "This page is read-only; replies and attachments stay in the support provider.",
     es: "Esta página es de solo lectura; las respuestas y los adjuntos se gestionan en el proveedor de soporte.",
-    fr: "Cette page est en lecture seule\u202f; les réponses et pièces jointes restent chez le prestataire d’assistance.",
+    fr: "Cette page est en lecture seule\u202f; les réponses et pièces jointes restent chez le prestataire de support.",
     de: "Diese Seite ist schreibgeschützt; Antworten und Anhänge bleiben beim Supportanbieter.",
     ja: "このページは閲覧専用です。返信と添付ファイルはサポートプロバイダーで扱います。",
     pt: "Esta página é somente leitura; respostas e anexos ficam no provedor de suporte.",
@@ -1837,9 +1837,9 @@ export const partnerMessages = defineMessages({
       other: "{count} casos de soporte",
     },
     fr: {
-      one: "{count} demande d’assistance",
-      many: "{count} de demandes d’assistance",
-      other: "{count} demandes d’assistance",
+      one: "{count} demande de support",
+      many: "{count} de demandes de support",
+      other: "{count} demandes de support",
     },
     de: { one: "{count} Supportfall", other: "{count} Supportfälle" },
     ja: { other: "サポートケース {count}件" },
@@ -1861,7 +1861,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.search": {
     en: "Search support cases",
     es: "Buscar casos de soporte",
-    fr: "Rechercher des demandes d’assistance",
+    fr: "Rechercher des demandes de support",
     de: "Supportfälle suchen",
     ja: "サポートケースを検索",
     pt: "Buscar chamados de suporte",
@@ -1901,7 +1901,7 @@ export const partnerMessages = defineMessages({
   "partner.surface.support.gate": {
     en: "Replies and attachments are handled in the support provider; this page is a safe read-only handoff.",
     es: "Las respuestas y los adjuntos se gestionan en el proveedor de soporte; esta página es un traspaso seguro de solo lectura.",
-    fr: "Les réponses et pièces jointes sont traitées chez le prestataire d’assistance\u202f; cette page est un relais sûr, en lecture seule.",
+    fr: "Les réponses et pièces jointes sont traitées chez le prestataire de support\u202f; cette page est un relais sûr, en lecture seule.",
     de: "Antworten und Anhänge werden beim Supportanbieter bearbeitet; diese Seite ist eine sichere, schreibgeschützte Übergabe.",
     ja: "返信と添付ファイルはサポートプロバイダーで扱います。このページは安全な閲覧専用の引き継ぎ画面です。",
     pt: "Respostas e anexos são tratados no provedor de suporte; esta página é um repasse seguro, somente leitura.",
@@ -1972,7 +1972,7 @@ export const partnerMessages = defineMessages({
   "partner.position.atRisk": {
     en: "{amount} at risk",
     es: "En riesgo: {amount}",
-    fr: "Montant exposé\u00a0: {amount}",
+    fr: "À risque\u00a0: {amount}",
     de: "Risikobetrag: {amount}",
     ja: "リスク対象額 {amount}",
     pt: "Em risco: {amount}",
@@ -2051,9 +2051,9 @@ export const partnerMessages = defineMessages({
       other: "Pruebas superadas: {passed} de {count}",
     },
     fr: {
-      one: "Tests réussis\u00a0: {passed} sur {count}",
-      many: "Tests réussis\u00a0: {passed} sur {count}",
-      other: "Tests réussis\u00a0: {passed} sur {count}",
+      one: "Critères validés\u00a0: {passed} sur {count}",
+      many: "Critères validés\u00a0: {passed} sur {count}",
+      other: "Critères validés\u00a0: {passed} sur {count}",
     },
     de: {
       one: "{passed} von {count} Test bestanden",
@@ -2148,7 +2148,7 @@ export const partnerMessages = defineMessages({
   "partner.milestone.qualificationDueToday": {
     en: "Qualification due today",
     es: "La cualificación vence hoy",
-    fr: "Qualification à rendre aujourd’hui",
+    fr: "Qualification attendue aujourd’hui",
     de: "Qualifizierung heute fällig",
     ja: "本日が評価期限",
     pt: "A qualificação vence hoje",
@@ -2364,7 +2364,7 @@ export const partnerMessages = defineMessages({
   "partner.milestone.pricingReviewRequired": {
     en: "Pricing review required",
     es: "Requiere revisión de precios",
-    fr: "Examen tarifaire requis",
+    fr: "Revue tarifaire requise",
     de: "Preisprüfung erforderlich",
     ja: "価格の確認が必要",
     pt: "Revisão de preços necessária",
@@ -2434,7 +2434,7 @@ export const partnerMessages = defineMessages({
   "partner.milestone.supportSystemIsSource": {
     en: "The support system is the source",
     es: "La fuente es el sistema de soporte",
-    fr: "La source est l’outil d’assistance",
+    fr: "La source est l’outil de support",
     de: "Quelle ist das Supportsystem",
     ja: "情報源はサポートシステム",
     pt: "A fonte é o sistema de suporte",
@@ -2444,7 +2444,7 @@ export const partnerMessages = defineMessages({
   "partner.milestone.replyInSupportProvider": {
     en: "Reply in the support provider",
     es: "Responda en el proveedor de soporte",
-    fr: "Répondez dans l’outil du prestataire d’assistance",
+    fr: "Répondez dans l’outil du prestataire de support",
     de: "Antworten Sie im System des Supportanbieters",
     ja: "返信はサポートプロバイダーで行ってください",
     pt: "Responda no provedor de suporte",
@@ -2454,7 +2454,7 @@ export const partnerMessages = defineMessages({
   "partner.milestone.awaitingChannelDecision": {
     en: "Awaiting a channel operations decision",
     es: "Pendiente de la decisión de operaciones de canal",
-    fr: "En attente de la décision des opérations de canal",
+    fr: "En attente d’une décision des opérations canal",
     de: "Wartet auf die Entscheidung des Kanalteams",
     ja: "チャネル運用チームの判断待ち",
     pt: "Aguardando decisão das operações de canal",
@@ -2697,7 +2697,7 @@ export const partnerMessages = defineMessages({
   "partner.route.consequence.distributor": {
     en: "This route is available only because the account's saved transfer tier is distributor. The quote records the partner as merchant of record and Fil One prices it at that saved transfer tier.",
     es: "Esta modalidad solo está disponible porque el nivel de cesión guardado de la cuenta es distribuidor. El presupuesto registra al socio como vendedor responsable de la transacción y Fil One lo tarifica con ese nivel de cesión.",
-    fr: "Ce mode n’est disponible que parce que le niveau de cession enregistré du compte est «\u00a0distributeur\u00a0». Le devis enregistre le partenaire comme vendeur responsable de la transaction et Fil One le tarifie à ce niveau de cession.",
+    fr: "Ce mode de vente n’est disponible que parce que le niveau de cession enregistré du compte est «\u00a0distributeur\u00a0». Le devis enregistre le partenaire comme vendeur responsable de la transaction et Fil One le tarifie à ce niveau de cession.",
     de: "Dieser Vertriebsweg steht nur zur Verfügung, weil die hinterlegte Einkaufsstufe des Kontos „Distributor“ ist. Das Angebot erfasst den Partner als Merchant of Record, und Fil One bepreist es nach dieser Einkaufsstufe.",
     ja: "この販売形態は、アカウントに保存された仕切価格帯がディストリビューターであるため利用できます。見積もりではパートナーが販売主体として記録され、Fil One はその仕切価格帯で価格を設定します。",
     pt: "Esta modalidade só está disponível porque a faixa de repasse salva da conta é distribuidor. A cotação registra o parceiro como vendedor responsável pela transação e a Fil One a precifica por essa faixa de repasse.",
@@ -3003,7 +3003,7 @@ export const partnerMessages = defineMessages({
   "partner.detail.quote.exampleTitle": {
     en: "Example quote",
     es: "Presupuesto de ejemplo",
-    fr: "Devis d’exemple",
+    fr: "Exemple de devis",
     de: "Beispielangebot",
     ja: "見積もりの例",
     pt: "Cotação de exemplo",
@@ -3175,7 +3175,7 @@ export const partnerMessages = defineMessages({
   "partner.orders.description": {
     en: "Your authorized partner order records and their current fulfillment status.",
     es: "Los registros de pedidos de socio a los que tiene acceso y su estado de cumplimiento actual.",
-    fr: "Les commandes partenaires auxquelles vous avez accès et leur état d’exécution actuel.",
+    fr: "Les commandes partenaires auxquelles vous avez accès et leur statut d’exécution actuel.",
     de: "Die Partneraufträge, auf die Sie Zugriff haben, und ihr aktueller Erfüllungsstatus.",
     ja: "アクセス権のあるパートナー注文の記録と、現在の履行状況です。",
     pt: "Os registros de pedidos de parceiro que você pode acessar e o status atual de atendimento.",
@@ -3185,7 +3185,7 @@ export const partnerMessages = defineMessages({
   "partner.orders.quotesLink": {
     en: "Partner quotes",
     es: "Presupuestos de socio",
-    fr: "Devis partenaire",
+    fr: "Devis partenaires",
     de: "Partnerangebote",
     ja: "パートナー見積もり",
     pt: "Cotações de parceiro",
@@ -3195,7 +3195,7 @@ export const partnerMessages = defineMessages({
   "partner.orders.state.provisioning": {
     en: "Provisioning · demo request submitted",
     es: "Aprovisionamiento · solicitud de demostración enviada",
-    fr: "Provisionnement · demande de démonstration envoyée",
+    fr: "Provisionnement · demande envoyée (démo)",
     de: "Bereitstellung · Demo-Anfrage gesendet",
     ja: "プロビジョニング中・デモの依頼を送信済み",
     pt: "Provisionamento · solicitação de demonstração enviada",
@@ -3285,7 +3285,7 @@ export const partnerMessages = defineMessages({
   "partner.orders.handoffNote": {
     en: "Your order is in the internal provisioning handoff. It has not activated service.",
     es: "Su pedido está en el traspaso interno a aprovisionamiento. No ha activado ningún servicio.",
-    fr: "Votre commande est en cours de transmission interne au provisionnement. Elle n’a pas activé de service.",
+    fr: "Votre commande est en cours de transmission interne au provisionnement. Aucun service n’a été activé.",
     de: "Ihr Auftrag liegt in der internen Übergabe an die Bereitstellung. Er hat keinen Dienst aktiviert.",
     ja: "注文は社内のプロビジョニング引き継ぎ中です。サービスは有効化されていません。",
     pt: "Seu pedido está no repasse interno para provisionamento. Ele não ativou nenhum serviço.",
@@ -3315,7 +3315,7 @@ export const partnerMessages = defineMessages({
   "partner.orders.empty.action": {
     en: "Review partner quotes",
     es: "Revisar presupuestos de socio",
-    fr: "Examiner les devis partenaire",
+    fr: "Examiner les devis partenaires",
     de: "Partnerangebote prüfen",
     ja: "パートナー見積もりを確認",
     pt: "Revisar cotações de parceiro",
@@ -3365,7 +3365,7 @@ export const partnerMessages = defineMessages({
   "partner.order.demoAgreement": {
     en: "{partner} demonstration partner agreement",
     es: "Acuerdo de socio de demostración de {partner}",
-    fr: "Accord partenaire de démonstration de {partner}",
+    fr: "Accord de partenariat de démonstration\u00a0: {partner}",
     de: "Demo-Partnervereinbarung von {partner}",
     ja: "{partner} のデモ用パートナー契約",
     pt: "Acordo de parceiro de demonstração da {partner}",
@@ -3377,7 +3377,7 @@ export const partnerMessages = defineMessages({
   "partner.quote.nothing.agreement.title": {
     en: "No complete partner agreement is on file for this account",
     es: "Esta cuenta no tiene registrado un acuerdo de socio completo",
-    fr: "Aucun accord partenaire complet n’est enregistré pour ce compte",
+    fr: "Aucun accord de partenariat complet n’est enregistré pour ce compte",
     de: "Für dieses Konto ist keine vollständige Partnervereinbarung hinterlegt",
     ja: "このアカウントには完全なパートナー契約が登録されていません",
     pt: "Não há um acordo de parceiro completo registrado para esta conta",
@@ -3387,7 +3387,7 @@ export const partnerMessages = defineMessages({
   "partner.quote.nothing.agreement.description": {
     en: "A partner quote is written under a saved channel agreement, and both the commercial route and the transfer tier come from that agreement, not from this form. Your account returned no agreement type or no transfer tier, so there is nothing to quote under.",
     es: "Un presupuesto de socio se redacta al amparo de un acuerdo de canal registrado, y tanto la modalidad de venta como el nivel de cesión proceden de ese acuerdo, no de este formulario. En su cuenta no consta un tipo de acuerdo o un nivel de cesión, así que no hay base sobre la que presupuestar.",
-    fr: "Un devis partenaire s’établit dans le cadre d’un accord de canal enregistré\u202f; le mode de vente et le niveau de cession proviennent de cet accord, pas de ce formulaire. Votre compte n’a renvoyé aucun type d’accord ou aucun niveau de cession\u00a0: il n’y a donc aucun cadre pour établir un devis.",
+    fr: "Un devis partenaire s’établit dans le cadre d’un accord de partenariat enregistré\u202f; le mode de vente et le niveau de cession proviennent de cet accord, pas de ce formulaire. Votre compte n’a renvoyé aucun type d’accord ou aucun niveau de cession\u00a0: il n’y a donc aucun cadre pour établir un devis.",
     de: "Ein Partnerangebot wird auf Grundlage einer hinterlegten Kanalvereinbarung erstellt; Vertriebsweg und Einkaufsstufe stammen aus dieser Vereinbarung, nicht aus diesem Formular. Für Ihr Konto ist kein Vereinbarungstyp oder keine Einkaufsstufe hinterlegt, daher gibt es keine Grundlage für ein Angebot.",
     ja: "パートナー見積もりは登録済みのチャネル契約に基づいて作成され、販売形態と仕切価格帯はこのフォームではなくその契約から決まります。貴社アカウントでは契約種別または仕切価格帯が返されなかったため、見積もりの根拠がありません。",
     pt: "Uma cotação de parceiro é feita com base em um acordo de canal registrado, e tanto a modalidade de venda quanto a faixa de repasse vêm desse acordo, não deste formulário. Sua conta não retornou tipo de acordo ou faixa de repasse, portanto não há base para cotar.",
@@ -3747,7 +3747,7 @@ export const partnerMessages = defineMessages({
   "partner.quote.new.error.term": {
     en: "Enter a whole number of months, at least one.",
     es: "Introduzca un número entero de meses, como mínimo uno.",
-    fr: "Saisissez un nombre entier de mois, au moins un.",
+    fr: "Saisissez un nombre entier de mois (1 au minimum).",
     de: "Geben Sie eine ganze Zahl von Monaten ein, mindestens einen.",
     ja: "契約期間は 1 以上の整数（か月）で入力してください。",
     pt: "Informe um número inteiro de meses, no mínimo um.",
@@ -3917,7 +3917,7 @@ export const partnerMessages = defineMessages({
   "partner.quote.summary.routeValue": {
     en: "{route} · from your partner agreement",
     es: "{route} · según su acuerdo de socio",
-    fr: "{route} · d’après votre accord partenaire",
+    fr: "{route} · d’après votre accord de partenariat",
     de: "{route} · laut Ihrer Partnervereinbarung",
     ja: "{route}・パートナー契約に基づく",
     pt: "{route} · conforme o seu acordo de parceiro",
@@ -4531,7 +4531,7 @@ export const partnerMessages = defineMessages({
   "partner.registration.none.description": {
     en: "A deal registration names an end client that already exists as a Fil One account, and your partner account can only name accounts that an approved registration or an existing partner quote already reaches. None were returned, so Fil One channel operations must open the end client before you can register it here.",
     es: "Un registro de oportunidad indica un cliente final que ya existe como cuenta de Fil One, y su cuenta de socio solo puede indicar cuentas a las que ya llega un registro aprobado o un presupuesto de socio existente. No se ha devuelto ninguna, así que el equipo de operaciones de canal de Fil One debe dar de alta al cliente final antes de que pueda registrarlo aquí.",
-    fr: "Un enregistrement d’opportunité désigne un client final qui existe déjà comme compte Fil One, et votre compte partenaire ne peut désigner que les comptes déjà couverts par un enregistrement approuvé ou un devis partenaire existant. Aucun n’a été renvoyé\u00a0: les opérations de canal de Fil One doivent d’abord ouvrir le client final avant que vous puissiez l’enregistrer ici.",
+    fr: "Un enregistrement d’opportunité désigne un client final qui existe déjà comme compte Fil One, et votre compte partenaire ne peut désigner que les comptes déjà couverts par un enregistrement approuvé ou un devis partenaire existant. Aucun n’a été renvoyé\u00a0: l’équipe des opérations canal de Fil One doit d’abord ouvrir le client final avant que vous puissiez l’enregistrer ici.",
     de: "Eine Deal-Registrierung nennt einen Endkunden, der bereits als Konto bei Fil One besteht. Ihr Partnerkonto kann nur Konten nennen, die bereits über eine genehmigte Registrierung oder ein bestehendes Partnerangebot erreicht werden. Es wurden keine geliefert, daher muss das Kanalteam von Fil One den Endkunden anlegen, bevor Sie ihn hier registrieren können.",
     ja: "案件登録では、Fil One のアカウントとして既に存在するエンド顧客を指定します。貴社のパートナーアカウントで指定できるのは、承認済みの登録または既存のパートナー見積もりで既に紐づいているアカウントだけです。該当するアカウントがないため、ここで登録する前に Fil One のチャネル運用チームがエンド顧客を開設する必要があります。",
     pt: "Um registro de oportunidade indica um cliente final que já existe como conta da Fil One, e a sua conta de parceiro só pode indicar contas já alcançadas por um registro aprovado ou por uma cotação de parceiro existente. Nenhuma foi retornada, então a equipe de operações de canal da Fil One precisa abrir o cliente final antes que você possa registrá-lo aqui.",
@@ -4541,7 +4541,7 @@ export const partnerMessages = defineMessages({
   "partner.registration.askChannel": {
     en: "Ask channel operations",
     es: "Consultar a operaciones de canal",
-    fr: "Contacter les opérations de canal",
+    fr: "Contacter les opérations canal",
     de: "Kanalteam fragen",
     ja: "チャネル運用チームに問い合わせる",
     pt: "Falar com operações de canal",
@@ -4592,10 +4592,10 @@ export const partnerMessages = defineMessages({
         "Política v{version}: puede solicitar hasta {count} días. El registro sigue sujeto a la aprobación de operaciones de canal.",
     },
     fr: {
-      one: "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} jour. L’enregistrement reste soumis à l’approbation des opérations de canal.",
-      many: "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} de jours. L’enregistrement reste soumis à l’approbation des opérations de canal.",
+      one: "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} jour. L’enregistrement reste soumis à l’approbation des opérations canal.",
+      many: "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} de jours. L’enregistrement reste soumis à l’approbation des opérations canal.",
       other:
-        "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} jours. L’enregistrement reste soumis à l’approbation des opérations de canal.",
+        "Politique v{version}\u00a0: vous pouvez demander jusqu’à {count} jours. L’enregistrement reste soumis à l’approbation des opérations canal.",
     },
     de: {
       one: "Richtlinie v{version}: Sie können bis zu {count} Tag beantragen. Die Registrierung bleibt von der Genehmigung durch das Kanalteam abhängig.",
@@ -4669,7 +4669,7 @@ export const partnerMessages = defineMessages({
   "partner.registration.gate": {
     en: "Fil One channel operations makes registration decisions. Submitting starts the decision clock; it does not approve the deal or grant protection.",
     es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One. Enviar el registro inicia el plazo de decisión; no aprueba la oportunidad ni concede protección.",
-    fr: "Les décisions d’enregistrement relèvent des opérations de canal de Fil One. L’envoi déclenche le délai de décision\u202f; il n’approuve pas l’opportunité et n’accorde aucune protection.",
+    fr: "Les décisions d’enregistrement relèvent de l’équipe des opérations canal de Fil One. L’envoi déclenche le délai de décision\u202f; il n’approuve pas l’opportunité et n’accorde aucune protection.",
     de: "Über Registrierungen entscheidet das Kanalteam von Fil One. Das Absenden startet die Entscheidungsfrist; es genehmigt den Deal nicht und gewährt keinen Schutz.",
     ja: "登録の判断は Fil One のチャネル運用チームが行います。送信すると判断期限の計測が始まりますが、案件の承認や保護の付与にはなりません。",
     pt: "As decisões sobre registros são tomadas pela equipe de operações de canal da Fil One. O envio inicia o prazo de decisão; ele não aprova a oportunidade nem concede proteção.",
@@ -4689,7 +4689,7 @@ export const partnerMessages = defineMessages({
   "partner.registration.submitted": {
     en: "Registration submitted and added to the decision queue below. Fil One channel operations decides it; house-account and prior-deal exclusions are resolved against the unified account records, not against anything stated here.",
     es: "Registro enviado y añadido a la cola de decisión de abajo. Lo decide el equipo de operaciones de canal de Fil One; las exclusiones por cuenta propia de Fil One y por oportunidades anteriores se resuelven con los registros de cuentas unificados, no con lo que se indique aquí.",
-    fr: "Enregistrement envoyé et ajouté à la file de décision ci-dessous. Les opérations de canal de Fil One en décident\u202f; les exclusions pour compte maison ou opportunité antérieure sont tranchées d’après les enregistrements de comptes unifiés, pas d’après ce qui est indiqué ici.",
+    fr: "Enregistrement envoyé et ajouté à la file de décision ci-dessous. L’équipe des opérations canal de Fil One en décide\u202f; les exclusions pour compte géré en direct ou opportunité antérieure sont tranchées d’après les enregistrements de comptes unifiés, pas d’après ce qui est indiqué ici.",
     de: "Registrierung gesendet und der Entscheidungswarteschlange unten hinzugefügt. Das Kanalteam von Fil One entscheidet darüber; Ausschlüsse wegen Hauskonten oder früherer Deals werden anhand der zusammengeführten Kontodaten geklärt, nicht anhand von Angaben hier.",
     ja: "登録を送信し、下の判断待ちキューに追加しました。判断は Fil One のチャネル運用チームが行います。直販アカウントや過去の案件による除外は、ここでの記載ではなく統合されたアカウント記録に基づいて判断されます。",
     pt: "Registro enviado e adicionado à fila de decisão abaixo. A equipe de operações de canal da Fil One decide; as exclusões por conta própria da Fil One e por oportunidade anterior são resolvidas com base nos registros de contas unificados, e não no que for informado aqui.",
@@ -4796,7 +4796,7 @@ export const partnerMessages = defineMessages({
   "partner.registration.summary.partner": {
     en: "Registering partner",
     es: "Socio que registra",
-    fr: "Partenaire à l’origine de l’enregistrement",
+    fr: "Partenaire déclarant",
     de: "Registrierender Partner",
     ja: "登録するパートナー",
     pt: "Parceiro que registra",
@@ -4953,7 +4953,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.description": {
     en: "Approved product destinations for {partner}, with what you can share with clients kept separate from partner-account work.",
     es: "Destinos de producto aprobados para {partner}, con lo que puede compartir con clientes separado del trabajo de la cuenta de socio.",
-    fr: "Destinations produit approuvées pour {partner}, en séparant ce que vous pouvez partager avec les clients du travail sur le compte partenaire.",
+    fr: "Liens produit approuvés pour {partner}\u00a0: ce que vous pouvez partager avec vos clients est séparé des tâches du compte partenaire.",
     de: "Freigegebene Produktziele für {partner}. Was Sie mit Kunden teilen können, ist von der Arbeit im Partnerkonto getrennt.",
     ja: "{partner} 向けの承認済みリンク集です。顧客と共有できるものは、パートナーアカウントの業務とは分けて表示しています。",
     pt: "Destinos de produto aprovados para {partner}, com o que você pode compartilhar com clientes separado do trabalho da conta de parceiro.",
@@ -5063,7 +5063,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.internal.title": {
     en: "Internal to your desk",
     es: "Uso interno del socio",
-    fr: "Usage interne à votre espace",
+    fr: "Réservé à votre espace partenaire",
     de: "Intern für Ihren Partnerbereich",
     ja: "社内用",
     pt: "Uso interno do seu espaço",
@@ -5213,7 +5213,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.item.registrations.description": {
     en: "Request or review protection for a named end client.",
     es: "Solicite o revise la protección de un cliente final identificado.",
-    fr: "Demandez ou consultez la protection d’un client final nommé.",
+    fr: "Demandez ou consultez la protection d’un client final désigné.",
     de: "Schutz für einen benannten Endkunden beantragen oder prüfen.",
     ja: "指定したエンド顧客の保護を申請または確認します。",
     pt: "Solicite ou revise a proteção de um cliente final identificado.",
@@ -5223,7 +5223,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.item.quotes.title": {
     en: "Review partner quotes",
     es: "Revisar presupuestos de socio",
-    fr: "Consulter les devis partenaire",
+    fr: "Consulter les devis partenaires",
     de: "Partnerangebote prüfen",
     ja: "パートナー見積もりを確認",
     pt: "Revisar cotações de parceiro",
@@ -5303,7 +5303,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.item.support.title": {
     en: "Open partner support",
     es: "Abrir soporte para socios",
-    fr: "Ouvrir l’assistance partenaire",
+    fr: "Ouvrir le support partenaires",
     de: "Partnersupport öffnen",
     ja: "パートナーサポートを開く",
     pt: "Abrir suporte a parceiros",
@@ -5313,7 +5313,7 @@ export const partnerMessages = defineMessages({
   "partner.enablement.item.support.description": {
     en: "Use partner support for follow-up on a specific account.",
     es: "Use el soporte para socios para el seguimiento de una cuenta concreta.",
-    fr: "Utilisez l’assistance partenaire pour le suivi d’un compte précis.",
+    fr: "Utilisez le support partenaires pour le suivi d’un compte précis.",
     de: "Nutzen Sie den Partnersupport für die Nachverfolgung zu einem bestimmten Konto.",
     ja: "特定のアカウントのフォローアップにはパートナーサポートを利用します。",
     pt: "Use o suporte a parceiros para acompanhar uma conta específica.",
@@ -5551,7 +5551,7 @@ export const partnerMessages = defineMessages({
   "partner.role.admin.quotes": {
     en: "Can create and issue partner quotes.",
     es: "Puede crear y emitir presupuestos de socio.",
-    fr: "Peut créer et émettre des devis partenaire.",
+    fr: "Peut créer et émettre des devis partenaires.",
     de: "Kann Partnerangebote erstellen und ausstellen.",
     ja: "パートナー見積もりを作成、発行できます。",
     pt: "Pode criar e emitir cotações de parceiro.",
@@ -5571,7 +5571,7 @@ export const partnerMessages = defineMessages({
   "partner.role.seller.work": {
     en: "Can view the portfolio, register opportunities and create partner quotes.",
     es: "Puede ver la cartera, registrar oportunidades y crear presupuestos de socio.",
-    fr: "Peut consulter le portefeuille, enregistrer des opportunités et créer des devis partenaire.",
+    fr: "Peut consulter le portefeuille, enregistrer des opportunités et créer des devis partenaires.",
     de: "Kann das Portfolio einsehen, Opportunities registrieren und Partnerangebote erstellen.",
     ja: "ポートフォリオの閲覧、案件の登録、パートナー見積もりの作成ができます。",
     pt: "Pode ver a carteira, registrar oportunidades e criar cotações de parceiro.",

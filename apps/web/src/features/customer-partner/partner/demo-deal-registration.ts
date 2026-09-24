@@ -101,7 +101,7 @@ interface StoredRegistration {
 const registrationOwner = demoText({
   en: "Fil One channel operations",
   es: "Operaciones de canal de Fil One",
-  fr: "Opérations de canal de Fil One",
+  fr: "Équipe des opérations canal de Fil One",
   de: "Kanalteam von Fil One",
   ja: "Fil One チャネル運用チーム",
   pt: "Operações de canal da Fil One",

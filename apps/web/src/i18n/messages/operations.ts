@@ -223,7 +223,7 @@ export const operationsMessages = defineMessages({
   "ui.35": {
     en: "Verify anything you are about to act on against the source record before deciding it.",
     es: "Verifica los datos con el registro de origen antes de tomar una decisión.",
-    fr: "Vérifiez les informations dans le document source avant de prendre une décision.",
+    fr: "Avant de décider, vérifiez les éléments concernés dans l’enregistrement source.",
     de: "Prüfen Sie vor einer Entscheidung alle betroffenen Daten am Ursprungsdatensatz.",
     ja: "判断を行う前に、対象情報を元の記録と照合してください。",
     pt: "Confira os dados no registro de origem antes de decidir.",
@@ -243,7 +243,7 @@ export const operationsMessages = defineMessages({
   "ui.37": {
     en: "Orders grouped by how long is left before their contractual notice date, with the route and the invoicing already recorded against them.",
     es: "Pedidos agrupados por el tiempo restante hasta su preaviso contractual, con el canal y la facturación registrados.",
-    fr: "Commandes regroupées selon le délai restant avant leur préavis contractuel, avec le canal et la facturation enregistrés.",
+    fr: "Commandes regroupées selon le délai restant avant leur date de préavis contractuelle, avec le mode de vente et la facturation déjà enregistrés.",
     de: "Aufträge nach Zeit bis zum vertraglichen Mitteilungstermin, mit erfasstem Vertriebsweg und Abrechnung.",
     ja: "契約上の通知日までの残り期間別に、登録済みチャネルと請求情報を含む注文を表示します。",
     pt: "Pedidos agrupados pelo tempo até o aviso contratual, com canal e faturamento registrados.",
@@ -293,7 +293,7 @@ export const operationsMessages = defineMessages({
   "ui.42": {
     en: "Route not recorded",
     es: "Canal no registrado",
-    fr: "Canal non enregistré",
+    fr: "Mode de vente non enregistré",
     de: "Vertriebsweg nicht erfasst",
     ja: "チャネル未記録",
     pt: "Canal não registrado",
@@ -313,7 +313,7 @@ export const operationsMessages = defineMessages({
   "ui.44": {
     en: "Collections priority",
     es: "Prioridad de cobros",
-    fr: "Priorité du recouvrement",
+    fr: "Priorités de recouvrement",
     de: "Forderungspriorität",
     ja: "債権回収の優先順位",
     pt: "Prioridade de cobranças",
@@ -323,7 +323,7 @@ export const operationsMessages = defineMessages({
   "ui.45": {
     en: "Open invoices ordered by exposure and age, with the corrections a finance approver may raise against them.",
     es: "Facturas pendientes ordenadas por exposición y antigüedad, con las correcciones que puede solicitar un aprobador financiero.",
-    fr: "Factures ouvertes classées par exposition et ancienneté, avec les corrections qu’un approbateur financier peut demander.",
+    fr: "Factures ouvertes classées par exposition et ancienneté, avec les corrections qu’un approbateur financier peut y apporter.",
     de: "Offene Rechnungen nach Risiko und Alter, mit Korrekturen, die Finanzfreigebende beantragen können.",
     ja: "リスクと経過期間順の未払い請求書と、財務承認者が申請できる修正を表示します。",
     pt: "Faturas abertas por exposição e antiguidade, com correções que um aprovador financeiro pode solicitar.",
@@ -363,7 +363,7 @@ export const operationsMessages = defineMessages({
   "ui.49": {
     en: "Open each invoice to review its payment history, disputes, and available corrections.",
     es: "Abre cada factura para consultar pagos, disputas y correcciones disponibles.",
-    fr: "Ouvrez chaque facture pour consulter les paiements, litiges et corrections disponibles.",
+    fr: "Ouvrez chaque facture pour consulter l’historique des paiements, les litiges et les corrections disponibles.",
     de: "Öffnen Sie jede Rechnung für Zahlungshistorie, Streitfälle und Korrekturen.",
     ja: "各請求書を開いて、支払履歴、紛争、可能な修正を確認します。",
     pt: "Abra cada fatura para revisar pagamentos, contestações e correções disponíveis.",
@@ -413,7 +413,7 @@ export const operationsMessages = defineMessages({
   "ui.55": {
     en: "Amount, age, status and the corrections available on each invoice.",
     es: "Importe, antigüedad, estado y correcciones disponibles para cada factura.",
-    fr: "Montant, ancienneté, état et corrections disponibles pour chaque facture.",
+    fr: "Montant, ancienneté, statut et corrections disponibles pour chaque facture.",
     de: "Betrag, Alter, Status und verfügbare Korrekturen je Rechnung.",
     ja: "各請求書の金額、経過期間、状態、可能な修正です。",
     pt: "Valor, antiguidade, status e correções disponíveis em cada fatura.",
@@ -443,7 +443,7 @@ export const operationsMessages = defineMessages({
   "ui.58": {
     en: "Provisioning work",
     es: "Trabajo de aprovisionamiento",
-    fr: "Travail de provisionnement",
+    fr: "Tâches de provisionnement",
     de: "Bereitstellungsaufgaben",
     ja: "プロビジョニング業務",
     pt: "Trabalho de provisionamento",
@@ -453,7 +453,7 @@ export const operationsMessages = defineMessages({
   "ui.59": {
     en: "Track provider work, service terminations, retry timing, and the items that need operator attention.",
     es: "Sigue el trabajo de proveedores, las bajas de servicios, los reintentos y las tareas que requieren atención.",
-    fr: "Suivez le travail des fournisseurs, les résiliations de services, les nouvelles tentatives et les tâches nécessitant une intervention.",
+    fr: "Suivez les opérations des prestataires, les fins de service, le calendrier des nouvelles tentatives et les éléments qui demandent l’attention d’un opérateur.",
     de: "Anbieteraufgaben, Dienstbeendigungen, Wiederholungen und Aufgaben mit Handlungsbedarf verfolgen.",
     ja: "プロバイダー作業、サービス終了、再試行時刻、担当者の対応が必要な項目を追跡します。",
     pt: "Acompanhe provedores, encerramentos, novas tentativas e itens que exigem atenção.",
@@ -463,7 +463,7 @@ export const operationsMessages = defineMessages({
   "ui.60": {
     en: "Stopped work is handled in recovery.",
     es: "El trabajo detenido se gestiona en Recuperación.",
-    fr: "Le travail arrêté est géré dans Reprise.",
+    fr: "Les tâches arrêtées sont traitées dans l’espace Reprise.",
     de: "Gestoppte Aufgaben werden in Wiederherstellung bearbeitet.",
     ja: "停止した作業は復旧画面で処理します。",
     pt: "O trabalho interrompido é tratado em Recuperação.",
@@ -473,7 +473,7 @@ export const operationsMessages = defineMessages({
   "ui.61": {
     en: "Open the recovery workspace to retry or abandon work that has exhausted its automatic attempts.",
     es: "Abre Recuperación para reintentar o abandonar el trabajo que agotó sus intentos automáticos.",
-    fr: "Ouvrez l’espace Reprise pour relancer ou abandonner le travail ayant épuisé ses tentatives automatiques.",
+    fr: "Ouvrez l’espace Reprise pour relancer ou abandonner les tâches qui ont épuisé leurs tentatives automatiques.",
     de: "Öffnen Sie Wiederherstellung, um Aufgaben nach ausgeschöpften automatischen Versuchen erneut zu versuchen oder aufzugeben.",
     ja: "自動再試行を使い切った作業を再試行または中止するには、復旧ワークスペースを開いてください。",
     pt: "Abra Recuperação para tentar novamente ou abandonar trabalhos que esgotaram as tentativas automáticas.",
@@ -493,7 +493,7 @@ export const operationsMessages = defineMessages({
   "ui.63": {
     en: "Provider operations",
     es: "Operaciones de proveedores",
-    fr: "Opérations fournisseurs",
+    fr: "Opérations des prestataires",
     de: "Anbietervorgänge",
     ja: "プロバイダー操作",
     pt: "Operações de provedores",
@@ -503,7 +503,7 @@ export const operationsMessages = defineMessages({
   "ui.64": {
     en: "Service terminations",
     es: "Bajas de servicios",
-    fr: "Résiliations de services",
+    fr: "Fins de service",
     de: "Dienstbeendigungen",
     ja: "サービス終了",
     pt: "Encerramentos de serviços",
@@ -583,7 +583,7 @@ export const operationsMessages = defineMessages({
   "ui.72": {
     en: "Report exports recorded against your operator session, and the supported exports you can generate now.",
     es: "Exportaciones registradas en tu sesión de operador y exportaciones disponibles para generar.",
-    fr: "Exports enregistrés pour votre session opérateur et exports disponibles à générer.",
+    fr: "Exports de rapports enregistrés pour votre session d’opérateur, et exports que vous pouvez générer dès maintenant.",
     de: "Für Ihre Sitzung erfasste Berichtsexporte und aktuell verfügbare Exporte.",
     ja: "担当者セッションに記録された出力と、今すぐ生成できるレポートです。",
     pt: "Exportações registradas na sua sessão e exportações disponíveis para gerar agora.",
@@ -613,7 +613,7 @@ export const operationsMessages = defineMessages({
   "ui.75": {
     en: "No report exports are projected into your operator scope. Generating an export below records one.",
     es: "No hay exportaciones de informes en tu ámbito de operador. Genera una exportación abajo para registrarla.",
-    fr: "Aucun export de rapport dans votre périmètre opérateur. Générez un export ci-dessous pour l’enregistrer.",
+    fr: "Aucun export de rapport n’apparaît dans votre périmètre d’opérateur. Générer un export ci-dessous en enregistre un.",
     de: "Keine Berichtsexporte in Ihrem Bedienerbereich. Ein unten erzeugter Export wird erfasst.",
     ja: "担当範囲にレポート出力はありません。以下から生成すると記録されます。",
     pt: "Nenhuma exportação no seu escopo de operador. Gere uma abaixo para registrá-la.",
@@ -866,7 +866,7 @@ export const operationsMessages = defineMessages({
   "operations.queueWork": {
     en: "Queue work",
     es: "Trabajo en cola",
-    fr: "Travail en file d’attente",
+    fr: "Tâches en file d’attente",
     de: "Warteschlangenaufgaben",
     ja: "キューの作業",
     pt: "Trabalho na fila",
@@ -946,7 +946,7 @@ export const operationsMessages = defineMessages({
   "operations.decision.permissionChanged": {
     en: "Your permission to operate system recovery has changed.",
     es: "Su permiso para operar la recuperación del sistema ha cambiado.",
-    fr: "Votre autorisation d’opérer la reprise du système a changé.",
+    fr: "Vos droits sur la reprise du système ont changé.",
     de: "Ihre Berechtigung für die Systemwiederherstellung hat sich geändert.",
     ja: "システム復旧を操作する権限が変更されました。",
     pt: "Sua permissão para operar a recuperação do sistema mudou.",
@@ -1076,7 +1076,7 @@ export const operationsMessages = defineMessages({
   "operations.home.overview.title": {
     en: "Work overview",
     es: "Resumen del trabajo",
-    fr: "Vue d’ensemble du travail",
+    fr: "Vue d’ensemble des tâches",
     de: "Arbeitsübersicht",
     ja: "作業の概要",
     pt: "Visão geral do trabalho",
@@ -1086,7 +1086,7 @@ export const operationsMessages = defineMessages({
   "operations.home.overview.description": {
     en: "Prioritized work across the teams you support, with a direct path to each workspace.",
     es: "Trabajo priorizado de los equipos a los que da soporte, con acceso directo a cada espacio de trabajo.",
-    fr: "Travail classé par priorité pour les équipes que vous accompagnez, avec un accès direct à chaque espace de travail.",
+    fr: "Tâches classées par priorité pour les équipes que vous accompagnez, avec un accès direct à chaque espace de travail.",
     de: "Priorisierte Aufgaben der Teams, die Sie unterstützen, mit direktem Zugang zu jedem Arbeitsbereich.",
     ja: "担当チームの作業を優先度順に表示し、各ワークスペースへ直接移動できます。",
     pt: "Trabalho priorizado das equipes que você apoia, com acesso direto a cada espaço de trabalho.",
@@ -1096,7 +1096,7 @@ export const operationsMessages = defineMessages({
   "operations.home.overview.tableLabel": {
     en: "Operational work overview",
     es: "Resumen del trabajo operativo",
-    fr: "Vue d’ensemble du travail opérationnel",
+    fr: "Vue d’ensemble des tâches opérationnelles",
     de: "Übersicht der Betriebsaufgaben",
     ja: "運用作業の概要",
     pt: "Visão geral do trabalho operacional",
@@ -1196,7 +1196,7 @@ export const operationsMessages = defineMessages({
   "operations.home.signal.provisioning.detail": {
     en: "Provider operations: {operations}. Service terminations: {terminations}.",
     es: "Operaciones de proveedores: {operations}. Bajas de servicio: {terminations}.",
-    fr: "Opérations des prestataires\u00a0: {operations}. Résiliations de service\u00a0: {terminations}.",
+    fr: "Opérations des prestataires\u00a0: {operations}. Fins de service\u00a0: {terminations}.",
     de: "Anbietervorgänge: {operations}. Servicebeendigungen: {terminations}.",
     ja: "プロバイダー操作：{operations}件。サービス終了：{terminations}件。",
     pt: "Operações de provedores: {operations}. Encerramentos de serviço: {terminations}.",
@@ -1306,7 +1306,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.description": {
     en: "Prioritized policy, provider, and lifecycle work with clear ownership and evidence.",
     es: "Trabajo priorizado de políticas, proveedores y ciclo de vida, con responsables y evidencias claros.",
-    fr: "Travail lié aux politiques, aux prestataires et au cycle de vie, classé par priorité, avec des responsables et des preuves clairement établis.",
+    fr: "Tâches liées aux politiques, aux prestataires et au cycle de vie, classées par priorité, avec des responsables et des preuves clairement établis.",
     de: "Priorisierte Aufgaben zu Richtlinien, Anbietern und Lebenszyklus mit klaren Verantwortlichkeiten und Nachweisen.",
     ja: "ポリシー、プロバイダー、ライフサイクルに関する作業を優先度順に表示し、担当者と証跡を明示します。",
     pt: "Trabalho priorizado de políticas, provedores e ciclo de vida, com responsáveis e evidências claros.",
@@ -1386,7 +1386,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.view.assigned": {
     en: "Assigned to me",
     es: "Asignado a mí",
-    fr: "Attribués à moi",
+    fr: "Mes tâches",
     de: "Mir zugewiesen",
     ja: "自分の担当",
     pt: "Atribuídos a mim",
@@ -1396,7 +1396,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.view.assigned.description": {
     en: "Open work assigned to the signed-in operator",
     es: "Trabajo abierto asignado al operador que ha iniciado sesión",
-    fr: "Travail en cours attribué à l’opérateur connecté",
+    fr: "Tâches en cours attribuées à l’opérateur connecté",
     de: "Offene Aufgaben, die dem angemeldeten Operator zugewiesen sind",
     ja: "サインイン中のオペレーターに割り当てられた未完了の作業",
     pt: "Trabalho em aberto atribuído ao operador conectado",
@@ -1456,7 +1456,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.view.all.description": {
     en: "All queue work",
     es: "Todo el trabajo de la cola",
-    fr: "Tout le travail de la file d’attente",
+    fr: "Toutes les tâches de la file d’attente",
     de: "Alle Aufgaben der Warteschlange",
     ja: "キューのすべての作業",
     pt: "Todo o trabalho da fila",
@@ -1496,7 +1496,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.search.label": {
     en: "Search work",
     es: "Buscar trabajo",
-    fr: "Rechercher dans la file",
+    fr: "Rechercher une tâche",
     de: "Aufgaben durchsuchen",
     ja: "作業を検索",
     pt: "Pesquisar trabalho",
@@ -1506,7 +1506,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.search.placeholder": {
     en: "Entity, work item, or reference",
     es: "Entidad, elemento o referencia",
-    fr: "Entité, élément ou référence",
+    fr: "Entité, tâche ou référence",
     de: "Entität, Aufgabe oder Referenz",
     ja: "エンティティ、作業項目、参照番号",
     pt: "Entidade, item ou referência",
@@ -1726,7 +1726,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.column.workItem": {
     en: "Work item",
     es: "Elemento de trabajo",
-    fr: "Élément de travail",
+    fr: "Tâche",
     de: "Aufgabe",
     ja: "作業項目",
     pt: "Item de trabalho",
@@ -1736,7 +1736,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.row.showDetails": {
     en: "Show details for {title}",
     es: "Ver detalles de {title}",
-    fr: "Afficher le détail de {title}",
+    fr: "Afficher le détail\u00a0: {title}",
     de: "Details zu {title} anzeigen",
     ja: "{title} の詳細を表示",
     pt: "Ver detalhes de {title}",
@@ -1766,7 +1766,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.empty.title": {
     en: "No queue work yet",
     es: "Todavía no hay trabajo en la cola",
-    fr: "Aucun travail dans la file d’attente pour le moment",
+    fr: "Aucune tâche dans la file d’attente pour le moment",
     de: "Noch keine Aufgaben in der Warteschlange",
     ja: "キューに作業はまだありません",
     pt: "Ainda não há trabalho na fila",
@@ -1776,7 +1776,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.empty.description": {
     en: "New operational work will appear here when a policy or provider needs attention.",
     es: "El nuevo trabajo operativo aparecerá aquí cuando una política o un proveedor requiera atención.",
-    fr: "Les nouveaux travaux opérationnels apparaîtront ici lorsqu’une politique ou un prestataire demandera une intervention.",
+    fr: "Les nouvelles tâches opérationnelles apparaîtront ici lorsqu’une politique ou un prestataire demandera une intervention.",
     de: "Neue Betriebsaufgaben erscheinen hier, sobald eine Richtlinie oder ein Anbieter Aufmerksamkeit erfordert.",
     ja: "ポリシーやプロバイダーで対応が必要になると、新しい業務がここに表示されます。",
     pt: "Novos trabalhos operacionais aparecerão aqui quando uma política ou um provedor precisar de atenção.",
@@ -1786,7 +1786,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.noMatch.title": {
     en: "No work matches these filters",
     es: "Ningún trabajo coincide con estos filtros",
-    fr: "Aucun travail ne correspond à ces filtres",
+    fr: "Aucune tâche ne correspond à ces filtres",
     de: "Keine Aufgaben entsprechen diesen Filtern",
     ja: "条件に一致する作業はありません",
     pt: "Nenhum trabalho corresponde a estes filtros",
@@ -1866,7 +1866,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.detail.policyBasis": {
     en: "Policy basis:",
     es: "Base normativa:",
-    fr: "Fondement de la politique\u00a0:",
+    fr: "Politique applicable\u00a0:",
     de: "Grundlage der Richtlinie:",
     ja: "ポリシー上の根拠：",
     pt: "Base da política:",
@@ -1956,7 +1956,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.detail.reviewOnly.body": {
     en: "Nothing is submitted here. Continue through the authorized workflow, where role, actor, policy, and provider gates are revalidated.",
     es: "Aquí no se envía nada. Continúe por el flujo de trabajo autorizado, donde se vuelven a validar el rol, el actor, la política y los requisitos del proveedor.",
-    fr: "Rien n’est soumis ici. Poursuivez dans le workflow autorisé, où le rôle, l’acteur, la politique et les prérequis du prestataire sont revérifiés.",
+    fr: "Rien n’est soumis ici. Poursuivez dans le processus autorisé, où le rôle, l’auteur de l’action, la politique et les prérequis du prestataire sont revalidés.",
     de: "Hier wird nichts übermittelt. Fahren Sie im autorisierten Workflow fort, in dem Rolle, handelnde Person, Richtlinie und Anbietervoraussetzungen erneut geprüft werden.",
     ja: "ここでは何も送信されません。承認済みのワークフローで続行してください。そこでロール、実行者、ポリシー、プロバイダー要件が再検証されます。",
     pt: "Nada é enviado aqui. Continue pelo fluxo autorizado, onde função, ator, política e pré-requisitos do provedor são validados novamente.",
@@ -2196,7 +2196,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.subject.termination": {
     en: "Termination",
     es: "Rescisión",
-    fr: "Résiliation",
+    fr: "Fin de service",
     de: "Kündigung",
     ja: "解約",
     pt: "Rescisão",
@@ -2266,7 +2266,7 @@ export const operationsMessages = defineMessages({
   "operations.queue.action.replayProviderEvent": {
     en: "Replay provider event",
     es: "Reejecutar evento del proveedor",
-    fr: "Réexécuter l’événement du prestataire",
+    fr: "Rejouer l’événement du prestataire",
     de: "Anbieterereignis erneut verarbeiten",
     ja: "プロバイダーイベントを再実行",
     pt: "Reexecutar evento do provedor",
@@ -2306,7 +2306,7 @@ export const operationsMessages = defineMessages({
   "operations.account.description": {
     en: "Assisted access remains restricted to the persisted effective account.",
     es: "El acceso en modo asistido sigue limitado a la cuenta efectiva guardada.",
-    fr: "L’accès en mode assisté reste limité au compte effectif enregistré.",
+    fr: "L’accès en mode assisté reste limité au compte cible enregistré.",
     de: "Der Zugriff im Assistenzmodus bleibt auf das gespeicherte wirksame Konto beschränkt.",
     ja: "代理操作モードでのアクセスは、保存された対象アカウントに限定されます。",
     pt: "O acesso no modo assistido continua restrito à conta efetiva salva.",
@@ -3192,7 +3192,7 @@ export const operationsMessages = defineMessages({
   "operations.status.description": {
     en: "Availability of commerce services and any stopped integration work that needs attention.",
     es: "Disponibilidad de los servicios de comercio y del trabajo de integración detenido que requiere atención.",
-    fr: "Disponibilité des services commerciaux et travaux d’intégration arrêtés qui demandent une intervention.",
+    fr: "Disponibilité des services commerciaux et tâches d’intégration arrêtées qui demandent une intervention.",
     de: "Verfügbarkeit der Commerce-Dienste und angehaltene Integrationsvorgänge, die Aufmerksamkeit erfordern.",
     ja: "コマースサービスの稼働状況と、対応が必要な停止中の連携処理です。",
     pt: "Disponibilidade dos serviços de comércio e trabalhos de integração interrompidos que precisam de atenção.",
@@ -3262,7 +3262,7 @@ export const operationsMessages = defineMessages({
   "operations.status.queues.webhook": {
     en: "Webhook callbacks",
     es: "Notificaciones de webhook",
-    fr: "Notifications de webhook",
+    fr: "Webhooks entrants",
     de: "Webhook-Aufrufe",
     ja: "Webhook コールバック",
     pt: "Chamadas de webhook",
@@ -3322,7 +3322,7 @@ export const operationsMessages = defineMessages({
   "operations.status.links.recovery": {
     en: "Open recovery",
     es: "Abrir recuperación",
-    fr: "Ouvrir la reprise",
+    fr: "Ouvrir l’espace Reprise",
     de: "Wiederherstellung öffnen",
     ja: "復旧を開く",
     pt: "Abrir recuperação",
@@ -3332,7 +3332,7 @@ export const operationsMessages = defineMessages({
   "operations.status.links.webhookReplay": {
     en: "Open webhook replay",
     es: "Abrir la reejecución de webhooks",
-    fr: "Ouvrir la réexécution des webhooks",
+    fr: "Ouvrir le rejeu des webhooks",
     de: "Webhook-Wiederholung öffnen",
     ja: "Webhook 再実行を開く",
     pt: "Abrir reexecução de webhooks",
@@ -3962,7 +3962,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.discard.coerced": {
     en: "{column}, coerced to {pattern} in {module}",
     es: "{column}, forzado a {pattern} en {module}",
-    fr: "{column}, contraint à {pattern} dans {module}",
+    fr: "{column}, converti en {pattern} dans {module}",
     de: "{column}, in {module} auf {pattern} beschränkt",
     ja: "{column}（{module} で {pattern} に変換）",
     pt: "{column}, forçado a {pattern} em {module}",
@@ -3972,7 +3972,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.discard.coercedAttemptSurvives": {
     en: "{column}, coerced to {pattern} in {module}; the message survives on the provisioning attempt only while that row is present",
     es: "{column}, forzado a {pattern} en {module}; el mensaje solo se conserva en el intento de aprovisionamiento mientras exista esa fila",
-    fr: "{column}, contraint à {pattern} dans {module}\u202f; le message n’est conservé sur la tentative de provisionnement que tant que cette ligne existe",
+    fr: "{column}, converti en {pattern} dans {module}\u202f; le message n’est conservé sur la tentative de provisionnement que tant que cette ligne existe",
     de: "{column}, in {module} auf {pattern} beschränkt; die Meldung bleibt am Bereitstellungsversuch nur erhalten, solange diese Zeile existiert",
     ja: "{column}（{module} で {pattern} に変換）。メッセージは、その行が存在する間だけプロビジョニング試行に残ります",
     pt: "{column}, forçado a {pattern} em {module}; a mensagem só permanece na tentativa de provisionamento enquanto essa linha existir",
@@ -4032,7 +4032,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.decision.contain.title": {
     en: "Record containment for {failure}",
     es: "Registrar contención de {failure}",
-    fr: "Enregistrer le confinement de {failure}",
+    fr: "Enregistrer le confinement pour {failure}",
     de: "Eindämmung für {failure} erfassen",
     ja: "{failure} の封じ込めを記録",
     pt: "Registrar contenção de {failure}",
@@ -4092,7 +4092,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.decided.contained": {
     en: "Contained.",
     es: "Contenido.",
-    fr: "Confiné.",
+    fr: "Confinement enregistré.",
     de: "Eingedämmt.",
     ja: "封じ込め済み。",
     pt: "Contido.",
@@ -4102,7 +4102,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.decided.containedWithReason": {
     en: "Contained. {reason}",
     es: "Contenido. {reason}",
-    fr: "Confiné. {reason}",
+    fr: "Confinement enregistré. {reason}",
     de: "Eingedämmt. {reason}",
     ja: "封じ込め済み。{reason}",
     pt: "Contido. {reason}",
@@ -4112,7 +4112,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.decided.released": {
     en: "Released.",
     es: "Liberado.",
-    fr: "Levé.",
+    fr: "Levée enregistrée.",
     de: "Aufgehoben.",
     ja: "解除済み。",
     pt: "Liberado.",
@@ -4122,7 +4122,7 @@ export const operationsMessages = defineMessages({
   "operations.incidents.decided.releasedWithReason": {
     en: "Released. {reason}",
     es: "Liberado. {reason}",
-    fr: "Levé. {reason}",
+    fr: "Levée enregistrée. {reason}",
     de: "Aufgehoben. {reason}",
     ja: "解除済み。{reason}",
     pt: "Liberado. {reason}",
@@ -4262,7 +4262,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.title": {
     en: "Stopped provider callbacks",
     es: "Notificaciones de proveedores detenidas",
-    fr: "Notifications de prestataires arrêtées",
+    fr: "Webhooks de prestataires arrêtés",
     de: "Angehaltene Anbieteraufrufe",
     ja: "停止したプロバイダーのコールバック",
     pt: "Chamadas de provedores interrompidas",
@@ -4272,7 +4272,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.description": {
     en: "Provider callbacks that failed or have not been processed. Replay re-runs one from the bytes verified when the provider delivered it.",
     es: "Notificaciones de proveedores que fallaron o no se han procesado. Al reejecutar una, se vuelve a procesar a partir de los bytes verificados cuando el proveedor la entregó.",
-    fr: "Notifications de prestataires en échec ou non traitées. La réexécution en traite une à nouveau à partir des octets vérifiés lors de sa livraison par le prestataire.",
+    fr: "Webhooks de prestataires en échec ou non traités. Le rejeu en traite un à nouveau à partir des octets vérifiés lors de sa livraison par le prestataire.",
     de: "Anbieteraufrufe, die fehlgeschlagen sind oder nicht verarbeitet wurden. Eine Wiederholung verarbeitet einen Aufruf erneut anhand der Bytes, die bei der Zustellung durch den Anbieter verifiziert wurden.",
     ja: "失敗した、または未処理のプロバイダーのコールバックです。再実行すると、プロバイダーから配信された時点で検証済みのバイト列から処理し直します。",
     pt: "Chamadas de provedores que falharam ou não foram processadas. A reexecução processa uma delas novamente a partir dos bytes verificados quando o provedor a entregou.",
@@ -4302,7 +4302,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.source.live": {
     en: "Verified provider callbacks",
     es: "Notificaciones verificadas de proveedores",
-    fr: "Notifications vérifiées des prestataires",
+    fr: "Webhooks vérifiés des prestataires",
     de: "Verifizierte Anbieteraufrufe",
     ja: "検証済みのプロバイダーのコールバック",
     pt: "Chamadas verificadas de provedores",
@@ -4312,7 +4312,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.source.demo": {
     en: "Demonstration verified callback ledger",
     es: "Registro de demostración de notificaciones verificadas",
-    fr: "Registre de démonstration des notifications vérifiées",
+    fr: "Registre de démonstration des webhooks vérifiés",
     de: "Demo-Protokoll verifizierter Aufrufe",
     ja: "デモ用の検証済みコールバック台帳",
     pt: "Registro de demonstração de chamadas verificadas",
@@ -4322,7 +4322,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.source.unavailable": {
     en: "No callback read is available",
     es: "No hay ninguna lectura de notificaciones disponible",
-    fr: "Aucune lecture des notifications n’est disponible",
+    fr: "Aucune lecture des webhooks n’est disponible",
     de: "Kein Lesevorgang der Aufrufe verfügbar",
     ja: "コールバックの読み取り結果はありません",
     pt: "Nenhuma leitura de chamadas disponível",
@@ -4332,7 +4332,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.unreadable.title": {
     en: "The callback store could not be read.",
     es: "No se ha podido leer el almacén de notificaciones.",
-    fr: "Le stockage des notifications n’a pas pu être lu.",
+    fr: "Le stockage des webhooks n’a pas pu être lu.",
     de: "Der Speicher der Aufrufe konnte nicht gelesen werden.",
     ja: "コールバックの保存先を読み取れませんでした。",
     pt: "Não foi possível ler o armazenamento de chamadas.",
@@ -4342,7 +4342,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.unreadable.detail": {
     en: "This page is showing nothing because no read completed, which is a different state from having no stopped callbacks. Check the service database connection before concluding every callback landed.",
     es: "Esta página no muestra nada porque no se completó ninguna lectura, lo que no equivale a no tener notificaciones detenidas. Compruebe la conexión con la base de datos del servicio antes de concluir que todas las notificaciones llegaron.",
-    fr: "Cette page n’affiche rien, car aucune lecture n’a abouti, ce qui n’équivaut pas à l’absence de notifications arrêtées. Vérifiez la connexion à la base de données du service avant de conclure que toutes les notifications ont été reçues.",
+    fr: "Cette page n’affiche rien, car aucune lecture n’a abouti, ce qui n’équivaut pas à l’absence de webhooks arrêtés. Vérifiez la connexion à la base de données du service avant de conclure que tous les webhooks ont été reçus.",
     de: "Diese Seite zeigt nichts an, weil kein Lesevorgang abgeschlossen wurde. Das ist nicht dasselbe, wie keine angehaltenen Aufrufe zu haben. Prüfen Sie die Verbindung zur Service-Datenbank, bevor Sie schließen, dass alle Aufrufe angekommen sind.",
     ja: "読み取りが完了しなかったため、このページには何も表示されていません。これは停止したコールバックがない状態とは異なります。すべてのコールバックが届いたと判断する前に、サービスデータベースへの接続を確認してください。",
     pt: "Esta página não mostra nada porque nenhuma leitura foi concluída, o que é diferente de não haver chamadas interrompidas. Verifique a conexão com o banco de dados do serviço antes de concluir que todas as chamadas chegaram.",
@@ -4352,7 +4352,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.section.heading": {
     en: "Stopped callbacks",
     es: "Notificaciones detenidas",
-    fr: "Notifications arrêtées",
+    fr: "Webhooks arrêtés",
     de: "Angehaltene Aufrufe",
     ja: "停止したコールバック",
     pt: "Chamadas interrompidas",
@@ -4372,7 +4372,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.empty": {
     en: "No callback is stopped. Every verified event either processed or is still within its delivery attempts.",
     es: "No hay ninguna notificación detenida. Todos los eventos verificados se procesaron o siguen dentro de sus intentos de entrega.",
-    fr: "Aucune notification n’est arrêtée. Chaque événement vérifié a été traité ou dispose encore de tentatives de livraison.",
+    fr: "Aucun webhook n’est arrêté. Chaque événement vérifié a été traité ou dispose encore de tentatives de livraison.",
     de: "Kein Aufruf ist angehalten. Jedes verifizierte Ereignis wurde verarbeitet oder hat noch Zustellversuche übrig.",
     ja: "停止しているコールバックはありません。検証済みのイベントはすべて処理済みか、まだ配信の試行回数内です。",
     pt: "Nenhuma chamada está interrompida. Todos os eventos verificados foram processados ou ainda estão dentro das tentativas de entrega.",
@@ -4388,9 +4388,9 @@ export const operationsMessages = defineMessages({
       other: "{count} notificaciones",
     },
     fr: {
-      one: "{count} notification",
-      many: "{count} de notifications",
-      other: "{count} notifications",
+      one: "{count} webhook",
+      many: "{count} de webhooks",
+      other: "{count} webhooks",
     },
     de: { one: "{count} Aufruf", other: "{count} Aufrufe" },
     ja: { other: "{count}件のコールバック" },
@@ -4422,7 +4422,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.column.callback": {
     en: "Callback",
     es: "Notificación",
-    fr: "Notification",
+    fr: "Webhook",
     de: "Aufruf",
     ja: "コールバック",
     pt: "Chamada",
@@ -4492,7 +4492,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.action": {
     en: "Replay",
     es: "Reejecutar",
-    fr: "Réexécuter",
+    fr: "Rejouer",
     de: "Wiederholen",
     ja: "再実行",
     pt: "Reexecutar",
@@ -4502,7 +4502,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.confirm": {
     en: "Replay this callback",
     es: "Reejecutar esta notificación",
-    fr: "Réexécuter cette notification",
+    fr: "Rejouer ce webhook",
     de: "Diesen Aufruf wiederholen",
     ja: "このコールバックを再実行",
     pt: "Reexecutar esta chamada",
@@ -4512,7 +4512,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.pending": {
     en: "Replaying…",
     es: "Reejecutando…",
-    fr: "Réexécution…",
+    fr: "Rejeu en cours…",
     de: "Wird wiederholt…",
     ja: "再実行中…",
     pt: "Reexecutando…",
@@ -4522,7 +4522,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.dialog.title": {
     en: "Replay {callback}",
     es: "Reejecutar {callback}",
-    fr: "Réexécuter {callback}",
+    fr: "Rejouer {callback}",
     de: "{callback} wiederholen",
     ja: "{callback} を再実行",
     pt: "Reexecutar {callback}",
@@ -4552,7 +4552,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.detail.repeatSubmission": {
     en: "Replays started by submitting twice",
     es: "Reejecuciones iniciadas si se envía dos veces",
-    fr: "Réexécutions lancées par une double soumission",
+    fr: "Rejeux lancés par une double soumission",
     de: "Wiederholungen bei doppelter Übermittlung",
     ja: "二重送信した場合に開始される再実行",
     pt: "Reexecuções iniciadas ao enviar duas vezes",
@@ -4572,7 +4572,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.caption": {
     en: "Stopped provider callbacks with their failure and the replay available",
     es: "Notificaciones de proveedores detenidas con su fallo y la reejecución disponible",
-    fr: "Notifications de prestataires arrêtées avec leur échec et la réexécution possible",
+    fr: "Webhooks de prestataires arrêtés, avec leur échec et le rejeu possible",
     de: "Angehaltene Anbieteraufrufe mit Fehler und verfügbarer Wiederholung",
     ja: "停止したプロバイダーのコールバックとその失敗内容、実行できる再実行",
     pt: "Chamadas de provedores interrompidas com a falha e a reexecução disponível",
@@ -4582,7 +4582,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.reasonHelp": {
     en: "At least {min} characters. Give the incident or ticket reference and why replay is safe. Kept with your name on the audit record.",
     es: "Al menos {min} caracteres. Indique la referencia de la incidencia o del ticket y por qué es seguro reejecutar. Se conserva con su nombre en el registro de auditoría.",
-    fr: "Au moins {min} caractères. Indiquez la référence de l’incident ou du ticket et pourquoi la réexécution est sans risque. Conservé avec votre nom dans la piste d’audit.",
+    fr: "Au moins {min} caractères. Indiquez la référence de l’incident ou du ticket et pourquoi le rejeu est sans risque. Conservé avec votre nom dans la piste d’audit.",
     de: "Mindestens {min} Zeichen. Nennen Sie die Vorfall- oder Ticketreferenz und warum die Wiederholung sicher ist. Wird mit Ihrem Namen im Audit-Trail gespeichert.",
     ja: "{min}文字以上で入力してください。インシデントまたはチケットの参照番号と、再実行しても安全な理由を記載します。入力者名とともに監査証跡に記録されます。",
     pt: "Pelo menos {min} caracteres. Informe a referência do incidente ou do chamado e por que é seguro reexecutar. Fica registrado com seu nome na trilha de auditoria.",
@@ -4592,7 +4592,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.started": {
     en: "Replay started.",
     es: "Reejecución iniciada.",
-    fr: "Réexécution lancée.",
+    fr: "Rejeu lancé.",
     de: "Wiederholung gestartet.",
     ja: "再実行を開始しました。",
     pt: "Reexecução iniciada.",
@@ -4602,7 +4602,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.recentAuth": {
     en: "Sign in again to confirm it is you, then repeat the replay.",
     es: "Vuelva a iniciar sesión para confirmar su identidad y repita la reejecución.",
-    fr: "Reconnectez-vous pour confirmer votre identité, puis recommencez la réexécution.",
+    fr: "Reconnectez-vous pour confirmer votre identité, puis relancez le rejeu.",
     de: "Melden Sie sich erneut an, um Ihre Identität zu bestätigen, und wiederholen Sie dann den Vorgang.",
     ja: "本人確認のため再度サインインしてから、もう一度再実行してください。",
     pt: "Entre novamente para confirmar sua identidade e repita a reexecução.",
@@ -4612,7 +4612,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.forbidden": {
     en: "Your permission to replay provider callbacks has changed.",
     es: "Su permiso para reejecutar notificaciones de proveedores ha cambiado.",
-    fr: "Votre autorisation de réexécuter les notifications des prestataires a changé.",
+    fr: "Vos droits sur le rejeu des webhooks des prestataires ont changé.",
     de: "Ihre Berechtigung zum Wiederholen von Anbieteraufrufen hat sich geändert.",
     ja: "プロバイダーのコールバックを再実行する権限が変更されました。",
     pt: "Sua permissão para reexecutar chamadas de provedores mudou.",
@@ -4622,7 +4622,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.notFound": {
     en: "No verified callback matches this provider and event id.",
     es: "Ninguna notificación verificada coincide con este proveedor e ID de evento.",
-    fr: "Aucune notification vérifiée ne correspond à ce prestataire et à cet identifiant d’événement.",
+    fr: "Aucun webhook vérifié ne correspond à ce prestataire et à cet identifiant d’événement.",
     de: "Kein verifizierter Aufruf passt zu diesem Anbieter und dieser Ereignis-ID.",
     ja: "このプロバイダーとイベント ID に一致する検証済みのコールバックはありません。",
     pt: "Nenhuma chamada verificada corresponde a este provedor e ID de evento.",
@@ -4632,7 +4632,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.unavailable": {
     en: "The callback store cannot be reached.",
     es: "No se puede acceder al almacén de notificaciones.",
-    fr: "Le stockage des notifications est inaccessible.",
+    fr: "Le stockage des webhooks est inaccessible.",
     de: "Der Speicher der Aufrufe ist nicht erreichbar.",
     ja: "コールバックの保存先に接続できません。",
     pt: "Não é possível acessar o armazenamento de chamadas.",
@@ -4642,7 +4642,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.alreadyRunning": {
     en: "A replay for this callback is already running. Nothing new was started.",
     es: "Ya hay una reejecución en curso para esta notificación. No se ha iniciado nada nuevo.",
-    fr: "Une réexécution est déjà en cours pour cette notification. Rien de nouveau n’a été lancé.",
+    fr: "Un rejeu est déjà en cours pour ce webhook. Rien de nouveau n’a été lancé.",
     de: "Für diesen Aufruf läuft bereits eine Wiederholung. Es wurde nichts Neues gestartet.",
     ja: "このコールバックの再実行はすでに実行中です。新たには何も開始されていません。",
     pt: "Já há uma reexecução em andamento para esta chamada. Nada novo foi iniciado.",
@@ -4652,7 +4652,7 @@ export const operationsMessages = defineMessages({
   "operations.webhookReplay.failure.failed": {
     en: "The replay could not be started. Nothing changed.",
     es: "No se ha podido iniciar la reejecución. No ha cambiado nada.",
-    fr: "La réexécution n’a pas pu être lancée. Rien n’a changé.",
+    fr: "Le rejeu n’a pas pu être lancé. Rien n’a changé.",
     de: "Die Wiederholung konnte nicht gestartet werden. Es wurde nichts geändert.",
     ja: "再実行を開始できませんでした。何も変更されていません。",
     pt: "Não foi possível iniciar a reexecução. Nada foi alterado.",
@@ -4672,7 +4672,7 @@ export const operationsMessages = defineMessages({
   "operations.assisted.effectiveAccount": {
     en: "Effective account",
     es: "Cuenta efectiva",
-    fr: "Compte effectif",
+    fr: "Compte cible",
     de: "Wirksames Konto",
     ja: "対象アカウント",
     pt: "Conta efetiva",
@@ -4682,7 +4682,7 @@ export const operationsMessages = defineMessages({
   "operations.assisted.staffActor": {
     en: "Staff actor",
     es: "Empleado que actúa",
-    fr: "Membre du personnel agissant",
+    fr: "Auteur de l’action",
     de: "Handelnde Person",
     ja: "操作している社員",
     pt: "Colaborador que atua",
@@ -4712,7 +4712,7 @@ export const operationsMessages = defineMessages({
   "operations.assisted.serverSession": {
     en: "Server session {id} preserves the immutable staff actor and effective account on every authorized action.",
     es: "La sesión de servidor {id} conserva, en cada acción autorizada, el empleado que actúa, que no se puede cambiar, y la cuenta efectiva.",
-    fr: "La session serveur {id} conserve, pour chaque action autorisée, le membre du personnel agissant, qui ne peut pas être modifié, et le compte effectif.",
+    fr: "La session serveur {id} conserve, pour chaque action autorisée, l’auteur de l’action et le compte cible, tous deux immuables.",
     de: "Die Serversitzung {id} bewahrt bei jeder autorisierten Aktion die unveränderliche handelnde Person und das wirksame Konto.",
     ja: "サーバーセッション {id} は、承認済みのすべての操作について、変更できない操作者と対象アカウントを保持します。",
     pt: "A sessão do servidor {id} preserva, em cada ação autorizada, o colaborador que atua, que não pode ser alterado, e a conta efetiva.",
