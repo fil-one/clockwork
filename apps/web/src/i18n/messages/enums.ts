@@ -16,7 +16,7 @@ export const enumMessages = defineMessages({
   },
   "status.inNotice": {
     en: "In notice",
-    es: "En plazo de preaviso",
+    es: "En preaviso",
     fr: "En période de préavis",
     de: "In der Kündigungsfrist",
     ja: "通知期間中",
@@ -296,7 +296,7 @@ export const enumMessages = defineMessages({
   },
   "status.terminated": {
     en: "Terminated",
-    es: "Finalizado",
+    es: "Rescindido",
     fr: "Résilié",
     de: "Beendet",
     ja: "終了",
@@ -376,7 +376,7 @@ export const enumMessages = defineMessages({
   },
   "status.invoice.open": {
     en: "Open",
-    es: "Pendiente",
+    es: "Abierta",
     fr: "Ouverte",
     de: "Offen",
     ja: "未払い",

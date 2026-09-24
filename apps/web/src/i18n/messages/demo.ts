@@ -33,7 +33,7 @@ export const demoMessages = defineMessages({
   },
   "demo.access.title": {
     en: "Enter the demo password",
-    es: "Introducir la contraseña de la demo",
+    es: "Introduzca la contraseña de la demo",
     fr: "Saisir le mot de passe de la démo",
     de: "Demo-Passwort eingeben",
     ja: "デモのパスワードを入力",
@@ -85,7 +85,7 @@ export const demoMessages = defineMessages({
   },
   "demo.landing.title": {
     en: "Choose the person you are signing in as",
-    es: "Elegir con qué perfil iniciar sesión",
+    es: "Elija con qué perfil quiere iniciar sesión",
     fr: "Choisir le profil de connexion",
     de: "Anmeldeprofil wählen",
     ja: "ログインするユーザーの選択",
@@ -215,7 +215,7 @@ export const demoMessages = defineMessages({
   // Imani Ross, Fil One.
   "demo.persona.legalApprover.jobTitle": {
     en: "Commercial counsel",
-    es: "Abogada mercantil",
+    es: "Asesora jurídica",
     fr: "Juriste d’affaires",
     de: "Justiziarin",
     ja: "契約法務担当",
@@ -279,7 +279,7 @@ export const demoMessages = defineMessages({
   },
   "demo.persona.distributor.intent": {
     en: "Review a two-tier quote and consolidated billing exposure.",
-    es: "Revisar un presupuesto de distribución en dos niveles y el riesgo de la facturación consolidada.",
+    es: "Revisar un presupuesto de distribución de dos niveles y la exposición de la facturación consolidada.",
     fr: "Examiner un devis de distribution à deux niveaux et l’exposition de la facturation consolidée.",
     de: "Ein zweistufiges Angebot und das Risiko aus der konsolidierten Abrechnung prüfen.",
     ja: "二層流通の見積もりと、統合請求のリスク額を確認します。",
@@ -309,7 +309,7 @@ export const demoMessages = defineMessages({
   },
   "demo.persona.legalApprover.intent": {
     en: "Review customer paper and its material renewal variance.",
-    es: "Revisar el contrato propio del cliente y su diferencia significativa en la renovación.",
+    es: "Revisar el contrato del cliente y su diferencia sustancial en la renovación.",
     fr: "Examiner le contrat du client et son écart significatif au renouvellement.",
     de: "Den Kundenvertrag und seine wesentliche Abweichung bei der Verlängerung prüfen.",
     ja: "顧客提示の契約書と、契約更新条件の重要な差異を確認します。",
@@ -623,7 +623,7 @@ export const demoMessages = defineMessages({
   },
   "demo.panel.reset": {
     en: "Restore demo data",
-    es: "Restaurar los datos de la demo",
+    es: "Restablecer los datos de la demo",
     fr: "Restaurer les données de la démo",
     de: "Demo-Daten wiederherstellen",
     ja: "デモデータを復元",

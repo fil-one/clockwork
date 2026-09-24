@@ -233,7 +233,7 @@ const team = {
   }),
   partnerBilling: demoText({
     en: "Partner billing",
-    es: "Facturación de socios",
+    es: "Facturación del socio",
     fr: "Facturation partenaires",
     de: "Partnerabrechnung",
     ja: "パートナー請求担当",
@@ -243,7 +243,7 @@ const team = {
   }),
   partnerFinance: demoText({
     en: "Partner finance",
-    es: "Finanzas de socios",
+    es: "Finanzas del socio",
     fr: "Finance partenaires",
     de: "Partnerfinanzen",
     ja: "パートナー財務担当",
@@ -664,7 +664,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       id: "INV-LUMEN-0114",
       title: demoText({
         en: "July field archive",
-        es: "Archivo de campo · julio",
+        es: "Archivo de campo de julio",
         fr: "Archive terrain · juillet",
         de: "Feldarchiv · Juli",
         ja: "フィールドアーカイブ（7月分）",
@@ -1045,7 +1045,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       id: "DSP-2026-0015",
       name: demoText({
         en: "Cobalt Orchard provisioning credit",
-        es: "Crédito por aprovisionamiento · Cobalt Orchard",
+        es: "Abono por aprovisionamiento · Cobalt Orchard",
         fr: "Crédit de service sur le provisionnement · Cobalt Orchard",
         de: "Servicegutschrift für die Bereitstellung · Cobalt Orchard",
         ja: "Cobalt Orchard のプロビジョニングに関するクレジット",
@@ -1091,7 +1091,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       }),
       context: demoText({
         en: "Referral · disbursement pending in the provider feed",
-        es: "Recomendación · pago al socio pendiente en los datos del proveedor",
+        es: "Recomendación · liquidación del marketplace pendiente en los datos del proveedor",
         fr: "Apport d’affaires · versement en attente dans le flux du prestataire",
         de: "Empfehlung · Auszahlung im Datenfeed des Anbieters ausstehend",
         ja: "紹介・プロバイダーのフィード上で支払いが保留中",
@@ -1203,7 +1203,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       }),
       context: demoText({
         en: "9 collections · 1 credit · no holdback",
-        es: "9 cobros · 1 factura rectificativa · sin retención",
+        es: "9 cobros · 1 abono · sin retención",
         fr: "9 encaissements · 1 avoir · aucune retenue",
         de: "9 Zahlungseingänge · 1 Gutschrift · kein Einbehalt",
         ja: "回収 9 件・クレジットノート 1 件・留保額なし",
@@ -1548,7 +1548,7 @@ const internalBook: readonly DemoPortalRecord[] = [
   internal("quotes", "Q-2026-0184-v3", {
     title: demoText({
       en: "Enterprise committed capacity · Meridian",
-      es: "Capacidad contratada para empresas · Meridian",
+      es: "Capacidad contratada empresarial · Meridian",
       fr: "Capacité souscrite entreprise · Meridian",
       de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
       ja: "エンタープライズ向け契約容量・Meridian",
@@ -1558,7 +1558,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     }),
     name: demoText({
       en: "Enterprise committed capacity · Meridian",
-      es: "Capacidad contratada para empresas · Meridian",
+      es: "Capacidad contratada empresarial · Meridian",
       fr: "Capacité souscrite entreprise · Meridian",
       de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
       ja: "エンタープライズ向け契約容量・Meridian",
@@ -1568,7 +1568,7 @@ const internalBook: readonly DemoPortalRecord[] = [
     }),
     description: demoText({
       en: "400 TB · US East · annual · direct",
-      es: "400 TB · EE. UU. Este · anual · directo",
+      es: "400 TB · EE. UU. Este · anual · venta directa",
       fr: "400 To · Est des États-Unis · annuel · direct",
       de: "400 TB · USA Ost · jährlich · direkt",
       ja: "400 TB・米国東部・年間・直接販売",
@@ -1615,7 +1615,7 @@ const internalBook: readonly DemoPortalRecord[] = [
       }),
       description: demoText({
         en: "PO-NA-1048 · 500 TB · US East · direct",
-        es: "PO-NA-1048 · 500 TB · EE. UU. Este · directo",
+        es: "PO-NA-1048 · 500 TB · EE. UU. Este · venta directa",
         fr: "PO-NA-1048 · 500 To · Est des États-Unis · direct",
         de: "PO-NA-1048 · 500 TB · USA Ost · direkt",
         ja: "PO-NA-1048・500 TB・米国東部・直接販売",

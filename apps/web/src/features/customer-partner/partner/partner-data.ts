@@ -274,7 +274,7 @@ const portfolio: readonly PartnerFixture[] = [
     name: "Atlas Field Imaging",
     context: demoText({
       en: "Two-tier resale · UK South · 14 TB POC",
-      es: "Reventa en dos niveles · Reino Unido Sur · POC de 14 TB",
+      es: "Reventa de dos niveles · Reino Unido Sur · POC de 14 TB",
       fr: "Revente à deux niveaux · Sud du Royaume-Uni · POC de 14 To",
       de: "Zweistufiger Wiederverkauf · UK Süd · POC mit 14 TB",
       ja: "2階層の再販・英国南部・14 TB の PoC",
@@ -358,7 +358,7 @@ const registrations: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "Two-tier resale · 320 TB · 45-day protection requested",
-      es: "Reventa en dos niveles · 320 TB · protección solicitada de 45 días",
+      es: "Reventa de dos niveles · 320 TB · protección solicitada de 45 días",
       fr: "Revente à deux niveaux · 320 To · protection de 45 jours demandée",
       de: "Zweistufiger Wiederverkauf · 320 TB · 45 Tage Schutz beantragt",
       ja: "2階層の再販・320 TB・45日間の保護を申請",
@@ -444,7 +444,7 @@ const disputes: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "Registration ownership · partner evidence submitted",
-      es: "Titularidad del registro · evidencias del socio enviadas",
+      es: "Titularidad del registro · evidencia del socio enviada",
       fr: "Titularité de l’enregistrement · preuves du partenaire transmises",
       de: "Inhaberschaft der Registrierung · Nachweise des Partners eingereicht",
       ja: "登録の帰属・パートナーの証跡を提出済み",
@@ -462,7 +462,7 @@ const disputes: readonly PartnerFixture[] = [
     id: "DSP-2026-0008",
     name: demoText({
       en: "Halcyon service credit",
-      es: "Crédito de servicio de Halcyon",
+      es: "Abono de servicio de Halcyon",
       fr: "Crédit de service Halcyon",
       de: "Servicegutschrift für Halcyon",
       ja: "Halcyon のサービスクレジット",
@@ -537,7 +537,7 @@ const quotes: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "Two-tier resale · UK South · 80 TB · 12 months",
-      es: "Reventa en dos niveles · Reino Unido Sur · 80 TB · 12 meses",
+      es: "Reventa de dos niveles · Reino Unido Sur · 80 TB · 12 meses",
       fr: "Revente à deux niveaux · Sud du Royaume-Uni · 80 To · 12 mois",
       de: "Zweistufiger Wiederverkauf · UK Süd · 80 TB · 12 Monate",
       ja: "2階層の再販・英国南部・80 TB・12か月",
@@ -603,7 +603,7 @@ const billing: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "12 end clients · ACH ending 1842 · Meridian is merchant of record",
-      es: "12 clientes finales · ACH terminada en 1842 · Meridian es el vendedor responsable de la transacción",
+      es: "12 clientes finales · cuenta ACH terminada en 1842 · Meridian es el vendedor responsable de la transacción",
       fr: "12 clients finaux · ACH se terminant par 1842 · Meridian est le vendeur responsable de la transaction",
       de: "12 Endkunden · ACH endet auf 1842 · Meridian ist Merchant of Record",
       ja: "エンド顧客 12社・末尾 1842 の ACH・販売主体は Meridian",
@@ -668,7 +668,7 @@ const commissions: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "34 collections · 2 credits · 1 holdback",
-      es: "34 cobros · 2 créditos · 1 retención",
+      es: "34 cobros · 2 abonos · 1 retención",
       fr: "34 encaissements · 2 crédits · 1 retenue",
       de: "34 Zahlungseingänge · 2 Gutschriften · 1 Einbehalt",
       ja: "回収 34件・クレジット 2件・留保 1件",
@@ -718,7 +718,7 @@ const renewals: readonly PartnerFixture[] = [
     name: "Halcyon Research Cooperative",
     context: demoText({
       en: "Resale · 280 TB · current term ends Dec 31",
-      es: "Reventa · 280 TB · la duración actual termina el 31 de diciembre",
+      es: "Reventa · 280 TB · la vigencia actual termina el 31 de diciembre",
       fr: "Revente · 280 To · la durée en cours se termine le 31 décembre",
       de: "Wiederverkauf · 280 TB · aktuelle Laufzeit endet am 31. Dezember",
       ja: "再販・280 TB・現在の契約期間は12月31日まで",
@@ -742,7 +742,7 @@ const renewals: readonly PartnerFixture[] = [
     name: "Solace Public Records",
     context: demoText({
       en: "Referral · 65 TB · current term ends Feb 28",
-      es: "Recomendación · 65 TB · la duración actual termina el 28 de febrero",
+      es: "Recomendación · 65 TB · la vigencia actual termina el 28 de febrero",
       fr: "Apport d’affaires · 65 To · la durée en cours se termine le 28 février",
       de: "Empfehlung · 65 TB · aktuelle Laufzeit endet am 28. Februar",
       ja: "紹介・65 TB・現在の契約期間は2月28日まで",
@@ -868,7 +868,7 @@ const marketplace: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "Two-tier preview · buyer has not accepted",
-      es: "Vista previa en dos niveles · el comprador no ha aceptado",
+      es: "Vista previa de dos niveles · el comprador no ha aceptado",
       fr: "Aperçu à deux niveaux · l’acheteur n’a pas accepté",
       de: "Zweistufige Vorschau · Käufer hat nicht angenommen",
       ja: "2階層のプレビュー・購入者は承諾していません",

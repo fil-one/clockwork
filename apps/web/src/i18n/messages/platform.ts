@@ -80,7 +80,7 @@ export const platformMessages = defineMessages({
   },
   "app.verifyAuthentication": {
     en: "Verify identity for sensitive changes",
-    es: "Verificar su identidad para cambios sensibles",
+    es: "Verificar identidad para cambios sensibles",
     fr: "Vérifier votre identité pour les modifications sensibles",
     de: "Identität für sensible Änderungen bestätigen",
     ja: "重要な変更の前に本人確認",
@@ -180,7 +180,7 @@ export const platformMessages = defineMessages({
   },
   "app.search.hint": {
     en: "Find a page or action",
-    es: "Busque una página o una acción",
+    es: "Buscar una página o una acción",
     fr: "Rechercher une page ou une action",
     de: "Seite oder Aktion suchen",
     ja: "ページや操作を検索",
@@ -280,7 +280,7 @@ export const platformMessages = defineMessages({
   },
   "app.command.action.inviteUser": {
     en: "Manage access for the current organization.",
-    es: "Administre el acceso a la organización actual.",
+    es: "Gestione el acceso a la organización actual.",
     fr: "Gérez l’accès à l’organisation actuelle.",
     de: "Zugriff auf die aktuelle Organisation verwalten.",
     ja: "現在の組織へのアクセスを管理します。",
@@ -290,7 +290,7 @@ export const platformMessages = defineMessages({
   },
   "app.command.action.registerDeal": {
     en: "Protect a new partner opportunity.",
-    es: "Proteja una nueva oportunidad de socio.",
+    es: "Proteja una nueva oportunidad comercial.",
     fr: "Protégez une nouvelle opportunité partenaire.",
     de: "Neuen Partner-Deal registrieren und schützen.",
     ja: "新しいパートナー案件を保護します。",
@@ -490,7 +490,7 @@ export const platformMessages = defineMessages({
   },
   "session.mfa.title": {
     en: "One more verification",
-    es: "Una verificación más",
+    es: "Verificación adicional",
     fr: "Une vérification supplémentaire",
     de: "Eine weitere Bestätigung",
     ja: "追加の本人確認",
@@ -530,7 +530,7 @@ export const platformMessages = defineMessages({
   },
   "session.permission.description": {
     en: "Switch organizations or ask an owner to update your commerce role.",
-    es: "Cambie de organización o pida a un propietario que actualice su rol comercial.",
+    es: "Cambie de organización o pida al propietario de la cuenta que actualice su rol comercial.",
     fr: "Changez d’organisation ou demandez à un propriétaire de modifier votre rôle commercial.",
     de: "Wechseln Sie die Organisation oder bitten Sie den Kontoinhaber, Ihre Commerce-Rolle anzupassen.",
     ja: "組織を切り替えるか、所有者にコマースロールの更新を依頼してください。",
@@ -690,7 +690,7 @@ export const platformMessages = defineMessages({
   },
   "nav.partner.quotes": {
     en: "Partner quotes",
-    es: "Presupuestos de socios",
+    es: "Presupuestos de socio",
     fr: "Devis partenaires",
     de: "Partnerangebote",
     ja: "パートナー見積もり",
@@ -750,7 +750,7 @@ export const platformMessages = defineMessages({
   },
   "nav.partner.sandboxes": {
     en: "Sandboxes & POCs",
-    es: "Entornos de prueba y POC",
+    es: "Entornos de pruebas y POC",
     fr: "Environnements de test et POC",
     de: "Testumgebungen und POCs",
     ja: "サンドボックスと PoC",
@@ -950,7 +950,7 @@ export const platformMessages = defineMessages({
   },
   "nav.internal.capabilities": {
     en: "Capabilities",
-    es: "Funciones habilitadas",
+    es: "Funciones",
     fr: "Fonctionnalités activées",
     de: "Freigeschaltete Funktionen",
     ja: "機能の有効化",
@@ -1020,7 +1020,7 @@ export const platformMessages = defineMessages({
   },
   "nav.group.legal": {
     en: "Legal record",
-    es: "Registro legal",
+    es: "Documentación legal",
     fr: "Dossier juridique",
     de: "Vertragsunterlagen",
     ja: "法務記録",
@@ -1230,7 +1230,7 @@ export const platformMessages = defineMessages({
   },
   "state.success.description": {
     en: "The immutable document, audit event, and notification were created together.",
-    es: "El documento inmutable, el evento de auditoría y la notificación se crearon juntos.",
+    es: "El documento inmutable, el evento de auditoría y la notificación se han creado a la vez.",
     fr: "Le document immuable, l’événement d’audit et la notification ont été créés ensemble.",
     de: "Unveränderliches Dokument, Audit-Ereignis und Benachrichtigung wurden gemeinsam erstellt.",
     ja: "不変文書、監査イベント、通知がまとめて作成されました。",
@@ -1290,7 +1290,7 @@ export const platformMessages = defineMessages({
   },
   "state.recoverable.description": {
     en: "No duplicate action was created. Retry uses the original idempotency key.",
-    es: "No se creó una acción duplicada. El reintento usa la clave de idempotencia original.",
+    es: "No se ha creado ninguna acción duplicada. El reintento usa la clave de idempotencia original.",
     fr: "Aucune action en double n’a été créée. La nouvelle tentative utilise la clé d’idempotence d’origine.",
     de: "Keine doppelte Aktion erstellt. Der erneute Versuch nutzt den ursprünglichen Idempotenzschlüssel.",
     ja: "重複操作は作成されていません。再試行では元の冪等性キーを使用します。",
@@ -1374,7 +1374,7 @@ export const platformMessages = defineMessages({
   ),
   "platform.shell.footer": {
     en: "Fil One commerce records are synchronized from the operating ledger.",
-    es: "Los registros comerciales de Fil One se sincronizan a partir del registro operativo.",
+    es: "Los registros comerciales de Fil One se sincronizan desde el registro operativo.",
     fr: "Les enregistrements commerciaux de Fil One sont synchronisés à partir du registre opérationnel.",
     de: "Die kommerziellen Datensätze von Fil One werden aus dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳から同期されています。",
@@ -1499,10 +1499,10 @@ export const platformMessages = defineMessages({
       other: "{percent} of the term elapsed, {days} days since the start",
     },
     es: {
-      one: "Ha transcurrido el {percent} de la duración, {days} día desde el inicio",
-      many: "Ha transcurrido el {percent} de la duración, {days} de días desde el inicio",
+      one: "Ha transcurrido el {percent} de la vigencia, {days} día desde el inicio",
+      many: "Ha transcurrido el {percent} de la vigencia, {days} de días desde el inicio",
       other:
-        "Ha transcurrido el {percent} de la duración, {days} días desde el inicio",
+        "Ha transcurrido el {percent} de la vigencia, {days} días desde el inicio",
     },
     fr: {
       one: "{percent} de la durée écoulée, {days} jour depuis le début",
@@ -1561,7 +1561,7 @@ export const platformMessages = defineMessages({
   },
   "platform.term.endDate": {
     en: "Term ends {date}",
-    es: "La duración finaliza el {date}",
+    es: "La vigencia finaliza el {date}",
     fr: "La durée prend fin le {date}",
     de: "Laufzeit endet am {date}",
     ja: "契約期間の終了日は{date}",
@@ -1761,7 +1761,7 @@ export const platformMessages = defineMessages({
   },
   "platform.globalError.retry": {
     en: "Try again",
-    es: "Volver a intentarlo",
+    es: "Reintentar",
     fr: "Réessayer",
     de: "Erneut versuchen",
     ja: "再試行",
@@ -1901,7 +1901,7 @@ export const platformMessages = defineMessages({
   },
   "platform.api.gate.forbidden": {
     en: "Your authority or recent sign-in could not be verified.",
-    es: "No se ha podido verificar su autorización ni su inicio de sesión reciente.",
+    es: "No se ha podido verificar su autoridad o su inicio de sesión reciente.",
     fr: "Votre habilitation ou votre connexion récente n’a pas pu être vérifiée.",
     de: "Ihre Befugnis oder Ihre kürzliche Anmeldung konnte nicht überprüft werden.",
     ja: "権限または最近のサインインを確認できませんでした。",
@@ -1951,7 +1951,7 @@ export const platformMessages = defineMessages({
   },
   "signing.description": {
     en: "Your place is kept while the signing provider opens. No agreement becomes active until the provider’s completion notice arrives and is verified.",
-    es: "Se conserva su posición mientras se abre el proveedor de firma. Ningún acuerdo entra en vigor hasta que se recibe y se verifica el aviso de finalización del proveedor.",
+    es: "Su progreso se conserva mientras se abre el proveedor de firma. Ningún acuerdo entra en vigor hasta que se recibe y se verifica el aviso de finalización del proveedor.",
     fr: "Votre position est conservée pendant l’ouverture du prestataire de signature. Aucun accord n’entre en vigueur tant que l’avis de finalisation du prestataire n’a pas été reçu et vérifié.",
     de: "Ihre Position bleibt erhalten, während der Signaturanbieter geöffnet wird. Keine Vereinbarung tritt in Kraft, bevor die Abschlussmeldung des Anbieters eingegangen und geprüft ist.",
     ja: "署名プロバイダーを開いている間も、この画面の位置は保持されます。プロバイダーからの完了通知を受信して検証するまで、契約は有効になりません。",
@@ -2131,7 +2131,7 @@ export const platformMessages = defineMessages({
   },
   "signing.declined.title": {
     en: "Signature declined",
-    es: "Firma rechazada",
+    es: "Firma declinada",
     fr: "Signature refusée",
     de: "Signatur abgelehnt",
     ja: "署名は辞退されました",
@@ -2241,7 +2241,7 @@ export const platformMessages = defineMessages({
   },
   "signing.demo.description": {
     en: "This service stands in for the e-sign provider. Signing here completes the envelope and returns you to Fil One, where the real return reconciliation runs.",
-    es: "Este servicio sustituye al proveedor de firma electrónica. Al firmar aquí se completa el sobre y vuelve a Fil One, donde se ejecuta la conciliación real del retorno.",
+    es: "Este servicio sustituye al proveedor de firma electrónica. Al firmar aquí se completa el sobre y se le devuelve a Fil One, donde se ejecuta la conciliación real del retorno.",
     fr: "Ce service remplace le prestataire de signature électronique. Signer ici finalise l’enveloppe et vous ramène à Fil One, où s’exécute le véritable rapprochement du retour.",
     de: "Dieser Dienst ersetzt den E-Signatur-Anbieter. Wenn Sie hier unterzeichnen, wird der Umschlag abgeschlossen und Sie kehren zu Fil One zurück, wo die tatsächliche Abstimmung der Rückmeldung erfolgt.",
     ja: "このサービスは電子署名プロバイダーの代わりです。ここで署名するとエンベロープが完了し、実際の戻り処理の照合を行う Fil One に戻ります。",
@@ -2783,7 +2783,7 @@ export const platformMessages = defineMessages({
   // Panel frame, status and actions.
   "platform.workflow.eyebrow": {
     en: "Server-backed action",
-    es: "Acción registrada en el servidor",
+    es: "Acción ejecutada en el servidor",
     fr: "Action enregistrée sur le serveur",
     de: "Serverseitige Aktion",
     ja: "サーバーで処理する操作",
@@ -3267,7 +3267,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.poc.expiresAt": {
     en: "Expires",
-    es: "Caduca el",
+    es: "Fecha de caducidad",
     fr: "Date d’expiration",
     de: "Läuft ab am",
     ja: "有効期限",
@@ -3419,7 +3419,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.renewal.evidenceDocumentId": {
     en: "Decline evidence document ID",
-    es: "ID del documento de evidencia de la decisión",
+    es: "ID del documento de evidencia para declinar",
     fr: "ID du document de preuve de la décision",
     de: "Nachweisdokument-ID der Ablehnung",
     ja: "辞退の証跡ドキュメント ID",
@@ -3615,7 +3615,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.procurement.apName": {
     en: "Accounts payable contact name",
-    es: "Nombre del contacto de cuentas por pagar",
+    es: "Nombre del contacto de cuentas a pagar",
     fr: "Nom du contact en comptabilité fournisseurs",
     de: "Name des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者の氏名",
@@ -3625,7 +3625,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.procurement.apEmail": {
     en: "Accounts payable contact email",
-    es: "Correo electrónico del contacto de cuentas por pagar",
+    es: "Correo electrónico del contacto de cuentas a pagar",
     fr: "E-mail du contact en comptabilité fournisseurs",
     de: "E-Mail-Adresse des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者のメールアドレス",
@@ -3667,7 +3667,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.invite.expiresAt": {
     en: "Invitation expires",
-    es: "La invitación caduca el",
+    es: "Caducidad de la invitación",
     fr: "Expiration de l’invitation",
     de: "Einladung läuft ab am",
     ja: "招待の有効期限",
@@ -3932,7 +3932,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.metaDescription": {
     en: "The security, privacy and compliance controls this system implements, each citing the source that shows it, and a plain statement of what is not claimed.",
-    es: "Los controles de seguridad, privacidad y cumplimiento normativo que implementa este sistema, cada uno con la fuente que lo demuestra, y una declaración clara de lo que no se afirma.",
+    es: "Los controles de seguridad, privacidad y cumplimiento normativo que implementa este sistema, cada uno con la fuente que lo muestra, y una declaración clara de lo que no se afirma.",
     fr: "Les contrôles de sécurité, de confidentialité et de conformité que ce système met en œuvre, chacun avec la source qui le démontre, et un énoncé clair de ce qui n’est pas revendiqué.",
     de: "Die Sicherheits-, Datenschutz- und Compliance-Kontrollen, die dieses System umsetzt, jeweils mit dem Quellcode, der sie belegt, und eine klare Aussage darüber, was nicht behauptet wird.",
     ja: "このシステムが実装しているセキュリティ、プライバシー、コンプライアンスのコントロールと、それぞれを示すソース、そして主張していないことの明確な説明。",
@@ -3992,7 +3992,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.controls.caption": {
     en: "{section}: implemented controls and the source that shows each one",
-    es: "{section}: controles implementados y el código fuente que demuestra cada uno",
+    es: "{section}: controles implementados y el código fuente que muestra cada uno",
     fr: "{section}\u00a0: contrôles mis en œuvre et source qui démontre chacun d’eux",
     de: "{section}: umgesetzte Kontrollen und der Quellcode, der jede davon belegt",
     ja: "{section}：実装済みのコントロールと、それぞれを示すソース",
@@ -4194,7 +4194,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.section.dataProtection.summary": {
     en: "How records and documents are stored, retained and accessed, and how counterparties are screened.",
-    es: "Cómo se almacenan, conservan y consultan los registros y documentos, y cómo se controla a las contrapartes.",
+    es: "Cómo se almacenan, conservan y consultan los registros y documentos, y cómo se verifica el cumplimiento de las contrapartes.",
     fr: "Comment les enregistrements et les documents sont stockés, conservés et consultés, et comment les contreparties sont filtrées.",
     de: "Wie Datensätze und Dokumente gespeichert, aufbewahrt und abgerufen werden und wie Vertragspartner geprüft werden.",
     ja: "記録と文書の保存、保持、アクセスの方法と、取引相手のスクリーニング方法。",
@@ -4328,7 +4328,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.control.deniedPartyScreening": {
     en: "Counterparties are screened at registration, before signature and at partner activation, and re-screened on expiry. Four embargoed jurisdictions are refused regardless of what the screening provider answers, and a non-clear decision cannot be recorded without a stored match-evidence document.",
-    es: "Las contrapartes se someten a control de partes restringidas en el registro, antes de la firma y en la activación de socios, y se vuelven a controlar cuando el resultado caduca. Cuatro jurisdicciones bajo embargo se rechazan con independencia de lo que responda el proveedor de control, y no se puede registrar ninguna decisión distinta de «sin coincidencias» sin un documento almacenado con la evidencia de la coincidencia.",
+    es: "Las contrapartes se someten a verificación de partes restringidas en el registro, antes de la firma y en la activación de socios, y se vuelven a verificar cuando el resultado caduca. Cuatro jurisdicciones bajo embargo se rechazan con independencia de lo que responda el proveedor de verificación, y no se puede registrar ninguna decisión distinta de «sin coincidencias» sin un documento almacenado con la evidencia de la coincidencia.",
     fr: "Les contreparties font l’objet d’un filtrage à l’enregistrement, avant la signature et à l’activation d’un partenaire, puis d’un nouveau filtrage à l’expiration du résultat. Quatre juridictions sous embargo sont refusées quelle que soit la réponse du prestataire de filtrage, et aucune décision autre que «\u00a0aucune correspondance\u00a0» ne peut être enregistrée sans document de preuve de correspondance stocké.",
     de: "Vertragspartner werden bei der Registrierung, vor der Unterzeichnung und bei der Partneraktivierung einer Sanktionslistenprüfung unterzogen und nach Ablauf erneut geprüft. Vier Embargo-Rechtsordnungen werden unabhängig von der Antwort des Prüfanbieters abgelehnt, und eine Entscheidung, die nicht „unbedenklich“ lautet, kann ohne ein gespeichertes Nachweisdokument zum Treffer nicht erfasst werden.",
     ja: "取引相手は、登録時、署名前、パートナー有効化時にスクリーニングされ、結果の有効期限が切れると再スクリーニングされます。禁輸対象の4つの法域は、スクリーニングプロバイダーの回答にかかわらず拒否されます。また、「該当なし」以外の判定は、照合の証跡文書が保存されていなければ記録できません。",
@@ -4408,7 +4408,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.control.idempotency": {
     en: "State-changing requests require an idempotency key, and a repeated key replays the stored first response instead of performing the operation twice. The inbound provider webhook routes are exempt from this requirement as well, because a provider chooses its own retry identifiers; they are deduplicated instead by claiming the provider’s event ID. A response with status 500 or above is never stored for replay, so a dependency failure does not become a cached outage.",
-    es: "Las solicitudes que modifican el estado exigen una clave de idempotencia, y una clave repetida devuelve la primera respuesta almacenada en lugar de ejecutar la operación dos veces. Las rutas de webhooks entrantes de proveedores también están exentas de este requisito, porque cada proveedor elige sus propios identificadores de reintento; en su lugar se deduplican reclamando el ID de evento del proveedor. Una respuesta con estado 500 o superior nunca se guarda para reproducirla, de modo que un fallo de una dependencia no se convierte en una interrupción almacenada en caché.",
+    es: "Las solicitudes que modifican el estado exigen una clave de idempotencia, y una clave repetida devuelve la primera respuesta almacenada en lugar de ejecutar la operación dos veces. Las rutas de webhooks entrantes de proveedores también están exentas de este requisito, porque cada proveedor elige sus propios identificadores de reintento; en su lugar se deduplican reclamando el ID de evento del proveedor. Una respuesta con estado 500 o superior nunca se guarda para servirla de nuevo, de modo que un fallo de una dependencia no se convierte en una interrupción almacenada en caché.",
     fr: "Les requêtes qui modifient l’état exigent une clé d’idempotence, et une clé répétée renvoie la première réponse stockée au lieu d’exécuter l’opération deux fois. Les routes de webhooks entrants des prestataires sont également exemptées de cette exigence, car chaque prestataire choisit ses propres identifiants de nouvelle tentative\u202f; elles sont dédoublonnées à la place en prenant en charge l’identifiant d’événement du prestataire. Une réponse de statut 500 ou plus n’est jamais conservée pour être rejouée, de sorte qu’une défaillance d’une dépendance ne devient pas une panne mise en cache.",
     de: "Zustandsändernde Anfragen erfordern einen Idempotenzschlüssel, und ein wiederholter Schlüssel liefert die gespeicherte erste Antwort erneut aus, statt den Vorgang zweimal auszuführen. Die Routen für eingehende Anbieter-Webhooks sind ebenfalls von dieser Pflicht ausgenommen, da jeder Anbieter seine eigenen Wiederholungskennungen wählt; sie werden stattdessen dedupliziert, indem die Ereignis-ID des Anbieters beansprucht wird. Eine Antwort mit Status 500 oder höher wird nie für die Wiedergabe gespeichert, damit ein Ausfall einer Abhängigkeit nicht zu einem zwischengespeicherten Ausfall wird.",
     ja: "状態を変更するリクエストには冪等性キーが必要で、同じキーが繰り返されると、操作を2回実行する代わりに保存済みの最初のレスポンスを再送します。プロバイダーからの受信 Webhook ルートは、プロバイダーが独自の再試行識別子を選ぶため、この要件からも除外されています。代わりに、プロバイダーのイベント ID を取得済みとして記録することで重複排除されます。ステータスが 500 以上のレスポンスが再送用に保存されることはないため、依存先の障害がキャッシュされた障害になることはありません。",
@@ -4480,7 +4480,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.integration.amazonS3": {
     en: "Immutable evidence and document storage under Object Lock.",
-    es: "Almacenamiento inmutable de evidencias y documentos con bloqueo de objetos (Object Lock).",
+    es: "Almacenamiento inmutable de evidencia y documentos con bloqueo de objetos (Object Lock).",
     fr: "Stockage immuable des preuves et des documents sous verrouillage d’objet (Object Lock).",
     de: "Unveränderlicher Speicher für Nachweise und Dokumente unter Objektsperre (Object Lock).",
     ja: "オブジェクトロック（Object Lock）による、証跡と文書の変更不可能なストレージ。",
@@ -4542,7 +4542,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.capability.screening": {
     en: "Denied-party screening",
-    es: "Control de partes restringidas",
+    es: "Verificación de partes restringidas",
     fr: "Filtrage des parties soumises à restrictions",
     de: "Sanktionslistenprüfung",
     ja: "取引制限対象者のスクリーニング",
@@ -5025,7 +5025,7 @@ export const platformMessages = defineMessages({
   },
   "platform.developers.class.providerSignature.detail": {
     en: "No session, no permission and no account scope. The signature is the whole control: it is verified against the unparsed body, and the event id is claimed so a redelivery is deduplicated rather than applied twice. These routes are deliberately exempt from the CSRF and idempotency-key checks, and the browser proxy does not put sign-in in front of them.",
-    es: "Sin sesión, sin permiso y sin ámbito de cuenta. La firma es todo el control: se verifica contra el cuerpo sin analizar y se registra el ID del evento, de modo que una reentrega se deduplica en lugar de aplicarse dos veces. Estas rutas quedan exentas a propósito de las comprobaciones de CSRF y de idempotency-key, y el proxy del navegador no les antepone el inicio de sesión.",
+    es: "Sin sesión, sin permiso y sin ámbito de cuenta. La firma es todo el control: se verifica contra el cuerpo sin analizar y se reclama el ID del evento, de modo que una reentrega se deduplica en lugar de aplicarse dos veces. Estas rutas quedan exentas a propósito de las comprobaciones de CSRF y de clave de idempotencia, y el proxy del navegador no les antepone el inicio de sesión.",
     fr: "Ni session, ni autorisation, ni périmètre de compte. La signature constitue tout le contrôle\u00a0: elle est vérifiée sur le corps non analysé, et l’identifiant de l’événement est enregistré afin qu’une nouvelle livraison soit dédupliquée au lieu d’être appliquée deux fois. Ces routes sont volontairement exemptées des contrôles CSRF et idempotency-key, et le proxy du navigateur ne leur impose pas de connexion.",
     de: "Keine Sitzung, keine Berechtigung, kein Kontobereich. Die Signatur ist die gesamte Kontrolle: sie wird gegen den nicht geparsten Anforderungstext geprüft, und die Ereignis-ID wird registriert, sodass eine erneute Zustellung dedupliziert statt doppelt angewendet wird. Diese Routen sind bewusst von den CSRF- und idempotency-key-Prüfungen ausgenommen, und der Browser-Proxy schaltet ihnen keine Anmeldung vor.",
     ja: "セッション、権限、アカウントスコープはいずれもありません。署名がすべての制御です。署名は解析前のボディに対して検証され、イベント ID が記録されるため、再送は二重に適用されず重複として除外されます。これらのルートは意図的に CSRF と idempotency-key のチェックの対象外で、ブラウザープロキシもサインインを要求しません。",

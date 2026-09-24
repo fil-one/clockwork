@@ -116,7 +116,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.access.description": {
     en: "This partner workspace opens only for an organization you are authorized to represent. Switch organizations, or ask a partner administrator to add you as a member.",
-    es: "Este espacio de socio solo se abre para una organización que usted está autorizado a representar. Cambie de organización o pida a un administrador del socio que le añada como miembro.",
+    es: "Este panel de socio solo se abre para una organización que usted está autorizado a representar. Cambie de organización o pida a un administrador del socio que le añada como miembro.",
     fr: "Cet espace partenaire ne s’ouvre que pour une organisation que vous êtes autorisé à représenter. Changez d’organisation ou demandez à un administrateur partenaire de vous ajouter comme membre.",
     de: "Dieser Partnerbereich öffnet sich nur für eine Organisation, die Sie vertreten dürfen. Wechseln Sie die Organisation oder bitten Sie einen Partneradministrator, Sie als Mitglied hinzuzufügen.",
     ja: "このパートナー用ワークスペースは、代表する権限のある組織でのみ開けます。組織を切り替えるか、パートナー管理者にメンバーへの追加を依頼してください。",
@@ -206,7 +206,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.detail.portfolio.term": {
     en: "Service and commercial term",
-    es: "Servicio y duración comercial",
+    es: "Servicio y vigencia comercial",
     fr: "Service et durée commerciale",
     de: "Service und Vertragslaufzeit",
     ja: "サービスと契約期間",
@@ -216,7 +216,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.detail.term.unavailable.title": {
     en: "No service term is recorded for this end client",
-    es: "No consta una duración del servicio para este cliente final",
+    es: "No consta la vigencia del servicio de este cliente final",
     fr: "Aucune durée de service n’est enregistrée pour ce client final",
     de: "Für diesen Endkunden ist keine Servicelaufzeit erfasst",
     ja: "このエンド顧客のサービス期間は記録されていません",
@@ -226,7 +226,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.detail.term.unavailable.description": {
     en: "The elapsed term, notice window and end date appear here once an order or agreement publishes them.",
-    es: "La duración transcurrida, el plazo de preaviso y la fecha de finalización aparecerán aquí cuando un pedido o un acuerdo los publique.",
+    es: "El tiempo transcurrido de la vigencia, el plazo de preaviso y la fecha de finalización aparecerán aquí cuando un pedido o un acuerdo los publique.",
     fr: "La durée écoulée, la période de préavis et la date de fin s’afficheront ici lorsqu’une commande ou un accord les publiera.",
     de: "Abgelaufene Laufzeit, Kündigungsfrist und Enddatum erscheinen hier, sobald ein Auftrag oder eine Vereinbarung sie veröffentlicht.",
     ja: "注文または契約で公開されると、経過期間、通知期間、終了日がここに表示されます。",
@@ -346,7 +346,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.detail.quote.cancel.description": {
     en: "Channel operations cancels partner quotes. Contact them to cancel this quote.",
-    es: "El equipo de operaciones de canal cancela los presupuestos de socio. Contacte con él para cancelar este presupuesto.",
+    es: "El equipo de operaciones de canal cancela los presupuestos de socio. Póngase en contacto con ese equipo para cancelar este presupuesto.",
     fr: "Les opérations de canal annulent les devis partenaire. Contactez-les pour annuler ce devis.",
     de: "Partnerangebote storniert das Kanalteam. Wenden Sie sich an das Team, um dieses Angebot zu stornieren.",
     ja: "パートナー見積もりのキャンセルはチャネル運用チームが行います。この見積もりをキャンセルするにはチームに連絡してください。",
@@ -590,7 +590,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.renewal.submitted": {
     en: "Renewal request submitted. The current term remains authoritative until the server confirms a change.",
-    es: "Solicitud de renovación enviada. La duración actual sigue vigente hasta que el servidor confirme un cambio.",
+    es: "Solicitud de renovación enviada. La vigencia actual sigue siendo la que prevalece hasta que el servidor confirme un cambio.",
     fr: "Demande de renouvellement envoyée. La durée en cours fait foi jusqu’à ce que le serveur confirme un changement.",
     de: "Verlängerungsanfrage gesendet. Die aktuelle Laufzeit bleibt maßgeblich, bis der Server eine Änderung bestätigt.",
     ja: "契約更新を依頼しました。サーバーが変更を確定するまでは、現在の契約期間が有効です。",
@@ -622,7 +622,7 @@ export const partnerMessages = defineMessages({
   // Collection chrome per partner surface (partner-data.ts).
   "partner.surface.portfolio.eyebrow": {
     en: "Partner desk · Named-client position",
-    es: "Espacio del socio · Situación por cliente",
+    es: "Panel del socio · Situación por cliente",
     fr: "Espace partenaire · Situation par client",
     de: "Partnerbereich · Stand je Kunde",
     ja: "パートナー画面・顧客別の状況",
@@ -732,7 +732,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.registrations.eyebrow": {
     en: "Partner desk · Pipeline protection",
-    es: "Espacio del socio · Protección de oportunidades",
+    es: "Panel del socio · Protección de oportunidades",
     fr: "Espace partenaire · Protection des opportunités",
     de: "Partnerbereich · Schutz der Pipeline",
     ja: "パートナー画面・案件の保護",
@@ -752,7 +752,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.registrations.description": {
     en: "Register named opportunities and track protection without exposing raw account identifiers.",
-    es: "Registre oportunidades con nombre y siga su protección sin exponer identificadores internos de cuenta.",
+    es: "Registre oportunidades identificadas y siga su protección sin exponer identificadores internos de cuenta.",
     fr: "Enregistrez des opportunités nominatives et suivez leur protection sans exposer les identifiants internes des comptes.",
     de: "Registrieren Sie benannte Opportunities und verfolgen Sie deren Schutz, ohne interne Kontokennungen offenzulegen.",
     ja: "案件を名前付きで登録し、内部のアカウント ID を公開せずに保護状況を確認します。",
@@ -842,7 +842,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.registrations.gate": {
     en: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision. This page derives sourced credit from an accepted registration, but influenced-credit and dispute decisions cannot be recorded here.",
-    es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One; los perfiles de socio pueden aportar evidencias y seguir la decisión. Esta página calcula el crédito por origen a partir de un registro aceptado, pero aquí no se pueden registrar decisiones de crédito por influencia ni de disputas.",
+    es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One; los roles de socio pueden aportar evidencia y seguir la decisión. Esta página calcula el crédito por origen a partir de un registro aceptado, pero aquí no se pueden registrar decisiones de crédito por influencia ni de disputas.",
     fr: "Les décisions d’enregistrement relèvent des opérations de canal de Fil One\u202f; les rôles partenaires peuvent fournir des preuves et suivre la décision. Cette page déduit le crédit d’apport d’un enregistrement accepté, mais les décisions de crédit d’influence et de litige ne peuvent pas être enregistrées ici.",
     de: "Über Registrierungen entscheidet das Kanalteam von Fil One; Partnerrollen können Nachweise einreichen und die Entscheidung verfolgen. Diese Seite leitet die Zuordnung als vom Partner gewonnen aus einer angenommenen Registrierung ab; Entscheidungen zu beeinflussten Deals und Streitfällen können hier nicht erfasst werden.",
     ja: "登録の判断は Fil One のチャネル運用チームが行います。パートナーのロールは証跡を提出し、判断の状況を確認できます。このページは承認された登録から発掘クレジットを算出しますが、影響クレジットや異議の判断はここでは記録できません。",
@@ -852,7 +852,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.eyebrow": {
     en: "Partner desk · Evidence and resolution",
-    es: "Espacio del socio · Evidencias y resolución",
+    es: "Panel del socio · Evidencia y resolución",
     fr: "Espace partenaire · Preuves et résolution",
     de: "Partnerbereich · Nachweise und Klärung",
     ja: "パートナー画面・証跡と解決",
@@ -872,7 +872,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.description": {
     en: "Track disputed claims, evidence deadlines, and the authority responsible for a decision.",
-    es: "Siga las reclamaciones en disputa, los plazos para aportar evidencias y quién tiene autoridad para decidir.",
+    es: "Siga las reclamaciones en disputa, los plazos para aportar evidencia y quién tiene autoridad para decidir.",
     fr: "Suivez les réclamations contestées, les délais de preuve et l’autorité chargée de la décision.",
     de: "Verfolgen Sie strittige Ansprüche, Fristen für Nachweise und die für die Entscheidung zuständige Stelle.",
     ja: "異議の申し立て、証跡の提出期限、判断の権限者を確認します。",
@@ -882,7 +882,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.rule": {
     en: "Submitting evidence does not decide a dispute; the recorded decision remains authoritative.",
-    es: "Aportar evidencias no resuelve una disputa; la decisión registrada es la que prevalece.",
+    es: "Aportar evidencia no resuelve una disputa; la decisión registrada es la que prevalece.",
     fr: "Fournir des preuves ne tranche pas un litige\u202f; la décision enregistrée fait foi.",
     de: "Das Einreichen von Nachweisen entscheidet keinen Streitfall; maßgeblich bleibt die erfasste Entscheidung.",
     ja: "証跡を提出しても異議は決着しません。記録された判断が優先されます。",
@@ -962,7 +962,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.gate": {
     en: "Final dispute decisions are external to the partner desk and remain with Fil One operations or the billing provider.",
-    es: "Las decisiones finales sobre disputas no se toman en el espacio del socio: corresponden al equipo de operaciones de Fil One o al proveedor de facturación.",
+    es: "Las decisiones finales sobre disputas no se toman en el panel del socio: corresponden al equipo de operaciones de Fil One o al proveedor de facturación.",
     fr: "Les décisions finales sur les litiges ne sont pas prises dans l’espace partenaire et restent du ressort des opérations Fil One ou du prestataire de facturation.",
     de: "Endgültige Entscheidungen zu Streitfällen fallen außerhalb des Partnerbereichs und bleiben beim Betrieb von Fil One oder beim Abrechnungsanbieter.",
     ja: "異議の最終判断はパートナー画面では行わず、Fil One の運用チームまたは請求プロバイダーが行います。",
@@ -972,7 +972,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.quotes.eyebrow": {
     en: "Partner desk · Resale quoting",
-    es: "Espacio del socio · Presupuestos de reventa",
+    es: "Panel del socio · Presupuestos de reventa",
     fr: "Espace partenaire · Devis de revente",
     de: "Partnerbereich · Wiederverkaufsangebote",
     ja: "パートナー画面・再販見積もり",
@@ -1092,7 +1092,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.billing.eyebrow": {
     en: "Partner desk · Invoices and confirmed payments",
-    es: "Espacio del socio · Facturas y pagos confirmados",
+    es: "Panel del socio · Facturas y pagos confirmados",
     fr: "Espace partenaire · Factures et paiements confirmés",
     de: "Partnerbereich · Rechnungen und bestätigte Zahlungen",
     ja: "パートナー画面・請求書と支払いの確定情報",
@@ -1202,7 +1202,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.commissions.eyebrow": {
     en: "Partner desk · Collected-revenue earnings",
-    es: "Espacio del socio · Ingresos sobre importes cobrados",
+    es: "Panel del socio · Ingresos sobre importes cobrados",
     fr: "Espace partenaire · Commissions sur revenus encaissés",
     de: "Partnerbereich · Provisionen auf vereinnahmte Umsätze",
     ja: "パートナー画面・回収済み収益に基づく報酬",
@@ -1222,7 +1222,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.commissions.description": {
     en: "See accruals, credits, holdbacks, and payouts without confusing estimates with collected revenue.",
-    es: "Consulte devengos, créditos, retenciones y pagos sin confundir estimaciones con ingresos cobrados.",
+    es: "Consulte devengos, abonos, retenciones y pagos sin confundir estimaciones con ingresos cobrados.",
     fr: "Consultez les commissions acquises, avoirs, retenues et versements sans confondre estimations et revenus encaissés.",
     de: "Sehen Sie aufgelaufene Provisionen, Gutschriften, Einbehalte und Auszahlungen, ohne Schätzungen mit vereinnahmten Umsätzen zu verwechseln.",
     ja: "計上額、クレジット、留保額、支払いを、見積額と回収済み収益を混同せずに確認できます。",
@@ -1232,7 +1232,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.commissions.rule": {
     en: "Referral earnings accrue on net collected revenue and statements net refunds, credits, and chargebacks.",
-    es: "Las comisiones por recomendación se devengan sobre los ingresos netos cobrados y las liquidaciones descuentan reembolsos, facturas rectificativas y contracargos.",
+    es: "Las comisiones por recomendación se devengan sobre los ingresos netos cobrados y las liquidaciones descuentan reembolsos, abonos y contracargos.",
     fr: "Les commissions d’apport sont acquises sur les revenus nets encaissés et les relevés déduisent remboursements, avoirs et rétrofacturations.",
     de: "Empfehlungsprovisionen entstehen auf vereinnahmte Nettoumsätze; Abrechnungen verrechnen Erstattungen, Gutschriften und Rückbuchungen.",
     ja: "紹介報酬は回収済みの純収益に対して計上され、明細書では返金、クレジット、チャージバックが差し引かれます。",
@@ -1318,7 +1318,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.renewals.eyebrow": {
     en: "Partner desk · Renewal decisions",
-    es: "Espacio del socio · Decisiones de renovación",
+    es: "Panel del socio · Decisiones de renovación",
     fr: "Espace partenaire · Décisions de renouvellement",
     de: "Partnerbereich · Verlängerungsentscheidungen",
     ja: "パートナー画面・契約更新の判断",
@@ -1348,7 +1348,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.renewals.rule": {
     en: "The current term remains authoritative until the server confirms a renewal change.",
-    es: "La duración actual sigue vigente hasta que el servidor confirme un cambio en la renovación.",
+    es: "La vigencia actual sigue siendo la que prevalece hasta que el servidor confirme un cambio en la renovación.",
     fr: "La durée en cours fait foi jusqu’à ce que le serveur confirme une modification du renouvellement.",
     de: "Die aktuelle Laufzeit bleibt maßgeblich, bis der Server eine Änderung der Verlängerung bestätigt.",
     ja: "サーバーが契約更新の変更を確定するまでは、現在の契約期間が有効です。",
@@ -1428,7 +1428,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.sandboxes.eyebrow": {
     en: "Partner desk · Presales environments",
-    es: "Espacio del socio · Entornos de preventa",
+    es: "Panel del socio · Entornos de preventa",
     fr: "Espace partenaire · Environnements d’avant-vente",
     de: "Partnerbereich · Presales-Umgebungen",
     ja: "パートナー画面・プリセールス環境",
@@ -1541,7 +1541,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.eyebrow": {
     en: "Partner desk · Provider fulfillment",
-    es: "Espacio del socio · Cumplimiento del proveedor",
+    es: "Panel del socio · Tramitación por el proveedor",
     fr: "Espace partenaire · Exécution par le prestataire",
     de: "Partnerbereich · Erfüllung durch den Anbieter",
     ja: "パートナー画面・プロバイダーによる提供処理",
@@ -1561,7 +1561,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.description": {
     en: "Follow offer and fulfillment state while preserving each provider as the acceptance source.",
-    es: "Siga el estado de las ofertas y de su cumplimiento; la aceptación siempre la determina cada proveedor.",
+    es: "Siga el estado de las ofertas y de su tramitación; la aceptación siempre la determina cada proveedor.",
     fr: "Suivez l’état des offres et de leur exécution, chaque prestataire restant la source de l’acceptation.",
     de: "Verfolgen Sie den Status von Angeboten und deren Erfüllung; die Annahme wird weiterhin vom jeweiligen Anbieter bestimmt.",
     ja: "オファーと提供処理の状況を確認します。承諾の情報源は各プロバイダーのままです。",
@@ -1571,7 +1571,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.rule": {
     en: "The marketplace provider remains the source of offer acceptance, fulfillment, and payout state.",
-    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación de las ofertas, su cumplimiento y el estado de los pagos.",
+    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación de las ofertas, su tramitación y el estado de los pagos que efectúa.",
     fr: "Le prestataire de la marketplace reste la source de l’acceptation des offres, de leur exécution et de l’état des versements.",
     de: "Der Marketplace-Anbieter bleibt die Quelle für Angebotsannahme, Erfüllung und Auszahlungsstatus.",
     ja: "オファーの承諾、提供処理、支払いの状況は、引き続きマーケットプレイスのプロバイダーを情報源とします。",
@@ -1657,7 +1657,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.gate": {
     en: "Offer acceptance and payouts happen at the marketplace provider; Fil One shows the provider's synchronized data.",
-    es: "La aceptación de ofertas y los pagos se gestionan en el proveedor del marketplace; Fil One muestra los datos sincronizados del proveedor.",
+    es: "La aceptación de ofertas y los pagos que efectúa el marketplace se gestionan en el proveedor; Fil One muestra los datos sincronizados del proveedor.",
     fr: "L’acceptation des offres et les versements se font chez le prestataire de la marketplace\u202f; Fil One affiche les données synchronisées du prestataire.",
     de: "Angebotsannahme und Auszahlungen erfolgen beim Marketplace-Anbieter; Fil One zeigt die synchronisierten Angaben des Anbieters.",
     ja: "オファーの承諾と支払いの操作はマーケットプレイスのプロバイダーで行います。Fil One は同期されたプロバイダーの情報を表示します。",
@@ -1667,7 +1667,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.brand.eyebrow": {
     en: "Partner desk · Presentation controls",
-    es: "Espacio del socio · Presentación",
+    es: "Panel del socio · Presentación",
     fr: "Espace partenaire · Présentation",
     de: "Partnerbereich · Darstellung",
     ja: "パートナー画面・表示設定",
@@ -1687,7 +1687,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.brand.description": {
     en: "Manage partner-facing presentation while keeping legal and merchant boundaries explicit.",
-    es: "Gestione la presentación de cara al socio y mantenga explícitos los límites legales y de quién vende.",
+    es: "Gestione la presentación de cara al socio manteniendo explícitos los límites legales y el vendedor responsable de la transacción.",
     fr: "Gérez la présentation côté partenaire en gardant explicites les limites juridiques et le vendeur responsable.",
     de: "Verwalten Sie die Darstellung für Partner, während rechtliche Grenzen und der Merchant of Record klar erkennbar bleiben.",
     ja: "パートナー向けの表示を管理しつつ、法的な区分と販売主体を明確に保ちます。",
@@ -1790,7 +1790,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.support.eyebrow": {
     en: "Partner desk · Visible support cases",
-    es: "Espacio del socio · Casos de soporte visibles",
+    es: "Panel del socio · Casos de soporte visibles",
     fr: "Espace partenaire · Demandes d’assistance visibles",
     de: "Partnerbereich · Sichtbare Supportfälle",
     ja: "パートナー画面・表示可能なサポートケース",
@@ -1900,7 +1900,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.support.gate": {
     en: "Replies and attachments are handled in the support provider; this page is a safe read-only handoff.",
-    es: "Las respuestas y los adjuntos se gestionan en el proveedor de soporte; esta página es un traspaso seguro de solo lectura.",
+    es: "Las respuestas y los adjuntos se gestionan en el proveedor de soporte; esta página es una vista segura de solo lectura que remite al proveedor.",
     fr: "Les réponses et pièces jointes sont traitées chez le prestataire d’assistance\u202f; cette page est un relais sûr, en lecture seule.",
     de: "Antworten und Anhänge werden beim Supportanbieter bearbeitet; diese Seite ist eine sichere, schreibgeschützte Übergabe.",
     ja: "返信と添付ファイルはサポートプロバイダーで扱います。このページは安全な閲覧専用の引き継ぎ画面です。",
@@ -2127,7 +2127,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.renewalDecisionDue": {
     en: "Renewal decision due {date}",
-    es: "Decisión de renovación antes del {date}",
+    es: "Plazo de decisión de renovación: {date}",
     fr: "Décision de renouvellement attendue le {date}",
     de: "Verlängerungsentscheidung fällig am {date}",
     ja: "契約更新の判断期限 {date}",
@@ -2177,7 +2177,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.responseDue": {
     en: "Response due {date}",
-    es: "Respuesta antes del {date}",
+    es: "Plazo de respuesta: {date}",
     fr: "Réponse attendue le {date}",
     de: "Antwort fällig am {date}",
     ja: "回答期限 {date}",
@@ -2197,7 +2197,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.noticeActionDue": {
     en: "Notice action due {date}",
-    es: "Decisión sobre el preaviso antes del {date}",
+    es: "Plazo para actuar sobre el preaviso: {date}",
     fr: "Décision sur le préavis à prendre avant le {date}",
     de: "Entscheidung zur Kündigungsfrist fällig am {date}",
     ja: "通知期間の対応期限 {date}",
@@ -2242,9 +2242,9 @@ export const partnerMessages = defineMessages({
       other: "Evidence due in {count} days",
     },
     es: {
-      one: "Evidencias: plazo de {count} día",
-      many: "Evidencias: plazo de {count} de días",
-      other: "Evidencias: plazo de {count} días",
+      one: "Plazo de evidencia: {count} día",
+      many: "Plazo de evidencia: {count} de días",
+      other: "Plazo de evidencia: {count} días",
     },
     fr: {
       one: "Preuves à fournir sous {count} jour",
@@ -2283,7 +2283,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.fulfillmentSynced": {
     en: "Fulfillment synchronized {relative}",
-    es: "Cumplimiento sincronizado {relative}",
+    es: "Tramitación sincronizada {relative}",
     fr: "Exécution synchronisée {relative}",
     de: "Erfüllung {relative} synchronisiert",
     ja: "{relative}に履行状況を同期",
@@ -2373,7 +2373,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.paysAfterCollection": {
     en: "Paid out once collections are final",
-    es: "Se paga cuando los cobros son definitivos",
+    es: "Se paga al socio cuando los cobros son definitivos",
     fr: "Versement une fois les encaissements définitifs",
     de: "Auszahlung, sobald die Zahlungseingänge feststehen",
     ja: "回収の確定後に支払い",
@@ -2473,7 +2473,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.renewalDeclined": {
     en: "Renewal declined · current term will close at expiry",
-    es: "Renovación declinada · la duración actual se cerrará a su vencimiento",
+    es: "Renovación declinada · la vigencia actual termina en su fecha de vencimiento",
     fr: "Renouvellement décliné · la durée en cours prendra fin à son échéance",
     de: "Verlängerung abgelehnt · aktuelle Laufzeit läuft regulär aus",
     ja: "契約更新を辞退・現在の契約期間は満了をもって終了",
@@ -2666,7 +2666,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.route.distributor": {
     en: "Two-tier distributor",
-    es: "Distribuidor en dos niveles",
+    es: "Distribuidor de dos niveles",
     fr: "Distributeur à deux niveaux",
     de: "Zweistufiger Distributor",
     ja: "2階層ディストリビューター",
@@ -3174,7 +3174,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.orders.description": {
     en: "Your authorized partner order records and their current fulfillment status.",
-    es: "Los registros de pedidos de socio a los que tiene acceso y su estado de cumplimiento actual.",
+    es: "Los registros de pedidos de socio a los que tiene acceso y su estado de tramitación actual.",
     fr: "Les commandes partenaires auxquelles vous avez accès et leur état d’exécution actuel.",
     de: "Die Partneraufträge, auf die Sie Zugriff haben, und ihr aktueller Erfüllungsstatus.",
     ja: "アクセス権のあるパートナー注文の記録と、現在の履行状況です。",
@@ -3274,7 +3274,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.orders.provisioningNote": {
     en: "The demo provisioner received the saved entitlements. Activation waits for a provider completion result.",
-    es: "El aprovisionador de demostración recibió los derechos de uso guardados. La activación espera el resultado de finalización del proveedor.",
+    es: "El aprovisionador de demostración ha recibido los derechos de uso guardados. La activación espera el resultado de finalización del proveedor.",
     fr: "Le système de provisionnement de démonstration a reçu les droits d’utilisation enregistrés. L’activation attend le résultat de fin de traitement du prestataire.",
     de: "Die Demo-Bereitstellung hat die gespeicherten Nutzungsrechte erhalten. Die Aktivierung wartet auf das Abschlussergebnis des Anbieters.",
     ja: "デモ用のプロビジョニングが保存済みの利用権を受け取りました。有効化はプロバイダーの完了結果を待っています。",
@@ -3284,7 +3284,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.orders.handoffNote": {
     en: "Your order is in the internal provisioning handoff. It has not activated service.",
-    es: "Su pedido está en el traspaso interno a aprovisionamiento. No ha activado ningún servicio.",
+    es: "Su pedido se ha enviado internamente al aprovisionador. No se ha activado ningún servicio.",
     fr: "Votre commande est en cours de transmission interne au provisionnement. Elle n’a pas activé de service.",
     de: "Ihr Auftrag liegt in der internen Übergabe an die Bereitstellung. Er hat keinen Dienst aktiviert.",
     ja: "注文は社内のプロビジョニング引き継ぎ中です。サービスは有効化されていません。",
@@ -3486,7 +3486,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.quote.new.eyebrow.distributor": {
     en: "Two-tier distributor quote",
-    es: "Presupuesto de distribuidor en dos niveles",
+    es: "Presupuesto de distribuidor de dos niveles",
     fr: "Devis distributeur à deux niveaux",
     de: "Angebot für zweistufigen Vertrieb",
     ja: "2階層ディストリビューター見積もり",
@@ -3526,7 +3526,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.quote.new.title.revise": {
     en: "Revise partner quote",
-    es: "Nueva revisión del presupuesto del socio",
+    es: "Nueva revisión del presupuesto de socio",
     fr: "Réviser le devis partenaire",
     de: "Partnerangebot überarbeiten",
     ja: "パートナー見積もりの改訂",
@@ -4560,7 +4560,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.registration.unavailable.description": {
     en: "Naming an end client requires a scoped read of the account directory, and this deployment has no database connection or no authorization context to read it with. Nothing is missing from your account; this page cannot link a registration here.",
-    es: "Para indicar un cliente final hace falta una lectura acotada del directorio de cuentas, y este entorno no tiene conexión a la base de datos o contexto de autorización para hacerla. No falta nada en su cuenta; esta página no puede vincular aquí un registro.",
+    es: "Para indicar un cliente final hace falta una lectura acotada del directorio de cuentas, y a este entorno le falta la conexión a la base de datos o el contexto de autorización para hacerla. No falta nada en su cuenta; esta página no puede vincular aquí un registro.",
     fr: "Désigner un client final nécessite une lecture restreinte de l’annuaire des comptes, et ce déploiement n’a pas de connexion à la base de données ou de contexte d’autorisation pour l’effectuer. Rien ne manque à votre compte\u202f; cette page ne peut simplement pas rattacher un enregistrement ici.",
     de: "Für die Angabe eines Endkunden ist ein eingeschränkter Lesezugriff auf das Kontoverzeichnis nötig. Diese Umgebung hat keine Datenbankverbindung oder keinen Autorisierungskontext dafür. In Ihrem Konto fehlt nichts; diese Seite kann hier nur keine Registrierung zuordnen.",
     ja: "エンド顧客を指定するには、アカウント一覧を範囲を限定して読み取る必要がありますが、この環境にはデータベース接続または認可コンテキストがありません。貴社アカウントに不足はありません。このページでは登録を紐づけられないだけです。",
@@ -4952,7 +4952,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.enablement.description": {
     en: "Approved product destinations for {partner}, with what you can share with clients kept separate from partner-account work.",
-    es: "Destinos de producto aprobados para {partner}, con lo que puede compartir con clientes separado del trabajo de la cuenta de socio.",
+    es: "Destinos de producto aprobados para {partner}: lo que puede compartir con clientes, separado de las tareas de la cuenta de socio.",
     fr: "Destinations produit approuvées pour {partner}, en séparant ce que vous pouvez partager avec les clients du travail sur le compte partenaire.",
     de: "Freigegebene Produktziele für {partner}. Was Sie mit Kunden teilen können, ist von der Arbeit im Partnerkonto getrennt.",
     ja: "{partner} 向けの承認済みリンク集です。顧客と共有できるものは、パートナーアカウントの業務とは分けて表示しています。",
@@ -5072,7 +5072,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.enablement.internal.description": {
     en: "Partner work for this account that your role can open.",
-    es: "Tareas de socio de esta cuenta que su perfil puede abrir.",
+    es: "Tareas de socio de esta cuenta que su rol puede abrir.",
     fr: "Travail partenaire sur ce compte que votre rôle vous permet d’ouvrir.",
     de: "Partneraufgaben für dieses Konto, die Ihre Rolle öffnen kann.",
     ja: "貴社のロールで開ける、このアカウントのパートナー業務です。",
@@ -5262,7 +5262,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.enablement.item.marketplace.title": {
     en: "Review marketplace work",
-    es: "Revisar el trabajo de marketplace",
+    es: "Revisar la actividad en el marketplace",
     fr: "Consulter l’activité marketplace",
     de: "Marketplace-Vorgänge prüfen",
     ja: "マーケットプレイスの業務を確認",
@@ -5500,7 +5500,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.renewal.review.currentEnd": {
     en: "Current service term ends {date}",
-    es: "La duración actual del servicio termina el {date}",
+    es: "La vigencia actual del servicio termina el {date}",
     fr: "La durée de service en cours se termine le {date}",
     de: "Aktuelle Servicelaufzeit endet am {date}",
     ja: "現在のサービス期間の終了日：{date}",

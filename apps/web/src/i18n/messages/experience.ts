@@ -19,7 +19,7 @@ export const experienceMessages = defineMessages({
   },
   "ui.98": {
     en: "Audit evidence",
-    es: "Evidencias de auditoría",
+    es: "Evidencia de auditoría",
     fr: "Preuves d’audit",
     de: "Audit-Nachweise",
     ja: "監査証跡",
@@ -59,7 +59,7 @@ export const experienceMessages = defineMessages({
   },
   "detail.description": {
     en: "Identifiers, governing references, evidence, documents, and the latest audit events for this immutable version.",
-    es: "Identificadores, referencias aplicables, evidencias, documentos y últimos eventos de auditoría de esta versión inmutable.",
+    es: "Identificadores, referencias aplicables, evidencia, documentos y últimos eventos de auditoría de esta versión inmutable.",
     fr: "Identifiants, références applicables, preuves, documents et derniers événements d’audit de cette version immuable.",
     de: "Kennungen, maßgebliche Referenzen, Nachweise, Dokumente und die letzten Audit-Ereignisse dieser unveränderlichen Version.",
     ja: "この変更不可のバージョンの識別子、適用される参照、証跡、文書、最新の監査イベントです。",
@@ -172,7 +172,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.applied": {
     en: "“{action}” was applied at authoritative version {version}.",
-    es: "«{action}» se aplicó en la versión oficial {version}.",
+    es: "«{action}» se ha aplicado en la versión oficial {version}.",
     fr: "«\u00a0{action}\u00a0» a été appliqué à la version faisant foi {version}.",
     de: "„{action}“ wurde angewendet. Maßgebliche Version: {version}.",
     ja: "「{action}」を正式バージョン {version} に適用しました。",
@@ -182,7 +182,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.appliedUnknownVersion": {
     en: "“{action}” was applied. The authoritative version was not returned.",
-    es: "«{action}» se aplicó. No se devolvió la versión oficial.",
+    es: "«{action}» se ha aplicado. No se ha devuelto la versión oficial.",
     fr: "«\u00a0{action}\u00a0» a été appliqué. La version faisant foi n’a pas été renvoyée.",
     de: "„{action}“ wurde angewendet. Die maßgebliche Version wurde nicht zurückgegeben.",
     ja: "「{action}」を適用しました。正式バージョンは返されませんでした。",
@@ -192,7 +192,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.rejected": {
     en: "“{action}” was not applied. The commerce API rejected it with code {code}.",
-    es: "«{action}» no se aplicó. La API comercial lo rechazó con el código {code}.",
+    es: "«{action}» no se ha aplicado. La API comercial lo ha rechazado con el código {code}.",
     fr: "«\u00a0{action}\u00a0» n’a pas été appliqué. L’API commerciale l’a rejeté avec le code {code}.",
     de: "„{action}“ wurde nicht angewendet. Die Commerce-API hat die Aktion mit dem Code {code} zurückgewiesen.",
     ja: "「{action}」は適用されませんでした。コマース API がコード {code} で拒否しました。",
@@ -202,7 +202,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.failed": {
     en: "“{action}” was not applied. The commerce API reported a failure with code {code}.",
-    es: "«{action}» no se aplicó. La API comercial notificó un error con el código {code}.",
+    es: "«{action}» no se ha aplicado. La API comercial ha notificado un error con el código {code}.",
     fr: "«\u00a0{action}\u00a0» n’a pas été appliqué. L’API commerciale a signalé un échec avec le code {code}.",
     de: "„{action}“ wurde nicht angewendet. Die Commerce-API hat einen Fehler mit dem Code {code} gemeldet.",
     ja: "「{action}」は適用されませんでした。コマース API がコード {code} のエラーを返しました。",
@@ -212,7 +212,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.notApplied": {
     en: "“{action}” was not applied.",
-    es: "«{action}» no se aplicó.",
+    es: "«{action}» no se ha aplicado.",
     fr: "«\u00a0{action}\u00a0» n’a pas été appliqué.",
     de: "„{action}“ wurde nicht angewendet.",
     ja: "「{action}」は適用されませんでした。",
@@ -222,7 +222,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.timeout": {
     en: "“{action}” is still running. The result is not confirmed yet, so the record may still change.",
-    es: "«{action}» sigue en curso. El resultado aún no está confirmado, así que el registro todavía puede cambiar.",
+    es: "«{action}» sigue en curso. El resultado aún no está confirmado, por lo que el registro todavía puede cambiar.",
     fr: "«\u00a0{action}\u00a0» est toujours en cours. Le résultat n’est pas encore confirmé\u202f; l’enregistrement peut donc encore changer.",
     de: "„{action}“ läuft noch. Das Ergebnis ist noch nicht bestätigt; der Datensatz kann sich also noch ändern.",
     ja: "「{action}」は実行中です。結果はまだ確定していないため、記録が変わる可能性があります。",
@@ -392,7 +392,7 @@ export const experienceMessages = defineMessages({
   },
   "projection.action.expire": {
     en: "Expire now",
-    es: "Dar por vencido ahora",
+    es: "Dar por caducado ahora",
     fr: "Faire expirer maintenant",
     de: "Jetzt ablaufen lassen",
     ja: "今すぐ失効",
@@ -552,7 +552,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.replayProviderEvent": {
     en: "Replay provider event",
-    es: "Reprocesar evento del proveedor",
+    es: "Reejecutar evento del proveedor",
     fr: "Rejouer l’événement du prestataire",
     de: "Anbieterereignis erneut verarbeiten",
     ja: "プロバイダーイベントを再処理",
@@ -636,7 +636,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.problem.duplicate": {
     en: "This request was already sent with different details. Refresh the page and start again.",
-    es: "Esta solicitud ya se envió con otros datos. Actualice la página y vuelva a empezar.",
+    es: "Esta solicitud ya se ha enviado con otros datos. Actualice la página y vuelva a empezar.",
     fr: "Cette demande a déjà été envoyée avec d’autres informations. Actualisez la page et recommencez.",
     de: "Diese Anfrage wurde bereits mit anderen Angaben gesendet. Aktualisieren Sie die Seite und beginnen Sie erneut.",
     ja: "このリクエストは別の内容で送信済みです。ページを再読み込みしてから、やり直してください。",
@@ -646,7 +646,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.problem.refused": {
     en: "The commerce API refused the request.",
-    es: "La API comercial rechazó la solicitud.",
+    es: "La API comercial ha rechazado la solicitud.",
     fr: "L’API commerciale a refusé la demande.",
     de: "Die Commerce-API hat die Anfrage abgelehnt.",
     ja: "コマース API がリクエストを拒否しました。",
@@ -658,7 +658,7 @@ export const experienceMessages = defineMessages({
   // The workspace a projection page belongs to.
   "experience.workspace.internal": {
     en: "Operator workspace",
-    es: "Espacio de trabajo del operador",
+    es: "Espacio del operador",
     fr: "Espace de travail opérateur",
     de: "Operator-Arbeitsbereich",
     ja: "オペレーターのワークスペース",
@@ -668,7 +668,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.workspace.partner": {
     en: "Partner workspace",
-    es: "Espacio de trabajo del socio",
+    es: "Panel del socio",
     fr: "Espace de travail partenaire",
     de: "Partner-Arbeitsbereich",
     ja: "パートナーのワークスペース",
@@ -678,7 +678,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.workspace.customer": {
     en: "Customer workspace",
-    es: "Espacio de trabajo del cliente",
+    es: "Espacio del cliente",
     fr: "Espace de travail client",
     de: "Kunden-Arbeitsbereich",
     ja: "顧客のワークスペース",
@@ -730,7 +730,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.detail.chain.agreementAuthority": {
     en: "Agreement and account authority",
-    es: "Acuerdo y autorización de la cuenta",
+    es: "Acuerdo y autoridad sobre la cuenta",
     fr: "Accord et habilitation du compte",
     de: "Vereinbarung und Befugnis für das Konto",
     ja: "契約とアカウントの権限",
@@ -750,7 +750,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.detail.chain.quoteScope": {
     en: "Quote scope, price, and expiry",
-    es: "Alcance, precio y vencimiento del presupuesto",
+    es: "Alcance, precio y caducidad del presupuesto",
     fr: "Périmètre, prix et expiration du devis",
     de: "Umfang, Preis und Ablauf des Angebots",
     ja: "見積もりの範囲、価格、有効期限",
@@ -780,7 +780,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.detail.chain.authoritativeInput": {
     en: "Authoritative input",
-    es: "Origen oficial",
+    es: "Dato de partida oficial",
     fr: "Donnée source faisant foi",
     de: "Maßgebliche Grundlage",
     ja: "正式な入力",
@@ -1036,7 +1036,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.detail.nextStep.fallback": {
     en: "Review record evidence",
-    es: "Revisar las evidencias del registro",
+    es: "Revisar la evidencia del registro",
     fr: "Examiner les preuves de l’enregistrement",
     de: "Nachweise zum Datensatz prüfen",
     ja: "記録の証跡を確認",
@@ -1130,7 +1130,7 @@ export const experienceMessages = defineMessages({
   // Evidence upload.
   "experience.evidence.attach": {
     en: "Attach evidence",
-    es: "Adjuntar evidencias",
+    es: "Adjuntar evidencia",
     fr: "Joindre des preuves",
     de: "Nachweise anhängen",
     ja: "証跡を添付",
@@ -1140,7 +1140,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.attachException": {
     en: "Attach exception evidence",
-    es: "Adjuntar evidencias de la excepción",
+    es: "Adjuntar evidencia de la excepción",
     fr: "Joindre des preuves pour l’exception",
     de: "Nachweise zur Ausnahme anhängen",
     ja: "例外の証跡を添付",
@@ -1150,7 +1150,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.attachApproval": {
     en: "Attach approval evidence",
-    es: "Adjuntar evidencias de la aprobación",
+    es: "Adjuntar evidencia de la aprobación",
     fr: "Joindre des preuves d’approbation",
     de: "Genehmigungsnachweise anhängen",
     ja: "承認の証跡を添付",
@@ -1230,7 +1230,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.providerRejected": {
     en: "The evidence provider did not accept the upload.",
-    es: "El proveedor de almacenamiento de evidencias no aceptó la subida.",
+    es: "El proveedor de almacenamiento de evidencia no ha aceptado la subida.",
     fr: "Le prestataire de stockage des preuves n’a pas accepté l’envoi.",
     de: "Der Anbieter für Nachweise hat den Upload nicht angenommen.",
     ja: "証跡の保管プロバイダーがアップロードを受け付けませんでした。",
@@ -1270,7 +1270,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.failed": {
     en: "Evidence upload failed. Nothing was moved to permanent storage.",
-    es: "No se pudo subir la evidencia. No se ha movido nada al almacenamiento permanente.",
+    es: "No se ha podido subir la evidencia. No se ha movido nada al almacenamiento permanente.",
     fr: "L’envoi de la preuve a échoué. Rien n’a été transféré vers le stockage permanent.",
     de: "Der Upload des Nachweises ist fehlgeschlagen. Nichts wurde in den dauerhaften Speicher übernommen.",
     ja: "証跡のアップロードに失敗しました。恒久保存に移されたものはありません。",
@@ -1290,7 +1290,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.quarantined": {
     en: "The file did not pass the security scan and stays in quarantine. Nothing was moved to permanent storage.",
-    es: "El archivo no superó el análisis de seguridad y permanece en cuarentena. No se ha movido nada al almacenamiento permanente.",
+    es: "El archivo no ha superado el análisis de seguridad y permanece en cuarentena. No se ha movido nada al almacenamiento permanente.",
     fr: "Le fichier n’a pas passé l’analyse de sécurité et reste en quarantaine. Rien n’a été transféré vers le stockage permanent.",
     de: "Die Datei hat die Sicherheitsprüfung nicht bestanden und bleibt in Quarantäne. Nichts wurde in den dauerhaften Speicher übernommen.",
     ja: "ファイルがセキュリティスキャンに合格しなかったため、隔離されたままです。恒久保存に移されたものはありません。",
@@ -1300,7 +1300,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.expired": {
     en: "The upload expired before it finished. Choose the file again.",
-    es: "La subida caducó antes de terminar. Vuelva a elegir el archivo.",
+    es: "La subida ha caducado antes de terminar. Vuelva a elegir el archivo.",
     fr: "L’envoi a expiré avant la fin. Choisissez à nouveau le fichier.",
     de: "Der Upload ist abgelaufen, bevor er abgeschlossen war. Wählen Sie die Datei erneut aus.",
     ja: "アップロードが完了する前に期限切れになりました。ファイルをもう一度選択してください。",
@@ -1502,7 +1502,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.artifacts.integrityFailed": {
     en: "This document failed its integrity check and is not offered for download.",
-    es: "Este documento no superó la comprobación de integridad y no se ofrece para descarga.",
+    es: "Este documento no ha superado la comprobación de integridad y no se ofrece para descarga.",
     fr: "Ce document n’a pas passé le contrôle d’intégrité et n’est pas proposé au téléchargement.",
     de: "Dieses Dokument hat die Integritätsprüfung nicht bestanden und wird nicht zum Herunterladen angeboten.",
     ja: "この文書は完全性チェックに合格しなかったため、ダウンロードできません。",
@@ -1741,7 +1741,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.derivation.note.lineSuperseded": {
     en: "An amendment replaced this line and changed its revenue.",
-    es: "Una modificación sustituyó esta línea y cambió sus ingresos.",
+    es: "Una modificación ha sustituido esta línea y ha cambiado sus ingresos.",
     fr: "Un avenant a remplacé cette ligne et modifié son chiffre d’affaires.",
     de: "Eine Vertragsänderung hat diese Position ersetzt und ihren Umsatz geändert.",
     ja: "契約変更によりこの明細が置き換えられ、売上が変わりました。",
@@ -1791,7 +1791,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.derivation.note.commitmentOverageVariance": {
     en: "Recorded overage differs from consumption above the adjusted allowance.",
-    es: "El excedente registrado no coincide con el consumo por encima de la franquicia ajustada.",
+    es: "El excedente registrado no coincide con el consumo por encima del cupo ajustado.",
     fr: "Le dépassement enregistré diffère de la consommation au-delà du volume inclus ajusté.",
     de: "Die erfasste Mehrnutzung weicht vom Verbrauch über dem angepassten Kontingent ab.",
     ja: "記録された超過分が、調整後の許容量を超えた消費量と一致しません。",
@@ -1921,7 +1921,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.derivation.usageEvidence": {
     en: "Usage and tax evidence",
-    es: "Evidencias de uso e impuestos",
+    es: "Evidencia de uso e impuestos",
     fr: "Justificatifs d’usage et de taxes",
     de: "Nutzungs- und Steuernachweise",
     ja: "利用量と税の証跡",
@@ -2025,7 +2025,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.expires.future": {
     en: "Expires {date} · {relative}",
-    es: "Vence el {date} · {relative}",
+    es: "Caduca el {date} · {relative}",
     fr: "Expire le {date} · {relative}",
     de: "Läuft am {date} ab · {relative}",
     ja: "{date} に失効・{relative}",
@@ -2035,7 +2035,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.expires.past": {
     en: "Expired {date} · {relative}",
-    es: "Venció el {date} · {relative}",
+    es: "Caducado el {date} · {relative}",
     fr: "Expiré le {date} · {relative}",
     de: "Am {date} abgelaufen · {relative}",
     ja: "{date} に失効済み・{relative}",
@@ -2045,7 +2045,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.expires.none": {
     en: "No expiry recorded",
-    es: "Sin vencimiento registrado",
+    es: "Sin caducidad registrada",
     fr: "Aucune expiration enregistrée",
     de: "Kein Ablaufdatum erfasst",
     ja: "有効期限の記録なし",
@@ -2335,7 +2335,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.label.expires": {
     en: "Expires",
-    es: "Vencimiento",
+    es: "Caducidad",
     fr: "Expiration",
     de: "Ablauf",
     ja: "有効期限",
@@ -2665,7 +2665,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.label.screening": {
     en: "Screening",
-    es: "Control de partes restringidas",
+    es: "Verificación de cumplimiento",
     fr: "Contrôle des parties restreintes",
     de: "Sanktionslistenprüfung",
     ja: "取引制限対象者の審査",
@@ -2685,7 +2685,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.screening": {
     en: "Screening: {status}",
-    es: "Control de partes restringidas: {status}",
+    es: "Verificación de cumplimiento: {status}",
     fr: "Contrôle des parties restreintes\u00a0: {status}",
     de: "Sanktionslistenprüfung: {status}",
     ja: "取引制限対象者の審査：{status}",
@@ -2825,7 +2825,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.renewal.expires": {
     en: "Ends at term end",
-    es: "Finaliza al terminar la duración",
+    es: "Finaliza al vencimiento",
     fr: "Prend fin au terme",
     de: "Endet mit Ablauf der Laufzeit",
     ja: "期間満了で終了",
@@ -2925,7 +2925,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.finalBilling.creditDue": {
     en: "Credit due",
-    es: "Abono pendiente",
+    es: "Saldo a favor pendiente",
     fr: "Avoir à émettre",
     de: "Gutschrift fällig",
     ja: "返金予定",
@@ -3005,7 +3005,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.report.partnerPerformance": {
     en: "Partner performance",
-    es: "Rendimiento de socios",
+    es: "Rendimiento de los socios",
     fr: "Performance des partenaires",
     de: "Partnerleistung",
     ja: "パートナーの実績",
@@ -3015,7 +3015,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.report.funnelCycleTime": {
     en: "Funnel cycle time",
-    es: "Tiempo de ciclo del embudo",
+    es: "Duración del ciclo de ventas",
     fr: "Durée du cycle de l’entonnoir",
     de: "Durchlaufzeit im Vertriebstrichter",
     ja: "ファネルのサイクルタイム",
@@ -3025,7 +3025,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.report.marginPocCost": {
     en: "Margin and POC cost",
-    es: "Margen y coste de POC",
+    es: "Margen y coste de las POC",
     fr: "Marge et coût des POC",
     de: "Marge und POC-Kosten",
     ja: "利益率と PoC コスト",

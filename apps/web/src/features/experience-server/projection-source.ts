@@ -289,7 +289,7 @@ function internalRecords(): DemoRecord[] {
       data: {
         title: demoText({
           en: "Collections aging decision",
-          es: "Decisión sobre la antigüedad de cobros",
+          es: "Decisión sobre la antigüedad de saldos a cobrar",
           fr: "Décision de recouvrement selon l’ancienneté",
           de: "Entscheidung zum Forderungsalter",
           ja: "債権回収の経過日数に関する判断",
