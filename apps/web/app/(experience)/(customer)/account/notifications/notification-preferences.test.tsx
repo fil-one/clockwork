@@ -2,17 +2,21 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type * as ClientModule from "./notification-preference-client";
 import type { NotificationPreferencesContext } from "./notification-preferences";
 
 const storeNotificationPreference =
   vi.fn<(input: unknown) => Promise<unknown>>();
-vi.mock("./notification-preference-client", () => ({
+vi.mock("./notification-preference-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof ClientModule>()),
   storeNotificationPreference: (input: unknown) =>
     storeNotificationPreference(input),
 }));
 
 const { NotificationPreferences, NotificationPreferencesUnavailable } =
   await import("./notification-preferences");
+const { NotificationPreferenceRequestError } =
+  await import("./notification-preference-client");
 
 const northstar: NotificationPreferencesContext = {
   accountId: "10000000-0000-4000-8000-000000000001",
@@ -69,8 +73,10 @@ describe("what the notification preferences surface states", () => {
     render(<NotificationPreferences context={juniper} />);
     expect(screen.getByLabelText(/Quote expiry warnings/)).not.toBeChecked();
     expect(screen.getByRole("main")).toHaveTextContent("Stored choice: off.");
+    // One of three "is" switched off. The sentence used to append a fixed
+    // "are", which is wrong for exactly the count this fixture has.
     expect(screen.getByRole("main")).toHaveTextContent(
-      "1 of 3 are currently switched off.",
+      "1 of 3 is currently switched off.",
     );
   });
 });
@@ -115,13 +121,21 @@ describe("what the surface does when a preference is changed", () => {
   it("announces a refusal as an alert and leaves the stored value alone", async () => {
     const user = userEvent.setup();
     storeNotificationPreference.mockRejectedValue(
-      new Error("collections_dunning is not an optional alert"),
+      new NotificationPreferenceRequestError(
+        422,
+        "notOptional",
+        "collections_dunning is not an optional alert",
+      ),
     );
     render(<NotificationPreferences context={northstar} />);
     await user.click(screen.getByLabelText(/Renewal term reminders/));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "collections_dunning is not an optional alert",
+    // The reader is told in their own language; the server's English problem
+    // detail stays on the error for diagnosis.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "This alert is not optional and cannot be switched off.",
     );
+    expect(alert).not.toHaveTextContent("collections_dunning");
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.getByLabelText(/Renewal term reminders/)).toBeChecked();
   });

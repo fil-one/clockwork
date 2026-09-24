@@ -1,11 +1,12 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { CustomerAcquisitionRequest } from "@clockwork/domain/core";
 import { resolveCustomerAcquisition } from "./actions";
+import { requestKindLabels } from "./customer";
 import {
   AdministrationPage,
   styles,
@@ -14,6 +15,20 @@ import {
 function field(data: FormData, key: string): string {
   const value = data.get(key);
   return typeof value === "string" ? value : "";
+}
+/** When the customer accepted, in UTC and labelled so; the terms are UTC-based. */
+function utcTime(value: string, locale: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(parsed);
 }
 export function AcquisitionFinance({
   requests,
@@ -25,36 +40,32 @@ export function AcquisitionFinance({
   available: boolean;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const router = useRouter();
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
   return (
     <AdministrationPage
-      eyebrow="Commercial operations"
-      title="Customer service requests"
-      description="Review accepted offers and link separately verified trial or PAYG service records. A request does not authorize provider provisioning or billing cutover."
+      eyebrow={t("customer.paygFinance.eyebrow")}
+      title={t("customer.paygFinance.title")}
+      description={t("customer.paygFinance.description")}
     >
       <p>
         <Link href="/internal/payg-offers">
-          Manage policies, verified trials and PAYG enrollments
+          {t("customer.paygFinance.managePolicies")}
         </Link>
       </p>
       {demo ? (
         <p className={styles.roleNotice}>
-          Fictional demo. Simulated handoff changes resettable demo state only.
-          It does not create a provider identity, trial enforcement, or a
-          billing effect.
+          {t("customer.paygFinance.demoNotice")}
         </p>
       ) : null}
       {!available ? (
-        <p role="status">
-          The request service is unavailable or your finance authority is
-          insufficient.
-        </p>
+        <p role="status">{t("customer.paygFinance.unavailable")}</p>
       ) : null}
       {message ? <p role="status">{message}</p> : null}
       {!requests.length ? (
-        <p>No customer requests are waiting in this workspace.</p>
+        <p>{t("customer.paygFinance.empty")}</p>
       ) : (
         requests.map((request) => (
           <section
@@ -63,34 +74,52 @@ export function AcquisitionFinance({
           >
             <div className={styles.panelHeader}>
               <h2>
-                {request.kind.replaceAll("_", " ")} · {request.organizationName}
+                {t("common.join.labels", {
+                  first: t(requestKindLabels[request.kind]),
+                  second: request.organizationName,
+                })}
               </h2>
               <StatusPill state={request.status} />
             </div>
             <div className={styles.panelBody}>
               <p>
-                {request.offer.name} v{request.offer.version} ·{" "}
-                {request.offer.region}
+                {t("customer.payg.offerOption", {
+                  name: request.offer.name,
+                  region: request.offer.region,
+                  version: request.offer.version,
+                })}
               </p>
               <p>
-                Requested {request.acceptedAt} · Terms version{" "}
-                {request.offer.notices.terms.version} · Retention version{" "}
-                {request.offer.notices.retention.version}
+                {t("customer.paygFinance.requestedTerms", {
+                  time: utcTime(request.acceptedAt, formattingLocale),
+                  terms: request.offer.notices.terms.version,
+                  retention: request.offer.notices.retention.version,
+                })}
               </p>
               <dl>
                 <dt>{t("nav.account")}</dt>
                 <dd>{request.accountId}</dd>
                 <dt>{t("nav.group.organization")}</dt>
                 <dd>{request.organizationId}</dd>
-                <dt>Approved offer</dt>
+                <dt>{t("customer.paygFinance.approvedOffer")}</dt>
                 <dd>{request.offer.id}</dd>
-                <dt>Request</dt>
+                <dt>{t("customer.paygFinance.request")}</dt>
                 <dd>{request.id}</dd>
               </dl>
               <p>{request.offer.notices.serviceNotice}</p>
-              {request.reason ? <p>Customer reason: {request.reason}</p> : null}
+              {request.reason ? (
+                <p>
+                  {t("customer.paygFinance.customerReason", {
+                    reason: request.reason,
+                  })}
+                </p>
+              ) : null}
               {request.resolutionReason ? (
-                <p>Resolution: {request.resolutionReason}</p>
+                <p>
+                  {t("customer.paygFinance.resolution", {
+                    reason: request.resolutionReason,
+                  })}
+                </p>
               ) : null}
               {request.status === "pending" ? (
                 <form
@@ -120,9 +149,7 @@ export function AcquisitionFinance({
                         if (result.ok) router.refresh();
                       })
                       .catch(() =>
-                        setMessage(
-                          "Resolution did not complete. Refresh to check the current request.",
-                        ),
+                        setMessage(t("customer.paygFinance.didNotComplete")),
                       )
                       .finally(() => setPending(""));
                   }}
@@ -133,40 +160,38 @@ export function AcquisitionFinance({
                   >
                     <legend>
                       {demo
-                        ? "Simulate a completed handoff"
-                        : "Link verified result"}
+                        ? t("customer.paygFinance.simulateHandoff")
+                        : t("customer.paygFinance.linkResult")}
                     </legend>
                     {!demo ? (
                       <>
                         {request.kind === "trial" ? (
                           <label className={styles.field}>
-                            Verified trial claim ID
+                            {t("customer.paygFinance.trialClaimId")}
                             <input
                               name="trialId"
-                              placeholder="Existing trial UUID"
+                              placeholder={t(
+                                "customer.paygFinance.trialClaimPlaceholder",
+                              )}
                             />
                           </label>
                         ) : (
                           <label className={styles.field}>
-                            Verified PAYG enrollment ID
+                            {t("customer.paygFinance.enrollmentId")}
                             <input
                               name="enrollmentId"
                               defaultValue={request.enrollmentId ?? ""}
-                              placeholder="Existing enrollment UUID"
+                              placeholder={t(
+                                "customer.paygFinance.enrollmentPlaceholder",
+                              )}
                             />
                           </label>
                         )}
-                        <p>
-                          Complete the source workflow first. Trial conversion
-                          must already reference this paid enrollment;
-                          cancellation requires its confirmed service-end
-                          evidence. Account, organization, tenant and policy
-                          must all match.
-                        </p>
+                        <p>{t("customer.paygFinance.linkRequirements")}</p>
                       </>
                     ) : null}
                     <label className={styles.field}>
-                      Resolution reason
+                      {t("customer.paygFinance.resolutionReason")}
                       <textarea
                         name="reason"
                         required
@@ -181,15 +206,15 @@ export function AcquisitionFinance({
                         value="fulfilled"
                       >
                         {demo
-                          ? "Simulate verified handoff"
-                          : "Link verified service record"}
+                          ? t("customer.paygFinance.simulateVerifiedHandoff")
+                          : t("customer.paygFinance.linkServiceRecord")}
                       </button>
                       <button
                         className={styles.buttonSecondary}
                         name="decision"
                         value="declined"
                       >
-                        Decline request
+                        {t("customer.paygFinance.decline")}
                       </button>
                     </div>
                   </fieldset>

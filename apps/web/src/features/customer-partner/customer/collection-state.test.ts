@@ -5,10 +5,10 @@ import {
   paginateRecords,
   parseCollectionState,
   serializeCollectionState,
-  type CustomerCollectionRecord,
+  type CustomerCollectionRow,
 } from "./collection-state";
 
-const records: readonly CustomerCollectionRecord[] = [
+const records: readonly CustomerCollectionRow[] = [
   {
     id: "REC-2",
     title: "Zulu renewal",

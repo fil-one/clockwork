@@ -10,7 +10,7 @@ const t = translatorFor("en");
 
 const customerPurposeLines = [
   ...Object.values(collectionDefinitions).map(({ eyebrow }) => eyebrow),
-  ...Object.values(customerCollections).map(({ eyebrow }) => eyebrow),
+  ...Object.values(customerCollections).map(({ eyebrow }) => t(eyebrow)),
 ];
 const partnerPurposeLines = Object.values(partnerSurfaces).map(({ eyebrow }) =>
   t(eyebrow),
@@ -31,7 +31,7 @@ describe("collection purpose lines and rules", () => {
   it("gives every collection a visible policy or commercial-boundary rule", () => {
     const rules = [
       ...Object.values(collectionDefinitions).map(({ rule }) => rule),
-      ...Object.values(customerCollections).map(({ rule }) => rule),
+      ...Object.values(customerCollections).map(({ rule }) => t(rule)),
       ...Object.values(partnerSurfaces).map(({ rule }) => t(rule)),
     ];
 

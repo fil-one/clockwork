@@ -6,8 +6,14 @@ import { useState } from "react";
 import { ApplicationStatePanel, buttonClassName } from "@clockwork/ui";
 
 import styles from "@/src/features/customer-partner/commercial/commercial.module.css";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
 
-import { storeNotificationPreference } from "./notification-preference-client";
+import {
+  NotificationPreferenceRequestError,
+  storeNotificationPreference,
+  type NotificationPreferenceFailure,
+} from "./notification-preference-client";
 import {
   alertPreferenceRows,
   notificationChannel,
@@ -15,6 +21,17 @@ import {
   suppressedAlertCount,
   type StoredPreference,
 } from "./notification-preference-model";
+
+const failureMessages: Readonly<
+  Record<NotificationPreferenceFailure, MessageId>
+> = {
+  secureTokenMissing: "customer.notifications.failure.secureTokenMissing",
+  unreachable: "customer.notifications.failure.unreachable",
+  notOptional: "customer.notifications.failure.notOptional",
+  forbidden: "customer.notifications.failure.forbidden",
+  unavailable: "customer.notifications.failure.unavailable",
+  notSaved: "customer.notifications.failure.notSaved",
+};
 
 export interface NotificationPreferencesContext {
   /** The account the preference rows belong to; from the route, not a prop default. */
@@ -39,6 +56,7 @@ export function NotificationPreferences({
 }: {
   context: NotificationPreferencesContext;
 }) {
+  const t = useTranslations();
   const [stored, setStored] = useState<readonly StoredPreference[]>(
     context.stored,
   );
@@ -74,18 +92,26 @@ export function NotificationPreferences({
           enabled: result.enabled,
         },
       ]);
+      const label = labelFor(alertKind);
+      // An alert kind this build offers always has a label; the code is only
+      // a guard against a stored kind the build does not know.
+      const alert = label ? t(label) : alertKind;
       setNotice(
         result.enabled
-          ? `${labelFor(alertKind)} will be sent to this account.`
-          : `${labelFor(alertKind)} will no longer be sent to this account.`,
+          ? t("customer.notifications.notice.on", { alert })
+          : t("customer.notifications.notice.off", { alert }),
       );
     } catch (error) {
       // Nothing local changed, so the checkbox is still showing the stored
       // value and there is no optimistic state to unwind.
       setFailure(
-        error instanceof Error
-          ? error.message
-          : "The preference could not be saved. Nothing was changed.",
+        t(
+          failureMessages[
+            error instanceof NotificationPreferenceRequestError
+              ? error.reason
+              : "notSaved"
+          ],
+        ),
       );
     } finally {
       setPendingKind("");
@@ -96,15 +122,18 @@ export function NotificationPreferences({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Account notifications</p>
-          <h1>Notification preferences</h1>
+          <p className={styles.eyebrow}>
+            {t("customer.notifications.eyebrow")}
+          </p>
+          <h1>{t("customer.notifications.title")}</h1>
           <p className={styles.description}>
-            Which optional alerts Fil One sends {context.accountName} by email.
-            A choice applies to the whole account and to every person on it.
+            {t("customer.notifications.description", {
+              account: context.accountName,
+            })}
           </p>
         </div>
         <Link className={styles.secondary} href="/account">
-          Return to account
+          {t("customer.notifications.returnToAccount")}
         </Link>
       </header>
 
@@ -112,16 +141,22 @@ export function NotificationPreferences({
         <div>
           <p className={styles.eyebrow}>
             {notificationChannel === "email"
-              ? "Email is the only delivery channel"
+              ? t("customer.notifications.emailOnly")
               : notificationChannel}
           </p>
-          <h2 id="optional-alerts-title">Optional alerts</h2>
+          <h2 id="optional-alerts-title">
+            {t("customer.notifications.optional.title")}
+          </h2>
           <p>
-            An alert you have never changed is on. Turning one off records that
-            choice against the account; nothing else about the alert changes.
             {suppressed > 0
-              ? ` ${suppressed} of ${rows.length} are currently switched off.`
-              : ""}
+              ? t("common.join.sentences", {
+                  first: t("customer.notifications.optional.description"),
+                  second: t("customer.notifications.optional.suppressed", {
+                    count: suppressed,
+                    total: rows.length,
+                  }),
+                })
+              : t("customer.notifications.optional.description")}
           </p>
         </div>
         <ul className={styles.reviewList}>
@@ -138,16 +173,18 @@ export function NotificationPreferences({
                   type="checkbox"
                 />
                 <span>
-                  <strong>{row.label}</strong>
+                  <strong>{t(row.label)}</strong>
                   <br />
-                  {row.description}
+                  {t(row.description)}
                   <br />
                   <small>
-                    {row.isDefault
-                      ? "No stored choice — on by default."
-                      : row.enabled
-                        ? "Stored choice: on."
-                        : "Stored choice: off."}
+                    {t(
+                      row.isDefault
+                        ? "customer.notifications.stored.default"
+                        : row.enabled
+                          ? "customer.notifications.stored.on"
+                          : "customer.notifications.stored.off",
+                    )}
                   </small>
                 </span>
               </label>
@@ -156,8 +193,7 @@ export function NotificationPreferences({
         </ul>
         {context.canManage ? null : (
           <p className={styles.description}>
-            Your role can read these settings but not change them. An owner or
-            an admin on this account can.
+            {t("customer.notifications.readOnly")}
           </p>
         )}
         {failure ? (
@@ -177,20 +213,19 @@ export function NotificationPreferences({
         aria-labelledby="required-notices-title"
       >
         <div>
-          <p className={styles.eyebrow}>Not optional</p>
-          <h2 id="required-notices-title">
-            Notices that cannot be switched off
-          </h2>
-          <p>
-            These two, and only these two, are refused by the server. Every
-            other alert this platform sends is in the list above.
+          <p className={styles.eyebrow}>
+            {t("customer.notifications.required.eyebrow")}
           </p>
+          <h2 id="required-notices-title">
+            {t("customer.notifications.required.title")}
+          </h2>
+          <p>{t("customer.notifications.required.description")}</p>
         </div>
         <ul className={styles.reviewList}>
           {refusedAlerts.map((alert) => (
             <li key={alert.kind}>
-              <span>{alert.label}</span>
-              <strong>{alert.reason}</strong>
+              <span>{t(alert.label)}</span>
+              <strong>{t(alert.reason)}</strong>
             </li>
           ))}
         </ul>
@@ -199,11 +234,8 @@ export function NotificationPreferences({
   );
 }
 
-function labelFor(alertKind: string): string {
-  return (
-    alertPreferenceRows([]).find((row) => row.kind === alertKind)?.label ??
-    alertKind
-  );
+function labelFor(alertKind: string): MessageId | undefined {
+  return alertPreferenceRows([]).find((row) => row.kind === alertKind)?.label;
 }
 
 /**
@@ -212,19 +244,20 @@ function labelFor(alertKind: string): string {
  * so rather than render three controls that would post into nothing.
  */
 export function NotificationPreferencesUnavailable() {
+  const t = useTranslations();
   return (
     <main className={styles.main} id="main-content">
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
-          title="Notification preferences are unavailable"
-          description="Preferences are stored per account and read through the tenant connection, and this deployment has no runtime database configured. Nothing is being suppressed: every alert this account would receive is still being sent."
+          title={t("customer.notifications.unavailable.title")}
+          description={t("customer.notifications.unavailable.description")}
           action={
             <Link
               className={buttonClassName({ variant: "secondary" })}
               href="/account"
             >
-              Return to account
+              {t("customer.notifications.returnToAccount")}
             </Link>
           }
         />
