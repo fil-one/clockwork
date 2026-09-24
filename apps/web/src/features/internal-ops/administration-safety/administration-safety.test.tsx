@@ -218,7 +218,7 @@ describe("status chip colour", () => {
     rerender(
       <AssistedMode
         roles={["internal_operator"]}
-        accounts={accounts}
+        accounts={resolveDemoText(accounts, "en")}
         actor="Ada Mercer"
       />,
     );

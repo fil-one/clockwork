@@ -395,16 +395,6 @@ export const adminPricingMessages = defineMessages({
     zh: "定价服务不可用。未进行任何更改。",
     ar: "خدمة التسعير غير متاحة. لم يُغيَّر أي شيء.",
   },
-  "adminPricing.error.validation": {
-    en: "The change was not accepted: {detail}",
-    es: "No se ha aceptado el cambio: {detail}",
-    fr: "La modification n’a pas été acceptée\u00a0: {detail}",
-    de: "Die Änderung wurde nicht übernommen: {detail}",
-    ja: "変更は受け付けられませんでした：{detail}",
-    pt: "A alteração não foi aceita: {detail}",
-    zh: "更改未被接受：{detail}",
-    ar: "لم يُقبل التغيير: {detail}",
-  },
 
   // ── Price books page ────────────────────────────────────────────────────
   "adminPricing.priceBooks.eyebrow": {

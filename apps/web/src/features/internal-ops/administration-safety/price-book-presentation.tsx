@@ -1,5 +1,6 @@
 import type { MessageId, Translator } from "@/src/i18n";
 import { CommerceApiError } from "@/src/features/contracts/commerce-client";
+import { commerceErrorText as apiErrorText } from "@/src/features/contracts/error-text";
 import {
   formatMoney,
   type SupportedCurrency,
@@ -139,11 +140,13 @@ export function egressTreatmentLabel(value: string, t: Translator): string {
 /**
  * The reader's sentence for a failed pricing command.
  *
- * The commerce client carries a coarse class (`code`) and an English sentence.
- * The class decides the message here. A validation refusal also carries the
- * server's own explanation, which is quoted because it names the field that
- * failed; everything else gets `fallback`, the surface's own "nothing
- * changed" sentence.
+ * The commerce client carries a coarse class (`code`) and the server's
+ * `detail`. The class decides the message here, and the detail is never
+ * quoted: the core API writes it in English for integrators, so quoting it put
+ * an English clause inside every translated validation message. A validation
+ * refusal gets the platform's own sentence (`contracts/error-text.ts`);
+ * anything unclassified gets `fallback`, the surface's own "nothing changed"
+ * sentence.
  */
 export function commerceErrorText(
   error: unknown,
@@ -154,7 +157,6 @@ export function commerceErrorText(
   if (error.code === "forbidden") return t("adminPricing.error.forbidden");
   if (error.code === "conflict") return t("adminPricing.error.conflict");
   if (error.code === "unavailable") return t("adminPricing.error.unavailable");
-  if (error.code === "validation")
-    return t("adminPricing.error.validation", { detail: error.message });
+  if (error.code === "validation") return apiErrorText(error, t);
   return t(fallback);
 }
