@@ -9,7 +9,6 @@ import type {
 } from "react";
 import { useId, useState } from "react";
 
-import { BrandSlot } from "./brand";
 import { Tooltip } from "./tooltip";
 
 export interface NavigationItem {
@@ -33,7 +32,8 @@ export interface NavigationGroup {
 
 export interface NavigationProps {
   groups: readonly NavigationGroup[];
-  label?: string;
+  /** Accessible name of the navigation landmark, in the reader's language. */
+  label: string;
   density?: "comfortable" | "compact";
   /** Runs after an enabled navigation link is activated. */
   onNavigate?: (
@@ -84,10 +84,11 @@ export function focusFragmentTarget(fragment: string): boolean {
 
 export function SkipLink({
   href = "#main-content",
-  children = "Skip to main content",
+  children,
 }: {
   href?: string;
-  children?: ReactNode;
+  /** The link text, in the reader's language. */
+  children: ReactNode;
 }) {
   return (
     <a
@@ -108,7 +109,7 @@ export function SkipLink({
 /** Semantic grouped navigation shared by the rail and mobile drawer. */
 export function Navigation({
   groups,
-  label = "Primary",
+  label,
   density = "comfortable",
   onNavigate,
   renderNavigationItem,
@@ -212,10 +213,10 @@ export function Navigation({
 }
 
 export interface ResponsiveNavigationDrawerProps extends NavigationProps {
-  triggerLabel?: string;
-  title?: string;
-  description?: string;
-  closeLabel?: string;
+  triggerLabel: string;
+  title: string;
+  description: string;
+  closeLabel: string;
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -225,11 +226,11 @@ export interface ResponsiveNavigationDrawerProps extends NavigationProps {
 /** Modal mobile navigation with focus trapping and focus restoration via Radix. */
 export function ResponsiveNavigationDrawer({
   groups,
-  label = "Primary",
-  triggerLabel = "Open navigation",
-  title = "Navigation",
-  description = "Browse every destination.",
-  closeLabel = "Close navigation",
+  label,
+  triggerLabel,
+  title,
+  description,
+  closeLabel,
   open,
   defaultOpen,
   onOpenChange,
@@ -310,21 +311,27 @@ export function ResponsiveNavigationDrawer({
   );
 }
 
+/**
+ * The shell's words are all required: the kit cannot import an application's
+ * messages, and an English default is how a translated screen ends up with an
+ * English landmark name.
+ */
 export interface AppShellProps {
   children: ReactNode;
   navigation: readonly NavigationGroup[];
-  brand?: ReactNode;
+  brand: ReactNode;
   organization?: ReactNode;
   utilities?: ReactNode;
   banner?: ReactNode;
-  bannerLabel?: string;
+  /** Accessible name of the banner region. */
+  bannerLabel: string;
   footer?: ReactNode;
-  skipLabel?: ReactNode;
-  navigationLabel?: string;
-  mobileNavigationLabel?: string;
-  mobileNavigationTitle?: string;
-  mobileNavigationDescription?: string;
-  mobileNavigationCloseLabel?: string;
+  skipLabel: ReactNode;
+  navigationLabel: string;
+  mobileNavigationLabel: string;
+  mobileNavigationTitle: string;
+  mobileNavigationDescription: string;
+  mobileNavigationCloseLabel: string;
   navigationDensity?: "comfortable" | "compact";
   onNavigate?: NavigationProps["onNavigate"];
   renderNavigationItem?: NavigationProps["renderNavigationItem"];
@@ -342,18 +349,18 @@ export interface AppShellProps {
 export function AppShell({
   children,
   navigation,
-  brand = <BrandSlot homeLink="/" descriptor="Commerce" />,
+  brand,
   organization,
   utilities,
   banner,
-  bannerLabel = "Application status",
+  bannerLabel,
   footer,
   skipLabel,
-  navigationLabel = "Primary",
-  mobileNavigationLabel = "Open navigation",
-  mobileNavigationTitle = "Navigation",
-  mobileNavigationDescription = "Browse every destination.",
-  mobileNavigationCloseLabel = "Close navigation",
+  navigationLabel,
+  mobileNavigationLabel,
+  mobileNavigationTitle,
+  mobileNavigationDescription,
+  mobileNavigationCloseLabel,
   navigationDensity = "compact",
   onNavigate,
   renderNavigationItem,
@@ -367,10 +374,7 @@ export function AppShell({
 
   return (
     <div className={`cw-shell ${className}`.trim()}>
-      <SkipLink
-        href={`#${mainId}`}
-        {...(skipLabel === undefined ? {} : { children: skipLabel })}
-      />
+      <SkipLink href={`#${mainId}`}>{skipLabel}</SkipLink>
       <header className="cw-shell__header">
         <div className="cw-shell__brand">{brand}</div>
         <div className="cw-shell__organization">{organization}</div>

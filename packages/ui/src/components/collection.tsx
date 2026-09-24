@@ -4,15 +4,22 @@ import { ChevronDown, Search } from "lucide-react";
 import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { kitWord, useKitText } from "./kit-text";
+
 export interface CollectionToolbarProps {
-  label?: string;
-  searchLabel?: string;
-  searchPlaceholder?: string;
+  /** Accessible name of the toolbar landmark. */
+  label: string;
+  /** Accessible name of the search field. */
+  searchLabel: string;
+  searchPlaceholder: string;
   query?: string;
   defaultQuery?: string;
   onQueryChange?: (query: string) => void;
   resultCount?: number;
+  /** Required when `resultCount` is given; the kit has no plural rules of its own. */
   resultLabel?: (count: number) => ReactNode;
+  /** Status text while `loading` is true. */
+  loadingLabel: string;
   selection?: ReactNode;
   filters?: ReactNode;
   sort?: ReactNode;
@@ -24,14 +31,15 @@ export interface CollectionToolbarProps {
 
 /** Responsive search/filter/action bar for tables and record collections. */
 export function CollectionToolbar({
-  label = "Collection controls",
-  searchLabel = "Search collection",
-  searchPlaceholder = "Search",
+  label,
+  searchLabel,
+  searchPlaceholder,
   query,
   defaultQuery = "",
   onQueryChange,
   resultCount,
-  resultLabel = (count) => `${count} ${count === 1 ? "result" : "results"}`,
+  resultLabel,
+  loadingLabel,
   selection,
   filters,
   sort,
@@ -74,9 +82,11 @@ export function CollectionToolbar({
       {selection || resultCount !== undefined ? (
         <div className="cw-collection-toolbar__status" role="status">
           {loading
-            ? "Updating results"
+            ? loadingLabel
             : (selection ??
-              (resultCount === undefined ? null : resultLabel(resultCount)))}
+              (resultCount === undefined || !resultLabel
+                ? null
+                : resultLabel(resultCount)))}
         </div>
       ) : null}
       {actions ? (
@@ -101,6 +111,7 @@ export interface EntityComboboxProps {
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string, option: EntityComboboxOption) => void;
+  /** Without these three the reader's words come from `KitTextProvider`. */
   placeholder?: string;
   emptyLabel?: string;
   help?: ReactNode;
@@ -133,15 +144,24 @@ export function EntityCombobox({
   value,
   defaultValue,
   onValueChange,
-  placeholder = "Search entities",
-  emptyLabel = "No matching entities",
+  placeholder,
+  emptyLabel,
   help,
   error,
   disabled = false,
   loading = false,
-  loadingLabel = "Loading entities",
+  loadingLabel,
   className = "",
 }: EntityComboboxProps) {
+  const kitText = useKitText();
+  const searchText = kitWord(placeholder, kitText, "search", "EntityCombobox");
+  const emptyText = kitWord(emptyLabel, kitText, "noMatches", "EntityCombobox");
+  const loadingText = kitWord(
+    loadingLabel,
+    kitText,
+    "loading",
+    "EntityCombobox",
+  );
   const [internalValue, setInternalValue] = useState(defaultValue);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -239,7 +259,7 @@ export function EntityCombobox({
           autoComplete="off"
           disabled={disabled}
           value={open ? query : (selected?.label ?? "")}
-          placeholder={placeholder}
+          placeholder={searchText}
           onFocus={() => setOpen(true)}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -267,7 +287,7 @@ export function EntityCombobox({
         >
           {loading ? (
             <div className="cw-entity-combobox__empty" role="status">
-              {loadingLabel}
+              {loadingText}
             </div>
           ) : results.length ? (
             results.map((option) => (
@@ -297,7 +317,7 @@ export function EntityCombobox({
             ))
           ) : (
             <div className="cw-entity-combobox__empty" role="status">
-              {emptyLabel}
+              {emptyText}
             </div>
           )}
         </div>

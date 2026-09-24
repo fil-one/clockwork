@@ -1,4 +1,4 @@
-import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -9,8 +9,12 @@ import {
   demoExperienceRepository,
 } from "@/src/features/experience-server/demo-experience-repository";
 import { brandAsset } from "@/src/features/shell/brand-assets";
+import { getTranslations } from "@/src/i18n/server";
 
-export const metadata = { title: "Demo signing" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("signing.demo.eyebrow") };
+}
 
 export default async function Page({
   searchParams,

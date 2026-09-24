@@ -66,10 +66,13 @@ export function createReleaseProofCookieValue(
 ): string {
   ids.impersonationSession.parse(payload.sessionId);
   if (!Number.isFinite(Date.parse(payload.expiresAt)))
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof expiry is invalid");
   if (!/^[A-Za-z0-9_-]{32,256}$/.test(payload.nonce))
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof nonce is invalid");
   if (Buffer.byteLength(secret) < 32)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof secret must be at least 32 bytes");
   const encoded = Buffer.from(canonicalPayload(payload)).toString("base64url");
   return `${encoded}.${signature(encoded, secret).toString("base64url")}`;
@@ -82,23 +85,27 @@ export function verifyReleaseProofCookieValue(
 ): ReleaseProofPayload {
   const [encoded, supplied, extra] = value.split(".");
   if (!encoded || !supplied || extra)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof cookie is malformed");
   const expected = signature(encoded, configuration.secret);
   let suppliedBytes: Buffer;
   try {
     suppliedBytes = Buffer.from(supplied, "base64url");
   } catch {
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof signature is malformed");
   }
   if (
     suppliedBytes.length !== expected.length ||
     !timingSafeEqual(suppliedBytes, expected)
   )
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof signature is invalid");
   const parsed: unknown = JSON.parse(
     Buffer.from(encoded, "base64url").toString(),
   );
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof payload is invalid");
   const record = parsed as Record<string, unknown>;
   if (
@@ -107,6 +114,7 @@ export function verifyReleaseProofCookieValue(
     typeof record.expiresAt !== "string" ||
     typeof record.nonce !== "string"
   )
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof payload is invalid");
   const payload = {
     sessionId: ids.impersonationSession.parse(record.sessionId),
@@ -115,8 +123,10 @@ export function verifyReleaseProofCookieValue(
   };
   const expiresAt = Date.parse(payload.expiresAt);
   if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime())
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof session expired");
   if (!/^[A-Za-z0-9_-]{32,256}$/.test(payload.nonce))
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof nonce is invalid");
   return payload;
 }

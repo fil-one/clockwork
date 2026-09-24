@@ -1,3 +1,4 @@
+// i18n-exempt-file: every string here is an API problem+json title or detail for API callers; the UI words failures from status and code (features/contracts/error-text.ts)
 import { uuidV7 } from "@clockwork/contracts";
 import {
   denialSpanAttributes,

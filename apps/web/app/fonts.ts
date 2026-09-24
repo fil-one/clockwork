@@ -1,3 +1,4 @@
+// i18n-exempt-file: every string here is a font family name or a font-loader option, none of it reader-facing copy
 import localFont from "next/font/local";
 
 /**

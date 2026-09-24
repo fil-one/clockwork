@@ -268,6 +268,7 @@ function meterTelemetry(key: string, now = Date.now()): boolean {
 
 async function readTelemetryJson(request: Request): Promise<unknown> {
   const reader = request.body?.getReader();
+  // i18n-exempt: ingest parse error, mapped to a fixed problem response that the telemetry beacon never displays
   if (!reader) throw new Error("Telemetry body is required");
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -277,6 +278,7 @@ async function readTelemetryJson(request: Request): Promise<unknown> {
     total += value.byteLength;
     if (total > maximumTelemetryBytes) {
       await reader.cancel();
+      // i18n-exempt: ingest parse error, mapped to a fixed problem response that the telemetry beacon never displays
       throw new RangeError("Telemetry payload is too large");
     }
     chunks.push(value);

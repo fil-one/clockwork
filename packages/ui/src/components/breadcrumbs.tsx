@@ -8,11 +8,12 @@ import type { ReactNode } from "react";
  */
 export function Breadcrumbs({
   items,
-  label = "Breadcrumb",
+  label,
   renderLink,
 }: {
   items: readonly { label: string; href?: string }[];
-  label?: string;
+  /** Accessible name of the trail's landmark, in the reader's language. */
+  label: string;
   /**
    * Render a framework link for a crumb that has an href. A crumb carries no
    * state beyond its label and target, so this receives the href directly

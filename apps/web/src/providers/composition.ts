@@ -59,6 +59,7 @@ export class PersistedExternalGateGuard {
     } catch {
       throw new ProblemError({
         type: "https://clockwork.test/problems/external-gate-unavailable",
+        // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
         title: "External provider activation register is unavailable",
         status: 503,
         code: "EXTERNAL_GATE_SERVICE_UNAVAILABLE",
@@ -73,10 +74,12 @@ export class PersistedExternalGateGuard {
     if (blocked.length === 0) return;
     throw new ProblemError({
       type: "https://clockwork.test/problems/external-gate-inactive",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "External provider activation gate is not active",
       status: 503,
       code: "EXTERNAL_GATE_INACTIVE",
       requestId,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       detail: `Required activation gates are inactive: ${blocked.join(", ")}`,
       retryable: false,
     });
@@ -296,6 +299,7 @@ export class ProductionImmutableArtifactService implements ArtifactService {
       input.artifactKind !== "agreement_template" &&
       metadata.accountId !== input.accountId
     )
+      // i18n-exempt: server invariant; the API answers 500 INTERNAL_ERROR and omits this text in production
       throw new Error("Artifact account binding mismatch");
     const artifact = await this.reader.read(metadata);
     const extension = artifact.mimeType === "application/pdf" ? "pdf" : "bin";
@@ -330,9 +334,11 @@ export class ProductionActiveAgreementTemplateService implements ActiveTemplateS
       .digest("hex");
     if (exactHash !== template.exactTextHash)
       throw new Error(
+        // i18n-exempt: server invariant; the API answers 500 INTERNAL_ERROR and omits this text in production
         "Agreement exact text does not match the approved template",
       );
     if (!template.exactText.trim())
+      // i18n-exempt: server invariant; the API answers 500 INTERNAL_ERROR and omits this text in production
       throw new Error("Agreement exact text is empty");
     return {
       ...template,

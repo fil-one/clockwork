@@ -1,3 +1,5 @@
+import type { MessageId } from "@/src/i18n";
+
 import {
   apiReferenceOperations,
   type ReferenceOperation,
@@ -64,7 +66,7 @@ export function operationKey(operation: {
  * request body rather than by a cookie.
  */
 export const bootstrapTokenOperations: readonly string[] = [
-  "POST /v1/lifecycle/registrations",
+  "POST /v1/lifecycle/registrations", // i18n-exempt: operation key (HTTP method and contract path), an identifier
 ];
 
 /**
@@ -72,9 +74,9 @@ export const bootstrapTokenOperations: readonly string[] = [
  * alternative is a sentence that quietly averages them in with the rest.
  */
 export const unauthenticatedOperations: readonly string[] = [
-  "GET /v1/core/status",
-  "GET /v1/lifecycle/status",
-  "GET /v1/system/status",
+  "GET /v1/core/status", // i18n-exempt: operation key (HTTP method and contract path), an identifier
+  "GET /v1/lifecycle/status", // i18n-exempt: operation key (HTTP method and contract path), an identifier
+  "GET /v1/system/status", // i18n-exempt: operation key (HTTP method and contract path), an identifier
 ];
 
 export function authenticationMechanism(
@@ -92,49 +94,55 @@ export function authenticationMechanism(
 export interface AuthenticationClass {
   readonly mechanism: AuthenticationMechanism;
   /** Heading. What the caller must present. */
-  readonly title: string;
-  /** Fragment for "42 by browser session", counted at render time. */
-  readonly shortLabel: string;
+  readonly title: MessageId;
+  /**
+   * "{count} by browser session and a permission check": one list item of the
+   * count summary, counted at render time and joined with `Intl.ListFormat`.
+   */
+  readonly summary: MessageId;
   /** What the handler does with it, in one sentence, and what it does not. */
-  readonly detail: string;
+  readonly detail: MessageId;
   readonly operations: readonly ReferenceOperation[];
 }
 
+/**
+ * The words for each class, as message IDs so the page reads in the reader's
+ * language (`platform-developers.ts`). The clauses that make a checkable claim
+ * -- the CSRF and idempotency-key exemption, the registrant's email and
+ * business domain, no account data, what the proxy serves -- are checked
+ * against the code by `route-authentication.test.ts`, and every translation
+ * has to keep those claims exactly, negation and scope included.
+ */
 const classDetail: Readonly<
   Record<
     AuthenticationMechanism,
-    { title: string; shortLabel: string; detail: string }
+    { title: MessageId; summary: MessageId; detail: MessageId }
   >
 > = {
   "declared-scheme": {
-    title: "Declared in the contract",
-    shortLabel: "a scheme the contract declares",
-    detail:
-      "The operation carries a security requirement in the document, so a generated client knows what to present without reading this page.",
+    title: "platform.developers.class.declaredScheme.title",
+    summary: "platform.developers.class.declaredScheme.summary",
+    detail: "platform.developers.class.declaredScheme.detail",
   },
   "session-and-permission": {
-    title: "Browser session, plus a permission and an account scope",
-    shortLabel: "browser session and a permission check",
-    detail:
-      "The handler calls requirePermission with a named permission and the account it is acting inside, which rejects an unauthenticated request with 401 and an out-of-scope one with 403. There is no credential a caller outside a browser can present for these today.",
+    title: "platform.developers.class.sessionAndPermission.title",
+    summary: "platform.developers.class.sessionAndPermission.summary",
+    detail: "platform.developers.class.sessionAndPermission.detail",
   },
   "provider-signature": {
-    title: "Provider signature over the raw request body",
-    shortLabel: "provider signature",
-    detail:
-      "No session, no permission and no account scope. The signature is the whole control: it is verified against the unparsed body, and the event id is claimed so a redelivery is deduplicated rather than applied twice. These routes are deliberately exempt from the CSRF and idempotency-key checks, and the browser proxy does not put sign-in in front of them.",
+    title: "platform.developers.class.providerSignature.title",
+    summary: "platform.developers.class.providerSignature.summary",
+    detail: "platform.developers.class.providerSignature.detail",
   },
   "bootstrap-token": {
-    title: "A bootstrap token carried in the request body",
-    shortLabel: "a bootstrap token in the body",
-    detail:
-      "The caller has no account yet, so there is nothing to scope to and no permission to resolve. A server-issued registration token is verified against the registrant's email and business domain. Apart from the webhook namespace, which bypasses sign-in entirely, this is the only API path the browser proxy serves to a caller with no session.",
+    title: "platform.developers.class.bootstrapToken.title",
+    summary: "platform.developers.class.bootstrapToken.summary",
+    detail: "platform.developers.class.bootstrapToken.detail",
   },
   none: {
-    title: "Nothing",
-    shortLabel: "nothing at all",
-    detail:
-      "The handler authenticates nobody and authorizes nothing. These report whether a lane's dependencies are configured, and return no tenant data. The browser proxy still requires a session to reach them, so they are not anonymous on a deployed origin -- but do not read them as authorized, because the handler makes no check.",
+    title: "platform.developers.class.none.title",
+    summary: "platform.developers.class.none.summary",
+    detail: "platform.developers.class.none.detail",
   },
 };
 

@@ -65,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
     return problem(
       503,
       "DEMO_RESET_FAILED",
+      // i18n-exempt: problem title for /api/demo/reset; the persona panel ignores the body and shows its own translated failure state
       error instanceof Error ? error.message : "Demo reset failed",
       id,
     );

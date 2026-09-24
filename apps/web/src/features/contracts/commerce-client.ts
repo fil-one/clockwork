@@ -84,6 +84,13 @@ export class CommerceApiError extends Error {
      * `unavailable`. Surfaces that must tell those apart read this.
      */
     public readonly problemCode?: string,
+    /**
+     * Why the client refused before or without a server answer. The server
+     * sends no problem code in these cases, so a surface that words the
+     * failure for the reader (`commerceErrorText`) needs this to tell a
+     * missing form token from a refusal by the server.
+     */
+    public readonly clientReason?: "token" | "network" | "version",
   ) {
     super(message);
     this.name = "CommerceApiError";
@@ -104,7 +111,9 @@ function mutationHeaders(options: CommerceClientOptions) {
     throw new CommerceApiError(
       403,
       "forbidden",
-      "The secure form token is unavailable. Refresh the page and try again.",
+      "The secure form token is unavailable. Refresh the page and try again.", // i18n-exempt: developer message for logs; readers see commerceErrorText
+      undefined,
+      "token",
     );
   return {
     idempotencyKey: options.idempotencyKey ?? crypto.randomUUID(),
@@ -151,20 +160,20 @@ function apiError(status: number, error: unknown): CommerceApiError {
     return new CommerceApiError(
       status,
       "forbidden",
-      "Your role or current session cannot perform this action.",
+      "Your role or current session cannot perform this action.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
     );
   if (status === 409)
     return new CommerceApiError(
       status,
       "conflict",
-      "This record changed while you were working. Review the latest version and try again.",
+      "This record changed while you were working. Review the latest version and try again.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
     );
   if (status === 422)
     return new CommerceApiError(
       status,
       "validation",
       problemDetail(error) ??
-        "The request did not pass server validation. Review the highlighted information.",
+        "The request did not pass server validation. Review the highlighted information.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
     );
   if (status === 503)
     /**
@@ -182,13 +191,13 @@ function apiError(status: number, error: unknown): CommerceApiError {
     return new CommerceApiError(
       status,
       "unavailable",
-      problemDetail(error) ?? "The commerce service is unavailable.",
+      problemDetail(error) ?? "The commerce service is unavailable.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
       problemCode(error),
     );
   return new CommerceApiError(
     status,
     "unknown",
-    "The request could not be completed. Nothing was changed.",
+    "The request could not be completed. Nothing was changed.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
     problemCode(error),
   );
 }
@@ -210,7 +219,9 @@ async function generatedCall<T>(
     throw new CommerceApiError(
       503,
       "unavailable",
-      "The commerce service could not be reached.",
+      "The commerce service could not be reached.", // i18n-exempt: developer message for logs; readers see commerceErrorText
+      undefined,
+      "network",
     );
   }
 }
@@ -275,7 +286,9 @@ export async function readCoreAccount(
     throw new CommerceApiError(
       409,
       "conflict",
-      "The current account version could not be resolved safely.",
+      "The current account version could not be resolved safely.", // i18n-exempt: developer message for logs; readers see commerceErrorText
+      undefined,
+      "version",
     );
   return match;
 }
@@ -407,8 +420,25 @@ export interface ClickAgreementInput {
   authorityTitle: string;
 }
 
-export function executeClickAgreement(
+/**
+ * What the reader saw when they accepted: the label of the control they
+ * pressed, exactly as rendered, and the interface language it was rendered in.
+ * The server records both as acceptance evidence, so they must be the words on
+ * the screen, not a fixed English label.
+ */
+export interface ClickAgreementUiContext {
+  actionLabel: string;
+  locale: string;
+}
+
+/**
+ * Executes a click-through agreement and records the rendered action label and
+ * interface language as evidence. Prefer this to `executeClickAgreement`, which
+ * records the English label whatever the reader saw.
+ */
+export function executeClickAgreementAs(
   input: ClickAgreementInput,
+  uiContext: ClickAgreementUiContext,
   options: CommerceClientOptions = {},
 ) {
   const mutation = mutationHeaders(options);
@@ -421,12 +451,29 @@ export function executeClickAgreement(
         authorityAttested: true,
         uiContext: {
           surface: "agreements.execute",
-          actionLabel: "Accept and execute",
-          locale: "en",
+          actionLabel: uiContext.actionLabel,
+          locale: uiContext.locale,
         },
         previousAgreementId: null,
       },
     }),
+  );
+}
+
+/**
+ * @deprecated Records the English label "Accept and execute" and locale "en"
+ * as evidence regardless of what the reader saw. Use `executeClickAgreementAs`
+ * with the rendered label and the interface language.
+ */
+export function executeClickAgreement(
+  input: ClickAgreementInput,
+  options: CommerceClientOptions = {},
+) {
+  return executeClickAgreementAs(
+    input,
+    // i18n-exempt: legacy evidence value kept for the existing caller; see executeClickAgreementAs
+    { actionLabel: "Accept and execute", locale: "en" },
+    options,
   );
 }
 

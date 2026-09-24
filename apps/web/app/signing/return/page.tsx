@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
+
 import { SigningExperience } from "@/src/features/signing/signing-experience";
+import { getTranslations } from "@/src/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("signing.title") };
+}
+
 export default async function Page({
   searchParams,
 }: {

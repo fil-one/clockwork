@@ -160,6 +160,12 @@ export function apiReferenceOperations(
   return operations;
 }
 
+/**
+ * The group an operation with no tag is filed under. It is a key, not a label:
+ * the page renders it as the translated "Untagged".
+ */
+export const untaggedGroup = "untagged";
+
 export function apiReferenceGroups(
   document: OpenApiDocument = apiReferenceDocument(),
 ): readonly ReferenceGroup[] {
@@ -167,7 +173,7 @@ export function apiReferenceGroups(
   for (const operation of apiReferenceOperations(document)) {
     // An untagged operation is still published. Hiding it would make the page
     // a smaller and prettier lie than the contract it claims to publish.
-    const tag = operation.tags[0] ?? "untagged";
+    const tag = operation.tags[0] ?? untaggedGroup;
     const bucket = groups.get(tag);
     if (bucket) bucket.push(operation);
     else groups.set(tag, [operation]);

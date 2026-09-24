@@ -9,6 +9,7 @@ import {
   formatSurfaceTimestamp,
   type SurfaceFormatting,
 } from "@/src/features/customer-partner/formatting";
+import { termBarMessages } from "@/src/features/shared/ui-kit-labels";
 
 import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
@@ -108,6 +109,7 @@ export function PartnerDashboard({
           // partner and another for the same partner's calendar.
           locale={formatting.locale}
           timeZone={formatting.timeZone}
+          messages={termBarMessages(t)}
         />
         <dl className={styles.authorityFacts}>
           <div>

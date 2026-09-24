@@ -36,6 +36,13 @@ import {
   Timeline,
   ValidationSummary,
 } from "../index";
+import {
+  fixtureChartLabels,
+  fixtureDocumentMetaLabels,
+  fixtureShellLabels,
+  fixtureTermBarMessages,
+  fixtureTermRollupLabels,
+} from "./fixture-labels";
 
 const now = new Date("2026-07-31T16:00:00Z");
 
@@ -129,6 +136,10 @@ function ExperienceGallery() {
         />
       </div>
       <AccountTermRollup
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
+        {...fixtureTermRollupLabels}
         label="Account agreement clock"
         now={now}
         terms={[
@@ -159,6 +170,7 @@ function ExperienceGallery() {
         }}
       >
         <MetricChart
+          {...fixtureChartLabels}
           title="Storage consumption"
           description="Trailing six months"
           data={[
@@ -172,6 +184,7 @@ function ExperienceGallery() {
           formatValue={(value) => `${value} TB`}
         />
         <MetricChart
+          {...fixtureChartLabels}
           title="Monthly spend"
           description="Recognized usage"
           type="bar"
@@ -294,6 +307,8 @@ export const AuthenticatedShell: Story = {
   parameters: { layout: "fullscreen" },
   render: () => (
     <AppShell
+      brand="Fil One"
+      {...fixtureShellLabels}
       navigation={[
         {
           id: "workspace",
@@ -338,7 +353,10 @@ export const AuthenticatedShell: Story = {
       }
       footer="FIL ONE · Request 01J4FGQX · Privacy"
     >
-      <Breadcrumbs items={[{ label: "Accounts" }, { label: "Northstar" }]} />
+      <Breadcrumbs
+        label="Breadcrumb"
+        items={[{ label: "Accounts" }, { label: "Northstar" }]}
+      />
       <PageHeader
         eyebrow="Customer account"
         title="Commercial overview"
@@ -354,6 +372,9 @@ export const TermBarVariants: Story = {
   render: () => (
     <div style={{ display: "grid", gap: 32, maxWidth: 760 }}>
       <TermBar
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
         label="Annual business term"
         start={new Date("2026-01-01T00:00:00Z")}
         end={new Date("2026-12-31T00:00:00Z")}
@@ -363,6 +384,9 @@ export const TermBarVariants: Story = {
         renewalState="auto-renews"
       />
       <TermBar
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
         label="Migration services"
         start={new Date("2026-03-01T00:00:00Z")}
         end={new Date("2026-10-31T00:00:00Z")}
@@ -379,6 +403,9 @@ export const TermBarVariants: Story = {
           [
             "Data vault",
             <TermBar
+              locale="en-US"
+              timeZone="UTC"
+              messages={fixtureTermBarMessages}
               key="clock"
               label="Data vault"
               start={new Date("2026-01-01T00:00:00Z")}
@@ -583,6 +610,7 @@ export const OperationsAndDocuments: Story = {
         }}
       >
         <DocumentCard
+          metaLabels={fixtureDocumentMetaLabels}
           type="Order form"
           title="Managed archive expansion"
           documentId="ORD-2026-1842"
@@ -597,6 +625,7 @@ export const OperationsAndDocuments: Story = {
           }
         />
         <DocumentCard
+          metaLabels={fixtureDocumentMetaLabels}
           type="Amendment"
           title="Data residency amendment"
           documentId="AMD-2026-0091"

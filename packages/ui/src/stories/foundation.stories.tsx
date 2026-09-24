@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactNode } from "react";
 
 import {
@@ -14,7 +14,13 @@ import {
   Toast,
   ToastProvider,
   ErrorBoundary,
+  KitTextProvider,
 } from "../index";
+import {
+  fixtureErrorMessages,
+  fixtureKitText,
+  fixtureTermBarMessages,
+} from "./fixture-labels";
 
 function BrokenDemo(): ReactNode {
   throw new Error("Deterministic Storybook error boundary demo");
@@ -51,6 +57,9 @@ function FoundationGallery() {
         <p>Enter a reason before continuing.</p>
       </Dialog>
       <TermBar
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
         label="Annual business term"
         start={new Date("2026-01-01T00:00:00Z")}
         noticeDate={new Date("2026-11-01T00:00:00Z")}
@@ -84,14 +93,22 @@ function FoundationGallery() {
           description="Revision 3 is ready for review."
         />
       </ToastProvider>
-      <ErrorBoundary>
+      <ErrorBoundary messages={fixtureErrorMessages}>
         <p>Error boundary is armed for this gallery.</p>
       </ErrorBoundary>
     </div>
   );
 }
 
+/** The kit has no default words; the stories supply English ones. */
+const withKitText: Decorator = (Story) => (
+  <KitTextProvider text={fixtureKitText}>
+    <Story />
+  </KitTextProvider>
+);
+
 const meta = {
+  decorators: [withKitText],
   title: "Foundation/Primitives",
   component: FoundationGallery,
   tags: ["autodocs"],
@@ -113,7 +130,7 @@ export const OpenDialog: Story = {
 };
 export const ErrorState: Story = {
   render: () => (
-    <ErrorBoundary>
+    <ErrorBoundary messages={fixtureErrorMessages}>
       <BrokenDemo />
     </ErrorBoundary>
   ),

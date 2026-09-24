@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, buttonClassName, Input, Select } from "@clockwork/ui";
 
 import { registerOrganization } from "@/src/features/contracts/commerce-client";
+import { commerceErrorText } from "@/src/features/contracts/error-text";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+
+/** Countries a registration can name today; labels come from `Intl`. */
+const registrationCountries = ["US", "GB", "ES"] as const;
 
 function value(data: FormData, name: string): string {
   const raw = data.get(name);
@@ -17,6 +22,16 @@ export function RegistrationForm({
 }: {
   initialRegistrationToken: string;
 }) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
+  const countryOptions = useMemo(() => {
+    const names = new Intl.DisplayNames(locale, { type: "region" });
+    const collator = new Intl.Collator(locale);
+    return registrationCountries
+      .map((code) => ({ value: code, label: names.of(code) ?? code }))
+      .sort((left, right) => collator.compare(left.label, right.label));
+  }, [locale]);
+  const optional = t("common.optional");
   const [pending, setPending] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +58,7 @@ export function RegistrationForm({
     const taxJurisdiction = value(data, "taxJurisdiction").toUpperCase();
     const taxId = value(data, "taxId");
     if (Boolean(apName) !== Boolean(apEmail)) {
-      setError("Enter both AP contact name and email, or leave both blank.");
+      setError(t("platform.registration.apPair"));
       window.setTimeout(
         () => form.querySelector<HTMLElement>("[name=apName]")?.focus(),
         0,
@@ -51,7 +66,7 @@ export function RegistrationForm({
       return;
     }
     if (Boolean(taxJurisdiction) !== Boolean(taxId)) {
-      setError("Enter both tax jurisdiction and tax ID, or leave both blank.");
+      setError(t("platform.registration.taxPair"));
       window.setTimeout(
         () =>
           form.querySelector<HTMLElement>("[name=taxJurisdiction]")?.focus(),
@@ -98,10 +113,12 @@ export function RegistrationForm({
       });
       setCompleted(true);
     } catch (caught) {
+      // What happened, then why, as two sentences in the reader's language.
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "Registration failed. No organization was created.",
+        t("common.join.sentences", {
+          first: t("platform.registration.failed"),
+          second: commerceErrorText(caught, t),
+        }),
       );
       window.setTimeout(() => errorRef.current?.focus(), 0);
     } finally {
@@ -112,16 +129,13 @@ export function RegistrationForm({
   if (completed)
     return (
       <div className="provider-state provider-state--success" role="status">
-        <h2>Registration accepted</h2>
-        <p>
-          Your organization record is being linked to WorkOS. Continue to sign
-          in; access remains closed until that durable link is complete.
-        </p>
+        <h2>{t("platform.registration.accepted.title")}</h2>
+        <p>{t("platform.registration.accepted.description")}</p>
         <Link
           className={buttonClassName({ variant: "primary" })}
           href="/sign-in"
         >
-          Continue to sign in
+          {t("platform.registration.accepted.continue")}
         </Link>
       </div>
     );
@@ -142,114 +156,136 @@ export function RegistrationForm({
             value={initialRegistrationToken}
           />
           <p className="form-message" role="status">
-            Verified sign-up context received. The one-time code has been
-            removed from the address bar.
+            {t("platform.registration.tokenReceived")}
           </p>
         </>
       ) : (
         <Input
-          label="WorkOS registration code"
+          label={t("platform.registration.token")}
           name="registrationToken"
           type="password"
           minLength={32}
           autoComplete="one-time-code"
-          help="Use the one-time code from the secure WorkOS registration redirect."
+          help={t("platform.registration.tokenHelp")}
           required
         />
       )}
       <Input
-        label="Legal entity name"
+        label={t("platform.registration.legalName")}
         name="legalName"
         minLength={2}
         required
       />
       <Select
-        label="Relationship"
+        label={t("platform.registration.relationship")}
         name="relationshipRole"
         defaultValue="direct_client"
         options={[
-          { value: "direct_client", label: "Direct client" },
-          { value: "partner", label: "Partner" },
-          { value: "end_client", label: "End client" },
+          {
+            value: "direct_client",
+            label: t("platform.registration.relationship.directClient"),
+          },
+          {
+            value: "partner",
+            label: t("platform.registration.relationship.partner"),
+          },
+          {
+            value: "end_client",
+            label: t("platform.registration.relationship.endClient"),
+          },
         ]}
       />
       <Input
-        label="Verified work email"
+        label={t("platform.registration.registrantEmail")}
         name="registrantEmail"
         type="email"
         autoComplete="email"
         required
       />
       <Input
-        label="Business domain"
+        label={t("platform.registration.businessDomain")}
         name="businessDomain"
         inputMode="url"
-        help="Must match the domain of the verified WorkOS email."
+        help={t("platform.registration.businessDomainHelp")}
         required
       />
       <Select
-        label="Country"
+        label={t("platform.registration.country")}
         name="country"
         defaultValue="US"
-        options={[
-          { value: "US", label: "United States" },
-          { value: "GB", label: "United Kingdom" },
-          { value: "ES", label: "Spain" },
-        ]}
+        options={countryOptions}
       />
       <Input
-        label="Registered address"
+        label={t("platform.registration.addressLine1")}
         name="addressLine1"
         autoComplete="address-line1"
         required
       />
       <Input
-        label="Address line 2"
+        label={t("platform.registration.addressLine2")}
         name="addressLine2"
         autoComplete="address-line2"
-        optionalLabel="Optional"
+        optionalLabel={optional}
       />
-      <Input label="City" name="city" autoComplete="address-level2" required />
       <Input
-        label="State or region"
+        label={t("platform.registration.city")}
+        name="city"
+        autoComplete="address-level2"
+        required
+      />
+      <Input
+        label={t("platform.registration.region")}
         name="region"
         autoComplete="address-level1"
-        optionalLabel="Optional"
+        optionalLabel={optional}
       />
       <Input
-        label="Postal code"
+        label={t("platform.registration.postalCode")}
         name="postalCode"
         autoComplete="postal-code"
         required
       />
-      <Input label="Billing contact name" name="billingName" required />
       <Input
-        label="Billing contact email"
+        label={t("platform.registration.billingName")}
+        name="billingName"
+        required
+      />
+      <Input
+        label={t("platform.registration.billingEmail")}
         name="billingEmail"
         type="email"
         required
       />
-      <Input label="AP contact name" name="apName" optionalLabel="Optional" />
       <Input
-        label="AP contact email"
-        name="apEmail"
-        type="email"
-        optionalLabel="Optional"
+        label={t("platform.registration.apName")}
+        name="apName"
+        optionalLabel={optional}
       />
       <Input
-        label="Invoice delivery email"
+        label={t("platform.registration.apEmail")}
+        name="apEmail"
+        type="email"
+        optionalLabel={optional}
+      />
+      <Input
+        label={t("platform.registration.invoiceDeliveryEmail")}
         name="invoiceDeliveryEmail"
         type="email"
         required
       />
       <Input
-        label="Tax jurisdiction"
+        label={t("platform.registration.taxJurisdiction")}
         name="taxJurisdiction"
         pattern="[A-Za-z]{2}"
         maxLength={2}
-        optionalLabel="Optional"
+        help={t("platform.registration.taxJurisdictionHelp")}
+        optionalLabel={optional}
       />
-      <Input label="Tax ID" name="taxId" optionalLabel="Optional" />
+      <Input
+        label={t("platform.registration.taxId")}
+        name="taxId"
+        optionalLabel={optional}
+      />
       {error ? (
         <p
           className="form-message form-message--error"
@@ -264,15 +300,15 @@ export function RegistrationForm({
         <Button
           type="submit"
           loading={pending}
-          loadingLabel="Registering securely…"
+          loadingLabel={t("platform.registration.submitting")}
         >
-          Register organization
+          {t("platform.registration.submit")}
         </Button>
         <Link
           className={buttonClassName({ variant: "secondary" })}
           href="/sign-in"
         >
-          Already registered
+          {t("platform.registration.signIn")}
         </Link>
       </div>
     </form>

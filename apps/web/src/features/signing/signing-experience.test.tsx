@@ -2,6 +2,9 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
+
 import { SigningExperience } from "./signing-experience";
 
 const csrfToken = "12345678901234567890123456789012";
@@ -122,7 +125,7 @@ describe("authoritative e-sign experience", () => {
       screen.getByRole("button", { name: "Continue to secure signing" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "outside the allow-list",
+      "The signing provider returned an address outside the approved list, so it was not opened.",
     );
     expect(
       screen.queryByRole("link", {
@@ -148,9 +151,12 @@ describe("authoritative e-sign experience", () => {
     );
     render(<SigningExperience mode="return" returnState="altered-state" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Signing return state is invalid",
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "This signing link does not match a signing session you started.",
     );
+    // The server's problem title is English diagnostics, never reader copy.
+    expect(alert).not.toHaveTextContent("Signing return state is invalid");
     expect(screen.queryByText(testedSuccessText)).not.toBeInTheDocument();
   });
 
@@ -206,7 +212,7 @@ describe("authoritative e-sign experience", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Signature declined");
     expect(alert).toHaveTextContent(
-      "The agreement remains unchanged. Open the agreement record to review next steps.",
+      "The agreement remains unchanged. Return to your agreements to decide the next step.",
     );
     expect(
       within(alert).getByRole("link", { name: "Back to agreements" }),
@@ -229,6 +235,66 @@ describe("authoritative e-sign experience", () => {
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Signature pending");
     expect(status).not.toHaveTextContent("Review and sign");
+  });
+});
+
+describe("signing in the reader's language", () => {
+  it("renders the ceremony and a server refusal in Portuguese, not the server's English", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json(
+            {
+              code: "ESIGN_RETURN_EXPIRED",
+              title: "Signing return state expired",
+            },
+            { status: 410 },
+          ),
+        ),
+      ),
+    );
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <SigningExperience mode="return" returnState="opaque-state" />
+      </LanguageProvider>,
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Não foi possível continuar a assinatura. O acordo permanece inalterado.",
+    );
+    expect(alert).toHaveTextContent(
+      "Este link de assinatura expirou. Recomece pelos seus acordos.",
+    );
+    expect(alert).not.toHaveTextContent("Signing return state expired");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Revisar e assinar" }),
+    ).toBeVisible();
+    expect(
+      within(alert).getByRole("link", { name: "Voltar aos acordos" }),
+    ).toHaveAttribute("href", "/agreements");
+  });
+
+  it("keeps the agreement reference whole inside the translated sentence", () => {
+    render(
+      <LanguageProvider locale="fr" catalog={catalogs.fr}>
+        <SigningExperience mode="redirect" agreementId={agreementId} />
+      </LanguageProvider>,
+    );
+    expect(
+      screen.getByText((_, element) =>
+        element?.tagName === "P"
+          ? element.textContent ===
+            `Référence de l’accord\u00a0: ${agreementId}`
+          : false,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", {
+        name: "Continuer vers la signature sécurisée",
+      }),
+    ).toBeVisible();
   });
 });
 

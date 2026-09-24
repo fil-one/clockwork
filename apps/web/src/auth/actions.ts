@@ -63,6 +63,7 @@ export async function switchCommerceAccount(requestedAccountId: string) {
 
 export async function chooseCommerceAccount(formData: FormData) {
   const result = await switchCommerceAccount(formText(formData, "accountId"));
+  // i18n-exempt: server action refusal; Next redacts it to a digest before the browser, and no caller renders it
   if (!result.ok) throw new Error("Organization selection was denied");
 }
 
@@ -76,6 +77,7 @@ export async function startAssistedSession(formData: FormData) {
     !session.authenticationSessionId ||
     session.assistedSession
   )
+    // i18n-exempt: server action refusal; Next redacts it to a digest before the browser, and no caller renders it
     throw new Error("Assisted-action authority is required");
   const targetAccountId = ids.account.parse(
     formText(formData, "targetAccountId"),
@@ -109,6 +111,7 @@ export async function exitAssistedSession() {
     if (id) {
       const session = await getCommerceSession();
       if (!session.authenticationSessionId)
+        // i18n-exempt: server action refusal; Next redacts it to a digest before the browser, and no caller renders it
         throw new Error("Authenticated session identity is missing");
       await endAssistedSession(getServiceDatabase(), {
         id: ids.impersonationSession.parse(id),
@@ -132,6 +135,7 @@ export async function exitProviderAssistedSession() {
     !session.assistedSession ||
     !session.authenticationSessionId
   )
+    // i18n-exempt: server action refusal; Next redacts it to a digest before the browser, and no caller renders it
     throw new Error("No provider assisted session is authorized for exit");
   await endProviderAssistedSession(getServiceDatabase(), {
     id: session.assistedSession.id,

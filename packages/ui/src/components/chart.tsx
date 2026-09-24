@@ -41,8 +41,17 @@ export interface MetricChartProps {
   formatValue: (value: number) => string;
   type?: "line" | "bar";
   height?: number;
-  emptyLabel?: string;
-  tableLabel?: string;
+  /**
+   * The reader's words. The kit carries no English defaults: the caller
+   * supplies every label, and the locale the point list is joined with.
+   */
+  locale: string;
+  emptyLabel: string;
+  tableLabel: string;
+  periodLabel: string;
+  valueLabel: string;
+  /** One data point for the accessible summary, e.g. "Jul: 72 TB". */
+  formatPoint: (label: string, value: string) => string;
   className?: string;
 }
 
@@ -54,8 +63,12 @@ export function MetricChart({
   formatValue,
   type = "line",
   height = 176,
-  emptyLabel = "No chart data",
-  tableLabel = "View data table",
+  locale,
+  emptyLabel,
+  tableLabel,
+  periodLabel,
+  valueLabel,
+  formatPoint,
   className = "",
 }: MetricChartProps) {
   const chartId = `chart-${useId().replaceAll(":", "")}`;
@@ -89,7 +102,15 @@ export function MetricChart({
             viewBox={`0 0 ${width} ${height}`}
             preserveAspectRatio="none"
             role="img"
-            aria-label={`${title}. ${data.map((datum) => `${datum.label}: ${formatValue(datum.value)}`).join(", ")}`}
+            // The figure is already named by its title; the plot lists the points.
+            aria-label={new Intl.ListFormat(locale, {
+              type: "unit",
+              style: "short",
+            }).format(
+              data.map((datum) =>
+                formatPoint(datum.label, formatValue(datum.value)),
+              ),
+            )}
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -166,8 +187,8 @@ export function MetricChart({
           <table>
             <thead>
               <tr>
-                <th scope="col">Period</th>
-                <th scope="col">Value</th>
+                <th scope="col">{periodLabel}</th>
+                <th scope="col">{valueLabel}</th>
               </tr>
             </thead>
             <tbody>

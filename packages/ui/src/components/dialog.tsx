@@ -4,6 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 
 import { Button } from "./button";
+import { kitWord, useKitText } from "./kit-text";
 
 export interface DialogProps {
   title: string;
@@ -13,6 +14,7 @@ export interface DialogProps {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** The close control's text. Without it the reader's word comes from `KitTextProvider`. */
   closeLabel?: string;
   footer?: ReactNode;
 }
@@ -24,9 +26,10 @@ export function Dialog({
   defaultOpen,
   open,
   onOpenChange,
-  closeLabel = "Close",
+  closeLabel,
   footer,
 }: DialogProps) {
+  const close = kitWord(closeLabel, useKitText(), "close", "Dialog");
   return (
     <DialogPrimitive.Root
       {...(defaultOpen === undefined ? {} : { defaultOpen })}
@@ -47,7 +50,7 @@ export function Dialog({
           <div className="cw-dialog-footer">
             {footer}
             <DialogPrimitive.Close asChild>
-              <Button variant="secondary">{closeLabel}</Button>
+              <Button variant="secondary">{close}</Button>
             </DialogPrimitive.Close>
           </div>
         </DialogPrimitive.Content>
