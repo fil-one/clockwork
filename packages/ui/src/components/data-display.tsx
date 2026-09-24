@@ -345,7 +345,7 @@ export function CapacityMeter({
         {thresholdPercentage === undefined ? null : (
           <span
             className="cw-capacity__threshold"
-            style={{ left: `${thresholdPercentage}%` }}
+            style={{ insetInlineStart: `${thresholdPercentage}%` }}
             aria-hidden="true"
           />
         )}

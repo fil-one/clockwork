@@ -1,31 +1,48 @@
-/* Fil One foundational tokens. Brand values may be overridden at an app boundary. */
+/*
+ * Fil One foundational tokens. This block is the single source for the
+ * product's type, color, shape, and spacing; the Fil One console
+ * (app.fil.one) is the reference, and Clockwork is meant to read as the same
+ * product family. Brand values may be overridden at an app boundary.
+ *
+ * Every text/background pairing the product relies on is measured by
+ * `src/contrast.test.ts`, which reads this file, so a token change that drops
+ * a pair below its WCAG minimum fails the unit suite. The comments below say
+ * what each token is for; they do not restate ratios, because a typed ratio
+ * goes stale the first time a value moves.
+ */
 :root {
   color-scheme: light;
   /*
-   * The three brand families arrive as CSS variables from the application
-   * boundary, which is the only place that serves font bytes. This package
-   * declares no @font-face, so a consumer that has not wired the boundary
-   * resolves to the platform stack rather than to a default serif. All three
-   * faces are variable, so every numeric weight below is a live axis position.
+   * Inter, the console's typeface, arrives from the application boundary as
+   * two variables: the extended-Latin subset and the basic-Latin subset, each
+   * limited by unicode-range. The extended one is listed first on purpose;
+   * `apps/web/app/fonts.ts` explains why the order matters. This package
+   * serves no font bytes, so a consumer that has not wired the boundary falls
+   * through to an installed Inter or to the platform stack, never to a serif.
    */
-  --cw-font-sans:
-    var(--cw-font-funnel-sans, "Funnel Sans"), "Avenir Next", Avenir, Inter,
+  --cw-font-latin:
+    var(--cw-font-inter-extended, "Inter Variable"), var(--cw-font-inter, Inter);
+  --cw-font-system:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  /* Aspekta carries headings, the wordmark, and displayed amounts. */
-  --cw-font-display:
-    var(--cw-font-aspekta, Aspekta), "Avenir Next", Avenir, Inter,
-    ui-sans-serif, system-ui, sans-serif;
-  /* Funnel Display carries the accent register: eyebrows, labels, captions. */
-  --cw-font-accent:
-    var(--cw-font-funnel-display, "Funnel Display"), "Avenir Next", Avenir,
-    Inter, ui-sans-serif, system-ui, sans-serif;
-  --cw-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --cw-font-sans: var(--cw-font-latin), var(--cw-font-system);
   /*
-   * Filecoin Blue, the authoritative brand ramp. Do not interpolate new steps.
-   * Only 800, 900, and 950 reach 4.5:1 against white, so those three are the
-   * whole budget for text and for white labels on a fill; everything lighter
-   * is a shape fill or a wash.
+   * One family. Display and accent survive as names so every module that
+   * reaches for them follows the sans stack, including the per-language
+   * stacks declared under :lang() below. Size and weight carry hierarchy.
+   */
+  --cw-font-display: var(--cw-font-sans);
+  --cw-font-accent: var(--cw-font-sans);
+  /* Code, endpoints, keys, and hashes only. Menlo is on every Mac, so the
+     generic monospace (Courier in Chrome and Safari on macOS) is never reached
+     there. */
+  --cw-font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  /*
+   * Filecoin Blue, the brand ramp. It draws the mark and fills charts and
+   * meters; interface text and controls use the action blue below. Do not
+   * interpolate new steps.
    */
   --cw-blue-50: #edfbff;
   --cw-blue-100: #d6f5ff;
@@ -38,62 +55,90 @@
   --cw-blue-800: #086dc5;
   --cw-blue-900: #0d5d9b;
   --cw-blue-950: #0e385d;
-  /* One neutral family, cooled to sit with the ramp. Every ink step below
-     reaches 4.5:1 on surface, canvas, and canvas-deep alike. */
-  --cw-ink: #151f27;
-  --cw-ink-soft: #2f3f4a;
-  --cw-muted: #465661;
-  --cw-faint: #596a76;
-  --cw-canvas: #f4f7f9;
-  --cw-canvas-deep: #e5ecf1;
+  /*
+   * Neutrals are the zinc ramp the console uses. Ink carries primary content,
+   * ink-soft secondary content and table cells, muted supporting copy and
+   * labels, and faint annotation. Faint is a step darker than zinc-500 so it
+   * still clears AA on canvas-deep, not only on white.
+   */
+  --cw-ink: #09090b;
+  --cw-ink-soft: #3f3f46;
+  --cw-muted: #52525b;
+  --cw-faint: #6c6c75;
+  --cw-canvas: #fafafa;
+  --cw-canvas-deep: #f4f4f5;
   --cw-surface: #ffffff;
   --cw-surface-raised: #ffffff;
-  --cw-border: #dde5eb;
-  --cw-border-strong: #6b7c89;
-  /* The mark's blue fills shapes and draws the mark; it never carries text.
-     It measures 3.26:1 on surface and 2.74:1 on canvas-deep, so it cannot even
-     fill a meter there. Strong takes that work. */
-  --cw-brand: var(--cw-blue-700);
-  --cw-brand-strong: var(--cw-blue-900);
-  --cw-brand-soft: var(--cw-blue-100);
-  --cw-brand-ink: var(--cw-blue-950);
-  --cw-success: #2b6856;
-  --cw-success-soft: #e0f1ec;
-  /* Information speaks in the brand's own blue. A washed panel and a filled
-     control are told apart by form, which is the distinction the shape rules
-     already draw, so the hue is free to be the brand's. */
-  --cw-info: var(--cw-blue-950);
-  --cw-info-soft: var(--cw-blue-100);
-  --cw-warning: #8a5719;
-  --cw-warning-soft: #faecd2;
-  /* Amber text and amber marks need their own steps: the wash is light enough
-     that the base amber misses the 3:1 boundary minimum on it. */
-  --cw-warning-ink: #674011;
-  --cw-warning-mark: #a9732d;
-  --cw-danger: #9a333e;
-  --cw-danger-strong: #6f222a;
-  --cw-danger-soft: #f9e6e8;
-  --cw-focus: #7a3df5;
-  --cw-offline: #5d6369;
-  --cw-offline-soft: #eaebec;
-  /* One shadow ink for every elevation and for the scrim. */
-  --cw-shadow-color: 21 31 39;
-  --cw-overlay: rgb(var(--cw-shadow-color) / 0.55);
+  /* Hairlines are zinc-950 at 10%, as in the console. They separate and
+     group; they never identify a control on their own. */
+  --cw-border: rgb(9 9 11 / 0.1);
+  --cw-border-subtle: rgb(9 9 11 / 0.06);
+  /* A boundary that identifies a control (text field, select, checkbox)
+     needs 3:1 against the surface it sits on, so it has its own step. */
+  --cw-border-strong: #8a8a92;
   /*
-   * Two container radii, and 0.375rem is the ceiling the shape rules set.
-   * The md/lg/xl names survive as aliases so existing declarations keep
-   * resolving; new work should reach for xs or sm. Pills (999px) and circles
-   * (50%) are shape marks rather than containers, so the cap does not apply
-   * to them.
+   * Action blue: links, primary buttons, focus, the active navigation item,
+   * and selection. Strong is the hover and pressed fill and the text on the
+   * soft wash; ink is the deepest step, for text that sits on the wash in
+   * dense lists.
+   */
+  --cw-action: #2563eb;
+  --cw-action-strong: #1d4ed8;
+  --cw-action-ink: #1e40af;
+  --cw-action-soft: #eff6ff;
+  --cw-action-border: #bfdbfe;
+  /* The mark's blue fills shapes and draws the mark; it never carries text. */
+  --cw-brand: var(--cw-blue-700);
+  /* The historical brand names now point at the action ramp, so every module
+     that set a link, a primary fill, or a selected row in brand-strong moves
+     to the console's blue without an edit. */
+  --cw-brand-strong: var(--cw-action);
+  --cw-brand-soft: var(--cw-action-soft);
+  --cw-brand-ink: var(--cw-action-strong);
+  --cw-success: #15803d;
+  --cw-success-soft: #f0fdf4;
+  --cw-success-border: #bbf7d0;
+  --cw-info: var(--cw-action-ink);
+  --cw-info-soft: var(--cw-action-soft);
+  --cw-info-border: var(--cw-action-border);
+  /* Amber text needs the darker ink step on its own wash; the mark step is
+     for dots and stripes, which need 3:1 rather than 4.5:1. */
+  --cw-warning: #b45309;
+  --cw-warning-soft: #fffbeb;
+  --cw-warning-border: #fde68a;
+  --cw-warning-ink: #92400e;
+  --cw-warning-mark: #d06f05;
+  --cw-danger: #b91c1c;
+  --cw-danger-strong: #991b1b;
+  --cw-danger-soft: #fef2f2;
+  --cw-danger-border: #fecaca;
+  --cw-focus: var(--cw-action);
+  --cw-offline: #52525b;
+  --cw-offline-soft: #f4f4f5;
+  /* One shadow ink for every elevation and for the scrim. */
+  --cw-shadow-color: 20 24 31;
+  --cw-overlay: rgb(9 9 11 / 0.45);
+  /*
+   * Three radii, as in the console: 0.25rem for small marks such as a kbd or a
+   * chip inside a control, 0.375rem for controls, and 0.5rem for cards,
+   * dialogs, popovers, and tables. 0.5rem is the ceiling for containers.
+   * Pills (999px) and circles (50%) are shape marks, not containers, so the
+   * ceiling does not apply to them.
    */
   --cw-radius-xs: 0.25rem;
   --cw-radius-sm: 0.375rem;
   --cw-radius-md: var(--cw-radius-sm);
-  --cw-radius-lg: var(--cw-radius-sm);
-  --cw-radius-xl: var(--cw-radius-sm);
-  --cw-shadow-sm: 0 1px 2px rgb(var(--cw-shadow-color) / 0.08);
-  --cw-shadow-card: 0 1px 0 rgb(var(--cw-shadow-color) / 0.08);
-  --cw-shadow-dialog: 0 28px 80px rgb(var(--cw-shadow-color) / 0.22);
+  --cw-radius-lg: 0.5rem;
+  --cw-radius-xl: var(--cw-radius-lg);
+  --cw-shadow-xs: 0 1px 2px rgb(var(--cw-shadow-color) / 0.03);
+  --cw-shadow-sm: var(--cw-shadow-xs);
+  --cw-shadow-card: var(--cw-shadow-xs);
+  --cw-shadow-popover:
+    0 4px 6px -1px rgb(var(--cw-shadow-color) / 0.08),
+    0 2px 4px -2px rgb(var(--cw-shadow-color) / 0.06);
+  --cw-shadow-dialog:
+    0 20px 25px -5px rgb(var(--cw-shadow-color) / 0.12),
+    0 8px 10px -6px rgb(var(--cw-shadow-color) / 0.1);
   --cw-space-1: 0.25rem;
   --cw-space-2: 0.5rem;
   --cw-space-3: 0.75rem;
@@ -103,35 +148,40 @@
   --cw-space-8: 2rem;
   --cw-space-10: 2.5rem;
   --cw-space-12: 3rem;
-  --cw-control-height: 2.75rem;
+  /* 36px controls, as in the console. Coarse pointers get 44px back below. */
+  --cw-control-height: 2.25rem;
+  --cw-control-height-small: 2rem;
   --cw-content-max: 90rem;
-  --cw-rail-width: 15.5rem;
-  --cw-rail-compact-width: 4.75rem;
-  --cw-header-height: 4.25rem;
+  --cw-rail-width: 15rem;
+  --cw-rail-compact-width: 4.25rem;
+  --cw-header-height: 3.5rem;
   --cw-motion-fast: 140ms;
   --cw-motion-base: 180ms;
   --cw-motion-ease: cubic-bezier(0.2, 0, 0, 1);
   /*
-   * One type scale. 0.75rem is the floor: nothing in the product may set a
-   * font-size below it, so xs is the smallest step and the auxiliary register
-   * (eyebrows, captions, table meta) compensates with letter-spacing and
-   * weight rather than with size. The two fluid steps carry the display
-   * register and clamp so a 320px viewport never overflows.
+   * One type scale, the console's. 0.75rem is the floor: nothing in the
+   * product sets a font-size below it. Page titles are 1.5rem semibold with
+   * normal tracking; there is no display register above that.
    */
   --cw-text-xs: 0.75rem;
   --cw-text-sm: 0.8125rem;
   --cw-text-md: 0.875rem;
   --cw-text-lg: 1rem;
   --cw-text-xl: 1.125rem;
-  --cw-text-2xl: 1.375rem;
-  --cw-text-3xl: 1.5rem;
-  --cw-text-display: clamp(1.7rem, 3vw, 2.5rem);
-  --cw-text-hero: clamp(2rem, 6vw, 3.4rem);
-  /* Leading tightens as type grows. Aux is the caption and label register. */
-  --cw-leading-tight: 1.1;
-  --cw-leading-snug: 1.3;
+  --cw-text-2xl: 1.25rem;
+  --cw-text-3xl: 1.25rem;
+  --cw-text-display: 1.5rem;
+  --cw-text-hero: 1.5rem;
+  --cw-leading-tight: 1.25;
+  --cw-leading-snug: 1.35;
   --cw-leading-aux: 1.45;
   --cw-leading-body: 1.5;
+  --cw-leading-relaxed: 1.625;
+  /* Section labels: small, semibold, uppercase, lightly tracked. The
+     :lang() rules below switch the case and the tracking off for scripts
+     that have no case or that tracking would break. */
+  --cw-label-tracking: 0.05em;
+  --cw-label-transform: uppercase;
 
   /* Backward-compatible aliases. Tailwind's theme layer publishes its own
      --font-sans and --font-mono, and Preflight points code and pre at the
@@ -176,13 +226,33 @@ body {
   background: var(--cw-canvas);
   color: var(--cw-ink);
   font-family: var(--cw-font-sans);
+  font-size: var(--cw-text-md);
   line-height: var(--cw-leading-body);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* One focus ring everywhere: 2px of action blue, 2px clear of the control. */
 :where(button, input, select, textarea, a, summary, [tabindex]):focus-visible {
-  outline: 3px solid var(--cw-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
+}
+
+/* Running text avoids a one-word (or, in Chinese, one-character) last line. */
+:where(p, li, dd) {
+  text-wrap: pretty;
+}
+
+/* Tabular figures wherever a value can line up with the one above it. */
+:where(td, th, dd, time, .cw-numeric) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Code, endpoints, and keys are the only monospace in the product. */
+:where(code, kbd, samp, pre) {
+  font-family: var(--cw-font-mono);
+  font-size: 0.9em;
 }
 
 :where(button, input, select, textarea):disabled,
@@ -207,7 +277,9 @@ summary {
 .cw-sr-only {
   position: absolute !important;
   top: 0 !important;
-  left: 0 !important;
+  /* Logical, so a right-to-left page does not gain a 1px scrollable
+     overflow on its start edge from the negative margin. */
+  inset-inline-start: 0 !important;
   width: 1px !important;
   height: 1px !important;
   padding: 0 !important;
@@ -224,9 +296,9 @@ summary {
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
   font-weight: 600;
-  letter-spacing: 0.11em;
+  letter-spacing: var(--cw-label-tracking);
   line-height: var(--cw-leading-aux);
-  text-transform: uppercase;
+  text-transform: var(--cw-label-transform);
 }
 
 /* Brand */
@@ -271,42 +343,48 @@ summary {
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-xl);
   font-weight: 400;
-  letter-spacing: -0.01em;
 }
 
 /* The supplied lockup sets the trailing word in the bold weight of the same
    face. It is not a second family, a second color, or an italic, and both
    words inherit currentColor so the inverse surface flips them together. */
 .cw-wordmark__emphasis {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .cw-wordmark__descriptor {
   font-family: var(--cw-font-accent);
-  padding-left: var(--cw-space-3);
-  border-left: 1px solid currentColor;
+  padding-inline-start: var(--cw-space-3);
+  border-inline-start: 1px solid currentColor;
   color: var(--cw-muted);
   font-size: var(--cw-text-xs);
   font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
-/* Buttons */
+/*
+ * Buttons. The console's shape: 36px high, 0.375rem corners, medium weight.
+ * A label that runs long in another language wraps inside the button rather
+ * than being clipped or ellipsized; the button grows to fit.
+ */
 .cw-button {
   display: inline-flex;
   min-height: var(--cw-control-height);
+  max-width: 100%;
   align-items: center;
   justify-content: center;
   gap: var(--cw-space-2);
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0.58rem 1.15rem;
+  border-radius: var(--cw-radius-sm);
+  padding: 0.375rem 0.875rem;
   font: inherit;
   font-size: var(--cw-text-md);
-  font-weight: 700;
-  letter-spacing: -0.005em;
+  font-weight: 500;
   line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: break-word;
   cursor: pointer;
   /* Only the three paint properties ease. The press lift below stays instant so
      the control still reads as a physical press. */
@@ -320,38 +398,48 @@ summary {
   transform: translateY(1px);
 }
 
-/* A white label needs AA on the fill, so the fill uses the strong ramp step. */
+/* Primary: the action-blue fill with a white label; the fill deepens on hover. */
 .cw-button--primary {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-strong);
+  border-color: var(--cw-action);
+  background: var(--cw-action);
   color: #fff;
-  box-shadow: 0 1px 0 rgb(255 255 255 / 0.18) inset;
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-button--primary:hover:not(:disabled) {
-  border-color: var(--cw-brand-ink);
-  background: var(--cw-brand-ink);
+  border-color: var(--cw-action-strong);
+  background: var(--cw-action-strong);
 }
 
+/* Secondary: the console's outline button, white with a hairline. */
 .cw-button--secondary {
-  border-color: var(--cw-border-strong);
+  border-color: rgb(9 9 11 / 0.15);
   background: var(--cw-surface);
   color: var(--cw-ink);
-  box-shadow: var(--cw-shadow-sm);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-button--secondary:hover:not(:disabled) {
-  border-color: var(--cw-ink-soft);
-  background: var(--cw-canvas);
+  border-color: rgb(9 9 11 / 0.2);
+  background: var(--cw-canvas-deep);
 }
 
 .cw-button--quiet {
   background: transparent;
-  color: var(--cw-brand-strong);
+  color: var(--cw-action);
 }
 
 .cw-button--quiet:hover:not(:disabled) {
-  background: var(--cw-brand-soft);
+  background: var(--cw-action-soft);
+  color: var(--cw-action-strong);
+}
+
+/* A leading icon in any button sits at 1rem, as in "+ New bucket". */
+.cw-button > svg,
+.cw-button__icon > svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
 }
 
 .cw-button--danger {
@@ -366,14 +454,14 @@ summary {
 }
 
 .cw-button--small {
-  min-height: 2.625rem;
-  padding: 0.38rem 0.85rem;
+  min-height: var(--cw-control-height-small);
+  padding: 0.25rem 0.75rem;
   font-size: var(--cw-text-sm);
 }
 
 .cw-button--large {
-  min-height: 3.125rem;
-  padding-inline: 1.25rem;
+  min-height: 2.5rem;
+  padding-inline: 1.125rem;
 }
 
 .cw-icon-button {
@@ -392,10 +480,13 @@ summary {
 }
 
 /* Fields */
+/* A field keeps label, control, and help packed at the top of its cell, so
+   two fields side by side line up even when one has longer help text. */
 .cw-field {
   display: grid;
   min-width: 0;
-  gap: 0.4rem;
+  align-content: start;
+  gap: 0.375rem;
   color: var(--cw-ink);
 }
 
@@ -405,7 +496,7 @@ summary {
   justify-content: space-between;
   gap: var(--cw-space-3);
   font-size: var(--cw-text-md);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cw-field__optional {
@@ -430,21 +521,22 @@ summary {
 }
 
 .cw-input-frame__leading {
-  left: var(--cw-space-3);
+  inset-inline-start: var(--cw-space-3);
 }
 
 .cw-input-frame__trailing {
-  right: var(--cw-space-2);
+  inset-inline-end: var(--cw-space-2);
 }
 
 .cw-input-frame:has(.cw-input-frame__leading) .cw-input {
-  padding-left: 2.35rem;
+  padding-inline-start: 2.25rem;
 }
 
 .cw-input-frame:has(.cw-input-frame__trailing) .cw-input {
-  padding-right: 2.35rem;
+  padding-inline-end: 2.25rem;
 }
 
+/* Text fields and selects share one height, border, radius, and inset. */
 .cw-input,
 .cw-select,
 .cw-textarea {
@@ -454,9 +546,18 @@ summary {
   border-radius: var(--cw-radius-sm);
   background: var(--cw-surface-raised);
   color: var(--cw-ink);
-  padding: 0.58rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   font: inherit;
-  box-shadow: 0 1px 1px rgb(var(--cw-shadow-color) / 0.03) inset;
+  font-size: var(--cw-text-md);
+  box-shadow: var(--cw-shadow-xs);
+}
+
+.cw-input:focus-visible,
+.cw-select:focus-visible,
+.cw-textarea:focus-visible {
+  border-color: var(--cw-action);
+  outline: 2px solid color-mix(in srgb, var(--cw-action) 35%, transparent);
+  outline-offset: 0;
 }
 
 .cw-input::placeholder,
@@ -472,11 +573,11 @@ summary {
 }
 
 .cw-input--small {
-  min-height: 2.125rem;
+  min-height: var(--cw-control-height-small);
 }
 
 .cw-input--large {
-  min-height: 3.125rem;
+  min-height: 2.5rem;
   font-size: var(--cw-text-lg);
 }
 
@@ -493,7 +594,7 @@ summary {
 .cw-help,
 .cw-field__error {
   font-size: var(--cw-text-sm);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .cw-help {
@@ -520,7 +621,7 @@ summary {
 .cw-check-field label,
 .cw-radio-option label {
   font-size: var(--cw-text-md);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cw-check-field p,
@@ -532,10 +633,10 @@ summary {
 
 .cw-checkbox,
 .cw-radio-option input {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
   margin: 0.15rem 0 0;
-  accent-color: var(--cw-brand-strong);
+  accent-color: var(--cw-action);
 }
 
 .cw-radio-group,
@@ -551,7 +652,7 @@ summary {
 .cw-radio-group > legend,
 .cw-fieldset > legend {
   margin-bottom: var(--cw-space-2);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cw-fieldset > p {
@@ -578,13 +679,13 @@ summary {
   position: fixed;
   z-index: 1000;
   top: var(--cw-space-3);
-  left: var(--cw-space-3);
+  inset-inline-start: var(--cw-space-3);
   transform: translateY(-200%);
   border-radius: var(--cw-radius-sm);
   background: var(--cw-ink);
   color: #fff;
-  padding: var(--cw-space-3) var(--cw-space-4);
-  font-weight: 700;
+  padding: var(--cw-space-2) var(--cw-space-4);
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -601,14 +702,7 @@ summary {
     "rail main" minmax(0, 1fr)
     "rail footer" auto /
     var(--cw-rail-width) minmax(0, 1fr);
-  background:
-    linear-gradient(
-        90deg,
-        rgb(var(--cw-shadow-color) / 0.025) 1px,
-        transparent 1px
-      )
-      0 0 / 4rem 4rem,
-    var(--cw-canvas);
+  background: var(--cw-canvas);
 }
 
 .cw-shell__header {
@@ -621,29 +715,27 @@ summary {
   grid-template-columns: var(--cw-rail-width) minmax(0, 1fr) auto;
   align-items: center;
   border-bottom: 1px solid var(--cw-border);
-  background: rgb(255 255 255 / 0.94);
-  box-shadow: 0 1px 0 rgb(255 255 255 / 0.8) inset;
-  backdrop-filter: blur(16px);
+  background: var(--cw-surface);
 }
 
 .cw-shell__brand {
   display: flex;
   align-self: stretch;
   align-items: center;
-  padding-inline: var(--cw-space-6);
-  border-right: 1px solid var(--cw-border);
+  padding-inline: var(--cw-space-5);
+  border-inline-end: 1px solid var(--cw-border);
 }
 
 .cw-shell__organization {
   min-width: 0;
-  padding-inline: var(--cw-space-6);
+  padding-inline: var(--cw-space-5);
 }
 
 .cw-shell__utilities {
   display: flex;
   align-items: center;
   gap: var(--cw-space-2);
-  padding-inline: var(--cw-space-4) var(--cw-space-6);
+  padding-inline: var(--cw-space-4) var(--cw-space-5);
 }
 
 .cw-shell__banner {
@@ -657,9 +749,9 @@ summary {
   align-self: start;
   height: calc(100dvh - var(--cw-header-height));
   overflow-y: auto;
-  border-right: 1px solid var(--cw-border);
-  background: color-mix(in srgb, var(--cw-surface) 82%, transparent);
-  padding: var(--cw-space-5) var(--cw-space-3);
+  border-inline-end: 1px solid var(--cw-border);
+  background: var(--cw-surface);
+  padding: var(--cw-space-4) var(--cw-space-3);
 }
 
 .cw-shell__main {
@@ -668,12 +760,12 @@ summary {
   max-width: var(--cw-content-max);
   min-width: 0;
   margin-inline: auto;
-  padding: clamp(1.25rem, 3vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
 }
 
 .cw-shell__footer {
   grid-area: footer;
-  padding: var(--cw-space-6) clamp(1.25rem, 3vw, 3rem);
+  padding: var(--cw-space-5) clamp(1.25rem, 3vw, 2.5rem);
   border-top: 1px solid var(--cw-border);
   color: var(--cw-muted);
   font-size: var(--cw-text-sm);
@@ -683,14 +775,16 @@ summary {
   display: none;
 }
 
+/* The console's sidebar: muted uppercase group labels, 14px medium links
+   with 16px line icons, and a pale-blue active row with blue text. */
 .cw-navigation {
   display: grid;
-  gap: var(--cw-space-6);
+  gap: var(--cw-space-5);
 }
 
 .cw-navigation__group {
   display: grid;
-  gap: var(--cw-space-2);
+  gap: var(--cw-space-1);
 }
 
 .cw-navigation__label {
@@ -699,13 +793,15 @@ summary {
   color: var(--cw-faint);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  line-height: var(--cw-leading-aux);
+  text-transform: var(--cw-label-transform);
 }
 
 .cw-navigation__list {
   display: grid;
-  gap: 0.15rem;
+  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -713,14 +809,15 @@ summary {
 
 .cw-navigation__link {
   display: flex;
-  min-height: var(--cw-control-height);
+  min-height: 2rem;
   align-items: center;
-  gap: var(--cw-space-3);
-  border-radius: var(--cw-radius-md);
+  gap: var(--cw-space-2);
+  border-radius: var(--cw-radius-sm);
   color: var(--cw-ink-soft);
-  padding: 0.48rem var(--cw-space-3);
+  padding: 0.375rem var(--cw-space-3);
   font-size: var(--cw-text-md);
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.3;
   text-decoration: none;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -734,16 +831,18 @@ summary {
   color: var(--cw-ink);
 }
 
-/* The current page reads from the marker and the icon; the label keeps the
-   normal ink so an active row does not shout across a grouped rail. */
+/* The current page is a soft wash with strong blue text and icon; no bar. */
 .cw-navigation__link[aria-current="page"] {
-  background: var(--cw-brand-soft);
-  color: var(--cw-ink);
-  box-shadow: 2px 0 0 var(--cw-brand-strong) inset;
+  background: var(--cw-action-soft);
+  color: var(--cw-action-strong);
 }
 
 .cw-navigation__link[aria-current="page"] .cw-navigation__icon {
-  color: var(--cw-brand-strong);
+  color: var(--cw-action-strong);
+}
+
+.cw-navigation__icon {
+  color: var(--cw-muted);
 }
 
 .cw-navigation__link:active:not([aria-disabled="true"]) {
@@ -752,8 +851,8 @@ summary {
 
 .cw-navigation__icon {
   display: inline-grid;
-  width: 1.15rem;
-  flex: 0 0 1.15rem;
+  width: 1rem;
+  flex: 0 0 1rem;
   place-items: center;
 }
 
@@ -778,7 +877,7 @@ summary {
 }
 
 .cw-navigation__badge {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .cw-breadcrumbs ol {
@@ -786,7 +885,7 @@ summary {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--cw-space-2);
-  margin: 0 0 var(--cw-space-5);
+  margin: 0 0 var(--cw-space-4);
   padding: 0;
   color: var(--cw-muted);
   font-size: var(--cw-text-sm);
@@ -794,27 +893,36 @@ summary {
 }
 
 .cw-breadcrumbs li:not(:last-child)::after {
-  margin-left: var(--cw-space-2);
-  color: var(--cw-border-strong);
+  margin-inline-start: var(--cw-space-2);
+  color: var(--cw-faint);
   content: "/";
 }
 
 .cw-breadcrumbs a {
-  color: var(--cw-brand-strong);
+  color: var(--cw-muted);
+  text-decoration: none;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
     color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 
+.cw-breadcrumbs a:hover {
+  color: var(--cw-ink);
+  text-decoration: underline;
+}
+
+/*
+ * The console's page header: a plain semibold title, a one-line muted
+ * description, and the actions on the same line. No rule underneath; the
+ * content below starts the next block.
+ */
 .cw-page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--cw-space-8);
-  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
-  padding-bottom: var(--cw-space-6);
-  border-bottom: 1px solid var(--cw-border);
+  gap: var(--cw-space-4) var(--cw-space-8);
+  margin-bottom: var(--cw-space-6);
 }
 
 .cw-page-header__copy {
@@ -823,23 +931,27 @@ summary {
 }
 
 .cw-page-header h1 {
-  margin: var(--cw-space-1) 0 0;
+  margin: 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-hero);
+  font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+  line-height: var(--cw-leading-tight);
+  text-wrap: balance;
+}
+
+.cw-page-header .cw-eyebrow + h1 {
+  margin-top: var(--cw-space-1);
 }
 
 .cw-page-header__description {
   max-width: 46rem;
-  margin-top: var(--cw-space-3);
+  margin-top: var(--cw-space-1);
   color: var(--cw-muted);
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
 }
 
 .cw-page-header__metadata {
-  margin-top: var(--cw-space-4);
+  margin-top: var(--cw-space-2);
   color: var(--cw-muted);
   font-size: var(--cw-text-sm);
 }
@@ -857,7 +969,7 @@ summary {
 }
 
 .cw-toolbar {
-  min-height: 3.5rem;
+  min-height: 3rem;
   justify-content: space-between;
   border-block: 1px solid var(--cw-border);
   padding-block: var(--cw-space-2);
@@ -865,11 +977,11 @@ summary {
 
 .cw-section {
   display: grid;
-  gap: var(--cw-space-5);
+  gap: var(--cw-space-4);
 }
 
 .cw-section + .cw-section {
-  margin-top: var(--cw-space-10);
+  margin-top: var(--cw-space-8);
 }
 
 .cw-section__header {
@@ -882,9 +994,9 @@ summary {
 .cw-section__header h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-3xl);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: var(--cw-leading-snug);
 }
 
 .cw-section__header h2 + div {
@@ -929,8 +1041,8 @@ summary {
   border: 1px solid var(--cw-border);
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
-  padding: clamp(1.25rem, 3vw, 2rem);
-  box-shadow: var(--cw-shadow-sm);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-state__mark {
@@ -985,13 +1097,14 @@ summary {
 .cw-state__body h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 
 .cw-state__description {
   margin-top: var(--cw-space-1);
   color: var(--cw-muted);
+  font-size: var(--cw-text-md);
 }
 
 .cw-state__details {
@@ -1016,9 +1129,9 @@ summary {
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--cw-space-3);
-  min-height: 3rem;
+  min-height: 2.75rem;
   border-bottom: 1px solid transparent;
-  padding: 0.65rem clamp(1rem, 3vw, 2rem);
+  padding: 0.5rem clamp(1rem, 3vw, 2rem);
   font-size: var(--cw-text-md);
 }
 
@@ -1028,27 +1141,26 @@ summary {
 }
 
 .cw-banner--info {
-  border-color: color-mix(in srgb, var(--cw-info) 30%, var(--cw-border));
+  border-color: var(--cw-info-border);
   background: var(--cw-info-soft);
   color: var(--cw-info);
 }
 
-/* Success speaks in green. It used to borrow the brand wash, which left the
-   information state with no hue of its own. */
+/* Success speaks in green, so information keeps a hue of its own. */
 .cw-banner--success {
-  border-color: color-mix(in srgb, var(--cw-success) 30%, var(--cw-border));
+  border-color: var(--cw-success-border);
   background: var(--cw-success-soft);
   color: var(--cw-success);
 }
 
 .cw-banner--warning {
-  border-color: color-mix(in srgb, var(--cw-warning) 32%, var(--cw-border));
+  border-color: var(--cw-warning-border);
   background: var(--cw-warning-soft);
   color: var(--cw-warning-ink);
 }
 
 .cw-banner--danger {
-  border-color: color-mix(in srgb, var(--cw-danger) 35%, var(--cw-border));
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
 }
@@ -1071,9 +1183,9 @@ summary {
 }
 
 .cw-validation-summary {
-  border: 1px solid var(--cw-danger);
-  border-left-width: 4px;
-  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-danger-border);
+  border-inline-start: 3px solid var(--cw-danger);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-danger-soft);
   padding: var(--cw-space-4) var(--cw-space-5);
   color: var(--cw-danger-strong);
@@ -1081,12 +1193,13 @@ summary {
 
 .cw-validation-summary h2 {
   margin: 0;
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .cw-validation-summary ul {
   margin: var(--cw-space-2) 0 0;
-  padding-left: 1.25rem;
+  padding-inline-start: 1.25rem;
 }
 
 .cw-validation-summary a {
@@ -1124,7 +1237,7 @@ summary {
   display: flex;
   gap: var(--cw-space-3);
   min-width: 0;
-  padding-right: var(--cw-space-4);
+  padding-inline-end: var(--cw-space-4);
   color: var(--cw-muted);
   font-size: var(--cw-text-sm);
 }
@@ -1133,8 +1246,7 @@ summary {
   position: absolute;
   z-index: 0;
   top: 0.95rem;
-  right: 0;
-  left: 2.15rem;
+  inset-inline: 2.15rem 0;
   height: 1px;
   background: var(--cw-border);
   content: "";
@@ -1147,15 +1259,16 @@ summary {
 .cw-steps__number {
   z-index: 1;
   display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  flex: 0 0 1.9rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
   place-items: center;
   border: 1px solid var(--cw-border-strong);
   border-radius: 50%;
   background: var(--cw-surface);
   color: var(--cw-muted);
-  font-weight: 700;
+  font-size: var(--cw-text-sm);
+  font-weight: 600;
 }
 
 .cw-steps__item > span:last-child {
@@ -1185,17 +1298,30 @@ summary {
   color: var(--cw-ink);
 }
 
+/*
+ * Badges are the console's small pills: a tinted wash, a matching hairline,
+ * 12px medium text. A long translated state wraps inside the pill rather than
+ * being clipped; short states still sit on one line.
+ */
 .cw-badge {
   display: inline-flex;
-  min-height: 1.45rem;
+  max-width: 100%;
+  min-height: 1.375rem;
   align-items: center;
   border: 1px solid transparent;
   border-radius: 999px;
-  padding: 0.15rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   font-size: var(--cw-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.015em;
-  line-height: 1.2;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: start;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+/* In a ledger the column grows to fit the state instead; the table already
+   scrolls, and a two-line pill in a row of one-line cells reads as noise. */
+:where(td, th) .cw-badge {
   white-space: nowrap;
 }
 
@@ -1206,21 +1332,25 @@ summary {
 }
 
 .cw-badge--info {
+  border-color: var(--cw-info-border);
   background: var(--cw-info-soft);
   color: var(--cw-info);
 }
 
 .cw-badge--success {
+  border-color: var(--cw-success-border);
   background: var(--cw-success-soft);
   color: var(--cw-success);
 }
 
 .cw-badge--warning {
+  border-color: var(--cw-warning-border);
   background: var(--cw-warning-soft);
   color: var(--cw-warning-ink);
 }
 
 .cw-badge--danger {
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
 }
@@ -1248,7 +1378,7 @@ summary {
 .cw-term__labels strong {
   overflow: hidden;
   color: var(--cw-ink);
-  font-weight: 700;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1276,15 +1406,15 @@ summary {
     var(--cw-canvas-deep);
 }
 
-/* Strong, not brand: this fill sits on the canvas-deep track, where the brand
-   blue measures 2.74:1 and misses the 3:1 non-text minimum. */
+/* Action blue, not the mark's blue: this fill sits on the canvas-deep track,
+   where the mark's blue misses the 3:1 non-text minimum. */
 .cw-term__elapsed {
   position: absolute;
   z-index: 1;
   inset-block: 0;
-  left: 0;
+  inset-inline-start: 0;
   border-radius: inherit;
-  background: var(--cw-brand-strong);
+  background: var(--cw-action);
 }
 
 .cw-term__notice {
@@ -1313,6 +1443,11 @@ summary {
   transform: translate(-1px, -50%);
 }
 
+/* The marker is placed from the inline start, so it centres the other way. */
+[dir="rtl"] .cw-term__today {
+  transform: translate(1px, -50%);
+}
+
 .cw-term__meta {
   color: var(--cw-muted);
   font-size: var(--cw-text-xs);
@@ -1324,7 +1459,7 @@ summary {
   align-items: center;
   gap: 0.35rem;
   color: var(--cw-ink-soft);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cw-term__renewal::before {
@@ -1336,7 +1471,7 @@ summary {
 }
 
 .cw-term__renewal--stable {
-  color: var(--cw-brand-strong);
+  color: var(--cw-action);
 }
 
 .cw-term__renewal--attention {
@@ -1390,7 +1525,7 @@ summary {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--cw-space-4);
-  padding: var(--cw-space-5);
+  padding: var(--cw-space-4) var(--cw-space-5);
   border-bottom: 1px solid var(--cw-border);
 }
 
@@ -1401,7 +1536,7 @@ summary {
 
 .cw-term-rollup__header h3 {
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 
@@ -1442,8 +1577,8 @@ summary {
   align-items: center;
   gap: var(--cw-space-2);
   color: var(--cw-ink-soft);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -1458,15 +1593,15 @@ summary {
 
 .cw-risk--low,
 .cw-risk--none {
-  color: var(--cw-brand-strong);
+  color: var(--cw-ink-soft);
 }
 
 .cw-risk--low .cw-risk__mark {
-  background: var(--cw-brand);
+  background: var(--cw-action);
 }
 
 .cw-risk--moderate {
-  color: var(--cw-warning);
+  color: var(--cw-warning-ink);
 }
 
 .cw-risk--moderate .cw-risk__mark {
@@ -1496,38 +1631,42 @@ summary {
   clip: rect(0 0 0 0);
 }
 
+/* The console's stat card: an uppercase label, a 24px figure, a muted
+   footer. Tone shows as a small dot before the label, not as a top stripe. */
 .cw-stat {
   position: relative;
   display: grid;
   align-content: start;
   min-width: 0;
-  min-height: 9.25rem;
+  min-height: 8rem;
   border: 1px solid var(--cw-border);
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
-  padding: var(--cw-space-5);
-  box-shadow: var(--cw-shadow-sm);
+  padding: var(--cw-space-4) var(--cw-space-5);
+  box-shadow: var(--cw-shadow-xs);
 }
 
-.cw-stat::before {
-  position: absolute;
-  top: -1px;
-  right: var(--cw-space-5);
-  left: var(--cw-space-5);
-  height: 2px;
-  background: var(--cw-border-strong);
+.cw-stat--positive .cw-stat__label::before,
+.cw-stat--attention .cw-stat__label::before,
+.cw-stat--critical .cw-stat__label::before {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-inline-end: 0.4rem;
+  border-radius: 50%;
+  vertical-align: 0.1em;
   content: "";
 }
 
-.cw-stat--positive::before {
-  background: var(--cw-brand);
+.cw-stat--positive .cw-stat__label::before {
+  background: var(--cw-success);
 }
 
-.cw-stat--attention::before {
-  background: var(--cw-warning);
+.cw-stat--attention .cw-stat__label::before {
+  background: var(--cw-warning-mark);
 }
 
-.cw-stat--critical::before {
+.cw-stat--critical .cw-stat__label::before {
   background: var(--cw-danger);
 }
 
@@ -1543,8 +1682,9 @@ summary {
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.025em;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .cw-stat__icon {
@@ -1552,12 +1692,11 @@ summary {
 }
 
 .cw-stat__value {
-  margin-top: var(--cw-space-4);
+  margin-top: var(--cw-space-3);
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1;
+  line-height: var(--cw-leading-tight);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1574,7 +1713,7 @@ summary {
   align-items: center;
   gap: 0.3rem;
   color: var(--cw-ink-soft);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1601,7 +1740,7 @@ summary {
   position: absolute;
   top: 0.8rem;
   bottom: 0;
-  left: 0.35rem;
+  inset-inline-start: 0.35rem;
   width: 1px;
   background: var(--cw-border);
   content: "";
@@ -1627,8 +1766,8 @@ summary {
 }
 
 .cw-timeline__item--complete .cw-timeline__marker {
-  background: var(--cw-brand);
-  box-shadow: 0 0 0 1px var(--cw-brand-strong);
+  background: var(--cw-action);
+  box-shadow: 0 0 0 1px var(--cw-action);
 }
 
 .cw-timeline__item--current .cw-timeline__marker {
@@ -1668,23 +1807,23 @@ summary {
 
 .cw-document-card {
   display: grid;
-  grid-template-columns: 5.25rem minmax(0, 1fr);
+  grid-template-columns: 4.5rem minmax(0, 1fr);
   gap: var(--cw-space-4);
   min-width: 0;
   border: 1px solid var(--cw-border);
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
   padding: var(--cw-space-4);
-  box-shadow: var(--cw-shadow-sm);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-document-card__preview {
   display: grid;
-  min-height: 7rem;
+  min-height: 6rem;
   place-items: center;
   border: 1px solid var(--cw-border);
-  border-radius: var(--cw-radius-xs);
-  background: var(--cw-canvas-deep);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-canvas);
 }
 
 .cw-document-card__page {
@@ -1704,7 +1843,7 @@ summary {
       )
       0.45rem 1.3rem / 2.3rem 2.35rem no-repeat,
     var(--cw-surface);
-  box-shadow: 0 4px 10px rgb(var(--cw-shadow-color) / 0.12);
+  box-shadow: var(--cw-shadow-popover);
 }
 
 .cw-document-card__body {
@@ -1723,9 +1862,9 @@ summary {
 .cw-document-card h3 {
   margin: var(--cw-space-1) 0 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-md);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: var(--cw-leading-snug);
 }
 
 .cw-document-card h3 a {
@@ -1746,8 +1885,8 @@ summary {
   gap: var(--cw-space-2) var(--cw-space-4);
   margin: var(--cw-space-3) 0 0;
   color: var(--cw-faint);
-  font-family: var(--cw-font-mono);
   font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .cw-document-card__meta dd {
@@ -1776,17 +1915,17 @@ summary {
 }
 
 .cw-queue-row:hover {
-  background: color-mix(in srgb, var(--cw-brand-soft) 28%, var(--cw-surface));
+  background: var(--cw-canvas);
 }
 
 .cw-queue-row--selected {
-  background: var(--cw-brand-soft);
-  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
+  background: var(--cw-action-soft);
 }
 
 .cw-queue-row h3 {
   margin: 0;
   font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .cw-queue-row__description,
@@ -1824,7 +1963,8 @@ summary {
 }
 
 .cw-description-list > div {
-  padding: var(--cw-space-4) var(--cw-space-3) var(--cw-space-4) 0;
+  padding-block: var(--cw-space-3);
+  padding-inline: 0 var(--cw-space-3);
   border-bottom: 1px solid var(--cw-border);
 }
 
@@ -1832,8 +1972,7 @@ summary {
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 500;
 }
 
 .cw-description-list dd {
@@ -1864,13 +2003,13 @@ summary {
   background: var(--cw-canvas-deep);
 }
 
-/* Strong, not brand: same canvas-deep track as the term bar. */
+/* Action blue, not the mark's blue: same canvas-deep track as the term bar. */
 .cw-capacity__value {
   position: absolute;
   inset-block: 0;
-  left: 0;
+  inset-inline-start: 0;
   border-radius: inherit;
-  background: var(--cw-brand-strong);
+  background: var(--cw-action);
 }
 
 .cw-capacity__threshold {
@@ -1883,10 +2022,11 @@ summary {
 .cw-capacity__threshold-label {
   color: var(--cw-muted);
   font-size: var(--cw-text-xs);
-  text-align: right;
+  text-align: end;
 }
 
-/* Charts */
+/* Charts draw in the Filecoin ramp: the mark's blue fills, ramp 900 draws
+   lines and points, and ramp 50 washes the area. */
 .cw-chart {
   min-width: 0;
   margin: 0;
@@ -1894,7 +2034,7 @@ summary {
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
   padding: var(--cw-space-5);
-  box-shadow: var(--cw-shadow-sm);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-chart__caption {
@@ -1911,6 +2051,7 @@ summary {
 
 .cw-chart__caption h3 {
   font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .cw-chart__caption p {
@@ -1921,7 +2062,8 @@ summary {
 
 .cw-chart__caption > strong {
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-3xl);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1942,7 +2084,7 @@ summary {
 
 /* The gradient stops are declared on the instance; these are the flat fallbacks. */
 .cw-chart__area {
-  fill: var(--cw-brand-soft);
+  fill: var(--cw-blue-50);
 }
 
 .cw-chart__gradient-start {
@@ -1954,7 +2096,7 @@ summary {
 }
 
 .cw-chart__gradient-bar-start {
-  stop-color: var(--cw-brand-strong);
+  stop-color: var(--cw-blue-900);
 }
 
 .cw-chart__gradient-bar-end {
@@ -1963,7 +2105,7 @@ summary {
 
 .cw-chart__line {
   fill: none;
-  stroke: var(--cw-brand-strong);
+  stroke: var(--cw-blue-900);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 3;
@@ -1972,7 +2114,7 @@ summary {
 
 .cw-chart__point {
   fill: var(--cw-surface);
-  stroke: var(--cw-brand-strong);
+  stroke: var(--cw-blue-900);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -2022,7 +2164,7 @@ summary {
 .cw-chart__data td {
   border-bottom: 1px solid var(--cw-border);
   padding: var(--cw-space-2);
-  text-align: left;
+  text-align: start;
 }
 
 /* The row header carries the period and the cell carries the value, so only the
@@ -2033,35 +2175,37 @@ summary {
 
 /* Tables */
 /*
- * A table is a ledger, not a card. It takes the tightest corner in the system
- * and no shadow: the audit rubric reserves elevation for modals, so a raised
- * table would read as a floating surface inside the page rather than as part
- * of it. The border alone carries the edge.
+ * A table sits in the same white card as everything else in the console:
+ * hairline, 0.5rem corners, the barely-there shadow. Rows are compact (about
+ * 44px), headers are small uppercase labels on a faint band, and cells are
+ * 13px so a ledger reads as a list rather than as a page of prose.
  */
 .cw-table-wrap {
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--cw-border);
-  border-radius: var(--cw-radius-xs);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-table {
   width: 100%;
   min-width: 34rem;
   border-collapse: collapse;
-  text-align: left;
+  text-align: start;
 }
 
 .cw-table caption {
-  padding: var(--cw-space-4) var(--cw-space-5);
+  padding: var(--cw-space-3) var(--cw-space-4);
   border-bottom: 1px solid var(--cw-border);
-  text-align: left;
+  text-align: start;
 }
 
 .cw-table caption strong {
   display: block;
   font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .cw-table caption span {
@@ -2074,23 +2218,32 @@ summary {
 .cw-table th,
 .cw-table td {
   border-bottom: 1px solid var(--cw-border);
-  padding: 0.85rem var(--cw-space-5);
+  padding: 0.625rem var(--cw-space-4);
   vertical-align: middle;
 }
 
+/* A header cell centres by default in the UA sheet; the ledger starts every
+   column at the inline start unless a numeric column says otherwise. */
+.cw-table th {
+  text-align: inherit;
+}
+
 .cw-table thead th {
-  background: color-mix(in srgb, var(--cw-canvas) 70%, var(--cw-surface));
+  padding-block: 0.5rem;
+  background: var(--cw-canvas);
   color: var(--cw-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
+  white-space: nowrap;
 }
 
 .cw-table tbody th {
+  color: var(--cw-ink);
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cw-table tbody td {
@@ -2106,7 +2259,7 @@ summary {
 }
 
 .cw-table tbody tr:hover {
-  background: color-mix(in srgb, var(--cw-brand-soft) 24%, transparent);
+  background: var(--cw-canvas);
 }
 
 .cw-table tbody tr:last-child > *,
@@ -2116,17 +2269,17 @@ summary {
 
 .cw-table tfoot td {
   background: var(--cw-canvas);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cw-table__numeric {
-  text-align: right !important;
+  text-align: end !important;
   font-variant-numeric: tabular-nums;
 }
 
 .cw-table-wrap--compact .cw-table th,
 .cw-table-wrap--compact .cw-table td {
-  padding-block: 0.55rem;
+  padding-block: 0.4rem;
 }
 
 .cw-table-wrap--sticky thead {
@@ -2173,7 +2326,7 @@ summary {
   z-index: 100;
   top: 50%;
   left: 50%;
-  width: min(34rem, calc(100vw - 2rem));
+  width: min(32rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);
   overflow-y: auto;
   transform: translate(-50%, -50%);
@@ -2181,25 +2334,26 @@ summary {
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
   box-shadow: var(--cw-shadow-dialog);
-  padding: var(--cw-space-6);
+  padding: var(--cw-space-5) var(--cw-space-6);
   animation: cw-dialog-in var(--cw-motion-base) var(--cw-motion-ease);
 }
 
 .cw-dialog-title {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-3xl);
+  font-size: var(--cw-text-xl);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: var(--cw-leading-snug);
 }
 
 .cw-dialog-description {
-  margin: var(--cw-space-2) 0 0;
+  margin: var(--cw-space-1) 0 0;
   color: var(--cw-muted);
+  font-size: var(--cw-text-md);
 }
 
 .cw-dialog-body {
-  margin-top: var(--cw-space-6);
+  margin-top: var(--cw-space-5);
 }
 
 .cw-dialog-footer {
@@ -2208,24 +2362,31 @@ summary {
   align-items: center;
   justify-content: flex-end;
   gap: var(--cw-space-2);
-  margin-top: var(--cw-space-6);
+  margin-top: var(--cw-space-5);
   padding-top: var(--cw-space-4);
   border-top: 1px solid var(--cw-border);
 }
 
+/* The footer's own close button is full size, so an action passed in at the
+   small size is brought up to match it. */
+.cw-dialog-footer .cw-button {
+  min-height: var(--cw-control-height);
+  font-size: var(--cw-text-md);
+}
+
 .cw-toast {
   border: 1px solid var(--cw-border);
-  border-left: 3px solid var(--cw-brand);
-  border-radius: var(--cw-radius-md);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-surface-raised);
   box-shadow: var(--cw-shadow-dialog);
-  padding: var(--cw-space-4);
+  padding: var(--cw-space-3) var(--cw-space-4);
+  font-size: var(--cw-text-md);
 }
 
 .cw-toast-viewport {
   position: fixed;
   z-index: 120;
-  right: var(--cw-space-4);
+  inset-inline-end: var(--cw-space-4);
   bottom: var(--cw-space-4);
   display: grid;
   gap: var(--cw-space-2);
@@ -2279,11 +2440,10 @@ summary {
 }
 
 .cw-error {
-  border: 1px solid color-mix(in srgb, var(--cw-danger) 40%, var(--cw-border));
-  border-left: 4px solid var(--cw-danger);
-  border-radius: var(--cw-radius-md);
+  border: 1px solid var(--cw-danger-border);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-danger-soft);
-  padding: var(--cw-space-6);
+  padding: var(--cw-space-5);
   color: var(--cw-danger-strong);
 }
 
@@ -2314,13 +2474,13 @@ summary {
   align-items: center;
   justify-content: center;
   gap: var(--cw-space-2);
-  border: 1px solid var(--cw-border-strong);
-  border-radius: 999px;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
   background: var(--cw-surface);
-  color: var(--cw-ink);
-  padding: var(--cw-space-2) var(--cw-space-4);
+  color: var(--cw-muted);
+  padding: var(--cw-space-1) var(--cw-space-3);
   font-size: var(--cw-text-md);
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -2330,8 +2490,9 @@ summary {
 
 .cw-shell__drawer-trigger:hover,
 .cw-command-trigger:hover {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-soft);
+  border-color: rgb(9 9 11 / 0.2);
+  background: var(--cw-canvas);
+  color: var(--cw-ink);
 }
 
 .cw-shell__drawer-trigger:active,
@@ -2343,15 +2504,15 @@ summary {
 .cw-command-trigger > svg,
 .cw-icon-button > svg,
 .cw-icon-button > span > svg {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .cw-icon-button {
   display: inline-grid;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 50%;
+  border-radius: var(--cw-radius-sm);
   background: transparent;
   color: currentColor;
   padding: 0;
@@ -2379,13 +2540,13 @@ summary {
   position: fixed;
   z-index: 101;
   inset-block: 0;
-  left: 0;
+  inset-inline-start: 0;
   display: grid;
-  width: min(24rem, calc(100vw - 2rem));
+  width: min(20rem, calc(100vw - 3rem));
   max-width: 100%;
   min-width: 0;
   grid-template-rows: auto minmax(0, 1fr);
-  border-right: 1px solid var(--cw-border);
+  border-inline-end: 1px solid var(--cw-border);
   background: var(--cw-surface);
   color: var(--cw-ink);
   box-shadow: var(--cw-shadow-dialog);
@@ -2399,16 +2560,16 @@ summary {
   justify-content: space-between;
   gap: var(--cw-space-4);
   border-bottom: 1px solid var(--cw-border);
-  padding: var(--cw-space-5) var(--cw-space-4);
+  padding: var(--cw-space-4);
 }
 
 .cw-drawer-title,
 .cw-command-title {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: var(--cw-leading-snug);
 }
 
 .cw-drawer-description {
@@ -2420,7 +2581,7 @@ summary {
 .cw-drawer-body {
   min-width: 0;
   overflow-y: auto;
-  padding: var(--cw-space-4);
+  padding: var(--cw-space-3);
 }
 
 /* Command palette */
@@ -2472,7 +2633,7 @@ summary {
 }
 
 .cw-command-search:focus-within {
-  box-shadow: 0 0 0 2px var(--cw-focus) inset;
+  box-shadow: 0 -2px 0 var(--cw-focus) inset;
 }
 
 .cw-command-search > svg {
@@ -2485,12 +2646,12 @@ summary {
 .cw-command-search input {
   width: 100%;
   min-width: 0;
-  min-height: 3.5rem;
+  min-height: 3rem;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--cw-ink);
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
 }
 
 .cw-command-results {
@@ -2511,8 +2672,9 @@ summary {
   padding: var(--cw-space-2) var(--cw-space-3) var(--cw-space-1);
   color: var(--cw-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .cw-command-result {
@@ -2526,7 +2688,8 @@ summary {
   background: transparent;
   color: var(--cw-ink);
   padding: var(--cw-space-2) var(--cw-space-3);
-  text-align: left;
+  font-size: var(--cw-text-md);
+  text-align: start;
   cursor: pointer;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -2535,8 +2698,8 @@ summary {
 
 .cw-command-result:hover,
 .cw-command-result[aria-selected="true"] {
-  background: var(--cw-brand-soft);
-  color: var(--cw-brand-ink);
+  background: var(--cw-action-soft);
+  color: var(--cw-action-strong);
 }
 
 .cw-command-result__icon {
@@ -2555,6 +2718,10 @@ summary {
   display: grid;
   min-width: 0;
   flex: 1;
+}
+
+.cw-command-result__copy > strong {
+  font-weight: 500;
 }
 
 .cw-command-result__copy > span {
@@ -2634,8 +2801,8 @@ summary {
 
 .cw-collection-toolbar__search:focus-within,
 .cw-entity-combobox__input:focus-within {
-  border-color: var(--cw-focus);
-  box-shadow: 0 0 0 1px var(--cw-focus);
+  border-color: var(--cw-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cw-action) 35%, transparent);
 }
 
 .cw-collection-toolbar__search > svg,
@@ -2692,14 +2859,13 @@ summary {
   position: absolute;
   z-index: 40;
   top: calc(100% + var(--cw-space-1));
-  right: 0;
-  left: 0;
+  inset-inline: 0;
   max-height: 18rem;
   overflow-y: auto;
   border: 1px solid var(--cw-border);
-  border-radius: var(--cw-radius-md);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-surface-raised);
-  box-shadow: var(--cw-shadow-card);
+  box-shadow: var(--cw-shadow-popover);
   padding: var(--cw-space-1);
 }
 
@@ -2715,14 +2881,14 @@ summary {
   background: transparent;
   color: var(--cw-ink);
   padding: var(--cw-space-2) var(--cw-space-3);
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
 .cw-entity-combobox__list button[data-active="true"],
 .cw-entity-combobox__list button[aria-selected="true"] {
-  background: var(--cw-brand-soft);
-  color: var(--cw-brand-ink);
+  background: var(--cw-action-soft);
+  color: var(--cw-action-strong);
 }
 
 .cw-entity-combobox__list button > span {
@@ -2757,9 +2923,8 @@ summary {
 .cw-workflow-stepper__step::after {
   position: absolute;
   z-index: 0;
-  top: 1.35rem;
-  right: 0;
-  left: 2.75rem;
+  top: 1rem;
+  inset-inline: 2.5rem 0;
   height: 1px;
   background: var(--cw-border);
   content: "";
@@ -2776,7 +2941,7 @@ summary {
   min-height: var(--cw-control-height);
   gap: var(--cw-space-3);
   color: var(--cw-muted);
-  padding-right: var(--cw-space-4);
+  padding-inline-end: var(--cw-space-4);
   text-decoration: none;
 }
 
@@ -2790,7 +2955,7 @@ summary {
   border-radius: 50%;
   background: var(--cw-surface);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cw-workflow-stepper__marker > svg {
@@ -2811,18 +2976,18 @@ summary {
 }
 
 .cw-workflow-stepper__step--complete .cw-workflow-stepper__marker {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-strong);
+  border-color: var(--cw-action);
+  background: var(--cw-action);
   color: #fff;
 }
 
 .cw-workflow-stepper__step--current > :where(a, div) {
-  color: var(--cw-brand-ink);
+  color: var(--cw-action-strong);
 }
 
 .cw-workflow-stepper__step--current .cw-workflow-stepper__marker {
-  border: 2px solid var(--cw-brand-strong);
-  box-shadow: 0 0 0 3px var(--cw-brand-soft);
+  border: 2px solid var(--cw-action);
+  box-shadow: 0 0 0 3px var(--cw-action-soft);
 }
 
 .cw-workflow-stepper__step--error .cw-workflow-stepper__marker {
@@ -2841,7 +3006,7 @@ summary {
   border: 1px solid var(--cw-border);
   border-radius: var(--cw-radius-lg);
   background: var(--cw-surface);
-  box-shadow: var(--cw-shadow-sm);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .cw-review-summary > header,
@@ -2850,7 +3015,7 @@ summary {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--cw-space-4);
-  padding: var(--cw-space-5);
+  padding: var(--cw-space-4) var(--cw-space-5);
 }
 
 .cw-review-summary > header {
@@ -2867,7 +3032,7 @@ summary {
 
 .cw-review-summary > header h2 {
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 
@@ -2910,12 +3075,11 @@ summary {
 
 .cw-review-summary__item--warning,
 .cw-review-summary__item--partial {
-  box-shadow: 3px 0 0 var(--cw-warning) inset;
+  background: var(--cw-warning-soft);
 }
 
 .cw-review-summary__item--error {
   background: var(--cw-danger-soft);
-  box-shadow: 3px 0 0 var(--cw-danger) inset;
 }
 
 .cw-review-summary > footer {
@@ -2924,6 +3088,8 @@ summary {
   background: var(--cw-canvas);
 }
 
+/* Inline notices are tinted cards: wash, matching hairline, a colored icon,
+   ink copy. The left stripe is gone; the tint carries the tone. */
 .cw-inline-notice {
   display: grid;
   min-width: 0;
@@ -2931,24 +3097,27 @@ summary {
   align-items: center;
   gap: var(--cw-space-3);
   border: 1px solid var(--cw-border);
-  border-left: 3px solid currentColor;
-  border-radius: var(--cw-radius-md);
+  border-radius: var(--cw-radius-lg);
   padding: var(--cw-space-3) var(--cw-space-4);
   color: var(--cw-info);
 }
 
 .cw-inline-notice--info {
+  border-color: var(--cw-info-border);
   background: var(--cw-info-soft);
 }
 .cw-inline-notice--success {
+  border-color: var(--cw-success-border);
   background: var(--cw-success-soft);
   color: var(--cw-success);
 }
 .cw-inline-notice--warning {
+  border-color: var(--cw-warning-border);
   background: var(--cw-warning-soft);
-  color: var(--cw-warning);
+  color: var(--cw-warning-ink);
 }
 .cw-inline-notice--danger {
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
 }
@@ -2996,14 +3165,13 @@ summary {
 }
 
 .cw-responsive-record:hover:not([aria-disabled="true"]) {
-  border-color: var(--cw-border-strong);
-  box-shadow: var(--cw-shadow-sm);
+  border-color: rgb(9 9 11 / 0.2);
+  box-shadow: var(--cw-shadow-popover);
 }
 
 .cw-responsive-record--selected {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-soft);
-  box-shadow: 3px 0 0 var(--cw-brand-strong) inset;
+  border-color: var(--cw-action-border);
+  background: var(--cw-action-soft);
 }
 
 .cw-responsive-record__identity,
@@ -3025,7 +3193,12 @@ summary {
 }
 
 .cw-responsive-record__identity h3 a {
-  color: var(--cw-brand-strong);
+  color: var(--cw-action);
+  text-decoration: none;
+}
+
+.cw-responsive-record__identity h3 a:hover {
+  text-decoration: underline;
   text-underline-offset: 0.16em;
 }
 
@@ -3300,7 +3473,7 @@ summary {
   .cw-steps__item::after {
     top: 1.85rem;
     bottom: calc(-1 * var(--cw-space-3));
-    left: 0.95rem;
+    inset-inline: 0.875rem auto;
     width: 1px;
     height: auto;
   }
@@ -3364,7 +3537,7 @@ summary {
   .cw-workflow-stepper--vertical .cw-workflow-stepper__step::after {
     top: 2rem;
     bottom: calc(-1 * var(--cw-space-3));
-    left: 1rem;
+    inset-inline: 1rem auto;
     width: 1px;
     height: auto;
   }
@@ -3424,6 +3597,13 @@ summary {
   .cw-command-trigger > span,
   .cw-command-trigger kbd {
     display: none;
+  }
+
+  /* With its label gone the trigger is an icon button like its neighbours. */
+  .cw-shell__drawer-trigger,
+  .cw-command-trigger {
+    border-color: transparent;
+    padding: 0;
   }
 
   .cw-state {
@@ -3524,10 +3704,30 @@ summary {
   }
 }
 
+/*
+ * Touch. The console's 36px controls suit a mouse; a coarse pointer gets the
+ * 44px target back on every control, navigation row, and field, which is what
+ * the design document promises for touch.
+ */
+@media (pointer: coarse) {
+  :root {
+    --cw-control-height: 2.75rem;
+    --cw-control-height-small: 2.75rem;
+  }
+
+  .cw-navigation__link,
+  .cw-command-result,
+  .cw-entity-combobox__list button {
+    min-height: 2.75rem;
+  }
+}
+
 @media (prefers-contrast: more) {
   :root {
-    --cw-border: #6a7984;
-    --cw-border-strong: #43525d;
+    --cw-border: #71717a;
+    --cw-border-subtle: #a1a1aa;
+    --cw-border-strong: #3f3f46;
+    --cw-faint: #52525b;
   }
 
   .cw-badge,
