@@ -9,10 +9,13 @@ import { adminGovernanceMessages } from "./messages/admin-governance";
 import { adminPricingMessages } from "./messages/admin-pricing";
 import { commonMessages } from "./messages/common";
 import { customerMessages } from "./messages/customer";
+import { customerCommercialMessages } from "./messages/customer-commercial";
 import { demoMessages } from "./messages/demo";
 import { enumMessages } from "./messages/enums";
 import { experienceMessages } from "./messages/experience";
+import { experienceDataMessages } from "./messages/experience-data";
 import { operationsMessages } from "./messages/operations";
+import { operationsFinanceMessages } from "./messages/operations-finance";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
 import {
@@ -36,8 +39,15 @@ export const messageModules = {
     prefixes: ["status.", "risk.", "role.", "region.", "recordKind.", "enum."],
   },
   partner: { messages: partnerMessages, prefixes: ["partner."] },
-  customer: { messages: customerMessages, prefixes: ["customer."] },
-  experience: { messages: experienceMessages, prefixes: ["experience."] },
+  // Split lanes keep one module and one prefix; each half edits its own file.
+  customer: {
+    messages: { ...customerMessages, ...customerCommercialMessages },
+    prefixes: ["customer."],
+  },
+  experience: {
+    messages: { ...experienceMessages, ...experienceDataMessages },
+    prefixes: ["experience."],
+  },
   adminPricing: {
     messages: adminPricingMessages,
     prefixes: ["adminPricing."],
@@ -46,7 +56,10 @@ export const messageModules = {
     messages: adminGovernanceMessages,
     prefixes: ["adminGovernance."],
   },
-  operations: { messages: operationsMessages, prefixes: ["operations."] },
+  operations: {
+    messages: { ...operationsMessages, ...operationsFinanceMessages },
+    prefixes: ["operations."],
+  },
   platform: { messages: platformMessages, prefixes: ["platform."] },
   demo: { messages: demoMessages, prefixes: ["demo."] },
 } as const satisfies Record<

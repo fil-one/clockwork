@@ -50,10 +50,13 @@ const foundationFiles = new Set([
 const messageModuleFiles: Readonly<Record<string, Lane>> = {
   "partner.ts": "partner",
   "customer.ts": "customer",
+  "customer-commercial.ts": "customer",
   "experience.ts": "experience",
+  "experience-data.ts": "experience",
   "admin-pricing.ts": "adminPricing",
   "admin-governance.ts": "adminGovernance",
   "operations.ts": "operations",
+  "operations-finance.ts": "operations",
   "platform.ts": "platform",
   "demo.ts": "demo",
 };

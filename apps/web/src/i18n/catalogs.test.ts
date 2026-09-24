@@ -26,6 +26,12 @@ import {
   resolveLocale,
   type Locale,
 } from "./locales";
+import { customerMessages } from "./messages/customer";
+import { customerCommercialMessages } from "./messages/customer-commercial";
+import { experienceMessages } from "./messages/experience";
+import { experienceDataMessages } from "./messages/experience-data";
+import { operationsMessages } from "./messages/operations";
+import { operationsFinanceMessages } from "./messages/operations-finance";
 import { laneModules, laneOf } from "./ownership";
 import type { CatalogEntry } from "./translator";
 
@@ -172,6 +178,29 @@ describe("nothing is left in English by accident", () => {
       )
       .map(({ module, id }) => `${module}: ${id}`);
     expect(misplaced).toEqual([]);
+  });
+
+  // A split lane composes two files into one module by spreading them, and a
+  // spread keeps only the last of two equal keys. Each half mints IDs under
+  // its own sub-prefix, and no ID may appear in both halves.
+  it("keeps the two halves of a split module disjoint", () => {
+    const halves = [
+      [customerMessages, customerCommercialMessages, "customer.commercial."],
+      [experienceMessages, experienceDataMessages, "experience.data."],
+      [operationsMessages, operationsFinanceMessages, "operations.finance."],
+    ] as const;
+    for (const [main, half, prefix] of halves) {
+      const shared = Object.keys(half).filter((id) => Object.hasOwn(main, id));
+      expect(shared, `IDs defined in both halves of ${prefix}`).toEqual([]);
+      const strayInHalf = Object.keys(half).filter(
+        (id) => !Object.hasOwn(legacyEnglish, id) && !id.startsWith(prefix),
+      );
+      expect(strayInHalf, `new IDs in the ${prefix} half`).toEqual([]);
+      const strayInMain = Object.keys(main).filter((id) =>
+        id.startsWith(prefix),
+      );
+      expect(strayInMain, `${prefix} IDs outside their half`).toEqual([]);
+    }
   });
 });
 
