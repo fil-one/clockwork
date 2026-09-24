@@ -809,3 +809,15 @@ html[dir="rtl"] :is(input[type="email"], input[type="url"], code, pre) {
   unicode-bidi: isolate;
   text-align: start;
 }
+
+/*
+ * Touch. The organization select sits inside a bordered frame, so the frame's
+ * `--cw-control-height` of 44px left the select itself, the element a tap
+ * actually lands on, at 42. The select carries the full touch height and the
+ * frame grows around it.
+ */
+@media (pointer: coarse) {
+  .organization-switcher select {
+    min-height: var(--cw-control-height);
+  }
+}

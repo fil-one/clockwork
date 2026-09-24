@@ -4,6 +4,7 @@ import { resetDemoExperience } from "@clockwork/testing/demo-reset";
 import { FileDemoAdapterStateStore } from "@clockwork/testing/demo-state";
 
 import { gotoHydrated } from "./shell-hydration";
+import { expectTargetSize } from "./target-size";
 
 /**
  * Queue actions write to the durable demo adapter state, so the record would
@@ -69,14 +70,6 @@ async function expectAxeClean(page: Page) {
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(result.violations).toEqual([]);
-}
-
-async function expectTouchTarget(locator: Locator, minimum = 42) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box?.width).toBeGreaterThanOrEqual(minimum);
-  expect(box?.height).toBeGreaterThanOrEqual(minimum);
 }
 
 async function expectVisibleFocus(locator: Locator) {
@@ -239,12 +232,12 @@ test.describe("internal operator operations journey", () => {
     await page.setViewportSize({ width: 320, height: 800 });
     await gotoHydrated(page, "/internal");
     const trigger = page.getByRole("button", { name: "Open navigation" });
-    await expectTouchTarget(trigger);
+    await expectTargetSize(trigger);
     await trigger.click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer).toBeVisible();
     for (const destination of INTERNAL_DESTINATIONS) {
-      await expectTouchTarget(
+      await expectTargetSize(
         drawer.getByRole("link", { name: destination, exact: true }),
       );
     }
@@ -463,7 +456,7 @@ test.describe("internal responsive and accessibility coverage", () => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/internal/queues");
     const search = page.getByRole("button", { name: "Open command menu" });
-    await expectTouchTarget(search);
+    await expectTargetSize(search);
     await expectVisibleFocus(search);
     // Below the split-panel breakpoint the row opens the full-page detail, so
     // the primary target in the table is the record link rather than the
@@ -471,7 +464,7 @@ test.describe("internal responsive and accessibility coverage", () => {
     const record = page
       .getByRole("link", { name: /Collections aging decision/ })
       .first();
-    await expectTouchTarget(record);
+    await expectTargetSize(record);
     await expectVisibleFocus(record);
   });
 
