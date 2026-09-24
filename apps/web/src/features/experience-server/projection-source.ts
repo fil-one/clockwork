@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
-import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
+import { demoText } from "@clockwork/testing/demo-localized-text";
 import {
   FileDemoAdapterStateStore,
   findDemoProductionMarker,
@@ -16,7 +16,8 @@ import { commercialRecords } from "@/src/features/customer-partner/commercial/mo
 import { customerCollections } from "@/src/features/customer-partner/customer/customer-data";
 import { partnerSurfaces } from "@/src/features/customer-partner/partner/partner-data";
 import { formatMoney } from "@/src/features/shared/format";
-import { formattingLocales, type Locale } from "@/src/i18n";
+import { formattingLocales, type Locale, type MessageId } from "@/src/i18n";
+import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import { resolveScopedAccount } from "./authorization";
 import {
@@ -30,8 +31,17 @@ import {
   demoUuid,
 } from "./demo-artifact-catalog";
 import {
+  demoMessage,
+  onDate,
+  resolveDemoContent,
+  type DemoMessage,
+  type DemoReader,
+} from "./demo-message";
+import {
   demoAdditionalRecords,
+  demoCommercialDueDates,
   demoCreatedOrderRecord,
+  demoPaidInvoiceTitles,
   demoRecordAccounts,
   demoTaxedBillingRecords,
   DEMO_DEFAULT_CUSTOMER_ACCOUNT,
@@ -128,6 +138,23 @@ function ownerOf(
   return demoRecordAccounts[`${audience}:${channel}:${key}`] ?? fallback;
 }
 
+/**
+ * The authoritative facts a commercial fixture row carries: an order's status,
+ * and the due or expiry instant the dashboard orders obligations by. Facts the
+ * fixture states itself win over the demo's.
+ */
+function customerAuthoritative(record: (typeof commercialRecords)[number]): {
+  authoritative?: Readonly<Record<string, unknown>>;
+} {
+  const own = (record as { authoritative?: unknown }).authoritative;
+  const facts = {
+    ...(demoCommercialDueDates[`${record.kind}:${record.id}`] ?? {}),
+    ...(own && typeof own === "object" && !Array.isArray(own) ? own : {}),
+    ...(record.kind === "orders" ? { status: record.status } : {}),
+  };
+  return Object.keys(facts).length > 0 ? { authoritative: facts } : {};
+}
+
 function customerRecords(): DemoRecord[] {
   return commercialRecords.map((record, index) => ({
     id: `50000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
@@ -147,9 +174,7 @@ function customerRecords(): DemoRecord[] {
     freshnessMode: "request",
     data: {
       ...record,
-      ...(record.kind === "orders"
-        ? { authoritative: { status: record.status } }
-        : {}),
+      ...customerAuthoritative(record),
       allowedActions:
         record.kind === "quotes" && record.status === "open"
           ? ["accept", "expire"]
@@ -262,10 +287,19 @@ function internalRecords(): DemoRecord[] {
       channel: "queues",
       key: "EXC-COL-008",
       data: {
-        title: "Collections aging decision",
-        statusLabel: "SLA breached · high risk",
+        title: demoText({
+          en: "Collections aging decision",
+          es: "Decisión sobre la antigüedad de cobros",
+          fr: "Décision de recouvrement selon l’ancienneté",
+          de: "Entscheidung zum Forderungsalter",
+          ja: "債権回収の経過日数に関する判断",
+          pt: "Decisão sobre a antiguidade da cobrança",
+          zh: "收款账龄处理决策",
+          ar: "قرار بشأن أعمار الديون قيد التحصيل",
+        }),
+        statusLabel: demoMessage("experience.data.status.slaBreachedHighRisk"),
         owner: "Amina Cole",
-        nextAction: "Verify retention hold before service action",
+        nextAction: demoMessage("experience.data.next.verifyRetentionHold"),
         allowedActions: ["review_exception"],
       },
     },
@@ -273,10 +307,19 @@ function internalRecords(): DemoRecord[] {
       channel: "queues",
       key: "EXC-PRV-012",
       data: {
-        title: "Provisioning recovery approval",
-        statusLabel: "Due today · high risk",
+        title: demoText({
+          en: "Provisioning recovery approval",
+          es: "Aprobación de la recuperación del aprovisionamiento",
+          fr: "Approbation de la reprise du provisionnement",
+          de: "Genehmigung der Wiederherstellung der Bereitstellung",
+          ja: "プロビジョニング復旧の承認",
+          pt: "Aprovação da recuperação do provisionamento",
+          zh: "开通恢复审批",
+          ar: "الموافقة على استعادة التهيئة",
+        }),
+        statusLabel: demoMessage("experience.data.status.dueTodayHighRisk"),
         owner: "James Kurz",
-        nextAction: "Review provider evidence and recovery scope",
+        nextAction: demoMessage("experience.data.next.reviewProviderEvidence"),
         allowedActions: ["review_exception"],
       },
     },
@@ -284,10 +327,19 @@ function internalRecords(): DemoRecord[] {
       channel: "queues",
       key: "EXC-RET-003",
       data: {
-        title: "Retention-exclusion deletion approval",
-        statusLabel: "Blocked · legal review",
+        title: demoText({
+          en: "Retention-exclusion deletion approval",
+          es: "Aprobación de eliminación con exclusiones por conservación",
+          fr: "Approbation d’une suppression avec exclusions de conservation",
+          de: "Genehmigung einer Löschung mit Aufbewahrungsausnahmen",
+          ja: "保持対象を除外した削除の承認",
+          pt: "Aprovação de exclusão com exceções de retenção",
+          zh: "含保留排除项的删除审批",
+          ar: "الموافقة على الحذف مع استثناءات الاحتفاظ",
+        }),
+        statusLabel: demoMessage("experience.data.status.blockedLegalReview"),
         owner: "Juno Okafor",
-        nextAction: "Confirm legal hold and deletion evidence",
+        nextAction: demoMessage("experience.data.next.confirmLegalHold"),
         allowedActions: ["review_exception"],
       },
     },
@@ -295,10 +347,30 @@ function internalRecords(): DemoRecord[] {
       channel: "approvals",
       key: "APR-DEMO-001",
       data: {
-        title: "Pricing exception approval",
-        statusLabel: "Awaiting approval",
-        owner: "Finance review",
-        nextAction: "Compare exception evidence with policy",
+        title: demoText({
+          en: "Pricing exception approval",
+          es: "Aprobación de una excepción de precios",
+          fr: "Approbation d’une exception tarifaire",
+          de: "Genehmigung einer Preisausnahme",
+          ja: "価格例外の承認",
+          pt: "Aprovação de exceção de preço",
+          zh: "价格例外审批",
+          ar: "الموافقة على استثناء في التسعير",
+        }),
+        statusLabel: demoMessage("experience.data.status.awaitingApproval"),
+        owner: demoText({
+          en: "Finance review",
+          es: "Revisión financiera",
+          fr: "Revue financière",
+          de: "Finanzprüfung",
+          ja: "財務レビュー担当",
+          pt: "Revisão financeira",
+          zh: "财务审核团队",
+          ar: "فريق المراجعة المالية",
+        }),
+        nextAction: demoMessage(
+          "experience.data.next.compareExceptionEvidence",
+        ),
         allowedActions: ["approve_exception", "reject_exception"],
       },
     },
@@ -306,10 +378,30 @@ function internalRecords(): DemoRecord[] {
       channel: "provisioning",
       key: "PRV-DEMO-001",
       data: {
-        title: "Madrid replica recovery",
-        statusLabel: "Provider recovery queued",
-        owner: "Platform operations",
-        nextAction: "Reconcile provider event before replay",
+        title: demoText({
+          en: "Madrid replica recovery",
+          es: "Recuperación de la réplica de Madrid",
+          fr: "Reprise de la réplique de Madrid",
+          de: "Wiederherstellung des Madrider Replikats",
+          ja: "マドリードのレプリカの復旧",
+          pt: "Recuperação da réplica de Madri",
+          zh: "马德里副本恢复",
+          ar: "استعادة النسخة المتماثلة في مدريد",
+        }),
+        statusLabel: demoMessage(
+          "experience.data.status.providerRecoveryQueued",
+        ),
+        owner: demoText({
+          en: "Platform operations",
+          es: "Operaciones de plataforma",
+          fr: "Opérations plateforme",
+          de: "Plattformbetrieb",
+          ja: "プラットフォーム運用チーム",
+          pt: "Operações de plataforma",
+          zh: "平台运营团队",
+          ar: "فريق عمليات المنصة",
+        }),
+        nextAction: demoMessage("experience.data.next.reconcileProviderEvent"),
         allowedActions: ["replay_provider_event"],
       },
     },
@@ -375,6 +467,18 @@ function createdOrderRecords(
   });
 }
 
+/** A created quote's chip, by the authoritative quote status. */
+const createdQuoteStatusLabels: Readonly<
+  Record<DemoCreatedQuote["snapshot"]["status"], DemoMessage>
+> = {
+  draft: demoMessage("status.quote.draft"),
+  issued: demoMessage("experience.data.status.quoteIssuedReady"),
+  accepted: demoMessage("status.quote.accepted"),
+  expired: demoMessage("status.quote.expired"),
+  superseded: demoMessage("experience.data.status.quoteSupersededByRevision"),
+  rejected: demoMessage("status.quote.rejected"),
+};
+
 /** Quotes created by the direct-buy command, projected into the customer ledger. */
 function createdQuoteRecords(
   state: DemoAdapterState,
@@ -404,7 +508,7 @@ function createdQuoteRecords(
       .map((request) => ({
         kind: "direct_quote" as const,
         id: request.id,
-        label: "Quote document",
+        label: demoMessage("experience.data.artifact.quoteDocument"),
         state: "stored" as const,
       }));
     return {
@@ -429,39 +533,42 @@ function createdQuoteRecords(
             }
           : {}),
         id: `quote-${snapshot.id}`,
-        title: `Direct capacity quote · ${quote.displayNumber}`,
-        description: `${snapshot.lines.length} priced ${snapshot.lines.length === 1 ? "line" : "lines"} · direct purchase`,
+        title: demoMessage("experience.data.title.createdQuote", {
+          reference: quote.displayNumber,
+        }),
+        description: demoMessage("experience.data.desc.createdQuoteLines", {
+          count: snapshot.lines.length,
+        }),
         reference: quote.displayNumber,
         status: presentationStatus,
-        statusLabel: issued
-          ? "Issued · ready for acceptance"
-          : snapshot.status === "draft"
-            ? "Draft"
-            : snapshot.status === "superseded"
-              ? "Superseded by a revised quote"
-              : snapshot.status,
+        statusLabel: createdQuoteStatusLabels[snapshot.status],
         tone: issued ? "warning" : "neutral",
         risk:
           snapshot.marginResult === "exception_required" ||
           snapshot.marginResult === "rejected"
             ? "high"
             : "low",
-        owner: "Buyer workspace",
+        owner: demoMessage("experience.data.owner.buyerWorkspace"),
         value: formatMoney(
           snapshot.total.minor,
           snapshot.total.currency,
           formatting,
         ),
-        valueLabel: "Quoted total",
-        dateLabel: `Expires ${snapshot.expiresAt.slice(0, 10)}`,
-        term: `Net ${quote.paymentTermsDays} · agreement version ${quote.agreementVersion}`,
+        valueLabel: demoMessage("experience.data.label.quotedTotal"),
+        dateLabel: demoMessage("common.expiresOn", {
+          date: onDate(snapshot.expiresAt.slice(0, 10)),
+        }),
+        term: demoMessage("experience.data.term.paymentTermsAgreementVersion", {
+          count: quote.paymentTermsDays,
+          version: String(quote.agreementVersion),
+        }),
         nextAction: issued
-          ? "Review and accept the issued quote"
+          ? demoMessage("experience.data.next.reviewAcceptIssuedQuote")
           : snapshot.status === "draft"
-            ? "Prepare and issue the quote document"
+            ? demoMessage("experience.data.next.prepareIssueQuoteDocument")
             : snapshot.status === "superseded"
-              ? "Continue with the revised quote in the quote ledger"
-              : "View the quote history",
+              ? demoMessage("experience.data.next.continueRevisedQuote")
+              : demoMessage("experience.data.next.viewQuoteHistory"),
         allowedActions: issued ? ["accept", "expire"] : [],
         totalMinor: snapshot.total.minor,
         currency: snapshot.total.currency,
@@ -493,6 +600,16 @@ function createdQuoteRecords(
   });
 }
 
+const inviteRoleLabels = {
+  owner: "role.owner",
+  admin: "role.admin",
+  billing: "role.billing",
+  member: "role.member",
+} as const satisfies Record<
+  ReturnType<typeof demoMemberInvites>[number]["role"],
+  MessageId
+>;
+
 function accountControlRecords(state: DemoAdapterState): DemoRecord[] {
   const accounts = new Set(
     demoRecords
@@ -515,17 +632,25 @@ function accountControlRecords(state: DemoAdapterState): DemoRecord[] {
         data: {
           id: `invite-${invite.id}`,
           title: invite.email,
-          description: `Pending ${invite.role} invitation`,
+          description: demoMessage("experience.data.desc.pendingInvitation", {
+            role: demoMessage(inviteRoleLabels[invite.role]),
+          }),
           status: "pending",
-          statusLabel: "Invitation pending",
+          statusLabel: demoMessage("experience.data.status.invitationPending"),
           risk: "low",
           owner: invite.email,
-          value: invite.role,
+          value: demoMessage(inviteRoleLabels[invite.role]),
           valueSort: 1,
-          updatedLabel: "Invited recently",
+          updatedLabel: demoMessage("experience.data.date.invitedRecently"),
           context: [
-            { label: "Expires", value: invite.expiresAt },
-            { label: "Organization", value: invite.organizationId },
+            {
+              label: demoMessage("experience.data.label.expires"),
+              value: onDate(invite.expiresAt),
+            },
+            {
+              label: demoMessage("experience.data.label.organization"),
+              value: invite.organizationId,
+            },
           ],
           allowedActions: [],
         },
@@ -549,21 +674,31 @@ function accountControlRecords(state: DemoAdapterState): DemoRecord[] {
               freshnessMode: "source" as const,
               data: {
                 id: "PROC-AP",
-                title: "Accounts payable routing",
-                description:
-                  "Routes invoices and credits to the verified billing inbox.",
+                title: demoMessage(
+                  "experience.data.title.accountsPayableRouting",
+                ),
+                description: demoMessage(
+                  "experience.data.desc.procurementRoutes",
+                ),
                 status: "active",
-                statusLabel: "Verified",
+                statusLabel: demoMessage("experience.data.status.verified"),
                 risk: "low",
                 owner: profile.apContact.name,
                 value: profile.invoiceDeliveryEmail,
                 valueSort: profile.poRequired ? 2 : 1,
-                updatedLabel: "Updated recently",
+                updatedLabel: demoMessage(
+                  "experience.data.date.updatedRecently",
+                ),
                 context: [
-                  { label: "AP contact", value: profile.apContact.email },
                   {
-                    label: "Purchase order",
-                    value: profile.poRequired ? "Required" : "Not required",
+                    label: demoMessage("experience.data.label.apContact"),
+                    value: profile.apContact.email,
+                  },
+                  {
+                    label: demoMessage("experience.data.label.purchaseOrder"),
+                    value: profile.poRequired
+                      ? demoMessage("experience.data.value.poRequired")
+                      : demoMessage("experience.data.value.poNotRequired"),
                   },
                 ],
                 allowedActions: [],
@@ -626,14 +761,18 @@ function applyInvoicePayment(
       title:
         typeof record.data.title === "string"
           ? record.data.title.replace(/ · overdue$/u, " · paid")
-          : record.data.title,
+          : (demoPaidInvoiceTitles[record.key] ?? record.data.title),
       status: "paid",
-      statusLabel: "Paid · demo sandbox",
+      statusLabel: demoMessage("experience.data.status.invoicePaidSandbox"),
       tone: "success",
       risk: "low",
-      description: `Demo receipt ${payment.receiptId} · sandbox only · no money moved`,
-      dateLabel: `Demo payment confirmed ${payment.completedAt.slice(0, 10)} UTC`,
-      nextAction: "Payment complete · no further payment is due",
+      description: demoMessage("experience.data.desc.demoReceipt", {
+        receipt: payment.receiptId,
+      }),
+      dateLabel: demoMessage("experience.data.date.demoPaymentConfirmed", {
+        date: onDate(payment.completedAt.slice(0, 10)),
+      }),
+      nextAction: demoMessage("experience.data.next.paymentComplete"),
       allowedActions: [],
       authoritative: {
         ...authoritative,
@@ -753,7 +892,7 @@ async function taxedBillingData(
   return {
     ...record.data,
     value: gross,
-    valueLabel: "Invoiced amount (incl. tax)",
+    valueLabel: demoMessage("experience.data.label.invoicedInclTax"),
     invoicedNetOfTax: net,
     taxDetermined: tax,
     taxTreatment: figures.summary,
@@ -836,91 +975,102 @@ function appliedActionData(
     !Array.isArray(current.authoritative)
       ? (current.authoritative as Readonly<Record<string, unknown>>)
       : {};
+  // Labels are persisted as message references, never as prose: this data is
+  // written to the demo state store and read back by every later reader, in
+  // their own language.
   const transition: Readonly<
     Record<
       string,
       {
         readonly status: string;
-        readonly statusLabel: string;
-        readonly nextAction: string;
+        readonly statusLabel: DemoMessage;
+        readonly nextAction: DemoMessage;
         readonly authoritativeStatus?: string;
       }
     >
   > = {
     accept: {
       status: "accepted",
-      statusLabel: "Accepted",
-      nextAction: "Continue through the recorded order acceptance",
+      statusLabel: demoMessage("status.quote.accepted"),
+      nextAction: demoMessage("experience.data.next.continueOrderAcceptance"),
       authoritativeStatus: "accepted",
     },
     expire: {
       status: "expired",
-      statusLabel: "Expired",
-      nextAction: "Create a revised quote when the buyer is ready",
+      statusLabel: demoMessage("status.quote.expired"),
+      nextAction: demoMessage("experience.data.next.createRevisedQuote"),
       authoritativeStatus: "expired",
     },
     prepare_artifact: {
       status: "ready",
-      statusLabel: "Document prepared",
-      nextAction: "Review the prepared commercial document",
+      statusLabel: demoMessage("experience.data.status.documentPrepared"),
+      nextAction: demoMessage("experience.data.next.reviewPreparedDocument"),
     },
     review_exception: {
       status: "complete",
-      statusLabel: "Review recorded",
-      nextAction: "No further review is due",
+      statusLabel: demoMessage("experience.data.status.reviewRecorded"),
+      nextAction: demoMessage("experience.data.next.noFurtherReview"),
     },
     approve_exception: {
       status: "approved",
-      statusLabel: "Approved",
-      nextAction: "Continue through the authorized downstream workflow",
+      statusLabel: demoMessage("status.approved"),
+      nextAction: demoMessage(
+        "experience.data.next.continueAuthorizedWorkflow",
+      ),
       authoritativeStatus: "approved",
     },
     reject_exception: {
       status: "rejected",
-      statusLabel: "Rejected",
-      nextAction: "Return the request to its owner",
+      statusLabel: demoMessage("status.rejected"),
+      nextAction: demoMessage("experience.data.next.returnRequestToOwner"),
       authoritativeStatus: "rejected",
     },
     evaluate_dunning: {
       status: "open",
-      statusLabel: "Dunning evaluated",
-      nextAction: "Review the recorded collections case",
+      statusLabel: demoMessage("experience.data.status.dunningEvaluated"),
+      nextAction: demoMessage("experience.data.next.reviewCollectionsCase"),
     },
     replay_provider_event: {
       status: "recovering",
-      statusLabel: "Provider replay recorded",
-      nextAction: "Monitor provisioning completion",
+      statusLabel: demoMessage("experience.data.status.providerReplayRecorded"),
+      nextAction: demoMessage("experience.data.next.monitorProvisioning"),
       authoritativeStatus: "recovering",
     },
     execute_agreement: {
       status: "active",
-      statusLabel: "Executed",
-      nextAction: "Use this version for new commitments",
+      statusLabel: demoMessage("experience.data.status.agreementExecuted"),
+      nextAction: demoMessage("experience.data.next.useVersionForCommitments"),
       authoritativeStatus: "active",
     },
     convert_poc: {
       status: "converted",
-      statusLabel: "Converted to paid quote",
-      nextAction: "Review the issued conversion quote",
+      statusLabel: demoMessage("experience.data.status.pocConverted"),
+      nextAction: demoMessage(
+        "experience.data.next.reviewIssuedConversionQuote",
+      ),
       authoritativeStatus: "converted",
     },
     request_renewal: {
       status: "renewal_requested",
-      statusLabel: "Renewal requested",
-      nextAction: "Review the renewal quote when issued",
+      statusLabel: demoMessage("status.renewalRequested"),
+      nextAction: demoMessage(
+        "experience.data.next.reviewRenewalQuoteWhenIssued",
+      ),
       authoritativeStatus: "renewal_requested",
     },
     request_teardown: {
       status: "offboarding_requested",
-      statusLabel: "Offboarding requested",
-      nextAction: "Await the two-person retention review",
+      statusLabel: demoMessage("status.offboardingRequested"),
+      nextAction: demoMessage(
+        "experience.data.next.awaitTwoPersonRetentionReview",
+      ),
       authoritativeStatus: "offboarding_requested",
     },
   };
   const selected = transition[action] ?? {
     status: "complete",
-    statusLabel: "Action complete",
-    nextAction: "No further action is due",
+    statusLabel: demoMessage("experience.data.status.actionComplete"),
+    nextAction: demoMessage("experience.data.next.noFurtherAction"),
   };
   return {
     status: selected.status,
@@ -939,22 +1089,42 @@ function appliedActionData(
 }
 
 /**
+ * Who the demo boundary renders for.
+ *
+ * `requested` is the interface language the caller read from the request's
+ * language cookie (`portal-view-loader` through `getLocale()`, the API
+ * controller from the same cookie header). The translator comes from the same
+ * request, so demo text, messages and formatting all agree. A caller that
+ * names no language gets the request's language, never English by default:
+ * the artifact read in `delivery.ts` and the action re-read below both omit
+ * it, and a default of "en" rendered their labels in English for everyone.
+ */
+async function demoReader(requested: Locale | undefined): Promise<DemoReader> {
+  const [locale, t] = await Promise.all([
+    requested ?? getLocale(),
+    getTranslations(),
+  ]);
+  return { locale, formatting: formattingLocales[locale], t };
+}
+
+/**
  * The demo read boundary: where a fixture becomes what one reader sees.
  *
- * Demo-authored text (`demoText`) resolves to the reader's language and the
- * amounts the demo derives are formatted for them, here and nowhere earlier.
- * Anything written back to the demo state store is taken from the record
- * before this step (see `action`), so a stored override keeps facts and every
- * language rather than one reader's rendering. `DatabaseProjectionSource`
- * never reaches this function.
+ * Product-authored text (`demoMessage`), demo-authored text (`demoText`) and
+ * the facts both carry (amounts, dates, durations) are rendered in the
+ * reader's language and formatting here and nowhere earlier. Anything written
+ * back to the demo state store is taken from the record before this step (see
+ * `action`) and is itself a message reference, so a stored override keeps
+ * facts and every language rather than one reader's rendering.
+ * `DatabaseProjectionSource` never reaches this function.
  */
 async function projectRecord(
   record: DemoRecord,
   now: Date,
-  locale: Locale,
+  reader: DemoReader,
 ): Promise<ProjectionRecord> {
-  const data = await projectionData(record, formattingLocales[locale]);
-  return asProjection(record, resolveDemoText(data, locale), now);
+  const data = await projectionData(record, reader.formatting);
+  return asProjection(record, resolveDemoContent(data, reader), now);
 }
 
 /** Deterministic fixtures selected only through CLOCKWORK_EXPERIENCE_ADAPTER=demo. */
@@ -969,11 +1139,12 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       throw new ExperienceProblem(
         422,
         "INVALID_CURSOR",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Projection cursor is invalid",
       );
     const state = await this.stateStore.read();
-    const locale = input.locale ?? "en";
-    const selected = demoRecordsForState(state, formattingLocales[locale])
+    const reader = await demoReader(input.locale);
+    const selected = demoRecordsForState(state, reader.formatting)
       .filter(
         (record) =>
           record.audience === input.audience &&
@@ -998,7 +1169,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     const page = matching.slice(offset, offset + input.limit);
     return {
       items: await Promise.all(
-        page.map((record) => projectRecord(record, input.now, locale)),
+        page.map((record) => projectRecord(record, input.now, reader)),
       ),
       nextCursor:
         offset + page.length < matching.length
@@ -1028,8 +1199,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     // telling them apart would be an enumeration oracle for another tenant's
     // references.
     const state = await this.stateStore.read();
-    const locale = input.locale ?? "en";
-    const record = demoRecordsForState(state, formattingLocales[locale]).find(
+    const reader = await demoReader(input.locale);
+    const record = demoRecordsForState(state, reader.formatting).find(
       (item) =>
         item.audience === input.audience &&
         item.channel === input.channel &&
@@ -1040,12 +1211,13 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       throw new ExperienceProblem(
         404,
         "PROJECTION_NOT_FOUND",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Projection record not found",
       );
     return projectRecord(
       applyInvoicePayment(applyDemoState(record, state), state),
       input.now,
-      locale,
+      reader,
     );
   }
 
@@ -1067,6 +1239,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         throw new ExperienceProblem(
           409,
           "IDEMPOTENCY_CONFLICT",
+          // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
           "The idempotency key is already bound to another projection action",
         );
       return { ...existing, commandReplayed: true };
@@ -1086,12 +1259,14 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       throw new ExperienceProblem(
         404,
         "PROJECTION_NOT_FOUND",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Projection record not found",
       );
     if (record.version !== input.expectedVersion)
       throw new ExperienceProblem(
         409,
         "VERSION_CONFLICT",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Projection record changed",
       );
     const allowed = Array.isArray(record.data.allowedActions)
@@ -1101,6 +1276,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       throw new ExperienceProblem(
         403,
         "ACTION_FORBIDDEN",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Action is not allowed for this record",
       );
     const completedAt = new Date().toISOString();
@@ -1134,6 +1310,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         throw new ExperienceProblem(
           409,
           "VERSION_CONFLICT",
+          // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
           "Projection record changed",
         );
       const authoritativeVersion = currentVersion + 1;
@@ -1189,6 +1366,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
       throw new ExperienceProblem(
         404,
         "PROJECTION_ACTION_NOT_FOUND",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         "Projection action receipt not found",
       );
     return receipt;
@@ -1226,6 +1404,7 @@ export async function refreshDemoQueueProjections(input: {
     throw new ExperienceProblem(
       422,
       "INVALID_DEMO_QUEUE_REFRESH",
+      // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
       "Queue refresh identity, idempotency, and request digest are required",
     );
   const store = input.stateStore ?? configuredDemoStateStore();
@@ -1239,12 +1418,14 @@ export async function refreshDemoQueueProjections(input: {
     throw new ExperienceProblem(
       422,
       "INVALID_DEMO_QUEUE_REFRESH",
+      // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
       "Queue refresh time is invalid",
     );
   const queueRecords = demoRecords.filter(
     (record) => record.audience === "internal" && record.channel === "queues",
   );
   if (queueRecords.length === 0)
+    // i18n-exempt: an invariant failure for developers, never shown to a reader
     throw new Error("The demo queue fixture contains no refreshable records");
 
   let result: DemoQueueRefreshResult = {
@@ -1267,6 +1448,7 @@ export async function refreshDemoQueueProjections(input: {
         throw new ExperienceProblem(
           409,
           "IDEMPOTENCY_CONFLICT",
+          // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
           "The idempotency key is already bound to another queue refresh",
         );
       result = {
@@ -1314,6 +1496,7 @@ export function configuredProjectionSource(): ProjectionSource {
       throw new ExperienceProblem(
         503,
         "DEMO_ADAPTER_FORBIDDEN",
+        // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
         `Demo portal data is disabled because ${productionMarker} identifies production`,
       );
     return demoProjectionSource;
@@ -1322,6 +1505,7 @@ export function configuredProjectionSource(): ProjectionSource {
     throw new ExperienceProblem(
       503,
       "PROJECTION_ADAPTER_INVALID",
+      // i18n-exempt: problem-details message in the API contract; integrators read it and the interface shows its own state
       "Projection adapter selection is invalid",
     );
   return new DatabaseProjectionSource();

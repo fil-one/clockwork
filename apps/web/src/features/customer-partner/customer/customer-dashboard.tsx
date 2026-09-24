@@ -29,6 +29,8 @@ function attentionDescription(count: number, t: Translator): string {
 function renewalTone(
   term: CustomerDashboardProjection["term"],
 ): "neutral" | "success" | "warning" {
+  // The loader decides the tone from facts; the labels below are translated.
+  if (term.renewalTone) return term.renewalTone;
   if (/^opened\b/iu.test(term.noticeLabel)) return "warning";
   const state = term.renewalState.toLocaleLowerCase();
   if (state.includes("auto")) return "success";
@@ -60,6 +62,8 @@ export interface CustomerDashboardProjection {
     noticeLabel: string;
     renewalLabel: string;
     agreementLabel: string;
+    /** The renewal badge's tone, from the notice date and renewal type. */
+    renewalTone?: "neutral" | "success" | "warning";
   };
   services: readonly { id: string; name: string; detail: string }[];
   /** Null while the account has no metered usage to report. */
