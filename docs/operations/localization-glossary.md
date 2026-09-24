@@ -124,7 +124,9 @@ Per language:
 - `zh` — full-width punctuation `，。：；（）“”`; no space between two Han
   characters; half-width space between Han characters and Latin words or digits
   (`Fil One 团队`, `最近 30 天`), none next to full-width punctuation;
-  half-width Latin letters and digits; mainland terminology only
+  half-width Latin letters and digits; a formatted date (`2026年9月24日`) starts
+  with a digit and ends in 日, so a space goes before a date placeholder and
+  none after it (`已于 {date}到期`, `自 {date}起`); mainland terminology only
   (软件 not 軟體, 默认 not 預設, 信息 not 資訊, 账户 not 帳戶, 文件 not 檔案).
 - `ar` — Arabic comma `،`, question mark `؟`, semicolon `؛`; MSA; no tatweel
   (`ـ`, U+0640), including after a proclitic before a Latin word (write "لحساب
@@ -218,7 +220,7 @@ checked against the named consoles.
 | execute (an agreement)                     | formalizar                     | conclure               | abschließen                                     | 締結                        | firmar                | 签订                    | إبرام                | es: ejecutar · fr: exécuter · de: ausführen · pt: executar · zh: 执行 · ar: تنفيذ                                                                                   | Legal act of entering the agreement; the avoid forms mean "run".                                                                                                                                                                                |
 | issue (a quote, an invoice)                | emitir                         | émettre                | ausstellen                                      | 発行                        | emitir                | 出具 (invoice: 开具)    | إصدار                | de: ausgeben · zh: 发布, 发出                                                                                                                                       | 发布 means publish.                                                                                                                                                                                                                             |
 | price book                                 | lista de precios               | grille tarifaire       | Preisliste                                      | 価格表                      | tabela de preços      | 价目表                  | قائمة الأسعار        | libro de precios · livre de prix · Preisbuch · 価格ブック · livro de preços · 价格簿 · دفتر الأسعار                                                                 | Versioned, currency-scoped source of list and transfer prices.                                                                                                                                                                                  |
-| rate card                                  | tarifa                         | barème tarifaire       | Preisblatt                                      | 料金表                      | tabela de tarifas     | 费率表                  | جدول الأسعار         | de: Tarif (reserved for offer)                                                                                                                                      | Per-unit rates inside a price book.                                                                                                                                                                                                             |
+| rate card                                  | tarifa                         | barème tarifaire       | Preisblatt                                      | 料金表                      | tarifa                | 费率表                  | جدول الأسعار         | de: Tarif (reserved for offer)                                                                                                                                      | Per-unit rates inside a price book. pt: one SKU/region rate row (see the pt amendments).                                                                                                                                                        |
 | transfer price                             | precio de cesión               | prix de cession        | Einkaufspreis (internal: Partner-Einkaufspreis) | 仕切価格                    | preço de repasse      | 供货价                  | سعر التوريد          | precio de transferencia · prix de transfert · Transferpreis, Verrechnungspreis · 移転価格, 仕入価格 · preço de transferência · 转移价格, 内部转移价格 · سعر التحويل | The price Fil One charges the partner; private to the partner. The avoid forms are the intercompany tax term (or, in `ar`, money transfer). Uncertain for `de` and `ar`; confident for `fr`, `ja`, `zh`.                                        |
 | resale price                               | precio de reventa              | prix de revente        | Wiederverkaufspreis                             | 再販価格                    | preço de revenda      | 转售价                  | سعر إعادة البيع      | —                                                                                                                                                                   | Set by the partner; the only price the end client sees.                                                                                                                                                                                         |
 | floor price                                | precio mínimo                  | prix plancher          | Preisuntergrenze                                | 下限価格                    | preço mínimo          | 底价                    | الحد الأدنى للسعر    | —                                                                                                                                                                   |                                                                                                                                                                                                                                                 |
@@ -256,19 +258,19 @@ checked against the named consoles.
 
 ### Service lifecycle
 
-| English                | es                       | fr                      | de                          | ja               | pt                       | zh             | ar                    | Avoid                                                                            | Note                                                                                         |
-| ---------------------- | ------------------------ | ----------------------- | --------------------------- | ---------------- | ------------------------ | -------------- | --------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| proof of concept (POC) | prueba de concepto (POC) | preuve de concept (POC) | Proof of Concept (POC)      | PoC（概念実証）  | prova de conceito (POC)  | 概念验证 (POC) | إثبات المفهوم (POC)   | de: Machbarkeitsnachweis                                                         | The abbreviation stays "POC" (ja "PoC"). The long form on first mention in explanatory text. |
-| trial                  | periodo de prueba        | essai                   | Testphase                   | トライアル       | período de teste         | 试用           | الفترة التجريبية      | de: Test · pt: teste (alone) · ar: التجربة · es: prueba (alone)                  |                                                                                              |
-| PAYG (pay as you go)   | pago por uso             | paiement à l'usage      | nutzungsbasierte Abrechnung | 従量課金         | pagamento conforme o uso | 按量付费       | الدفع حسب الاستخدام   | de: nutzungsabhängige Zahlung                                                    |                                                                                              |
-| sandbox                | entorno de pruebas       | environnement de test   | Testumgebung                | サンドボックス   | ambiente de testes       | 沙盒           | بيئة الاختبار         | —                                                                                | `zh` 沙箱 is also mainland usage; keep 沙盒 for consistency.                                 |
-| provisioning           | aprovisionamiento        | provisionnement         | Bereitstellung              | プロビジョニング | provisionamento          | 开通           | التهيئة               | ar: التوفير                                                                      |                                                                                              |
-| entitlement            | derecho de uso           | droit d'utilisation     | Nutzungsrecht               | 利用権           | direito de uso           | 权益           | الاستحقاق             | de: Berechtigung (means permission) · es/fr/pt: derechos/droits/direitos (alone) |                                                                                              |
-| egress                 | tráfico de salida        | trafic sortant          | ausgehender Datenverkehr    | 送信データ転送   | tráfego de saída         | 出站流量       | حركة البيانات الصادرة | calques of "egress"                                                              | `ja` uncertain.                                                                              |
-| offboarding            | baja                     | fin de service          | Offboarding                 | 利用終了         | encerramento             | 服务终止       | إنهاء الخدمة          | fr: sortie, clôture · de: Austritt · zh: 退出 (means sign out)                   | Ending a service with retrieval, final billing and retention review.                         |
-| teardown               | desmantelamiento         | démantèlement           | Rückbau                     | 撤去             | desmantelamento          | 拆除           | التفكيك               | pt: desativação (reversible; softens a destructive act)                          | Destructive and irreversible. Rule 6 applies.                                                |
-| retention              | conservación             | conservation            | Aufbewahrung                | 保持             | retenção                 | 保留           | الاحتفاظ              | —                                                                                |                                                                                              |
-| retention hold         | bloqueo por conservación | blocage de conservation | Aufbewahrungssperre         | 保持ロック       | bloqueio de retenção     | 保留锁定       | حجز الاحتفاظ          | legal-hold terms unless the source says legal hold                               | `ja`, `zh`, `ar` uncertain.                                                                  |
+| English                | es                       | fr                      | de                          | ja               | pt                      | zh             | ar                    | Avoid                                                                             | Note                                                                                         |
+| ---------------------- | ------------------------ | ----------------------- | --------------------------- | ---------------- | ----------------------- | -------------- | --------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| proof of concept (POC) | prueba de concepto (POC) | preuve de concept (POC) | Proof of Concept (POC)      | PoC（概念実証）  | prova de conceito (POC) | 概念验证 (POC) | إثبات المفهوم (POC)   | de: Machbarkeitsnachweis                                                          | The abbreviation stays "POC" (ja "PoC"). The long form on first mention in explanatory text. |
+| trial                  | periodo de prueba        | essai                   | Testphase                   | トライアル       | período de teste        | 试用           | الفترة التجريبية      | de: Test · pt: teste (alone) · ar: التجربة · es: prueba (alone)                   |                                                                                              |
+| PAYG (pay as you go)   | pago por uso             | paiement à l'usage      | nutzungsbasierte Abrechnung | 従量課金         | pagamento por uso       | 按量付费       | الدفع حسب الاستخدام   | de: nutzungsabhängige Zahlung · pt: pagamento conforme o uso (superseded 2026-09) |                                                                                              |
+| sandbox                | entorno de pruebas       | environnement de test   | Testumgebung                | サンドボックス   | ambiente de testes      | 沙盒           | بيئة الاختبار         | —                                                                                 | `zh` 沙箱 is also mainland usage; keep 沙盒 for consistency.                                 |
+| provisioning           | aprovisionamiento        | provisionnement         | Bereitstellung              | プロビジョニング | provisionamento         | 开通           | التهيئة               | ar: التوفير                                                                       |                                                                                              |
+| entitlement            | derecho de uso           | droit d'utilisation     | Nutzungsrecht               | 利用権           | direito de uso          | 权益           | الاستحقاق             | de: Berechtigung (means permission) · es/fr/pt: derechos/droits/direitos (alone)  |                                                                                              |
+| egress                 | tráfico de salida        | trafic sortant          | ausgehender Datenverkehr    | 送信データ転送   | tráfego de saída        | 出站流量       | حركة البيانات الصادرة | calques of "egress"                                                               | `ja` uncertain.                                                                              |
+| offboarding            | baja                     | fin de service          | Offboarding                 | 利用終了         | encerramento            | 服务终止       | إنهاء الخدمة          | fr: sortie, clôture · de: Austritt · zh: 退出 (means sign out)                    | Ending a service with retrieval, final billing and retention review.                         |
+| teardown               | desmantelamiento         | démantèlement           | Rückbau                     | 撤去             | desmantelamento         | 拆除           | التفكيك               | pt: desativação (reversible; softens a destructive act)                           | Destructive and irreversible. Rule 6 applies.                                                |
+| retention              | conservación             | conservation            | Aufbewahrung                | 保持             | retenção                | 保留           | الاحتفاظ              | —                                                                                 |                                                                                              |
+| retention hold         | bloqueo por conservación | blocage de conservation | Aufbewahrungssperre         | 保持ロック       | bloqueio de retenção    | 保留锁定       | حجز الاحتفاظ          | legal-hold terms unless the source says legal hold                                | `ja`, `zh`, `ar` uncertain.                                                                  |
 
 ### Billing and finance
 
@@ -291,27 +293,27 @@ checked against the named consoles.
 
 ### Governance and operations
 
-| English                    | es                           | fr                     | de                  | ja                  | pt                         | zh            | ar                | Avoid                                                                 | Note                                                                                                                                                        |
-| -------------------------- | ---------------------------- | ---------------------- | ------------------- | ------------------- | -------------------------- | ------------- | ----------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| approval                   | aprobación                   | approbation            | Genehmigung         | 承認                | aprovação                  | 审批          | الموافقة          | de: Freigabe (reserved for release)                                   | Verb: aprobar, approuver, genehmigen, 承認, aprovar, 批准, الموافقة على.                                                                                    |
-| approver                   | aprobador                    | approbateur            | genehmigende Person | 承認者              | aprovador                  | 审批人        | الموافِق          | de: Freigebende, Genehmiger (as a bare role noun)                     |                                                                                                                                                             |
-| decline (a quote, renewal) | declinar                     | décliner               | ablehnen            | 辞退                | recusar                    | 拒绝          | رفض               | —                                                                     | Must differ from reject.                                                                                                                                    |
-| reject (an approval)       | rechazar                     | rejeter                | zurückweisen        | 却下                | rejeitar                   | 驳回          | ردّ               | es: rechazar for decline · fr: refuser for both                       |                                                                                                                                                             |
-| assisted mode              | modo asistido                | mode assisté           | Assistenzmodus      | 代理操作モード      | modo assistido             | 代操作模式    | الوضع المساعد     | zh: 协助模式 (loses "on behalf of")                                   | Staff acting for a customer account under their own identity.                                                                                               |
-| operator                   | operador                     | opérateur              | Operator            | オペレーター        | operador                   | 操作员        | المشغّل           | de: Bediener · ja: 担当者 (that is owner)                             |                                                                                                                                                             |
-| queue                      | cola                         | file d'attente         | Warteschlange       | キュー              | fila                       | 队列          | قائمة الانتظار    | —                                                                     |                                                                                                                                                             |
-| evidence                   | evidencia                    | preuve                 | Nachweis            | 証跡                | evidência                  | 证据          | الدليل            | es: prueba(s) (collides with trial and test) · ja: 証拠 (legal proof) | Tax documents: justificantes fiscales, justificatifs fiscaux, Steuernachweise, 税務証憑, comprovantes fiscais, 税务凭证, المستندات الضريبية.                |
-| audit trail                | registro de auditoría        | piste d'audit          | Audit-Trail         | 監査証跡            | trilha de auditoria        | 审计跟踪      | سجل التدقيق       | zh: 审计时间线                                                        |                                                                                                                                                             |
-| record (noun)              | registro                     | enregistrement         | Datensatz           | 記録                | registro                   | 记录          | السجل             | fr: dossier, données · de: Akte · ja: レコード                        | The legal "agreement record" may use dossier/Akte only in signing copy that means the legal file.                                                           |
-| workspace                  | espacio de trabajo           | espace de travail      | Arbeitsbereich      | ワークスペース      | espaço de trabalho         | 工作区        | مساحة العمل       | —                                                                     |                                                                                                                                                             |
-| account                    | cuenta                       | compte                 | Konto               | アカウント          | conta                      | 账户          | الحساب            | zh: 帐户                                                              |                                                                                                                                                             |
-| account owner (role)       | propietario de la cuenta     | propriétaire du compte | Kontoinhaber        | アカウント所有者    | proprietário da conta      | 账户所有者    | مالك الحساب       | es/pt: titular · de: Eigentümer                                       |                                                                                                                                                             |
-| owner (assignee)           | responsable                  | responsable            | Verantwortliche(r)  | 担当者              | responsável                | 负责人        | المسؤول           | —                                                                     | Separate message IDs from the role.                                                                                                                         |
-| organization               | organización                 | organisation           | Organisation        | 組織                | organização                | 组织          | المؤسسة           | —                                                                     |                                                                                                                                                             |
-| provider (third party)     | proveedor                    | prestataire            | Anbieter            | プロバイダー        | provedor                   | 服务商        | المزوّد           | fr: fournisseur                                                       | Payment, signing, support, marketplace providers.                                                                                                           |
-| supplier (procurement)     | proveedor                    | fournisseur            | Lieferant           | 仕入先              | fornecedor                 | 供应商        | المورّد           | ja: サプライヤー                                                      | Supplier onboarding: alta de proveedores, référencement fournisseur, Lieferantenaufnahme, 仕入先登録, cadastro de fornecedores, 供应商准入, تسجيل الموردين. |
-| webhook                    | webhook                      | webhook                | Webhook             | Webhook             | webhook                    | Webhook       | Webhook           | ar: الويب هوك                                                         | Latin script in every language.                                                                                                                             |
-| up to date / stale         | actualizado / desactualizado | à jour / non à jour    | aktuell / veraltet  | 最新 / 最新ではない | atualizado / desatualizado | 最新 / 非最新 | محدّث / غير محدّث | fr: obsolète · zh: 已过时                                             | Record freshness. "Refresh": actualizar, actualiser, aktualisieren, 再読み込み, atualizar, 刷新, تحديث.                                                     |
+| English                    | es                           | fr                     | de                  | ja                  | pt                         | zh            | ar                                              | Avoid                                                                                                    | Note                                                                                                                                                        |
+| -------------------------- | ---------------------------- | ---------------------- | ------------------- | ------------------- | -------------------------- | ------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| approval                   | aprobación                   | approbation            | Genehmigung         | 承認                | aprovação                  | 审批          | الموافقة                                        | de: Freigabe (reserved for release)                                                                      | Verb: aprobar, approuver, genehmigen, 承認, aprovar, 批准, الموافقة على.                                                                                    |
+| approver                   | aprobador                    | approbateur            | genehmigende Person | 承認者              | aprovador                  | 审批人        | الموافِق                                        | de: Freigebende, Genehmiger (as a bare role noun)                                                        |                                                                                                                                                             |
+| decline (a quote, renewal) | declinar                     | décliner               | ablehnen            | 辞退                | recusar                    | 拒绝          | رفض                                             | —                                                                                                        | Must differ from reject. ar uses رفض for both and names the actor, and the status chips differ («مرفوض من العميل»); see the ar amendments.                  |
+| reject (an approval)       | rechazar                     | rejeter                | zurückweisen        | 却下                | rejeitar                   | 驳回          | رفض (name the actor where decline also appears) | es: rechazar for decline · fr: refuser for both · ar: ردّ, مردود (superseded 2026-09)                    |                                                                                                                                                             |
+| assisted mode              | modo asistido                | mode assisté           | Assistenzmodus      | 代理操作モード      | modo assistido             | 代操作模式    | الوضع المساعد                                   | zh: 协助模式 (loses "on behalf of")                                                                      | Staff acting for a customer account under their own identity.                                                                                               |
+| operator                   | operador                     | opérateur              | Operator            | オペレーター        | operador                   | 操作员        | المشغّل                                         | de: Bediener · ja: 担当者 (that is owner)                                                                |                                                                                                                                                             |
+| queue                      | cola                         | file d'attente         | Warteschlange       | キュー              | fila                       | 队列          | قائمة الانتظار                                  | —                                                                                                        |                                                                                                                                                             |
+| evidence                   | evidencia                    | preuve                 | Nachweis            | 証跡                | evidência                  | 证据          | الدليل                                          | es: prueba(s) (collides with trial and test) · ja: 証拠 (legal proof)                                    | Tax documents: justificantes fiscales, justificatifs fiscaux, Steuernachweise, 税務証憑, comprovantes fiscais, 税务凭证, المستندات الضريبية.                |
+| audit trail                | registro de auditoría        | piste d'audit          | Audit-Trail         | 監査証跡            | trilha de auditoria        | 审计跟踪      | سجل التدقيق                                     | zh: 审计时间线                                                                                           |                                                                                                                                                             |
+| record (noun)              | registro                     | enregistrement         | Datensatz           | レコード            | registro                   | 记录          | السجل                                           | fr: dossier, données · de: Akte · ja: 記録 for a data record (superseded 2026-09; see the ja amendments) | The legal "agreement record" may use dossier/Akte only in signing copy that means the legal file.                                                           |
+| workspace                  | espacio de trabajo           | espace de travail      | Arbeitsbereich      | ワークスペース      | espaço de trabalho         | 工作区        | مساحة العمل                                     | —                                                                                                        |                                                                                                                                                             |
+| account                    | cuenta                       | compte                 | Konto               | アカウント          | conta                      | 账户          | الحساب                                          | zh: 帐户                                                                                                 |                                                                                                                                                             |
+| account owner (role)       | propietario de la cuenta     | propriétaire du compte | Kontoinhaber        | アカウント所有者    | proprietário da conta      | 账户所有者    | مالك الحساب                                     | es/pt: titular · de: Eigentümer                                                                          |                                                                                                                                                             |
+| owner (assignee)           | responsable                  | responsable            | Verantwortliche(r)  | 担当者              | responsável                | 负责人        | المسؤول                                         | —                                                                                                        | Separate message IDs from the role.                                                                                                                         |
+| organization               | organización                 | organisation           | Organisation        | 組織                | organização                | 组织          | المؤسسة                                         | —                                                                                                        |                                                                                                                                                             |
+| provider (third party)     | proveedor                    | prestataire            | Anbieter            | プロバイダー        | provedor                   | 服务商        | المزوّد                                         | fr: fournisseur                                                                                          | Payment, signing, support, marketplace providers.                                                                                                           |
+| supplier (procurement)     | proveedor                    | fournisseur            | Lieferant           | 仕入先              | fornecedor                 | 供应商        | المورّد                                         | ja: サプライヤー                                                                                         | Supplier onboarding: alta de proveedores, référencement fournisseur, Lieferantenaufnahme, 仕入先登録, cadastro de fornecedores, 供应商准入, تسجيل الموردين. |
+| webhook                    | webhook                      | webhook                | Webhook             | Webhook             | webhook                    | Webhook       | Webhook                                         | ar: الويب هوك                                                                                            | Latin script in every language.                                                                                                                             |
+| up to date / stale         | actualizado / desactualizado | à jour / non à jour    | aktuell / veraltet  | 最新 / 最新ではない | atualizado / desatualizado | 最新 / 非最新 | محدّث / غير محدّث                               | fr: obsolète · zh: 已过时                                                                                | Record freshness. "Refresh": actualizar, actualiser, aktualisieren, 再読み込み, atualizar, 刷新, تحديث.                                                     |
 
 ### Amounts: estimated, invoiced, recorded, provider-confirmed
 
@@ -368,7 +370,7 @@ shared ones already exist and are read-only for lanes:
 | Active              | agreement in force      | Vigente           | En vigueur         | In Kraft         | 有効         | Vigente         | 生效中                         | سارية           |
 | Issue               | verb (issue a quote)    | Emitir            | Émettre            | Ausstellen       | 発行         | Emitir          | 出具                           | إصدار           |
 | Issue               | support issue           | Incidencia        | Incident           | Problem          | 問題         | Chamado         | 问题                           | مشكلة           |
-| Record              | noun                    | Registro          | Enregistrement     | Datensatz        | 記録         | Registro        | 记录                           | السجل           |
+| Record              | noun                    | Registro          | Enregistrement     | Datensatz        | レコード     | Registro        | 记录                           | السجل           |
 | Record              | verb (record a payment) | Registrar         | Enregistrer        | Erfassen         | 記録         | Registrar       | 登记                           | تسجيل           |
 | Charge              | fee or line             | Cargo             | Frais              | Gebühr           | 料金         | Encargo         | 费用                           | رسوم            |
 | Charge              | verb (charge a card)    | Cobrar            | Débiter            | Belasten         | 請求         | Cobrar          | 扣款                           | خصم             |
@@ -398,7 +400,408 @@ translation that softens, shifts, or flips any of them is a defect.
 | ja   | 〜ません / 〜ない must sit on the right verb; 「注文は確定しません」 ("the order is not confirmed") is not "does not place an order" (注文は作成されません); 「のみ」 for "only"; 辞退 versus 却下. |
 | pt   | "não" before the verb; "só/somente/apenas" scope; "desativação" is reversible and must not stand in for teardown.                                                                                   |
 | zh   | 不会 / 不得 / 仅; 仅 must precede what it limits; 拒绝 versus 驳回.                                                                                                                                 |
-| ar   | لا / لن / ليس with the correct verb; فقط and إلا scope; do not merge رفض and ردّ.                                                                                                                   |
+| ar   | لا / لن / ليس with the correct verb; فقط and إلا scope; decline and reject both use رفض, so name the actor (the client declines, the approver rejects) wherever both can occur.                     |
+
+## Native-review amendments (2026-09-24)
+
+These decisions settle the native reviews of fr, de, pt, zh, ar and ja
+(reviewers A: customer and partner scope; B: internal scope), the glossary
+questions in the translators' "least sure" lists and the post-merge follow-up
+notes. Each was applied to every message and demo fixture in that language when
+it was decided, so the catalog and this section agree. Where a row here and a
+cell in the term table above disagree for the same language, this section wins.
+They are model-reviewed decisions, not a native-speaker sign-off.
+
+### French (`fr`)
+
+- **support** (function, provider, case): `Support` (identical to English,
+  `sameAsEnglish`), `demande de support`, `prestataire de support`,
+  `support partenaires`. Avoid: assistance.
+- **status / state**: `statut` for a record's status (column, chip, "son
+  statut", "actualiser le statut"); `état` only for system health and abstract
+  states (`État des intégrations`, `État de l'application`, `État des données`).
+  Avoid: État for a record.
+- **usage (metered)**: `consommation` (`données de consommation`,
+  `consommation rapprochée`, `Services et consommation`). Keep
+  `paiement à l'usage` (PAYG), `droit d'utilisation` (entitlement),
+  `utilisation de la capacité` (capacity usage). Avoid: bare `usage`,
+  `utilisation` for metered usage.
+- **record**: `enregistrement` for a record as an object; `données` only in
+  page-level loading, freshness and error copy (`Chargement des données`,
+  `Les données sont à jour`, `Actualiser les données`); `fiche` for the detail
+  view of one entity; `dossier` only for the legal file in signing copy.
+- **workspace (product area)**: `Espace client`, `Espace partenaire`,
+  `Espace opérateur`, `Espace acheteur`; `espace de travail` only as a generic
+  noun inside a sentence.
+- **channel operations (the Fil One team)**: `l'équipe des opérations canal` (as
+  an actor), `les opérations canal`; job title `Responsable opérations canal`.
+  Avoid: opérations de canal.
+- **partner agreement**: `accord de partenariat`. Avoid: accord partenaire,
+  accord de canal.
+- **replay** (webhook, provider event): verb `rejouer`, noun `rejeu`.
+  `réexécution` is reserved for a redrive or for checks being re-run. Avoid:
+  nouveau traitement, retraiter for replay.
+- **callback** (a provider's webhook delivery): `webhook` (`Webhooks arrêtés`,
+  `Rejouer ce webhook`, `Webhooks entrants`). Avoid: notification (that is the
+  customer alerts feature), rappel (a reminder).
+- **success test (POC)**: `critère de réussite`; "{passed} of {count} tests
+  passed" → `Critères validés : {passed} sur {count}`.
+- **region labels (enum)**: `USA Est`, `UE Ouest`, `Royaume-Uni Sud`,
+  `USA Ouest` (console convention).
+- **POC**: feminine, agreeing with `preuve de concept` (`la POC`,
+  `Synthèse de la POC`, `Terminée`).
+- **aging (receivables)**: `balance âgée` for the report/heading; `ancienneté`
+  for one item's age.
+- **provider exceptions**: `fournisseur d'identité` (IdP) and
+  `fournisseur de services gérés` (MSP) are fixed terms; every other provider
+  stays `prestataire`. `fournisseur` otherwise means supplier (comptabilité
+  fournisseurs, référencement fournisseur).
+- **commission credits**: `crédits`; `avoir` stays for a credit note.
+- **private to the partner**: `n'est visible que par le partenaire`. Avoid:
+  confidentiel pour le partenaire.
+- **Fil One paper / customer paper**: `Contrat Fil One` / `Contrat du client`.
+  Avoid: Modèle (de contrat) Fil One.
+- **click-through execution**: `acceptation en ligne`.
+- **timing** (column / detail section): `Dates` / `Durée et dates`. Avoid:
+  Échéances as a column header.
+- **pricing review**: `revue tarifaire` (an approval step). `Vérifier` for
+  wizard "review" steps, `Examiner` for reviewing a record or request,
+  `Consulter et signer` for the signing screen.
+- **decline / reject**: `décliner` = the client, partner or applicant declines
+  an offer, quote or renewal; `rejeter` = a Fil One approver rejects a request
+  or an approval; exception `Signature refusée` (DocuSign wording). System
+  refusals stay `refuser` (`L'API a refusé la demande`, `Activation refusée`).
+- **authority (permission to act)**: `habilitation`
+  (`L'habilitation d'approbation financière est requise`, `vos habilitations`,
+  `Habilitation d'activation : {role}`); `pouvoir de signature / d'engagement`
+  in the customer's legal attestations. `autorité` only for a body. Avoid:
+  autorité, autorisation for a permission.
+- **staff actor / effective (target) account**: `auteur de l'action` /
+  `compte cible`. `membre du personnel` only where the source says staff member.
+- **work, work item** (operations queues): `tâche(s)`. Avoid: travail, travaux,
+  élément de travail.
+- **policy basis**: `politique applicable`. **gate**: `prérequis`; external gate
+  `prérequis externe`. **capability**: `fonctionnalité`. **fail-closed**:
+  `refus par défaut`.
+- **offboarding / service termination**: `fin de service` (both the
+  customer-facing process and the provider-side termination work).
+  **cancellation** (PAYG request): `résiliation`. Avoid: sortie, clôture.
+- **handoff**: `passation` (verified service or billing handoff), `transmission`
+  (an accepted order handed to provisioning). **tenant**: `locataire`. **supply
+  order**: `commande d'approvisionnement`. **transfer tier**:
+  `niveau de cession`. **enablement**: `Ressources partenaires`. **workload**:
+  `charge de travail`. **service credit**: `crédit de service`. **cut-off**:
+  `césure de période`. **backlog**: `carnet de commandes` (contracted),
+  `carnet engagé`. **pipeline**: `pipeline`. **disposition**: `traitement`.
+  **exposure**: `exposition`; "at risk" `à risque`; report name
+  `Renouvellements et risque d'attrition`.
+- **attribution**: partner attribution `attribution`; actor attribution (audit)
+  `identification de l'auteur`.
+- **rate / rate card**: `tarif` / `barème tarifaire`. **floor prices**:
+  `prix planchers` (both nouns inflect).
+- **DPA, security addendum**: `annexe`; `avenant` only for an amendment.
+- **Elision rule**: never place `de`, `que`, `le/la` directly before a
+  placeholder that may hold a name or a label (`de {partner}` renders "de Ember
+  Peak"); use an apposition or a colon (`Accord de partenariat · {partner}`,
+  `Afficher le détail : {title}`, `Commencer comme {name}`).
+
+### German (`de`)
+
+| English                                         | de                                                                                                                                                                | Avoid (de)                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| service (commercial service a customer runs)    | Service / Services (Aktive Services, Servicebeginn, Serviceende, Servicedetails)                                                                                  | Dienst (keep only for a technical backend: Commerce-Dienst, Dienstdatenbank, Dokumentdienst, Signaturdienst) |
+| service end / service start                     | Serviceende / Servicebeginn                                                                                                                                       | Leistungsende, Leistungsbeginn, Dienstende (Leistungszeitraum stays for service period)                      |
+| offer (catalog or PAYG offer)                   | Tarif                                                                                                                                                             | Angebot (that is a quote). Marketplace private offers are „Privates Angebot von AWS“ etc. (vendor term)      |
+| channel operations (partner-facing)             | Partnermanagement von Fil One (button: „Partnermanagement kontaktieren“)                                                                                          | Kanalteam                                                                                                    |
+| fulfillment (provider / marketplace)            | Abwicklung, Abwicklungsstatus, abgewickelt                                                                                                                        | Erfüllung (contract performance)                                                                             |
+| workspace (persona)                             | Kundenbereich / Partnerbereich / Operator-Bereich; generic: Arbeitsbereich                                                                                        | Kunden-Arbeitsbereich, Partner-Arbeitsbereich, Bedienerbereich                                               |
+| quote expiry                                    | Gültigkeit; field/column „Gültig bis“, „Angebot gültig bis“; sentence „läuft am {date} ab“                                                                        | Ablauf (alone, for a quote). Ablaufdatum stays for POCs, sandboxes, links, sessions                          |
+| commercial (adjective)                          | kaufmännisch (Kaufmännische Übersicht, Kaufmännischer Stand, Kaufmännische Befugnis)                                                                              | kommerziell, geschäftlich (Geschäftswert, Geschäftsdaten stay)                                               |
+| commercial position                             | Kaufmännischer Stand                                                                                                                                              | Geschäftliche Position                                                                                       |
+| exposure (financial)                            | Risikobetrag („Risikobetrag: {amount}“)                                                                                                                           | gefährdet, Risiko (alone)                                                                                    |
+| sourced / influenced credit (deal registration) | Anrechnung als vom Partner gewonnen / als beeinflusst; attribution = Zuordnung                                                                                    | Gutschrift (that is a credit note)                                                                           |
+| Fil One paper / customer paper                  | Vertragsvorlage von Fil One / Vertragsdokument des Kunden                                                                                                         | Vorlage von Fil One (bare), Vertragspapier, Vertragsvorlage des Kunden                                       |
+| authority title / job title                     | Position                                                                                                                                                          | Funktion                                                                                                     |
+| two-person review / dual control                | nach dem Vier-Augen-Prinzip                                                                                                                                       | durch zwei Personen (unless the source counts users)                                                         |
+| read-only grace                                 | Nachfrist mit Lesezugriff                                                                                                                                         | Kulanzzeit, Karenzzeit                                                                                       |
+| dunning (evaluate / evaluated)                  | Mahnstufe ermitteln / ermittelt; dunning = Mahnwesen                                                                                                              | Mahnverfahren, Mahnstufe bewertet, Mahnbedarf, Mahnung prüfen                                                |
+| paid conversion (trial → paid)                  | Umstellung (auf kostenpflichtige Nutzung)                                                                                                                         | Umwandlung (reserved for POC → quote: „in ein Angebot umwandeln“)                                            |
+| monthly minimum                                 | Mindestbetrag (monatlicher Mindestbetrag; minimum adjustment = Aufstockung auf den Mindestbetrag); offer capacity minimum = Mindestkapazität                      | Minimum, Mindestgebühr, Mindestentgelt                                                                       |
+| economics (of a rate card / renewal)            | Konditionen                                                                                                                                                       | wirtschaftliche Daten, Wirtschaftsdaten, Wirtschaftlichkeit                                                  |
+| finance (team, in prose)                        | die Finanzabteilung („genehmigende Person aus der Finanzabteilung“); role label stays „Genehmigende Person (Finanzen)“                                            | Finanzbereich, „durch Finanzen“, Finanzmitgliedschaft, Finanzfreigebende                                     |
+| propose / proposal (approval workflow)          | beantragen / Antrag; status „Beantragt“                                                                                                                           | vorschlagen, Vorschlag, einreichen (for propose)                                                             |
+| schedule (activation)                           | Zeitplan                                                                                                                                                          | Planung                                                                                                      |
+| callback (inbound webhook)                      | Callback (Webhook-Callbacks, Anbieter-Callbacks)                                                                                                                  | Aufruf, Rückruf (Anbieteraufrufe stay for outbound provider calls)                                           |
+| target account / effective account              | Zielkonto                                                                                                                                                         | Wirksames Konto                                                                                              |
+| restricted parties                              | Sanktionslistenprüfung                                                                                                                                            | Eingeschränkte Parteien                                                                                      |
+| credit (check, status, gate)                    | Bonität, Bonitätsprüfung, Bonitätsstatus; credit exposure = Kreditrisiko; credit limit = Kreditlimit; „Credit and collections“ = Kredit- und Forderungsmanagement | Kreditprüfung, Kreditstatus, Partnerkredit                                                                   |
+| controls (administration eyebrows)              | Steuerung (Kaufmännische Steuerung, Produktionssteuerung); trust page security control = Kontrolle                                                                | Kontrollen (for governance settings)                                                                         |
+| commitment model                                | Kontingentmodell                                                                                                                                                  | Abnahmemodell                                                                                                |
+| staff actor / actor                             | handelnde Person; authenticated = Angemeldete handelnde Person                                                                                                    | Akteur, handelnde Mitarbeitende, Bediener                                                                    |
+| distributor route                               | Distributor (Vertriebsweg Distributor; „Zweistufiger Distributor“)                                                                                                | Distribution                                                                                                 |
+| transfer tier                                   | Einkaufsstufe                                                                                                                                                     | Stufe (alone), Transferstufe                                                                                 |
+| gate                                            | Voraussetzung (externe Voraussetzung, Aktivierungsvoraussetzung) for a registered gate; in-flow policy/commercial/operational gates = Prüfungen                   | Gate, Tor, Schranke                                                                                          |
+| capability                                      | Funktion (Funktionssteuerung)                                                                                                                                     | Fähigkeit, Capability                                                                                        |
+| provider private offer titles (fixtures)        | Privates Angebot von AWS / Angebot von Google Cloud                                                                                                               | AWS-Angebot, Google Cloud-Angebot (orthography)                                                              |
+| platform status (help menu)                     | Systemstatus                                                                                                                                                      | Dienststatus (in the help menu; the ops status page may say Dienststatus for backend services)               |
+| quote ledger                                    | Angebotsliste                                                                                                                                                     | Angebotsregister                                                                                             |
+| request body (developer reference)              | Anfragetext                                                                                                                                                       | Anforderungstext                                                                                             |
+| account timeline                                | Kontoverlauf                                                                                                                                                      | Kontochronik                                                                                                 |
+
+- de: internal department and job titles carry their English name, capitalised
+  as a German noun (Commerce Operations, Commercial Operations, Revenue
+  Operations, Platform Engineer); persona titles that are German take the
+  grammatical gender of the persona (Betriebsleiterin, Vertriebsleiterin,
+  Justiziarin).
+- de: `billing.aging` „Altersstruktur der Forderungen“ is accepted as the report
+  heading next to the term-table „Forderungsalter“ (label/column form).
+- de: the 2026-09 "Existing-catalog inconsistencies" items for de
+  (accepted-quote meaning error, „noch keine Bestellung“, Mindestangebot,
+  ausgegeben/Ausgabe, Angebot for offer, Bestellung for order,
+  Transferpreis/Verrechnungspreis, Mitteilungsfrist/-termin, Freigabe,
+  Eigentümer, Bediener, Tests for trial, Berechtigungen for entitlement,
+  Austritt, Mahnverfahren, Chancenregistrierung, Akte, Fil One-Team, Befehl K)
+  are all closed by this set; a post-apply sweep finds none of them.
+
+### Brazilian Portuguese (`pt`)
+
+- `pt`: PAYG (pay as you go) = **pagamento por uso** (was "pagamento conforme o
+  uso"; shorter, same register, fixes nav wrapping). Trial = período de teste.
+- `pt`: rate card = **tarifa** (one SKU/region rate row; "tabela de tarifas"
+  reads as a whole table and collides with tabela de preços = price book).
+  Avoid: tabela de tarifas.
+- `pt`: transfer tier = **faixa de repasse**. "Nível de parceiro" only where the
+  source says "partner tier". Avoid: nível de repasse.
+- `pt`: named (end client, opportunity) = **identificado** ("cliente final
+  identificado"). Avoid: indicado (that is referred), nominal.
+- `pt`: partner agreement = **acordo de parceria**. Avoid: acordo de parceiro.
+- `pt`: named workspaces (Customer / Partner / Operator / Buyer workspace,
+  Partner desk) = **Espaço do cliente / do parceiro / do operador / do
+  comprador**; "espaço de trabalho" only in generic prose.
+- `pt`: Fil One paper = **contrato padrão da Fil One**; customer paper =
+  **contrato do cliente**. Avoid: modelo da Fil One.
+- `pt`: client review (feature) = **revisão pelo cliente**; the link is "link de
+  revisão". Avoid: análise do cliente (analysis of the client).
+- `pt`: quote expiry = **validade**; vencimento is the invoice due date.
+- `pt`: legal entity = **pessoa jurídica**. Avoid: entidade jurídica.
+- `pt`: committed (capacity, term, spend, revenue, rows) = **contratado**.
+  Avoid: comprometido (reads as compromised).
+- `pt`: staff actor = **autor da ação**; the identity line "Authenticated staff
+  actor" = membro da equipe autenticado. Avoid: colaborador, ator, quem age.
+- `pt`: target / effective account (assisted mode) = **conta assistida**. Avoid:
+  conta efetiva.
+- `pt`: gate (launch / activation prerequisite) = **pré-requisito**
+  ("pré-requisitos externos"); policy, commercial and operational gates on a
+  review card = **controles**.
+- `pt`: capability = **funcionalidade**. Avoid: recurso.
+- `pt`: handoff = **encaminhamento**. Avoid: repasse (that is payout / transfer
+  price), transferência (money).
+- `pt`: service termination (record) = **rescisão**; offboarding =
+  **encerramento** (unchanged). The two never share a word on one card.
+- `pt`: trial claim (recorded) = **concessão de período de teste**; a customer
+  trial request stays solicitação.
+- `pt`: callback (webhook) = **callback** (masculine loanword, like webhook).
+  Avoid: chamada, retorno de chamada.
+- `pt`: snapshot = **snapshot**; worker (scheduler) = **worker**; pipeline =
+  **pipeline**; onboarding (account) = **onboarding**; supplier onboarding =
+  cadastro de fornecedores.
+- `pt`: retry (recovery decision) = **Tentar novamente**; abandon =
+  **Descartar**. Avoid: Repetir (that is "repeat the decision"), abandonar.
+- `pt`: policy basis = **Política aplicável**; downstream effect =
+  **Desdobramentos**. Avoid: base na política, efeito posterior.
+- `pt`: Commerce as a domain name (commerce service, commerce API, status lane)
+  = **Commerce**, masculine ("do Commerce", "API do Commerce"). Avoid: comércio,
+  comercial.
+- `pt`: system boundary = **fronteira**; SLA breached = **descumprido**;
+  proration = **pro rata**; no-term = **sem fidelidade**; weekly scorecard =
+  **Painel semanal de indicadores**; workload = carga de trabalho; TB-month =
+  **TB-mês**; "Signed in as" = **Conectado como**.
+- `pt`: up to date / stale = atualizado / desatualizado; when the chip sits next
+  to an "Atualizado em {time}" stamp, the chip is **Em dia** so the word does
+  not repeat.
+- `pt`: route "Distributor" = **Distribuição** in the route series (Venda direta
+  / Indicação / Revenda / Distribuição); the party is **distribuidor**.
+- `pt`: marketplace is lower-case in running text ("compras no marketplace");
+  the nav label keeps "Marketplace".
+- `pt`: register: "novamente", not "de novo"; "Entre novamente", not "Faça login
+  novamente".
+
+### Simplified Chinese (`zh`)
+
+Typography (also summarized in the `zh` typography bullet above):
+
+- `zh` dates: a formatted date (`2026年9月24日`) starts with a digit and ends
+  with a Han character, so the boundary rule applies on each side: half-width
+  space before it after a Han character (`自 {date}起`, `于 {date}确认`,
+  `{from}至 {to}`), no space after it before a Han character (`{date}到期`,
+  `{date}前答复`). A datetime (`{time}`, ends in digits) keeps the space on both
+  sides. A relative time (`{relative}`: 昨天 / 3天前) goes after a full-width
+  colon (`更新：{relative}`) or at the start of the message, never directly
+  after a Han character.
+
+Homographs (these replace the zh cells of the homograph table):
+
+| English | Sense                                                                   | zh                                                                     |
+| ------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Open    | status (any record kind)                                                | 未结                                                                   |
+| Review  | verb, approver's review of a request                                    | 审核                                                                   |
+| Review  | verb, reading a document before signing or accepting (customer/partner) | 审阅                                                                   |
+| Review  | verb, self-check of one's own draft or request before submitting        | 核对                                                                   |
+| Review  | verb, look over without authority ("review the issued quote")           | 查看                                                                   |
+| Record  | verb (record a payment, a decision)                                     | 记录 (登记 only for registering an event id or an entry in a register) |
+
+Terms (new rows, or cells that replace the term table):
+
+| English                                                                                     | zh                               | Avoid (zh)                         | Note                                                                                  |
+| ------------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| gate (activation / launch prerequisite)                                                     | 前置条件                         | 关卡, 准入检查, 门禁, 启用条件     | "Required upstream" (dependency label) is 上游前提                                    |
+| activation (governed go-live of a price book, policy, capability, gate, template)           | 启用                             | 激活                               | 启用/禁用 pairs with enabled/disabled                                                 |
+| activation of a customer service; PAYG enrollment                                           | 开通                             | 激活, 注册                         | 注册 is account sign-up; MFA enrollment stays MFA 注册                                |
+| actor / staff actor / effective actor                                                       | 操作人 / 员工操作人 / 被代理人   | 执行人, 操作员工, 名义操作人       |                                                                                       |
+| target account ("effective account")                                                        | 目标账户                         | 生效账户                           |                                                                                       |
+| registry                                                                                    | 登记库                           | 注册表, 登记表                     |                                                                                       |
+| reference (record, evidence, PO, agreement)                                                 | 编号                             | 引用, 参考号                       | secret-manager / provider operating reference stays 引用                              |
+| controls (governance)                                                                       | 管控                             | 控制, 控制项                       | security controls on the trust page stay 控制措施                                     |
+| screening                                                                                   | 合规筛查                         | 合规审查, 筛查 (bare)              |                                                                                       |
+| identity provider                                                                           | 身份提供商                       | 身份提供方                         |                                                                                       |
+| policy (commercial, legal, business: channel, PAYG/trial, discount, retention, acquisition) | 政策                             | 策略                               | technical enforcement policy (server, activation, CSP, referrer, permissions) is 策略 |
+| work (capability new/recovery work) / work item (queue)                                     | 任务 / 工作项                    | 处理, 工作 (bare)                  |                                                                                       |
+| backlog (contracted revenue)                                                                | 在手订单                         | 积压订单                           |                                                                                       |
+| proposed (status) / propose                                                                 | 待审批 / 提交审批                | 已提议 / 提议                      |                                                                                       |
+| counter-signed                                                                              | 双方签署                         | 会签                               |                                                                                       |
+| TB-month                                                                                    | TB·月                            | TB-月                              |                                                                                       |
+| monthly minimum / minimum adjustment                                                        | 最低消费 / 最低消费补差          | 最低费用                           |                                                                                       |
+| billing authority                                                                           | 计费方                           | 计费主体                           |                                                                                       |
+| billing (customer's bill area) / billing (process)                                          | 账单 / 计费                      | —                                  | 账单与付款 (customer), 计费与收款 (report)                                            |
+| exposure / at risk                                                                          | 风险敞口                         | 涉及金额, 涉险金额, 风险金额       |                                                                                       |
+| sourced (attribution)                                                                       | 开拓                             | 获取                               |                                                                                       |
+| claim (dispute)                                                                             | 申诉                             | 主张                               |                                                                                       |
+| POC conversion                                                                              | 转商用                           | 转化, 转换, 转正                   | trial / PAYG conversion is 转换                                                       |
+| priced draft / priced quote                                                                 | 定价草稿 / 已定价的报价          | 带价格的                           |                                                                                       |
+| Fil One paper / customer paper                                                              | Fil One 标准合同 / 客户合同文本  | 范本, 合同文本 (for Fil One paper) |                                                                                       |
+| authoritative                                                                               | 正式                             | 权威                               |                                                                                       |
+| decision (record)                                                                           | 决定                             | 决策                               |                                                                                       |
+| buyer / direct buyer                                                                        | 买方 / 直接买方                  | 买家, 直接购买方                   |                                                                                       |
+| direct client                                                                               | 直接客户                         | 直销客户                           | 直销 is the route                                                                     |
+| jurisdiction                                                                                | 司法管辖区                       | 司法辖区                           |                                                                                       |
+| success test                                                                                | 成功测试                         | 成功标准测试                       | success criteria is 成功标准                                                          |
+| service credit                                                                              | 服务抵扣金                       | 服务抵扣                           |                                                                                       |
+| credits (statement)                                                                         | 贷项                             | 抵扣                               | PAYG balance credits keep 余额抵扣                                                    |
+| stale                                                                                       | 非最新                           | 已过时                             |                                                                                       |
+| dashboard (nav target)                                                                      | 概览                             | 仪表板                             |                                                                                       |
+| blocked (status)                                                                            | 受阻                             | 已阻塞                             |                                                                                       |
+| service request (customer-originated)                                                       | 申请                             | 请求                               |                                                                                       |
+| finance controller                                                                          | 财务总监                         | 财务控制经理, 财务主管             |                                                                                       |
+| readiness                                                                                   | 就绪                             | 准备情况                           |                                                                                       |
+| quote expiry                                                                                | 有效期 (phrase: 有效期至 {date}) | 到期时间, 过期                     |                                                                                       |
+| price guardrail                                                                             | 价格护栏                         | —                                  | internal feature name; customer copy may paraphrase 定价管控规则                      |
+| demo controls                                                                               | 演示控制面板                     | 演示控件                           |                                                                                       |
+
+Existing-catalog inconsistencies, zh items: all listed zh items are now absent
+from the catalog (`dashboard.openQuotes` 开放报价, 活跃 for active,
+`chart.capacity` 地区,
+`ui.23`/`dashboard.empty.capacity`/`internal.renewals.description` digit
+spacing, 最终客户, 商机登记, 订单表单, 退出, 审查, 催收, 转移价格) or are
+corrected in this set (发布/发出 for issue, 修订 for amendment, 异常 not found
+in the current catalog for exception).
+
+### Arabic (`ar`)
+
+Term-table rows (ar column, with Avoid):
+
+| English                              | ar                                                                 | Avoid (ar)                                      | Note                                                                                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| demo, demonstration                  | العرض التوضيحي (badge: عرض توضيحي)                                 | العرض التجريبي، تجريبي                          | تجريبي is the trial word.                                                                                                                                                                                            |
+| reject (an approval)                 | رفض / مرفوض                                                        | ردّ، مردود                                      | Replaces the earlier ردّ. Decline is also رفض; when both acts occur in one message, name the actor («رفض الطرف المقابل» / «رفض الموافِق»). Status chips: `status.rejected` مرفوض, `status.declined` مرفوض من العميل. |
+| gate (launch / policy prerequisite)  | المتطلب / المتطلبات                                                | ضوابط                                           | ضوابط is reserved for "controls".                                                                                                                                                                                    |
+| capability (production capability)   | الإمكانية / الإمكانيات                                             | الوظيفة / الوظائف                               | الوظائف reads as jobs.                                                                                                                                                                                               |
+| configure / configured / bootstrap   | ضبط or إعداد / مُعدّ / الإعداد الأولي; "not configured" = غير محدد | تهيئة، مهيأ                                     | التهيئة is provisioning only.                                                                                                                                                                                        |
+| target (effective) account           | الحساب المستهدف                                                    | الحساب الفعلي                                   | The account an assisted session acts on.                                                                                                                                                                             |
+| staff actor / actor                  | الموظف المنفّذ / المنفّذ                                           | المنفِّذ (kasra)                                | Shadda only, as المشغّل.                                                                                                                                                                                             |
+| assisted action / session            | إجراء في الوضع المساعد / جلسة وضع مساعد                            | إجراء مساعد، جلسة مساعدة                        |                                                                                                                                                                                                                      |
+| sales handoff                        | التسليم إلى المبيعات                                               | الإحالة إلى المبيعات                            | الإحالة is the referral route. Handing the user to a provider page is الانتقال إلى المزوّد.                                                                                                                          |
+| workload                             | حمل العمل                                                          | عبء العمل، حجم العمل                            |                                                                                                                                                                                                                      |
+| tax jurisdiction                     | الاختصاص الضريبي                                                   | الولاية الضريبية                                | Legal jurisdiction stays الولاية القضائية.                                                                                                                                                                           |
+| aging (receivables)                  | أعمار الذمم المدينة (column: العمر)                                | أعمار الديون، عمر الدين                         |                                                                                                                                                                                                                      |
+| exposure (financial)                 | التعرض المالي                                                      | المبلغ المعرّض للخطر، الالتزامات                |                                                                                                                                                                                                                      |
+| pipeline (unaccepted quotes)         | الفرص المحتملة                                                     | خط المبيعات                                     |                                                                                                                                                                                                                      |
+| schedule (approved activation)       | الجدولة                                                            | جدول (that is the rate card)                    |                                                                                                                                                                                                                      |
+| transfer tier                        | فئة الشريك                                                         | مستوى الشريك                                    |                                                                                                                                                                                                                      |
+| enrollment (PAYG)                    | الاشتراك                                                           | —                                               | MFA enrollment: التسجيل في MFA.                                                                                                                                                                                      |
+| enablement (partner)                 | تمكين الشركاء                                                      | موارد تمكين الشركاء                             |                                                                                                                                                                                                                      |
+| service credit                       | رصيد تعويضي عن الخدمة                                              | رصيد خدمة                                       |                                                                                                                                                                                                                      |
+| terminated (status)                  | مُنهى                                                              | منتهٍ (lapse), منتهي الصلاحية (expired)         | Service terminations (provisioning): حالات إنهاء الخدمة. Offboarding stays إنهاء الخدمة.                                                                                                                             |
+| void (invoice / statement)           | لاغية / لاغٍ; verb إبطال                                           | ملغاة، إلغاء (that is cancel)                   | Rule 6.                                                                                                                                                                                                              |
+| callback (provider)                  | استدعاء / استدعاءات                                                | رد الاتصال                                      |                                                                                                                                                                                                                      |
+| worker (background job)              | المهمة الخلفية                                                     | عملية الإنتاج، العملية                          |                                                                                                                                                                                                                      |
+| deploy revision                      | إصدار النشر                                                        | مراجعة النشر                                    |                                                                                                                                                                                                                      |
+| exclusion (retention, house-account) | استبعاد                                                            | استثناء (reserved for pricing/policy exception) |                                                                                                                                                                                                                      |
+| account mapping                      | ربط الحسابات                                                       | تعيين الحسابات                                  |                                                                                                                                                                                                                      |
+| restricted parties                   | الأطراف الخاضعة للقيود                                             | الأطراف المقيدة                                 | Screening = فحص الأطراف المحظورة; screening result Blocked = محظور (process Blocked stays متوقف).                                                                                                                    |
+| administrator                        | المشرف (partner: مشرف الشريك)                                      | مسؤول                                           | مسؤول is owner/assignee.                                                                                                                                                                                             |
+| customer workspace                   | مساحة عمل العميل                                                   | مساحة العميل                                    |                                                                                                                                                                                                                      |
+| Fil One paper / customer paper       | نموذج عقد Fil One / عقد العميل                                     | نموذج Fil One، نموذج عقد العميل                 |                                                                                                                                                                                                                      |
+| as of {time}                         | كما في {time}                                                      | حتى {time}                                      | "current through" keeps حتى.                                                                                                                                                                                         |
+| counter-signed                       | بتوقيع الطرفين                                                     | بتوقيع مقابل                                    |                                                                                                                                                                                                                      |
+| consolidated billing                 | الفوترة الموحدة (verb: توحيد الفواتير)                             | الفوترة المجمّعة، تجميع                         |                                                                                                                                                                                                                      |
+| partner agreement                    | اتفاقية الشراكة                                                    | اتفاقية الشريك                                  |                                                                                                                                                                                                                      |
+| persona (demo)                       | الشخصية                                                            | الملف الشخصي (that is profile)                  |                                                                                                                                                                                                                      |
+| replica (storage)                    | النسخة المتماثلة                                                   | نسخة                                            |                                                                                                                                                                                                                      |
+| destructive action                   | إجراء إتلافي / الإجراءات الإتلافية                                 | غير قابل للتراجع                                | Kept; uncertain, see doubts.                                                                                                                                                                                         |
+
+Typography bullet (add under `ar`):
+
+- Tanween fatḥ sits on the letter before the alif (`ـًا`: «مجددًا», «أولًا»),
+  never on the alif (`اً`). Buttons are masdar noun phrases; sentence-level "try
+  again" is «حاول مرة أخرى», the button is «إعادة المحاولة».
+
+Legal/authority row (replace the `ar` row):
+
+- ar: لا / لن / ليس with the correct verb; فقط and إلا scope; reject and decline
+  are both رفض — where one message contains both acts, name the actor for each
+  («رفض الطرف المقابل»، «رفض الموافِق»); do not soften void (إبطال / لاغية) to
+  cancel (إلغاء / ملغاة).
+
+Existing-catalog inconsistencies (ar) now resolved by this set: `status.blocked`
+(already متوقف), `workflow.confirm.detail`,
+`orders.accept.unavailable.description`, offer = باقة in `quotes.form.*` /
+`cp.commercial.quoteStages.0`, trials in `nav.internal.paygOffers`, Webhook in
+`cp.commercial.paymentWebhook`. `app.product`, `app.command.shortcut` and
+`dashboard.description` no longer exist in the catalog.
+
+### Japanese (`ja`)
+
+| English                                                   | ja                                         | Note                                                                                                                                                                                   |
+| --------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| record (noun, data record)                                | レコード                                   | 記録 only as a verb/adjective (記録する, 記録済み, 監査証跡に記録) and in the collective 取引記録 (footer, report basis) and 法務記録 (section name). Replaces the earlier "記録" row. |
+| gate (external, activation, capability, policy, provider) | ゲート                                     | 外部ゲート, ゲートレジストリ, ゲートキー, 機能ゲート, ポリシーゲート, 「…の各ゲート」. Never 要件 (= requirement) or チェック.                                                         |
+| actor / staff actor                                       | 操作者                                     | 社内操作者 when contrasted with a customer; effective actor = 名義上の操作者; target (effective) account = 対象アカウント. Never 実行者, 担当者.                                       |
+| decline (declining party) / reject (authority)            | 辞退 / 却下                                | 辞退: client declines a quote, partner declines a renewal, signer declines. 却下: finance declines a request, approver rejects.                                                        |
+| document (business)                                       | 文書                                       | 見積書/注文書/契約書 keep their names. ドキュメント only for the technical sense (HTML document, OpenAPI document, database document). Never 書類.                                     |
+| commitment                                                | コミットメント                             | コミットメント期間, 注文のコミットメント. Verb 確約する is fine. Never 義務.                                                                                                           |
+| Open (quote status)                                       | 承諾待ち                                   | Issued and awaiting acceptance. 未完了 stays for open work items and queue views.                                                                                                      |
+| route: Direct / direct client / house account             | 直接販売 / 直接取引の顧客 / 自社アカウント | Never 直販.                                                                                                                                                                            |
+| Partner desk                                              | パートナーポータル                         | Never パートナー画面.                                                                                                                                                                  |
+| fulfillment (marketplace)                                 | 提供 (提供状況, 提供済み)                  | 履行 is contract performance.                                                                                                                                                          |
+| exposure / {amount} at risk                               | リスク額 / リスク対象額 {amount}           |                                                                                                                                                                                        |
+| pricing review                                            | 価格の審査                                 | Generic review = 確認.                                                                                                                                                                 |
+| paid (conversion, quote, terms)                           | 有償                                       | Invoice paid = 支払済み; payment status = 支払状況 (no okurigana).                                                                                                                     |
+| Fil One paper / customer paper                            | Fil One の標準契約書 / 顧客側の契約書      |                                                                                                                                                                                        |
+| transfer tier, partner tier                               | パートナー区分                             |                                                                                                                                                                                        |
+| commercial (adj.)                                         | 商取引                                     | 商取引ポリシー, 商取引の統制, 商取引管理. Never 商用 (= production use), 商務, 販売管理.                                                                                               |
+| Commerce / commerce API / commerce service                | Fil One Commerce / Commerce API / サービス | The product word stays Latin; "commerce service" drops the qualifier.                                                                                                                  |
+| sign in / sign out                                        | サインイン / サインアウト                  | Never ログイン.                                                                                                                                                                        |
+| screening                                                 | スクリーニング                             | Never コンプライアンス審査.                                                                                                                                                            |
+| evidence                                                  | 証跡                                       | Exception: Stripe dispute evidence deadline = 証拠提出期限.                                                                                                                            |
+| propose / proposed (policy, price book)                   | 申請 / 申請中                              | Never 提案.                                                                                                                                                                            |
+| blocker                                                   | 阻害要因                                   | リリースの阻害要因, 一部経路の阻害要因.                                                                                                                                                |
+| handoff                                                   | 引き継ぎ                                   | Key handoff = 引き渡し.                                                                                                                                                                |
+
+Typography (ja): range mark is ～ (U+FF5E), never 〜 (U+301C); enumerated
+chip/stage/eyebrow labels join items with ・, sentences use 、; label + value
+uses a full-width colon (契約期間の終了日：{date}); half-width space between a
+Latin/digit placeholder and Japanese text ({date} に終了), none between a digit
+and its counter (2階層, 1件).
 
 ## Existing-catalog inconsistencies
 
