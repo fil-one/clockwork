@@ -6,7 +6,7 @@ import { defineMessages, sameAsEnglish, sameInAllLanguages } from "../define";
 export const commonMessages = defineMessages({
   "quotes.form.stageTerms": {
     en: "Capacity, term, and expiry",
-    es: "Capacidad, plazo y vencimiento",
+    es: "Capacidad, duración y caducidad",
     fr: "Capacité, durée et expiration",
     de: "Kapazität, Laufzeit und Ablauf",
     ja: "容量、期間、有効期限",
@@ -76,7 +76,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.noMatchBody": {
     en: "Clear or change a filter to see more results.",
-    es: "Borra o cambia un filtro para ver más resultados.",
+    es: "Quite o cambie un filtro para ver más resultados.",
     fr: "Supprimez ou modifiez un filtre pour voir plus de résultats.",
     de: "Entfernen oder ändern Sie einen Filter, um weitere Ergebnisse zu sehen.",
     ja: "フィルターを解除または変更すると、他の結果を表示できます。",
@@ -86,7 +86,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.permissionTitle": {
     en: "This information is not available to your role",
-    es: "Tu rol no permite acceder a esta información",
+    es: "Su rol no permite acceder a esta información",
     fr: "Votre rôle ne permet pas d’accéder à ces informations",
     de: "Diese Informationen sind für Ihre Rolle nicht verfügbar",
     ja: "現在のロールではこの情報にアクセスできません",
@@ -96,7 +96,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.permissionBody": {
     en: "Ask an account owner to grant the required access.",
-    es: "Pide al titular de la cuenta que te conceda el acceso necesario.",
+    es: "Pida al propietario de la cuenta que le conceda el acceso necesario.",
     fr: "Demandez au propriétaire du compte de vous accorder l’accès requis.",
     de: "Bitten Sie einen Kontoinhaber, Ihnen den erforderlichen Zugriff zu gewähren.",
     ja: "アカウント所有者に必要なアクセス権を依頼してください。",
@@ -116,7 +116,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.errorBody": {
     en: "Try again. Your filters have been preserved.",
-    es: "Inténtalo de nuevo. Se han conservado tus filtros.",
+    es: "Inténtelo de nuevo. Sus filtros se han conservado.",
     fr: "Réessayez. Vos filtres ont été conservés.",
     de: "Versuchen Sie es erneut. Ihre Filter wurden beibehalten.",
     ja: "もう一度お試しください。フィルターは保持されています。",
@@ -156,7 +156,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.freshnessStaleBody": {
     en: "The projection behind this page has not caught up with its source, so a recent change may be missing. Refresh before acting on anything here.",
-    es: "Los datos de esta página aún no se han sincronizado con su fuente, por lo que podría faltar algún cambio reciente. Actualiza antes de actuar.",
+    es: "Los datos de esta página aún no se han sincronizado con su fuente, por lo que podría faltar algún cambio reciente. Actualice antes de actuar sobre lo que ve aquí.",
     fr: "Les données de cette page ne sont pas encore synchronisées avec leur source. Une modification récente peut donc manquer. Actualisez avant toute action.",
     de: "Die Daten dieser Seite sind noch nicht mit ihrer Quelle synchronisiert. Aktuelle Änderungen können fehlen. Aktualisieren Sie die Seite, bevor Sie handeln.",
     ja: "このページのデータは元の情報にまだ追いついておらず、最近の変更が反映されていない可能性があります。操作する前に更新してください。",
@@ -206,7 +206,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.unsavedBody": {
     en: "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",
-    es: "Todavía no se ha enviado nada de este formulario al servidor. Si sales, se descartará todo lo introducido.",
+    es: "Todavía no se ha enviado nada de este formulario al servidor. Si sale, se descartará todo lo introducido.",
     fr: "Aucune donnée de ce formulaire n’a encore été envoyée au serveur. Quitter supprimera toute votre saisie.",
     de: "Noch keine Eingaben dieses Formulars wurden an den Server gesendet. Beim Verlassen werden alle Eingaben verworfen.",
     ja: "このフォームの内容はまだサーバーに送信されていません。離れると入力内容はすべて破棄されます。",
@@ -446,7 +446,7 @@ export const commonMessages = defineMessages({
   },
   "ui.101": {
     en: "Term state",
-    es: "Estado del plazo",
+    es: "Estado de la vigencia",
     fr: "État de la durée contractuelle",
     de: "Laufzeitstatus",
     ja: "契約期間の状態",
@@ -626,7 +626,7 @@ export const commonMessages = defineMessages({
   },
   "settings.error": {
     en: "Choose a supported language and try again.",
-    es: "Elige un idioma disponible e inténtalo de nuevo.",
+    es: "Elija un idioma disponible e inténtelo de nuevo.",
     fr: "Choisissez une langue disponible et réessayez.",
     de: "Wählen Sie eine unterstützte Sprache und versuchen Sie es erneut.",
     ja: "対応する言語を選択して、もう一度お試しください。",
@@ -657,7 +657,7 @@ export const commonMessages = defineMessages({
   },
   "app.footer": {
     en: "Fil One commerce records are synchronized from the operating ledger.",
-    es: "Los registros comerciales de Fil One se sincronizan con el registro operativo.",
+    es: "Los registros comerciales de Fil One se sincronizan desde el registro operativo.",
     fr: "Les enregistrements commerciaux Fil One sont synchronisés avec le registre opérationnel.",
     de: "Die Commerce-Datensätze von Fil One werden mit dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳と同期されます。",
@@ -707,7 +707,7 @@ export const commonMessages = defineMessages({
   },
   "nav.internal.paygOffers": {
     en: "PAYG and trials",
-    es: "Pago por uso y pruebas",
+    es: "Pago por uso y periodos de prueba",
     fr: "Paiement à l’usage et essais",
     de: "Nutzungsabhängige Zahlung und Tests",
     ja: "従量課金とトライアル",
@@ -737,7 +737,7 @@ export const commonMessages = defineMessages({
   },
   "action.retry": {
     en: "Try again",
-    es: "Intentar de nuevo",
+    es: "Reintentar",
     fr: "Réessayer",
     de: "Erneut versuchen",
     ja: "再試行",
@@ -747,7 +747,7 @@ export const commonMessages = defineMessages({
   },
   "action.returnHome": {
     en: "Return to your dashboard",
-    es: "Volver a tu panel",
+    es: "Volver al panel",
     fr: "Revenir à votre tableau de bord",
     de: "Zu Ihrem Dashboard",
     ja: "ダッシュボードに戻る",
@@ -807,7 +807,7 @@ export const commonMessages = defineMessages({
   },
   "quotes.title": {
     en: "Quotes",
-    es: "Cotizaciones",
+    es: "Presupuestos",
     fr: "Devis",
     de: "Angebote",
     ja: "見積もり",
@@ -867,7 +867,7 @@ export const commonMessages = defineMessages({
   },
   "state.notFound.title": {
     en: "That page is not available",
-    es: "Esa página no está disponible",
+    es: "Esta página no está disponible",
     fr: "Cette page n’est pas disponible",
     de: "Diese Seite ist nicht verfügbar",
     ja: "このページは利用できません",
@@ -877,7 +877,7 @@ export const commonMessages = defineMessages({
   },
   "state.notFound.description": {
     en: "The address may have changed, or the record may no longer be visible to this account.",
-    es: "La dirección puede haber cambiado o el registro ya no ser visible para esta cuenta.",
+    es: "Puede que la dirección haya cambiado o que el registro ya no sea visible para esta cuenta.",
     fr: "L’adresse a peut-être changé, ou l’enregistrement n’est plus visible pour ce compte.",
     de: "Die Adresse wurde möglicherweise geändert oder der Datensatz ist für dieses Konto nicht mehr sichtbar.",
     ja: "アドレスが変更されたか、このアカウントからレコードを閲覧できなくなった可能性があります。",
@@ -897,7 +897,7 @@ export const commonMessages = defineMessages({
   },
   "state.fatal.description": {
     en: "Reload to check the latest record before trying again. If the problem continues, contact support with the request ID.",
-    es: "Recarga para consultar el último registro antes de reintentar. Si el problema continúa, contacta con soporte e indica el ID de solicitud.",
+    es: "Recargue la página para consultar el registro más reciente antes de volver a intentarlo. Si el problema continúa, póngase en contacto con soporte e indique el ID de solicitud.",
     fr: "Rechargez pour consulter le dernier enregistrement avant de réessayer. Si le problème persiste, contactez l’assistance avec l’ID de requête.",
     de: "Laden Sie den aktuellen Datensatz vor einem weiteren Versuch neu. Bei anhaltenden Problemen nennen Sie dem Support die Anfrage-ID.",
     ja: "再試行前に再読み込みして最新の記録を確認してください。問題が続く場合は、リクエスト ID を添えてサポートへ連絡してください。",
@@ -907,7 +907,7 @@ export const commonMessages = defineMessages({
   },
   "term.replica": {
     en: "Madrid compliance replica",
-    es: "Réplica de cumplimiento de Madrid",
+    es: "Réplica de cumplimiento en Madrid",
     fr: "Réplique de conformité de Madrid",
     de: "Compliance-Replikat Madrid",
     ja: "マドリードのコンプライアンスレプリカ",
@@ -918,7 +918,7 @@ export const commonMessages = defineMessages({
 
   "cp.commercial.quoteSummary": {
     en: "Quote summary",
-    es: "Resumen de la cotización",
+    es: "Resumen del presupuesto",
     fr: "Récapitulatif du devis",
     de: "Angebotsübersicht",
     ja: "見積もり概要",

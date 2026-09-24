@@ -6,7 +6,7 @@ import { defineMessages, sameAsEnglish } from "../define";
 export const customerMessages = defineMessages({
   "quotes.form.description": {
     en: "Choose an offer, set your capacity and term, then review your quote draft.",
-    es: "Elige una oferta, indica la capacidad y el plazo y revisa el borrador.",
+    es: "Elija una oferta, indique la capacidad y la duración y, después, revise el borrador del presupuesto.",
     fr: "Choisissez une offre, la capacité et la durée, puis vérifiez votre brouillon.",
     de: "Wählen Sie ein Angebot, Kapazität und Laufzeit. Prüfen Sie anschließend den Entwurf.",
     ja: "オファーを選択し、容量と期間を設定して、見積もりの下書きを確認します。",
@@ -16,7 +16,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.form.offerHelp": {
     en: "Choose an available offer for the region you need.",
-    es: "Elige una oferta disponible para la región que necesitas.",
+    es: "Elija una oferta disponible para la región que necesite.",
     fr: "Choisissez une offre disponible dans la région souhaitée.",
     de: "Wählen Sie ein verfügbares Angebot für Ihre gewünschte Region.",
     ja: "必要なリージョンで利用できるオファーを選択してください。",
@@ -26,7 +26,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.form.reviewTitle": {
     en: "Review your draft",
-    es: "Revisa tu borrador",
+    es: "Revise el borrador",
     fr: "Vérifier votre brouillon",
     de: "Entwurf prüfen",
     ja: "下書きを確認",
@@ -36,7 +36,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.form.reviewDescription": {
     en: "Creating this draft calculates your price. Next, open the saved draft to prepare its document and issue the quote. You can review the issued quote before accepting an order.",
-    es: "Al crear el borrador se calcula el precio. Después, abre el borrador guardado para preparar su documento y emitir la oferta. Podrás revisarla antes de aceptar un pedido.",
+    es: "Al crear el borrador se calcula el precio. Después, abra el borrador guardado para preparar su documento y emitir el presupuesto. Podrá revisar el presupuesto emitido antes de aceptar un pedido.",
     fr: "La création du brouillon calcule votre prix. Ouvrez ensuite le brouillon enregistré pour préparer son document et émettre le devis. Vous pourrez le vérifier avant d’accepter une commande.",
     de: "Beim Erstellen des Entwurfs wird Ihr Preis berechnet. Öffnen Sie dann den gespeicherten Entwurf, um das Dokument vorzubereiten und das Angebot auszustellen. Vor Annahme einer Bestellung können Sie es prüfen.",
     ja: "下書きを作成すると価格が計算されます。次に、保存済みの下書きを開いて見積書を作成し、発行します。注文を承諾する前に発行済みの見積もりを確認できます。",
@@ -46,7 +46,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.form.expiryHelp": {
     en: "Use your local date and time.",
-    es: "Usa tu fecha y hora locales.",
+    es: "Use su fecha y hora locales.",
     fr: "Utilisez votre date et heure locales.",
     de: "Verwenden Sie Ihr lokales Datum und Ihre lokale Uhrzeit.",
     ja: "現地の日付と時刻を入力してください。",
@@ -56,7 +56,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.form.expiryFuture": {
     en: "Choose an expiry after the current time.",
-    es: "Elige un vencimiento posterior a la hora actual.",
+    es: "Elija una fecha de caducidad posterior a la hora actual.",
     fr: "Choisissez une expiration après l’heure actuelle.",
     de: "Wählen Sie einen Ablaufzeitpunkt in der Zukunft.",
     ja: "現在より後の有効期限を選択してください。",
@@ -66,7 +66,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.title": {
     en: "Finish this quote",
-    es: "Completa esta oferta",
+    es: "Completar este presupuesto",
     fr: "Finaliser ce devis",
     de: "Angebot fertigstellen",
     ja: "見積もりを完成させる",
@@ -76,7 +76,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.description": {
     en: "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
-    es: "Prepara el documento de la oferta guardada para que se pueda aceptar. Emitir una oferta no crea un pedido.",
+    es: "Prepare el documento del presupuesto y deje este presupuesto guardado disponible para su aceptación. Emitir un presupuesto no crea ningún pedido.",
     fr: "Préparez le document de ce devis enregistré pour permettre son acceptation. Émettre un devis ne crée pas de commande.",
     de: "Bereiten Sie das Dokument dieses gespeicherten Angebots zur Annahme vor. Durch die Ausstellung entsteht noch keine Bestellung.",
     ja: "保存済みの見積書を作成し、承諾できる状態にします。見積もりを発行しても注文は確定しません。",
@@ -86,7 +86,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.action": {
     en: "Prepare and issue quote",
-    es: "Preparar y emitir oferta",
+    es: "Preparar y emitir presupuesto",
     fr: "Préparer et émettre le devis",
     de: "Angebot vorbereiten und ausstellen",
     ja: "見積書を作成して発行",
@@ -96,7 +96,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.working": {
     en: "Preparing quote…",
-    es: "Preparando oferta…",
+    es: "Preparando presupuesto…",
     fr: "Préparation du devis…",
     de: "Angebot wird vorbereitet…",
     ja: "見積書を作成中…",
@@ -106,7 +106,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.retry": {
     en: "Continue this quote",
-    es: "Continuar esta oferta",
+    es: "Continuar con este presupuesto",
     fr: "Poursuivre ce devis",
     de: "Dieses Angebot fortsetzen",
     ja: "この見積もりを続ける",
@@ -126,7 +126,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.refresh": {
     en: "Refresh this page to check the latest quote and your access, then try again.",
-    es: "Actualiza esta página para comprobar la oferta y tu acceso e inténtalo de nuevo.",
+    es: "Actualice esta página para comprobar la última versión del presupuesto y su acceso, y vuelva a intentarlo.",
     fr: "Actualisez cette page pour vérifier le devis et vos droits d’accès, puis réessayez.",
     de: "Aktualisieren Sie diese Seite, um das Angebot und Ihre Zugriffsrechte zu prüfen. Versuchen Sie es dann erneut.",
     ja: "このページを更新して、最新の見積もりとアクセス権を確認してから、もう一度お試しください。",
@@ -136,7 +136,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.pricingReview": {
     en: "This draft needs pricing review before it can be issued. Contact your Fil One team.",
-    es: "Es necesario revisar el precio de este borrador antes de emitirlo. Contacta con tu equipo de Fil One.",
+    es: "Este borrador necesita una revisión de precios antes de poder emitirse. Póngase en contacto con su equipo de Fil One.",
     fr: "Le prix de ce brouillon doit être vérifié avant son émission. Contactez votre équipe Fil One.",
     de: "Vor der Ausstellung muss der Preis dieses Entwurfs geprüft werden. Wenden Sie sich an Ihr Fil One-Team.",
     ja: "この下書きを発行するには価格の審査が必要です。Fil Oneの担当者にお問い合わせください。",
@@ -146,7 +146,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.documentUnavailable": {
     en: "The quote document could not be verified. Nothing was issued. Try again.",
-    es: "No se pudo verificar el documento. No se ha emitido ninguna oferta. Inténtalo de nuevo.",
+    es: "No se ha podido verificar el documento del presupuesto. No se ha emitido nada. Inténtelo de nuevo.",
     fr: "Le document du devis n’a pas pu être vérifié. Aucun devis n’a été émis. Réessayez.",
     de: "Das Angebotsdokument konnte nicht verifiziert werden. Es wurde kein Angebot ausgestellt. Versuchen Sie es erneut.",
     ja: "見積書を確認できませんでした。見積もりは発行されていません。もう一度お試しください。",
@@ -156,7 +156,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.rendering": {
     en: "The document is still being prepared. Continue this quote to check again.",
-    es: "El documento sigue preparándose. Continúa esta oferta para comprobarlo de nuevo.",
+    es: "El documento todavía se está preparando. Continúe con este presupuesto para volver a comprobarlo.",
     fr: "Le document est en cours de préparation. Poursuivez ce devis pour vérifier à nouveau.",
     de: "Das Dokument wird noch vorbereitet. Setzen Sie dieses Angebot fort, um erneut zu prüfen.",
     ja: "書類を作成中です。この見積もりを続けて、再度確認してください。",
@@ -166,7 +166,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.synchronizing": {
     en: "The quote was issued. Its status is still updating; continue this quote to check again.",
-    es: "La oferta se ha emitido. Su estado aún se está actualizando; continúa para comprobarlo.",
+    es: "El presupuesto se ha emitido. Su estado aún se está actualizando; continúe con este presupuesto para volver a comprobarlo.",
     fr: "Le devis a été émis. Son statut est en cours de mise à jour\u202f; poursuivez pour vérifier à nouveau.",
     de: "Das Angebot wurde ausgestellt. Der Status wird noch aktualisiert. Setzen Sie fort, um erneut zu prüfen.",
     ja: "見積もりは発行されました。ステータスを更新中です。この見積もりを続けて再度確認してください。",
@@ -176,7 +176,7 @@ export const customerMessages = defineMessages({
   },
   "cp.commercial.quoteStages.1": {
     en: "Capacity, term, direct route, and expiry",
-    es: "Capacidad, duración, canal directo y vencimiento",
+    es: "Capacidad, duración, modalidad directa y caducidad",
     fr: "Capacité, durée, canal direct et expiration",
     de: "Kapazität, Laufzeit, Direktvertrieb und Ablauf",
     ja: "容量、期間、直接取引、有効期限",
@@ -236,7 +236,7 @@ export const customerMessages = defineMessages({
   },
   "cp.commercial.orderConfirmation": {
     en: "I reviewed the issued quote, governing agreement, purchase order, service start, service end, and resulting commitment.",
-    es: "He revisado la cotización emitida, el acuerdo aplicable, la orden de compra, el inicio y el fin del servicio y el compromiso resultante.",
+    es: "He revisado el presupuesto emitido, el acuerdo aplicable, la orden de compra, el inicio y el fin del servicio y el compromiso resultante.",
     fr: "J’ai vérifié le devis émis, l’accord applicable, le bon de commande, les dates de début et de fin du service et l’engagement qui en découle.",
     de: "Ich habe das ausgestellte Angebot, die maßgebliche Vereinbarung, die Bestellung, den Servicebeginn, das Serviceende und die resultierende Verpflichtung geprüft.",
     ja: "発行済みの見積もり、適用される契約、発注書、サービス開始日・終了日、および発生する義務を確認しました。",
@@ -246,7 +246,7 @@ export const customerMessages = defineMessages({
   },
   "cp.commercial.orderTermsHelp": {
     en: "Order terms come from issued quote {quoteReference} version {quoteVersion} and {agreementTitle} version {agreementVersion}. A purchase order reference does not replace or change those pinned terms.",
-    es: "Las condiciones del pedido provienen de la cotización emitida {quoteReference}, versión {quoteVersion}, y de {agreementTitle}, versión {agreementVersion}. La referencia de una orden de compra no sustituye ni modifica esas condiciones fijadas.",
+    es: "Las condiciones del pedido proceden del presupuesto emitido {quoteReference}, versión {quoteVersion}, y de {agreementTitle}, versión {agreementVersion}. La referencia de una orden de compra no sustituye ni modifica esas condiciones fijadas.",
     fr: "Les conditions de la commande proviennent du devis émis {quoteReference}, version {quoteVersion}, et de {agreementTitle}, version {agreementVersion}. Une référence de bon de commande ne remplace ni ne modifie ces conditions fixées.",
     de: "Die Auftragsbedingungen stammen aus dem ausgestellten Angebot {quoteReference}, Version {quoteVersion}, und {agreementTitle}, Version {agreementVersion}. Eine Bestellreferenz ersetzt oder ändert diese festgelegten Bedingungen nicht.",
     ja: "注文条件は、発行済み見積もり{quoteReference}（バージョン{quoteVersion}）と{agreementTitle}（バージョン{agreementVersion}）に基づきます。発注書参照番号は、これらの確定条件を置き換えたり変更したりするものではありません。",
@@ -296,7 +296,7 @@ export const customerMessages = defineMessages({
   },
   "cp.commercial.externalPayment": {
     en: "You will continue with the payment provider. The invoice is marked paid only after the provider confirms it.",
-    es: "Continuarás con el proveedor de pagos. La factura solo se marcará como pagada cuando el proveedor lo confirme.",
+    es: "Continuará con el proveedor de pagos. La factura solo se marcará como pagada cuando el proveedor lo confirme.",
     fr: "Vous allez poursuivre auprès du prestataire de paiement. La facture ne sera marquée comme payée qu’après sa confirmation.",
     de: "Sie fahren beim Zahlungsanbieter fort. Die Rechnung wird erst nach dessen Bestätigung als bezahlt markiert.",
     ja: "決済プロバイダーに移動します。プロバイダーの確認後にのみ、請求書は支払い済みと表示されます。",
@@ -326,7 +326,7 @@ export const customerMessages = defineMessages({
   },
   "common.term": {
     en: "Term",
-    es: "Plazo",
+    es: "Duración",
     fr: "Durée",
     de: "Laufzeit",
     ja: "契約期間",
@@ -336,7 +336,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.eyebrow": {
     en: "Legal record",
-    es: "Registro legal",
+    es: "Documentación legal",
     fr: "Dossier juridique",
     de: "Rechtsakte",
     ja: "法務記録",
@@ -346,7 +346,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.description": {
     en: "Executed terms, signature evidence, governing versions, and renewal clocks in one record.",
-    es: "Condiciones formalizadas, pruebas de firma, versiones aplicables y fechas de renovación en un solo registro.",
+    es: "Condiciones formalizadas, evidencias de firma, versiones aplicables y plazos de renovación en un solo registro.",
     fr: "Conditions conclues, preuves de signature, versions applicables et échéances de renouvellement dans un même dossier.",
     de: "Vereinbarte Bedingungen, Signaturnachweise, maßgebliche Versionen und Verlängerungsfristen in einer Akte.",
     ja: "締結済み条件、署名証跡、適用バージョン、更新期限を一つの記録で管理します。",
@@ -356,7 +356,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.execute.binding": {
     en: "Confirm the agreement title, version, exact approved terms, and your authority before binding {account}.",
-    es: "Confirma el título, la versión, las condiciones aprobadas exactas y tu autoridad para vincular a {account}.",
+    es: "Confirme el título del acuerdo, la versión, las condiciones exactas aprobadas y su autoridad antes de obligar a {account}.",
     fr: "Confirmez le titre, la version, les conditions exactes approuvées et votre pouvoir d’engager {account}.",
     de: "Bestätigen Sie Titel, Version, genau genehmigte Bedingungen und Ihre Befugnis, {account} zu binden.",
     ja: "{account} を拘束する前に、契約名、バージョン、承認済みの正確な条項、締結権限を確認してください。",
@@ -376,7 +376,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.execute.validation.authority": {
     en: "Enter the title that holds signing authority for this legal entity.",
-    es: "Introduce el cargo con autoridad de firma para esta entidad legal.",
+    es: "Introduzca el cargo con poder de firma para esta persona jurídica.",
     fr: "Saisissez la fonction disposant du pouvoir de signature pour cette entité juridique.",
     de: "Geben Sie die Funktion mit Zeichnungsbefugnis für diese Rechtsperson an.",
     ja: "この法人の署名権限を持つ役職を入力してください。",
@@ -386,7 +386,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.execute.validation.attestation": {
     en: "Confirm your authority to bind this legal entity before executing.",
-    es: "Confirma tu autoridad para vincular a esta entidad legal antes de formalizar el acuerdo.",
+    es: "Confirme su autoridad para obligar a esta persona jurídica antes de formalizar el acuerdo.",
     fr: "Confirmez votre pouvoir d’engager cette entité juridique avant de conclure l’accord.",
     de: "Bestätigen Sie vor Abschluss Ihre Befugnis, diese Rechtsperson zu binden.",
     ja: "締結前に、この法人を拘束する権限があることを確認してください。",
@@ -396,7 +396,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.execute.accepted": {
     en: "Agreement executed. Your authority evidence is on the record.",
-    es: "Acuerdo formalizado. La prueba de tu autoridad consta en el registro.",
+    es: "Acuerdo formalizado. La evidencia de su autoridad consta en el registro.",
     fr: "Accord conclu. La preuve de votre pouvoir de signature figure au dossier.",
     de: "Vereinbarung abgeschlossen. Ihr Befugnisnachweis ist dokumentiert.",
     ja: "契約を締結しました。権限の証跡は記録に保存されています。",
@@ -416,7 +416,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.eyebrow": {
     en: "Price with confidence",
-    es: "Precios con confianza",
+    es: "Precios fiables",
     fr: "Des prix en toute confiance",
     de: "Verlässliche Preise",
     ja: "確かな価格設定",
@@ -436,7 +436,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.builder.title": {
     en: "Build a quote",
-    es: "Crear cotización",
+    es: "Crear presupuesto",
     fr: "Créer un devis",
     de: "Angebot erstellen",
     ja: "見積もりを作成",
@@ -446,7 +446,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.builder.description": {
     en: "Configure the service; the commerce API remains the source of pricing and approval decisions.",
-    es: "Configura el servicio; la API de comercio sigue siendo la fuente de precios y decisiones de aprobación.",
+    es: "Configure el servicio; la API de comercio sigue siendo la fuente de los precios y de las decisiones de aprobación.",
     fr: "Configurez le service\u202f; l’API commerciale reste la source des tarifs et des décisions d’approbation.",
     de: "Konfigurieren Sie den Dienst; Preise und Freigaben stammen weiterhin aus der Commerce-API.",
     ja: "サービスを設定します。価格と承認判断の正規情報源はコマース API です。",
@@ -466,7 +466,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.builder.origin.revision": {
     en: "Revises quote {reference}",
-    es: "Revisa la cotización {reference}",
+    es: "Revisión del presupuesto {reference}",
     fr: "Révision du devis {reference}",
     de: "Überarbeitet Angebot {reference}",
     ja: "見積もり {reference} の改訂",
@@ -476,7 +476,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.builder.origin.poc": {
     en: "Converts proof of concept {reference}",
-    es: "Convierte la prueba de concepto {reference}",
+    es: "Conversión de la prueba de concepto {reference}",
     fr: "Conversion de la preuve de concept {reference}",
     de: "Wandelt Machbarkeitsnachweis {reference} um",
     ja: "概念実証 {reference} からの移行",
@@ -496,7 +496,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.builder.created": {
     en: "Priced draft created. You can issue it once its document is prepared and bound.",
-    es: "Borrador con precio creado. Podrás emitirlo cuando su documento esté preparado y vinculado.",
+    es: "Borrador con precio creado. Podrá emitirlo cuando su documento esté preparado y vinculado.",
     fr: "Brouillon chiffré créé. Vous pourrez l’émettre lorsque son document sera préparé et lié.",
     de: "Bepreister Entwurf erstellt. Die Ausgabe ist möglich, sobald das Dokument vorbereitet und verknüpft ist.",
     ja: "価格計算済みの下書きを作成しました。文書の準備と紐付け完了後に発行できます。",
@@ -526,7 +526,7 @@ export const customerMessages = defineMessages({
   },
   "orders.description": {
     en: "Purchase orders, provisioning, entitlements, usage, amendments, and term status without re-keying.",
-    es: "Órdenes de compra, aprovisionamiento, derechos, uso, modificaciones y plazos sin volver a introducir datos.",
+    es: "Órdenes de compra, aprovisionamiento, derechos de uso, uso, modificaciones y estado de la vigencia sin volver a introducir datos.",
     fr: "Bons de commande, provisionnement, droits, usage, avenants et échéances sans ressaisie.",
     de: "Bestellungen, Bereitstellung, Berechtigungen, Nutzung, Änderungen und Laufzeiten ohne erneute Eingabe.",
     ja: "発注書、プロビジョニング、利用権、使用量、変更、期間の状態を再入力せずに管理します。",
@@ -546,7 +546,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.source": {
     en: "Issued quote {reference} · version {version}",
-    es: "Cotización emitida {reference} · versión {version}",
+    es: "Presupuesto emitido {reference} · versión {version}",
     fr: "Devis émis {reference} · version {version}",
     de: "Ausgestelltes Angebot {reference} · Version {version}",
     ja: "発行済み見積もり {reference} · バージョン {version}",
@@ -566,7 +566,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.unavailable.title": {
     en: "No acceptable quote is selected",
-    es: "No se ha seleccionado una cotización que se pueda aceptar",
+    es: "No hay ningún presupuesto aceptable seleccionado",
     fr: "Aucun devis pouvant être accepté n’est sélectionné",
     de: "Kein annehmbares Angebot ausgewählt",
     ja: "受諾可能な見積もりが選択されていません",
@@ -576,7 +576,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.unavailable.description": {
     en: "Order acceptance starts from an issued quote in this account. Choose one from the quote ledger.",
-    es: "La aceptación del pedido comienza con una cotización aceptada de esta cuenta. Elige una del registro de cotizaciones.",
+    es: "La aceptación de un pedido parte de un presupuesto emitido de esta cuenta. Elija uno en la lista de presupuestos.",
     fr: "L’acceptation d’une commande commence par un devis accepté de ce compte. Choisissez-en un dans le registre des devis.",
     de: "Die Auftragsannahme beginnt mit einem angenommenen Angebot dieses Kontos. Wählen Sie es im Angebotsregister aus.",
     ja: "注文の受諾は、このアカウントの受諾済み見積もりから開始します。見積もり台帳で選択してください。",
@@ -586,7 +586,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.unavailable.action": {
     en: "Open the quote ledger",
-    es: "Abrir registro de cotizaciones",
+    es: "Abrir la lista de presupuestos",
     fr: "Ouvrir le registre des devis",
     de: "Angebotsregister öffnen",
     ja: "見積もり台帳を開く",
@@ -596,7 +596,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.validation.po": {
     en: "Enter the purchase order reference.",
-    es: "Introduce la referencia de la orden de compra.",
+    es: "Introduzca la referencia de la orden de compra.",
     fr: "Saisissez la référence du bon de commande.",
     de: "Geben Sie die Bestellreferenz ein.",
     ja: "発注書の参照番号を入力してください。",
@@ -606,7 +606,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.validation.serviceStart": {
     en: "Choose the service start date.",
-    es: "Elige la fecha de inicio del servicio.",
+    es: "Elija la fecha de inicio del servicio.",
     fr: "Choisissez la date de début du service.",
     de: "Wählen Sie den Dienstbeginn.",
     ja: "サービス開始日を選択してください。",
@@ -616,7 +616,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.validation.authority": {
     en: "Enter the title that holds acceptance authority.",
-    es: "Introduce el cargo con autoridad de aceptación.",
+    es: "Introduzca el cargo con autoridad para aceptar.",
     fr: "Saisissez la fonction disposant du pouvoir d’acceptation.",
     de: "Geben Sie die Funktion mit Annahmebefugnis an.",
     ja: "受諾権限を持つ役職を入力してください。",
@@ -626,7 +626,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.validation.confirmation": {
     en: "Confirm the reviewed commitment before accepting.",
-    es: "Confirma el compromiso revisado antes de aceptarlo.",
+    es: "Confirme el compromiso revisado antes de aceptar.",
     fr: "Confirmez l’engagement examiné avant d’accepter.",
     de: "Bestätigen Sie die geprüfte Verpflichtung vor der Annahme.",
     ja: "受諾前に、確認した契約上の義務を承認してください。",
@@ -656,7 +656,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.prepared": {
     en: "Order form requested. Your commitment is created once that document is rendered and bound to the quote.",
-    es: "Formulario de pedido solicitado. El compromiso se creará cuando el documento esté generado y vinculado a la cotización.",
+    es: "Formulario de pedido solicitado. Su compromiso se creará cuando ese documento se genere y quede vinculado al presupuesto.",
     fr: "Formulaire de commande demandé. Votre engagement sera créé une fois le document généré et lié au devis.",
     de: "Auftragsformular angefordert. Die Verpflichtung entsteht, sobald das Dokument erstellt und mit dem Angebot verknüpft ist.",
     ja: "注文書の作成を依頼しました。文書の生成と見積もりへの紐付けが完了すると、契約上の義務が作成されます。",
@@ -676,7 +676,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.failed": {
     en: "The order could not be accepted. Nothing was changed.",
-    es: "No se pudo aceptar el pedido. No se modificó nada.",
+    es: "No se ha podido aceptar el pedido. No se ha modificado nada.",
     fr: "La commande n’a pas pu être acceptée. Aucune modification n’a été effectuée.",
     de: "Der Auftrag konnte nicht angenommen werden. Nichts wurde geändert.",
     ja: "注文を受諾できませんでした。変更はありません。",
@@ -706,7 +706,7 @@ export const customerMessages = defineMessages({
   },
   "pocs.description": {
     en: "Isolated environments with explicit caps, milestones, success criteria, cost, and a data-preserving conversion path.",
-    es: "Entornos aislados con límites, hitos, criterios de éxito, costos y una conversión que conserva los datos.",
+    es: "Entornos aislados con límites explícitos, hitos, criterios de éxito, costes y una conversión que conserva los datos.",
     fr: "Environnements isolés avec plafonds, jalons, critères de réussite, coûts et conversion préservant les données.",
     de: "Isolierte Umgebungen mit Grenzen, Meilensteinen, Erfolgskriterien, Kosten und datenerhaltendem Übergang.",
     ja: "上限、マイルストーン、成功基準、コスト、データを保持する移行手順を備えた独立環境です。",
@@ -736,7 +736,7 @@ export const customerMessages = defineMessages({
   },
   "billing.description": {
     en: "Invoices carry the originating order and PO, with receipts, credits, aging, tax treatment, and payment rails.",
-    es: "Las facturas incluyen el pedido y la orden de compra de origen, recibos, abonos, antigüedad, tratamiento fiscal y medios de pago.",
+    es: "Las facturas incluyen el pedido y la orden de compra de origen, con recibos, facturas rectificativas, antigüedad, tratamiento fiscal y medios de pago.",
     fr: "Les factures indiquent la commande et le bon de commande d’origine, les reçus, les avoirs, l’ancienneté, le traitement fiscal et les moyens de paiement.",
     de: "Rechnungen verweisen auf Auftrag und Bestellung sowie Belege, Gutschriften, Alter, Steuern und Zahlungswege.",
     ja: "請求書には元の注文と発注書、領収書、貸方票、経過期間、税務処理、支払方法が紐付きます。",
@@ -746,7 +746,7 @@ export const customerMessages = defineMessages({
   },
   "billing.aging": {
     en: "Accounts receivable aging",
-    es: "Antigüedad de cuentas por cobrar",
+    es: "Antigüedad de saldos a cobrar",
     fr: "Balance âgée des créances clients",
     de: "Altersstruktur der Forderungen",
     ja: "売掛金の年齢表",
@@ -796,7 +796,7 @@ export const customerMessages = defineMessages({
   },
   "account.offboarding.validation.effectiveAt": {
     en: "Choose the requested effective date and time.",
-    es: "Elige la fecha y hora de efecto solicitadas.",
+    es: "Elija la fecha y la hora de efecto solicitadas.",
     fr: "Choisissez la date et l’heure de prise d’effet demandées.",
     de: "Wählen Sie Datum und Uhrzeit des gewünschten Wirksamwerdens.",
     ja: "希望する適用日時を選択してください。",
@@ -806,7 +806,7 @@ export const customerMessages = defineMessages({
   },
   "account.offboarding.validation.confirmation": {
     en: "Confirm the reviewed retention and approval safeguards before submitting.",
-    es: "Confirma las medidas de conservación y aprobación revisadas antes de enviar.",
+    es: "Confirme las salvaguardas de conservación y aprobación que ha revisado antes de enviar.",
     fr: "Confirmez les garanties de conservation et d’approbation examinées avant l’envoi.",
     de: "Bestätigen Sie vor dem Senden die geprüften Aufbewahrungs- und Freigabesicherungen.",
     ja: "送信前に、確認済みの保持条件と承認要件を了承してください。",
@@ -816,7 +816,7 @@ export const customerMessages = defineMessages({
   },
   "account.offboarding.requested": {
     en: "Offboarding request submitted for approval. Your service is still running.",
-    es: "Solicitud de baja enviada para aprobación. Tu servicio sigue funcionando.",
+    es: "Solicitud de baja enviada para su aprobación. Su servicio sigue en funcionamiento.",
     fr: "Demande de sortie envoyée pour approbation. Votre service fonctionne toujours.",
     de: "Austrittsanfrage zur Freigabe gesendet. Ihr Dienst läuft weiter.",
     ja: "利用終了申請を承認のために送信しました。サービスは引き続き稼働しています。",
@@ -836,7 +836,7 @@ export const customerMessages = defineMessages({
   },
   "account.offboarding.failed": {
     en: "The offboarding request could not be submitted.",
-    es: "No se pudo enviar la solicitud de baja.",
+    es: "No se ha podido enviar la solicitud de baja.",
     fr: "La demande de sortie n’a pas pu être envoyée.",
     de: "Die Austrittsanfrage konnte nicht gesendet werden.",
     ja: "利用終了申請を送信できませんでした。",
@@ -1191,7 +1191,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.marketplace.title": {
     en: "Marketplace purchases",
-    es: "Compras en Marketplace",
+    es: "Compras en el marketplace",
     fr: "Achats sur les marketplaces",
     de: "Marketplace-Käufe",
     ja: "マーケットプレイスでの購入",
@@ -1201,7 +1201,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.marketplace.description": {
     en: "Follow private offers and provider-reported fulfillment.",
-    es: "Siga las ofertas privadas y el estado de entrega que comunica el proveedor.",
+    es: "Siga las ofertas privadas y el estado de tramitación que comunica el proveedor.",
     fr: "Suivez les offres privées et leur exécution telle que déclarée par le prestataire.",
     de: "Verfolgen Sie private Angebote und die vom Anbieter gemeldete Erfüllung.",
     ja: "プライベートオファーと、プロバイダーが報告する履行状況を確認できます。",
@@ -1211,7 +1211,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.marketplace.search": {
     en: "Search marketplace offers",
-    es: "Buscar ofertas de Marketplace",
+    es: "Buscar ofertas del marketplace",
     fr: "Rechercher des offres marketplace",
     de: "Marketplace-Angebote suchen",
     ja: "マーケットプレイスのオファーを検索",
@@ -1221,7 +1221,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.marketplace.rule": {
     en: "The marketplace provider remains the source of offer acceptance and fulfillment.",
-    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación y la entrega de la oferta.",
+    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación y la tramitación de la oferta.",
     fr: "Le prestataire de la marketplace reste la source de référence pour l’acceptation et l’exécution de l’offre.",
     de: "Maßgeblich für Annahme und Erfüllung des Angebots bleibt der Marketplace-Anbieter.",
     ja: "オファーの承諾と履行については、マーケットプレイスのプロバイダーが引き続き正式な情報源です。",
@@ -1261,7 +1261,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.marketplace.providerNote": {
     en: "Marketplace status is provider-reported. Open the provider only from a selected offer and verify the account before continuing.",
-    es: "El estado de Marketplace lo comunica el proveedor. Abra el proveedor solo desde una oferta seleccionada y compruebe la cuenta antes de continuar.",
+    es: "El estado del marketplace lo comunica el proveedor. Abra el proveedor solo desde una oferta seleccionada y compruebe la cuenta antes de continuar.",
     fr: "Le statut marketplace est déclaré par le prestataire. N’ouvrez le prestataire qu’à partir d’une offre sélectionnée et vérifiez le compte avant de continuer.",
     de: "Der Marketplace-Status wird vom Anbieter gemeldet. Öffnen Sie den Anbieter nur aus einem ausgewählten Angebot heraus und prüfen Sie das Konto, bevor Sie fortfahren.",
     ja: "マーケットプレイスのステータスはプロバイダーからの報告です。プロバイダーは選択したオファーからのみ開き、続行する前にアカウントを確認してください。",
@@ -1453,7 +1453,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.status.disbursementPending": {
     en: "Disbursement pending",
-    es: "Desembolso pendiente",
+    es: "Pago del proveedor pendiente",
     fr: "Versement en attente",
     de: "Auszahlung ausstehend",
     ja: "支払い保留中",
@@ -1524,7 +1524,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.updated.expired": {
     en: "Expired {date}",
-    es: "Caducó el {date}",
+    es: "Caducado el {date}",
     fr: "A expiré le {date}",
     de: "Abgelaufen am {date}",
     ja: "{date} 期限切れ",
@@ -1676,7 +1676,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.field.needed": {
     en: "Needed",
-    es: "Se requiere",
+    es: "Necesario",
     fr: "Élément requis",
     de: "Benötigt",
     ja: "必要なもの",
@@ -2232,7 +2232,7 @@ export const customerMessages = defineMessages({
   // ── Customer dashboard
   "customer.dashboard.greeting": {
     en: "Welcome back, {name}",
-    es: "Hola de nuevo, {name}",
+    es: "Hola, {name}",
     fr: "Bonjour {name}",
     de: "Willkommen zurück, {name}",
     ja: "ようこそ、{name} さん",
@@ -2328,7 +2328,7 @@ export const customerMessages = defineMessages({
   },
   "customer.dashboard.asOf": {
     en: "Account facts as of {time}",
-    es: "Datos de la cuenta a {time}",
+    es: "Datos de la cuenta a fecha de {time}",
     fr: "Données du compte au {time}",
     de: "Kontodaten, Stand: {time}",
     ja: "{time} 時点のアカウント情報",
@@ -2338,7 +2338,7 @@ export const customerMessages = defineMessages({
   },
   "customer.dashboard.staleAsOf": {
     en: "Stale account facts from {time}",
-    es: "Datos de la cuenta desactualizados, del {time}",
+    es: "Datos de la cuenta desactualizados (a fecha de {time})",
     fr: "Données du compte non à jour, du {time}",
     de: "Veraltete Kontodaten vom {time}",
     ja: "{time} 時点のアカウント情報（最新ではありません）",
@@ -2408,7 +2408,7 @@ export const customerMessages = defineMessages({
   },
   "customer.dashboard.serviceRollup": {
     en: "Services and terms",
-    es: "Servicios y duraciones",
+    es: "Servicios y vigencias",
     fr: "Services et durées",
     de: "Dienste und Laufzeiten",
     ja: "サービスと契約期間",
@@ -2498,7 +2498,7 @@ export const customerMessages = defineMessages({
   },
   "customer.dashboard.usageNotConnectedBody": {
     en: "Committed capacity, current use, and the prior 30 days appear here once metered usage is reported for this account.",
-    es: "La capacidad contratada, el uso actual y los 30 días anteriores aparecerán aquí cuando se informe el uso medido de esta cuenta.",
+    es: "La capacidad contratada, el uso actual y los 30 días anteriores aparecerán aquí cuando se reciban los datos de uso medido de esta cuenta.",
     fr: "La capacité souscrite, la consommation actuelle et les 30 jours précédents apparaîtront ici dès que la consommation mesurée de ce compte sera remontée.",
     de: "Vertraglich zugesagte Kapazität, aktuelle Nutzung und die letzten 30 Tage erscheinen hier, sobald gemessene Nutzungsdaten für dieses Konto vorliegen.",
     ja: "このアカウントの計測済み使用量が報告されると、契約容量、現在の使用量、過去30日間の値がここに表示されます。",
@@ -2756,7 +2756,7 @@ export const customerMessages = defineMessages({
   },
   "customer.notifications.alert.renewalTermWindow.description": {
     en: "Advance notice that a service term is approaching the window in which it renews.",
-    es: "Aviso anticipado de que la duración de un servicio se acerca al periodo en que se renueva.",
+    es: "Aviso anticipado de que la vigencia de un servicio se acerca al periodo en que se renueva.",
     fr: "Préavis indiquant qu’une durée de service approche de la période où elle se renouvelle.",
     de: "Vorabhinweis, dass sich eine Servicelaufzeit dem Zeitraum nähert, in dem sie sich verlängert.",
     ja: "サービス期間が契約更新の時期に近づいたことを事前にお知らせします。",
@@ -2876,7 +2876,7 @@ export const customerMessages = defineMessages({
   },
   "customer.notifications.failure.unreachable": {
     en: "The commerce service could not be reached. Nothing was changed.",
-    es: "No se pudo conectar con el servicio comercial. No se ha cambiado nada.",
+    es: "No se ha podido conectar con el servicio comercial. No se ha cambiado nada.",
     fr: "Le service commercial est injoignable. Rien n’a été modifié.",
     de: "Der Commerce-Dienst ist nicht erreichbar. Es wurde nichts geändert.",
     ja: "コマースサービスに接続できませんでした。変更は行われていません。",
@@ -2916,7 +2916,7 @@ export const customerMessages = defineMessages({
   },
   "customer.notifications.failure.notSaved": {
     en: "The preference could not be saved. Nothing was changed.",
-    es: "No se pudo guardar la preferencia. No se ha cambiado nada.",
+    es: "No se ha podido guardar la preferencia. No se ha cambiado nada.",
     fr: "La préférence n’a pas pu être enregistrée. Rien n’a été modifié.",
     de: "Die Einstellung konnte nicht gespeichert werden. Es wurde nichts geändert.",
     ja: "設定を保存できませんでした。変更は行われていません。",
@@ -3505,7 +3505,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.request.financeReviewing": {
     en: "Finance is reviewing eligibility, provider mapping and the applicable billing handoff. No activation is implied by this request.",
-    es: "Finanzas está revisando la elegibilidad, la asignación del proveedor y el traspaso de facturación aplicable. Esta solicitud no implica ninguna activación.",
+    es: "El equipo de finanzas está revisando la elegibilidad, la asignación del proveedor y el traspaso de facturación aplicable. Esta solicitud no implica ninguna activación.",
     fr: "L’équipe finance examine l’éligibilité, la correspondance avec le prestataire et la passation de facturation applicable. Cette demande n’implique aucune activation.",
     de: "Die Finanzabteilung prüft Berechtigung, Anbieterzuordnung und die zutreffende Übergabe an die Abrechnung. Diese Anfrage bedeutet keine Aktivierung.",
     ja: "財務チームが適格性、プロバイダーとの対応付け、該当する請求の引き継ぎを確認しています。この申請によって有効化されるわけではありません。",
@@ -3695,7 +3695,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.error.didNotComplete": {
     en: "The request did not complete. Refresh to check its status before retrying.",
-    es: "La solicitud no se completó. Actualice la página para comprobar su estado antes de volver a intentarlo.",
+    es: "La solicitud no se ha completado. Actualice la página para comprobar su estado antes de volver a intentarlo.",
     fr: "La demande n’a pas abouti. Actualisez la page pour vérifier son état avant de réessayer.",
     de: "Die Anfrage wurde nicht abgeschlossen. Aktualisieren Sie die Seite und prüfen Sie den Status, bevor Sie es erneut versuchen.",
     ja: "申請は完了しませんでした。再試行する前に、ページを再読み込みして状況を確認してください。",
@@ -3815,7 +3815,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.error.replayConflict": {
     en: "This request identifier was already used with different details. Refresh before retrying.",
-    es: "Este identificador de solicitud ya se usó con otros datos. Actualice antes de volver a intentarlo.",
+    es: "Este identificador de solicitud ya se ha usado con otros datos. Actualice antes de volver a intentarlo.",
     fr: "Cet identifiant de demande a déjà été utilisé avec d’autres informations. Actualisez la page avant de réessayer.",
     de: "Diese Anfrage-ID wurde bereits mit anderen Angaben verwendet. Aktualisieren Sie die Seite, bevor Sie es erneut versuchen.",
     ja: "この申請 ID は別の内容ですでに使用されています。再試行する前に再読み込みしてください。",
@@ -4047,7 +4047,7 @@ export const customerMessages = defineMessages({
   },
   "customer.paygFinance.didNotComplete": {
     en: "Resolution did not complete. Refresh to check the current request.",
-    es: "La resolución no se completó. Actualice para comprobar la solicitud actual.",
+    es: "La resolución no se ha completado. Actualice para comprobar la solicitud actual.",
     fr: "Le traitement n’a pas abouti. Actualisez la page pour vérifier la demande actuelle.",
     de: "Die Bearbeitung wurde nicht abgeschlossen. Aktualisieren Sie die Seite, um die aktuelle Anfrage zu prüfen.",
     ja: "処理は完了しませんでした。再読み込みして、現在の申請を確認してください。",

@@ -90,7 +90,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.pill.financeAuthority": {
     en: "Finance authority",
-    es: "Aprobación financiera",
+    es: "Autoridad financiera",
     fr: "Habilitation financière",
     de: "Finanzbefugnis",
     ja: "財務承認権限",
@@ -1115,7 +1115,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.priceBooks.activation.financeOnlyTitle": {
     en: "Finance approval authority is required.",
-    es: "Se requiere facultad de aprobación financiera.",
+    es: "Se requiere autoridad de aprobación financiera.",
     fr: "Une habilitation d’approbation financière est requise.",
     de: "Finanzielle Genehmigungsbefugnis erforderlich.",
     ja: "財務承認権限が必要です。",
@@ -1619,7 +1619,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.priceBooks.review.noActive": {
     en: "No active price book exists for this currency. Review the complete rate table above.",
-    es: "No hay ninguna lista de precios vigente para esta moneda. Revise la tabla de tarifas completa de arriba.",
+    es: "No hay ninguna lista de precios vigente para esta moneda. Revise la tabla de tarifas completa que aparece más arriba.",
     fr: "Aucune grille tarifaire n’est en vigueur pour cette devise. Examinez le tableau complet des tarifs ci-dessus.",
     de: "Für diese Währung gibt es keine aktive Preisliste. Prüfen Sie die vollständige Preistabelle oben.",
     ja: "この通貨には有効な価格表がありません。上の料金表全体を確認してください。",
@@ -1749,7 +1749,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.priceBooks.schedule.workerNote": {
     en: "From the effective date, the worker checks every minute and rechecks finance authority and the new-business control before changing current pricing.",
-    es: "A partir de la fecha de entrada en vigor, el proceso comprueba cada minuto y vuelve a verificar la facultad financiera y el control de nuevo negocio antes de cambiar los precios vigentes.",
+    es: "A partir de la fecha de entrada en vigor, el proceso comprueba cada minuto y vuelve a verificar la autoridad financiera y el control de nuevo negocio antes de cambiar los precios vigentes.",
     fr: "À partir de la date d’effet, le processus vérifie chaque minute et contrôle à nouveau l’habilitation financière et le contrôle des nouvelles affaires avant de modifier les tarifs en vigueur.",
     de: "Ab dem Gültigkeitsdatum prüft der Worker jede Minute und kontrolliert die Finanzbefugnis sowie die Neugeschäftskontrolle erneut, bevor er die aktuellen Preise ändert.",
     ja: "適用開始日以降、ワーカーが毎分確認し、現行価格を変更する前に財務承認権限と新規取引の統制を再確認します。",
@@ -2178,7 +2178,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.requestsPageTitle": {
     en: "Customer PAYG and trial requests",
-    es: "Solicitudes de clientes de pago por uso y de periodo de prueba",
+    es: "Solicitudes de clientes: pago por uso y periodo de prueba",
     fr: "Demandes clients de paiement à l’usage et d’essai",
     de: "Kundenanfragen zu nutzungsbasierter Abrechnung und Testphasen",
     ja: "顧客の従量課金・トライアル申請",
@@ -2188,7 +2188,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.description": {
     en: "Configure versioned usage pricing and trial rules. Drafts require a distinct finance approver. Approval records policy readiness; provider mappings, external gates, and account cutover still control activation.",
-    es: "Configure precios por uso y reglas de periodo de prueba con control de versiones. Los borradores requieren la aprobación de otro aprobador financiero. La aprobación deja constancia de que la política está lista; la activación sigue dependiendo de las asignaciones del proveedor, los controles externos y el traspaso de la cuenta.",
+    es: "Configure precios por uso y reglas de periodo de prueba con control de versiones. Los borradores requieren la aprobación de otro aprobador financiero. La aprobación deja constancia de que la política está lista; la activación sigue dependiendo de las asignaciones del proveedor, los requisitos externos y el traspaso de la cuenta.",
     fr: "Configurez des prix à l’usage et des règles d’essai versionnés. Les brouillons doivent être approuvés par un autre approbateur financier. L’approbation atteste que la politique est prête\u202f; l’activation reste soumise aux correspondances du prestataire, aux contrôles externes et à la bascule du compte.",
     de: "Konfigurieren Sie versionierte nutzungsbasierte Preise und Regeln für Testphasen. Entwürfe müssen von einer anderen genehmigenden Person (Finanzen) genehmigt werden. Die Genehmigung dokumentiert, dass die Richtlinie bereit ist; die Aktivierung hängt weiterhin von Anbieterzuordnungen, externen Prüfungen und der Umstellung des Kontos ab.",
     ja: "バージョン管理された従量課金の料金とトライアルのルールを設定します。下書きの承認には、別の財務承認者が必要です。承認はポリシーの準備完了を記録するもので、有効化は引き続きプロバイダーのマッピング、外部ゲート、アカウントの切り替えによって制御されます。",
@@ -2218,7 +2218,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.demoNotice": {
     en: "Fictional policy workspace. Changes persist until demo reset. Review the proposal from a different demo author or create a draft. No enrollment, provider verification, billing execution, or live policy approval occurs here.",
-    es: "Espacio de trabajo ficticio. Los cambios se conservan hasta que se restablezca la demostración. Revise la propuesta de otro autor de la demostración o cree un borrador. Aquí no se realiza ningún alta, verificación del proveedor, ejecución de facturación ni aprobación real de políticas.",
+    es: "Espacio de trabajo de políticas ficticio. Los cambios se conservan hasta que se restablezca la demostración. Revise la propuesta de otro autor de la demostración o cree un borrador. Aquí no se realiza ninguna alta, verificación del proveedor, ejecución de facturación ni aprobación real de políticas.",
     fr: "Espace de travail fictif. Les modifications sont conservées jusqu’à la réinitialisation de la démo. Examinez la proposition d’un autre auteur de la démo ou créez un brouillon. Aucune souscription, vérification de prestataire, exécution de facturation ni approbation réelle de politique n’a lieu ici.",
     de: "Fiktiver Arbeitsbereich für Richtlinien. Änderungen bleiben bis zum Zurücksetzen der Demo erhalten. Prüfen Sie den Vorschlag eines anderen Demo-Autors oder erstellen Sie einen Entwurf. Hier finden keine Anmeldung, keine Anbieterverifizierung, keine Abrechnung und keine echte Genehmigung von Richtlinien statt.",
     ja: "架空のポリシー作業スペースです。変更はデモをリセットするまで保持されます。別のデモ作成者による提案を確認するか、下書きを作成してください。ここでは登録、プロバイダー検証、請求処理、実際のポリシー承認は一切行われません。",
@@ -2430,7 +2430,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.selected.fullEvidence": {
     en: "Full policy and approval evidence",
-    es: "Política completa y evidencias de aprobación",
+    es: "Política completa y evidencia de aprobación",
     fr: "Politique complète et preuves d’approbation",
     de: "Vollständige Richtlinie und Genehmigungsnachweise",
     ja: "ポリシーの全文と承認の証跡",
@@ -2644,7 +2644,7 @@ export const adminPricingMessages = defineMessages({
   // PAYG policy form
   "adminPricing.payg.form.offerAndEvidence": {
     en: "Offer and evidence",
-    es: "Oferta y evidencias",
+    es: "Oferta y evidencia",
     fr: "Offre et preuves",
     de: "Tarif und Nachweise",
     ja: "オファーと証跡",
@@ -3206,7 +3206,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.description": {
     en: "Record a trial only for a mapped provider tenant and an existing server-verified domain. One claim is retained for each organization and domain. This does not provision storage or enable a live trial adapter.",
-    es: "Registre un periodo de prueba solo para un inquilino del proveedor asignado y un dominio existente verificado por el servidor. Se conserva una única solicitud por organización y dominio. Esto no aprovisiona almacenamiento ni habilita un adaptador de prueba real.",
+    es: "Registre un periodo de prueba solo para un inquilino del proveedor ya asignado y un dominio existente verificado por el servidor. Solo se conserva un periodo de prueba por organización y dominio. Esto no aprovisiona almacenamiento ni habilita un adaptador de prueba real.",
     fr: "N’enregistrez un essai que pour un locataire de prestataire mis en correspondance et un domaine existant vérifié par le serveur. Une seule demande est conservée par organisation et par domaine. Cette action ne provisionne pas de stockage et n’active aucun adaptateur d’essai réel.",
     de: "Erfassen Sie eine Testphase nur für einen zugeordneten Anbietermandanten und eine vorhandene, serverseitig verifizierte Domain. Pro Organisation und Domain wird eine Inanspruchnahme gespeichert. Dadurch wird weder Speicher bereitgestellt noch ein Live-Adapter für Testphasen aktiviert.",
     ja: "トライアルは、マッピング済みのプロバイダーテナントと、サーバーで検証済みの既存ドメインに対してのみ記録してください。利用登録は組織とドメインごとに1件保持されます。この操作でストレージがプロビジョニングされることはなく、本番のトライアルアダプターも有効になりません。",
@@ -3216,7 +3216,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.refresh": {
     en: "Refresh trial claims",
-    es: "Actualizar solicitudes de periodo de prueba",
+    es: "Actualizar periodos de prueba",
     fr: "Actualiser les demandes d’essai",
     de: "Inanspruchnahmen aktualisieren",
     ja: "トライアルの利用登録を再読み込み",
@@ -3226,7 +3226,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.none": {
     en: "No trial claims are recorded.",
-    es: "No hay ninguna solicitud de periodo de prueba registrada.",
+    es: "No hay ningún periodo de prueba registrado.",
     fr: "Aucune demande d’essai n’est enregistrée.",
     de: "Es sind keine Inanspruchnahmen von Testphasen erfasst.",
     ja: "トライアルの利用登録はありません。",
@@ -3236,7 +3236,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.claimed": {
     en: "Lifetime trial claim {id} retained. Provider enforcement requires the verified authorization adapter.",
-    es: "Se ha registrado la solicitud única de periodo de prueba {id}. La aplicación por parte del proveedor requiere el adaptador de autorización verificado.",
+    es: "Periodo de prueba {id} registrado; es el único que se admite para esta organización. La aplicación por parte del proveedor requiere el adaptador de autorización verificado.",
     fr: "Demande d’essai unique {id} enregistrée. L’application côté prestataire nécessite l’adaptateur d’autorisation vérifié.",
     de: "Einmalige Inanspruchnahme der Testphase {id} gespeichert. Die Durchsetzung beim Anbieter erfordert den verifizierten Autorisierungsadapter.",
     ja: "トライアルの利用登録 {id}（組織につき1回限り）を保存しました。プロバイダー側での適用には、検証済みの認可アダプターが必要です。",
@@ -3276,7 +3276,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.recordClaim": {
     en: "Record verified trial claim",
-    es: "Registrar solicitud de periodo de prueba verificada",
+    es: "Registrar periodo de prueba verificado",
     fr: "Enregistrer une demande d’essai vérifiée",
     de: "Verifizierte Inanspruchnahme der Testphase erfassen",
     ja: "検証済みのトライアル利用登録を記録",
@@ -3326,7 +3326,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.recordClaimButton": {
     en: "Record trial claim",
-    es: "Registrar solicitud",
+    es: "Registrar periodo de prueba",
     fr: "Enregistrer la demande",
     de: "Inanspruchnahme erfassen",
     ja: "利用登録を記録",
@@ -3720,7 +3720,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.billing.description": {
     en: "Review rated periods and corrections, then create the corresponding financial documents. Each effect can be materialized once; provider delivery remains subject to capability gates. Corrections to paid invoices create customer balance credits; cash refunds require a separate approved refund.",
-    es: "Revise los periodos tarificados y las correcciones y, después, cree los documentos financieros correspondientes. Cada operación solo puede generar su documento una vez; el envío por el proveedor sigue sujeto a los controles de capacidades. Las correcciones de facturas pagadas generan saldo a favor del cliente; los reembolsos en efectivo requieren un reembolso aprobado por separado.",
+    es: "Revise los periodos tarificados y las correcciones y, después, cree los documentos financieros correspondientes. Cada operación solo puede generar su documento una vez; el envío por el proveedor sigue sujeto a los controles de funciones. Las correcciones de facturas pagadas generan saldo a favor del cliente; los reembolsos en efectivo requieren un reembolso aprobado por separado.",
     fr: "Examinez les périodes valorisées et les corrections, puis créez les documents financiers correspondants. Chaque opération ne peut donner lieu qu’à un seul document\u202f; la transmission par le prestataire reste soumise aux contrôles de fonctionnalités. Les corrections de factures payées créent un crédit sur le solde du client\u202f; un remboursement en espèces nécessite un remboursement approuvé distinct.",
     de: "Prüfen Sie abgerechnete Zeiträume und Korrekturen, und erstellen Sie dann die zugehörigen Finanzbelege. Jeder Vorgang kann nur einmal in einen Beleg überführt werden; die Zustellung durch den Anbieter unterliegt weiterhin den Funktionsprüfungen. Korrekturen bezahlter Rechnungen erzeugen ein Guthaben auf dem Kundenkonto; Barerstattungen erfordern eine separat genehmigte Erstattung.",
     ja: "料金計算済みの期間と修正を確認し、対応する財務書類を作成します。書類を作成できるのは各項目につき1回だけです。プロバイダーからの送付は、引き続き機能ゲートの対象です。支払済みの請求書に対する修正は顧客の残高クレジットになります。現金での返金には、別途承認された返金が必要です。",
@@ -3824,7 +3824,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.billing.kind.creditAdjustment": {
     en: "Credit adjustment",
-    es: "Ajuste de crédito",
+    es: "Ajuste de abono",
     fr: "Ajustement créditeur",
     de: "Gutschriftskorrektur",
     ja: "貸方調整",
@@ -3856,7 +3856,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.error.trialAccountNotCleared": {
     en: "The customer account must clear screening before a trial is claimed.",
-    es: "La cuenta del cliente debe superar la verificación de cumplimiento antes de solicitar un periodo de prueba.",
+    es: "La cuenta del cliente debe superar la verificación de cumplimiento antes de que se le registre un periodo de prueba.",
     fr: "Le compte client doit passer le contrôle de conformité avant toute demande d’essai.",
     de: "Das Kundenkonto muss die Compliance-Prüfung bestehen, bevor eine Testphase in Anspruch genommen wird.",
     ja: "トライアルを利用登録する前に、顧客アカウントが審査を通過している必要があります。",
@@ -3866,7 +3866,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.error.trialAlreadyUsed": {
     en: "This organization or verified domain has already claimed a trial. Its lifetime eligibility cannot be reset.",
-    es: "Esta organización o este dominio verificado ya ha solicitado un periodo de prueba. Ese derecho es único y no se puede restablecer.",
+    es: "Esta organización o este dominio verificado ya ha utilizado un periodo de prueba. Ese derecho es único y no se puede restablecer.",
     fr: "Cette organisation ou ce domaine vérifié a déjà bénéficié d’un essai. Ce droit unique ne peut pas être réinitialisé.",
     de: "Diese Organisation oder verifizierte Domain hat bereits eine Testphase in Anspruch genommen. Diese einmalige Berechtigung kann nicht zurückgesetzt werden.",
     ja: "この組織または検証済みドメインは、すでにトライアルを利用登録しています。1回限りの利用資格はリセットできません。",
@@ -3876,7 +3876,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.error.trialDomainEvidence": {
     en: "Use a retained successful registration verification event or verified DNS domain record for this organization’s account.",
-    es: "Utilice un evento de verificación de registro correcto ya registrado o un registro DNS de dominio verificado para la cuenta de esta organización.",
+    es: "Utilice, para la cuenta de esta organización, un evento de verificación de registro superado y conservado o un registro DNS de dominio verificado.",
     fr: "Utilisez un événement de vérification d’inscription réussi et conservé, ou un enregistrement DNS de domaine vérifié, pour le compte de cette organisation.",
     de: "Verwenden Sie für das Konto dieser Organisation ein gespeichertes, erfolgreiches Verifizierungsereignis der Registrierung oder einen verifizierten DNS-Domaineintrag.",
     ja: "この組織のアカウントについて、保存済みの登録検証成功イベントまたは検証済みの DNS ドメインレコードを使用してください。",
@@ -4136,7 +4136,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.error.trialListUnavailable": {
     en: "The trial claim list is unavailable.",
-    es: "La lista de solicitudes de periodo de prueba no está disponible.",
+    es: "La lista de periodos de prueba no está disponible.",
     fr: "La liste des demandes d’essai est indisponible.",
     de: "Die Liste der Inanspruchnahmen von Testphasen ist nicht verfügbar.",
     ja: "トライアル利用登録の一覧を利用できません。",
@@ -4644,7 +4644,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.simulation.total": {
     en: "Term total, excluding tax: {total}",
-    es: "Total de la duración, sin impuestos: {total}",
+    es: "Total para toda la duración, sin impuestos: {total}",
     fr: "Total sur la durée, hors taxes\u00a0: {total}",
     de: "Gesamtbetrag der Laufzeit ohne Steuern: {total}",
     ja: "契約期間の合計（税抜）：{total}",
@@ -5461,7 +5461,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.catalog.demoUnavailable": {
     en: "Live provider mappings are not connected in this demo. Use Price books to explore fictional SKUs, regions and pricing. Mapping administration requires a verified staff session and the control database.",
-    es: "En esta demostración no hay asignaciones de proveedores reales conectadas. Use «Listas de precios» para explorar SKU, regiones y precios ficticios. Para administrar asignaciones se necesitan una sesión de personal verificada y la base de datos de control.",
+    es: "En esta demostración no hay asignaciones de proveedores reales conectadas. Use «Listas de precios» para explorar SKU, regiones y precios ficticios. Para administrar asignaciones se necesitan una sesión de empleado verificada y la base de datos de control.",
     fr: "Aucune correspondance avec un prestataire réel n’est connectée dans cette démo. Utilisez «\u00a0Grilles tarifaires\u00a0» pour explorer des SKU, des régions et des prix fictifs. L’administration des correspondances exige une session de personnel vérifiée et la base de données de contrôle.",
     de: "In dieser Demo sind keine echten Anbieterzuordnungen angebunden. Unter „Preislisten“ können Sie fiktive SKUs, Regionen und Preise ansehen. Für die Verwaltung von Zuordnungen sind eine verifizierte Mitarbeitersitzung und die Steuerungsdatenbank erforderlich.",
     ja: "このデモでは、実際のプロバイダーのマッピングは接続されていません。架空の SKU、リージョン、価格は「価格表」で確認できます。マッピングの管理には、検証済みのスタッフセッションとコントロールデータベースが必要です。",
@@ -5511,7 +5511,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.catalog.notQualified": {
     en: "No valid provisionable mapping is retained. This entry is not provider-qualified.",
-    es: "No se conserva ninguna asignación aprovisionable válida. Esta entrada no está cualificada con el proveedor.",
+    es: "No se conserva ninguna asignación aprovisionable válida. Esta entrada no ha superado la cualificación del proveedor.",
     fr: "Aucune correspondance provisionnable valide n’est conservée. Cette entrée n’est pas qualifiée auprès du prestataire.",
     de: "Es ist keine gültige bereitstellbare Zuordnung hinterlegt. Dieser Eintrag ist nicht beim Anbieter qualifiziert.",
     ja: "有効なプロビジョニング可能なマッピングが保存されていません。このエントリはプロバイダーでの適格性確認が済んでいません。",
@@ -5651,7 +5651,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.catalog.result.failed": {
     en: "The mapping could not be saved. Refresh and check your current authority and the source evidence.",
-    es: "No se ha podido guardar la asignación. Actualice la página y compruebe sus permisos actuales y la evidencia de origen.",
+    es: "No se ha podido guardar la asignación. Actualice la página y compruebe su autoridad actual y la evidencia de origen.",
     fr: "La correspondance n’a pas pu être enregistrée. Actualisez la page et vérifiez vos habilitations actuelles ainsi que la preuve source.",
     de: "Die Zuordnung konnte nicht gespeichert werden. Aktualisieren Sie die Seite und prüfen Sie Ihre aktuelle Befugnis und den Quellnachweis.",
     ja: "マッピングを保存できませんでした。ページを再読み込みし、現在の権限とソースの証跡を確認してください。",
@@ -5913,7 +5913,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.command.forbidden": {
     en: "Finance approval authority with recent MFA is required.",
-    es: "Se requiere facultad de aprobación financiera y una MFA reciente.",
+    es: "Se requiere autoridad de aprobación financiera con MFA reciente.",
     fr: "Une habilitation d’approbation financière et une MFA récente sont requises.",
     de: "Erforderlich sind eine Finanzgenehmigungsbefugnis und eine kürzlich bestätigte MFA.",
     ja: "財務承認の権限と、直近の MFA が必要です。",

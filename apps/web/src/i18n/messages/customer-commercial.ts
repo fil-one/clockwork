@@ -15,7 +15,7 @@ export const customerCommercialMessages = defineMessages({
   // ---------------------------------------------------------------------------
   "customer.commercial.collection.agreements.eyebrow": {
     en: "Customer workspace · Governing terms",
-    es: "Espacio de trabajo del cliente · Condiciones aplicables",
+    es: "Espacio del cliente · Condiciones aplicables",
     fr: "Espace de travail client · Conditions applicables",
     de: "Kunden-Arbeitsbereich · Maßgebliche Bedingungen",
     ja: "顧客ワークスペース・適用条件",
@@ -75,7 +75,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.quotes.eyebrow": {
     en: "Customer workspace · Price and expiry",
-    es: "Espacio de trabajo del cliente · Precio y caducidad",
+    es: "Espacio del cliente · Precio y caducidad",
     fr: "Espace de travail client · Prix et expiration",
     de: "Kunden-Arbeitsbereich · Preis und Gültigkeit",
     ja: "顧客ワークスペース・価格と有効期限",
@@ -135,7 +135,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.orders.eyebrow": {
     en: "Customer workspace · Accepted commitments",
-    es: "Espacio de trabajo del cliente · Compromisos aceptados",
+    es: "Espacio del cliente · Compromisos aceptados",
     fr: "Espace de travail client · Engagements acceptés",
     de: "Kunden-Arbeitsbereich · Angenommene Verpflichtungen",
     ja: "顧客ワークスペース・承諾済みのコミットメント",
@@ -195,7 +195,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.services.eyebrow": {
     en: "Customer workspace · Delivery and usage",
-    es: "Espacio de trabajo del cliente · Prestación y uso",
+    es: "Espacio del cliente · Prestación y uso",
     fr: "Espace de travail client · Fourniture et consommation",
     de: "Kunden-Arbeitsbereich · Leistungserbringung und Nutzung",
     ja: "顧客ワークスペース・提供と利用状況",
@@ -215,7 +215,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.services.description": {
     en: "Monitor active capacity, regional delivery, provisioning, and service term state.",
-    es: "Supervise la capacidad activa, la prestación por región, el aprovisionamiento y el estado de la duración del servicio.",
+    es: "Supervise la capacidad activa, la prestación por región, el aprovisionamiento y el estado de la vigencia del servicio.",
     fr: "Surveillez la capacité active, la fourniture par région, le provisionnement et l’état de la durée du service.",
     de: "Überwachen Sie aktive Kapazität, regionale Leistungserbringung, Bereitstellung und den Stand der Servicelaufzeit.",
     ja: "稼働中の容量、リージョン別の提供状況、プロビジョニング、サービス期間の状態を監視します。",
@@ -245,7 +245,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.pocs.eyebrow": {
     en: "Customer workspace · Evaluation controls",
-    es: "Espacio de trabajo del cliente · Controles de evaluación",
+    es: "Espacio del cliente · Controles de evaluación",
     fr: "Espace de travail client · Cadre d’évaluation",
     de: "Kunden-Arbeitsbereich · Rahmen der Evaluierung",
     ja: "顧客ワークスペース・評価の管理",
@@ -295,7 +295,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.collection.billing.eyebrow": {
     en: "Customer workspace · Invoices and payments",
-    es: "Espacio de trabajo del cliente · Facturas y pagos",
+    es: "Espacio del cliente · Facturas y pagos",
     fr: "Espace de travail client · Factures et paiements",
     de: "Kunden-Arbeitsbereich · Rechnungen und Zahlungen",
     ja: "顧客ワークスペース・請求書と支払い",
@@ -2779,7 +2779,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.builder.chain.notCreated": {
     en: "Not created",
-    es: "Aún no se crea",
+    es: "Pendiente de crear",
     fr: "Pas encore créé",
     de: "Noch nicht erstellt",
     ja: "未作成",
@@ -3009,7 +3009,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.builder.expiryHelp": {
     en: "Use your local date and time.",
-    es: "Indique la fecha y la hora locales.",
+    es: "Use su fecha y hora locales.",
     fr: "Utilisez votre date et votre heure locales.",
     de: "Verwenden Sie Ihr lokales Datum und Ihre lokale Uhrzeit.",
     ja: "現地の日付と時刻で入力してください。",
@@ -3019,7 +3019,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.builder.reviewTitle": {
     en: "Review your draft",
-    es: "Comprobación final antes de crear el borrador",
+    es: "Revisión del borrador",
     fr: "Dernière vérification avant création",
     de: "Letzte Prüfung vor dem Erstellen",
     ja: "作成前の最終確認",
@@ -3389,7 +3389,7 @@ export const customerCommercialMessages = defineMessages({
   // ---------------------------------------------------------------------------
   "customer.commercial.buy.context": {
     en: "Customer workspace · Direct purchase",
-    es: "Espacio de trabajo del cliente · Compra directa",
+    es: "Espacio del cliente · Compra directa",
     fr: "Espace de travail client · Achat direct",
     de: "Kunden-Arbeitsbereich · Direktkauf",
     ja: "顧客ワークスペース・直接購入",
@@ -3819,7 +3819,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.buy.tryAgain": {
     en: "Try again",
-    es: "Intentar de nuevo",
+    es: "Reintentar",
     fr: "Réessayer",
     de: "Erneut versuchen",
     ja: "再試行",
@@ -4581,7 +4581,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.agreement.loadingTitle": {
     en: "Loading counsel-approved agreement",
-    es: "Cargando el acuerdo aprobado por el equipo jurídico",
+    es: "Cargando el acuerdo aprobado por la asesoría jurídica",
     fr: "Chargement de l’accord approuvé par le service juridique",
     de: "Von der Rechtsabteilung genehmigte Vereinbarung wird geladen",
     ja: "法務承認済みの契約を読み込んでいます",

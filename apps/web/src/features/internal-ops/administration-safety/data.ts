@@ -718,7 +718,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     capability: demoText({
       en: "Hosted runtime, MFA, and signed callbacks",
-      es: "Entorno de ejecución alojado, MFA y devoluciones de llamada firmadas",
+      es: "Entorno de ejecución alojado, MFA y notificaciones de webhook firmadas",
       fr: "Environnement d’exécution hébergé, MFA et rappels signés",
       de: "Gehostete Laufzeitumgebung, MFA und signierte Callbacks",
       ja: "ホスト型ランタイム、MFA、署名付きコールバック",
@@ -740,7 +740,7 @@ const gateFixtures: readonly GateFixture[] = [
     state: gateStates.blocked,
     reason: demoText({
       en: "Scoped hosted credentials and a passing callback test are required.",
-      es: "Se requieren credenciales alojadas de alcance limitado y una prueba de devolución de llamada superada.",
+      es: "Se requieren credenciales alojadas de alcance limitado y una prueba de notificaciones de webhook superada.",
       fr: "Des identifiants hébergés à portée limitée et un test de rappel réussi sont requis.",
       de: "Erforderlich sind gehostete Zugangsdaten mit eingeschränktem Geltungsbereich und ein bestandener Callback-Test.",
       ja: "スコープを限定したホスト環境の認証情報と、合格したコールバックテストが必要です。",
@@ -904,7 +904,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     activationTest: demoText({
       en: "Replay-safe simulator result is part of the fallback record",
-      es: "El resultado del simulador, seguro ante reprocesos, forma parte del registro de respaldo",
+      es: "El resultado del simulador, seguro ante reejecuciones, forma parte del registro de respaldo",
       fr: "Le résultat du simulateur, sûr en cas de rejeu, fait partie de l’enregistrement de repli",
       de: "Das wiederholungssichere Simulatorergebnis ist Teil des Fallback-Datensatzes",
       ja: "再実行しても安全なシミュレーター結果はフォールバック記録に含まれます",
@@ -940,7 +940,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     owner: demoText({
       en: "General counsel",
-      es: "Dirección de Asesoría Jurídica",
+      es: "Dirección de asesoría jurídica",
       fr: "Direction juridique",
       de: "Leitung Recht",
       ja: "法務責任者",
@@ -1098,7 +1098,7 @@ const gateFixtures: readonly GateFixture[] = [
     group: gateGroups.brand,
     title: demoText({
       en: "Domains and callback records",
-      es: "Dominios y registros de devolución de llamada",
+      es: "Dominios y registros de notificaciones de webhook",
       fr: "Domaines et enregistrements de rappel",
       de: "Domains und Callback-Einträge",
       ja: "ドメインとコールバックのレコード",
@@ -1118,7 +1118,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     capability: demoText({
       en: "Custom domains, TLS, callbacks, and sender records",
-      es: "Dominios personalizados, TLS, devoluciones de llamada y registros de remitente",
+      es: "Dominios personalizados, TLS, notificaciones de webhook y registros de remitente",
       fr: "Domaines personnalisés, TLS, rappels et enregistrements d’expéditeur",
       de: "Eigene Domains, TLS, Callbacks und Absendereinträge",
       ja: "カスタムドメイン、TLS、コールバック、送信者レコード",
@@ -1128,7 +1128,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     activationTest: demoText({
       en: "Local callback test passed; DNS test not run",
-      es: "Prueba local de devolución de llamada superada; prueba de DNS sin ejecutar",
+      es: "Prueba local de notificaciones de webhook superada; prueba de DNS sin ejecutar",
       fr: "Test local des rappels réussi\u202f; test DNS non exécuté",
       de: "Lokaler Callback-Test bestanden; DNS-Test nicht ausgeführt",
       ja: "ローカルのコールバックテストは合格、DNS テストは未実行",
@@ -1286,7 +1286,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     capability: demoText({
       en: "Private offers, order identity, and settlement replay",
-      es: "Ofertas privadas, identidad de pedidos y reproceso de liquidaciones",
+      es: "Ofertas privadas, identidad de pedidos y reejecución de liquidaciones",
       fr: "Offres privées, identité des commandes et rejeu des règlements",
       de: "Private Angebote, Auftragsidentität und erneute Abrechnungsverarbeitung",
       ja: "プライベートオファー、注文の ID、精算の再実行",
@@ -1296,7 +1296,7 @@ const gateFixtures: readonly GateFixture[] = [
     }),
     activationTest: demoText({
       en: "Provider-boundary replay not run",
-      es: "Reproceso en el límite del proveedor sin ejecutar",
+      es: "Prueba de reejecución en el límite del proveedor sin ejecutar",
       fr: "Rejeu à la frontière du prestataire non exécuté",
       de: "Wiederholung an der Anbietergrenze nicht ausgeführt",
       ja: "プロバイダー境界での再実行は未実施",
@@ -1308,7 +1308,7 @@ const gateFixtures: readonly GateFixture[] = [
     state: gateStates.blocked,
     reason: demoText({
       en: "Marketplace identity and settlement replay must pass.",
-      es: "Las pruebas de identidad de marketplace y de reproceso de liquidaciones deben superarse.",
+      es: "Las pruebas de identidad de marketplace y de reejecución de liquidaciones deben superarse.",
       fr: "Les tests d’identité marketplace et de rejeu des règlements doivent réussir.",
       de: "Die Tests für Marketplace-Identität und Abrechnungswiederholung müssen bestanden werden.",
       ja: "マーケットプレイスの ID と精算の再実行テストに合格する必要があります。",

@@ -604,7 +604,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.next.demoProvisionerReceived": {
     en: "The demo provisioner received this order. Service activation awaits a provider completion result.",
-    es: "El sistema de aprovisionamiento de la demo recibió este pedido. La activación del servicio está pendiente del resultado de finalización del proveedor.",
+    es: "El sistema de aprovisionamiento de la demo ha recibido este pedido. La activación del servicio está pendiente del resultado de finalización del proveedor.",
     fr: "Le système de provisionnement de la démo a reçu cette commande. L’activation du service attend le résultat de fin de traitement du prestataire.",
     de: "Die Demo-Bereitstellung hat diesen Auftrag erhalten. Die Aktivierung des Dienstes wartet auf die Abschlussmeldung des Anbieters.",
     ja: "デモのプロビジョニングシステムがこの注文を受け付けました。サービスの有効化は、プロバイダーからの完了結果を待っています。",
@@ -785,7 +785,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.label.termEnd": {
     en: "Term end",
-    es: "Fin de la duración",
+    es: "Fin de la vigencia",
     fr: "Fin de la durée",
     de: "Laufzeitende",
     ja: "契約期間の終了日",
@@ -795,7 +795,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.label.committedAnnualSpend": {
     en: "Committed annual spend",
-    es: "Gasto anual contratado",
+    es: "Gasto anual comprometido",
     fr: "Dépense annuelle engagée",
     de: "Zugesagte Jahresausgaben",
     ja: "年間契約金額",
@@ -805,7 +805,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.label.committedSpend": {
     en: "Committed spend",
-    es: "Gasto contratado",
+    es: "Gasto comprometido",
     fr: "Dépense engagée",
     de: "Zugesagte Ausgaben",
     ja: "契約金額",
@@ -1249,7 +1249,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.value.atRisk": {
     en: "{amount} at risk",
-    es: "{amount} en riesgo",
+    es: "En riesgo: {amount}",
     fr: "{amount} à risque",
     de: "{amount} gefährdet",
     ja: "リスクのある金額 {amount}",
@@ -1259,7 +1259,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.value.disputed": {
     en: "{amount} disputed",
-    es: "{amount} en disputa",
+    es: "En disputa: {amount}",
     fr: "{amount} en litige",
     de: "{amount} strittig",
     ja: "異議対象の金額 {amount}",
@@ -1279,7 +1279,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.value.invoiced": {
     en: "{amount} invoiced",
-    es: "{amount} facturados",
+    es: "Facturado: {amount}",
     fr: "{amount} facturés",
     de: "{amount} in Rechnung gestellt",
     ja: "請求済み {amount}",
@@ -1289,7 +1289,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.value.accrued": {
     en: "{amount} accrued",
-    es: "{amount} devengados",
+    es: "Devengado: {amount}",
     fr: "{amount} acquis",
     de: "{amount} aufgelaufen",
     ja: "計上額 {amount}",
@@ -1627,7 +1627,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.desc.agreementFilOnePaperReferred": {
     en: "Fil One paper · version {version} · referred by {partner}",
-    es: "Modelo de contrato de Fil One · versión {version} · recomendado por {partner}",
+    es: "Contrato de Fil One · versión {version} · recomendado por {partner}",
     fr: "Modèle de contrat Fil One · version {version} · apporté par {partner}",
     de: "Vertragsvorlage von Fil One · Version {version} · empfohlen von {partner}",
     ja: "Fil One 標準契約書・バージョン {version}・{partner} の紹介",
@@ -1637,7 +1637,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.desc.agreementFilOnePaperInForce": {
     en: "Fil One paper · version {version} · in force",
-    es: "Modelo de contrato de Fil One · versión {version} · vigente",
+    es: "Contrato de Fil One · versión {version} · vigente",
     fr: "Modèle de contrat Fil One · version {version} · en vigueur",
     de: "Vertragsvorlage von Fil One · Version {version} · in Kraft",
     ja: "Fil One 標準契約書・バージョン {version}・有効",
@@ -1647,7 +1647,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.desc.providerReportsFulfilled": {
     en: "Provider reports the accepted offer is fulfilled.",
-    es: "El proveedor informa de que la oferta aceptada se ha completado.",
+    es: "El proveedor informa de que la oferta aceptada se ha tramitado.",
     fr: "Le prestataire indique que l’offre acceptée est exécutée.",
     de: "Laut Anbieter ist das angenommene Angebot erfüllt.",
     ja: "プロバイダーによると、承諾済みのオファーは履行済みです。",
@@ -1657,7 +1657,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.desc.openInvoiceSalesTax": {
     en: "Open invoice · includes the determined Washington sales tax",
-    es: "Factura pendiente · incluye el impuesto sobre las ventas de Washington determinado",
+    es: "Factura pendiente · incluye el impuesto sobre las ventas de Washington calculado",
     fr: "Facture ouverte · inclut la taxe sur les ventes de l’État de Washington déterminée",
     de: "Offene Rechnung · enthält die ermittelte Verkaufssteuer (US) für Washington",
     ja: "未払いの請求書・確定済みのワシントン州売上税を含む",
@@ -1783,7 +1783,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.title.renewalReport": {
     en: "Renewal and churn exposure · {period}",
-    es: "Exposición en renovaciones y bajas · {period}",
+    es: "Exposición a renovaciones y bajas · {period}",
     fr: "Exposition aux renouvellements et à l’attrition · {period}",
     de: "Verlängerungs- und Abwanderungsrisiko · {period}",
     ja: "契約更新と解約のリスク・{period}",
@@ -1864,7 +1864,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.partner.twoTierTermEnds": {
     en: "Two-tier · {capacity} · current term ends {date}",
-    es: "Dos niveles · {capacity} · la duración actual finaliza el {date}",
+    es: "Dos niveles · {capacity} · la vigencia actual finaliza el {date}",
     fr: "Deux niveaux · {capacity} · la durée en cours se termine le {date}",
     de: "Zweistufig · {capacity} · aktuelle Laufzeit endet am {date}",
     ja: "2 階層販売・{capacity}・現在の契約期間は{date}に終了",
@@ -2005,7 +2005,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.artifact.transferQuote": {
     en: "Transfer quote {reference}",
-    es: "Presupuesto a precio de cesión {reference}",
+    es: "Presupuesto de cesión {reference}",
     fr: "Devis au prix de cession {reference}",
     de: "Angebot zum Einkaufspreis {reference}",
     ja: "仕切価格の見積書 {reference}",
@@ -2055,7 +2055,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.artifact.renewalExposureExport": {
     en: "Renewal exposure export {reference}",
-    es: "Exportación de exposición en renovaciones {reference}",
+    es: "Exportación de exposición a renovaciones {reference}",
     fr: "Export de l’exposition aux renouvellements {reference}",
     de: "Export des Verlängerungsrisikos {reference}",
     ja: "契約更新リスクのエクスポート {reference}",
@@ -2196,7 +2196,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.termFallbackTitle": {
     en: "Account term",
-    es: "Duración de la cuenta",
+    es: "Vigencia de la cuenta",
     fr: "Durée du compte",
     de: "Laufzeit des Kontos",
     ja: "アカウントの契約期間",
@@ -2206,7 +2206,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.termNoRange": {
     en: "No service term recorded yet",
-    es: "Aún no hay duración del servicio registrada",
+    es: "Aún no consta la vigencia del servicio",
     fr: "Aucune durée de service enregistrée pour l’instant",
     de: "Noch keine Servicelaufzeit erfasst",
     ja: "サービス期間はまだ記録されていません",
@@ -2216,7 +2216,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.termProgressUnavailable": {
     en: "Service term progress is not yet available",
-    es: "El progreso de la duración del servicio aún no está disponible",
+    es: "El progreso de la vigencia del servicio aún no está disponible",
     fr: "L’avancement de la durée du service n’est pas encore disponible",
     de: "Der Fortschritt der Servicelaufzeit ist noch nicht verfügbar",
     ja: "サービス期間の進捗はまだ表示できません",
@@ -2226,7 +2226,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.termProgress": {
     en: "{percent} of the current commercial term has elapsed",
-    es: "Ha transcurrido el {percent} de la duración comercial actual",
+    es: "Ha transcurrido el {percent} de la vigencia comercial actual",
     fr: "{percent} de la durée commerciale en cours est écoulée",
     de: "{percent} der aktuellen Vertragslaufzeit sind verstrichen",
     ja: "現在の契約期間の{percent}が経過",
@@ -2236,7 +2236,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.termAnnual": {
     en: "{account} annual term",
-    es: "Duración anual de {account}",
+    es: "Vigencia anual de {account}",
     fr: "Durée annuelle de {account}",
     de: "Jahreslaufzeit von {account}",
     ja: "{account} の年間契約期間",
@@ -2266,7 +2266,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.renewalExpires": {
     en: "Expires at term end",
-    es: "Finaliza al terminar la duración",
+    es: "Finaliza al vencimiento",
     fr: "Expire à la fin de la durée",
     de: "Endet mit Ablauf der Laufzeit",
     ja: "契約期間満了で終了",
@@ -2306,7 +2306,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.serviceActiveFollowsTerm": {
     en: "{capacity} · active · follows the account term",
-    es: "{capacity} · activo · sigue la duración de la cuenta",
+    es: "{capacity} · activo · sigue la vigencia de la cuenta",
     fr: "{capacity} · actif · suit la durée du compte",
     de: "{capacity} · aktiv · folgt der Laufzeit des Kontos",
     ja: "{capacity}・稼働中・アカウントの契約期間に連動",
@@ -2326,7 +2326,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.capacityPriorChange": {
     en: "{capacity} · up {change}",
-    es: "{capacity} · {change} más",
+    es: "{capacity} · aumento de {change}",
     fr: "{capacity} · en hausse de {change}",
     de: "{capacity} · plus {change}",
     ja: "{capacity}・{change} 増",
@@ -2346,7 +2346,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.activityMarketplaceSynced": {
     en: "Marketplace fulfillment synchronized",
-    es: "Cumplimiento en Marketplace sincronizado",
+    es: "Tramitación del marketplace sincronizada",
     fr: "Traitement Marketplace synchronisé",
     de: "Marketplace-Abwicklung synchronisiert",
     ja: "マーケットプレイスの履行状況を同期済み",
@@ -2499,7 +2499,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.partnerNoTerm": {
     en: "No partner agreement term recorded",
-    es: "No hay duración registrada del acuerdo de socio",
+    es: "No consta la vigencia del acuerdo de socio",
     fr: "Aucune durée d’accord de partenariat enregistrée",
     de: "Keine Laufzeit der Partnervereinbarung erfasst",
     ja: "パートナー契約の契約期間の記録なし",
@@ -2509,7 +2509,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.partnerOrderServiceTerm": {
     en: "{order} service term",
-    es: "Duración del servicio de {order}",
+    es: "Vigencia del servicio de {order}",
     fr: "Durée du service de {order}",
     de: "Servicelaufzeit von {order}",
     ja: "{order} のサービス期間",
@@ -2519,7 +2519,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.partnerTermEnded": {
     en: "Term ended {date}",
-    es: "Duración finalizada el {date}",
+    es: "Vigencia finalizada el {date}",
     fr: "Durée arrivée à échéance le {date}",
     de: "Laufzeit endete am {date}",
     ja: "契約期間は{date}に終了",
@@ -2579,7 +2579,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.routeResaleAndTwoTier": {
     en: "Resale and two-tier distribution",
-    es: "Reventa y distribución en dos niveles",
+    es: "Reventa y distribución de dos niveles",
     fr: "Revente et distribution à deux niveaux",
     de: "Wiederverkauf und zweistufiger Vertrieb",
     ja: "再販と 2 階層販売",
@@ -2609,7 +2609,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.workRenewalRouteEconomics": {
     en: "Renewal route and economics",
-    es: "Modalidad de venta y economía de la renovación",
+    es: "Modalidad y condiciones económicas de la renovación",
     fr: "Mode de vente et économie du renouvellement",
     de: "Vertriebsweg und Wirtschaftlichkeit der Verlängerung",
     ja: "契約更新の販売形態と採算",
@@ -2659,7 +2659,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.commissionStatementQuarter": {
     en: "Q{quarter} commission statement",
-    es: "Liquidación de comisiones del T{quarter}",
+    es: "Liquidación de comisiones del {quarter}.º trimestre",
     fr: "Relevé de commissions du T{quarter}",
     de: "Provisionsabrechnung Q{quarter}",
     ja: "第{quarter}四半期のコミッション明細書",

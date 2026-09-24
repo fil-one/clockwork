@@ -202,7 +202,7 @@ const legalTeam = demoText({
 });
 const serviceOperations = demoText({
   en: "Service operations",
-  es: "Operaciones del servicio",
+  es: "Operaciones de servicio",
   fr: "Opérations du service",
   de: "Servicebetrieb",
   ja: "サービス運用チーム",
@@ -232,7 +232,7 @@ const northstarPrimaryArchive = demoText({
 });
 const madridComplianceReplica = demoText({
   en: "Madrid compliance replica",
-  es: "Réplica de cumplimiento de Madrid",
+  es: "Réplica de cumplimiento en Madrid",
   fr: "Réplique de conformité de Madrid",
   de: "Compliance-Replikat Madrid",
   ja: "マドリードのコンプライアンス用レプリカ",
@@ -257,7 +257,7 @@ const fixtures: readonly CommercialFixture[] = [
       status: "active",
       description: demoText({
         en: "Fil One paper · signed",
-        es: "Modelo de Fil One · firmado",
+        es: "Contrato de Fil One · firmado",
         fr: "Modèle Fil One · signé",
         de: "Vorlage von Fil One · unterzeichnet",
         ja: "Fil One のひな形・署名済み",
@@ -677,7 +677,7 @@ const fixtures: readonly CommercialFixture[] = [
       status: "complete",
       description: demoText({
         en: "12 TB · four of four success tests passed",
-        es: "12 TB · superados los cuatro criterios de éxito",
+        es: "12 TB · superadas las cuatro pruebas de éxito",
         fr: "12 To · quatre critères de réussite validés sur quatre",
         de: "12 TB · vier von vier Erfolgstests bestanden",
         ja: "12 TB・成功基準テスト4件中4件に合格",

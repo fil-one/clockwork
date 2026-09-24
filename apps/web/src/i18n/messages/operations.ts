@@ -182,7 +182,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.31": {
     en: "Needs refresh",
-    es: "Requiere actualización",
+    es: "Desactualizado",
     fr: "À actualiser",
     de: "Aktualisierung erforderlich",
     ja: "更新が必要",
@@ -222,7 +222,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.35": {
     en: "Verify anything you are about to act on against the source record before deciding it.",
-    es: "Verifica los datos con el registro de origen antes de tomar una decisión.",
+    es: "Compruebe con el registro de origen todo aquello sobre lo que vaya a actuar antes de decidir.",
     fr: "Vérifiez les informations dans le document source avant de prendre une décision.",
     de: "Prüfen Sie vor einer Entscheidung alle betroffenen Daten am Ursprungsdatensatz.",
     ja: "判断を行う前に、対象情報を元の記録と照合してください。",
@@ -242,7 +242,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.37": {
     en: "Orders grouped by how long is left before their contractual notice date, with the route and the invoicing already recorded against them.",
-    es: "Pedidos agrupados por el tiempo restante hasta su preaviso contractual, con el canal y la facturación registrados.",
+    es: "Pedidos agrupados según el tiempo que queda hasta su fecha de preaviso contractual, con la modalidad de venta y la facturación ya registradas.",
     fr: "Commandes regroupées selon le délai restant avant leur préavis contractuel, avec le canal et la facturation enregistrés.",
     de: "Aufträge nach Zeit bis zum vertraglichen Mitteilungstermin, mit erfasstem Vertriebsweg und Abrechnung.",
     ja: "契約上の通知日までの残り期間別に、登録済みチャネルと請求情報を含む注文を表示します。",
@@ -262,7 +262,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.39": {
     en: "Invoiced to date shows billed value for each order. Forecast value remains separate from this renewal worklist.",
-    es: "Facturado hasta la fecha muestra el valor facturado por pedido. Las previsiones se mantienen separadas de esta lista de renovaciones.",
+    es: "«Facturado hasta la fecha» muestra el valor facturado de cada pedido. El valor previsto se mantiene al margen de esta lista de renovaciones.",
     fr: "Le montant facturé à ce jour indique la valeur facturée par commande. Les prévisions restent distinctes de cette liste de renouvellements.",
     de: "Bisher abgerechnet zeigt den Rechnungswert je Auftrag. Prognosewerte sind von dieser Verlängerungsliste getrennt.",
     ja: "請求済み額は各注文の請求額を示します。予測額はこの更新作業リストとは別に管理されます。",
@@ -292,7 +292,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.42": {
     en: "Route not recorded",
-    es: "Canal no registrado",
+    es: "Modalidad de venta no registrada",
     fr: "Canal non enregistré",
     de: "Vertriebsweg nicht erfasst",
     ja: "チャネル未記録",
@@ -322,7 +322,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.45": {
     en: "Open invoices ordered by exposure and age, with the corrections a finance approver may raise against them.",
-    es: "Facturas pendientes ordenadas por exposición y antigüedad, con las correcciones que puede solicitar un aprobador financiero.",
+    es: "Facturas pendientes ordenadas por exposición y antigüedad, con las correcciones que un aprobador financiero puede tramitar sobre ellas.",
     fr: "Factures ouvertes classées par exposition et ancienneté, avec les corrections qu’un approbateur financier peut demander.",
     de: "Offene Rechnungen nach Risiko und Alter, mit Korrekturen, die Finanzfreigebende beantragen können.",
     ja: "リスクと経過期間順の未払い請求書と、財務承認者が申請できる修正を表示します。",
@@ -362,7 +362,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.49": {
     en: "Open each invoice to review its payment history, disputes, and available corrections.",
-    es: "Abre cada factura para consultar pagos, disputas y correcciones disponibles.",
+    es: "Abra cada factura para revisar su historial de pagos, sus disputas y las correcciones disponibles.",
     fr: "Ouvrez chaque facture pour consulter les paiements, litiges et corrections disponibles.",
     de: "Öffnen Sie jede Rechnung für Zahlungshistorie, Streitfälle und Korrekturen.",
     ja: "各請求書を開いて、支払履歴、紛争、可能な修正を確認します。",
@@ -382,7 +382,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.51": {
     en: "Past due",
-    es: "Vencido",
+    es: "Importe vencido",
     fr: "En retard",
     de: "Überfällig",
     ja: "支払期限超過",
@@ -392,7 +392,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.52": {
     en: "Oldest past due",
-    es: "Mayor antigüedad de vencimiento",
+    es: "Vencimiento más antiguo",
     fr: "Retard le plus ancien",
     de: "Längster Verzug",
     ja: "最長延滞",
@@ -442,7 +442,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.58": {
     en: "Provisioning work",
-    es: "Trabajo de aprovisionamiento",
+    es: "Tareas de aprovisionamiento",
     fr: "Travail de provisionnement",
     de: "Bereitstellungsaufgaben",
     ja: "プロビジョニング業務",
@@ -452,7 +452,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.59": {
     en: "Track provider work, service terminations, retry timing, and the items that need operator attention.",
-    es: "Sigue el trabajo de proveedores, las bajas de servicios, los reintentos y las tareas que requieren atención.",
+    es: "Siga las operaciones de los proveedores, las bajas de servicio, el calendario de reintentos y los elementos que requieren la atención de un operador.",
     fr: "Suivez le travail des fournisseurs, les résiliations de services, les nouvelles tentatives et les tâches nécessitant une intervention.",
     de: "Anbieteraufgaben, Dienstbeendigungen, Wiederholungen und Aufgaben mit Handlungsbedarf verfolgen.",
     ja: "プロバイダー作業、サービス終了、再試行時刻、担当者の対応が必要な項目を追跡します。",
@@ -462,7 +462,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.60": {
     en: "Stopped work is handled in recovery.",
-    es: "El trabajo detenido se gestiona en Recuperación.",
+    es: "Las tareas detenidas se gestionan en Recuperación.",
     fr: "Le travail arrêté est géré dans Reprise.",
     de: "Gestoppte Aufgaben werden in Wiederherstellung bearbeitet.",
     ja: "停止した作業は復旧画面で処理します。",
@@ -472,7 +472,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.61": {
     en: "Open the recovery workspace to retry or abandon work that has exhausted its automatic attempts.",
-    es: "Abre Recuperación para reintentar o abandonar el trabajo que agotó sus intentos automáticos.",
+    es: "Abra el espacio de recuperación para reintentar o descartar las tareas que han agotado sus intentos automáticos.",
     fr: "Ouvrez l’espace Reprise pour relancer ou abandonner le travail ayant épuisé ses tentatives automatiques.",
     de: "Öffnen Sie Wiederherstellung, um Aufgaben nach ausgeschöpften automatischen Versuchen erneut zu versuchen oder aufzugeben.",
     ja: "自動再試行を使い切った作業を再試行または中止するには、復旧ワークスペースを開いてください。",
@@ -502,7 +502,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.64": {
     en: "Service terminations",
-    es: "Bajas de servicios",
+    es: "Bajas de servicio",
     fr: "Résiliations de services",
     de: "Dienstbeendigungen",
     ja: "サービス終了",
@@ -542,7 +542,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.68": {
     en: "No provisioning work needs attention in this workspace.",
-    es: "No hay trabajo de aprovisionamiento que requiera atención en este espacio.",
+    es: "Ninguna tarea de aprovisionamiento requiere atención en este espacio de trabajo.",
     fr: "Aucune tâche de provisionnement ne nécessite d’intervention dans cet espace.",
     de: "Keine Bereitstellungsaufgaben erfordern hier Aufmerksamkeit.",
     ja: "このワークスペースで対応が必要なプロビジョニング業務はありません。",
@@ -562,7 +562,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.70": {
     en: "Not applicable",
-    es: "No corresponde",
+    es: "No aplicable",
     fr: "Sans objet",
     de: "Nicht zutreffend",
     ja: "対象外",
@@ -582,7 +582,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.72": {
     en: "Report exports recorded against your operator session, and the supported exports you can generate now.",
-    es: "Exportaciones registradas en tu sesión de operador y exportaciones disponibles para generar.",
+    es: "Exportaciones de informes registradas en su sesión de operador y las exportaciones disponibles que puede generar ahora.",
     fr: "Exports enregistrés pour votre session opérateur et exports disponibles à générer.",
     de: "Für Ihre Sitzung erfasste Berichtsexporte und aktuell verfügbare Exporte.",
     ja: "担当者セッションに記録された出力と、今すぐ生成できるレポートです。",
@@ -612,7 +612,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.75": {
     en: "No report exports are projected into your operator scope. Generating an export below records one.",
-    es: "No hay exportaciones de informes en tu ámbito de operador. Genera una exportación abajo para registrarla.",
+    es: "No hay exportaciones de informes en su ámbito de operador. Al generar una exportación más abajo, quedará registrada.",
     fr: "Aucun export de rapport dans votre périmètre opérateur. Générez un export ci-dessous pour l’enregistrer.",
     de: "Keine Berichtsexporte in Ihrem Bedienerbereich. Ein unten erzeugter Export wird erfasst.",
     ja: "担当範囲にレポート出力はありません。以下から生成すると記録されます。",
@@ -712,7 +712,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.85": {
     en: "Choose a report and account scope below. Completed exports remain available in the history list.",
-    es: "Elige un informe y el ámbito de cuentas abajo. Las exportaciones completadas permanecen en el historial.",
+    es: "Elija más abajo un informe y el ámbito de cuentas. Las exportaciones completadas siguen disponibles en el historial.",
     fr: "Choisissez un rapport et un périmètre de comptes ci-dessous. Les exports terminés restent disponibles dans l’historique.",
     de: "Wählen Sie Bericht und Kontobereich. Abgeschlossene Exporte bleiben im Verlauf verfügbar.",
     ja: "以下でレポートとアカウント範囲を選択してください。生成済みの出力は履歴で利用できます。",
@@ -722,7 +722,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.116": {
     en: "Evidence",
-    es: "Pruebas",
+    es: "Evidencia",
     fr: "Preuves",
     de: "Nachweise",
     ja: "証跡",
@@ -1305,7 +1305,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.description": {
     en: "Prioritized policy, provider, and lifecycle work with clear ownership and evidence.",
-    es: "Trabajo priorizado de políticas, proveedores y ciclo de vida, con responsables y evidencias claros.",
+    es: "Trabajo priorizado de políticas, proveedores y ciclo de vida, con responsables y evidencia claramente definidos.",
     fr: "Travail lié aux politiques, aux prestataires et au cycle de vie, classé par priorité, avec des responsables et des preuves clairement établis.",
     de: "Priorisierte Aufgaben zu Richtlinien, Anbietern und Lebenszyklus mit klaren Verantwortlichkeiten und Nachweisen.",
     ja: "ポリシー、プロバイダー、ライフサイクルに関する作業を優先度順に表示し、担当者と証跡を明示します。",
@@ -1415,7 +1415,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.view.slaBreached.description": {
     en: "Items already outside their response policy",
-    es: "Elementos que ya superan su política de respuesta",
+    es: "Elementos que ya incumplen su política de respuesta",
     fr: "Éléments ayant déjà dépassé leur délai de réponse",
     de: "Einträge, die ihre Reaktionsvorgabe bereits überschritten haben",
     ja: "対応期限をすでに超過した項目",
@@ -1865,7 +1865,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.detail.policyBasis": {
     en: "Policy basis:",
-    es: "Base normativa:",
+    es: "Política aplicable:",
     fr: "Fondement de la politique\u00a0:",
     de: "Grundlage der Richtlinie:",
     ja: "ポリシー上の根拠：",
@@ -1875,7 +1875,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.detail.evidence": {
     en: "Evidence",
-    es: "Evidencias",
+    es: "Evidencia",
     fr: "Preuves",
     de: "Nachweise",
     ja: "証跡",
@@ -1955,7 +1955,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.detail.reviewOnly.body": {
     en: "Nothing is submitted here. Continue through the authorized workflow, where role, actor, policy, and provider gates are revalidated.",
-    es: "Aquí no se envía nada. Continúe por el flujo de trabajo autorizado, donde se vuelven a validar el rol, el actor, la política y los requisitos del proveedor.",
+    es: "Aquí no se envía nada. Continúe por el flujo autorizado, donde se vuelven a validar los controles de rol, de autor, de política y de proveedor.",
     fr: "Rien n’est soumis ici. Poursuivez dans le workflow autorisé, où le rôle, l’acteur, la politique et les prérequis du prestataire sont revérifiés.",
     de: "Hier wird nichts übermittelt. Fahren Sie im autorisierten Workflow fort, in dem Rolle, handelnde Person, Richtlinie und Anbietervoraussetzungen erneut geprüft werden.",
     ja: "ここでは何も送信されません。承認済みのワークフローで続行してください。そこでロール、実行者、ポリシー、プロバイダー要件が再検証されます。",
@@ -2035,7 +2035,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.type.pocQualification": {
     en: "POC qualification",
-    es: "Calificación de POC",
+    es: "Cualificación de POC",
     fr: "Qualification des POC",
     de: "POC-Qualifizierung",
     ja: "PoC の適格性審査",
@@ -2185,7 +2185,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.subject.taxRuleBook": {
     en: "Tax rule book",
-    es: "Libro de reglas fiscales",
+    es: "Reglas fiscales",
     fr: "Référentiel fiscal",
     de: "Steuerregelwerk",
     ja: "税務ルール集",
@@ -2195,7 +2195,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.subject.termination": {
     en: "Termination",
-    es: "Rescisión",
+    es: "Baja de servicio",
     fr: "Résiliation",
     de: "Kündigung",
     ja: "解約",
@@ -2285,7 +2285,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queueRecord.description": {
     en: "Review data freshness, evidence, and the recorded next task.",
-    es: "Revise la vigencia de los datos, las evidencias y la siguiente tarea registrada.",
+    es: "Revise la vigencia de los datos, la evidencia y la siguiente tarea registrada.",
     fr: "Vérifiez que les données sont à jour, puis examinez les preuves et la prochaine tâche enregistrée.",
     de: "Prüfen Sie die Aktualität der Daten, die Nachweise und die erfasste nächste Aufgabe.",
     ja: "データの鮮度、証跡、記録された次のタスクを確認します。",
@@ -2305,7 +2305,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.account.description": {
     en: "Assisted access remains restricted to the persisted effective account.",
-    es: "El acceso en modo asistido sigue limitado a la cuenta efectiva guardada.",
+    es: "El acceso en modo asistido sigue limitado a la cuenta asistida registrada.",
     fr: "L’accès en mode assisté reste limité au compte effectif enregistré.",
     de: "Der Zugriff im Assistenzmodus bleibt auf das gespeicherte wirksame Konto beschränkt.",
     ja: "代理操作モードでのアクセスは、保存された対象アカウントに限定されます。",
@@ -2655,7 +2655,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.summary.dispatch": {
     en: "Events that exhausted delivery attempts",
-    es: "Eventos que agotaron sus intentos de entrega",
+    es: "Eventos que han agotado sus intentos de entrega",
     fr: "Événements dont les tentatives de livraison sont épuisées",
     de: "Ereignisse mit ausgeschöpften Zustellversuchen",
     ja: "配信の試行回数を使い切ったイベント",
@@ -2675,7 +2675,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.summary.workflow": {
     en: "Runs the task runner gave up on",
-    es: "Ejecuciones que el ejecutor de tareas abandonó",
+    es: "Ejecuciones que el ejecutor de tareas ha abandonado",
     fr: "Exécutions abandonnées par l’exécuteur de tâches",
     de: "Läufe, die der Task-Runner aufgegeben hat",
     ja: "タスクランナーが中断した実行",
@@ -2695,7 +2695,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.unreadable.detail": {
     en: "This page is showing nothing because no read completed, which is a different state from an empty queue. Check the service database connection before concluding there is no stopped work.",
-    es: "Esta página no muestra nada porque no se completó ninguna lectura, lo que no equivale a una cola vacía. Compruebe la conexión con la base de datos del servicio antes de concluir que no hay tareas detenidas.",
+    es: "Esta página no muestra nada porque no se ha completado ninguna lectura, lo que no equivale a una cola vacía. Compruebe la conexión con la base de datos del servicio antes de concluir que no hay tareas detenidas.",
     fr: "Cette page n’affiche rien, car aucune lecture n’a abouti, ce qui n’équivaut pas à une file vide. Vérifiez la connexion à la base de données du service avant de conclure qu’aucune tâche n’est arrêtée.",
     de: "Diese Seite zeigt nichts an, weil kein Lesevorgang abgeschlossen wurde. Das ist nicht dasselbe wie eine leere Warteschlange. Prüfen Sie die Verbindung zur Service-Datenbank, bevor Sie schließen, dass keine Vorgänge angehalten sind.",
     ja: "読み取りが完了しなかったため、このページには何も表示されていません。これはキューが空である状態とは異なります。停止した処理がないと判断する前に、サービスデータベースへの接続を確認してください。",
@@ -2771,7 +2771,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.table.empty": {
     en: "Nothing has stopped. Every dispatch, provisioning attempt, and workflow task either succeeded or is still retrying on its own.",
-    es: "No hay nada detenido. Todos los envíos, intentos de aprovisionamiento y tareas de flujo de trabajo se completaron o siguen reintentándose por sí solos.",
+    es: "No hay nada detenido. Todos los envíos, intentos de aprovisionamiento y tareas de flujo de trabajo se han completado o siguen reintentándose por sí solos.",
     fr: "Rien n’est arrêté. Chaque envoi, tentative de provisionnement et tâche de workflow a réussi ou fait encore l’objet de nouvelles tentatives automatiques.",
     de: "Nichts ist angehalten. Jeder Versand, jeder Bereitstellungsversuch und jede Workflow-Aufgabe war erfolgreich oder wird noch automatisch wiederholt.",
     ja: "停止している処理はありません。配信、プロビジョニングの試行、ワークフロータスクはすべて成功したか、まだ自動で再試行中です。",
@@ -2931,7 +2931,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.decision.reversible": {
     en: "Reversible",
-    es: sameAsEnglish("Reversible"),
+    es: "Reversibilidad",
     fr: "Réversible",
     de: "Umkehrbar",
     ja: "取り消し可否",
@@ -3041,7 +3041,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.reversible.abandon.dispatch": {
     en: "No. The dispatcher never claims a closed message, so nothing delivers it.",
-    es: "No. El distribuidor nunca toma un mensaje cerrado, así que nada lo entrega.",
+    es: "No. El proceso de envío nunca toma un mensaje cerrado, así que nada lo entrega.",
     fr: "Non. Le répartiteur ne reprend jamais un message clôturé, donc rien ne le livre.",
     de: "Nein. Der Dispatcher übernimmt nie eine geschlossene Nachricht, daher stellt sie nichts mehr zu.",
     ja: "いいえ。ディスパッチャーはクローズ済みのメッセージを取得しないため、配信されることはありません。",
@@ -3081,7 +3081,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.failure.idempotencyConflict": {
     en: "A different decision was already recorded under this key.",
-    es: "Ya se registró una decisión distinta con esta clave.",
+    es: "Ya se ha registrado una decisión distinta con esta clave.",
     fr: "Une autre décision a déjà été enregistrée avec cette clé.",
     de: "Unter diesem Schlüssel wurde bereits eine andere Entscheidung erfasst.",
     ja: "このキーでは別の判断がすでに記録されています。",
@@ -3131,7 +3131,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.failure.redriveNotSubmitted": {
     en: "The decision is recorded. The task runner did not accept the redrive, so submit it again.",
-    es: "La decisión está registrada. El ejecutor de tareas no aceptó la reejecución, así que vuelva a enviarla.",
+    es: "La decisión está registrada. El ejecutor de tareas no ha aceptado la reejecución, así que vuelva a enviarla.",
     fr: "La décision est enregistrée. L’exécuteur de tâches n’a pas accepté la réexécution. Soumettez-la à nouveau.",
     de: "Die Entscheidung ist erfasst. Der Task-Runner hat die erneute Ausführung nicht angenommen. Übermitteln Sie sie erneut.",
     ja: "判断は記録されました。タスクランナーが再実行を受け付けなかったため、もう一度送信してください。",
@@ -3141,7 +3141,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.recovery.failure.redriveUnmapped": {
     en: "The decision is recorded. No dispatch was found to re-invoke, so raise the work again from its own command.",
-    es: "La decisión está registrada. No se encontró ningún envío que volver a invocar, así que vuelva a lanzar la tarea desde su propio comando.",
+    es: "La decisión está registrada. No se ha encontrado ningún envío que volver a invocar, así que vuelva a lanzar la tarea desde su propio comando.",
     fr: "La décision est enregistrée. Aucun envoi à réinvoquer n’a été trouvé. Redémarrez la tâche à partir de sa propre instruction.",
     de: "Die Entscheidung ist erfasst. Es wurde kein Versand zum erneuten Aufruf gefunden. Lösen Sie den Vorgang über seinen eigenen Befehl erneut aus.",
     ja: "判断は記録されました。再呼び出しする配信が見つからなかったため、元のコマンドから処理を再度発行してください。",
@@ -3291,7 +3291,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.status.queues.unreadable": {
     en: "At least one queue could not be read. A zero on this page is not evidence that the unreadable queue is empty.",
-    es: "No se ha podido leer al menos una cola. Un cero en esta página no demuestra que la cola ilegible esté vacía.",
+    es: "No se ha podido leer al menos una cola. Un cero en esta página no demuestra que la cola que no se ha podido leer esté vacía.",
     fr: "Au moins une file n’a pas pu être lue. Un zéro sur cette page ne prouve pas que la file illisible est vide.",
     de: "Mindestens eine Warteschlange konnte nicht gelesen werden. Eine Null auf dieser Seite belegt nicht, dass die nicht lesbare Warteschlange leer ist.",
     ja: "少なくとも1つのキューを読み取れませんでした。このページで0と表示されていても、読み取れなかったキューが空であるとは限りません。",
@@ -3371,7 +3371,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.status.lanes.unavailable": {
     en: "This service status check did not return a readable result.",
-    es: "Esta comprobación del estado del servicio no devolvió un resultado legible.",
+    es: "Esta comprobación del estado del servicio no ha devuelto un resultado legible.",
     fr: "Cette vérification de l’état du service n’a pas renvoyé de résultat lisible.",
     de: "Diese Statusprüfung hat kein lesbares Ergebnis geliefert.",
     ja: "このサービス状態の確認では、読み取れる結果が返されませんでした。",
@@ -3601,7 +3601,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.incidents.description": {
     en: "Review repeated system failures, inspect the evidence that was captured, and record containment or release decisions.",
-    es: "Revise los fallos repetidos del sistema, examine las evidencias recogidas y registre decisiones de contención o liberación.",
+    es: "Revise los fallos repetidos del sistema, examine la evidencia recogida y registre decisiones de contención o liberación.",
     fr: "Examinez les défaillances répétées du système et les preuves collectées, puis enregistrez les décisions de confinement ou de levée.",
     de: "Prüfen Sie wiederholte Systemfehler und die erfassten Nachweise, und erfassen Sie Entscheidungen zur Eindämmung oder zu deren Aufhebung.",
     ja: "繰り返し発生しているシステム障害と取得された証跡を確認し、封じ込めまたは解除の判断を記録します。",
@@ -3741,7 +3741,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.incidents.signatures.caption": {
     en: "Runtime failure signatures with their evidence and decisions",
-    es: "Firmas de fallos de ejecución con sus evidencias y decisiones",
+    es: "Firmas de fallos de ejecución con su evidencia y sus decisiones",
     fr: "Signatures d’échecs d’exécution avec leurs preuves et décisions",
     de: "Laufzeit-Fehlersignaturen mit Nachweisen und Entscheidungen",
     ja: "実行時障害のシグネチャと、その証跡および判断",
@@ -4241,7 +4241,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.incidents.source.unavailable": {
     en: "No audit read completed",
-    es: "No se completó ninguna lectura de auditoría",
+    es: "No se ha completado ninguna lectura de auditoría",
     fr: "Aucune lecture de l’audit n’a abouti",
     de: "Kein Audit-Lesevorgang abgeschlossen",
     ja: "監査の読み取りは完了していません",
@@ -4271,7 +4271,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.webhookReplay.description": {
     en: "Provider callbacks that failed or have not been processed. Replay re-runs one from the bytes verified when the provider delivered it.",
-    es: "Notificaciones de proveedores que fallaron o no se han procesado. Al reejecutar una, se vuelve a procesar a partir de los bytes verificados cuando el proveedor la entregó.",
+    es: "Notificaciones de proveedores que han fallado o no se han procesado. Al reejecutar una, se vuelve a procesar a partir de los bytes verificados cuando el proveedor la entregó.",
     fr: "Notifications de prestataires en échec ou non traitées. La réexécution en traite une à nouveau à partir des octets vérifiés lors de sa livraison par le prestataire.",
     de: "Anbieteraufrufe, die fehlgeschlagen sind oder nicht verarbeitet wurden. Eine Wiederholung verarbeitet einen Aufruf erneut anhand der Bytes, die bei der Zustellung durch den Anbieter verifiziert wurden.",
     ja: "失敗した、または未処理のプロバイダーのコールバックです。再実行すると、プロバイダーから配信された時点で検証済みのバイト列から処理し直します。",
@@ -4291,7 +4291,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.webhookReplay.freshness.unread": {
     en: "No read completed for this request",
-    es: "No se completó ninguna lectura para esta solicitud",
+    es: "No se ha completado ninguna lectura para esta solicitud",
     fr: "Aucune lecture n’a abouti pour cette requête",
     de: "Für diese Anfrage wurde kein Lesevorgang abgeschlossen",
     ja: "このリクエストでは読み取りが完了していません",
@@ -4341,7 +4341,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.webhookReplay.unreadable.detail": {
     en: "This page is showing nothing because no read completed, which is a different state from having no stopped callbacks. Check the service database connection before concluding every callback landed.",
-    es: "Esta página no muestra nada porque no se completó ninguna lectura, lo que no equivale a no tener notificaciones detenidas. Compruebe la conexión con la base de datos del servicio antes de concluir que todas las notificaciones llegaron.",
+    es: "Esta página no muestra nada porque no se ha completado ninguna lectura, lo que no equivale a no tener notificaciones detenidas. Compruebe la conexión con la base de datos del servicio antes de concluir que todas las notificaciones han llegado.",
     fr: "Cette page n’affiche rien, car aucune lecture n’a abouti, ce qui n’équivaut pas à l’absence de notifications arrêtées. Vérifiez la connexion à la base de données du service avant de conclure que toutes les notifications ont été reçues.",
     de: "Diese Seite zeigt nichts an, weil kein Lesevorgang abgeschlossen wurde. Das ist nicht dasselbe, wie keine angehaltenen Aufrufe zu haben. Prüfen Sie die Verbindung zur Service-Datenbank, bevor Sie schließen, dass alle Aufrufe angekommen sind.",
     ja: "読み取りが完了しなかったため、このページには何も表示されていません。これは停止したコールバックがない状態とは異なります。すべてのコールバックが届いたと判断する前に、サービスデータベースへの接続を確認してください。",
@@ -4371,7 +4371,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.webhookReplay.empty": {
     en: "No callback is stopped. Every verified event either processed or is still within its delivery attempts.",
-    es: "No hay ninguna notificación detenida. Todos los eventos verificados se procesaron o siguen dentro de sus intentos de entrega.",
+    es: "No hay ninguna notificación detenida. Todos los eventos verificados se han procesado o siguen dentro de sus intentos de entrega.",
     fr: "Aucune notification n’est arrêtée. Chaque événement vérifié a été traité ou dispose encore de tentatives de livraison.",
     de: "Kein Aufruf ist angehalten. Jedes verifizierte Ereignis wurde verarbeitet oder hat noch Zustellversuche übrig.",
     ja: "停止しているコールバックはありません。検証済みのイベントはすべて処理済みか、まだ配信の試行回数内です。",
@@ -4531,7 +4531,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.webhookReplay.effect": {
     en: "The stored event is processed again from the bytes verified at delivery. A corrected payload cannot be picked up here; ask the provider to redeliver the event for that.",
-    es: "El evento almacenado se vuelve a procesar a partir de los bytes verificados en la entrega. Aquí no se puede recoger un contenido corregido; para eso, pida al proveedor que vuelva a entregar el evento.",
+    es: "El evento almacenado se vuelve a procesar a partir de los bytes verificados en la entrega. Aquí no se puede cargar un contenido corregido; para eso, pida al proveedor que vuelva a entregar el evento.",
     fr: "L’événement stocké est traité à nouveau à partir des octets vérifiés à la livraison. Un contenu corrigé ne peut pas être pris en compte ici. Pour cela, demandez au prestataire de livrer à nouveau l’événement.",
     de: "Das gespeicherte Ereignis wird erneut anhand der bei der Zustellung verifizierten Bytes verarbeitet. Eine korrigierte Nutzlast kann hier nicht übernommen werden. Bitten Sie dafür den Anbieter, das Ereignis erneut zuzustellen.",
     ja: "保存済みのイベントを、配信時に検証済みのバイト列から再処理します。修正済みのペイロードはここでは取り込めません。その場合は、プロバイダーにイベントの再配信を依頼してください。",
@@ -4671,7 +4671,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.assisted.effectiveAccount": {
     en: "Effective account",
-    es: "Cuenta efectiva",
+    es: "Cuenta asistida",
     fr: "Compte effectif",
     de: "Wirksames Konto",
     ja: "対象アカウント",
@@ -4711,7 +4711,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.assisted.serverSession": {
     en: "Server session {id} preserves the immutable staff actor and effective account on every authorized action.",
-    es: "La sesión de servidor {id} conserva, en cada acción autorizada, el empleado que actúa, que no se puede cambiar, y la cuenta efectiva.",
+    es: "La sesión de servidor {id} mantiene fijos, en cada acción autorizada, el empleado que actúa y la cuenta asistida.",
     fr: "La session serveur {id} conserve, pour chaque action autorisée, le membre du personnel agissant, qui ne peut pas être modifié, et le compte effectif.",
     de: "Die Serversitzung {id} bewahrt bei jeder autorisierten Aktion die unveränderliche handelnde Person und das wirksame Konto.",
     ja: "サーバーセッション {id} は、承認済みのすべての操作について、変更できない操作者と対象アカウントを保持します。",
@@ -4761,7 +4761,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.gates.unavailable.activationTest": {
     en: "Not available; activation is denied",
-    es: "No disponible; se deniega la activación",
+    es: "No disponible; la activación está denegada",
     fr: "Indisponible\u202f; l’activation est refusée",
     de: "Nicht verfügbar; die Aktivierung wird verweigert",
     ja: "利用不可。有効化は拒否されます",

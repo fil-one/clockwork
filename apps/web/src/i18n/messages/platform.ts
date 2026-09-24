@@ -80,7 +80,7 @@ export const platformMessages = defineMessages({
   },
   "app.verifyAuthentication": {
     en: "Verify identity for sensitive changes",
-    es: "Verificar su identidad para cambios sensibles",
+    es: "Verificar identidad para cambios sensibles",
     fr: "Vérifier votre identité pour les modifications sensibles",
     de: "Identität für sensible Änderungen bestätigen",
     ja: "重要な変更の前に本人確認",
@@ -180,7 +180,7 @@ export const platformMessages = defineMessages({
   },
   "app.search.hint": {
     en: "Find a page or action",
-    es: "Busque una página o una acción",
+    es: "Buscar una página o una acción",
     fr: "Rechercher une page ou une action",
     de: "Seite oder Aktion suchen",
     ja: "ページや操作を検索",
@@ -280,7 +280,7 @@ export const platformMessages = defineMessages({
   },
   "app.command.action.inviteUser": {
     en: "Manage access for the current organization.",
-    es: "Administre el acceso a la organización actual.",
+    es: "Gestione el acceso a la organización actual.",
     fr: "Gérez l’accès à l’organisation actuelle.",
     de: "Zugriff auf die aktuelle Organisation verwalten.",
     ja: "現在の組織へのアクセスを管理します。",
@@ -290,7 +290,7 @@ export const platformMessages = defineMessages({
   },
   "app.command.action.registerDeal": {
     en: "Protect a new partner opportunity.",
-    es: "Proteja una nueva oportunidad de socio.",
+    es: "Proteja una nueva oportunidad comercial.",
     fr: "Protégez une nouvelle opportunité partenaire.",
     de: "Neuen Partner-Deal registrieren und schützen.",
     ja: "新しいパートナー案件を保護します。",
@@ -490,7 +490,7 @@ export const platformMessages = defineMessages({
   },
   "session.mfa.title": {
     en: "One more verification",
-    es: "Una verificación más",
+    es: "Verificación adicional",
     fr: "Une vérification supplémentaire",
     de: "Eine weitere Bestätigung",
     ja: "追加の本人確認",
@@ -530,7 +530,7 @@ export const platformMessages = defineMessages({
   },
   "session.permission.description": {
     en: "Switch organizations or ask an owner to update your commerce role.",
-    es: "Cambie de organización o pida a un propietario que actualice su rol comercial.",
+    es: "Cambie de organización o pida al propietario de la cuenta que actualice su rol comercial.",
     fr: "Changez d’organisation ou demandez à un propriétaire de modifier votre rôle commercial.",
     de: "Wechseln Sie die Organisation oder bitten Sie den Kontoinhaber, Ihre Commerce-Rolle anzupassen.",
     ja: "組織を切り替えるか、所有者にコマースロールの更新を依頼してください。",
@@ -750,7 +750,7 @@ export const platformMessages = defineMessages({
   },
   "nav.partner.sandboxes": {
     en: "Sandboxes & POCs",
-    es: "Entornos de prueba y POC",
+    es: "Entornos de pruebas y POC",
     fr: "Environnements de test et POC",
     de: "Testumgebungen und POCs",
     ja: "サンドボックスと PoC",
@@ -1020,7 +1020,7 @@ export const platformMessages = defineMessages({
   },
   "nav.group.legal": {
     en: "Legal record",
-    es: "Registro legal",
+    es: "Documentación legal",
     fr: "Dossier juridique",
     de: "Vertragsunterlagen",
     ja: "法務記録",
@@ -1230,7 +1230,7 @@ export const platformMessages = defineMessages({
   },
   "state.success.description": {
     en: "The immutable document, audit event, and notification were created together.",
-    es: "El documento inmutable, el evento de auditoría y la notificación se crearon juntos.",
+    es: "El documento inmutable, el evento de auditoría y la notificación se han creado a la vez.",
     fr: "Le document immuable, l’événement d’audit et la notification ont été créés ensemble.",
     de: "Unveränderliches Dokument, Audit-Ereignis und Benachrichtigung wurden gemeinsam erstellt.",
     ja: "不変文書、監査イベント、通知がまとめて作成されました。",
@@ -1290,7 +1290,7 @@ export const platformMessages = defineMessages({
   },
   "state.recoverable.description": {
     en: "No duplicate action was created. Retry uses the original idempotency key.",
-    es: "No se creó una acción duplicada. El reintento usa la clave de idempotencia original.",
+    es: "No se ha creado ninguna acción duplicada. El reintento usa la clave de idempotencia original.",
     fr: "Aucune action en double n’a été créée. La nouvelle tentative utilise la clé d’idempotence d’origine.",
     de: "Keine doppelte Aktion erstellt. Der erneute Versuch nutzt den ursprünglichen Idempotenzschlüssel.",
     ja: "重複操作は作成されていません。再試行では元の冪等性キーを使用します。",
@@ -1374,7 +1374,7 @@ export const platformMessages = defineMessages({
   ),
   "platform.shell.footer": {
     en: "Fil One commerce records are synchronized from the operating ledger.",
-    es: "Los registros comerciales de Fil One se sincronizan a partir del registro operativo.",
+    es: "Los registros comerciales de Fil One se sincronizan desde el registro operativo.",
     fr: "Les enregistrements commerciaux de Fil One sont synchronisés à partir du registre opérationnel.",
     de: "Die kommerziellen Datensätze von Fil One werden aus dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳から同期されています。",
@@ -1499,10 +1499,10 @@ export const platformMessages = defineMessages({
       other: "{percent} of the term elapsed, {days} days since the start",
     },
     es: {
-      one: "Ha transcurrido el {percent} de la duración, {days} día desde el inicio",
-      many: "Ha transcurrido el {percent} de la duración, {days} de días desde el inicio",
+      one: "Ha transcurrido el {percent} de la vigencia, {days} día desde el inicio",
+      many: "Ha transcurrido el {percent} de la vigencia, {days} de días desde el inicio",
       other:
-        "Ha transcurrido el {percent} de la duración, {days} días desde el inicio",
+        "Ha transcurrido el {percent} de la vigencia, {days} días desde el inicio",
     },
     fr: {
       one: "{percent} de la durée écoulée, {days} jour depuis le début",
@@ -1561,7 +1561,7 @@ export const platformMessages = defineMessages({
   },
   "platform.term.endDate": {
     en: "Term ends {date}",
-    es: "La duración finaliza el {date}",
+    es: "La vigencia finaliza el {date}",
     fr: "La durée prend fin le {date}",
     de: "Laufzeit endet am {date}",
     ja: "契約期間の終了日は{date}",
@@ -1761,7 +1761,7 @@ export const platformMessages = defineMessages({
   },
   "platform.globalError.retry": {
     en: "Try again",
-    es: "Volver a intentarlo",
+    es: "Reintentar",
     fr: "Réessayer",
     de: "Erneut versuchen",
     ja: "再試行",
@@ -1901,7 +1901,7 @@ export const platformMessages = defineMessages({
   },
   "platform.api.gate.forbidden": {
     en: "Your authority or recent sign-in could not be verified.",
-    es: "No se ha podido verificar su autorización ni su inicio de sesión reciente.",
+    es: "No se ha podido verificar su autorización o su inicio de sesión reciente.",
     fr: "Votre habilitation ou votre connexion récente n’a pas pu être vérifiée.",
     de: "Ihre Befugnis oder Ihre kürzliche Anmeldung konnte nicht überprüft werden.",
     ja: "権限または最近のサインインを確認できませんでした。",
@@ -2131,7 +2131,7 @@ export const platformMessages = defineMessages({
   },
   "signing.declined.title": {
     en: "Signature declined",
-    es: "Firma rechazada",
+    es: "Firma declinada",
     fr: "Signature refusée",
     de: "Signatur abgelehnt",
     ja: "署名は辞退されました",
@@ -2241,7 +2241,7 @@ export const platformMessages = defineMessages({
   },
   "signing.demo.description": {
     en: "This service stands in for the e-sign provider. Signing here completes the envelope and returns you to Fil One, where the real return reconciliation runs.",
-    es: "Este servicio sustituye al proveedor de firma electrónica. Al firmar aquí se completa el sobre y vuelve a Fil One, donde se ejecuta la conciliación real del retorno.",
+    es: "Este servicio sustituye al proveedor de firma electrónica. Al firmar aquí se completa el sobre y se le devuelve a Fil One, donde se ejecuta la conciliación real del retorno.",
     fr: "Ce service remplace le prestataire de signature électronique. Signer ici finalise l’enveloppe et vous ramène à Fil One, où s’exécute le véritable rapprochement du retour.",
     de: "Dieser Dienst ersetzt den E-Signatur-Anbieter. Wenn Sie hier unterzeichnen, wird der Umschlag abgeschlossen und Sie kehren zu Fil One zurück, wo die tatsächliche Abstimmung der Rückmeldung erfolgt.",
     ja: "このサービスは電子署名プロバイダーの代わりです。ここで署名するとエンベロープが完了し、実際の戻り処理の照合を行う Fil One に戻ります。",
@@ -3267,7 +3267,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.poc.expiresAt": {
     en: "Expires",
-    es: "Caduca el",
+    es: "Fecha de caducidad",
     fr: "Date d’expiration",
     de: "Läuft ab am",
     ja: "有効期限",
@@ -3615,7 +3615,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.procurement.apName": {
     en: "Accounts payable contact name",
-    es: "Nombre del contacto de cuentas por pagar",
+    es: "Nombre del contacto de cuentas a pagar",
     fr: "Nom du contact en comptabilité fournisseurs",
     de: "Name des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者の氏名",
@@ -3625,7 +3625,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.procurement.apEmail": {
     en: "Accounts payable contact email",
-    es: "Correo electrónico del contacto de cuentas por pagar",
+    es: "Correo electrónico del contacto de cuentas a pagar",
     fr: "E-mail du contact en comptabilité fournisseurs",
     de: "E-Mail-Adresse des Kontakts in der Kreditorenbuchhaltung",
     ja: "買掛金担当者のメールアドレス",
@@ -3667,7 +3667,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.invite.expiresAt": {
     en: "Invitation expires",
-    es: "La invitación caduca el",
+    es: "Caducidad de la invitación",
     fr: "Expiration de l’invitation",
     de: "Einladung läuft ab am",
     ja: "招待の有効期限",

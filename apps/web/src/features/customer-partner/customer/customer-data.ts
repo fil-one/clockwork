@@ -64,7 +64,7 @@ const madridReplica = {
   kind: "text",
   text: demoText({
     en: "Madrid compliance replica",
-    es: "Réplica de cumplimiento de Madrid",
+    es: "Réplica de cumplimiento en Madrid",
     fr: "Réplique de conformité de Madrid",
     de: "Compliance-Replikat Madrid",
     ja: "マドリードのコンプライアンスレプリカ",
@@ -423,7 +423,7 @@ const userRecords: readonly CustomerCollectionFixture[] = [
     title: "Juno Okafor",
     description: demoText({
       en: "Invited as an account administrator and legal approver.",
-      es: "Invitación enviada para administrar la cuenta y aprobar en el ámbito legal.",
+      es: "Invitación como administrador de la cuenta y aprobador jurídico.",
       fr: "Invitation envoyée pour les rôles d’administrateur du compte et d’approbateur juridique.",
       de: "Eingeladen als Administration des Kontos und genehmigende Person (Recht).",
       ja: "アカウント管理者および法務承認者として招待済み。",
@@ -740,7 +740,7 @@ const marketplaceRecords: readonly CustomerCollectionFixture[] = [
     }),
     description: demoText({
       en: "Provider reports that the accepted offer is fulfilled.",
-      es: "El proveedor informa de que la oferta aceptada se ha completado.",
+      es: "El proveedor informa de que la oferta aceptada se ha tramitado.",
       fr: "Le prestataire indique que l’offre acceptée est exécutée.",
       de: "Laut Anbieter ist das angenommene Angebot erfüllt.",
       ja: "承諾済みのオファーは履行済みとプロバイダーから報告されています。",
@@ -813,7 +813,7 @@ const marketplaceRecords: readonly CustomerCollectionFixture[] = [
     }),
     description: demoText({
       en: "Disbursement is pending in the read-only provider feed.",
-      es: "El desembolso figura como pendiente en los datos de solo lectura del proveedor.",
+      es: "El pago figura como pendiente en los datos de solo lectura del proveedor.",
       fr: "Le versement est en attente dans le flux en lecture seule du prestataire.",
       de: "Die Auszahlung ist im schreibgeschützten Anbieter-Feed als ausstehend gemeldet.",
       ja: "読み取り専用のプロバイダーフィードでは、支払いが保留中です。",
@@ -965,7 +965,7 @@ const supportRecords: readonly CustomerCollectionFixture[] = [
     id: "SUP-18288",
     title: demoText({
       en: "Marketplace invoice reference",
-      es: "Referencia de factura de Marketplace",
+      es: "Referencia de factura del marketplace",
       fr: "Référence de facture Marketplace",
       de: "Rechnungsreferenz aus dem Marketplace",
       ja: "マーケットプレイスの請求書参照番号",

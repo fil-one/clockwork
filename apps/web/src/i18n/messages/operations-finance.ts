@@ -38,7 +38,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.frame.current": {
     en: "Up to date",
-    es: "Al día",
+    es: "Actualizado",
     fr: "À jour",
     de: "Aktuell",
     ja: "最新",
@@ -246,7 +246,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.route.distributor": {
     en: "Distributor",
-    es: "Distribuidor",
+    es: "Distribución",
     fr: "Distributeur",
     de: sameAsEnglish("Distributor"),
     ja: "ディストリビューター",
@@ -340,7 +340,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.renewals.window.within90": {
     en: "Notice in 31–90 days",
-    es: "Preaviso dentro de 31 a 90 días",
+    es: "Preaviso en 31–90 días",
     fr: "Préavis dans 31 à 90 jours",
     de: "Kündigungstermin in 31–90 Tagen",
     ja: "通知期限まで31～90日",
@@ -360,7 +360,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.renewals.window.within180": {
     en: "Notice in 91–180 days",
-    es: "Preaviso dentro de 91 a 180 días",
+    es: "Preaviso en 91–180 días",
     fr: "Préavis dans 91 à 180 jours",
     de: "Kündigungstermin in 91–180 Tagen",
     ja: "通知期限まで91～180日",
@@ -1003,7 +1003,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.dispute.effect": {
     en: "A dispute Stripe already opened is recorded against a settled payment, with the evidence deadline it carries. Recording it does not answer it.",
-    es: "Se registra sobre un pago liquidado una disputa que Stripe ya abrió, con su plazo para aportar evidencias. Registrarla no equivale a responderla.",
+    es: "Se registra sobre un pago liquidado una disputa que Stripe ya ha abierto, con su plazo para aportar evidencia. Registrarla no equivale a responderla.",
     fr: "Un litige déjà ouvert par Stripe est enregistré sur un paiement réglé, avec sa date limite de dépôt des preuves. L’enregistrer ne revient pas à y répondre.",
     de: "Ein bereits von Stripe eröffneter Streitfall wird zu einer beglichenen Zahlung erfasst, samt der zugehörigen Frist für Nachweise. Das Erfassen beantwortet ihn nicht.",
     ja: "Stripe ですでに開始された異議を、その証拠提出期限とともに決済済みの支払いに記録します。記録しても異議への回答にはなりません。",
@@ -1193,7 +1193,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.evidenceDue": {
     en: "Evidence due",
-    es: "Plazo de evidencias",
+    es: "Plazo para aportar evidencia",
     fr: "Date limite des preuves",
     de: "Frist für Nachweise",
     ja: "証拠提出期限",
@@ -1203,7 +1203,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.evidenceDue.help": {
     en: "The deadline Stripe set for evidence on this dispute.",
-    es: "El plazo que fijó Stripe para aportar evidencias en esta disputa.",
+    es: "El plazo que ha fijado Stripe para aportar evidencia en esta disputa.",
     fr: "La date limite fixée par Stripe pour déposer les preuves de ce litige.",
     de: "Die von Stripe gesetzte Frist für Nachweise zu diesem Streitfall.",
     ja: "この異議について Stripe が設定した証拠提出期限です。",
@@ -1363,7 +1363,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.refusal.evidenceDue": {
     en: "Enter the evidence deadline as a date and time.",
-    es: "Introduzca el plazo de evidencias como fecha y hora.",
+    es: "Introduzca el plazo para aportar evidencia como fecha y hora.",
     fr: "Saisissez la date limite des preuves sous forme de date et d’heure.",
     de: "Geben Sie die Frist für Nachweise als Datum und Uhrzeit ein.",
     ja: "証拠提出期限を日時で入力してください。",
@@ -1373,7 +1373,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.failure.forbidden": {
     en: "Your role or current session cannot raise this correction. A recent sign-in is required for money commands.",
-    es: "Su rol o su sesión actual no permite registrar esta corrección. Las operaciones con dinero requieren un inicio de sesión reciente.",
+    es: "Su rol o su sesión actual no permite registrar esta corrección. Las operaciones monetarias requieren un inicio de sesión reciente.",
     fr: "Votre rôle ou votre session actuelle ne permet pas d’engager cette correction. Les opérations financières exigent une connexion récente.",
     de: "Ihre Rolle oder aktuelle Sitzung erlaubt diese Korrektur nicht. Für Geldbewegungen ist eine kürzlich erfolgte Anmeldung erforderlich.",
     ja: "現在のロールまたはセッションでは、この修正を起票できません。金銭に関わる操作には直近のサインインが必要です。",
@@ -1383,7 +1383,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.failure.conflict": {
     en: "This record changed while you were working, or the same correction was already recorded. Reload before repeating it.",
-    es: "Este registro cambió mientras trabajaba o la misma corrección ya estaba registrada. Vuelva a cargar la página antes de repetirla.",
+    es: "Este registro ha cambiado mientras trabajaba o la misma corrección ya estaba registrada. Vuelva a cargar la página antes de repetirla.",
     fr: "Cet enregistrement a changé pendant votre travail, ou la même correction a déjà été enregistrée. Rechargez la page avant de la refaire.",
     de: "Dieser Datensatz hat sich während Ihrer Bearbeitung geändert, oder dieselbe Korrektur wurde bereits erfasst. Laden Sie die Seite neu, bevor Sie sie wiederholen.",
     ja: "作業中にこの記録が変更されたか、同じ修正がすでに記録されています。繰り返す前にページを再読み込みしてください。",
@@ -1393,7 +1393,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.failure.validation": {
     en: "The server refused the correction, for example because the amount exceeds what can still be credited or refunded. Nothing was written.",
-    es: "El servidor rechazó la corrección, por ejemplo porque el importe supera lo que aún se puede acreditar o reembolsar. No se ha guardado nada.",
+    es: "El servidor ha rechazado la corrección, por ejemplo porque el importe supera lo que aún se puede acreditar o reembolsar. No se ha guardado nada.",
     fr: "Le serveur a refusé la correction, par exemple parce que le montant dépasse ce qui peut encore être crédité ou remboursé. Rien n’a été écrit.",
     de: "Der Server hat die Korrektur abgelehnt, etwa weil der Betrag höher ist als das, was noch gutgeschrieben oder erstattet werden kann. Es wurde nichts gespeichert.",
     ja: "サーバーが修正を拒否しました（金額がクレジットまたは返金できる残額を超えている場合など）。何も書き込まれていません。",
@@ -1413,7 +1413,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.failure.unknown": {
     en: "The correction could not be sent. Nothing was written.",
-    es: "No se pudo enviar la corrección. No se ha guardado nada.",
+    es: "No se ha podido enviar la corrección. No se ha guardado nada.",
     fr: "La correction n’a pas pu être envoyée. Rien n’a été écrit.",
     de: "Die Korrektur konnte nicht gesendet werden. Es wurde nichts gespeichert.",
     ja: "修正を送信できませんでした。何も書き込まれていません。",
@@ -1507,7 +1507,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.provisioning.retryTitle": {
     en: "Stopped work is handled in Recovery.",
-    es: "El trabajo detenido se gestiona en Recuperación.",
+    es: "Las tareas detenidas se gestionan en Recuperación.",
     fr: "Les travaux arrêtés sont traités dans Reprise.",
     de: "Angehaltene Aufgaben werden unter Wiederherstellung bearbeitet.",
     ja: "停止した作業は「復旧」で処理します。",
@@ -1517,7 +1517,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.provisioning.retryBody": {
     en: "Open the recovery workspace to retry or abandon work that has used up its automatic attempts.",
-    es: "Abra el espacio de recuperación para reintentar o abandonar el trabajo que ha agotado sus intentos automáticos.",
+    es: "Abra el espacio de recuperación para reintentar o descartar las tareas que han agotado sus intentos automáticos.",
     fr: "Ouvrez l’espace Reprise pour relancer ou abandonner les travaux qui ont épuisé leurs tentatives automatiques.",
     de: "Öffnen Sie die Wiederherstellung, um Aufgaben mit ausgeschöpften automatischen Versuchen erneut auszuführen oder aufzugeben.",
     ja: "自動試行の上限に達した作業を再試行または中止するには、復旧ワークスペースを開いてください。",
@@ -1542,10 +1542,10 @@ export const operationsFinanceMessages = defineMessages({
       other: "{count} items need classification before they can be routed.",
     },
     es: {
-      one: "{count} elemento necesita clasificación antes de poder enrutarse.",
-      many: "{count} de elementos necesitan clasificación antes de poder enrutarse.",
+      one: "{count} elemento necesita clasificación antes de poder derivarse.",
+      many: "{count} de elementos necesitan clasificación antes de poder derivarse.",
       other:
-        "{count} elementos necesitan clasificación antes de poder enrutarse.",
+        "{count} elementos necesitan clasificación antes de poder derivarse.",
     },
     fr: {
       one: "{count} élément doit être classé avant de pouvoir être acheminé.",
@@ -1707,7 +1707,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.provisioning.noAttempts": {
     en: "Not applicable",
-    es: "No aplica",
+    es: "No aplicable",
     fr: "Sans objet",
     de: "Nicht zutreffend",
     ja: "対象外",
@@ -1751,7 +1751,7 @@ export const operationsFinanceMessages = defineMessages({
   // ---------------------------------------------------------------------------
   "operations.finance.handoff.label": {
     en: "Accepted order handoff",
-    es: "Traspaso de pedidos aceptados",
+    es: "Envío de pedidos aceptados",
     fr: "Transmission des commandes acceptées",
     de: "Übergabe angenommener Aufträge",
     ja: "承諾済み注文の引き渡し",
@@ -1841,7 +1841,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.handoff.received": {
     en: "The demo provisioner received the order. This is evidence of dispatch, not of service activation.",
-    es: "El aprovisionador de demostración recibió el pedido. Esto acredita el envío, no la activación del servicio.",
+    es: "El aprovisionador de demostración ha recibido el pedido. Esto acredita el envío, no la activación del servicio.",
     fr: "Le provisionneur de démonstration a reçu la commande. Cela prouve l’envoi, pas l’activation du service.",
     de: "Die Demo-Bereitstellung hat den Auftrag erhalten. Das belegt die Übermittlung, nicht die Aktivierung des Service.",
     ja: "デモ用プロビジョナーが注文を受け付けました。これは送信の証跡であり、サービスの有効化ではありません。",
@@ -1861,7 +1861,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.handoff.refused": {
     en: "The demo provisioner refused this order. Reload the page to see its current state before trying again.",
-    es: "El aprovisionador de demostración rechazó este pedido. Vuelva a cargar la página para ver su estado actual antes de intentarlo de nuevo.",
+    es: "El aprovisionador de demostración ha rechazado este pedido. Vuelva a cargar la página para ver su estado actual antes de intentarlo de nuevo.",
     fr: "Le provisionneur de démonstration a refusé cette commande. Rechargez la page pour voir son état actuel avant de réessayer.",
     de: "Die Demo-Bereitstellung hat diesen Auftrag abgelehnt. Laden Sie die Seite neu, um den aktuellen Stand zu sehen, bevor Sie es erneut versuchen.",
     ja: "デモ用プロビジョナーがこの注文を拒否しました。もう一度試す前に、ページを再読み込みして現在の状態を確認してください。",
@@ -1871,7 +1871,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.handoff.failed": {
     en: "The provisioning request could not be submitted. Try again.",
-    es: "No se pudo enviar la solicitud de aprovisionamiento. Inténtelo de nuevo.",
+    es: "No se ha podido enviar la solicitud de aprovisionamiento. Inténtelo de nuevo.",
     fr: "La demande de provisionnement n’a pas pu être envoyée. Réessayez.",
     de: "Die Bereitstellungsanfrage konnte nicht gesendet werden. Versuchen Sie es erneut.",
     ja: "プロビジョニングのリクエストを送信できませんでした。もう一度お試しください。",
@@ -1925,7 +1925,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.illustrativeBody": {
     en: "Use the guided examples below to review confident, ambiguous, and unmatched account records.",
-    es: "Use los ejemplos guiados de abajo para revisar registros con coincidencia clara, ambigua o sin coincidencia.",
+    es: "Use los ejemplos guiados que aparecen a continuación para revisar registros con coincidencia clara, ambigua o sin coincidencia.",
     fr: "Utilisez les exemples guidés ci-dessous pour examiner des enregistrements à correspondance sûre, ambiguë ou absente.",
     de: "Prüfen Sie anhand der geführten Beispiele unten eindeutige, mehrdeutige und nicht zugeordnete Datensätze.",
     ja: "以下のガイド付きの例で、一致が確実な記録、曖昧な記録、一致しない記録を確認できます。",
@@ -1995,7 +1995,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.cards.noMatch.detail": {
     en: "New-account review, then screening and credit checks",
-    es: "Revisión de cuenta nueva y, después, controles de verificación y de crédito",
+    es: "Revisión de cuenta nueva y, después, verificación de cumplimiento y controles de crédito",
     fr: "Examen de nouveau compte, puis contrôles de filtrage et de crédit",
     de: "Prüfung eines neuen Kontos, danach Screening und Bonitätsprüfung",
     ja: "新規アカウントの確認後、スクリーニングと与信の審査",
@@ -2395,7 +2395,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.review.createDownstream": {
     en: "Screening and credit checks run before any account becomes available.",
-    es: "Los controles de verificación y de crédito se ejecutan antes de que cualquier cuenta esté disponible.",
+    es: "La verificación de cumplimiento y los controles de crédito se ejecutan antes de que cualquier cuenta esté disponible.",
     fr: "Les contrôles de filtrage et de crédit s’exécutent avant qu’un compte ne devienne disponible.",
     de: "Screening und Bonitätsprüfung laufen, bevor ein Konto verfügbar wird.",
     ja: "アカウントが利用可能になる前に、スクリーニングと与信の審査が行われます。",
@@ -2489,7 +2489,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.dialogDescription": {
     en: "Review the affected entity, evidence, policy and downstream effect before staging this action.",
-    es: "Revise la entidad afectada, la evidencia, la política y el efecto posterior antes de preparar esta acción.",
+    es: "Revise la entidad afectada, la evidencia, la política y los efectos derivados antes de preparar esta acción.",
     fr: "Examinez l’entité concernée, les preuves, la politique et l’effet en aval avant de préparer cette action.",
     de: "Prüfen Sie betroffene Einheit, Nachweise, Richtlinie und Folgewirkung, bevor Sie diese Aktion vormerken.",
     ja: "この操作を準備する前に、対象、証跡、ポリシー、後続への影響を確認してください。",
@@ -2539,7 +2539,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.term.policy": {
     en: "Policy basis",
-    es: "Base normativa",
+    es: "Política aplicable",
     fr: "Politique applicable",
     de: "Richtliniengrundlage",
     ja: "根拠となるポリシー",
@@ -2549,7 +2549,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.term.downstream": {
     en: "Downstream effect",
-    es: "Efecto posterior",
+    es: "Efectos derivados",
     fr: "Effet en aval",
     de: "Folgewirkung",
     ja: "後続への影響",
@@ -2609,7 +2609,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.actorNote": {
     en: "Staff actor authority comes from the server session. Credit, screening, provider, retention and dual-control checks are re-run where they apply.",
-    es: "La autoridad del personal que actúa procede de la sesión del servidor. Los controles de crédito, verificación, proveedor, conservación y doble control se vuelven a ejecutar cuando corresponde.",
+    es: "La autoridad del empleado que actúa procede de la sesión del servidor. Los controles de crédito, cumplimiento, proveedor, conservación y doble control se vuelven a ejecutar cuando corresponde.",
     fr: "L’habilitation de l’agent provient de la session serveur. Les contrôles de crédit, de filtrage, de prestataire, de conservation et de double validation sont réexécutés le cas échéant.",
     de: "Die Befugnis der handelnden Mitarbeitenden stammt aus der Serversitzung. Bonitäts-, Screening-, Anbieter-, Aufbewahrungs- und Vier-Augen-Prüfungen laufen, wo zutreffend, erneut.",
     ja: "担当者の権限はサーバーのセッションから取得されます。与信、スクリーニング、プロバイダー、保持、二重承認の各審査は、該当する場合に再実行されます。",
@@ -2709,7 +2709,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.error.forbidden": {
     en: "Your migration authority has changed.",
-    es: "Su autorización para migraciones ha cambiado.",
+    es: "Su autoridad para migraciones ha cambiado.",
     fr: "Votre habilitation aux migrations a changé.",
     de: "Ihre Befugnis für Migrationen hat sich geändert.",
     ja: "移行に関する権限が変更されました。",
@@ -2749,7 +2749,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.review.error.failed": {
     en: "The migration decision could not be recorded. Nothing changed.",
-    es: "No se pudo registrar la decisión de migración. No ha cambiado nada.",
+    es: "No se ha podido registrar la decisión de migración. No ha cambiado nada.",
     fr: "La décision de migration n’a pas pu être enregistrée. Rien n’a changé.",
     de: "Die Migrationsentscheidung konnte nicht erfasst werden. Es wurde nichts geändert.",
     ja: "移行の判断を記録できませんでした。変更はありません。",
@@ -2813,7 +2813,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reports.reportHelp": {
     en: "The reports the commerce API defines. Filters both the recorded exports and the exports offered below.",
-    es: "Los informes que define la API de comercio. Filtra tanto las exportaciones registradas como las que se ofrecen abajo.",
+    es: "Los informes que define la API de comercio. Filtra tanto las exportaciones registradas como las que se ofrecen más abajo.",
     fr: "Les rapports définis par l’API commerce. Filtre à la fois les exports enregistrés et ceux proposés ci-dessous.",
     de: "Die von der Commerce-API definierten Berichte. Filtert sowohl die erfassten als auch die unten angebotenen Exporte.",
     ja: "コマース API で定義されたレポートです。記録済みのエクスポートと、下に表示されるエクスポートの両方を絞り込みます。",
@@ -2873,7 +2873,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reports.exportsEmpty": {
     en: "No report exports are projected into your operator scope. Generating an export below records one.",
-    es: "No hay exportaciones de informes en su ámbito de operador. Al generar una exportación abajo, quedará registrada.",
+    es: "No hay exportaciones de informes en su ámbito de operador. Al generar una exportación más abajo, quedará registrada.",
     fr: "Aucun export de rapport n’apparaît dans votre périmètre d’opérateur. Générer un export ci-dessous en enregistre un.",
     de: "In Ihrem Operator-Bereich sind keine Berichtsexporte vorhanden. Ein unten erzeugter Export wird erfasst.",
     ja: "オペレーターの担当範囲にレポートのエクスポートはありません。下でエクスポートを生成すると記録されます。",
@@ -3013,7 +3013,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reports.exportFailed": {
     en: "The export could not be generated. Nothing on this page changed.",
-    es: "No se pudo generar la exportación. No ha cambiado nada en esta página.",
+    es: "No se ha podido generar la exportación. No ha cambiado nada en esta página.",
     fr: "L’export n’a pas pu être généré. Rien n’a changé sur cette page.",
     de: "Der Export konnte nicht erzeugt werden. Auf dieser Seite wurde nichts geändert.",
     ja: "エクスポートを生成できませんでした。このページの内容は変更されていません。",
@@ -3227,7 +3227,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.summary.blocking": {
     en: "Blocking variances",
-    es: "Diferencias que bloquean",
+    es: "Diferencias bloqueantes",
     fr: "Écarts bloquants",
     de: "Blockierende Abweichungen",
     ja: "締めを妨げる差異",
@@ -3703,7 +3703,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.failure.invalid": {
     en: "The disposition could not be read. Reload the page.",
-    es: "No se pudo leer el tratamiento. Vuelva a cargar la página.",
+    es: "No se ha podido leer el tratamiento. Vuelva a cargar la página.",
     fr: "Le traitement n’a pas pu être lu. Rechargez la page.",
     de: "Die Einstufung konnte nicht gelesen werden. Laden Sie die Seite neu.",
     ja: "処理内容を読み取れませんでした。ページを再読み込みしてください。",
@@ -3783,7 +3783,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.failure.conflict": {
     en: "The case changed while this page was open. Reload and repeat the disposition.",
-    es: "El caso cambió mientras esta página estaba abierta. Vuelva a cargarla y repita el tratamiento.",
+    es: "El caso ha cambiado mientras esta página estaba abierta. Vuelva a cargarla y repita el tratamiento.",
     fr: "Le cas a changé pendant que cette page était ouverte. Rechargez-la et refaites le traitement.",
     de: "Der Fall hat sich geändert, während diese Seite geöffnet war. Laden Sie sie neu und wiederholen Sie die Einstufung.",
     ja: "このページを開いている間にケースが変更されました。再読み込みしてから処理をやり直してください。",
@@ -3793,7 +3793,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.failure.failed": {
     en: "The disposition could not be recorded.",
-    es: "No se pudo registrar el tratamiento.",
+    es: "No se ha podido registrar el tratamiento.",
     fr: "Le traitement n’a pas pu être enregistré.",
     de: "Die Einstufung konnte nicht erfasst werden.",
     ja: "処理内容を記録できませんでした。",
@@ -3843,7 +3843,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.classification.accountMapping": {
     en: "Account mapping",
-    es: "Mapeo de cuentas contables",
+    es: "Asignación de cuentas contables",
     fr: "Correspondance des comptes comptables",
     de: "Kontenzuordnung",
     ja: "勘定科目の対応付け",
@@ -3907,7 +3907,7 @@ export const operationsFinanceMessages = defineMessages({
   // ---------------------------------------------------------------------------
   "operations.finance.revenue.title": {
     en: "Revenue & channel",
-    es: "Ingresos y canales",
+    es: "Ingresos y canal",
     fr: "Revenus et canaux",
     de: "Umsatz und Vertriebskanäle",
     ja: "収益とチャネル",
@@ -3997,7 +3997,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.revenue.unreadable": {
     en: "Revenue reporting could not be read.",
-    es: "No se pudieron leer los informes de ingresos.",
+    es: "No se han podido leer los informes de ingresos.",
     fr: "Les rapports de revenus n’ont pas pu être lus.",
     de: "Die Umsatzberichte konnten nicht gelesen werden.",
     ja: "収益レポートを読み取れませんでした。",
@@ -4007,7 +4007,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.revenue.unreadable.detail": {
     en: "No figures are shown because no read completed. This is not a zero-revenue report.",
-    es: "No se muestran cifras porque no se completó ninguna lectura. No es un informe de ingresos cero.",
+    es: "No se muestran cifras porque no se ha completado ninguna lectura. No es un informe de ingresos cero.",
     fr: "Aucun chiffre n’est affiché, car aucune lecture n’a abouti. Il ne s’agit pas d’un rapport à revenu nul.",
     de: "Es werden keine Zahlen angezeigt, weil kein Lesevorgang abgeschlossen wurde. Das ist kein Bericht mit null Umsatz.",
     ja: "読み取りが完了しなかったため、数値は表示されていません。収益ゼロを示すレポートではありません。",
@@ -4077,7 +4077,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.revenue.stage.empty": {
     en: "No forecast rows were returned.",
-    es: "No se devolvió ninguna fila de previsión.",
+    es: "No se ha devuelto ninguna fila de previsión.",
     fr: "Aucune ligne de prévision n’a été renvoyée.",
     de: "Es wurden keine Prognosezeilen zurückgegeben.",
     ja: "予測の行は返されませんでした。",
@@ -4225,7 +4225,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.revenue.route.empty": {
     en: "No remaining committed backlog rows were returned.",
-    es: "No se devolvió ninguna fila de cartera comprometida pendiente.",
+    es: "No se ha devuelto ninguna fila de cartera comprometida pendiente.",
     fr: "Aucune ligne de carnet engagé restant n’a été renvoyée.",
     de: "Es wurden keine Zeilen mit verbleibendem vertraglich gebundenem Auftragsbestand zurückgegeben.",
     ja: "残りの確定済み受注残の行は返されませんでした。",
@@ -4295,7 +4295,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.revenue.recurring.empty": {
     en: "No contracted recurring run-rate rows were returned.",
-    es: "No se devolvió ninguna fila de ingresos recurrentes contratados.",
+    es: "No se ha devuelto ninguna fila de ingresos recurrentes contratados.",
     fr: "Aucune ligne de revenu récurrent contractuel n’a été renvoyée.",
     de: "Es wurden keine Zeilen zur vertraglichen wiederkehrenden Umsatzrate zurückgegeben.",
     ja: "契約済みランレートの行は返されませんでした。",

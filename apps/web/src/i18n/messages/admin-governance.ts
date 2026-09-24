@@ -108,7 +108,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.review.policy": {
     en: "Policy basis",
-    es: "Fundamento en la política",
+    es: "Política aplicable",
     fr: "Fondement dans la politique",
     de: "Grundlage in der Richtlinie",
     ja: "ポリシー上の根拠",
@@ -118,7 +118,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.review.downstream": {
     en: "Downstream effect",
-    es: "Efecto posterior",
+    es: "Efectos derivados",
     fr: "Effet en aval",
     de: "Folgewirkung",
     ja: "後続への影響",
@@ -342,7 +342,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.approvals.description": {
     en: "Review the affected record, evidence, policy basis and downstream effect before you record a decision and its reason.",
-    es: "Revise el registro afectado, la evidencia, el fundamento en la política y el efecto posterior antes de registrar una decisión y su motivo.",
+    es: "Revise el registro afectado, la evidencia, la política aplicable y los efectos derivados antes de registrar una decisión y su motivo.",
     fr: "Examinez l’enregistrement concerné, les preuves, le fondement dans la politique et l’effet en aval avant d’enregistrer une décision motivée.",
     de: "Prüfen Sie den betroffenen Datensatz, die Nachweise, die Grundlage in der Richtlinie und die Folgewirkung, bevor Sie eine Entscheidung mit Begründung erfassen.",
     ja: "判断とその理由を記録する前に、対象の記録、証跡、ポリシー上の根拠、後続への影響を確認してください。",
@@ -628,7 +628,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.approvals.reasonPlaceholder": {
     en: "State the evidence and policy rationale for this decision.",
-    es: "Indique la evidencia y el fundamento en la política de esta decisión.",
+    es: "Indique la evidencia y la política en que se basa esta decisión.",
     fr: "Indiquez les preuves et la justification au regard de la politique.",
     de: "Nennen Sie die Nachweise und die Begründung aus der Richtlinie für diese Entscheidung.",
     ja: "この判断の根拠となる証跡とポリシー上の理由を記入してください。",
@@ -1006,7 +1006,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.agreements.scan.futureActivation": {
     en: "Activation date is in the future",
-    es: "La fecha de activación es futura",
+    es: "La fecha de activación aún no ha llegado",
     fr: "La date d’activation est future",
     de: "Aktivierungsdatum liegt in der Zukunft",
     ja: "有効化日は将来の日付です",
@@ -2816,7 +2816,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.description": {
     en: "Request activation with a distinct approver, or stop new work immediately. Recovery work has its own switch.",
-    es: "Solicite la activación con un aprobador distinto o detenga de inmediato las operaciones nuevas. Las operaciones de recuperación tienen su propio interruptor.",
+    es: "Solicite la activación con un aprobador distinto o detenga de inmediato las nuevas operaciones. Las operaciones de recuperación tienen su propio interruptor.",
     fr: "Demandez l’activation avec un approbateur distinct ou arrêtez immédiatement les nouvelles opérations. Les opérations de reprise ont leur propre commande.",
     de: "Beantragen Sie die Aktivierung bei einer anderen genehmigenden Person oder stoppen Sie neue Vorgänge sofort. Wiederherstellungsvorgänge haben einen eigenen Schalter.",
     ja: "別の承認者による有効化を申請するか、新規処理を直ちに停止します。復旧処理には専用の切り替えがあります。",
@@ -2876,7 +2876,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.key.newBusiness": {
     en: "New business",
-    es: "Nuevos negocios",
+    es: "Nuevo negocio",
     fr: "Nouvelles affaires",
     de: "Neugeschäft",
     ja: "新規取引",
@@ -2946,7 +2946,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.newWorkEnabled": {
     en: "New work enabled",
-    es: "Operaciones nuevas activadas",
+    es: "Nuevas operaciones: activadas",
     fr: "Nouvelles opérations activées",
     de: "Neue Vorgänge aktiviert",
     ja: "新規処理：有効",
@@ -2956,7 +2956,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.newWorkDisabled": {
     en: "New work disabled",
-    es: "Operaciones nuevas desactivadas",
+    es: "Nuevas operaciones: desactivadas",
     fr: "Nouvelles opérations désactivées",
     de: "Neue Vorgänge deaktiviert",
     ja: "新規処理：無効",
@@ -3006,7 +3006,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.pendingNewWork": {
     en: "Pending new-work activation",
-    es: "Activación de operaciones nuevas pendiente",
+    es: "Activación de nuevas operaciones pendiente",
     fr: "Activation des nouvelles opérations en attente",
     de: "Ausstehende Aktivierung neuer Vorgänge",
     ja: "保留中の新規処理の有効化",
@@ -3046,7 +3046,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.capabilities.scope.newWork": {
     en: "New work",
-    es: "Operaciones nuevas",
+    es: "Nuevas operaciones",
     fr: "Nouvelles opérations",
     de: "Neue Vorgänge",
     ja: "新規処理",
@@ -3308,7 +3308,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.channelPolicy.description": {
     en: "Configure the sales handoff and the protection requested for deal registrations. Policies need two finance users and apply only from their approved effective date.",
-    es: "Configure el traspaso a ventas y la protección solicitada para los registros de oportunidades. Las políticas requieren dos usuarios de finanzas y solo se aplican desde su fecha de entrada en vigor aprobada.",
+    es: "Configure la derivación a ventas y la protección solicitada para los registros de oportunidades. Las políticas requieren dos usuarios de finanzas y solo se aplican desde su fecha de entrada en vigor aprobada.",
     fr: "Configurez le transfert aux ventes et la protection demandée pour les enregistrements d’opportunité. Les politiques requièrent deux utilisateurs de la finance et ne s’appliquent qu’à partir de leur date d’effet approuvée.",
     de: "Konfigurieren Sie die Übergabe an den Vertrieb und den beantragten Schutz für Deal-Registrierungen. Richtlinien erfordern zwei Personen aus der Finanzabteilung und gelten erst ab ihrem genehmigten Gültigkeitsdatum.",
     ja: "営業への引き継ぎと、案件登録で申請される保護期間を設定します。ポリシーには財務担当者 2名が必要で、承認された発効日以降にのみ適用されます。",
@@ -3388,7 +3388,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.channelPolicy.salesHandoff": {
     en: "Sales handoff",
-    es: "Traspaso a ventas",
+    es: "Derivación a ventas",
     fr: "Transfert aux ventes",
     de: "Übergabe an den Vertrieb",
     ja: "営業への引き継ぎ",
@@ -3674,7 +3674,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.channelPolicy.field.handoffThreshold": {
     en: "Sales handoff at capacity (TB)",
-    es: "Capacidad de traspaso a ventas (TB)",
+    es: "Umbral de derivación a ventas (TB)",
     fr: "Capacité de transfert aux ventes (To)",
     de: "Kapazität für die Übergabe an den Vertrieb (TB)",
     ja: "営業に引き継ぐ容量（TB）",
@@ -3704,7 +3704,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.channelPolicy.field.extensionDays": {
     en: "Maximum days per extension",
-    es: "Días máximos por prórroga",
+    es: "Máximo de días por prórroga",
     fr: "Nombre maximal de jours par prolongation",
     de: "Höchstzahl an Tagen pro Fristverlängerung",
     ja: "延長 1回あたりの最長日数",
@@ -4240,7 +4240,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.providers.reviewDue": {
     en: "Rotation review due",
-    es: "Vencimiento de la revisión de la rotación",
+    es: "Próxima revisión de la rotación",
     fr: "Échéance de la revue de rotation",
     de: "Rotationsprüfung fällig",
     ja: "ローテーションの確認期限",
@@ -4446,7 +4446,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.providers.result.conflict": {
     en: "This reference changed while you were editing. Refresh and review the latest version before saving again.",
-    es: "Esta referencia cambió mientras la editaba. Actualice la página y revise la versión más reciente antes de volver a guardar.",
+    es: "Esta referencia ha cambiado mientras la editaba. Actualice la página y revise la versión más reciente antes de volver a guardar.",
     fr: "Cette référence a changé pendant que vous la modifiiez. Actualisez la page et examinez la dernière version avant d’enregistrer à nouveau.",
     de: "Diese Referenz wurde geändert, während Sie sie bearbeitet haben. Aktualisieren Sie die Seite und prüfen Sie die neueste Version, bevor Sie erneut speichern.",
     ja: "編集中にこの参照が変更されました。再読み込みして最新のバージョンを確認してから、もう一度保存してください。",
