@@ -68,6 +68,7 @@ export function RecoveryDecision({
 
   return (
     <Dialog
+      closeLabel={t("common.close")}
       title={t(labels.title, { reference })}
       description={consequence}
       trigger={

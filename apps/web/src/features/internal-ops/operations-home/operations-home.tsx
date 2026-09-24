@@ -1,8 +1,12 @@
-import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import {
+  getFormattingLocale,
+  getLocale,
+  getTranslations,
+} from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
 
-import type { MessageId } from "@/src/i18n";
+import { rtlLocales, type MessageId } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
 import { formatOperationalTimestamp } from "../presentation";
@@ -21,6 +25,8 @@ const areaLabels: Readonly<Record<string, MessageId>> = {
 function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
+  // The arrow points the way the line reads, so it turns round in Arabic.
+  const forward = rtlLocales.has(use(getLocale())) ? "←" : "→";
   return signals.map((signal) => {
     const area = areaLabels[signal.channel];
     const time = (
@@ -47,7 +53,7 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
         <td>
           <Link href={signal.href}>
             {signal.action}
-            <span aria-hidden="true"> →</span>
+            <span aria-hidden="true"> {forward}</span>
           </Link>
         </td>
       </tr>

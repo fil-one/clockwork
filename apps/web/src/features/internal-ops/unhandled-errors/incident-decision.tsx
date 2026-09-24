@@ -80,6 +80,7 @@ export function IncidentDecisionControl({
 
   return (
     <Dialog
+      closeLabel={t("common.close")}
       title={t(labels.title, { failure: label })}
       description={consequence}
       trigger={

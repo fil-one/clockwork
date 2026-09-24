@@ -52,6 +52,7 @@ export function ReplayDecision({
 
   return (
     <Dialog
+      closeLabel={t("common.close")}
       title={t("operations.webhookReplay.dialog.title", {
         callback: providerEventId,
       })}
@@ -87,7 +88,8 @@ export function ReplayDecision({
         </div>
         <div>
           <dt>{t("operations.webhookReplay.detail.payloadHash")}</dt>
-          <dd>{payloadHash}</dd>
+          {/* A 71-character hash has no break opportunity and ran into the next card. */}
+          <dd style={{ overflowWrap: "anywhere" }}>{payloadHash}</dd>
         </div>
         <div>
           <dt>{t("operations.webhookReplay.detail.repeatSubmission")}</dt>

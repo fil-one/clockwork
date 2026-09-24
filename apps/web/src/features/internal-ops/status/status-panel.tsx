@@ -47,6 +47,19 @@ function detailLabel(key: string, t: Translator): string {
   return id ? t(id) : key;
 }
 
+/**
+ * The rows a lane reported. The generated contract declares `details`, but a
+ * responder that omits it (the demo API does) must not take the page down:
+ * `Object.entries(undefined)` threw, and the error boundary replaced the whole
+ * status page, in every language.
+ */
+function laneDetails(value: LaneStatus): Array<[string, unknown]> {
+  const details: unknown = value.details;
+  return details && typeof details === "object" && !Array.isArray(details)
+    ? Object.entries(details)
+    : [];
+}
+
 function tone(status: LaneStatus["status"]) {
   return status === "ready"
     ? ("success" as const)
@@ -133,14 +146,12 @@ export function StatusPanel() {
                       {t(laneStatusLabels[result.value.status])}
                     </StatusBadge>
                     <dl className={styles.reviewGrid}>
-                      {Object.entries(result.value.details).map(
-                        ([key, value]) => (
-                          <div key={key}>
-                            <dt>{detailLabel(key, t)}</dt>
-                            <dd>{detailValue(value, t)}</dd>
-                          </div>
-                        ),
-                      )}
+                      {laneDetails(result.value).map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{detailLabel(key, t)}</dt>
+                          <dd>{detailValue(value, t)}</dd>
+                        </div>
+                      ))}
                     </dl>
                     <p>
                       {t("common.readAt", {
