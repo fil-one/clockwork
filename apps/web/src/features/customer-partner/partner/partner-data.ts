@@ -59,7 +59,7 @@ export type PartnerPosition =
       readonly resaleMinor: string;
     }
   | {
-      readonly kind: "collected" | "proposedResale";
+      readonly kind: "collected" | "proposedResale" | "invoiced" | "paid";
       readonly currency: SupportedCurrency;
       readonly amountMinor: string;
     };
@@ -68,7 +68,15 @@ export type PartnerPosition =
 export type PartnerMilestone =
   | { readonly kind: "renewalDecisionDue"; readonly on: string }
   | { readonly kind: "commissionEligible"; readonly rate: number }
-  | { readonly kind: "qualificationDueToday" };
+  | { readonly kind: "qualificationDueToday" }
+  | {
+      readonly kind: "invoiceDue";
+      readonly invoice: string;
+      readonly currency: SupportedCurrency;
+      readonly amountMinor: string;
+      readonly on: string;
+    }
+  | { readonly kind: "paymentConfirmed"; readonly on: string };
 
 /**
  * A fixture row as it is stored, before the read boundary turns it into the
@@ -81,8 +89,9 @@ export type PartnerMilestone =
  */
 export interface PartnerFixture extends Omit<
   PartnerRecord,
-  "context" | "value" | "secondary"
+  "name" | "context" | "value" | "secondary"
 > {
+  name: DemoTextField;
   context: DemoTextField;
   value?: string;
   secondary?: string;
@@ -295,24 +304,65 @@ const quotes: readonly PartnerFixture[] = [
 const billing: readonly PartnerFixture[] = [
   {
     id: "INV-2026-0781",
-    name: "July consolidated partner invoice",
-    context:
-      "12 end clients · ACH ending 1842 · Meridian is merchant of record",
+    name: demoText({
+      en: "July consolidated partner invoice",
+      es: "Factura consolidada del socio de julio",
+      fr: "Facture partenaire consolidée de juillet",
+      de: "Konsolidierte Partnerrechnung Juli",
+      ja: "7月分パートナー一括請求書",
+      pt: "Fatura consolidada do parceiro de julho",
+      zh: "7 月合作伙伴合并发票",
+      ar: "فاتورة الشريك الموحدة لشهر يوليو",
+    }),
+    context: demoText({
+      en: "12 end clients · ACH ending 1842 · Meridian is merchant of record",
+      es: "12 clientes finales · ACH terminada en 1842 · Meridian es el vendedor responsable de la transacción",
+      fr: "12 clients finaux · ACH se terminant par 1842 · Meridian est le vendeur responsable de la transaction",
+      de: "12 Endkunden · ACH endet auf 1842 · Meridian ist Merchant of Record",
+      ja: "エンド顧客 12社・末尾 1842 の ACH・販売主体は Meridian",
+      pt: "12 clientes finais · ACH com final 1842 · Meridian é o vendedor responsável pela transação",
+      zh: "12 个终端客户 · 尾号 1842 的 ACH 账户 · Meridian 为交易责任商户",
+      ar: "12 عميلًا نهائيًا · حساب ACH المنتهي بالأرقام 1842 · Meridian هي التاجر المسؤول عن المعاملة",
+    }),
     status: "pending",
     risk: "medium",
     owner: "Partner billing",
-    value: "$62,480 invoiced",
-    secondary: "Due Aug 15 · webhook payment truth",
+    position: { kind: "invoiced", currency: "USD", amountMinor: "6248000" },
+    milestone: {
+      kind: "invoiceDue",
+      invoice: "INV-2026-0781",
+      currency: "USD",
+      amountMinor: "6248000",
+      on: "2026-08-15",
+    },
   },
   {
     id: "INV-2026-0712",
-    name: "June consolidated partner invoice",
-    context: "11 end clients · receipt RCPT-2026-0712",
+    name: demoText({
+      en: "June consolidated partner invoice",
+      es: "Factura consolidada del socio de junio",
+      fr: "Facture partenaire consolidée de juin",
+      de: "Konsolidierte Partnerrechnung Juni",
+      ja: "6月分パートナー一括請求書",
+      pt: "Fatura consolidada do parceiro de junho",
+      zh: "6 月合作伙伴合并发票",
+      ar: "فاتورة الشريك الموحدة لشهر يونيو",
+    }),
+    context: demoText({
+      en: "11 end clients · receipt RCPT-2026-0712",
+      es: "11 clientes finales · recibo RCPT-2026-0712",
+      fr: "11 clients finaux · reçu RCPT-2026-0712",
+      de: "11 Endkunden · Beleg RCPT-2026-0712",
+      ja: "エンド顧客 11社・領収書 RCPT-2026-0712",
+      pt: "11 clientes finais · recibo RCPT-2026-0712",
+      zh: "11 个终端客户 · 收据 RCPT-2026-0712",
+      ar: "11 عميلًا نهائيًا · الإيصال RCPT-2026-0712",
+    }),
     status: "paid",
     risk: "low",
     owner: "Partner billing",
-    value: "$58,920 paid",
-    secondary: "Provider confirmed Jul 3",
+    position: { kind: "paid", currency: "USD", amountMinor: "5892000" },
+    milestone: { kind: "paymentConfirmed", on: "2026-07-03" },
   },
 ];
 

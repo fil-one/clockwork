@@ -68,10 +68,18 @@ export function partnerPositionText(
     position.currency,
     formatting,
   );
-  return position.kind === "collected"
-    ? t("partner.position.collected", { amount })
-    : t("partner.position.proposedResale", { amount });
+  return t(positionMessages[position.kind], { amount });
 }
+
+const positionMessages = {
+  collected: "partner.position.collected",
+  proposedResale: "partner.position.proposedResale",
+  invoiced: "partner.position.invoiced",
+  paid: "partner.position.paid",
+} as const satisfies Record<
+  Exclude<PartnerPosition["kind"], "transferAndResale">,
+  MessageId
+>;
 
 export function partnerMilestoneText(
   milestone: PartnerMilestone,
@@ -88,6 +96,20 @@ export function partnerMilestoneText(
         style: "percent",
         maximumFractionDigits: 2,
       }).format(milestone.rate),
+    });
+  if (milestone.kind === "invoiceDue")
+    return t("partner.milestone.invoiceDue", {
+      invoice: milestone.invoice,
+      amount: formatMoney(
+        milestone.amountMinor,
+        milestone.currency,
+        formatting,
+      ),
+      date: formatDate(milestone.on, formatting),
+    });
+  if (milestone.kind === "paymentConfirmed")
+    return t("partner.milestone.paymentConfirmed", {
+      date: formatDate(milestone.on, formatting),
     });
   return t("partner.milestone.qualificationDueToday");
 }
@@ -118,7 +140,10 @@ export function readPartnerPosition(
       resaleMinor: fact.resaleMinor,
     };
   if (
-    (fact.kind === "collected" || fact.kind === "proposedResale") &&
+    (fact.kind === "collected" ||
+      fact.kind === "proposedResale" ||
+      fact.kind === "invoiced" ||
+      fact.kind === "paid") &&
     minor(fact.amountMinor)
   )
     return { kind: fact.kind, currency: code, amountMinor: fact.amountMinor };
@@ -140,6 +165,25 @@ export function readPartnerMilestone(
     return { kind: "commissionEligible", rate: fact.rate };
   if (fact.kind === "qualificationDueToday")
     return { kind: "qualificationDueToday" };
+  const date = (value: unknown): value is string =>
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/u.test(value);
+  if (fact.kind === "paymentConfirmed" && date(fact.on))
+    return { kind: "paymentConfirmed", on: fact.on };
+  if (
+    fact.kind === "invoiceDue" &&
+    typeof fact.invoice === "string" &&
+    minor(fact.amountMinor) &&
+    date(fact.on) &&
+    typeof fact.currency === "string" &&
+    currencies.has(fact.currency)
+  )
+    return {
+      kind: "invoiceDue",
+      invoice: fact.invoice,
+      currency: fact.currency as PartnerPosition["currency"],
+      amountMinor: fact.amountMinor,
+      on: fact.on,
+    };
   return undefined;
 }
 
@@ -154,9 +198,11 @@ export function presentPartnerFixture(
   locale: Locale,
 ): PartnerRecord {
   const formatting = formattingLocales[locale];
-  const { position, milestone, value, secondary, context, ...record } = fixture;
+  const { position, milestone, value, secondary, name, context, ...record } =
+    fixture;
   return {
     ...record,
+    name: resolveDemoText(name, locale),
     context: resolveDemoText(context, locale),
     value: position
       ? partnerPositionText(position, t, formatting)
