@@ -1,4 +1,10 @@
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
+import {
+  formatDate,
+  formatMoney,
+  type SupportedCurrency,
+} from "@/src/features/shared/format";
+import type { MessageId, Translator } from "@/src/i18n";
 
 /**
  * Readers for the one payload shape every internal surface receives.
@@ -65,18 +71,13 @@ export function risk(data: ProjectionData): ProjectionRisk | null {
 }
 
 /**
- * Record evidence every operator row carries: the identity and version the
- * decision was taken against, so two operators reading the same row agree on
- * which revision they saw.
+ * The context lines the projection carries for a row. The row's own version
+ * and update instant -- which revision two operators saw -- are separate
+ * fields on every row type, and the surface states them in the reader's
+ * language beside these lines rather than as a pre-rendered English one.
  */
 export function recordEvidence(record: ProjectionRecord): EvidenceEntry[] {
-  return [
-    ...contextEntries(record.data),
-    {
-      label: "Source record",
-      value: `Version ${record.version} · updated ${record.sourceUpdatedAt}`,
-    },
-  ];
+  return [...contextEntries(record.data)];
 }
 
 const MINOR_UNITS = /^-?\d+$/u;
@@ -86,6 +87,187 @@ export function minorUnits(value: string | null): bigint | null {
   return value && MINOR_UNITS.test(value) ? BigInt(value) : null;
 }
 
+/** An exact amount as facts: minor units and the currency they are held in. */
+export interface MinorAmount {
+  minor: bigint;
+  currency: string | null;
+}
+
+const CURRENCY_CODE = /^[A-Z]{3}$/u;
+
+/**
+ * Formats exact minor units for the reader, without ever converting them to a
+ * float. The account decides the currency; the reader's formatting locale
+ * decides how the digits are grouped and where the symbol goes. An amount with
+ * no currency on record is shown as a plain decimal rather than borrowing one.
+ */
+export function formatMinorAmount(
+  minor: bigint | string,
+  currency: string | null,
+  locale: string,
+): string {
+  const amount = BigInt(minor);
+  if (currency && CURRENCY_CODE.test(currency))
+    try {
+      return formatMoney(amount, currency as SupportedCurrency, locale);
+    } catch {
+      // An ISO-shaped code Intl does not know falls through to the decimal.
+    }
+  const negative = amount < 0n;
+  const absolute = negative ? -amount : amount;
+  const whole = new Intl.NumberFormat(locale).format(absolute / 100n);
+  const decimal =
+    new Intl.NumberFormat(locale)
+      .formatToParts(1.5)
+      .find((part) => part.type === "decimal")?.value ?? ".";
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+  return `${negative ? "-" : ""}${whole}${decimal}${fraction}`;
+}
+
+/** The calendar day of an instant or ISO date, in the reader's locale (UTC). */
+export function formatCalendarDay(
+  value: string | null,
+  locale: string,
+): string | null {
+  if (!value) return null;
+  const instant = Date.parse(
+    /^\d{4}-\d{2}-\d{2}$/u.test(value) ? `${value}T00:00:00Z` : value,
+  );
+  if (!Number.isFinite(instant)) return null;
+  return formatDate(new Date(instant), locale);
+}
+
+/**
+ * Two calendar days as one range in the reader's locale, so the separator and
+ * the shared month or year follow the language ("1–31 jul 2026", "2026/07/01～
+ * 2026/07/31") instead of an English "to".
+ */
+export function formatCalendarRange(
+  start: string | null,
+  end: string | null,
+  locale: string,
+): string | null {
+  const parse = (value: string | null) =>
+    value
+      ? Date.parse(
+          /^\d{4}-\d{2}-\d{2}$/u.test(value) ? `${value}T00:00:00Z` : value,
+        )
+      : Number.NaN;
+  const from = parse(start);
+  const to = parse(end);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).formatRange(new Date(from), new Date(to));
+}
+
+/** "in 39 days", "3 days ago", "today", as the reader's language says it. */
+export function formatRelativeDays(days: number, locale: string): string {
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    days,
+    "day",
+  );
+}
+
+/** Counts and other plain integers, grouped for the reader. */
+export function formatCount(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale).format(value);
+}
+
+/**
+ * Status chips, from the status the projection states as a code.
+ *
+ * The generic set is the one `publicStatus` in the materializer collapses
+ * every aggregate onto; its forms agree with an implicit "record". Invoices and
+ * orders have their own sets, whose forms agree with those nouns, and the row
+ * mappers read the aggregate's own status for them before the public one.
+ */
+export const recordStatusMessages: Readonly<Record<string, MessageId>> = {
+  active: "status.active",
+  draft: "status.draft",
+  accepted: "status.accepted",
+  pending: "status.pending",
+  paid: "status.paid",
+  blocked: "status.blocked",
+  open: "status.open",
+  canceled: "status.canceled",
+  complete: "status.complete",
+  attention: "status.attention",
+  provisioning: "status.provisioning",
+  failed: "status.failed",
+  ready: "status.ready",
+  resolved: "status.resolved",
+  submitted: "status.submitted",
+  terminated: "status.terminated",
+};
+
+export const invoiceStatusMessages: Readonly<Record<string, MessageId>> = {
+  draft: "status.invoice.draft",
+  open: "status.invoice.open",
+  issued: "status.invoice.open",
+  paid: "status.invoice.paid",
+  void: "status.invoice.void",
+  uncollectible: "status.invoice.uncollectible",
+};
+
+export const orderStatusMessages: Readonly<Record<string, MessageId>> = {
+  submitted: "status.order.submitted",
+  accepted: "status.order.accepted",
+  provisioning: "status.order.provisioning",
+  active: "status.order.active",
+  amended: "status.order.amended",
+  completed: "status.order.completed",
+  complete: "status.order.completed",
+  cancelled: "status.order.cancelled",
+  canceled: "status.order.cancelled",
+  terminated: "status.order.terminated",
+};
+
+/**
+ * The status of a row as the reader's language names it.
+ *
+ * A code in the closed set is always rendered from its message. A row whose
+ * projection names no known code falls back to the label the read boundary
+ * supplied (a demo fixture that states only a label, already resolved to the
+ * reader's language there), then to the raw code, and only then to "Not
+ * recorded" -- never to a plausible status the row did not state.
+ */
+export function statusText(
+  t: Translator,
+  codes: readonly (string | null)[],
+  label: string | null,
+  messages: Readonly<Record<string, MessageId>> = recordStatusMessages,
+): string {
+  for (const code of codes) {
+    const id = code ? messages[code] : undefined;
+    if (id) return t(id);
+  }
+  for (const code of codes) {
+    const id = code ? recordStatusMessages[code] : undefined;
+    if (id) return t(id);
+  }
+  return label ?? codes.find(Boolean) ?? t("common.notRecorded");
+}
+
+/**
+ * The sales route an order was sourced through (`orders.sourcing`, and the
+ * reporting views' `channel` column). The glossary keeps route distinct from
+ * channel in every language.
+ */
+export const routeMessages: Readonly<Record<string, MessageId>> = {
+  direct: "operations.finance.route.direct",
+  referral: "operations.finance.route.referral",
+  resale: "operations.finance.route.resale",
+  distributor: "operations.finance.route.distributor",
+  marketplace: "operations.finance.route.marketplace",
+};
+
+export function routeText(t: Translator, route: string): string {
+  const id = routeMessages[route];
+  return id ? t(id) : route;
+}
+
 const currencySymbols: Readonly<Record<string, string>> = {
   USD: "$",
   EUR: "€",
@@ -93,9 +275,12 @@ const currencySymbols: Readonly<Record<string, string>> = {
 };
 
 /**
- * Formats exact minor units without ever converting them to a float, matching
- * `formatMoney` in the materializer so a total computed here and an amount
- * printed by the projection read the same way.
+ * Formats exact minor units without ever converting them to a float, in the
+ * materializer's own English shape.
+ *
+ * @deprecated Kept only for `CollectionsSummary.openTotal`/`overdueTotal`,
+ * which the operations home still reads as strings. Surfaces format
+ * `MinorAmount` facts with `formatMinorAmount` in the reader's locale.
  */
 export function formatMinorUnits(
   amount: bigint,

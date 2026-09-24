@@ -5,10 +5,10 @@ import { z } from "zod";
 
 import { withInternalTransaction, type RuntimeDatabase } from "@clockwork/db";
 
-import { reconciliationCopy } from "./copy";
 import {
   isVarianceClassification,
   reconciliationQueue,
+  reconciliationSources,
   varianceClassifiedEvent,
   type ReconciliationVariance,
   type ReconciliationWorkspace,
@@ -18,7 +18,7 @@ import {
 export const unreadableReconciliationWorkspace: ReconciliationWorkspace = {
   periods: [],
   variances: [],
-  source: reconciliationCopy.sourceLabel.unavailable,
+  source: reconciliationSources.unavailable,
   readable: false,
 };
 
@@ -175,7 +175,7 @@ export async function readReconciliationWorkspace(
         variances: varianceRows.map((row) =>
           variance(VarianceSchema.parse(row)),
         ),
-        source: reconciliationCopy.sourceLabel.live,
+        source: reconciliationSources.live,
         readable: true,
       };
     },

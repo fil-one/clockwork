@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { coreReportNames } from "@clockwork/contracts";
 
 import { reportNames } from "@/src/features/contracts/commerce-client";
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
 
 import type { SurfaceProvenance } from "./provenance";
 import type { ReportExportRecord } from "./reports-projection";
@@ -82,8 +84,8 @@ describe("ReportsView report filter", () => {
       coreReportNames.length,
     );
     for (const heading of [
-      "ARR & MRR",
-      "Billing & collections",
+      "ARR and MRR",
+      "Billing and collections",
       "Commission settlement",
     ])
       expect(
@@ -126,7 +128,7 @@ describe("ReportsView report filter", () => {
       1,
     );
     expect(
-      screen.getByRole("heading", { level: 3, name: "Weekly Scorecard" }),
+      screen.getByRole("heading", { level: 3, name: "Weekly scorecard" }),
     ).toBeVisible();
   });
 
@@ -138,7 +140,7 @@ describe("ReportsView report filter", () => {
 
     const recorded = recordedExports();
     expect(
-      within(recorded).getByText(/No recorded export names/u),
+      within(recorded).getByText(/No recorded export is for/u),
     ).toBeVisible();
     expect(
       within(recorded).queryByText(/projected into your operator scope/u),
@@ -155,5 +157,41 @@ describe("ReportsView report filter", () => {
     const recorded = recordedExports();
     expect(within(recorded).getByText("4 exports")).toBeVisible();
     expect(within(recorded).getByText("RPT-04 export")).toBeVisible();
+  });
+
+  /**
+   * Every registry name is worded by the page, so a reader in another
+   * language sees no English label and no title-cased storage token. The
+   * registry code itself stays beside it as the identifier the API uses.
+   */
+  it("names every report in the reader's language", () => {
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <ReportsView accounts={[]} exports={exports} provenance={provenance} />
+      </LanguageProvider>,
+    );
+
+    const headings = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toHaveLength(reportNames.length);
+    expect(headings).toContain("Previsão de receita");
+    expect(headings).toContain("Conciliação tripla");
+    for (const name of reportNames)
+      expect(headings).not.toContain(
+        name
+          .split("_")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" "),
+      );
+    expect(
+      screen.getAllByRole("button", { name: "Exportar CSV" }),
+    ).toHaveLength(reportNames.length);
+    expect(
+      screen.getByRole("heading", {
+        name: "Exportações de relatórios registradas",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("4 exportações")).toBeVisible();
   });
 });

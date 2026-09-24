@@ -11,10 +11,22 @@ import type { MigrationRecord } from "./lifecycle-data";
  * decision that does have those inputs is the recovery queue's.
  */
 
+/**
+ * Why a migration record may or may not go to review, as a code. The surface
+ * words it in the reader's language; the server action reads only `allowed`
+ * and `action`.
+ */
+export type MigrationResolutionReason =
+  | "ambiguous"
+  | "selectAccount"
+  | "confirmEvidence"
+  | "readyToLink"
+  | "newAccountReview";
+
 export interface MigrationResolution {
   allowed: boolean;
   action: "link" | "create" | "blocked";
-  reason: string;
+  reason: MigrationResolutionReason;
 }
 
 export function resolveMigration(
@@ -30,10 +42,7 @@ export function resolveMigration(
     return {
       allowed: false,
       action: "blocked",
-      reason:
-        record.candidates.length > 1
-          ? "Ambiguous match: select one verified account. New account creation remains blocked."
-          : "Select the verified account before continuing.",
+      reason: record.candidates.length > 1 ? "ambiguous" : "selectAccount",
     };
   }
 
@@ -41,7 +50,7 @@ export function resolveMigration(
     return {
       allowed: false,
       action: "blocked",
-      reason: "Confirm the legal-entity evidence before review.",
+      reason: "confirmEvidence",
     };
   }
 
@@ -49,15 +58,14 @@ export function resolveMigration(
     return {
       allowed: true,
       action: "link",
-      reason: `Ready to review linking to ${selectedCandidate.name}. No new account will be created.`,
+      reason: "readyToLink",
     };
   }
 
   return {
     allowed: true,
     action: "create",
-    reason:
-      "No candidate match was found; new-account creation requires review.",
+    reason: "newAccountReview",
   };
 }
 
@@ -77,6 +85,6 @@ export function buildReviewSummary(
   reason: string,
 ): ReviewSummary & { reason: string } {
   const normalizedReason = reason.trim();
-  if (!normalizedReason) throw new Error("A decision reason is required.");
+  if (!normalizedReason) throw new Error("REVIEW_REASON_REQUIRED");
   return { ...summary, reason: normalizedReason };
 }

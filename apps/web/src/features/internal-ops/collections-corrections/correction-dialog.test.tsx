@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type * as CommerceClient from "@/src/features/contracts/commerce-client";
 import { CommerceApiError } from "@/src/features/contracts/commerce-client";
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
 
 const send = vi.hoisted(() => vi.fn());
 
@@ -23,7 +25,6 @@ const subject = {
   currency: "USD",
   amountMinor: "100000",
   reference: "INV-11111111",
-  amountLabel: "$1,000.00",
 };
 
 function open(kind: CorrectionKind = "credit_note", overrides = {}) {
@@ -104,7 +105,7 @@ describe("collections corrections", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain(
-      "Enter the amount as a positive whole number of minor units.",
+      "Enter the amount as a positive whole number in the smallest currency unit.",
     );
     expect(alert.textContent).toContain(
       "Give an internal reason code of 3 to 120 characters.",
@@ -163,5 +164,49 @@ describe("collections corrections", () => {
     expect(alert.textContent).toContain(
       "Credit exceeds the remaining invoice amount or currency",
     );
+  });
+
+  /**
+   * The dialog is worded in the reader's language end to end: the Stripe
+   * reason codes are labelled rather than shown as "order change", and the
+   * invoice total in the amount help is formatted for the reader from minor
+   * units, not copied from an English-formatted string.
+   */
+  it("speaks the reader's language, including the provider reasons and the total", async () => {
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <CorrectionDialog kind="credit_note" subject={subject} />
+      </LanguageProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Emitir nota de crédito" }),
+    );
+
+    const total = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "USD",
+    })
+      .format(1000)
+      // The DOM matcher collapses Intl's no-break space to a plain one.
+      .replace(/\s/gu, " ");
+    expect(
+      screen.getByText(
+        `Número inteiro na menor unidade de USD. O total da fatura é ${total}.`,
+      ),
+    ).toBeVisible();
+    const reasons = screen
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    expect(reasons).toEqual([
+      "Duplicado",
+      "Fraudulento",
+      "Alteração do pedido",
+      "Produto insatisfatório",
+    ]);
+    expect(
+      screen.getByText(/Somente anulando a nota de crédito no provedor/u),
+    ).toBeVisible();
   });
 });

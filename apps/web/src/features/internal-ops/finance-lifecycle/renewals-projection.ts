@@ -1,15 +1,16 @@
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
+import type { MessageId } from "@/src/i18n";
 
 import {
   authoritative,
   daysSince,
-  formatMinorUnits,
   minorUnits,
   recordEvidence,
   risk,
   text,
   totalInDominantCurrency,
   type EvidenceEntry,
+  type MinorAmount,
   type ProjectionRisk,
 } from "./projection-fields";
 
@@ -27,6 +28,10 @@ import {
  * per account; nothing in any projection can produce one, so no exposure
  * estimate is shown. What is shown instead is invoice truth: the sum of the
  * invoices the `collections` channel reports against the same order.
+ *
+ * Every field below is a fact -- dates as ISO strings, money as minor units
+ * and a currency, status as the aggregate's code. The surface words and
+ * formats them in the reader's language; nothing here pre-renders a phrase.
  */
 export const renewalWindows = [
   "notice-passed",
@@ -38,24 +43,22 @@ export const renewalWindows = [
 
 export type RenewalWindow = (typeof renewalWindows)[number];
 
-export const renewalWindowLabels: Readonly<Record<RenewalWindow, string>> = {
-  "notice-passed": "Notice date passed",
-  "30": "Notice within 30 days",
-  "60-90": "Notice in 31–90 days",
-  "180": "Notice in 91–180 days",
-  unscheduled: "No notice date recorded",
+export const renewalWindowLabels: Readonly<Record<RenewalWindow, MessageId>> = {
+  "notice-passed": "operations.finance.renewals.window.passed",
+  "30": "operations.finance.renewals.window.within30",
+  "60-90": "operations.finance.renewals.window.within90",
+  "180": "operations.finance.renewals.window.within180",
+  unscheduled: "operations.finance.renewals.window.unscheduled",
 };
 
 export const renewalWindowDescriptions: Readonly<
-  Record<RenewalWindow, string>
+  Record<RenewalWindow, MessageId>
 > = {
-  "notice-passed":
-    "The contractual notice date is behind us. Whatever the renewal decision is, it is now late.",
-  "30": "Notice must be given inside a month.",
-  "60-90": "Planning window. Route and owner should be settled here.",
-  "180": "Visible but not yet actionable.",
-  unscheduled:
-    "The order records no notice date, so no renewal deadline can be derived from it.",
+  "notice-passed": "operations.finance.renewals.window.passed.description",
+  "30": "operations.finance.renewals.window.within30.description",
+  "60-90": "operations.finance.renewals.window.within90.description",
+  "180": "operations.finance.renewals.window.within180.description",
+  unscheduled: "operations.finance.renewals.window.unscheduled.description",
 };
 
 export interface RenewalOrder {
@@ -66,15 +69,21 @@ export interface RenewalOrder {
   window: RenewalWindow;
   /** Days until the notice date; negative once it has passed. */
   daysToNotice: number | null;
-  noticeLabel: string;
+  /** The contractual notice date (`orders.noticeOn`), as recorded. */
+  noticeOn: string | null;
   /** `sourcing` on the order: direct, referral, resale, distributor, marketplace. */
   route: string | null;
-  serviceTerm: string;
+  serviceStartsOn: string | null;
+  serviceEndsOn: string | null;
+  /** The public status the projection states. */
   status: string | null;
-  statusLabel: string;
+  /** The order's own status, which the order status set words. */
+  orderStatus: string | null;
+  /** The read boundary's label, used only when no status code is known. */
+  statusLabel: string | null;
   risk: ProjectionRisk | null;
   /** Sum of invoices the collections channel reports against this order. */
-  invoicedToDate: string | null;
+  invoicedToDate: MinorAmount | null;
   invoiceCount: number;
   evidence: readonly EvidenceEntry[];
   version: number;
@@ -89,13 +98,6 @@ function windowFor(daysToNotice: number | null): RenewalWindow {
   return "180";
 }
 
-function noticeLabel(noticeOn: string | null, days: number | null): string {
-  if (!noticeOn || days === null) return "No notice date recorded";
-  if (days < 0) return `${noticeOn} · ${Math.abs(days)} days ago`;
-  if (days === 0) return `${noticeOn} · today`;
-  return `${noticeOn} · in ${days} days`;
-}
-
 /**
  * Invoice totals per order, keyed by the `orderId` the invoice payload carries.
  * Invoices whose order is not in the renewal set are ignored rather than
@@ -103,7 +105,7 @@ function noticeLabel(noticeOn: string | null, days: number | null): string {
  */
 export function invoiceTotalsByOrder(
   invoiceRecords: readonly ProjectionRecord[],
-): ReadonlyMap<string, { total: string; count: number }> {
+): ReadonlyMap<string, { total: MinorAmount; count: number }> {
   const grouped = new Map<
     string,
     { minor: bigint | null; currency: string | null }[]
@@ -119,12 +121,12 @@ export function invoiceTotalsByOrder(
     });
     grouped.set(orderId, entries);
   }
-  const totals = new Map<string, { total: string; count: number }>();
+  const totals = new Map<string, { total: MinorAmount; count: number }>();
   for (const [orderId, entries] of grouped) {
     const summed = totalInDominantCurrency(entries);
     if (summed.counted === 0) continue;
     totals.set(orderId, {
-      total: formatMinorUnits(summed.total, summed.currency),
+      total: { minor: summed.total, currency: summed.currency },
       count: summed.counted,
     });
   }
@@ -133,7 +135,7 @@ export function invoiceTotalsByOrder(
 
 export function renewalOrderFromProjection(
   record: ProjectionRecord,
-  invoiceTotals: ReadonlyMap<string, { total: string; count: number }>,
+  invoiceTotals: ReadonlyMap<string, { total: MinorAmount; count: number }>,
   now: Date = new Date(),
 ): RenewalOrder {
   const data = record.data;
@@ -150,11 +152,13 @@ export function renewalOrderFromProjection(
     reference: text(data, "reference") ?? record.recordKey,
     window: windowFor(daysToNotice),
     daysToNotice,
-    noticeLabel: noticeLabel(noticeOn, daysToNotice),
+    noticeOn,
     route,
-    serviceTerm: text(data, "term") ?? "Term not yet set",
+    serviceStartsOn: text(order, "serviceStartsOn"),
+    serviceEndsOn: text(order, "serviceEndsOn"),
     status: text(data, "status"),
-    statusLabel: text(data, "statusLabel") ?? "Not recorded",
+    orderStatus: text(order, "status"),
+    statusLabel: text(data, "statusLabel"),
     risk: risk(data),
     invoicedToDate: invoiced?.total ?? null,
     invoiceCount: invoiced?.count ?? 0,

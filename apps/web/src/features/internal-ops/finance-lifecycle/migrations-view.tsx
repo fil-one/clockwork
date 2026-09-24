@@ -1,6 +1,11 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import type { Translator } from "@/src/i18n";
+import {
+  useFormattingLocale,
+  useLocale,
+  useTranslations,
+} from "@/src/i18n/client";
+import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 
 import { useState } from "react";
 
@@ -13,14 +18,51 @@ import {
   type MigrationCandidate,
   type MigrationRecord,
 } from "./lifecycle-data";
-import { resolveMigration } from "./lifecycle-logic";
-import { FinancePageFrame } from "./page-frame";
+import {
+  resolveMigration,
+  type MigrationResolution,
+  type ReviewSummary,
+} from "./lifecycle-logic";
+import { FinancePageFrame, IdentifierLine } from "./page-frame";
+import { formatCount } from "./projection-fields";
 import { ReviewAction } from "./review-action";
 import { MigrationDecisionAction } from "./migration-decision-action";
 import styles from "./finance-lifecycle.module.css";
 
-function candidateLabel(candidate: MigrationCandidate): string {
-  return `${candidate.name} · ${candidate.detail}`;
+const copy = lifecycleCopy.migrations;
+
+/** The candidate's country, relationship and verified domain on one line. */
+function candidateDetail(t: Translator, candidate: MigrationCandidate): string {
+  return t("common.join.labels", {
+    first: candidate.country,
+    second: t("common.join.labels", {
+      first: t(copy.relationships[candidate.relationship]),
+      second: candidate.domain,
+    }),
+  });
+}
+
+/**
+ * What the operator types or picks in the account search. It is compared
+ * within one render, in one language, so the localized relationship in it
+ * never has to match across languages.
+ */
+function candidateLabel(t: Translator, candidate: MigrationCandidate): string {
+  return t("common.join.labels", {
+    first: candidate.name,
+    second: candidateDetail(t, candidate),
+  });
+}
+
+function resolutionText(
+  t: Translator,
+  resolution: MigrationResolution,
+  candidate: MigrationCandidate | undefined,
+): string {
+  if (resolution.reason === "readyToLink" && candidate)
+    return t(copy.reasons.readyToLink, { account: candidate.name });
+  if (resolution.reason === "readyToLink") return t(copy.reasons.selectAccount);
+  return t(copy.reasons[resolution.reason]);
 }
 
 function MigrationCard({
@@ -32,20 +74,59 @@ function MigrationCard({
   decision?: DemoMigrationDecision;
   guidedDemo: boolean;
 }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const formattingLocale = useFormattingLocale();
   const initialCandidate =
     record.candidates.length === 1 ? record.candidates[0] : undefined;
   const [query, setQuery] = useState(
-    initialCandidate ? candidateLabel(initialCandidate) : "",
+    initialCandidate ? candidateLabel(t, initialCandidate) : "",
   );
   const [confirmed, setConfirmed] = useState(false);
   const selectedCandidate = record.candidates.find(
-    (candidate) => candidateLabel(candidate) === query,
+    (candidate) => candidateLabel(t, candidate) === query,
   );
   const selectedId = selectedCandidate?.id ?? "";
   const resolution = resolveMigration(record, selectedId, confirmed);
+  const reason = resolutionText(t, resolution, selectedCandidate);
   const listId = `${record.id}-candidates`;
   const ambiguous = record.candidates.length > 1;
   const resolved = Boolean(decision);
+  const evidence = resolveDemoText(record.evidence, locale);
+  const sourceSystem = resolveDemoText(record.sourceSystem, locale);
+  const percent = new Intl.NumberFormat(formattingLocale, { style: "percent" });
+
+  const link = resolution.action === "link";
+  const summary: ReviewSummary = {
+    action: t(link ? copy.review.linkAction : copy.review.createAction),
+    entity:
+      link && selectedCandidate
+        ? t(copy.review.linkEntity, {
+            source: record.sourceName,
+            target: selectedCandidate.name,
+          })
+        : record.legalEntity,
+    impact: t(link ? copy.review.linkImpact : copy.review.createImpact),
+    evidence,
+    policyBasis: t(copy.review.policyBasis),
+    downstreamEffect: t(
+      link ? copy.review.linkDownstream : copy.review.createDownstream,
+    ),
+    technicalId: selectedId
+      ? t(copy.review.technicalIdWithAccount, {
+          migration: record.id,
+          source: record.externalReference,
+          account: selectedId,
+        })
+      : t(copy.review.technicalId, {
+          migration: record.id,
+          source: record.externalReference,
+        }),
+    actorAuthority: t(copy.review.actorAuthority),
+  };
+  const triggerLabel = t(
+    link ? copy.review.linkTrigger : copy.review.createTrigger,
+  );
 
   return (
     <article className={styles.migrationCard}>
@@ -53,7 +134,10 @@ function MigrationCard({
         <div>
           <h2>{record.sourceName}</h2>
           <p>
-            {record.legalEntity} · {record.sourceSystem}
+            {t("common.join.labels", {
+              first: record.legalEntity,
+              second: sourceSystem,
+            })}
           </p>
         </div>
         <StatusBadge
@@ -68,39 +152,39 @@ function MigrationCard({
           }
         >
           {resolved
-            ? "Decision recorded"
+            ? t(copy.badge.decided)
             : ambiguous
-              ? `${record.candidates.length} possible matches`
+              ? t(copy.badge.possibleMatches, {
+                  count: record.candidates.length,
+                })
               : record.candidates.length === 1
-                ? "Single candidate"
-                : "No candidate"}
+                ? t(copy.badge.single)
+                : t(copy.badge.none)}
         </StatusBadge>
       </header>
 
       {record.candidates.length > 0 ? (
         <ul
           className={styles.candidateList}
-          aria-label="Candidate match confidence"
+          aria-label={t(copy.confidenceLabel)}
         >
           {record.candidates.map((candidate) => (
             <li key={candidate.id}>
               <span>
                 <strong>{candidate.name}</strong>
-                {candidate.detail}
+                {candidateDetail(t, candidate)}
               </span>
-              <strong>{candidate.confidence}%</strong>
+              <strong>{percent.format(candidate.confidence / 100)}</strong>
             </li>
           ))}
         </ul>
       ) : (
-        <div className={styles.empty}>
-          No current account matched the verified legal name or domain.
-        </div>
+        <div className={styles.empty}>{t(copy.noMatch)}</div>
       )}
 
       <div>
         <Input
-          label="Search and select an account"
+          label={t(copy.search.label)}
           name={`${record.id}-account-label`}
           type="search"
           list={listId}
@@ -109,24 +193,24 @@ function MigrationCard({
             setQuery(event.currentTarget.value);
             setConfirmed(false);
           }}
-          placeholder={
+          placeholder={t(
             record.candidates.length
-              ? "Type an account name, route, or domain"
-              : "No candidate account available"
-          }
-          help={
+              ? copy.search.placeholder
+              : copy.search.placeholderEmpty,
+          )}
+          help={t(
             ambiguous
-              ? "Choose one verified legal entity. Selecting a candidate links the source record; it never creates another account."
+              ? copy.search.helpAmbiguous
               : record.candidates.length
-                ? "The submitted value remains the selected account ID."
-                : "A new-account request is available only after evidence review."
-          }
+                ? copy.search.helpSingle
+                : copy.search.helpNone,
+          )}
           disabled={record.candidates.length === 0 || resolved}
           autoComplete="off"
         />
         <datalist id={listId}>
           {record.candidates.map((candidate) => (
-            <option key={candidate.id} value={candidateLabel(candidate)} />
+            <option key={candidate.id} value={candidateLabel(t, candidate)} />
           ))}
         </datalist>
         <input
@@ -143,29 +227,23 @@ function MigrationCard({
           disabled={resolved}
           onChange={(event) => setConfirmed(event.currentTarget.checked)}
         />
-        <span>
-          I compared the legal name, route, verified domain, and source
-          evidence. This confirmation and my server-attributed identity will be
-          retained.
-        </span>
+        <span>{t(copy.attestation)}</span>
       </label>
 
       <details className={styles.disclosure}>
-        <summary>Evidence and technical identifiers</summary>
-        <p>{record.evidence}</p>
-        <p>
-          Migration: <span className={styles.id}>{record.id}</span>
-          <br />
-          Source reference:{" "}
-          <span className={styles.id}>{record.externalReference}</span>
-          {selectedId ? (
-            <>
-              <br />
-              Submitted account ID:{" "}
-              <span className={styles.id}>{selectedId}</span>
-            </>
-          ) : null}
-        </p>
+        <summary>{t(copy.evidenceSummary)}</summary>
+        <p>{evidence}</p>
+        <IdentifierLine label={copy.ids.migration} value={record.id} />
+        <IdentifierLine
+          label={copy.ids.sourceReference}
+          value={record.externalReference}
+        />
+        {selectedId ? (
+          <IdentifierLine
+            label={copy.ids.submittedAccount}
+            value={selectedId}
+          />
+        ) : null}
       </details>
 
       <footer className={styles.migrationFooter}>
@@ -176,87 +254,31 @@ function MigrationCard({
         >
           {decision
             ? decision.action === "link"
-              ? `Linked to account ${decision.targetAccountId}. Decision version ${decision.version}.`
-              : `New-account review staged. Decision version ${decision.version}.`
-            : resolution.reason}
+              ? t(copy.decision.linked, {
+                  account: decision.targetAccountId ?? "",
+                  version: String(decision.version),
+                })
+              : t(copy.decision.staged, { version: String(decision.version) })
+            : reason}
         </p>
         {decision ? null : resolution.allowed ? (
           guidedDemo ? (
             <MigrationDecisionAction
               migrationId={record.id}
               targetAccountId={selectedId}
-              triggerLabel={
-                resolution.action === "link"
-                  ? "Review account link"
-                  : "Review new account"
-              }
-              summary={{
-                action:
-                  resolution.action === "link"
-                    ? "Link migrated record to existing account"
-                    : "Request a new account from migration evidence",
-                entity:
-                  resolution.action === "link" && selectedCandidate
-                    ? `${record.sourceName} → ${selectedCandidate.name}`
-                    : record.legalEntity,
-                impact:
-                  resolution.action === "link"
-                    ? "The source record will reference the verified current account. No account is created."
-                    : "A separately gated account-creation request will be staged; creation is not automatic.",
-                evidence: record.evidence,
-                policyBasis:
-                  "Migration identity policy §3 · verified legal entity and explicit ambiguity resolution",
-                downstreamEffect:
-                  resolution.action === "link"
-                    ? "Orders and invoices remain on the existing account after reconciliation."
-                    : "Screening and credit gates run before any account becomes available.",
-                technicalId: `${record.id} · source ${record.externalReference}${selectedId ? ` · account ${selectedId}` : ""}`,
-                actorAuthority:
-                  "Internal operator may stage the review; the server authorizes linking or creation and records the actor.",
-              }}
+              triggerLabel={triggerLabel}
+              summary={summary}
             />
           ) : (
             <ReviewAction
-              triggerLabel={
-                resolution.action === "link"
-                  ? "Review account link"
-                  : "Review new account"
-              }
-              confirmLabel="Complete migration review"
-              summary={{
-                action:
-                  resolution.action === "link"
-                    ? "Link migrated record to existing account"
-                    : "Request a new account from migration evidence",
-                entity:
-                  resolution.action === "link" && selectedCandidate
-                    ? `${record.sourceName} → ${selectedCandidate.name}`
-                    : record.legalEntity,
-                impact:
-                  resolution.action === "link"
-                    ? "The source record will reference the verified current account. No account is created."
-                    : "A separately gated account-creation request will be staged; creation is not automatic.",
-                evidence: record.evidence,
-                policyBasis:
-                  "Migration identity policy §3 · verified legal entity and explicit ambiguity resolution",
-                downstreamEffect:
-                  resolution.action === "link"
-                    ? "Orders and invoices remain on the existing account after reconciliation."
-                    : "Screening and credit gates run before any account becomes available.",
-                technicalId: `${record.id} · source ${record.externalReference}${selectedId ? ` · account ${selectedId}` : ""}`,
-                actorAuthority:
-                  "Internal operator may stage the review; the server authorizes linking or creation and records the actor.",
-              }}
+              triggerLabel={triggerLabel}
+              confirmLabel={t(copy.review.confirm)}
+              summary={summary}
             />
           )
         ) : (
-          <Button
-            variant="secondary"
-            size="small"
-            disabled
-            title={resolution.reason}
-          >
-            Review blocked
+          <Button variant="secondary" size="small" disabled title={reason}>
+            {t(copy.review.blocked)}
           </Button>
         )}
       </footer>
@@ -272,7 +294,7 @@ export function MigrationsView({
   decisions?: readonly DemoMigrationDecision[];
 }) {
   const t = useTranslations();
-  const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
+  const formattingLocale = useFormattingLocale();
   const ambiguousCount = illustrativeMigrations.filter(
     (record) => record.candidates.length > 1,
   ).length;
@@ -282,54 +304,46 @@ export function MigrationsView({
 
   return (
     <FinancePageFrame
-      title={localizedlifecycleCopy.migrations.title}
-      description={localizedlifecycleCopy.migrations.description}
+      title={t(copy.title)}
+      description={t(copy.description)}
       provenance={
         guidedDemo
           ? { kind: "guided" }
-          : {
-              kind: "unwired",
-              detail: localizedlifecycleCopy.migrations.unwired,
-            }
+          : { kind: "unwired", detail: t(copy.unwired) }
       }
     >
       <div className={styles.notice} role="note">
-        <strong>{localizedlifecycleCopy.migrations.illustrativeTitle}</strong>
-        <span>{localizedlifecycleCopy.migrations.illustrativeBody}</span>
+        <strong>{t(copy.illustrativeTitle)}</strong>
+        <span>{t(copy.illustrativeBody)}</span>
       </div>
 
-      <section
-        className={styles.summaryGrid}
-        aria-label="Migration matching state"
-      >
+      <section className={styles.summaryGrid} aria-label={t(copy.summaryLabel)}>
         <article className={styles.summaryCard}>
-          <p>Records to review</p>
-          <strong>{illustrativeMigrations.length}</strong>
-          <span>Representative source records for this guided workspace</span>
+          <p>{t(copy.cards.toReview)}</p>
+          <strong>
+            {formatCount(illustrativeMigrations.length, formattingLocale)}
+          </strong>
+          <span>{t(copy.cards.toReviewDetail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>Ambiguous matches</p>
-          <strong>{ambiguousCount}</strong>
-          <span>Duplicate account creation is blocked</span>
+          <p>{t(copy.cards.ambiguous)}</p>
+          <strong>{formatCount(ambiguousCount, formattingLocale)}</strong>
+          <span>{t(copy.cards.ambiguousDetail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>No-match records</p>
-          <strong>{newAccountReviews}</strong>
-          <span>New-account review plus screening and credit gates</span>
+          <p>{t(copy.cards.noMatch)}</p>
+          <strong>{formatCount(newAccountReviews, formattingLocale)}</strong>
+          <span>{t(copy.cards.noMatchDetail)}</span>
         </article>
       </section>
 
       <div className={styles.warningNotice} role="note">
-        <strong>Ambiguity never creates an account.</strong>
-        <span>
-          Search by a human-readable name, route, or domain. The selected
-          account ID is retained only after an exact candidate is chosen and
-          reviewed.
-        </span>
+        <strong>{t(copy.ambiguityTitle)}</strong>
+        <span>{t(copy.ambiguityBody)}</span>
       </div>
 
       <section
-        aria-label="Migration candidates"
+        aria-label={t(copy.candidatesLabel)}
         className={styles.migrationGrid}
       >
         {illustrativeMigrations.map((record) => {

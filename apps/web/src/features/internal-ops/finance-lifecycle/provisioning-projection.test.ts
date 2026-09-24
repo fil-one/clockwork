@@ -22,6 +22,7 @@ function providerOperation(attemptCount: number, risk = "high") {
       operation: "activate_capability",
       status: "pending",
       attemptCount,
+      nextAttemptAt: "2026-08-16T09:00:00.000Z",
     },
     data: {
       reference: "PRV-11111111",
@@ -87,9 +88,7 @@ describe("provisioningKind", () => {
     });
 
     expect(provisioningKind(record)).toBeNull();
-    expect(provisioningWorkFromProjection(record).kindLabel).toBe(
-      "Unclassified provisioning record",
-    );
+    expect(provisioningWorkFromProjection(record).kind).toBeNull();
   });
 });
 
@@ -99,7 +98,10 @@ describe("provisioningWorkFromProjection", () => {
 
     expect(work.attemptCount).toBe(4);
     expect(work.provider).toBe("archivecloud");
-    expect(work.nextAttemptLabel).toBe("Retries Aug 16, 2026");
+    // The instant, not the materializer's English "Retries Aug 16, 2026": the
+    // surface formats it for the reader.
+    expect(work.nextAttemptAt).toBe("2026-08-16T09:00:00.000Z");
+    expect(work.effectiveAt).toBeNull();
   });
 
   /** A termination has no attempts, so it reports none rather than zero. */
@@ -107,8 +109,9 @@ describe("provisioningWorkFromProjection", () => {
     const work = provisioningWorkFromProjection(termination());
 
     expect(work.attemptCount).toBeNull();
-    expect(work.nextAttemptLabel).toBeNull();
-    expect(work.kindLabel).toBe("Service termination");
+    expect(work.nextAttemptAt).toBeNull();
+    expect(work.kind).toBe("termination");
+    expect(work.effectiveAt).toBe("2026-09-01");
   });
 });
 

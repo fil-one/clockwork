@@ -13,10 +13,31 @@ import {
 import {
   blocksClose,
   reconciliationQueue,
-  varianceClassificationLabels,
   varianceClassifiedEvent,
   type VarianceClassification,
 } from "./model";
+
+/**
+ * The classification as the persisted case summary names it. This text is
+ * written into `exception_cases.decision_reason`, a stored record that other
+ * readers (the queue, the audit export) show as recorded; like any record it
+ * is not translated, so it keeps the runbook's English names. Surfaces word a
+ * classification from its code in the reader's language instead.
+ */
+const classificationAuditLabels: Readonly<
+  Record<VarianceClassification, string>
+> = {
+  delivery_timing: "Delivery timing", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  period_cut_off: "Period cut-off", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  currency: "Currency", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  tax: "Tax", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  account_mapping: "Account mapping", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  missing_or_duplicate_event: "Missing or duplicate event", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  usage_correction: "Usage correction", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  amendment_or_proration: "Amendment or proration", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  provider_fee: "Provider fee", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+  unexplained: "Unexplained", // i18n-exempt: persisted record text (exception_cases.decision_reason)
+};
 
 export interface VarianceDispositionInput {
   caseId: string;
@@ -105,7 +126,7 @@ export async function recordVarianceDisposition(
       // is the record the runbook says the evidence is attached to.
       const updatedRows = await transaction.execute(sql`
         update public.exception_cases
-        set decision_reason = ${`${varianceClassificationLabels[input.classification]}: ${reason}`}
+        set decision_reason = ${`${classificationAuditLabels[input.classification]}: ${reason}`}
         where id = ${current.id}::uuid
           and row_version = ${current.row_version}
         returning row_version

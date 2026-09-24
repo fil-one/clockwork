@@ -5,8 +5,7 @@ import { z } from "zod";
 
 import { withInternalTransaction, type RuntimeDatabase } from "@clockwork/db";
 
-import { revenueCopy } from "./copy";
-import type { RevenueWorkspace } from "./model";
+import { revenueSources, type RevenueWorkspace } from "./model";
 
 const StageSchema = z.object({
   forecast_stage: z.enum(["committed_backlog", "pipeline"]),
@@ -53,7 +52,7 @@ export const unreadableRevenueWorkspace: RevenueWorkspace = {
   forecastRowCount: 0,
   remainingBacklogRowCount: 0,
   recurringContractCount: 0,
-  source: revenueCopy.source.unavailable,
+  source: revenueSources.unavailable,
   readable: false,
 };
 
@@ -166,7 +165,7 @@ export async function readRevenueWorkspace(
         forecastRowCount: counts.forecast_row_count,
         remainingBacklogRowCount: counts.remaining_backlog_row_count,
         recurringContractCount: counts.recurring_contract_count,
-        source: revenueCopy.source.live,
+        source: revenueSources.live,
         readable: true,
       };
     },

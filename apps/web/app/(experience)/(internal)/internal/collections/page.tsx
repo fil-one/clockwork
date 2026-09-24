@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
+
+import { getTranslations } from "@/src/i18n/server";
 import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
 import { loadCollectionsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteRoles } from "@/src/features/shell/route-session";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("operations.finance.collections.title") };
+}
 
 /**
  * Reading the queue needs `billing:read`, which every internal role holds.

@@ -93,6 +93,8 @@ export const providerReasons = {
   dispute: [],
 } as const satisfies Readonly<Record<CorrectionKind, readonly string[]>>;
 
+export type ProviderReason = (typeof providerReasons)[CorrectionKind][number];
+
 export type CorrectionRefusal =
   | "ACCOUNT_UNRESOLVED"
   | "AMOUNT_INVALID"

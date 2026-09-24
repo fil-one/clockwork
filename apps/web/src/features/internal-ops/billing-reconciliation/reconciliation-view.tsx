@@ -4,22 +4,48 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import {
+  formatCalendarRange,
+  formatCount,
+  formatMinorAmount,
+} from "../finance-lifecycle/projection-fields";
 import { use } from "react";
 
-import { getFormattingLocale } from "@/src/i18n/server";
+import type { Translator } from "@/src/i18n";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
 import { formatOperationalTimestamp } from "../presentation";
 import { reconciliationCopy } from "./copy";
 import {
   blockingVariances,
-  formatMinor,
   untiedPeriods,
-  varianceClassificationLabels,
+  type ReconciliationVariance,
   type ReconciliationWorkspace,
 } from "./model";
 import { VarianceDisposition } from "./variance-disposition";
 
 const { page, summary, unreadable, periods, variances } = reconciliationCopy;
+
+/** "Invoice 5f0c21ab": the case's object, named in the reader's language. */
+function subjectText(t: Translator, variance: ReconciliationVariance): string {
+  const kind = reconciliationCopy.objectTypes[variance.objectType];
+  return t(variances.subject, {
+    kind: kind ? t(kind) : variance.objectType,
+    id: variance.objectId.slice(0, 8),
+  });
+}
+
+/** `YYYY-MM` as the reader's language names the month. */
+function monthText(period: string, locale: string): string {
+  const date = new Date(`${period}-01T00:00:00.000Z`);
+  return Number.isNaN(date.getTime())
+    ? period
+    : new Intl.DateTimeFormat(locale, {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(date);
+}
 
 export function ReconciliationView({
   workspace,
@@ -29,96 +55,106 @@ export function ReconciliationView({
   now?: Date;
 }) {
   const { readable, source } = workspace;
+  const t = use(getTranslations());
   const formattingLocale = use(getFormattingLocale());
   const untied = untiedPeriods(workspace.periods);
   const blocking = blockingVariances(workspace.variances);
+  const money = (minor: string, currency: string) =>
+    formatMinorAmount(minor, currency, formattingLocale);
 
   return (
     <FinancePageFrame
-      title={page.title}
-      description={page.description}
+      title={t(page.title)}
+      description={t(page.description)}
       provenance={
         readable
           ? { kind: "read", source, readAt: now.toISOString() }
           : { kind: "unreadable", source }
       }
     >
-      <section className={styles.summaryGrid} aria-label={summary.label}>
+      <section className={styles.summaryGrid} aria-label={t(summary.label)}>
         <article className={styles.summaryCard}>
-          <p>{summary.periods.title}</p>
-          <strong>{workspace.periods.length}</strong>
-          <span>{summary.periods.detail}</span>
+          <p>{t(summary.periods.title)}</p>
+          <strong>
+            {formatCount(workspace.periods.length, formattingLocale)}
+          </strong>
+          <span>{t(summary.periods.detail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{summary.untied.title}</p>
-          <strong>{untied.length}</strong>
-          <span>{summary.untied.detail}</span>
+          <p>{t(summary.untied.title)}</p>
+          <strong>{formatCount(untied.length, formattingLocale)}</strong>
+          <span>{t(summary.untied.detail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{summary.blocking.title}</p>
-          <strong>{blocking.length}</strong>
-          <span>{summary.blocking.detail}</span>
+          <p>{t(summary.blocking.title)}</p>
+          <strong>{formatCount(blocking.length, formattingLocale)}</strong>
+          <span>{t(summary.blocking.detail)}</span>
         </article>
       </section>
 
       {readable ? null : (
         <div className={styles.warningNotice} role="alert">
-          <strong>{unreadable.title}</strong>
-          <span>{unreadable.detail}</span>
+          <strong>{t(unreadable.title)}</strong>
+          <span>{t(unreadable.detail)}</span>
         </div>
       )}
 
       <section className={styles.section} aria-labelledby="tie-out-periods">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="tie-out-periods">{periods.heading}</h2>
-            <p>{periods.subheading}</p>
+            <h2 id="tie-out-periods">{t(periods.heading)}</h2>
+            <p>{t(periods.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {periods.count(workspace.periods.length)}
+            {t(periods.count, { count: workspace.periods.length })}
           </span>
         </header>
         {workspace.periods.length === 0 && readable ? (
-          <p className={styles.empty}>{periods.empty}</p>
+          <p className={styles.empty}>{t(periods.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={periods.caption}
+            caption={t(periods.caption)}
             captionHidden
             density="compact"
             headers={[
-              periods.columns.period,
-              periods.columns.currency,
-              periods.columns.platform,
-              periods.columns.billing,
-              periods.columns.accounting,
-              periods.columns.variance,
-              periods.columns.state,
+              t(periods.columns.period),
+              t(periods.columns.currency),
+              t(periods.columns.platform),
+              t(periods.columns.billing),
+              t(periods.columns.accounting),
+              t(periods.columns.variance),
+              t(periods.columns.state),
             ]}
             numericColumns={[2, 3, 4, 5]}
             rowKeys={workspace.periods.map((period) => period.id)}
             rows={workspace.periods.map((period) => [
-              `${period.periodStartsOn} to ${period.periodEndsOn}`,
+              formatCalendarRange(
+                period.periodStartsOn,
+                period.periodEndsOn,
+                formattingLocale,
+              ) ?? `${period.periodStartsOn} – ${period.periodEndsOn}`,
               period.currency,
-              formatMinor(period.platformRevenueMinor, period.currency),
-              formatMinor(period.billingProviderRevenueMinor, period.currency),
-              formatMinor(period.accountingRevenueMinor, period.currency),
+              money(period.platformRevenueMinor, period.currency),
+              money(period.billingProviderRevenueMinor, period.currency),
+              money(period.accountingRevenueMinor, period.currency),
               <div className={styles.primaryCell}>
                 <strong>
-                  {formatMinor(
-                    period.billingProviderVarianceMinor,
-                    period.currency,
-                  )}
+                  {money(period.billingProviderVarianceMinor, period.currency)}
                 </strong>
                 <span className={styles.secondary}>
-                  ledger{" "}
-                  {formatMinor(period.accountingVarianceMinor, period.currency)}
+                  {t(periods.ledgerVariance, {
+                    amount: money(
+                      period.accountingVarianceMinor,
+                      period.currency,
+                    ),
+                  })}
                 </span>
               </div>,
               <StatusBadge
                 tone={period.mathematicallyTied ? "success" : "danger"}
               >
-                {period.mathematicallyTied ? periods.tied : periods.untied}
+                {t(period.mathematicallyTied ? periods.tied : periods.untied)}
               </StatusBadge>,
             ])}
           />
@@ -131,37 +167,35 @@ export function ReconciliationView({
       >
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="reconciliation-variances">{variances.heading}</h2>
-            <p>{variances.subheading}</p>
+            <h2 id="reconciliation-variances">{t(variances.heading)}</h2>
+            <p>{t(variances.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {variances.count(workspace.variances.length)}
+            {t(variances.count, { count: workspace.variances.length })}
           </span>
         </header>
         {workspace.variances.length === 0 && readable ? (
-          <p className={styles.empty}>{variances.empty}</p>
+          <p className={styles.empty}>{t(variances.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={variances.caption}
+            caption={t(variances.caption)}
             captionHidden
             density="compact"
             headers={[
-              variances.columns.subject,
-              variances.columns.owner,
-              variances.columns.opened,
-              variances.columns.target,
-              variances.columns.classification,
-              variances.columns.action,
+              t(variances.columns.subject),
+              t(variances.columns.owner),
+              t(variances.columns.opened),
+              t(variances.columns.target),
+              t(variances.columns.classification),
+              t(variances.columns.action),
             ]}
             rowKeys={workspace.variances.map((variance) => variance.caseId)}
             rows={workspace.variances.map((variance) => [
               <div className={styles.primaryCell}>
-                <strong>
-                  {variance.objectType} {variance.objectId.slice(0, 8)}
-                </strong>
+                <strong>{subjectText(t, variance)}</strong>
                 <span className={styles.secondary}>
-                  case {variance.caseId.slice(0, 8)}
+                  {t(variances.caseId, { id: variance.caseId.slice(0, 8) })}
                 </span>
               </div>,
               variance.ownerEmail ?? variance.ownerUserId.slice(0, 8),
@@ -180,21 +214,26 @@ export function ReconciliationView({
               variance.latestClassification ? (
                 <div className={styles.primaryCell}>
                   <strong>
-                    {
-                      varianceClassificationLabels[
+                    {t(
+                      reconciliationCopy.classifications[
                         variance.latestClassification
-                      ]
-                    }
+                      ],
+                    )}
                   </strong>
                   <span className={styles.secondary}>
                     {variance.expectedClearingPeriod
-                      ? variances.clearing(variance.expectedClearingPeriod)
+                      ? t(variances.clearing, {
+                          period: monthText(
+                            variance.expectedClearingPeriod,
+                            formattingLocale,
+                          ),
+                        })
                       : (variance.latestClassificationReason ?? "")}
                   </span>
                 </div>
               ) : (
                 <StatusBadge tone="warning">
-                  {variances.unclassified}
+                  {t(variances.unclassified)}
                 </StatusBadge>
               ),
               <div className={styles.actionStack}>
@@ -205,7 +244,7 @@ export function ReconciliationView({
                   <VarianceDisposition
                     caseId={variance.caseId}
                     expectedRowVersion={variance.rowVersion}
-                    subject={`${variance.objectType} ${variance.objectId.slice(0, 8)}`}
+                    subject={subjectText(t, variance)}
                   />
                 </SurfaceActionGate>
               </div>,

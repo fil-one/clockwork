@@ -3,15 +3,18 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { catalogs } from "@/src/i18n/catalogs";
+import { locales } from "@/src/i18n/locales";
+
+import { formatMinorAmount } from "../finance-lifecycle/projection-fields";
+import { reconciliationCopy } from "./copy";
 import {
   blockingVariances,
   blocksClose,
   clearingPeriodPattern,
-  formatMinor,
   isVarianceClassification,
   reconciliationQueue,
   untiedPeriods,
-  varianceClassificationLabels,
   varianceClassifications,
   type ReconciliationVariance,
   type TieOutPeriod,
@@ -107,8 +110,14 @@ describe("the reconciliation queue is the one the platform raises", () => {
 describe("variance classification", () => {
   it("covers the ten the runbook enumerates and nothing else", () => {
     expect(varianceClassifications).toHaveLength(10);
+    // Every classification is worded in every interface language, from its
+    // code, so no reader sees a raw code or English in the select.
     for (const value of varianceClassifications)
-      expect(varianceClassificationLabels[value]).toBeTruthy();
+      for (const locale of locales)
+        expect(
+          catalogs[locale][reconciliationCopy.classifications[value]],
+          `${locale} ${value}`,
+        ).toEqual(expect.stringMatching(/\p{L}/u));
     expect(isVarianceClassification("delivery_timing")).toBe(true);
     expect(isVarianceClassification("resolved")).toBe(false);
   });
@@ -170,10 +179,25 @@ describe("stored tie-out periods", () => {
     ).toEqual(["88888888-8888-4888-8888-888888888888"]);
   });
 
-  it("renders minor units without inventing a locale or a symbol", () => {
-    expect(formatMinor("100000", "USD")).toBe("1000.00 USD");
-    expect(formatMinor("-1000", "EUR")).toBe("-10.00 EUR");
-    expect(formatMinor("5", "GBP")).toBe("0.05 GBP");
-    expect(formatMinor("0", "USD")).toBe("0.00 USD");
+  it("renders exact minor units in the reader's locale, never through a float", () => {
+    const money = (amount: number, currency: string, locale: string) =>
+      new Intl.NumberFormat(locale, { style: "currency", currency }).format(
+        amount,
+      );
+    expect(formatMinorAmount("100000", "USD", "en-US")).toBe(
+      money(1000, "USD", "en-US"),
+    );
+    expect(formatMinorAmount("-1000", "EUR", "de-DE")).toBe(
+      `-${money(10, "EUR", "de-DE")}`,
+    );
+    expect(formatMinorAmount("5", "GBP", "fr-FR")).toBe(
+      money(0.05, "GBP", "fr-FR"),
+    );
+    // Beyond Number.MAX_SAFE_INTEGER the cents survive, which a float would lose.
+    expect(formatMinorAmount("900719925474099301", "USD", "en-US")).toBe(
+      "$9,007,199,254,740,993.01",
+    );
+    // No currency on record: a plain decimal, no borrowed symbol.
+    expect(formatMinorAmount("12345", null, "de-DE")).toBe("123,45");
   });
 });

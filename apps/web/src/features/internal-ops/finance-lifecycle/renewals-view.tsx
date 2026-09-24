@@ -1,10 +1,19 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy } from "@/src/i18n/copy";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { lifecycleCopy } from "./copy";
-import { FinancePageFrame } from "./page-frame";
+import { FinancePageFrame, IdentifierLine, RecordEvidence } from "./page-frame";
+import {
+  formatCalendarDay,
+  formatCalendarRange,
+  formatCount,
+  formatMinorAmount,
+  formatRelativeDays,
+  orderStatusMessages,
+  routeText,
+  statusText,
+} from "./projection-fields";
 import type { SurfaceProvenance } from "./provenance";
 import {
   renewalWindowDescriptions,
@@ -16,6 +25,12 @@ import {
 import styles from "./finance-lifecycle.module.css";
 
 const copy = lifecycleCopy.renewals;
+
+const riskChips = {
+  low: "risk.chip.low",
+  medium: "risk.chip.medium",
+  high: "risk.chip.high",
+} as const;
 
 function riskClass(order: RenewalOrder): string {
   if (order.window === "notice-passed" || order.risk === "high")
@@ -33,24 +48,32 @@ export function RenewalsView({
   invoiceProvenance: SurfaceProvenance;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
+  const locale = use(getFormattingLocale());
+
+  /** The notice date and how far away it is, both in the reader's language. */
+  function notice(order: RenewalOrder): string {
+    const date = formatCalendarDay(order.noticeOn, locale);
+    if (!date || order.daysToNotice === null) return t(copy.noNoticeDate);
+    return t("common.join.labels", {
+      first: date,
+      second: formatRelativeDays(order.daysToNotice, locale),
+    });
+  }
+
   return (
     <FinancePageFrame
-      title={localizedcopy.title}
-      description={localizedcopy.description}
+      title={t(copy.title)}
+      description={t(copy.description)}
       provenance={provenance}
     >
-      <section
-        className={styles.summaryGrid}
-        aria-label="Orders by notice window"
-      >
+      <section className={styles.summaryGrid} aria-label={t(copy.summaryLabel)}>
         {renewalWindows
           .filter((window) => window !== "unscheduled")
           .map((window) => (
             <article className={styles.summaryCard} key={window}>
-              <p>{renewalWindowLabels[window]}</p>
-              <strong>{windows[window].length}</strong>
-              <span>{renewalWindowDescriptions[window]}</span>
+              <p>{t(renewalWindowLabels[window])}</p>
+              <strong>{formatCount(windows[window].length, locale)}</strong>
+              <span>{t(renewalWindowDescriptions[window])}</span>
             </article>
           ))}
       </section>
@@ -68,73 +91,90 @@ export function RenewalsView({
               <header className={styles.sectionHeader}>
                 <div>
                   <h2 id={`renewal-${window}`}>
-                    {renewalWindowLabels[window]}
+                    {t(renewalWindowLabels[window])}
                   </h2>
-                  <p>{renewalWindowDescriptions[window]}</p>
+                  <p>{t(renewalWindowDescriptions[window])}</p>
                 </div>
                 <span className={styles.sectionMeta}>
-                  {t("operations.orders", { count: orders.length })} · ordered
-                  by notice date
+                  {t(copy.windowMeta, { count: orders.length })}
                 </span>
               </header>
               <Table
                 className={styles.dsTable ?? ""}
-                caption={`${renewalWindowLabels[window]} orders`}
+                caption={t(copy.caption, {
+                  window: t(renewalWindowLabels[window]),
+                })}
                 captionHidden
                 density="compact"
                 headers={[
-                  "Order",
-                  "Route",
-                  "Notice",
-                  "Service term",
-                  "Status",
-                  localizedcopy.invoicedLabel,
+                  t("recordKind.order"),
+                  t(copy.columns.route),
+                  t(copy.columns.notice),
+                  t(copy.columns.serviceTerm),
+                  t("common.status"),
+                  t(copy.invoicedLabel),
                 ]}
                 rowKeys={orders.map((order) => order.id)}
                 rows={orders.map((order) => [
                   <div className={styles.primaryCell}>
                     <strong>{order.reference}</strong>
                     <span className={riskClass(order)}>
-                      {order.risk ? `${order.risk} risk` : "Risk not recorded"}
+                      {order.risk
+                        ? t(riskChips[order.risk])
+                        : t(copy.riskUnrecorded)}
                     </span>
                     <details className={styles.disclosure}>
-                      <summary>Record evidence</summary>
-                      <p>
-                        Order ID:{" "}
-                        <span className={styles.id}>{order.orderId}</span>
-                      </p>
-                      {order.evidence.map((entry) => (
-                        <p key={`${entry.label}-${entry.value}`}>
-                          {entry.label}: {entry.value}
-                        </p>
-                      ))}
+                      <summary>{t(lifecycleCopy.evidence.record)}</summary>
+                      <IdentifierLine
+                        label={lifecycleCopy.evidence.orderId}
+                        value={order.orderId}
+                      />
+                      <RecordEvidence
+                        entries={order.evidence}
+                        version={order.version}
+                        updatedAt={order.updatedAt}
+                      />
                     </details>
                   </div>,
-                  order.route ?? localizedcopy.routeUnrecorded,
-                  <strong>{order.noticeLabel}</strong>,
-                  order.serviceTerm,
+                  order.route
+                    ? routeText(t, order.route)
+                    : t(copy.routeUnrecorded),
+                  <strong>{notice(order)}</strong>,
+                  formatCalendarRange(
+                    order.serviceStartsOn,
+                    order.serviceEndsOn,
+                    locale,
+                  ) ?? t(copy.termUnrecorded),
                   <StatusBadge
                     tone={
                       order.window === "notice-passed" ? "danger" : "neutral"
                     }
                   >
-                    {order.statusLabel}
+                    {statusText(
+                      t,
+                      [order.orderStatus, order.status],
+                      order.statusLabel,
+                      orderStatusMessages,
+                    )}
                   </StatusBadge>,
                   <div className={styles.truthStack}>
                     <strong>
-                      {order.invoicedToDate ?? localizedcopy.noInvoices}
+                      {order.invoicedToDate
+                        ? formatMinorAmount(
+                            order.invoicedToDate.minor,
+                            order.invoicedToDate.currency,
+                            locale,
+                          )
+                        : t(copy.noInvoices)}
                     </strong>
                     {order.invoiceCount > 0 ? (
                       <span>
-                        {t("operations.invoices", {
-                          count: order.invoiceCount,
-                        })}{" "}
-                        · invoice truth, not a forecast
+                        {t(copy.invoiceCount, { count: order.invoiceCount })}
                       </span>
                     ) : null}
                   </div>,
                 ])}
-                emptyState={localizedcopy.empty}
+                emptyState={t(copy.empty)}
               />
             </section>
           );
