@@ -732,7 +732,7 @@ function demoCustomerDashboard(input: {
       noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now, reader),
       renewalLabel: fact(onDate("2027-01-01"), reader),
       agreementLabel: t("experience.data.dashboard.agreementWithVersion", {
-        title: demoTextIn(demoCloudServiceAgreementTitle, reader.locale),
+        title: demoCloudServiceAgreementTitle,
         version: "3.2",
       }),
       renewalTone: renewalTone(

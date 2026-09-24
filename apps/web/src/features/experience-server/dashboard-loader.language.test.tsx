@@ -129,7 +129,8 @@ describe("the demo dashboard in every interface language", () => {
     expect(dashboard.term).toMatchObject({
       title: "Meridian Archive Labs の年間契約期間",
       renewalState: "自動更新",
-      agreementLabel: "クラウドサービス契約（バージョン 3.2）",
+      // An executed agreement keeps the English title it was signed under.
+      agreementLabel: "Cloud Service Agreement（バージョン 3.2）",
       renewalTone: "success",
     });
     expect(dashboard.capacity?.freshnessLabel).toMatch(/^使用状況データを/u);
@@ -184,6 +185,18 @@ describe("the demo dashboard in every interface language", () => {
         /\bOpen\b|\$\d|Invoice for|annual|direct\b|US East/u,
       );
     expect(commercial[0]?.title).toMatch(/184\.800,00\sUS\$/u);
+  });
+
+  /**
+   * Executed agreements keep their English titles on the agreements list; the
+   * dashboard translated the same title, so one document had two names.
+   */
+  it("names the executed agreement by its English title", async () => {
+    for (const language of languages)
+      expect(
+        (await dashboardIn(language)).term.agreementLabel,
+        language,
+      ).toMatch(/^\u2068?Cloud Service Agreement\b/u);
   });
 
   it("colours the renewal badge from facts, not from the words on it", async () => {
