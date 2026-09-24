@@ -26,7 +26,7 @@ const journeys = [
     persona: "reseller",
     role: "partner_admin",
     path: "/partner/quotes",
-    heading: "Partner & resale quotes",
+    heading: "Partner and resale quotes",
   },
   {
     persona: "distributor",
