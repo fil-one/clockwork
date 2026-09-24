@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { coreReportNames } from "@clockwork/contracts";
 
 import { reportNames } from "@/src/features/contracts/commerce-client";
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
 
 import type { SurfaceProvenance } from "./provenance";
 import type { ReportExportRecord } from "./reports-projection";
@@ -53,9 +55,9 @@ function reportFilter() {
   return screen.getByRole("combobox", { name: /^Report/u });
 }
 
-function recordedExports() {
+function recordedExports(heading = "Recorded report exports") {
   const section = screen
-    .getByRole("heading", { name: "Recorded report exports" })
+    .getByRole("heading", { name: heading })
     .closest("section");
   if (!section) throw new Error("Recorded exports section was not rendered.");
   return section;
@@ -82,8 +84,8 @@ describe("ReportsView report filter", () => {
       coreReportNames.length,
     );
     for (const heading of [
-      "ARR & MRR",
-      "Billing & collections",
+      "ARR and MRR",
+      "Billing and collections",
       "Commission settlement",
     ])
       expect(
@@ -106,10 +108,41 @@ describe("ReportsView report filter", () => {
     await user.selectOptions(reportFilter(), "revenue_forecast");
 
     expect(within(recorded).getByText("2 exports")).toBeVisible();
-    expect(within(recorded).getByText("RPT-01 export")).toBeVisible();
-    expect(within(recorded).getByText("RPT-03 export")).toBeVisible();
-    expect(within(recorded).queryByText("RPT-02 export")).toBeNull();
+    // A recorded export is titled by its registry name, worded for the
+    // reader; RPT-01 and RPT-03 both ran the revenue forecast.
+    expect(within(recorded).getAllByText("Revenue forecast")).toHaveLength(2);
+    expect(within(recorded).queryByText("Weekly scorecard")).toBeNull();
     expect(within(recorded).queryByText("RPT-04 export")).toBeNull();
+  });
+
+  /**
+   * The materializer titles an export "Renewal Churn Exposure" (its registry
+   * name title-cased in English). The row says what the report is in the
+   * reader's language instead, and keeps the projection title only for an
+   * export that names no report.
+   */
+  it("titles a recorded export by its report, not the projection's English title", () => {
+    render(
+      <LanguageProvider locale="de" catalog={catalogs.de}>
+        <ReportsView
+          accounts={[]}
+          exports={[
+            exportRecord({
+              id: "RPT-05",
+              report: "renewal_churn_exposure",
+              title: "Renewal Churn Exposure",
+            }),
+          ]}
+          provenance={provenance}
+        />
+      </LanguageProvider>,
+    );
+
+    const recorded = recordedExports("Erfasste Berichtsexporte");
+    expect(
+      within(recorded).getByText("Verlängerungs- und Abwanderungsrisiko"),
+    ).toBeVisible();
+    expect(within(recorded).queryByText("Renewal Churn Exposure")).toBeNull();
   });
 
   it("narrows the offered exports to the selected report", async () => {
@@ -126,7 +159,7 @@ describe("ReportsView report filter", () => {
       1,
     );
     expect(
-      screen.getByRole("heading", { level: 3, name: "Weekly Scorecard" }),
+      screen.getByRole("heading", { level: 3, name: "Weekly scorecard" }),
     ).toBeVisible();
   });
 
@@ -138,7 +171,7 @@ describe("ReportsView report filter", () => {
 
     const recorded = recordedExports();
     expect(
-      within(recorded).getByText(/No recorded export names/u),
+      within(recorded).getByText(/No recorded export is for/u),
     ).toBeVisible();
     expect(
       within(recorded).queryByText(/projected into your operator scope/u),
@@ -155,5 +188,41 @@ describe("ReportsView report filter", () => {
     const recorded = recordedExports();
     expect(within(recorded).getByText("4 exports")).toBeVisible();
     expect(within(recorded).getByText("RPT-04 export")).toBeVisible();
+  });
+
+  /**
+   * Every registry name is worded by the page, so a reader in another
+   * language sees no English label and no title-cased storage token. The
+   * registry code itself stays beside it as the identifier the API uses.
+   */
+  it("names every report in the reader's language", () => {
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <ReportsView accounts={[]} exports={exports} provenance={provenance} />
+      </LanguageProvider>,
+    );
+
+    const headings = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toHaveLength(reportNames.length);
+    expect(headings).toContain("Previsão de receita");
+    expect(headings).toContain("Conciliação tripla");
+    for (const name of reportNames)
+      expect(headings).not.toContain(
+        name
+          .split("_")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" "),
+      );
+    expect(
+      screen.getAllByRole("button", { name: "Exportar CSV" }),
+    ).toHaveLength(reportNames.length);
+    expect(
+      screen.getByRole("heading", {
+        name: "Exportações de relatórios registradas",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("4 exportações")).toBeVisible();
   });
 });

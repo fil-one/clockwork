@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "@/src/i18n/client";
 
 import { useId, useState, useTransition } from "react";
 
@@ -7,13 +8,10 @@ import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { classifyReconciliationVariance } from "./actions";
 import { reconciliationCopy } from "./copy";
-import {
-  varianceClassificationLabels,
-  varianceClassifications,
-  type VarianceClassification,
-} from "./model";
+import { varianceClassifications, type VarianceClassification } from "./model";
 
-const { decision, failures, fallbackFailure } = reconciliationCopy;
+const { decision, failures, fallbackFailure, classifications } =
+  reconciliationCopy;
 
 export function VarianceDisposition({
   caseId,
@@ -26,6 +24,7 @@ export function VarianceDisposition({
   subject: string;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
   const fieldId = useId().replaceAll(":", "");
   const [classification, setClassification] =
     useState<VarianceClassification>("delivery_timing");
@@ -38,7 +37,7 @@ export function VarianceDisposition({
 
   function submit() {
     if (reason.trim().length < 8) {
-      setMessage(failures.RECONCILIATION_REASON_REQUIRED ?? "");
+      setMessage(t(failures.RECONCILIATION_REASON_REQUIRED ?? fallbackFailure));
       return;
     }
     const formData = new FormData();
@@ -57,18 +56,18 @@ export function VarianceDisposition({
       }
       setDone(false);
       setMessage(
-        (result.code ? failures[result.code] : undefined) ?? fallbackFailure,
+        t((result.code ? failures[result.code] : undefined) ?? fallbackFailure),
       );
     });
   }
 
   return (
     <Dialog
-      title={`${decision.title}: ${subject}`}
-      description={decision.description}
+      title={t(decision.title, { subject })}
+      description={t(decision.description)}
       trigger={
         <Button variant="secondary" size="small" disabled={disabled}>
-          {decision.trigger}
+          {t(decision.trigger)}
         </Button>
       }
       footer={
@@ -78,23 +77,23 @@ export function VarianceDisposition({
           onClick={submit}
           disabled={pending}
         >
-          {pending ? decision.submitting : decision.confirm}
+          {pending ? t(decision.submitting) : t(decision.confirm)}
         </Button>
       }
     >
       <dl className={styles.reviewGrid}>
         <div>
-          <dt>{decision.caseTerm}</dt>
+          <dt>{t(decision.caseTerm)}</dt>
           <dd>{subject}</dd>
         </div>
         <div>
-          <dt>{decision.effectTerm}</dt>
-          <dd>{decision.effectDetail}</dd>
+          <dt>{t(decision.effectTerm)}</dt>
+          <dd>{t(decision.effectDetail)}</dd>
         </div>
       </dl>
       <Select
         id={`${fieldId}-classification`}
-        label={decision.classificationLabel}
+        label={t(decision.classificationLabel)}
         name="classification"
         value={classification}
         onChange={(event) => {
@@ -105,41 +104,41 @@ export function VarianceDisposition({
         }}
         options={varianceClassifications.map((value) => ({
           value,
-          label: varianceClassificationLabels[value],
+          label: t(classifications[value]),
         }))}
       />
       <Input
         id={`${fieldId}-clearing`}
-        label={decision.clearingLabel}
+        label={t(decision.clearingLabel)}
         name="expectedClearingPeriod"
         value={clearingPeriod}
         onChange={(event) => {
           setClearingPeriod(event.currentTarget.value);
           if (message) setMessage("");
         }}
-        help={decision.clearingHelp}
+        help={t(decision.clearingHelp)}
       />
       <Input
         id={`${fieldId}-evidence`}
-        label={decision.evidenceLabel}
+        label={t(decision.evidenceLabel)}
         name="evidenceReference"
         value={evidenceReference}
         onChange={(event) => {
           setEvidenceReference(event.currentTarget.value);
           if (message) setMessage("");
         }}
-        help={decision.evidenceHelp}
+        help={t(decision.evidenceHelp)}
       />
       <Textarea
         id={`${fieldId}-reason`}
-        label={decision.reasonLabel}
+        label={t(decision.reasonLabel)}
         name="reason"
         value={reason}
         onChange={(event) => {
           setReason(event.currentTarget.value);
           if (message) setMessage("");
         }}
-        help={decision.reasonHelp}
+        help={t(decision.reasonHelp)}
         rows={3}
         required
       />
@@ -150,7 +149,7 @@ export function VarianceDisposition({
       ) : null}
       {done && !message ? (
         <p className={styles.statusMessage} role="status">
-          {decision.recorded}
+          {t(decision.recorded)}
         </p>
       ) : null}
     </Dialog>

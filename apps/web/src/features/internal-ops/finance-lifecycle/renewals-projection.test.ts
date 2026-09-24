@@ -94,7 +94,7 @@ describe("renewalOrderFromProjection", () => {
       now,
     );
 
-    expect(renewal.invoicedToDate).toBe("$2,000.00");
+    expect(renewal.invoicedToDate).toEqual({ minor: 200000n, currency: "USD" });
     expect(renewal.invoiceCount).toBe(2);
   });
 

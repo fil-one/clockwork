@@ -10,20 +10,11 @@
 export default {
   /** Still import `localizeCopy` / `translateInterfaceText`. */
   localizeCopy: [
-    "apps/web/src/features/internal-ops/collections-corrections/correction-dialog.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/collections-view.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/migrations-view.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/page-frame.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/provisioning-view.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/renewals-view.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/reports-view.tsx",
-    "apps/web/src/features/internal-ops/finance-lifecycle/review-action.tsx",
     "apps/web/src/features/internal-ops/operations-home/operations-home.tsx",
     "apps/web/src/features/internal-ops/operations-home/server-loader.ts",
     "apps/web/src/features/internal-ops/queue-search/global-search.tsx",
     "apps/web/src/features/internal-ops/queue-search/queue-detail.tsx",
     "apps/web/src/features/internal-ops/queue-search/queue-workspace.tsx",
-    "apps/web/src/features/internal-ops/revenue/revenue-view.tsx",
     "apps/web/src/features/internal-ops/status/status-panel.tsx",
     "apps/web/src/features/internal-ops/status/status-view.tsx",
     "apps/web/src/features/internal-ops/webhook-replay/replay-decision.tsx",

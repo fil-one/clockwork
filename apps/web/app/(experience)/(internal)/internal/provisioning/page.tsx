@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+
+import { getTranslations } from "@/src/i18n/server";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import type { DemoOrderAcceptanceState } from "@/src/features/experience-server/demo-order-acceptance";
@@ -7,6 +10,11 @@ import { loadProvisioningWorkspace } from "@/src/features/internal-ops/finance-l
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("operations.finance.provisioning.title") };
+}
 
 export default async function Page() {
   const workspace = await loadProvisioningWorkspace();

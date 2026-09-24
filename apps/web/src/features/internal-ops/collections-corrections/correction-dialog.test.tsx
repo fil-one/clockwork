@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type * as CommerceClient from "@/src/features/contracts/commerce-client";
 import { CommerceApiError } from "@/src/features/contracts/commerce-client";
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
 
 const send = vi.hoisted(() => vi.fn());
 
@@ -23,7 +25,6 @@ const subject = {
   currency: "USD",
   amountMinor: "100000",
   reference: "INV-11111111",
-  amountLabel: "$1,000.00",
 };
 
 function open(kind: CorrectionKind = "credit_note", overrides = {}) {
@@ -104,7 +105,7 @@ describe("collections corrections", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain(
-      "Enter the amount as a positive whole number of minor units.",
+      "Enter the amount as a positive whole number in the smallest currency unit.",
     );
     expect(alert.textContent).toContain(
       "Give an internal reason code of 3 to 120 characters.",
@@ -113,7 +114,7 @@ describe("collections corrections", () => {
   });
 
   /**
-   * No read surface resolves a payment, so the refund form has to say the field
+   * No page looks up payments, so the refund form has to say the field
    * is the operator's and not the record's.
    */
   it("labels the payment identity on a refund as operator-supplied", async () => {
@@ -122,9 +123,7 @@ describe("collections corrections", () => {
 
     await user.click(screen.getByRole("button", { name: "Submit refund" }));
 
-    expect(
-      screen.getByText(/No read surface resolves a payment/u),
-    ).toBeVisible();
+    expect(screen.getByText(/No page looks up payments/u)).toBeVisible();
   });
 
   it("asks a dispute for the Stripe identifier and no internal reason code", async () => {
@@ -137,12 +136,18 @@ describe("collections corrections", () => {
     expect(screen.queryByLabelText(/Internal reason code/u)).toBeNull();
   });
 
-  it("reports a server refusal without claiming anything was written", async () => {
+  /**
+   * The server's English `detail` is for logs and API callers. The reader is
+   * told in their language that nothing was written, with the server's problem
+   * code (an identifier) so the refusal can still be traced.
+   */
+  it("reports a server refusal in the reader's words without quoting the server", async () => {
     send.mockRejectedValue(
       new CommerceApiError(
         422,
         "validation",
         "Credit exceeds the remaining invoice amount or currency",
+        "CREDIT_EXCEEDS_REMAINING",
       ),
     );
     const user = userEvent.setup();
@@ -161,7 +166,54 @@ describe("collections corrections", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Nothing was written");
     expect(alert.textContent).toContain(
+      "Server code: CREDIT_EXCEEDS_REMAINING",
+    );
+    expect(alert.textContent).not.toContain(
       "Credit exceeds the remaining invoice amount or currency",
     );
+  });
+
+  /**
+   * The dialog is worded in the reader's language end to end: the Stripe
+   * reason codes are labelled rather than shown as "order change", and the
+   * invoice total in the amount help is formatted for the reader from minor
+   * units, not copied from an English-formatted string.
+   */
+  it("speaks the reader's language, including the provider reasons and the total", async () => {
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <CorrectionDialog kind="credit_note" subject={subject} />
+      </LanguageProvider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Emitir nota de crédito" }),
+    );
+
+    const total = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "USD",
+    })
+      .format(1000)
+      // The DOM matcher collapses Intl's no-break space to a plain one.
+      .replace(/\s/gu, " ");
+    expect(
+      screen.getByText(
+        `Número inteiro na menor unidade de USD. O total da fatura é ${total}.`,
+      ),
+    ).toBeVisible();
+    const reasons = screen
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    expect(reasons).toEqual([
+      "Duplicado",
+      "Fraudulento",
+      "Alteração do pedido",
+      "Produto insatisfatório",
+    ]);
+    expect(
+      screen.getByText(/Somente anulando a nota de crédito no provedor/u),
+    ).toBeVisible();
   });
 });

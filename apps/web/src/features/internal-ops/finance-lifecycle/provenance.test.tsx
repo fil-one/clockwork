@@ -68,7 +68,7 @@ describe("FinancePageFrame provenance", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Not available in this workspace");
     expect(alert).toHaveTextContent(
-      "This workflow is not enabled for the current environment.",
+      "This workflow is not enabled in the current environment.",
     );
     expect(alert).not.toHaveTextContent("No channel backs this.");
   });
@@ -85,7 +85,7 @@ describe("FinancePageFrame provenance", () => {
     );
 
     expect(screen.getByText("Guided demo workspace")).toBeVisible();
-    expect(screen.getByText(/reset from Demo controls/)).toBeVisible();
+    expect(screen.getByText(/reset from the demo controls/)).toBeVisible();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 

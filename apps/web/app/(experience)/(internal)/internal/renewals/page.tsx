@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
+
+import { getTranslations } from "@/src/i18n/server";
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
 import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("operations.finance.renewals.title") };
+}
 
 /**
  * Renewal work is read from the internal `orders` channel. No aggregate routes

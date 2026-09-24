@@ -41,21 +41,6 @@ export const varianceClassifications = [
 
 export type VarianceClassification = (typeof varianceClassifications)[number];
 
-export const varianceClassificationLabels: Readonly<
-  Record<VarianceClassification, string>
-> = {
-  delivery_timing: "Delivery timing",
-  period_cut_off: "Period cut-off",
-  currency: "Currency",
-  tax: "Tax",
-  account_mapping: "Account mapping",
-  missing_or_duplicate_event: "Missing or duplicate event",
-  usage_correction: "Usage correction",
-  amendment_or_proration: "Amendment or proration",
-  provider_fee: "Provider fee",
-  unexplained: "Unexplained",
-};
-
 export function isVarianceClassification(
   value: string,
 ): value is VarianceClassification {
@@ -134,10 +119,11 @@ export function untiedPeriods(
   return periods.filter((period) => !period.mathematicallyTied);
 }
 
-export function formatMinor(minor: string, currency: string): string {
-  const negative = minor.startsWith("-");
-  const digits = (negative ? minor.slice(1) : minor).padStart(3, "0");
-  const major = digits.slice(0, -2);
-  const fraction = digits.slice(-2);
-  return `${negative ? "-" : ""}${major}.${fraction} ${currency}`;
-}
+/**
+ * Where a workspace's rows were read from. It is recorded on the workspace for
+ * diagnostics and tests; no surface renders it, so it is not interface text.
+ */
+export const reconciliationSources = {
+  live: "Tie-out relation and the reconciliation exception queue", // i18n-exempt: provenance source name, never rendered
+  unavailable: "No reconciliation read is available", // i18n-exempt: provenance source name, never rendered
+} as const;
