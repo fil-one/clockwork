@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import { withInternalTransaction, type RuntimeDatabase } from "@clockwork/db";
 
-import { unhandledErrorsCopy } from "./copy";
 import {
   causeDiscardSite,
   providerMessageProvenance,
@@ -19,7 +18,7 @@ import {
 /** No connection was configured, so no query was attempted. */
 export const unwiredIncidentQueue: IncidentQueue = {
   incidents: [],
-  source: unhandledErrorsCopy.sourceLabel.unwired,
+  source: "unwired",
   readable: false,
   state: "no_connection",
 };
@@ -27,7 +26,7 @@ export const unwiredIncidentQueue: IncidentQueue = {
 /** A connection existed and the read raised. */
 export const unreadableIncidentQueue: IncidentQueue = {
   incidents: [],
-  source: unhandledErrorsCopy.sourceLabel.unavailable,
+  source: "unavailable",
   readable: false,
   state: "read_failed",
 };
@@ -218,7 +217,7 @@ export async function readRuntimeFailureIncidents(
   );
   return {
     incidents: rows.map((row) => present(RowSchema.parse(row))),
-    source: unhandledErrorsCopy.sourceLabel.live,
+    source: "live",
     readable: true,
     state: "read",
   };

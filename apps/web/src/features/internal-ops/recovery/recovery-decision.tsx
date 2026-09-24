@@ -5,17 +5,19 @@ import { useId, useState, useTransition } from "react";
 
 import type { DeadLetterSource } from "@clockwork/db";
 
+import { useTranslations } from "@/src/i18n/client";
+
 import { decideDeadLetterOperation } from "./actions";
 import {
   decisionConsequences,
+  decisionLabels,
   decisionReversibility,
-  recoveryCopy,
+  recoveryFailureMessage,
+  recoveryReasonMinimum,
 } from "./copy";
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 
 type Decision = "retry" | "abandon";
-
-const { decision: decisionCopy, failures, fallbackFailure } = recoveryCopy;
 
 export function RecoveryDecision({
   decision,
@@ -29,19 +31,22 @@ export function RecoveryDecision({
   source: DeadLetterSource;
   id: string;
   reference: string;
+  /** What the work acts on, already worded for the reader. */
   subject: string;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
   const reasonId = useId().replaceAll(":", "");
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
-  const consequence = decisionConsequences[decision][source];
+  const consequence = t(decisionConsequences[decision][source]);
+  const labels = decisionLabels[decision];
 
   function submit() {
-    if (reason.trim().length < 8) {
-      setMessage(failures.SYSTEM_RECOVERY_REASON_REQUIRED ?? "");
+    if (reason.trim().length < recoveryReasonMinimum) {
+      setMessage(recoveryFailureMessage("SYSTEM_RECOVERY_REASON_REQUIRED", t));
       return;
     }
     const formData = new FormData();
@@ -57,19 +62,18 @@ export function RecoveryDecision({
         return;
       }
       setDone(Boolean(result.ok));
-      setMessage(
-        (result.code ? failures[result.code] : undefined) ?? fallbackFailure,
-      );
+      setMessage(recoveryFailureMessage(result.code, t));
     });
   }
 
   return (
     <Dialog
-      title={`${decisionCopy.labels[decision].trigger} ${reference}`}
+      closeLabel={t("common.close")}
+      title={t(labels.title, { reference })}
       description={consequence}
       trigger={
         <Button variant="secondary" size="small" disabled={disabled}>
-          {decisionCopy.labels[decision].trigger}
+          {t(labels.trigger)}
         </Button>
       }
       footer={
@@ -79,36 +83,36 @@ export function RecoveryDecision({
           onClick={submit}
           disabled={pending}
         >
-          {pending
-            ? decisionCopy.submitting
-            : decisionCopy.labels[decision].confirm}
+          {pending ? t("operations.decision.recording") : t(labels.confirm)}
         </Button>
       }
     >
       <dl className={styles.reviewGrid}>
         <div>
-          <dt>{decisionCopy.recordTerm}</dt>
+          <dt>{t("operations.recovery.column.record")}</dt>
           <dd>{subject}</dd>
         </div>
         <div>
-          <dt>{decisionCopy.effectTerm}</dt>
+          <dt>{t("operations.decision.effect")}</dt>
           <dd>{consequence}</dd>
         </div>
         <div>
-          <dt>{decisionCopy.reversibleTerm}</dt>
-          <dd>{decisionReversibility[decision][source]}</dd>
+          <dt>{t("operations.recovery.decision.reversible")}</dt>
+          <dd>{t(decisionReversibility[decision][source])}</dd>
         </div>
       </dl>
       <Textarea
         id={reasonId}
-        label={decisionCopy.reasonLabel}
+        label={t("operations.decision.reason")}
         name="reason"
         value={reason}
         onChange={(event) => {
           setReason(event.currentTarget.value);
           if (message) setMessage("");
         }}
-        help={decisionCopy.reasonHelp}
+        help={t("operations.recovery.decision.reasonHelp", {
+          min: recoveryReasonMinimum,
+        })}
         rows={3}
         required
       />
@@ -119,7 +123,7 @@ export function RecoveryDecision({
       ) : null}
       {done && !message ? (
         <p className={styles.statusMessage} role="status">
-          {decisionCopy.recorded}
+          {t("operations.decision.recorded")}
         </p>
       ) : null}
     </Dialog>

@@ -1,29 +1,43 @@
-export const integrationStatusCopy = {
-  page: {
-    title: "Integration status",
-    description:
-      "Availability of commerce services and any stopped integration work that needs attention.",
-  },
-  source: "recovery and webhook processing queues",
-  sourceUnavailable: "One or more operational queue reads are unavailable",
-  queues: {
-    label: "Stopped work coverage",
-    dispatch: "Dispatch failures",
-    provisioning: "Provisioning failures",
-    workflow: "Workflow failures",
-    webhook: "Webhook callbacks",
-    denominator: "Items currently waiting for operator attention",
-    unreadable:
-      "At least one queue could not be read. A zero on this page is not evidence that the unreadable queue is empty.",
-    recoveryLink: "Open recovery",
-    webhookLink: "Open webhook replay",
-  },
-  lanes: {
-    heading: "Service configuration",
-    detail:
-      "Current availability of core commerce, lifecycle, and system services.",
-    loading: "Reading service status…",
-    unavailable: "This service status check did not return a readable result.",
-    readAt: (instant: string) => `Updated ${instant}`,
-  },
-} as const;
+import type { MessageId } from "@/src/i18n";
+import type { LaneStatus } from "@/src/features/contracts/status-client";
+
+type Lane = LaneStatus["lane"];
+
+/** The three status lanes the API reports, named for an operator. */
+export const laneLabels: Readonly<Record<Lane, MessageId>> = {
+  core: "operations.status.lane.core",
+  lifecycle: "operations.status.lane.lifecycle",
+  system: "operations.status.lane.system",
+};
+
+export const laneStatusLabels: Readonly<
+  Record<LaneStatus["status"], MessageId>
+> = {
+  ready: "status.ready",
+  degraded: "operations.status.state.degraded",
+  unavailable: "operations.status.state.unavailable",
+};
+
+/** Keys of a lane's `details`, as the generated contract spells them. */
+export const detailLabels: Readonly<Record<string, MessageId>> = {
+  service: "operations.status.detail.service",
+  stripeWebhook: "operations.status.detail.stripeWebhook",
+  stripePayment: "operations.status.detail.stripePayment",
+  artifactStorage: "operations.status.detail.artifactStorage",
+  registration: "operations.status.detail.registration",
+  esign: "operations.status.detail.esign",
+  provisioningWebhook: "operations.status.detail.provisioningWebhook",
+  marketplaceWebhook: "operations.status.detail.marketplaceWebhook",
+  evidenceStorage: "operations.status.detail.evidenceStorage",
+  externalGates: "operations.status.detail.externalGates",
+  activationTestRunner: "operations.status.detail.activationTestRunner",
+  workosWebhook: "operations.status.detail.workosWebhook",
+};
+
+/** Values a detail can take in the generated contract. */
+export const detailValueLabels: Readonly<Record<string, MessageId>> = {
+  database: "operations.status.value.connected",
+  memory: "operations.status.value.memory",
+  configured: "operations.status.value.configured",
+  missing: "operations.status.value.missing",
+};

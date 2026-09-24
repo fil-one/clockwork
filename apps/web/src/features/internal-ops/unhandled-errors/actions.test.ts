@@ -23,7 +23,14 @@ vi.mock("../demo-operator-state", () => ({
 }));
 
 import { decideUnhandledError } from "./actions";
-import { unhandledErrorsCopy } from "./copy";
+import { translatorFor } from "@/src/i18n/catalogs";
+import { locales } from "@/src/i18n/locales";
+
+import {
+  containmentReferenceHelp,
+  incidentFailureMessage,
+  incidentReasonHelp,
+} from "./copy";
 import { containmentReferenceLimit, decisionReasonLimits } from "./model";
 
 const anchor = "01a00a46-9de0-7ced-9bea-6877cf2c8d68";
@@ -139,9 +146,14 @@ describe("input the store must never see", () => {
     });
     expect(mocks.record).not.toHaveBeenCalled();
 
-    expect(
-      unhandledErrorsCopy.failures.UNHANDLED_ERROR_REASON_TOO_LONG,
-    ).toContain(String(decisionReasonLimits.max));
+    for (const locale of locales)
+      expect(
+        incidentFailureMessage(
+          "UNHANDLED_ERROR_REASON_TOO_LONG",
+          translatorFor(locale),
+        ),
+        locale,
+      ).toContain(String(decisionReasonLimits.max));
   });
 
   it("admits a reason at each end of the stated range", async () => {
@@ -163,16 +175,20 @@ describe("input the store must never see", () => {
    * The help text is the only place the operator learns the bounds, so it is
    * held to the constants the refusals are made with rather than written out.
    */
-  it("states the bounds it enforces in the help text", () => {
-    const reasonHelp = unhandledErrorsCopy.decision.reasonHelp(
-      decisionReasonLimits.min,
-      decisionReasonLimits.max,
-    );
-    expect(reasonHelp).toContain(String(decisionReasonLimits.min));
-    expect(reasonHelp).toContain(String(decisionReasonLimits.max));
-    expect(
-      unhandledErrorsCopy.decision.evidenceHelp(containmentReferenceLimit),
-    ).toContain(String(containmentReferenceLimit));
+  it("states the bounds it enforces in the help text, in every language", () => {
+    for (const locale of locales) {
+      const t = translatorFor(locale);
+      const reasonHelp = incidentReasonHelp(t);
+      expect(reasonHelp, locale).toContain(String(decisionReasonLimits.min));
+      expect(reasonHelp, locale).toContain(String(decisionReasonLimits.max));
+      expect(containmentReferenceHelp(t), locale).toContain(
+        String(containmentReferenceLimit),
+      );
+      expect(
+        incidentFailureMessage("UNHANDLED_ERROR_REASON_REQUIRED", t),
+        locale,
+      ).toContain(String(decisionReasonLimits.min));
+    }
   });
 
   /**

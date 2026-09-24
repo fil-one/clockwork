@@ -1,46 +1,43 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy } from "@/src/i18n/copy";
 import { Table } from "@clockwork/ui";
 
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
-import { webhookReplayCopy } from "./copy";
+import { formatOperationalTimestamp } from "../presentation";
+import { callbackStateLabels, replaySourceLabels } from "./copy";
 import { ReplayDecision } from "./replay-decision";
 import type { WebhookReplayQueue } from "./webhook-replay-loader";
 
-/** Minute precision in UTC, so two operators reading the same row agree. */
-function received(instant: string): string {
-  return `${instant.slice(0, 16).replace("T", " ")} UTC`;
-}
-
 export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
   const t = use(getTranslations());
-  const localizedwebhookReplayCopy = localizeCopy(webhookReplayCopy, t);
+  const formattingLocale = use(getFormattingLocale());
   return (
     <main className={styles.page} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <h1 className={styles.title}>{localizedwebhookReplayCopy.title}</h1>
+          <h1 className={styles.title}>
+            {t("operations.webhookReplay.title")}
+          </h1>
           <p className={styles.description}>
-            {localizedwebhookReplayCopy.description}
+            {t("operations.webhookReplay.description")}
           </p>
         </div>
         <p className={styles.freshness}>
           <strong>
             {queue.readable
-              ? localizedwebhookReplayCopy.freshnessReadable
-              : localizedwebhookReplayCopy.freshnessUnreadable}
+              ? t("operations.webhookReplay.freshness.read")
+              : t("operations.webhookReplay.freshness.unread")}
           </strong>
-          {queue.source}
+          {t(replaySourceLabels[queue.source])}
         </p>
       </header>
 
       {queue.readable ? null : (
         <div className={styles.warningNotice} role="alert">
-          <strong>{localizedwebhookReplayCopy.unreadableTitle}</strong>
-          <span>{localizedwebhookReplayCopy.unreadableBody}</span>
+          <strong>{t("operations.webhookReplay.unreadable.title")}</strong>
+          <span>{t("operations.webhookReplay.unreadable.detail")}</span>
         </div>
       )}
 
@@ -48,33 +45,34 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
         <header className={styles.sectionHeader}>
           <div>
             <h2 id="stopped-callbacks">
-              {localizedwebhookReplayCopy.sectionHeading}
+              {t("operations.webhookReplay.section.heading")}
             </h2>
-            <p>{localizedwebhookReplayCopy.sectionHint}</p>
+            <p>{t("operations.webhookReplay.section.hint")}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {queue.events.length}{" "}
-            {queue.events.length === 1 ? "callback" : "callbacks"}
+            {t("operations.webhookReplay.count", {
+              count: queue.events.length,
+            })}
           </span>
         </header>
 
         {queue.readable && queue.events.length === 0 ? (
-          <p className={styles.empty}>{localizedwebhookReplayCopy.empty}</p>
+          <p className={styles.empty}>{t("operations.webhookReplay.empty")}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedwebhookReplayCopy.tableCaption}
+            caption={t("operations.webhookReplay.caption")}
             captionHidden
             density="compact"
             headers={[
-              localizedwebhookReplayCopy.columns.provider,
-              localizedwebhookReplayCopy.columns.callback,
-              localizedwebhookReplayCopy.columns.eventType,
-              localizedwebhookReplayCopy.columns.state,
-              localizedwebhookReplayCopy.columns.received,
-              localizedwebhookReplayCopy.columns.attempts,
-              localizedwebhookReplayCopy.columns.failure,
-              localizedwebhookReplayCopy.columns.decision,
+              t("operations.webhookReplay.column.provider"),
+              t("operations.webhookReplay.column.callback"),
+              t("operations.column.type"),
+              t("operations.webhookReplay.column.state"),
+              t("operations.webhookReplay.column.received"),
+              t("operations.column.attempts"),
+              t("operations.webhookReplay.column.lastError"),
+              t("operations.column.decision"),
             ]}
             numericColumns={[5]}
             rowKeys={queue.events.map((event) => event.id)}
@@ -84,12 +82,14 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
                 <strong>{event.providerEventId}</strong>
               </div>,
               event.eventType,
-              localizedwebhookReplayCopy.stateLabel[event.state],
+              t(callbackStateLabels[event.state]),
+              // Minute precision in UTC, so two operators reading the same row
+              // agree, worded in the reader's locale.
               <time dateTime={event.occurredAt}>
-                {received(event.occurredAt)}
+                {formatOperationalTimestamp(event.occurredAt, formattingLocale)}
               </time>,
               <strong>{event.attemptCount}</strong>,
-              event.processingError ?? localizedwebhookReplayCopy.noError,
+              event.processingError ?? t("common.notRecorded"),
               <div className={styles.actionStack}>
                 <SurfaceActionGate
                   audience="internal"

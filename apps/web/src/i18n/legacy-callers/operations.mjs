@@ -9,17 +9,7 @@
  */
 export default {
   /** Still import `localizeCopy` / `translateInterfaceText`. */
-  localizeCopy: [
-    "apps/web/src/features/internal-ops/operations-home/operations-home.tsx",
-    "apps/web/src/features/internal-ops/operations-home/server-loader.ts",
-    "apps/web/src/features/internal-ops/queue-search/global-search.tsx",
-    "apps/web/src/features/internal-ops/queue-search/queue-detail.tsx",
-    "apps/web/src/features/internal-ops/queue-search/queue-workspace.tsx",
-    "apps/web/src/features/internal-ops/status/status-panel.tsx",
-    "apps/web/src/features/internal-ops/status/status-view.tsx",
-    "apps/web/src/features/internal-ops/webhook-replay/replay-decision.tsx",
-    "apps/web/src/features/internal-ops/webhook-replay/webhook-replay-view.tsx",
-  ],
+  localizeCopy: [],
   /** Still format with a literal locale or the runtime's default locale. */
   literalLocales: [],
 };

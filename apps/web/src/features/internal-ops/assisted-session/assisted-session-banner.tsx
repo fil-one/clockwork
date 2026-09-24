@@ -5,7 +5,8 @@ import {
 import { use } from "react";
 
 import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
-import { getFormattingLocale } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
 
 import type { AssistedSessionView } from "./repository";
 import styles from "./assisted-session-banner.module.css";
@@ -18,47 +19,54 @@ export function AssistedSessionBanner({
   providerManaged?: boolean;
 }) {
   const expiresAt = session.expiresAt.toISOString();
+  const t = use(getTranslations());
   const formattingLocale = use(getFormattingLocale());
   return (
-    <aside className={styles.banner} aria-label="Assisted mode active">
+    <aside
+      className={styles.banner}
+      aria-label={t("operations.assisted.active")}
+    >
       <div className={styles.title}>
         <span aria-hidden="true" />
-        <strong>Assisted mode active</strong>
+        <strong>{t("operations.assisted.active")}</strong>
       </div>
       <dl>
         <div>
-          <dt>Effective account</dt>
+          <dt>{t("operations.assisted.effectiveAccount")}</dt>
           <dd>{session.targetAccountName}</dd>
         </div>
         <div>
-          <dt>Staff actor</dt>
+          <dt>{t("operations.assisted.staffActor")}</dt>
           <dd>
-            {session.actualActorName}
             {session.actualActorName !== session.actualActorEmail
-              ? ` · ${session.actualActorEmail}`
-              : ""}
+              ? t("common.join.labels", {
+                  first: session.actualActorName,
+                  second: session.actualActorEmail,
+                })
+              : session.actualActorName}
           </dd>
         </div>
         <div>
-          <dt>Reason and expiry</dt>
+          <dt>{t("operations.assisted.reasonAndExpiry")}</dt>
           <dd>
-            {session.reason} · expires{" "}
-            <time dateTime={expiresAt}>
-              {formatOperationalTimestamp(expiresAt, formattingLocale)}
-            </time>
+            {richText(t, "operations.assisted.reasonExpires", {
+              reason: session.reason,
+              time: (
+                <time dateTime={expiresAt}>
+                  {formatOperationalTimestamp(expiresAt, formattingLocale)}
+                </time>
+              ),
+            })}
           </dd>
         </div>
       </dl>
-      <p>
-        Server session {session.id} preserves the immutable staff actor and
-        effective account on every authorized action.
-      </p>
+      <p>{t("operations.assisted.serverSession", { id: session.id })}</p>
       <form
         action={
           providerManaged ? exitProviderAssistedSession : exitAssistedSession
         }
       >
-        <button type="submit">Exit assisted mode</button>
+        <button type="submit">{t("operations.assisted.exit")}</button>
       </form>
     </aside>
   );

@@ -1,3 +1,4 @@
+// i18n-exempt-file: database repository. Its Error messages are server-side invariants for logs and audit; Next.js redacts a thrown message before any page renders it, and the error boundary shows a translated message.
 import "server-only";
 
 import { sql } from "drizzle-orm";

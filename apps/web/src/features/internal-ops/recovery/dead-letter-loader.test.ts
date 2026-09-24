@@ -47,7 +47,7 @@ describe("dead-letter loader deployment boundary", () => {
       }),
     ).resolves.toMatchObject({
       readable: true,
-      source: "Demonstration recovery ledger",
+      source: "demo",
       operations: [{ id: "demo-operation", source: "workflow_run" }],
     });
     expect(mocks.readDemoDeadLetters).toHaveBeenCalledWith({

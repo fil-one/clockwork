@@ -11,16 +11,14 @@ import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 import { readDemoDeadLetters } from "../demo-operator-state";
 
-import { recoveryCopy } from "./copy";
+import type { RecoverySource } from "./copy";
 
 export type { DeadLetterOperation, DeadLetterSource };
 
-export type DeadLetterSourceLabel =
-  (typeof recoveryCopy.sourceLabel)[keyof typeof recoveryCopy.sourceLabel];
-
 export interface DeadLetterResult {
   operations: readonly DeadLetterOperation[];
-  source: DeadLetterSourceLabel;
+  /** Which store answered; the page names it in the reader's language. */
+  source: RecoverySource;
   readable: boolean;
 }
 
@@ -42,13 +40,13 @@ export async function loadDeadLetterOperations(input: {
         operations: await readDemoDeadLetters({
           ...(input.sources ? { sources: input.sources } : {}),
         }),
-        source: recoveryCopy.sourceLabel.demo,
+        source: "demo",
         readable: true,
       };
     } catch {
       return {
         operations: [],
-        source: recoveryCopy.sourceLabel.unavailable,
+        source: "unavailable",
         readable: false,
       };
     }
@@ -56,7 +54,7 @@ export async function loadDeadLetterOperations(input: {
   if (!database)
     return {
       operations: [],
-      source: recoveryCopy.sourceLabel.unavailable,
+      source: "unavailable",
       readable: false,
     };
   try {
@@ -67,13 +65,13 @@ export async function loadDeadLetterOperations(input: {
     });
     return {
       operations,
-      source: recoveryCopy.sourceLabel.live,
+      source: "live",
       readable: true,
     };
   } catch {
     return {
       operations: [],
-      source: recoveryCopy.sourceLabel.unavailable,
+      source: "unavailable",
       readable: false,
     };
   }

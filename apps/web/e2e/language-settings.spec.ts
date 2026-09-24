@@ -34,7 +34,10 @@ for (const language of locales) {
     await expect(page.locator('select[name="language"]')).toHaveValue(language);
     await page.goto("/internal");
     await expect(
-      page.getByRole("heading", { name: t("ui.0"), exact: true }),
+      page.getByRole("heading", {
+        name: t("operations.home.title"),
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute(
       "dir",

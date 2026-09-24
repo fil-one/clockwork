@@ -33,7 +33,7 @@ function incident(
     safeCode: "WORKFLOW_PERMANENT_FAILURE",
     taskIdentifier: "task",
     outboxMessageId: null,
-    diagnosis: { kind: "code_only", discardedAt: "somewhere" },
+    diagnosis: { kind: "code_only", discardedAt: { kind: "unknown" } },
     decisionCount: 0,
     latestDecision: null,
     latestDecisionReason: null,
@@ -282,15 +282,15 @@ describe("what a containment reference may be", () => {
 
 describe("cause availability", () => {
   it("names the write site that discarded the cause, per writer", () => {
-    expect(causeDiscardSite("workflow.task.dead_lettered")).toContain(
-      "workflow_runs.last_error",
-    );
-    expect(causeDiscardSite("lifecycle.effect.dead_lettered")).toContain(
-      "provider_operations.last_error",
-    );
-    expect(causeDiscardSite("order.provisioning_dead_lettered")).toContain(
-      "lastError.message",
-    );
+    expect(causeDiscardSite("workflow.task.dead_lettered")).toMatchObject({
+      column: "workflow_runs.last_error",
+    });
+    expect(causeDiscardSite("lifecycle.effect.dead_lettered")).toMatchObject({
+      column: "provider_operations.last_error",
+    });
+    expect(causeDiscardSite("order.provisioning_dead_lettered")).toMatchObject({
+      field: "lastError.message",
+    });
   });
 
   /**
@@ -300,12 +300,14 @@ describe("cause availability", () => {
    * writer this feature has never looked at.
    */
   it("names a site for every catalogued event type", () => {
-    const generic = causeDiscardSite("nothing.this.surface.reads");
+    expect(causeDiscardSite("nothing.this.surface.reads")).toEqual({
+      kind: "unknown",
+    });
     for (const eventType of runtimeFailureEventTypes)
       expect(
-        causeDiscardSite(eventType),
+        causeDiscardSite(eventType).kind,
         `${eventType} falls through to the generic discard sentence`,
-      ).not.toBe(generic);
+      ).not.toBe("unknown");
   });
 
   /**
@@ -314,8 +316,11 @@ describe("cause availability", () => {
    */
   it("says where a provider-effect cause survives", () => {
     const site = causeDiscardSite("lifecycle.provider_effect.dead_lettered");
-    expect(site).toContain("provider_operations.last_error");
-    expect(site).toContain("provisioning attempt");
+    expect(site).toEqual({
+      kind: "coerced_attempt_survives",
+      column: "provider_operations.last_error",
+      module: "packages/db/src/repositories/workflows/lifecycle.ts",
+    });
   });
 
   it("counts only signatures whose latest failure kept a message", () => {

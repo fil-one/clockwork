@@ -13,6 +13,7 @@ import {
 import { composedTaxProvider } from "@/src/providers/tax";
 
 import { replayDemoWebhook } from "../demo-operator-state";
+import { replayReasonMinimum } from "./copy";
 
 export interface WebhookReplayOutcome {
   ok: boolean;
@@ -58,7 +59,7 @@ export async function replayWebhookEvent(
   const reason = text(formData, "reason");
   if (!provider || !providerEventId)
     return { ok: false, code: "WEBHOOK_REPLAY_INVALID" };
-  if (reason.length < 8)
+  if (reason.length < replayReasonMinimum)
     return { ok: false, code: "WEBHOOK_REPLAY_REASON_REQUIRED" };
 
   const demoEnabled = demoDeployIdentityEnabled(process.env);

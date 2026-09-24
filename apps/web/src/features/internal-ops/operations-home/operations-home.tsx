@@ -1,51 +1,64 @@
-import { getTranslations, getLocale } from "@/src/i18n/server";
+import {
+  getFormattingLocale,
+  getLocale,
+  getTranslations,
+} from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy, translateInterfaceText } from "@/src/i18n/copy";
 import Link from "next/link";
 
-import { internalOpsCopy } from "../copy";
+import { rtlLocales, type MessageId } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
+
 import { formatOperationalTimestamp } from "../presentation";
 import type { OperationsHomeData, OperationalSignal } from "./server-loader";
 import styles from "./operations-home.module.css";
 
+/** The workspace each signal's channel belongs to, as the column names it. */
+const areaLabels: Readonly<Record<string, MessageId>> = {
+  queues: "operations.home.area.approvals",
+  provisioning: "operations.home.area.provisioning",
+  collections: "operations.home.area.collections",
+  orders: "operations.home.area.renewals",
+  reports: "operations.home.area.reports",
+};
+
 function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   const t = use(getTranslations());
-  const locale = use(getLocale());
-  const localizedinternalOpsCopy = localizeCopy(internalOpsCopy, t);
-  const areaLabels: Readonly<Record<string, string>> = {
-    queues: "Approvals",
-    provisioning: "Provisioning",
-    collections: "Collections",
-    orders: "Renewals",
-    reports: "Reports",
-  };
-  return signals.map((signal) => (
-    <tr key={signal.label} data-tone={signal.tone}>
-      <th scope="row">
-        <span className={styles.signalLabel}>{signal.label}</span>
-        <strong className={styles.signalValue}>{signal.value}</strong>
-      </th>
-      <td>{signal.detail}</td>
-      <td>
-        {translateInterfaceText(
-          areaLabels[signal.channel] ?? signal.channel,
-          t,
-        )}
-      </td>
-      <td>
-        <time dateTime={signal.generatedAt}>
-          {formatOperationalTimestamp(signal.generatedAt, locale)}
-        </time>
-        {signal.stale ? ` · ${localizedinternalOpsCopy.home.staleSuffix}` : ""}
-      </td>
-      <td>
-        <Link href={signal.href}>
-          {signal.action}
-          <span aria-hidden="true"> →</span>
-        </Link>
-      </td>
-    </tr>
-  ));
+  const locale = use(getFormattingLocale());
+  // The arrow points the way the line reads, so it turns round in Arabic.
+  const forward = rtlLocales.has(use(getLocale())) ? "←" : "→";
+  return signals.map((signal) => {
+    const area = areaLabels[signal.channel];
+    const time = (
+      <time dateTime={signal.generatedAt}>
+        {formatOperationalTimestamp(signal.generatedAt, locale)}
+      </time>
+    );
+    return (
+      <tr key={signal.channel} data-tone={signal.tone}>
+        <th scope="row">
+          <span className={styles.signalLabel}>{signal.label}</span>
+          <strong className={styles.signalValue}>{signal.value}</strong>
+        </th>
+        <td>{signal.detail}</td>
+        <td>{area ? t(area) : signal.channel}</td>
+        <td>
+          {signal.stale
+            ? richText(t, "common.join.labels", {
+                first: time,
+                second: t("operations.home.signal.stale"),
+              })
+            : time}
+        </td>
+        <td>
+          <Link href={signal.href}>
+            {signal.action}
+            <span aria-hidden="true"> {forward}</span>
+          </Link>
+        </td>
+      </tr>
+    );
+  });
 }
 
 /**
@@ -70,42 +83,36 @@ const MY_QUEUE_HREF =
 
 export function OperationsHome({ data }: { data: OperationsHomeData }) {
   const t = use(getTranslations());
-  const locale = use(getLocale());
-  const localizedinternalOpsCopy = localizeCopy(internalOpsCopy, t);
+  const locale = use(getFormattingLocale());
+  const staleAreas = data.staleChannels.map((channel) => {
+    const area = areaLabels[channel];
+    return area ? t(area) : channel;
+  });
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
-          <h1>{localizedinternalOpsCopy.home.title}</h1>
-          <p>{localizedinternalOpsCopy.home.description}</p>
+          <h1>{t("operations.home.title")}</h1>
+          <p>{t("operations.home.description")}</p>
         </div>
         <p className={styles.freshness} role="status">
-          {t("ui.9")}{" "}
-          <time dateTime={data.generatedAt}>
-            {formatOperationalTimestamp(data.generatedAt, locale)}
-          </time>
+          {richText(t, "common.updatedAt", {
+            time: (
+              <time dateTime={data.generatedAt}>
+                {formatOperationalTimestamp(data.generatedAt, locale)}
+              </time>
+            ),
+          })}
         </p>
       </header>
 
-      {data.staleChannels.length > 0 ? (
+      {staleAreas.length > 0 ? (
         <p className={styles.freshness} role="alert">
-          {t("operations.stale", {
-            channels: data.staleChannels
-              .map((channel) =>
-                translateInterfaceText(
-                  (
-                    {
-                      queues: "Approvals",
-                      provisioning: "Provisioning",
-                      collections: "Collections",
-                      orders: "Renewals",
-                      reports: "Reports",
-                    } as Record<string, string>
-                  )[channel] ?? channel,
-                  t,
-                ),
-              )
-              .join(", "),
+          {t("operations.home.stale", {
+            channels: new Intl.ListFormat(locale, {
+              style: "long",
+              type: "conjunction",
+            }).format(staleAreas),
           })}
         </p>
       ) : null}
@@ -114,29 +121,31 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
         <div className={styles.sectionHeading}>
           <div>
             <h2 id="action-health-title">
-              {localizedinternalOpsCopy.home.healthHeading}
+              {t("operations.home.overview.title")}
             </h2>
-            <p>{localizedinternalOpsCopy.home.healthDescription}</p>
+            <p>{t("operations.home.overview.description")}</p>
           </div>
           <Link className={styles.primaryLink} href={MY_QUEUE_HREF}>
-            {localizedinternalOpsCopy.home.openQueue}
+            {t("operations.home.openMyQueue")}
           </Link>
         </div>
         <div
           className={styles.tableRegion}
           role="region"
-          aria-label={localizedinternalOpsCopy.home.tableLabel}
+          aria-label={t("operations.home.overview.tableLabel")}
           tabIndex={0}
         >
           <table className={styles.signalTable}>
             <thead>
               <tr>
-                <th scope="col">{t("ui.6")}</th>
-                <th scope="col">{t("ui.7")}</th>
-                <th scope="col">{t("ui.8")}</th>
-                <th scope="col">{t("ui.9")}</th>
+                <th scope="col">{t("operations.home.column.signal")}</th>
+                <th scope="col">{t("operations.home.column.summary")}</th>
+                <th scope="col">{t("operations.home.column.area")}</th>
+                <th scope="col">{t("operations.home.column.updated")}</th>
                 <th scope="col">
-                  <span className="sr-only">{t("ui.10")}</span>
+                  <span className="sr-only">
+                    {t("operations.home.column.action")}
+                  </span>
                 </th>
               </tr>
             </thead>
