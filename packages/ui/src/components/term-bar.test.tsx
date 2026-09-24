@@ -2,6 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { AccountTermRollup, calculateTermProgress, TermBar } from "./term-bar";
+import {
+  fixtureTermBarMessages,
+  fixtureTermRollupLabels,
+} from "../stories/fixture-labels";
 
 const start = new Date("2026-01-01T00:00:00Z");
 const end = new Date("2027-01-01T00:00:00Z");
@@ -65,6 +69,9 @@ describe("TermBar", () => {
         noticeStart={new Date("2026-10-01T00:00:00Z")}
         noticeEnd={new Date("2026-11-30T00:00:00Z")}
         renewalState="auto-renews"
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
       />,
     );
     expect(html).toContain("Annual term");
@@ -83,13 +90,16 @@ describe("TermBar", () => {
         now={start}
         noticeDate={new Date("2026-11-01T00:00:00Z")}
         variant="table"
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
       />,
     );
     expect(html).toContain("cw-term--table");
     expect(html).toContain("Notice window Nov 1, 2026 through Jan 1, 2027");
   });
 
-  it("supports localized date output and copy overrides", () => {
+  it("formats dates and the elapsed share with the reader's locale and says only the caller's words", () => {
     const html = renderToStaticMarkup(
       <TermBar
         label="Geschäftsjahr"
@@ -97,14 +107,28 @@ describe("TermBar", () => {
         end={end}
         now={start}
         locale="de-DE"
+        timeZone="UTC"
         messages={{
-          endDate: (date) => `Endet am ${date}`,
+          elapsed: (percent, days) => `${percent} verstrichen, ${days} Tage`,
           remaining: (days) => `${days} Tage verbleiben`,
+          endDate: (date) => `Endet am ${date}`,
+          endsOn: { before: "Endet am ", after: "" },
+          noticeWindow: (from, to) => `Kündigungsfrist ${from} bis ${to}`,
+          renewalState: () => "Automatische Verlängerung",
+          sentences: (parts) => parts.join(". "),
         }}
       />,
     );
     expect(html).toContain("Endet am 01.01.2027");
     expect(html).toContain("365 Tage verbleiben");
+    // German puts a no-break space between the number and the percent sign.
+    expect(html).toContain(
+      new Intl.NumberFormat("de-DE", { style: "percent" }).format(0),
+    );
+    // No English word in the rendered text (class names aside).
+    expect(html.replace(/<[^>]*>/gu, " ")).not.toMatch(
+      /\b(?:Ends|elapsed|remaining|renewal|Term)\b/u,
+    );
   });
 
   it("rolls account terms up in end-date order", () => {
@@ -127,6 +151,10 @@ describe("TermBar", () => {
             renewalState: "notice-open",
           },
         ]}
+        locale="en-US"
+        timeZone="UTC"
+        messages={fixtureTermBarMessages}
+        {...fixtureTermRollupLabels}
       />,
     );
     expect(html.indexOf("Sooner term")).toBeLessThan(

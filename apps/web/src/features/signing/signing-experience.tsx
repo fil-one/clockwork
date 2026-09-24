@@ -1,5 +1,4 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -12,13 +11,18 @@ import {
   StatusBadge,
 } from "@clockwork/ui";
 
+import { experienceErrorText } from "@/src/features/contracts/error-text";
 import {
+  ExperienceClientError,
   readAuthoritativeSigningReturn,
   startAuthoritativeSigning,
 } from "@/src/features/contracts/experience-client";
 import { trustedSigningUrl } from "@/src/features/contracts/provider-navigation";
 import type { EsignReturnStatus } from "@/src/features/experience-server/model";
 import { brandAsset } from "@/src/features/shell/brand-assets";
+import type { MessageId, Translator } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 type SigningState =
   | "review"
@@ -33,6 +37,29 @@ type SigningState =
 function value(data: FormData, name: string): string {
   const raw = data.get(name);
   return typeof raw === "string" ? raw.trim() : "";
+}
+
+/**
+ * Signing failures the server names, worded for the reader. The server's own
+ * problem `title` is English and is never shown; anything it does not name
+ * falls back to the shared API wording, and a failure that never reached the
+ * server to the caller's own sentence.
+ */
+const signingProblems: Readonly<Record<string, MessageId>> = {
+  ESIGN_RETURN_NOT_FOUND: "platform.signing.returnUnknown",
+  ESIGN_RETURN_EXPIRED: "platform.signing.returnExpired",
+  ESIGN_STATE_INVALID: "signing.unverifiable",
+  ESIGN_LAUNCH_FAILED: "platform.signing.launchFailed",
+};
+
+function signingErrorText(
+  caught: unknown,
+  t: Translator,
+  fallback: MessageId,
+): string {
+  if (!(caught instanceof ExperienceClientError)) return t(fallback);
+  const known = signingProblems[caught.code];
+  return known ? t(known) : experienceErrorText(caught, t);
 }
 
 export function SigningExperience({
@@ -72,13 +99,11 @@ export function SigningExperience({
       setState(status.state);
     } catch (caught) {
       setReturnStatus(null);
-      setError(
-        caught instanceof Error ? caught.message : t("signing.unverifiable"),
-      );
+      setError(signingErrorText(caught, t, "signing.unverifiable"));
       setState("failed");
       window.setTimeout(() => errorRef.current?.focus(), 0);
     }
-  }, [returnState]);
+  }, [returnState, t]);
 
   useEffect(() => {
     if (mode === "return") void reconcileReturn();
@@ -95,20 +120,30 @@ export function SigningExperience({
     setError("");
     setProviderUrl("");
     setState("loading");
+    const fail = (message: string) => {
+      setError(message);
+      setState("failed");
+      window.setTimeout(() => errorRef.current?.focus(), 0);
+    };
+    let signingUrl: string;
     try {
       const session = await startAuthoritativeSigning({
         agreementId: value(new FormData(form), "agreementId"),
         mode: mode === "embedded" ? "embedded" : "redirect",
       });
-      setProviderUrl(trustedSigningUrl(session.signingUrl));
-      setState("requested");
+      signingUrl = session.signingUrl;
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : t("signing.requestFailed"),
-      );
-      setState("failed");
-      window.setTimeout(() => errorRef.current?.focus(), 0);
+      fail(signingErrorText(caught, t, "signing.requestFailed"));
+      return;
     }
+    try {
+      setProviderUrl(trustedSigningUrl(signingUrl));
+    } catch {
+      // The allow-list refused the provider's address; it is never opened.
+      fail(t("platform.signing.untrustedUrl"));
+      return;
+    }
+    setState("requested");
   };
 
   const tone =
@@ -145,8 +180,13 @@ export function SigningExperience({
               <>
                 <input type="hidden" name="agreementId" value={agreementId} />
                 <p>
-                  {t("signing.agreementReference")}:{" "}
-                  <strong>{agreementId}</strong>
+                  {richText(t, "platform.signing.agreementReference", {
+                    reference: (
+                      <strong>
+                        <bdi>{agreementId}</bdi>
+                      </strong>
+                    ),
+                  })}
                 </p>
               </>
             ) : (
@@ -198,7 +238,7 @@ export function SigningExperience({
                 role="alert"
               >
                 <h2>{t("signing.failed")}</h2>
-                <p>{error || t("state.recoverable.description")}</p>
+                <p>{error}</p>
               </div>
             ) : null}
             <div className="signing-actions">
@@ -289,7 +329,7 @@ export function SigningExperience({
             role="alert"
           >
             <h2>{t("signing.failed")}</h2>
-            <p>{error || t("signing.unverified")}</p>
+            <p>{error}</p>
             <Link
               className={buttonClassName({ variant: "primary" })}
               href="/agreements"

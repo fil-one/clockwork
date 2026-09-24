@@ -216,8 +216,10 @@ const migrationSource =
     : new FailClosedProductionMigrationSource();
 const unavailableProductionStore: IdempotencyStore = {
   claim: () =>
+    // i18n-exempt: idempotency-store invariant; the API answers 500 INTERNAL_ERROR without this text in production
     Promise.reject(new Error("Durable idempotency database is not configured")),
   complete: () =>
+    // i18n-exempt: idempotency-store invariant; the API answers 500 INTERNAL_ERROR without this text in production
     Promise.reject(new Error("Durable idempotency database is not configured")),
 };
 const idempotencyStore = serviceDatabase

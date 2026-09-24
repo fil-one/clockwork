@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { calculateChartGeometry, MetricChart } from "./chart";
+import { fixtureChartLabels } from "../stories/fixture-labels";
 
 describe("calculateChartGeometry", () => {
   it("maps values into a stable SVG coordinate system", () => {
@@ -49,10 +50,12 @@ describe("MetricChart", () => {
           { label: "July", value: 1400 },
         ]}
         formatValue={(value) => `$${value}`}
+        {...fixtureChartLabels}
       />,
     );
     expect(html).toContain('role="img"');
-    expect(html).toContain("Monthly spend. June: $1200, July: $1400");
+    // The figure is named by its title; the plot lists the points.
+    expect(html).toContain('aria-label="June: $1200, July: $1400"');
     expect(html).toContain("<table>");
     expect(html).toContain("$1400");
   });
@@ -63,6 +66,7 @@ describe("MetricChart", () => {
         title="Capacity"
         data={[]}
         formatValue={String}
+        {...fixtureChartLabels}
         emptyLabel="Capacity is reported after provisioning"
       />,
     );

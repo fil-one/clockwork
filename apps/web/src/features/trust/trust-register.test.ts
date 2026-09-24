@@ -4,8 +4,12 @@ import { dirname, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+import { locales } from "@/src/i18n/locales";
+
 import {
   attestationVocabularyHits,
+  certificationNames,
   corroboratesClaim,
   gateCorroborationPaths,
   quantitativeClaims,
@@ -14,8 +18,23 @@ import {
   trustGaps,
   trustIntegrations,
   trustSections,
+  trustStatement,
   trustUnselectedIntegrations,
 } from "./trust-register";
+
+/**
+ * The register holds message IDs; every check below reads the words a reader
+ * is shown. English is the reviewed original, so the English-vocabulary checks
+ * read English. The checks that do not depend on reading a language -- which
+ * numbers a statement asserts, and whether a certification name appears --
+ * are applied to every language, so a translation cannot add, drop or change
+ * a number, or turn a control into an attestation.
+ */
+const english = translatorFor("en");
+const en = (id: Parameters<typeof english>[0]) => trustStatement(id, english);
+const everyLanguage = locales.map(
+  (locale) => [locale, translatorFor(locale)] as const,
+);
 
 /**
  * This suite is the control. `trust-register.ts` is only data; what stops it
@@ -146,9 +165,22 @@ describe("trust register refuses to assert an attestation", () => {
     "control %s makes no certification, audit or attestation claim",
     (id, control) => {
       expect(
-        attestationVocabularyHits(control.statement),
+        attestationVocabularyHits(en(control.statement)),
         `control ${id} uses attestation vocabulary; a control may only state what the repository implements`,
       ).toEqual([]);
+    },
+  );
+
+  it.each(trustControls.map((control) => [control.id, control] as const))(
+    "control %s names no certification in any language",
+    (id, control) => {
+      for (const [locale, t] of everyLanguage) {
+        const text = trustStatement(control.statement, t);
+        expect(
+          certificationNames.filter((name) => name.test(text)).map(String),
+          `control ${id} in ${locale} names a certification`,
+        ).toEqual([]);
+      }
     },
   );
 
@@ -158,9 +190,16 @@ describe("trust register refuses to assert an attestation", () => {
     ),
   )("integration %s makes no attestation claim", (name, integration) => {
     expect(
-      attestationVocabularyHits(`${integration.purpose}`),
+      attestationVocabularyHits(en(integration.purpose)),
       `integration ${name} uses attestation vocabulary`,
     ).toEqual([]);
+    for (const [locale, t] of everyLanguage)
+      expect(
+        certificationNames
+          .filter((pattern) => pattern.test(t(integration.purpose)))
+          .map(String),
+        `integration ${name} in ${locale} names a certification`,
+      ).toEqual([]);
   });
 
   it("names every unproven statement against a gate the rest of the system knows", () => {
@@ -190,16 +229,30 @@ describe("trust register refuses to assert an attestation", () => {
     // The vocabulary is required here, not merely tolerated: the page has to
     // say the words a reviewer will search for, and say "no" next to them.
     expect(
-      attestationVocabularyHits(certifications?.statement ?? ""),
+      attestationVocabularyHits(
+        certifications ? en(certifications.statement) : "",
+      ),
     ).not.toEqual([]);
     expect(certifications?.gate).toBe("EXT-LEGAL-01");
+    // And in every language: a reviewer searching a translated page for
+    // "SOC 2" or "FedRAMP" has to find the sentence that says there is none.
+    for (const [locale, t] of everyLanguage)
+      for (const name of certificationNames.slice(0, 5))
+        expect(
+          name.test(
+            certifications ? trustStatement(certifications.statement, t) : "",
+          ),
+          `the ${locale} no-certifications statement does not name ${String(name)}`,
+        ).toBe(true);
   });
 
   it("refuses to present the integration list as a subprocessor schedule", () => {
     const disclaimer = trustGaps.find(
       (gap) => gap.id === "not-a-subprocessor-schedule",
     );
-    expect(disclaimer?.statement).toContain("not a subprocessor schedule");
+    expect(disclaimer ? en(disclaimer.statement) : "").toContain(
+      "not a subprocessor schedule",
+    );
     expect(disclaimer?.gate).toBe("EXT-LEGAL-01");
   });
 });
@@ -302,7 +355,8 @@ describe("a quantity a statement asserts has to appear in what it cites", () => 
   const statementEntries = [
     ...trustControls.map((control) => ({
       id: control.id,
-      statement: control.statement,
+      statement: en(control.statement),
+      message: control.statement,
       paths: [
         control.evidencePath,
         ...(control.alsoCites ?? []).map((citation) => citation.path),
@@ -310,7 +364,8 @@ describe("a quantity a statement asserts has to appear in what it cites", () => 
     })),
     ...trustGaps.map((gap) => ({
       id: gap.id,
-      statement: gap.statement,
+      statement: en(gap.statement),
+      message: gap.statement,
       paths: [gap.evidencePath],
     })),
   ];
@@ -324,6 +379,32 @@ describe("a quantity a statement asserts has to appear in what it cites", () => 
           corroboratesClaim(evidence, claim),
           `${id} asserts ${JSON.stringify(claim)}, which appears in none of the files it cites (${entry.paths.join(", ")})`,
         ).toBe(true);
+    },
+  );
+
+  /**
+   * A translation asserts exactly the numbers of the English: no number is
+   * dropped, added or changed, and each one it writes is corroborated by the
+   * same cited files. Comparing digit runs rather than whole claims lets a
+   * language attach a number differently ("SHA-256-Inhaltshash").
+   */
+  it.each(statementEntries.map((entry) => [entry.id, entry] as const))(
+    "%s asserts the same quantities in every language",
+    (id, entry) => {
+      const evidence = entry.paths.map((path) => read(path)).join("\n");
+      const digits = (text: string) =>
+        [...text.matchAll(/\d{2,}/g)].map((match) => match[0]).sort();
+      for (const [locale, t] of everyLanguage) {
+        const translated = trustStatement(entry.message, t);
+        expect(digits(translated), `${id} in ${locale}`).toEqual(
+          digits(entry.statement),
+        );
+        for (const claim of quantitativeClaims(translated))
+          expect(
+            corroboratesClaim(evidence, claim),
+            `${id} in ${locale} asserts ${JSON.stringify(claim)}, which appears in none of the files it cites (${entry.paths.join(", ")})`,
+          ).toBe(true);
+      }
     },
   );
 

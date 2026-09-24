@@ -1,4 +1,4 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
 
@@ -99,9 +99,13 @@ function stateAction(state: ApplicationState, t: Translator) {
   if (state === "permission")
     return <Link href="/dashboard">{t("session.permission.action")}</Link>;
   if (state === "validation")
-    return <Button variant="secondary">Review value</Button>;
+    return (
+      <Button variant="secondary">{t("platform.states.reviewValue")}</Button>
+    );
   if (state === "stale")
-    return <Button variant="secondary">Review latest version</Button>;
+    return (
+      <Button variant="secondary">{t("platform.states.reviewLatest")}</Button>
+    );
   return (
     <Button variant="secondary">
       {state === "fatal-error" ? t("app.help") : t("action.retry")}
@@ -109,8 +113,18 @@ function stateAction(state: ApplicationState, t: Translator) {
   );
 }
 
+/** The gallery's fixed "current through" instant: 16:00 UTC on the demo day. */
+const partialDataCutoff = new Date("2026-07-31T16:00:00Z");
+
 export function StateGallery() {
   const t = use(getTranslations());
+  const locale = use(getFormattingLocale());
+  const cutoff = new Intl.DateTimeFormat(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(partialDataCutoff);
   return (
     <main className="experience-main" id="main-content">
       <header className="page-header">
@@ -124,7 +138,11 @@ export function StateGallery() {
         {designedStates.map((state) => (
           <ApplicationStatePanel
             className="state-card"
-            description={t(state.description)}
+            description={
+              state.state === "partial"
+                ? t(state.description, { time: cutoff })
+                : t(state.description)
+            }
             details={
               state.state === "loading" ? (
                 <SkeletonGroup label={t("state.loading.title")} rows={2} />

@@ -60,6 +60,7 @@ export async function resolveReleaseProofIdentity(
       `),
   );
   const proof = rows[0];
+  // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
   if (!proof) throw new Error("Release-proof session is not authorized");
   const memberships = await listAuthorizedMemberships(db, {
     workosUserId: proof.workos_user_id,

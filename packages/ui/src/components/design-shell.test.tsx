@@ -7,6 +7,13 @@ import { CommandPalette } from "./command-palette";
 import { ResponsiveRecord } from "./record";
 import { AppShell, Navigation } from "./shell";
 import { InlineNotice, ReviewSummary, WorkflowStepper } from "./workflow";
+import {
+  fixtureCommandPaletteLabels,
+  fixtureKitText,
+  fixtureShellLabels,
+  fixtureToolbarLabels,
+} from "../stories/fixture-labels";
+import { KitTextProvider } from "./kit-text";
 
 describe("design shell public primitives", () => {
   const navigation = [
@@ -22,7 +29,7 @@ describe("design shell public primitives", () => {
 
   it("keeps navigation current-page semantics in compact mode", () => {
     const html = renderToStaticMarkup(
-      <Navigation groups={navigation} density="compact" />,
+      <Navigation groups={navigation} label="Primary" density="compact" />,
     );
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('aria-current="page"');
@@ -35,6 +42,8 @@ describe("design shell public primitives", () => {
     const html = renderToStaticMarkup(
       <AppShell
         navigation={navigation}
+        brand="Fil One"
+        {...fixtureShellLabels}
         contentElement="div"
         contentOwnsTarget={false}
       >
@@ -58,6 +67,8 @@ describe("design shell public primitives", () => {
             audiences: ["partner"],
           },
         ]}
+        triggerLabel="Search and commands"
+        {...fixtureCommandPaletteLabels}
       />,
     );
     expect(html).toContain('aria-label="Search and commands"');
@@ -66,14 +77,18 @@ describe("design shell public primitives", () => {
 
   it("renders collection and entity controls with searchable semantics", () => {
     const html = renderToStaticMarkup(
-      <>
-        <CollectionToolbar resultCount={2} actions={<Button>Add</Button>} />
+      <KitTextProvider text={fixtureKitText}>
+        <CollectionToolbar
+          resultCount={2}
+          actions={<Button>Add</Button>}
+          {...fixtureToolbarLabels}
+        />
         <EntityCombobox
           label="Organization"
           defaultValue="northstar"
           options={[{ id: "northstar", label: "Northstar Archive Labs" }]}
         />
-      </>,
+      </KitTextProvider>,
     );
     expect(html).toContain('role="search"');
     expect(html).toContain("2 results");
@@ -109,5 +124,30 @@ describe("design shell public primitives", () => {
     expect(html).toContain("cw-inline-notice--offline");
     expect(html).toContain('data-selected="true"');
     expect(html).toContain('data-numeric="true"');
+  });
+
+  it("refuses to render a picker with no words rather than fall back to English", () => {
+    expect(() =>
+      renderToStaticMarkup(
+        <EntityCombobox label="Organization" options={[]} />,
+      ),
+    ).toThrow(/KitTextProvider/u);
+  });
+
+  it("takes a picker's words from the provider, in the reader's language", () => {
+    const html = renderToStaticMarkup(
+      <KitTextProvider
+        text={{
+          close: "Fechar",
+          search: "Pesquisar",
+          noMatches: "Nenhum resultado",
+          loading: "Carregando",
+        }}
+      >
+        <EntityCombobox label="Organização" options={[]} />
+      </KitTextProvider>,
+    );
+    expect(html).toContain('placeholder="Pesquisar"');
+    expect(html).not.toContain("Search entities");
   });
 });

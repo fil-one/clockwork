@@ -61,7 +61,7 @@ const demoMemberships: Readonly<
   },
   partner: {
     userId: "20000000-0000-4000-8000-000000000003",
-    userName: "Demo partner admin",
+    userName: "Demo partner admin", // i18n-exempt: placeholder identity for local development without a persona (a demo deploy signs in as a catalog persona); names are data
     userEmail: "admin@redwood.test",
     isInternalStaff: false,
     organizationId: "30000000-0000-4000-8000-000000000002",
@@ -75,14 +75,14 @@ const demoMemberships: Readonly<
   },
   internal: {
     userId: "20000000-0000-4000-8000-000000000001",
-    userName: "Demo internal operator",
+    userName: "Demo internal operator", // i18n-exempt: placeholder identity for local development without a persona (a demo deploy signs in as a catalog persona); names are data
     userEmail: "operator@filone.test",
     isInternalStaff: true,
     organizationId: "30000000-0000-4000-8000-000000000008",
     workosOrganizationId: "org_local_clockwork_staff",
-    organizationName: "Fil One Staff",
+    organizationName: "Fil One Staff", // i18n-exempt: organization name (data)
     accountId: "10000000-0000-4000-8000-000000000009",
-    accountName: "Fil One Internal Operations",
+    accountName: "Fil One Internal Operations", // i18n-exempt: account name (data)
     role: "internal_operator",
     audience: "internal",
     home: "/internal",
@@ -163,6 +163,7 @@ export async function getRouteSession(
   if (!providerAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
+        // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
         "Portal identity is unavailable without an explicit non-production demo adapter",
       );
     // A demo deploy signs in as a catalog persona, whose own account and
@@ -217,6 +218,7 @@ export async function getRouteSession(
     throw error;
   });
   if (!session.selectedAccountId)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected commerce account is unavailable");
   return {
     roles: session.roles,
@@ -271,6 +273,7 @@ export async function getRouteIdentity(
     );
   if (!membership)
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Authorized membership for the selected account is missing",
     );
   return {
@@ -303,6 +306,7 @@ export async function getAuthenticatedHome(): Promise<
       return "/dashboard";
     }
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Portal identity is unavailable without an explicit non-production demo adapter",
     );
   }

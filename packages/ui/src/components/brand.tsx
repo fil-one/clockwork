@@ -13,7 +13,7 @@ export interface TextWordmarkProps {
  * word takes the bold weight of the same face, not a second family or colour.
  */
 export function TextWordmark({
-  name = "Fil One",
+  name = "Fil One", // i18n-exempt: company name, never translated
   descriptor,
   inverse = false,
   className = "",
@@ -79,17 +79,22 @@ export function BrandLogo({
   );
 }
 
-export interface BrandSlotProps extends TextWordmarkProps {
+export type BrandSlotProps = TextWordmarkProps & {
   /** A customer or partner logo. The container remains stable when the asset changes. */
   asset?: ReactNode;
-  homeLink?: string;
-  homeLabel?: string;
-}
+} & (
+    | { homeLink?: undefined; homeLabel?: never }
+    | {
+        homeLink: string;
+        /** Accessible name of the home link, in the reader's language. */
+        homeLabel: string;
+      }
+  );
 
 export function BrandSlot({
   asset,
   homeLink,
-  homeLabel = "Home",
+  homeLabel,
   ...wordmarkProps
 }: BrandSlotProps) {
   const mark = (

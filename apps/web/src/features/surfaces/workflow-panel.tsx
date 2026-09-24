@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { useRouter } from "next/navigation";
 import { isValidElement, useRef, useState, type ReactNode } from "react";
@@ -7,6 +7,7 @@ import { isValidElement, useRef, useState, type ReactNode } from "react";
 import { uuidV7 } from "@clockwork/contracts";
 import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
 
+import type { MessageId, Translator } from "@/src/i18n";
 import {
   convertPoc,
   decideException,
@@ -24,6 +25,7 @@ import {
   updateProcurementProfile,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
+import { commerceErrorText } from "@/src/features/contracts/error-text";
 
 import type { SurfaceKey, SurfaceWorkflow } from "./surface-catalog";
 
@@ -69,16 +71,31 @@ export interface WorkflowRecordContext {
   caseId?: string;
 }
 
-const titles: Record<SurfaceWorkflow, string> = {
-  poc: "Request or convert a proof of concept",
-  renewal: "Renew or decline renewal",
-  reports: "Run a traceable report",
-  account: "Account update",
-  invite: "Invite an organization member",
-  procurement: "Update procurement readiness",
-  agreementAdmin: "Publish an approved agreement template",
-  brand: "Brand and custom domain",
-  approval: "Administrative approval",
+const titles: Record<SurfaceWorkflow, MessageId> = {
+  poc: "platform.workflow.title.poc",
+  renewal: "platform.workflow.title.renewal",
+  reports: "platform.workflow.title.reports",
+  account: "platform.workflow.title.account",
+  invite: "platform.workflow.title.invite",
+  procurement: "platform.workflow.title.procurement",
+  agreementAdmin: "platform.workflow.title.agreementAdmin",
+  brand: "platform.workflow.title.brand",
+  approval: "platform.workflow.title.approval",
+};
+
+/** The contract's closed set of report names, each with its reader-facing name. */
+const reportLabels: Record<ReportName, MessageId> = {
+  revenue_forecast: "platform.workflow.report.revenueForecast",
+  capacity_planning: "platform.workflow.report.capacityPlanning",
+  renewal_churn_exposure: "platform.workflow.report.renewalChurnExposure",
+  partner_performance: "platform.workflow.report.partnerPerformance",
+  funnel_cycle_time: "platform.workflow.report.funnelCycleTime",
+  margin_poc_cost: "platform.workflow.report.marginPocCost",
+  arr_mrr: "platform.workflow.report.arrMrr",
+  billing_collections: "platform.workflow.report.billingCollections",
+  commission_settlement: "platform.workflow.report.commissionSettlement",
+  three_way_tie_out: "platform.workflow.report.threeWayTieOut",
+  weekly_scorecard: "platform.workflow.report.weeklyScorecard",
 };
 
 function value(data: FormData, name: string): string {
@@ -93,8 +110,6 @@ async function sha256(text: string): Promise<string> {
     byte.toString(16).padStart(2, "0"),
   ).join("");
 }
-
-const resolvedHelp = "Taken from the record you opened.";
 
 interface RecordIdentifierProps {
   label: string;
@@ -140,6 +155,7 @@ function unresolvedRequirement(
  *   one, so the panel says so instead.
  */
 function RecordIdentifier(props: RecordIdentifierProps): ReactNode {
+  const t = useTranslations();
   const {
     label,
     name,
@@ -156,7 +172,14 @@ function RecordIdentifier(props: RecordIdentifierProps): ReactNode {
         value={resolved}
         readOnly
         required={required}
-        help={help ? `${help} ${resolvedHelp}` : resolvedHelp}
+        help={
+          help
+            ? t("common.join.sentences", {
+                first: help,
+                second: t("platform.workflow.resolvedHelp"),
+              })
+            : t("platform.workflow.resolvedHelp")
+        }
       />
     );
   if (unresolvedRequirement(props))
@@ -167,7 +190,7 @@ function RecordIdentifier(props: RecordIdentifierProps): ReactNode {
         value=""
         readOnly
         disabled
-        error={`This surface does not record the ${label.toLowerCase()}, and it is not a reference anyone can be asked to type.`}
+        error={t("platform.workflow.identifierUnavailable")}
       />
     );
   return (
@@ -211,13 +234,20 @@ function unresolvedIdentifiers(
   return missing;
 }
 
-function unbindableMessage(identifiers: readonly { label: string }[]): string {
-  const labels = identifiers.map(({ label }) => label.toLowerCase());
-  const named =
-    labels.length === 1
-      ? labels[0]
-      : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
-  return `This action binds to the ${named}, which the record on this surface does not carry. Nothing can be submitted from here, and nothing was sent.`;
+/**
+ * One sentence naming every identifier the surface is missing. The labels are
+ * listed as the fields show them and joined by the reader's own list format,
+ * so no language inherits English casing or an English "and".
+ */
+function unbindableMessage(
+  identifiers: readonly { label: string }[],
+  t: Translator,
+  locale: string,
+): string {
+  const fields = new Intl.ListFormat(locale, { type: "conjunction" }).format(
+    identifiers.map(({ label }) => label),
+  );
+  return t("platform.workflow.unbindable", { fields });
 }
 
 /**
@@ -245,26 +275,34 @@ function mutationFields({
   surface,
   context,
   onDecisionChange,
+  t,
 }: {
   workflow: SurfaceWorkflow;
   surface: SurfaceKey;
   context: WorkflowRecordContext;
   onDecisionChange?: ((decision: string) => void) | undefined;
+  t: Translator;
 }): ReactNode {
   if (workflow === "poc")
     return (
       <>
         <Select
-          label="POC action"
+          label={t("platform.workflow.poc.action")}
           name="pocAction"
           defaultValue="request"
           options={[
-            { value: "request", label: "Request isolated POC" },
-            { value: "convert", label: "Convert without moving data" },
+            {
+              value: "request",
+              label: t("platform.workflow.poc.action.request"),
+            },
+            {
+              value: "convert",
+              label: t("platform.workflow.poc.action.convert"),
+            },
           ]}
         />
         <RecordIdentifier
-          label="Account ID"
+          label={t("platform.workflow.field.accountId")}
           name="accountId"
           resolved={
             surface === "sandboxes"
@@ -274,84 +312,96 @@ function mutationFields({
           required
         />
         <RecordIdentifier
-          label="Partner account ID"
+          label={t("platform.workflow.field.partnerAccountId")}
           name="partnerAccountId"
           resolved={
             surface === "sandboxes" ? context.partnerAccountId : undefined
           }
-          optionalLabel="Optional"
+          optionalLabel={t("common.optional")}
         />
         <RecordIdentifier
-          label="POC ID"
+          label={t("platform.workflow.poc.pocId")}
           name="pocId"
           resolved={context.pocId}
-          help="Required only for conversion."
+          help={t("platform.workflow.poc.conversionOnly")}
         />
         <RecordIdentifier
-          label="Buyer user ID"
+          label={t("platform.workflow.poc.buyerUserId")}
           name="buyerUserId"
           resolved={context.userId}
         />
         <RecordIdentifier
-          label="Support owner ID"
+          label={t("platform.workflow.poc.supportOwnerId")}
           name="supportOwnerId"
           resolved={context.supportOwnerId}
         />
         <Input
-          label="Workload"
+          label={t("platform.workflow.poc.workload")}
           name="workload"
-          defaultValue="Immutable archive validation"
+          defaultValue={t("platform.workflow.poc.workload.default")}
         />
         <Select
-          label="Permitted data class"
+          label={t("platform.workflow.poc.dataClass")}
           name="permittedDataClass"
           defaultValue="confidential"
           options={[
-            { value: "synthetic", label: "Synthetic" },
-            { value: "public", label: "Public" },
-            { value: "confidential", label: "Confidential" },
-            { value: "regulated", label: "Regulated" },
+            {
+              value: "synthetic",
+              label: t("platform.workflow.poc.dataClass.synthetic"),
+            },
+            {
+              value: "public",
+              label: t("platform.workflow.poc.dataClass.public"),
+            },
+            {
+              value: "confidential",
+              label: t("platform.workflow.poc.dataClass.confidential"),
+            },
+            {
+              value: "regulated",
+              label: t("platform.workflow.poc.dataClass.regulated"),
+            },
           ]}
         />
         <Input
-          label="Success test"
+          label={t("platform.workflow.poc.successTest")}
           name="successTest"
-          defaultValue="Restore validation completes within the agreed recovery objective"
+          defaultValue={t("platform.workflow.poc.successTest.default")}
         />
         <Input
-          label="Success target"
+          label={t("platform.workflow.poc.successTarget")}
           name="successTarget"
-          defaultValue="100% of the validation suite passes"
+          defaultValue={t("platform.workflow.poc.successTarget.default")}
         />
         <Input
-          label="Capacity cap (TB)"
+          label={t("platform.workflow.poc.capacityCap")}
           name="capacityCap"
           inputMode="decimal"
           defaultValue="10"
         />
         <Input
-          label="Egress cap (TB)"
+          label={t("platform.workflow.poc.egressCap")}
           name="egressCap"
           inputMode="decimal"
           defaultValue="2"
         />
         <Input
-          label="Expires at"
+          label={t("platform.workflow.poc.expiresAt")}
           name="expiresAt"
           type="datetime-local"
           defaultValue="2026-08-31T17:00"
         />
         <RecordIdentifier
-          label="Paid quote ID"
+          label={t("platform.workflow.poc.paidQuoteId")}
           name="quoteId"
           resolved={context.quoteId}
-          help="Required only for conversion."
+          help={t("platform.workflow.poc.conversionOnly")}
         />
         <RecordIdentifier
-          label="Paid order ID"
+          label={t("platform.workflow.poc.paidOrderId")}
           name="orderId"
           resolved={context.orderId}
-          help="Required only for conversion."
+          help={t("platform.workflow.poc.conversionOnly")}
         />
       </>
     );
@@ -360,55 +410,67 @@ function mutationFields({
     return (
       <>
         <Select
-          label="Renewal action"
+          label={t("platform.workflow.renewal.action")}
           name="renewalAction"
           defaultValue="renew"
           onChange={(event) => onDecisionChange?.(event.target.value)}
           options={[
-            { value: "renew", label: "Renew" },
-            { value: "change_term", label: "Change term" },
-            { value: "request_change", label: "Request commercial change" },
-            { value: "decline", label: "Decline renewal" },
+            {
+              value: "renew",
+              label: t("platform.workflow.renewal.action.renew"),
+            },
+            {
+              value: "change_term",
+              label: t("platform.workflow.renewal.action.changeTerm"),
+            },
+            {
+              value: "request_change",
+              label: t("platform.workflow.renewal.action.requestChange"),
+            },
+            {
+              value: "decline",
+              label: t("platform.workflow.renewal.action.decline"),
+            },
           ]}
         />
         <RecordIdentifier
-          label="Account ID"
+          label={t("platform.workflow.field.accountId")}
           name="accountId"
           resolved={context.accountId}
           required
         />
         <RecordIdentifier
-          label="Order ID"
+          label={t("platform.workflow.field.orderId")}
           name="orderId"
           resolved={context.orderId}
           required
         />
         <Input
-          label="Requested term months"
+          label={t("platform.workflow.renewal.termMonths")}
           name="requestedTermMonths"
           type="number"
           defaultValue="12"
           min="1"
         />
         <Textarea
-          label="Decline reason"
+          label={t("platform.workflow.renewal.reason")}
           name="reason"
-          defaultValue="Capacity will not be required after the current term."
-          help="Required only when declining."
+          defaultValue={t("platform.workflow.renewal.reason.default")}
+          help={t("platform.workflow.renewal.declineOnly")}
         />
         <Input
-          label="Authority title"
+          label={t("platform.workflow.renewal.authorityTitle")}
           name="authorityTitle"
-          defaultValue="Chief Operating Officer"
+          defaultValue={t("platform.workflow.renewal.authorityTitle.default")}
         />
         <Input
-          label="Decline evidence document ID"
+          label={t("platform.workflow.renewal.evidenceDocumentId")}
           name="evidenceDocumentId"
-          help="Required only when declining. The server records this document as the decline's authority evidence."
+          help={t("platform.workflow.renewal.evidenceHelp")}
         />
         <label className="checkbox-field">
           <input type="checkbox" name="authority" required />
-          <span>I am authorized to submit this renewal decision</span>
+          <span>{t("platform.workflow.renewal.attestation")}</span>
         </label>
       </>
     );
@@ -417,7 +479,7 @@ function mutationFields({
     return (
       <>
         <RecordIdentifier
-          label="Partner account ID"
+          label={t("platform.workflow.field.partnerAccountId")}
           name="accountId"
           resolved={context.partnerAccountId}
           required
@@ -431,33 +493,44 @@ function mutationFields({
          * the form nobody verified was the one production ships and the form
          * everybody verified was one no partner ever sees.
          */}
-        <Input label="Custom domain" name="domain" required />
         <Input
-          label="DNS verification token"
+          label={t("platform.workflow.brand.domain")}
+          name="domain"
+          required
+        />
+        <Input
+          label={t("platform.workflow.brand.verificationToken")}
           name="verificationToken"
           required
         />
-        <Input label="Brand name" name="brandName" required />
         <Input
-          label="Logo URL"
-          name="logoUrl"
-          type="url"
-          optionalLabel="Optional"
+          label={t("platform.workflow.brand.brandName")}
+          name="brandName"
+          required
         />
         <Input
-          label="Primary color"
+          label={t("platform.workflow.brand.logoUrl")}
+          name="logoUrl"
+          type="url"
+          optionalLabel={t("common.optional")}
+        />
+        <Input
+          label={t("platform.workflow.brand.primaryColor")}
           name="primaryColor"
           type="color"
           defaultValue="#3157d5"
           required
         />
         <Select
-          label="Communication owner"
+          label={t("platform.workflow.brand.communicationOwner")}
           name="communicationOwner"
           defaultValue="partner"
           options={[
-            { value: "partner", label: "Partner" },
-            { value: "fil_one", label: "Fil One" },
+            {
+              value: "partner",
+              label: t("platform.workflow.brand.communicationOwner.partner"),
+            },
+            { value: "fil_one", label: t("app.name") },
           ]}
         />
       </>
@@ -467,29 +540,35 @@ function mutationFields({
     return (
       <>
         <RecordIdentifier
-          label="Exception case ID"
+          label={t("platform.workflow.approval.caseId")}
           name="caseId"
           resolved={context.caseId}
           required
         />
         <Select
-          label="Decision"
+          label={t("platform.workflow.approval.decision")}
           name="decision"
           defaultValue="approved"
           onChange={(event) => onDecisionChange?.(event.target.value)}
           options={[
-            { value: "approved", label: "Approve" },
-            { value: "rejected", label: "Reject" },
+            {
+              value: "approved",
+              label: t("platform.workflow.approval.decision.approve"),
+            },
+            {
+              value: "rejected",
+              label: t("platform.workflow.approval.decision.reject"),
+            },
           ]}
         />
         <Textarea
-          label="Decision reason"
+          label={t("platform.workflow.approval.reason")}
           name="reason"
           minLength={8}
           required
         />
         <Input
-          label="Evidence document ID"
+          label={t("platform.workflow.field.evidenceDocumentId")}
           name="evidenceDocumentId"
           required
         />
@@ -500,25 +579,29 @@ function mutationFields({
     return (
       <>
         <RecordIdentifier
-          label="Account ID"
+          label={t("platform.workflow.field.accountId")}
           name="accountId"
           resolved={context.accountId}
           required
         />
-        <Input label="Legal name" name="legalName" required />
         <Input
-          label="Invoice delivery email"
+          label={t("platform.workflow.account.legalName")}
+          name="legalName"
+          required
+        />
+        <Input
+          label={t("platform.workflow.account.invoiceEmail")}
           name="invoiceDeliveryEmail"
           type="email"
           required
         />
         <Input
-          label="Billing contact name"
+          label={t("platform.workflow.account.billingContactName")}
           name="billingContactName"
           required
         />
         <Input
-          label="Billing contact email"
+          label={t("platform.workflow.account.billingContactEmail")}
           name="billingContactEmail"
           type="email"
           required
@@ -530,31 +613,36 @@ function mutationFields({
     return (
       <>
         <RecordIdentifier
-          label="Organization ID"
+          label={t("platform.workflow.field.organizationId")}
           name="organizationId"
           resolved={context.organizationId}
           required
         />
         <RecordIdentifier
-          label="Account ID"
+          label={t("platform.workflow.field.accountId")}
           name="accountId"
           resolved={context.accountId}
           required
         />
-        <Input label="Invitee email" name="email" type="email" required />
+        <Input
+          label={t("platform.workflow.invite.email")}
+          name="email"
+          type="email"
+          required
+        />
         <Select
-          label="Role"
+          label={t("platform.workflow.invite.role")}
           name="role"
           defaultValue="member"
           options={[
-            { value: "owner", label: "Owner" },
-            { value: "admin", label: "Admin" },
-            { value: "billing", label: "Billing" },
-            { value: "member", label: "Member" },
+            { value: "owner", label: t("role.owner") },
+            { value: "admin", label: t("role.admin") },
+            { value: "billing", label: t("role.billing") },
+            { value: "member", label: t("role.member") },
           ]}
         />
         <Input
-          label="Invite expires at"
+          label={t("platform.workflow.invite.expiresAt")}
           name="expiresAt"
           type="datetime-local"
           required
@@ -566,22 +654,31 @@ function mutationFields({
     return (
       <>
         <RecordIdentifier
-          label="Account ID"
+          label={t("platform.workflow.field.accountId")}
           name="accountId"
           resolved={context.accountId}
           required
         />
-        <Input label="AP contact name" name="apName" required />
-        <Input label="AP contact email" name="apEmail" type="email" required />
         <Input
-          label="Invoice delivery email"
+          label={t("platform.workflow.procurement.apName")}
+          name="apName"
+          required
+        />
+        <Input
+          label={t("platform.workflow.procurement.apEmail")}
+          name="apEmail"
+          type="email"
+          required
+        />
+        <Input
+          label={t("platform.workflow.account.invoiceEmail")}
           name="invoiceDeliveryEmail"
           type="email"
           required
         />
         <label className="checkbox-field">
           <input type="checkbox" name="poRequired" />
-          <span>A purchase order is required</span>
+          <span>{t("platform.workflow.procurement.poRequired")}</span>
         </label>
       </>
     );
@@ -590,41 +687,60 @@ function mutationFields({
     return (
       <>
         <Input
-          label="Agreement type"
+          label={t("platform.workflow.agreement.type")}
           name="agreementType"
           defaultValue="csa"
           required
         />
         <Input
-          label="Semantic version"
+          label={t("platform.workflow.agreement.semanticVersion")}
           name="semanticVersion"
           defaultValue="1.0.0"
           required
         />
         <Input
-          label="Jurisdiction"
+          label={t("platform.workflow.agreement.jurisdiction")}
           name="jurisdiction"
           defaultValue="US"
           required
         />
-        <Input label="Effective on" name="effectiveOn" type="date" required />
         <Input
-          label="Canonical document ID"
+          label={t("platform.workflow.agreement.effectiveOn")}
+          name="effectiveOn"
+          type="date"
+          required
+        />
+        <Input
+          label={t("platform.workflow.agreement.canonicalDocumentId")}
           name="canonicalDocumentId"
           required
         />
-        <Textarea label="Exact approved text" name="exactText" required />
+        <Textarea
+          label={t("platform.workflow.agreement.exactText")}
+          name="exactText"
+          required
+        />
         <Select
-          label="Execution mode"
+          label={t("platform.workflow.agreement.executionMode")}
           name="executionMode"
           defaultValue="click_through"
           options={[
-            { value: "click_through", label: "Click-through" },
-            { value: "counter_signed", label: "Counter-signed" },
+            {
+              value: "click_through",
+              label: t(
+                "platform.workflow.agreement.executionMode.clickThrough",
+              ),
+            },
+            {
+              value: "counter_signed",
+              label: t(
+                "platform.workflow.agreement.executionMode.counterSigned",
+              ),
+            },
           ]}
         />
         <Input
-          label="Approval evidence document ID"
+          label={t("platform.workflow.agreement.approvalEvidenceDocumentId")}
           name="approvalEvidenceDocumentId"
           required
         />
@@ -639,23 +755,23 @@ function mutationFields({
  * account, that is the account the report is about, so it is carried rather
  * than typed; a route that opened nothing leaves the filter free.
  */
-function reportFields(context: WorkflowRecordContext) {
+function reportFields(context: WorkflowRecordContext, t: Translator) {
   return (
     <>
       <Select
-        label="Report"
+        label={t("platform.workflow.report")}
         name="report"
         defaultValue={reportNames[0]}
         options={reportNames.map((report) => ({
           value: report,
-          label: report.replaceAll("_", " "),
+          label: t(reportLabels[report]),
         }))}
       />
       <RecordIdentifier
-        label="Account ID"
+        label={t("platform.workflow.field.accountId")}
         name="accountId"
         resolved={context.accountId}
-        optionalLabel="Optional"
+        optionalLabel={t("common.optional")}
       />
     </>
   );
@@ -682,6 +798,7 @@ export function WorkflowPanel({
   context: WorkflowRecordContext;
 }) {
   const t = useTranslations();
+  const locale = useFormattingLocale();
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");
@@ -701,12 +818,13 @@ export function WorkflowPanel({
    */
   const fields =
     workflow === "reports"
-      ? reportFields(context)
+      ? reportFields(context, t)
       : mutationFields({
           workflow,
           surface,
           context,
           onDecisionChange: setDecision,
+          t,
         });
   const missingIdentifiers = unresolvedIdentifiers(fields);
   const unbindable = missingIdentifiers.length > 0;
@@ -726,7 +844,7 @@ export function WorkflowPanel({
     // The submit control is already disabled in this state; the guard is here
     // because the destructive path re-enters through `requestSubmit`.
     if (unbindable) {
-      showError(unbindableMessage(missingIdentifiers));
+      showError(unbindableMessage(missingIdentifiers, t, locale));
       return;
     }
     if (!form.checkValidity()) {
@@ -832,7 +950,7 @@ export function WorkflowPanel({
           { idempotencyKey: commandKeyRef.current },
         );
         commandKeyRef.current = null;
-        setSuccess("Account settings saved.");
+        setSuccess(t("platform.workflow.success.account"));
         router.refresh();
       } else if (workflow === "invite") {
         result = await inviteOrganizationMember({
@@ -886,19 +1004,22 @@ export function WorkflowPanel({
          * again.
          */
         const unhandled: never = workflow;
+        // Never shown: the catch below words every failure for the reader.
         throw new Error(
-          `No command is wired for the ${String(unhandled)} workflow, so nothing was sent.`,
+          `No command is wired for the ${String(unhandled)} workflow, so nothing was sent.`, // i18n-exempt: developer invariant; the catch shows commerceErrorText, never this message
         );
       }
       if (workflow !== "account") {
         setSuccess(
-          workflow === "reports"
-            ? "Report loaded from source records."
-            : workflow === "brand"
-              ? "Brand settings saved. DNS verification is pending at your provider."
-              : workflow === "renewal" && surface === "partnerRenewals"
-                ? "Renewal decision saved. The portfolio record now shows the pending outcome."
-                : "Request accepted. The server record is now the source of truth.",
+          t(
+            workflow === "reports"
+              ? "platform.workflow.success.report"
+              : workflow === "brand"
+                ? "platform.workflow.success.brand"
+                : workflow === "renewal" && surface === "partnerRenewals"
+                  ? "platform.workflow.success.partnerRenewal"
+                  : "platform.workflow.success.request",
+          ),
         );
         if (workflow !== "reports") router.refresh();
       }
@@ -919,11 +1040,7 @@ export function WorkflowPanel({
        * to know the sentence is about the environment rather than the record.
        * A failed command now says it failed, in development as in production.
        */
-      showError(
-        caught instanceof Error
-          ? caught.message
-          : "The request failed. Nothing was changed.",
-      );
+      showError(commerceErrorText(caught, t));
     } finally {
       submittingRef.current = false;
       setPending(false);
@@ -952,11 +1069,9 @@ export function WorkflowPanel({
       anchor.download = `${report}.csv`;
       anchor.click();
       URL.revokeObjectURL(url);
-      setSuccess("CSV export downloaded from source records.");
+      setSuccess(t("platform.workflow.success.csv"));
     } catch (caught) {
-      showError(
-        caught instanceof Error ? caught.message : "The export failed.",
-      );
+      showError(commerceErrorText(caught, t));
     } finally {
       setPending(false);
     }
@@ -969,7 +1084,11 @@ export function WorkflowPanel({
       {...(destructive ? { variant: "danger" as const } : {})}
       disabled={pending || unbindable}
     >
-      {workflow === "reports" ? "View report" : "Submit securely"}
+      {t(
+        workflow === "reports"
+          ? "platform.workflow.viewReport"
+          : "common.submit",
+      )}
     </Button>
   );
 
@@ -979,8 +1098,8 @@ export function WorkflowPanel({
       aria-labelledby={`workflow-title-${surface}`}
     >
       <div>
-        <p className="eyebrow">Server-backed action</p>
-        <h2 id={`workflow-title-${surface}`}>{titles[workflow]}</h2>
+        <p className="eyebrow">{t("platform.workflow.eyebrow")}</p>
+        <h2 id={`workflow-title-${surface}`}>{t(titles[workflow])}</h2>
       </div>
       <form
         ref={formRef}
@@ -992,7 +1111,7 @@ export function WorkflowPanel({
         {fields}
         {unbindable ? (
           <p className="form-message form-message--error">
-            {unbindableMessage(missingIdentifiers)}
+            {unbindableMessage(missingIdentifiers, t, locale)}
           </p>
         ) : null}
         {error ? (
@@ -1008,7 +1127,7 @@ export function WorkflowPanel({
         ) : null}
         {pending ? (
           <p className="form-message" role="status">
-            Submitting securely…
+            {t("platform.workflow.submitting")}
           </p>
         ) : null}
         {success ? (
@@ -1017,7 +1136,10 @@ export function WorkflowPanel({
           </p>
         ) : null}
         {reportResult ? (
-          <pre className="form-message" aria-label="Report result">
+          <pre
+            className="form-message"
+            aria-label={t("platform.workflow.reportResult")}
+          >
             {JSON.stringify(reportResult, null, 2)}
           </pre>
         ) : null}
@@ -1055,15 +1177,13 @@ export function WorkflowPanel({
               onClick={(event) => {
                 const form = event.currentTarget.form;
                 if (!form) {
-                  setError(
-                    "The report form is unavailable. Reload and try again.",
-                  );
+                  setError(t("platform.workflow.reportFormUnavailable"));
                   return;
                 }
                 void download(form);
               }}
             >
-              Download CSV
+              {t("platform.workflow.downloadCsv")}
             </Button>
           ) : null}
           <Button
@@ -1080,7 +1200,7 @@ export function WorkflowPanel({
               setDecision(defaultDecision(workflow));
             }}
           >
-            Clear
+            {t("common.clear")}
           </Button>
         </div>
       </form>

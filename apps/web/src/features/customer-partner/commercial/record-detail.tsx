@@ -19,6 +19,7 @@ import { validQuoteActions, type QuoteStatus } from "./workflow-model";
 import { ArtifactDeliveryList } from "@/src/features/experience-server/artifact-delivery-list";
 import { loadRecordArtifacts } from "@/src/features/experience-server/delivery";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
 
 function detailLabel(record: CommercialRecord) {
   if (record.kind === "agreements") return "Agreement detail";
@@ -331,6 +332,7 @@ export async function CommercialRecordDetail({
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
+        label={breadcrumbsLabel(t)}
         items={[
           {
             label:

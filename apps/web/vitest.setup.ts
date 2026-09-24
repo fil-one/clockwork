@@ -2,7 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
-import { catalogs } from "@/src/i18n/catalogs";
+import { setHarnessKitText } from "@clockwork/ui";
+
+import { kitText } from "@/src/features/shared/ui-kit-labels";
+import { catalogs, translatorFor } from "@/src/i18n/catalogs";
 import { setHarnessLanguage } from "@/src/i18n/client";
 
 afterEach(cleanup);
@@ -17,6 +20,10 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
 // has no such fallback. A test that needs another language wraps its render
 // in LanguageProvider, which takes precedence.
 setHarnessLanguage("en", catalogs.en);
+// The UI kit's generic words (a dialog's close control, a picker's
+// placeholder) come from the shell's KitTextProvider in the application; the
+// harness supplies the same English catalog words to components rendered alone.
+setHarnessKitText(kitText(translatorFor("en")));
 
 // Component unit tests have no Next request. Supply an explicitly settled
 // English request fixture; locale isolation is tested separately and in browser tests.

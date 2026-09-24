@@ -5,14 +5,20 @@ import { render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { TrustPage } from "./trust-page";
 import {
   tokenDistinctivenessCeiling,
   trustControls,
   trustGaps,
   trustIntegrations,
+  trustStatement,
   trustUnselectedIntegrations,
 } from "./trust-register";
+
+/** The test harness renders in English (vitest.setup.ts). */
+const t = translatorFor("en");
 
 /**
  * The page has one job beyond looking right: it must publish the whole
@@ -29,7 +35,9 @@ describe("trust page", () => {
   it("publishes every control in the register, and every file each one rests on", () => {
     render(<TrustPage />);
     for (const control of trustControls) {
-      expect(screen.getByText(control.statement)).toBeInTheDocument();
+      expect(
+        screen.getByText(trustStatement(control.statement, t)),
+      ).toBeInTheDocument();
       expect(
         screen.getAllByText(control.evidencePath).length,
       ).toBeGreaterThanOrEqual(1);
@@ -60,13 +68,13 @@ describe("trust page", () => {
     expect(
       screen.getByText(/still contains the cited text/i),
     ).toBeInTheDocument();
+    // The threshold is read from the constant the suite enforces and
+    // formatted for the reader, never typed into the copy.
+    const share = new Intl.NumberFormat("en-US", { style: "percent" }).format(
+      tokenDistinctivenessCeiling,
+    );
     expect(
-      screen.getByText(
-        new RegExp(
-          `no more than ${tokenDistinctivenessCeiling * 100} per cent`,
-          "i",
-        ),
-      ),
+      screen.getByText(new RegExp(`no more than ${share} of the`, "i")),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/any number of two or more digits/i),
@@ -102,7 +110,9 @@ describe("trust page", () => {
   it("publishes every gap and names the external gate that closes it", () => {
     render(<TrustPage />);
     for (const gap of trustGaps) {
-      expect(screen.getByText(gap.statement)).toBeInTheDocument();
+      expect(
+        screen.getByText(trustStatement(gap.statement, t)),
+      ).toBeInTheDocument();
       expect(
         screen.getAllByText(`Requires ${gap.gate}`).length,
       ).toBeGreaterThanOrEqual(1);
@@ -123,7 +133,7 @@ describe("trust page", () => {
     for (const integration of trustIntegrations)
       expect(screen.getByText(integration.name)).toBeInTheDocument();
     for (const entry of trustUnselectedIntegrations)
-      expect(screen.getByText(entry.capability)).toBeInTheDocument();
+      expect(screen.getByText(t(entry.capability))).toBeInTheDocument();
     expect(
       screen.getByText(/not a subprocessor schedule/i, { selector: "div" }),
     ).toBeInTheDocument();
@@ -198,11 +208,12 @@ describe("the trust page reaches a reader with no account", () => {
     expect(unauthenticatedPaths).toContain("/trust");
   });
 
-  it("renders without reading a session, a cookie or a request", () => {
+  it("renders without reading a session or a request, beyond the reader's language", () => {
     // The reason it is safe to serve anonymously, asserted rather than
     // asserted-in-a-comment: the component takes no props and the module it
-    // renders is a constant. If either changes, this stops being true and the
-    // proxy entry has to be reconsidered.
+    // renders is a constant. Its one request input is the interface-language
+    // preference, so two readers in one language receive identical bytes. If
+    // any of that changes, the proxy entry has to be reconsidered.
     expect(TrustPage.length).toBe(0);
     const first = render(<TrustPage />).container.textContent;
     const second = render(<TrustPage />).container.textContent;

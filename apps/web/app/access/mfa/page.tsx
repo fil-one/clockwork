@@ -1,9 +1,15 @@
 import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BrandLogo, Button, Input, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("session.mfa.action") };
+}
 
 export default async function Page({
   searchParams,
@@ -20,6 +26,7 @@ export default async function Page({
           src={brandAsset()}
           name={t("app.name")}
         />
+        {/* i18n-exempt: acronym kept in Latin script in every language (glossary) */}
         <p className="eyebrow">MFA</p>
         <h1>{t("session.mfa.title")}</h1>
         <p>{t("session.mfa.description")}</p>
@@ -29,20 +36,20 @@ export default async function Page({
             action="/access/mfa/verify"
             method="post"
           >
-            <p>
-              Confirm your authenticator code to unlock this Clockwork session.
-            </p>
+            <p>{t("platform.mfa.prompt")}</p>
             {error && (
               <p role="alert">
-                {error === "limited"
-                  ? "Too many attempts. Wait ten minutes before trying again."
-                  : error === "invalid"
-                    ? "That code was not accepted. Enter the current code from your authenticator."
-                    : "Verification is unavailable. Try again shortly or sign in again."}
+                {t(
+                  error === "limited"
+                    ? "platform.mfa.error.limited"
+                    : error === "invalid"
+                      ? "platform.mfa.error.invalid"
+                      : "platform.mfa.error.unavailable",
+                )}
               </p>
             )}
             <Input
-              label="Authenticator code"
+              label={t("platform.mfa.code")}
               name="code"
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -50,8 +57,8 @@ export default async function Page({
               maxLength={6}
               required
             />
-            <Button type="submit">Verify and continue</Button>
-            <Link href="/sign-in">Sign in again</Link>
+            <Button type="submit">{t("platform.mfa.submit")}</Button>
+            <Link href="/sign-in">{t("session.expired.action")}</Link>
           </form>
         ) : (
           <Link

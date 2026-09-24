@@ -1,3 +1,5 @@
+import { use } from "react";
+
 import {
   InlineNotice,
   PageHeader,
@@ -5,6 +7,8 @@ import {
   StatusBadge,
   Table,
 } from "@clockwork/ui";
+
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
 import styles from "./trust-page.module.css";
 import {
@@ -14,6 +18,7 @@ import {
   trustGaps,
   trustIntegrations,
   trustSections,
+  trustStatement,
   trustUnselectedIntegrations,
 } from "./trust-register";
 
@@ -41,6 +46,11 @@ function citedPaths(control: TrustControl): readonly string[] {
  * only free text here is navigational -- headings, and the notices that tell
  * the reader what kind of document this is.
  *
+ * Every sentence is a message in the reader's interface language, read from
+ * the language preference cookie. That is the only request input: a reader
+ * in a given language receives the same bytes as every other reader in that
+ * language. File paths, gate keys and vendor names are printed as they are.
+ *
  * THE ONE PARAGRAPH THAT IS A CLAIM, AND WHY IT IS ALLOWED TO BE. The lede
  * describes what the build checks. That paragraph used to say the build "fails
  * if the file no longer contains what the control claims", which promised a
@@ -50,7 +60,8 @@ function citedPaths(control: TrustControl): readonly string[] {
  * many words that the fit between a sentence and the code it cites is a human
  * judgement the build does not make. The distinctiveness threshold is read out
  * of `tokenDistinctivenessCeiling` rather than typed, so the number on the page
- * cannot drift from the number the suite enforces.
+ * cannot drift from the number the suite enforces; it is formatted as a
+ * percentage in the reader's locale.
  *
  * Do not compress that paragraph back into one sentence. The compression is
  * what made it false the first time: any summary short enough to feel like a
@@ -65,50 +76,34 @@ function citedPaths(control: TrustControl): readonly string[] {
  * than on any other, so it is gone and the mechanism is described instead.
  */
 export function TrustPage() {
+  const t = use(getTranslations());
+  const locale = use(getFormattingLocale());
+  const share = new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(tokenDistinctivenessCeiling);
+  const evidenceHeader = t("platform.trust.header.evidence");
+  const gapsTitle = t("platform.trust.gaps.title");
   return (
     <main id="main-content" className={styles.main}>
       <div className={styles.column}>
         <div className={styles.intro}>
           <PageHeader
-            eyebrow="Trust"
-            title="Security, privacy and compliance"
-            description="What this system does, stated so that you can check it."
+            eyebrow={t("platform.trust.eyebrow")}
+            title={t("platform.trust.title")}
+            description={t("platform.trust.description")}
           />
           <p className={styles.lede}>
-            Every control below names a file in the product source and a piece
-            of text that must appear in it. The build checks four things about
-            that citation, and this is the complete list: the file exists; it
-            still contains the cited text; the cited text appears in no more
-            than {tokenDistinctivenessCeiling * 100} per cent of the
-            repository&rsquo;s files, so that it names one implementation rather
-            than being a word that occurs everywhere; and any number of two or
-            more digits the control states appears somewhere in a file the
-            control cites.
+            {t("platform.trust.lede.checks", { share })}
           </p>
-          <p className={styles.lede}>
-            Be precise about what that last check is worth, because it is weaker
-            than it sounds. It matches a number as plain text anywhere in the
-            cited file, so a match can be a coincidence -- a &ldquo;24&rdquo; in
-            a control can be satisfied by an unrelated &ldquo;24&rdquo; in the
-            code. It does not see a quantity written as a single digit, or
-            spelled as a word, so &ldquo;rotated every ninety days&rdquo; is not
-            checked at all. We tested this by writing fabricated controls
-            designed to slip past it, and they did.
-          </p>
-          <p className={styles.lede}>
-            What the build cannot check at all is whether the sentence is a fair
-            description of the code it points at. A control worded loosely, or
-            worded tightly around numbers the check cannot see, would pass every
-            one of the four. That fit is a human judgement, made by whoever
-            writes the entry and whoever reviews the change, and it is the part
-            you are trusting us on rather than checking. Everything above it is
-            evidence that the control is written, not evidence that anyone
-            outside this company has examined it.
-          </p>
+          <p className={styles.lede}>{t("platform.trust.lede.numbers")}</p>
+          <p className={styles.lede}>{t("platform.trust.lede.judgement")}</p>
           <InlineNotice
             tone="warning"
-            title="This page publishes no certification, audit result or policy text."
-            description="Sections below marked as requiring an external gate are things we do not have. Nothing here has been reviewed by counsel or verified by an external auditor. Ask us for the current status of anything listed under 'What this page does not claim' and you will get a date, not a document."
+            title={t("platform.trust.notice.title")}
+            description={t("platform.trust.notice.description", {
+              section: gapsTitle,
+            })}
           />
         </div>
 
@@ -116,20 +111,26 @@ export function TrustPage() {
           const controls = trustControls.filter(
             (control) => control.section === section.id,
           );
+          const title = t(section.title);
           return (
             <Section
               key={section.id}
-              title={section.title}
-              description={section.summary}
+              title={title}
+              description={t(section.summary)}
             >
               <Table
-                caption={`${section.title}: implemented controls and the source that shows each one`}
+                caption={t("platform.trust.controls.caption", {
+                  section: title,
+                })}
                 captionHidden
-                headers={["Control", "Where to check it"]}
+                headers={[
+                  t("platform.trust.controls.header.control"),
+                  evidenceHeader,
+                ]}
                 rowKeys={controls.map((control) => control.id)}
                 rows={controls.map((control) => [
                   <span key="s" className={styles.statement}>
-                    {control.statement}
+                    {trustStatement(control.statement, t)}
                   </span>,
                   <span key="e" className={styles.evidenceList}>
                     {citedPaths(control).map((path) => (
@@ -145,18 +146,22 @@ export function TrustPage() {
         })}
 
         <Section
-          title="Third-party services this software is wired to"
-          description="Named here because committed configuration names them. This is a source-tree fact and not a subprocessor schedule -- see the section below."
+          title={t("platform.trust.integrations.title")}
+          description={t("platform.trust.integrations.description")}
         >
           <Table
-            caption="Third-party services named in committed configuration"
+            caption={t("platform.trust.integrations.caption")}
             captionHidden
-            headers={["Service", "What it does", "Where to check it"]}
+            headers={[
+              t("platform.trust.integrations.header.service"),
+              t("platform.trust.integrations.header.purpose"),
+              evidenceHeader,
+            ]}
             rowKeys={trustIntegrations.map((integration) => integration.name)}
             rows={trustIntegrations.map((integration) => [
-              integration.name,
+              <bdi key="n">{integration.name}</bdi>,
               <span key="p" className={styles.statement}>
-                {integration.purpose}
+                {t(integration.purpose)}
               </span>,
               <code key="e" className={styles.evidence}>
                 {integration.evidencePath}
@@ -166,18 +171,22 @@ export function TrustPage() {
         </Section>
 
         <Section
-          title="Capabilities with no vendor selected"
-          description="These reach an external provider over a signed, provider-neutral HTTP contract. No vendor is named anywhere in the source, so this page names none: the choice is a deployment setting, and it is made under the gate shown."
+          title={t("platform.trust.unselected.title")}
+          description={t("platform.trust.unselected.description")}
         >
           <Table
-            caption="Capabilities whose provider is not selected in the source"
+            caption={t("platform.trust.unselected.caption")}
             captionHidden
-            headers={["Capability", "Selected under", "Where to check it"]}
+            headers={[
+              t("platform.trust.unselected.header.capability"),
+              t("platform.trust.unselected.header.gate"),
+              evidenceHeader,
+            ]}
             rowKeys={trustUnselectedIntegrations.map(
               (entry) => entry.capability,
             )}
             rows={trustUnselectedIntegrations.map((entry) => [
-              entry.capability,
+              t(entry.capability),
               <StatusBadge key="g" tone="neutral">
                 {entry.gate}
               </StatusBadge>,
@@ -189,28 +198,27 @@ export function TrustPage() {
         </Section>
 
         <Section
-          title="What this page does not claim"
-          description="Each item names the external gate that has to close before the claim could be made at all."
+          title={gapsTitle}
+          description={t("platform.trust.gaps.description")}
         >
           <ul className={styles.gapList}>
             {trustGaps.map((gap) => (
               <li key={gap.id} className={styles.gap}>
                 <div className={styles.gapHeader}>
-                  <StatusBadge tone="warning">Requires {gap.gate}</StatusBadge>
+                  <StatusBadge tone="warning">
+                    {t("platform.trust.gaps.requires", { gate: gap.gate })}
+                  </StatusBadge>
                   <code className={styles.evidence}>{gap.evidencePath}</code>
                 </div>
-                <p className={styles.gapStatement}>{gap.statement}</p>
+                <p className={styles.gapStatement}>
+                  {trustStatement(gap.statement, t)}
+                </p>
               </li>
             ))}
           </ul>
         </Section>
 
-        <p className={styles.footnote}>
-          This page is rendered from the source of the deployment you are
-          talking to. There is no separate publication step and no copy of it
-          kept anywhere else, so it cannot be stale relative to that deployment.
-          It can, of course, be behind what we have merged since.
-        </p>
+        <p className={styles.footnote}>{t("platform.trust.footnote")}</p>
       </div>
     </main>
   );

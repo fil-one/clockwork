@@ -20,6 +20,10 @@ import {
   ValidationSummary,
 } from "./states";
 import { Table } from "./table";
+import {
+  fixtureDocumentMetaLabels,
+  fixtureShellLabels,
+} from "../stories/fixture-labels";
 
 describe("form controls", () => {
   it("associates unique labels, help, and validation errors", () => {
@@ -83,7 +87,9 @@ describe("shell and navigation", () => {
   ] as const;
 
   it("marks current and disabled routes semantically", () => {
-    const html = renderToStaticMarkup(<Navigation groups={navigation} />);
+    const html = renderToStaticMarkup(
+      <Navigation groups={navigation} label="Primary" />,
+    );
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain('tabindex="-1"');
@@ -91,7 +97,12 @@ describe("shell and navigation", () => {
 
   it("provides skip, header, navigation, main, and footer landmarks", () => {
     const html = renderToStaticMarkup(
-      <AppShell navigation={navigation} footer="Request 123">
+      <AppShell
+        navigation={navigation}
+        brand="Fil One"
+        {...fixtureShellLabels}
+        footer="Request 123"
+      >
         <h1>Overview</h1>
       </AppShell>,
     );
@@ -172,6 +183,7 @@ describe("data displays", () => {
           type="Order form"
           title="Archive expansion"
           documentId="ORD-1"
+          metaLabels={fixtureDocumentMetaLabels}
         />
         <Timeline
           label="Account events"

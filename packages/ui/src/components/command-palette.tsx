@@ -20,25 +20,37 @@ export interface CommandPaletteItem {
   onSelect?: () => void;
 }
 
-export interface CommandPaletteProps {
+/**
+ * Every word the palette shows. The kit cannot import an application's
+ * messages and carries no English defaults, so the caller supplies all of them
+ * in the reader's language.
+ */
+export interface CommandPaletteLabels {
+  title: string;
+  description: string;
+  closeLabel: string;
+  searchLabel: string;
+  placeholder: string;
+  noResultsTitle: string;
+  noResultsLabel: string;
+  groupLabels: Readonly<Record<CommandPaletteCategory, string>>;
+  /** The keyboard hints in the footer: "Move", "Select", "Close". */
+  keyHints: Readonly<{ move: string; select: string; close: string }>;
+}
+
+export type CommandPaletteProps = CommandPaletteLabels & {
   items: readonly CommandPaletteItem[];
   audience?: string;
-  trigger?: ReactNode;
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Product-owned routing hook. When omitted, href items use location.assign. */
   onSelect?: (item: CommandPaletteItem) => void;
-  title?: string;
-  description?: string;
-  triggerLabel?: string;
-  closeLabel?: string;
-  searchLabel?: string;
-  placeholder?: string;
-  noResultsLabel?: string;
-  groupLabels?: Partial<Record<CommandPaletteCategory, string>>;
   shortcut?: boolean;
-}
+} & (
+    | { trigger: ReactNode; triggerLabel?: never }
+    | { trigger?: undefined; triggerLabel: string }
+  );
 
 const categoryOrder: readonly CommandPaletteCategory[] = [
   "navigation",
@@ -65,14 +77,16 @@ export function CommandPalette({
   defaultOpen = false,
   onOpenChange,
   onSelect,
-  title = "Search and commands",
-  description = "Search navigation, common actions, and records.",
-  triggerLabel = "Search and commands",
-  closeLabel = "Close command palette",
-  searchLabel = "Search navigation, actions, and records",
-  placeholder = "Search navigation, actions, and records",
-  noResultsLabel = "No matching commands. Try a different search.",
+  title,
+  description,
+  triggerLabel,
+  closeLabel,
+  searchLabel,
+  placeholder,
+  noResultsTitle,
+  noResultsLabel,
   groupLabels,
+  keyHints,
   shortcut = true,
 }: CommandPaletteProps) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
@@ -154,12 +168,6 @@ export function CommandPalette({
         selectable.find((item) => item.id === activeId) ?? selectable[0];
       if (selected) select(selected);
     }
-  };
-
-  const labels: Record<CommandPaletteCategory, string> = {
-    navigation: groupLabels?.navigation ?? "Navigation",
-    actions: groupLabels?.actions ?? "Actions",
-    records: groupLabels?.records ?? "Records",
   };
 
   return (
@@ -250,7 +258,7 @@ export function CommandPalette({
                     role="group"
                     aria-labelledby={headingId}
                   >
-                    <h3 id={headingId}>{labels[category]}</h3>
+                    <h3 id={headingId}>{groupLabels[category]}</h3>
                     {categoryItems.map((item) => (
                       <button
                         className="cw-command-result"
@@ -288,7 +296,7 @@ export function CommandPalette({
             ) : (
               <div className="cw-command-empty" role="status">
                 <Search aria-hidden="true" />
-                <strong>No results</strong>
+                <strong>{noResultsTitle}</strong>
                 <span>{noResultsLabel}</span>
               </div>
             )}
@@ -296,13 +304,13 @@ export function CommandPalette({
           <footer className="cw-command-footer" aria-hidden="true">
             <span>
               <kbd>↑</kbd>
-              <kbd>↓</kbd> Move
+              <kbd>↓</kbd> {keyHints.move}
             </span>
             <span>
-              <kbd>↵</kbd> Select
+              <kbd>↵</kbd> {keyHints.select}
             </span>
             <span>
-              <kbd>Esc</kbd> Close
+              <kbd>Esc</kbd> {keyHints.close}
             </span>
           </footer>
         </DialogPrimitive.Content>

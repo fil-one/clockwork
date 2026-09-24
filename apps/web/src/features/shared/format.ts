@@ -31,14 +31,19 @@ export function formatMoney(
   const amount = BigInt(minorUnits);
   const negative = amount < 0n;
   const whole = (negative ? -amount : amount) / 100n;
-  const fraction = (amount < 0n ? -amount : amount) % 100n;
+  const fraction = (negative ? -amount : amount) % 100n;
+  // The sign is the locale's to place: ar-AE puts direction marks before the
+  // minus, and a hand-prepended "-" landed outside them. A negative amount
+  // under one unit has a whole part of 0n, which has no sign, so it is
+  // formatted as the number -0, which does.
+  const signedWhole = negative ? (whole === 0n ? -0 : -whole) : whole;
   const parts = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).formatToParts(whole);
-  const formatted = parts
+  }).formatToParts(signedWhole);
+  return parts
     .map((part) =>
       part.type === "fraction"
         ? new Intl.NumberFormat(locale, {
@@ -48,7 +53,6 @@ export function formatMoney(
         : part.value,
     )
     .join("");
-  return negative ? `-${formatted}` : formatted;
 }
 
 /** A calendar date (no time of day) in the reader's formatting locale. */

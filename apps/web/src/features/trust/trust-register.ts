@@ -1,4 +1,5 @@
 import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
+import type { MessageId, Translator } from "@/src/i18n";
 
 /**
  * The launch-gate identifiers, taken from the generated API contract rather
@@ -52,39 +53,49 @@ export type TrustGateKey = GeneratedExternalGate["gateKey"];
  * in a given deployment. The suites that exercise these controls prove the
  * behaviour, and they are cited alongside where one exists. Read this register
  * as "the source tree contains this", never as "an auditor found this".
+ *
+ * LANGUAGE. Every sentence a reader sees is a message ID in the platform
+ * message module, rendered in the reader's interface language. The English
+ * text is the reviewed original; `trust-register.test.ts` resolves each ID
+ * and holds EVERY language to the same checks that can be made without
+ * reading the language: the numbers a statement asserts, and the absence of
+ * certification names from anything that reads as a capability. The
+ * evidence tokens below are never translated -- they are literal source text
+ * the build greps for, and they are never displayed.
  */
 
 /** Section a control is published under. Ordering here is display order. */
 export const trustSections = [
   {
     id: "access-control",
-    title: "Access control and tenant isolation",
-    summary:
-      "Who may act, inside which account, and what a request must prove before it changes anything.",
+    title: "platform.trust.section.accessControl.title",
+    summary: "platform.trust.section.accessControl.summary",
   },
   {
     id: "data-protection",
-    title: "Data protection and retention",
-    summary:
-      "How records and documents are stored, held, screened, and reached.",
+    title: "platform.trust.section.dataProtection.title",
+    summary: "platform.trust.section.dataProtection.summary",
   },
   {
     id: "auditability",
-    title: "Auditability",
-    summary: "What is written when something changes, and how that is checked.",
+    title: "platform.trust.section.auditability.title",
+    summary: "platform.trust.section.auditability.summary",
   },
   {
     id: "application-security",
-    title: "Application and transport security",
-    summary:
-      "The controls a browser and a calling system meet on every request.",
+    title: "platform.trust.section.applicationSecurity.title",
+    summary: "platform.trust.section.applicationSecurity.summary",
   },
   {
     id: "secure-development",
-    title: "Secure development",
-    summary: "What the standard verification suite refuses to let through.",
+    title: "platform.trust.section.secureDevelopment.title",
+    summary: "platform.trust.section.secureDevelopment.summary",
   },
-] as const;
+] as const satisfies readonly {
+  id: string;
+  title: MessageId;
+  summary: MessageId;
+}[];
 
 export type TrustSectionId = (typeof trustSections)[number]["id"];
 
@@ -98,7 +109,7 @@ export interface TrustControl {
   readonly id: string;
   readonly section: TrustSectionId;
   /** What is true. Must be supported by `token` inside `evidencePath`. */
-  readonly statement: string;
+  readonly statement: MessageId;
   /** Repository-relative path. Must exist. */
   readonly evidencePath: string;
   /** Literal substring that must appear in `evidencePath`. */
@@ -113,14 +124,15 @@ export interface TrustControl {
 }
 
 export interface TrustIntegration {
+  /** The vendor's own name, never translated. */
   readonly name: string;
-  readonly purpose: string;
+  readonly purpose: MessageId;
   readonly evidencePath: string;
   readonly token: string;
 }
 
 export interface TrustUnselectedIntegration {
-  readonly capability: string;
+  readonly capability: MessageId;
   readonly gate: TrustGateKey;
   readonly evidencePath: string;
   readonly token: string;
@@ -128,107 +140,107 @@ export interface TrustUnselectedIntegration {
 
 export interface TrustGap {
   readonly id: string;
-  readonly statement: string;
+  readonly statement: MessageId;
   /** Typed against the generated contract, so an invented gate does not compile. */
   readonly gate: TrustGateKey;
   readonly evidencePath: string;
   readonly token: string;
 }
 
+/**
+ * The route prefix the CSRF and idempotency statements quote. It is a value in
+ * those messages rather than message text, so it is never translated and a
+ * right-to-left sentence isolates it.
+ */
+export const webhookRoutePrefix = "/v1/webhooks/";
+
+/** A register statement in the reader's language, with its quoted values. */
+export function trustStatement(id: MessageId, t: Translator): string {
+  return t(id, { path: webhookRoutePrefix });
+}
+
 export const trustControls: readonly TrustControl[] = [
   {
     id: "scope-required",
     section: "access-control",
-    statement:
-      "Every API mutation names both the permission it needs and the account it acts inside. The scope argument has no undefined member, so a route that forgets to say which account it is acting in does not compile.",
+    statement: "platform.trust.control.scopeRequired",
     evidencePath: "packages/api/src/auth/authorize.ts",
-    token: "scope: AccountScope<P>",
+    token: "scope: AccountScope<P>", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
   },
   {
     id: "step-up-authentication",
     section: "access-control",
-    statement:
-      "Named money and policy actions -- voiding an invoice, approving a pricing exception, activating a price book, settling or clawing back a commission, and the rest of the same class -- additionally require a fresh re-authentication at the moment they are attempted.",
+    statement: "platform.trust.control.stepUpAuthentication",
     evidencePath: "packages/api/src/routes/core/index.ts",
     token: "recentAuthenticationActions",
   },
   {
     id: "row-level-security",
     section: "access-control",
-    statement:
-      "Tenant isolation is enforced by PostgreSQL row-level security on the tables themselves, not only by application code. Security is forced rather than merely enabled, and the roles the application connects as cannot bypass it.",
+    statement: "platform.trust.control.rowLevelSecurity",
     evidencePath: "supabase/tests/020_rls.test.sql",
     token: "rolbypassrls",
   },
   {
     id: "identity-fail-closed",
     section: "access-control",
-    statement:
-      "A production deployment with no configured identity provider refuses every request with a 503 rather than serving an unauthenticated page.",
+    statement: "platform.trust.control.identityFailClosed",
     evidencePath: "apps/web/proxy.ts",
     token: "AUTHENTICATION_NOT_CONFIGURED",
   },
   {
     id: "object-lock",
     section: "data-protection",
-    statement:
-      "Executed agreements, signed documents and other evidence objects are written to object storage under a COMPLIANCE-mode Object Lock with a retain-until date and a legal-hold flag, so neither the application nor an operator can delete or overwrite them inside the retention window.",
+    statement: "platform.trust.control.objectLock",
     evidencePath: "packages/integrations/src/evidence-storage/index.ts",
-    token: 'ObjectLockMode: "COMPLIANCE"',
+    token: 'ObjectLockMode: "COMPLIANCE"', // i18n-exempt: evidence token the build greps for in the cited file; never displayed
   },
   {
     id: "evidence-metadata",
     section: "data-protection",
-    statement:
-      "Every evidence object carries a SHA-256 content hash, a storage version, a retention date, a legal-hold flag and a malware-scan status, and metadata that does not satisfy those requirements is rejected rather than stored.",
+    statement: "platform.trust.control.evidenceMetadata",
     evidencePath: "packages/domain/src/compliance/index.ts",
     token: "malwareScanStatus",
   },
   {
     id: "denied-party-screening",
     section: "data-protection",
-    statement:
-      "Counterparties are screened at registration, before signature and at partner activation, and re-screened on expiry. Four embargoed jurisdictions are refused regardless of what the screening provider answers, and a non-clear decision cannot be recorded without a stored match-evidence document.",
+    statement: "platform.trust.control.deniedPartyScreening",
     evidencePath: "packages/domain/src/compliance/index.ts",
     token: "embargoedCountries",
   },
   {
     id: "evidence-access",
     section: "data-protection",
-    statement:
-      "Reading a stored document requires either ownership of the account the document belongs to or a named internal role, the purpose of the access is part of the decision, and an upload for a purpose that does not permit uploads is refused.",
+    statement: "platform.trust.control.evidenceAccess",
     evidencePath: "packages/domain/src/compliance/index.ts",
     token: "authorizeEvidenceAccess",
   },
   {
     id: "atomic-audit",
     section: "auditability",
-    statement:
-      "Every core mutation returns the identifiers of an audit event and an outbox message written by the same transaction that wrote the row, so there is no state change without a corresponding record of who made it and what it replaced.",
+    statement: "platform.trust.control.atomicAudit",
     evidencePath: "packages/api/src/routes/core/service.ts",
     token: "outboxMessageId",
   },
   {
     id: "chain-validation",
     section: "auditability",
-    statement:
-      "The integrity of the audit chain is asserted by tests that run against a real PostgreSQL instance rather than a mock.",
+    statement: "platform.trust.control.chainValidation",
     evidencePath: "supabase/tests/903_secure_chain_validation.test.sql",
-    token: "select plan(",
+    token: "select plan(", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
   },
   {
     id: "content-security-policy",
     section: "application-security",
-    statement:
-      "Every document is served with a per-request nonce Content-Security-Policy. Framing, plugin objects and base-URI rewriting are all set to none, and the application authors no inline script.",
+    statement: "platform.trust.control.contentSecurityPolicy",
     evidencePath: "apps/web/proxy.ts",
     token: "frame-ancestors 'none'",
   },
   {
     id: "response-headers",
     section: "application-security",
-    statement:
-      "Transport security, MIME-sniffing refusal, framing refusal, referrer policy and a permissions policy that denies camera, microphone and geolocation are set on every response.",
+    statement: "platform.trust.control.responseHeaders",
     evidencePath: "apps/web/next.config.ts",
     token: "Strict-Transport-Security",
   },
@@ -245,8 +257,7 @@ export const trustControls: readonly TrustControl[] = [
      * The exemption is now cited, in both files, alongside the control it
      * qualifies.
      */
-    statement:
-      "Every state-changing API request must present a matching double-submit CSRF token and an origin the deployment allows before it reaches a handler, with one deliberate exception. Requests to the inbound provider webhook routes under /v1/webhooks/ are exempt from that check, and from the idempotency-key requirement, by path prefix. A provider posting a webhook is a server rather than a browser: it holds none of our cookies, so a CSRF token would only be a value we had handed it, and the check would prove nothing about who sent the request. Those routes are authenticated instead by verifying the provider's signature over the raw request body, which is the control that actually establishes the sender. Safe methods -- GET, HEAD and OPTIONS -- are exempt as well, because they change nothing.",
+    statement: "platform.trust.control.csrfOrigin",
     evidencePath: "packages/api/src/middleware/security.ts",
     token: "createCsrfAndOriginMiddleware",
     alsoCites: [
@@ -256,11 +267,11 @@ export const trustControls: readonly TrustControl[] = [
       },
       {
         path: "packages/api/src/middleware/security.ts",
-        token: 'new Set(["GET", "HEAD", "OPTIONS"])',
+        token: 'new Set(["GET", "HEAD", "OPTIONS"])', // i18n-exempt: evidence token the build greps for in the cited file; never displayed
       },
       {
         path: "packages/api/src/middleware/security.ts",
-        token: "Provide the double-submit CSRF token.",
+        token: "Provide the double-submit CSRF token.", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
       },
       {
         path: "packages/api/src/middleware/idempotency.ts",
@@ -275,16 +286,14 @@ export const trustControls: readonly TrustControl[] = [
   {
     id: "webhook-signatures",
     section: "application-security",
-    statement:
-      "An inbound provider webhook is refused unless its signature verifies against the raw request body, and a redelivered event is claimed and deduplicated rather than applied a second time.",
+    statement: "platform.trust.control.webhookSignatures",
     evidencePath: "packages/api/src/webhooks.ts",
     token: "verifyAndClaimWebhook",
   },
   {
     id: "idempotency",
     section: "application-security",
-    statement:
-      "Mutations require an idempotency key, and a repeated key replays the stored first response instead of performing the operation twice. The inbound provider webhook routes are exempt from this requirement as well -- a provider chooses its own retry identifiers -- and are deduplicated instead by claiming the provider's event id. A response of 500 or above is never frozen for replay, so a dependency failure does not become a cached outage.",
+    statement: "platform.trust.control.idempotency",
     evidencePath: "packages/api/src/middleware/idempotency.ts",
     token: "idempotencyMiddleware",
     alsoCites: [
@@ -294,7 +303,7 @@ export const trustControls: readonly TrustControl[] = [
       },
       {
         path: "packages/api/src/middleware/idempotency.ts",
-        token: "status >= 200 && status < 500",
+        token: "status >= 200 && status < 500", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
       },
       {
         path: "packages/api/src/webhooks.ts",
@@ -305,32 +314,28 @@ export const trustControls: readonly TrustControl[] = [
   {
     id: "secret-scanning",
     section: "secure-development",
-    statement:
-      "Secret scanning runs across the whole working tree as part of the standard verification suite.",
+    statement: "platform.trust.control.secretScanning",
     evidencePath: "package.json",
     token: "scan:secrets",
   },
   {
     id: "dependency-advisories",
     section: "secure-development",
-    statement:
-      "Dependency advisories fail the suite at high severity and above.",
+    statement: "platform.trust.control.dependencyAdvisories",
     evidencePath: "package.json",
     token: "--audit-level=high",
   },
   {
     id: "generated-contract",
     section: "secure-development",
-    statement:
-      "The published API contract is generated from the running application, and the suite fails if the committed contract has drifted from what the application actually serves.",
+    statement: "platform.trust.control.generatedContract",
     evidencePath: "package.json",
     token: "check:generated",
   },
   {
     id: "schema-drift",
     section: "secure-development",
-    statement:
-      "The database schema is checked against its migrations for drift on every verification run.",
+    statement: "platform.trust.control.schemaDrift",
     evidencePath: "package.json",
     token: "check:schema-drift",
   },
@@ -347,39 +352,37 @@ export const trustControls: readonly TrustControl[] = [
 export const trustIntegrations: readonly TrustIntegration[] = [
   {
     name: "WorkOS",
-    purpose: "Browser identity, session issuance and step-up authentication.",
+    purpose: "platform.trust.integration.workos",
     evidencePath: "apps/web/package.json",
     token: "@workos-inc/authkit-nextjs",
   },
   {
     name: "Stripe",
-    purpose:
-      "Payment collection. Payment status is derived from verified webhooks, never entered by hand.",
+    purpose: "platform.trust.integration.stripe",
     evidencePath: "packages/integrations/package.json",
     token: '"stripe"',
   },
   {
-    name: "Amazon S3",
-    purpose: "Immutable evidence and document storage under Object Lock.",
+    name: "Amazon S3", // i18n-exempt: vendor product name, never translated
+    purpose: "platform.trust.integration.amazonS3",
     evidencePath: "packages/integrations/package.json",
     token: "@aws-sdk/client-s3",
   },
   {
-    name: "Supabase (PostgreSQL)",
-    purpose: "Primary datastore, migrations and row-level security.",
+    name: "Supabase (PostgreSQL)", // i18n-exempt: vendor product name, never translated
+    purpose: "platform.trust.integration.supabase",
     evidencePath: "package.json",
     token: '"supabase"',
   },
   {
     name: "Netlify",
-    purpose: "Application hosting and build.",
+    purpose: "platform.trust.integration.netlify",
     evidencePath: "netlify.toml",
     token: "@netlify/plugin-nextjs",
   },
   {
     name: "Trigger.dev",
-    purpose:
-      "Background task execution, one of two runtimes selected by CLOCKWORK_TASK_RUNTIME; the other is SQS in the deployment's own account.",
+    purpose: "platform.trust.integration.triggerDev",
     evidencePath: "trigger.config.ts",
     token: "@trigger.dev/sdk",
   },
@@ -394,27 +397,27 @@ export const trustIntegrations: readonly TrustIntegration[] = [
 export const trustUnselectedIntegrations: readonly TrustUnselectedIntegration[] =
   [
     {
-      capability: "Electronic signature",
+      capability: "platform.trust.capability.esign",
       gate: "EXT-PROVIDER-01",
       evidencePath: "packages/integrations/src/esign/http-signing-client.ts",
       token:
-        "Provider-neutral HTTPS contract selected and activated through EXT-PROVIDER-01",
+        "Provider-neutral HTTPS contract selected and activated through EXT-PROVIDER-01", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
     },
     {
-      capability: "Tax determination",
+      capability: "platform.trust.capability.tax",
       gate: "EXT-TAX-01",
       evidencePath: "packages/integrations/src/core/tax/http-tax-adapter.ts",
-      token: "Provider-neutral tax contract",
+      token: "Provider-neutral tax contract", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
     },
     {
-      capability: "Denied-party screening",
+      capability: "platform.trust.capability.screening",
       gate: "EXT-PROVIDER-01",
       evidencePath:
         "packages/integrations/src/runtime/lifecycle-http-providers.ts",
-      token: "Authenticated provider-neutral screening contract",
+      token: "Authenticated provider-neutral screening contract", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
     },
     {
-      capability: "Accounting export, notification delivery and usage ingest",
+      capability: "platform.trust.capability.providerTransport",
       gate: "EXT-PROVIDER-01",
       evidencePath: "packages/integrations/src/production-adapters.ts",
       token: "ProviderJsonTransport",
@@ -424,32 +427,28 @@ export const trustUnselectedIntegrations: readonly TrustUnselectedIntegration[] 
 export const trustGaps: readonly TrustGap[] = [
   {
     id: "no-certifications",
-    statement:
-      "No SOC 2 report, ISO 27001 certificate, PCI DSS attestation, HIPAA assurance or FedRAMP authorization is held, and none is claimed. The firm, scope and observation period for a SOC 2 Type II are not yet confirmed, the ISO 27001 body and scope are not yet chosen, and no independent penetration test has been started.",
+    statement: "platform.trust.gap.noCertifications",
     gate: "EXT-LEGAL-01",
     evidencePath: "docs/sprint-checklist.md",
-    token: "Audit readiness and security policy pack",
+    token: "Audit readiness and security policy pack", // i18n-exempt: evidence token the build greps for in the cited file; never displayed
   },
   {
     id: "no-policy-text",
-    statement:
-      "The Data Processing Addendum, security addendum, acceptable use policy, privacy policy, service-level agreement and support policy are counsel deliverables. The software models each of these document types and can execute and store them; the approved text is not in this repository, so this page publishes none of it.",
+    statement: "platform.trust.gap.noPolicyText",
     gate: "EXT-LEGAL-01",
     evidencePath: "packages/domain/src/agreements/index.ts",
     token: '"security_addendum"',
   },
   {
     id: "not-a-subprocessor-schedule",
-    statement:
-      "The integrations listed above are a source-tree fact, not a subprocessor schedule. A subprocessor schedule names the entities that process personal data on a customer's behalf under the Data Processing Addendum, states what each processes and where, and is produced with counsel. Do not treat the list above as one.",
+    statement: "platform.trust.gap.notSubprocessorSchedule",
     gate: "EXT-LEGAL-01",
     evidencePath: "docs/external-gates.md",
     token: "EXT-LEGAL-01",
   },
   {
     id: "not-counsel-reviewed",
-    statement:
-      "Nothing on this page has been reviewed or approved by counsel, and nothing on it has been verified by an external auditor. Every statement above is derived from this repository's source at build time and is only as good as that source.",
+    statement: "platform.trust.gap.notCounselReviewed",
     gate: "EXT-LEGAL-01",
     evidencePath: "docs/external-gates.md",
     token: "EXT-LEGAL-01",
@@ -457,19 +456,30 @@ export const trustGaps: readonly TrustGap[] = [
 ];
 
 /**
+ * Certification and attestation names, written the same in every language.
+ *
  * Vocabulary a control or an integration may never use.
  *
  * These words are how a trust page goes wrong. They are not banned outright --
  * a `trustGaps` entry has to be able to say "no SOC 2 report is held" -- they
  * are banned from any sentence that reads as an assertion of capability.
  */
-export const attestationVocabulary: readonly RegExp[] = [
+export const certificationNames: readonly RegExp[] = [
   /\bSOC ?2\b/i,
   /\bISO ?27001\b/i,
   /\bPCI(?:[ -]DSS)?\b/i,
   /\bHIPAA\b/i,
   /\bFedRAMP\b/i,
   /\bGDPR\b/i,
+];
+
+/**
+ * The attestation words in English. The certification names above are the
+ * only part of this list that reads the same in every language, so they are
+ * also the only part `trust-register.test.ts` can hold a translation to.
+ */
+export const attestationVocabulary: readonly RegExp[] = [
+  ...certificationNames,
   /\bcertifi(?:ed|cation)\b/i,
   /\baccredit(?:ed|ation)\b/i,
   /\battestation\b/i,

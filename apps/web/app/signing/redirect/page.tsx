@@ -1,10 +1,16 @@
-import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BrandLogo, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
 import { SigningExperience } from "@/src/features/signing/signing-experience";
+import { getTranslations } from "@/src/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("signing.title") };
+}
 
 export default async function Page({
   searchParams,

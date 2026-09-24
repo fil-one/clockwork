@@ -30,7 +30,7 @@ function clamp(value: number): number {
 function validTime(value: Date, name: string): number {
   const time = value.getTime();
   if (!Number.isFinite(time)) {
-    throw new RangeError(`${name} must be a valid Date`);
+    throw new RangeError(`${name} must be a valid Date`); // i18n-exempt: developer invariant
   }
   return time;
 }
@@ -53,7 +53,7 @@ export function calculateTermProgress({
   const endTime = validTime(end, "end");
   const nowTime = validTime(now, "now");
   if (endTime <= startTime) {
-    throw new RangeError("end must be after start");
+    throw new RangeError("end must be after start"); // i18n-exempt: developer invariant
   }
 
   const duration = endTime - startTime;
@@ -85,29 +85,31 @@ export function calculateTermProgress({
   };
 }
 
+/**
+ * Every word the term bar says, in the reader's language. The kit carries no
+ * English defaults and no plural rules; the application supplies these from
+ * its catalog. Numbers and dates arrive already formatted with `locale`, except
+ * day counts, which arrive as numbers so a message can pick its plural form.
+ */
 export interface TermBarMessages {
-  elapsed: (percent: number, days: number) => string;
+  /** "{percent} of the term elapsed, {days} days since start". */
+  elapsed: (percent: string, days: number) => string;
+  /** "{days} days remaining". */
   remaining: (days: number) => string;
+  /** "Term ends {date}", for the accessible description. */
   endDate: (date: string) => string;
+  /**
+   * The visible end label, "Ends {date}", as the words before and after the
+   * date. The sentence is one message in the catalog; it arrives split at the
+   * date so compact layouts can hide the words and keep the `<time>`.
+   */
+  endsOn: Readonly<{ before: string; after: string }>;
+  /** "Notice window {start} to {end}". */
   noticeWindow: (start: string, end: string) => string;
   renewalState: (state: RenewalState) => string;
+  /** Joins the accessible description's sentences. */
+  sentences: (parts: readonly string[]) => string;
 }
-
-const defaultMessages: TermBarMessages = {
-  elapsed: (percent, days) => `${percent}% elapsed, ${days} days since start`,
-  remaining: (days) => `${days} days remaining`,
-  endDate: (date) => `Term ends ${date}`,
-  noticeWindow: (start, end) => `Notice window ${start} through ${end}`,
-  renewalState: (state) =>
-    ({
-      "auto-renews": "Automatic renewal",
-      evergreen: "Evergreen term",
-      "notice-open": "Notice window open",
-      "non-renewing": "Will not renew",
-      renewed: "Renewed",
-      expired: "Expired",
-    })[state],
-};
 
 export interface TermBarProps {
   label: string;
@@ -120,9 +122,10 @@ export interface TermBarProps {
   now: Date;
   renewalState?: RenewalState;
   variant?: TermBarVariant;
-  locale?: string;
-  timeZone?: string;
-  messages?: Partial<TermBarMessages>;
+  /** The reader's formatting locale. Required: a default is how US dates reached every language. */
+  locale: string;
+  timeZone: string;
+  messages: TermBarMessages;
   className?: string;
 }
 
@@ -149,9 +152,9 @@ export function TermBar({
   now,
   renewalState = "auto-renews",
   variant = "standard",
-  locale = "en-US",
-  timeZone = "UTC",
-  messages,
+  locale,
+  timeZone,
+  messages: copy,
   className = "",
 }: TermBarProps) {
   const resolvedNoticeStart = noticeStart ?? noticeDate;
@@ -162,7 +165,6 @@ export function TermBar({
     ...(resolvedNoticeStart ? { noticeStart: resolvedNoticeStart } : {}),
     ...(noticeEnd ? { noticeEnd } : {}),
   });
-  const copy = { ...defaultMessages, ...messages };
   const endText = formatDate(end, locale, timeZone);
   const noticeStartText = resolvedNoticeStart
     ? formatDate(resolvedNoticeStart, locale, timeZone)
@@ -172,18 +174,22 @@ export function TermBar({
     : undefined;
   const descriptionId = `term-${useId().replaceAll(":", "")}`;
   const renewalText = copy.renewalState(renewalState);
-  const accessibleText = [
-    label,
-    copy.elapsed(Math.round(progress.elapsedPercent), progress.daysElapsed),
-    copy.remaining(progress.daysRemaining),
-    copy.endDate(endText),
-    noticeStartText && noticeEndText
-      ? copy.noticeWindow(noticeStartText, noticeEndText)
-      : undefined,
-    renewalText,
-  ]
-    .filter(Boolean)
-    .join(". ");
+  const percentText = new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 0,
+  }).format(Math.round(progress.elapsedPercent) / 100);
+  const accessibleText = copy.sentences(
+    [
+      label,
+      copy.elapsed(percentText, progress.daysElapsed),
+      copy.remaining(progress.daysRemaining),
+      copy.endDate(endText),
+      noticeStartText && noticeEndText
+        ? copy.noticeWindow(noticeStartText, noticeEndText)
+        : undefined,
+      renewalText,
+    ].filter((part): part is string => Boolean(part)),
+  );
   const noticeWidth =
     progress.noticeStartPercent === undefined ||
     progress.noticeEndPercent === undefined
@@ -202,8 +208,13 @@ export function TermBar({
       <div className="cw-term__labels">
         <strong id={`${descriptionId}-label`}>{label}</strong>
         <span className="cw-term__date">
-          <span className="cw-term__date-prefix">Ends </span>
+          {copy.endsOn.before ? (
+            <span className="cw-term__date-prefix">{copy.endsOn.before}</span>
+          ) : null}
           <time dateTime={end.toISOString()}>{endText}</time>
+          {copy.endsOn.after ? (
+            <span className="cw-term__date-prefix">{copy.endsOn.after}</span>
+          ) : null}
         </span>
       </div>
       <div className="cw-term__track" aria-hidden="true">
@@ -226,7 +237,7 @@ export function TermBar({
         />
       </div>
       <div className="cw-term__meta" aria-hidden="true">
-        <span>{Math.round(progress.elapsedPercent)}%</span>
+        <span>{percentText}</span>
         <span
           className={`cw-term__renewal cw-term__renewal--${renewalTone(renewalState)}`}
         >
@@ -255,11 +266,13 @@ export interface AccountTermRollupProps {
   label: string;
   terms: readonly AccountTerm[];
   now: Date;
-  locale?: string;
-  timeZone?: string;
-  termCountLabel?: (count: number) => string;
-  nextEndLabel?: string;
-  noTermsLabel?: string;
+  locale: string;
+  timeZone: string;
+  /** Every word, in the reader's language; see `TermBarMessages`. */
+  messages: TermBarMessages;
+  termCountLabel: (count: number) => string;
+  nextEndLabel: string;
+  noTermsLabel: string;
   className?: string;
 }
 
@@ -268,12 +281,12 @@ export function AccountTermRollup({
   label,
   terms,
   now,
-  locale = "en-US",
-  timeZone = "UTC",
-  termCountLabel = (count) =>
-    `${count} active ${count === 1 ? "term" : "terms"}`,
-  nextEndLabel = "Next end date",
-  noTermsLabel = "No active terms",
+  locale,
+  timeZone,
+  messages,
+  termCountLabel,
+  nextEndLabel,
+  noTermsLabel,
   className = "",
 }: AccountTermRollupProps) {
   const sortedTerms = [...terms].sort(
@@ -309,6 +322,7 @@ export function AccountTermRollup({
               variant="compact"
               locale={locale}
               timeZone={timeZone}
+              messages={messages}
               {...(term.noticeStart ? { noticeStart: term.noticeStart } : {})}
               {...(term.noticeEnd ? { noticeEnd: term.noticeEnd } : {})}
               {...(term.renewalState

@@ -3,17 +3,17 @@ function httpsUrl(value: string): URL {
   try {
     url = new URL(value);
   } catch {
-    throw new Error("The provider returned an invalid navigation URL.");
+    throw new Error("The provider returned an invalid navigation URL."); // i18n-exempt: English diagnostic for logs; a surface words its own refusal for the reader (see platform.signing.untrustedUrl)
   }
   if (url.protocol !== "https:" || url.username || url.password)
-    throw new Error("The provider returned an untrusted navigation URL.");
+    throw new Error("The provider returned an untrusted navigation URL."); // i18n-exempt: English diagnostic for logs; a surface words its own refusal for the reader (see platform.signing.untrustedUrl)
   return url;
 }
 
 export function trustedStripePaymentUrl(value: string): string {
   const url = httpsUrl(value);
   if (url.hostname !== "stripe.com" && !url.hostname.endsWith(".stripe.com"))
-    throw new Error("Stripe returned an untrusted payment URL.");
+    throw new Error("Stripe returned an untrusted payment URL."); // i18n-exempt: English diagnostic for logs; a surface words its own refusal for the reader (see platform.signing.untrustedUrl)
   return url.toString();
 }
 
@@ -39,7 +39,7 @@ export function trustedSigningUrl(value: string): string {
   const url = httpsUrl(value);
   if (!configuredSigningOrigins().has(url.origin))
     throw new Error(
-      "The e-sign provider returned a URL outside the allow-list.",
+      "The e-sign provider returned a URL outside the allow-list.", // i18n-exempt: English diagnostic for logs; a surface words its own refusal for the reader (see platform.signing.untrustedUrl)
     );
   return url.toString();
 }

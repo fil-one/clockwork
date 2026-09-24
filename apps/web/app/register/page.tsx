@@ -1,8 +1,15 @@
-import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
+
 import { BrandLogo } from "@clockwork/ui";
 
 import { RegistrationForm } from "@/src/features/registration/registration-form";
 import { brandAsset } from "@/src/features/shell/brand-assets";
+import { getTranslations } from "@/src/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("platform.registration.title") };
+}
 
 function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -26,13 +33,9 @@ export default async function RegistrationPage({
           src={brandAsset()}
           name={t("app.name")}
         />
-        <p className="eyebrow">Organization registration</p>
-        <h1>Start with a verified business identity.</h1>
-        <p>
-          Register the legal entity, billing contacts, and business domain. The
-          server exchanges the one-time WorkOS code and rejects email/domain
-          mismatches before creating an account.
-        </p>
+        <p className="eyebrow">{t("platform.registration.eyebrow")}</p>
+        <h1>{t("platform.registration.title")}</h1>
+        <p>{t("platform.registration.intro")}</p>
         <RegistrationForm initialRegistrationToken={registrationToken} />
       </section>
     </main>

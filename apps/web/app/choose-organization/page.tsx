@@ -1,9 +1,15 @@
 import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import { Button, EmptyState } from "@clockwork/ui";
 
 import { chooseCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
 import { getOrganizationChoices } from "@/src/features/shell/route-session";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("app.account.choose.title") };
+}
 
 export default async function ChooseOrganizationPage() {
   const t = await getTranslations();
@@ -13,7 +19,7 @@ export default async function ChooseOrganizationPage() {
       <h1>{t("app.account.choose.title")}</h1>
       <p>{t("app.account.choose.description")}</p>
       {memberships.length ? (
-        <ul aria-label="Authorized organizations">
+        <ul aria-label={t("platform.chooseOrganization.list")}>
           {memberships.map((membership) => (
             <li key={membership.organizationId}>
               <form action={chooseCommerceAccount}>

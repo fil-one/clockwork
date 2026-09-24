@@ -24,6 +24,7 @@ import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
 import { PartnerQuoteIssue } from "./partner-quote-issue";
 import { demoPartnerQuoteRecord } from "./demo-partner-quote";
 import styles from "./partner.module.css";
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
 
 function MissingRecord({ backHref }: { backHref: Route }) {
   const t = use(getTranslations());
@@ -172,6 +173,7 @@ export async function PartnerPortfolioDetail({
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
+        label={breadcrumbsLabel(t)}
         items={[
           { label: t("partner.title"), href: "/partner" },
           { label: t("partner.portfolio.title"), href: "/partner/portfolio" },
@@ -245,6 +247,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
+        label={breadcrumbsLabel(t)}
         items={[
           { label: t("partner.title"), href: "/partner" },
           { label: t("partner.quotes.title"), href: "/partner/quotes" },

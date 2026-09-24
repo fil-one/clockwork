@@ -30,19 +30,23 @@ function stateTone(state: ApplicationState): StateTone {
   return "neutral";
 }
 
+/**
+ * A placeholder block. A skeleton that announces itself needs its label in the
+ * reader's language; a decorative one has none.
+ */
 export function Skeleton({
   width = "100%",
   height = "1rem",
-  label = "Loading",
+  label,
   decorative = false,
   className = "",
 }: {
   width?: CSSProperties["width"];
   height?: CSSProperties["height"];
-  label?: string;
-  decorative?: boolean;
   className?: string;
-}) {
+} & (
+  { decorative: true; label?: never } | { decorative?: false; label: string }
+)) {
   return (
     <div
       className={`cw-skeleton ${className}`.trim()}
