@@ -20,7 +20,14 @@ import type {
   DemoQuoteState,
   DemoQuoteCommercialArtifactRequest,
 } from "@/src/features/experience-server/demo-quote-flow";
-import { isStoredQuote } from "./demo-partner-quote-state";
+import { isStoredQuote, storedQuoteFacts } from "./demo-partner-quote-state";
+
+/*
+ * Problem `detail` strings below are English API text for logs and API
+ * clients; partner pages never show them and name the outcome from the
+ * problem `code` instead (partner-command-errors.ts). The document definition
+ * is PDF content, whose language is the account's (translation policy rule 5).
+ */
 
 const schema = z.object({
   id: z.uuid(),
@@ -66,7 +73,7 @@ export async function handlePartnerLifecycle(
           throw new Refusal(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "Retry key belongs to a different request.",
+            "Retry key belongs to a different request.", // i18n-exempt: API problem detail, not rendered
           );
         result = receipt.response;
         return state;
@@ -81,20 +88,20 @@ export async function handlePartnerLifecycle(
         throw new Refusal(
           403,
           "PARTNER_QUOTE_SCOPE_FORBIDDEN",
-          "This quote is outside your partner account.",
+          "This quote is outside your partner account.", // i18n-exempt: API problem detail, not rendered
         );
       const snapshot = stored.snapshot as unknown as QuoteSnapshot;
       if (stored.orderId)
         throw new Refusal(
           422,
           "QUOTE_ACCEPTED",
-          "This quote is already bound to a supply order.",
+          "This quote is already bound to a supply order.", // i18n-exempt: API problem detail, not rendered
         );
       if ((stored.record.recordVersion ?? 1) !== command.expectedVersion)
         throw new Refusal(
           409,
           "VERSION_CONFLICT",
-          "The quote changed. Reload its details.",
+          "The quote changed. Reload its details.", // i18n-exempt: API problem detail, not rendered
         );
       if (command.action === "share" || command.action === "cancel") {
         if (
@@ -105,7 +112,7 @@ export async function handlePartnerLifecycle(
           throw new Refusal(
             422,
             "INVALID_STATE",
-            "This action is unavailable for the quote's current state.",
+            "This action is unavailable for the quote's current state.", // i18n-exempt: API problem detail, not rendered
           );
         if (
           command.action === "share" &&
@@ -114,7 +121,7 @@ export async function handlePartnerLifecycle(
           throw new Refusal(
             422,
             "QUOTE_EXPIRED",
-            "Revise the expired quote before sharing.",
+            "Revise the expired quote before sharing.", // i18n-exempt: API problem detail, not rendered
           );
         const overrides = { ...state.projectionOverrides };
         let data: Record<string, unknown>;
@@ -141,9 +148,9 @@ export async function handlePartnerLifecycle(
               ...stored,
               snapshot: { ...snapshot, status: "rejected" },
               record: {
-                ...stored.record,
+                ...storedQuoteFacts(stored.record),
                 status: "canceled",
-                secondary: `Withdrawn: ${reason}`,
+                withdrawalReason: reason,
                 recordVersion: command.expectedVersion + 1,
                 allowedActions: ["revise", "download"],
               },
@@ -175,18 +182,18 @@ export async function handlePartnerLifecycle(
         };
       }
       if (snapshot.status !== "draft")
-        throw new Refusal(422, "INVALID_STATE", "Only a draft can be issued.");
+        throw new Refusal(422, "INVALID_STATE", "Only a draft can be issued."); // i18n-exempt: API problem detail, not rendered
       if (Date.parse(snapshot.expiresAt) <= Date.parse(now))
         throw new Refusal(
           422,
           "QUOTE_EXPIRED",
-          "The quote has expired. Create a new quote with current terms.",
+          "The quote has expired. Create a new quote with current terms.", // i18n-exempt: API problem detail, not rendered
         );
       if (["exception_required", "rejected"].includes(snapshot.marginResult))
         throw new Refusal(
           422,
           "PRICING_REVIEW_REQUIRED",
-          "Pricing approval is required before issuance.",
+          "Pricing approval is required before issuance.", // i18n-exempt: API problem detail, not rendered
         );
       let requests = { ...state.commercialArtifactRequests };
       let updated = stored;
@@ -201,7 +208,7 @@ export async function handlePartnerLifecycle(
           throw new Refusal(
             422,
             "INVALID_RETENTION",
-            "Document retention must follow issuance.",
+            "Document retention must follow issuance.", // i18n-exempt: API problem detail, not rendered
           );
         const transfer = audience === "partner";
         const kind = transfer
@@ -212,7 +219,7 @@ export async function handlePartnerLifecycle(
           throw new Refusal(
             422,
             "RESALE_PRICE_REQUIRED",
-            "This quote has no resale price.",
+            "This quote has no resale price.", // i18n-exempt: API problem detail, not rendered
           );
         const definition = CommercialArtifactDefinitionSchema.parse({
           kind,
@@ -234,7 +241,7 @@ export async function handlePartnerLifecycle(
             ? snapshot.lines.map((line) => ({
                 id: line.id,
                 description: line.sku,
-                detail: `${line.region} · ${line.termMonths} months`,
+                detail: `${line.region} · ${line.termMonths} months`, // i18n-exempt: PDF content (rule 5)
                 quantity: line.quantity,
                 unitLabel: line.unit,
                 unitPrice: money(line.unitPrice),
@@ -243,11 +250,11 @@ export async function handlePartnerLifecycle(
             : [
                 {
                   id: snapshot.id,
-                  description: "Contracted storage capacity",
+                  description: "Contracted storage capacity", // i18n-exempt: PDF content (rule 5)
                   detail: snapshot.lines
                     .map(
                       (line) =>
-                        `${line.quantity} ${line.unit} · ${line.sku} · ${line.region} · ${line.termMonths} months`,
+                        `${line.quantity} ${line.unit} · ${line.sku} · ${line.region} · ${line.termMonths} months`, // i18n-exempt: PDF content (rule 5)
                     )
                     .join("; "),
                   quantity: "1",
@@ -257,16 +264,16 @@ export async function handlePartnerLifecycle(
                 },
               ],
           totals: { subtotal: money(total), total: money(total) },
-          paymentTerms: "Net 30 days",
+          paymentTerms: "Net 30 days", // i18n-exempt: PDF content (rule 5)
           commercialTerms: transfer
             ? [
-                "Confidential transfer pricing. Do not share this document with the end client.",
-                "The partner is merchant of record to the end client.",
+                "Confidential transfer pricing. Do not share this document with the end client.", // i18n-exempt: PDF content (rule 5)
+                "The partner is merchant of record to the end client.", // i18n-exempt: PDF content (rule 5)
               ]
             : [
-                "The issuing partner is merchant of record. Contact the partner for purchase and billing arrangements.",
+                "The issuing partner is merchant of record. Contact the partner for purchase and billing arrangements.", // i18n-exempt: PDF content (rule 5)
               ],
-          notes: ["Demonstration quotation. Not a real commercial offer."],
+          notes: ["Demonstration quotation. Not a real commercial offer."], // i18n-exempt: PDF content (rule 5)
         });
         const sourceHash = commercialArtifactSourceHash(definition);
         const id = demoUuid(
@@ -335,16 +342,11 @@ export async function handlePartnerLifecycle(
             throw new Refusal(
               422,
               "DOCUMENT_NOT_READY",
-              "Both documents must be rendered for this exact quote before issuance.",
+              "Both documents must be rendered for this exact quote before issuance.", // i18n-exempt: API problem detail, not rendered
             );
-          return {
-            id: request.id,
-            kind,
-            label:
-              kind === "partner_transfer_quote"
-                ? "Confidential transfer quote"
-                : "End-client quotation",
-          };
+          // The page names each document from its kind, in the reader's
+          // language; no label is stored.
+          return { id: request.id, kind };
         });
         const issued = issueQuote(snapshot, {
           issuedAt,
@@ -355,10 +357,9 @@ export async function handlePartnerLifecycle(
           ...stored,
           snapshot: issued as unknown as Record<string, unknown>,
           record: {
-            ...stored.record,
+            ...storedQuoteFacts(stored.record),
             status: "open",
             recordVersion: command.expectedVersion + 1,
-            secondary: `Issued · expires ${snapshot.expiresAt.slice(0, 10)}`,
             allowedActions: ["download", "revise", "cancel"],
             documents,
           },
@@ -412,7 +413,7 @@ export async function handlePartnerLifecycle(
         detail:
           error instanceof Refusal
             ? error.message
-            : "The partner documents could not be prepared. Reload and retry.",
+            : "The partner documents could not be prepared. Reload and retry.", // i18n-exempt: API problem detail, not rendered
       },
       { status },
     );

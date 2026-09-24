@@ -38,14 +38,14 @@ describe("partner collection truth copy", () => {
       screen.getByText("Partner desk · Collected-revenue earnings"),
     ).toBeVisible();
     expect(
-      screen.getByText(t("partner.commissions.description")),
+      screen.getByText(t("partner.surface.commissions.rule")),
     ).toBeVisible();
     const table = screen.getByRole("table");
     expect(
       within(table).getByRole("columnheader", { name: "Amount accrued" }),
     ).toHaveClass("cw-table__numeric");
     expect(
-      within(table).getByText("$18,420 accrued").closest("td"),
+      within(table).getByText("$18,420.00 accrued").closest("td"),
     ).toHaveClass("cw-table__numeric");
   });
 

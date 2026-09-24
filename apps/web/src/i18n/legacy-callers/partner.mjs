@@ -11,8 +11,5 @@ export default {
   /** Still import `localizeCopy` / `translateInterfaceText`. */
   localizeCopy: [],
   /** Still format with a literal locale or the runtime's default locale. */
-  literalLocales: [
-    "apps/web/src/features/customer-partner/partner/demo-partner-quote.ts",
-    "apps/web/src/features/customer-partner/partner/resale-quote-model.ts",
-  ],
+  literalLocales: [],
 };

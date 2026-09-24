@@ -1,7 +1,9 @@
 "use client";
 import { localQuoteExpiry } from "./resale-quote-model";
 
+import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -20,6 +22,7 @@ import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import {
   emptyResaleQuoteDraft,
   merchantOfRecordName,
+  parseDecimalAmount,
   partnerRouteConsequence,
   partnerPricedRoute,
   quotableOffers,
@@ -32,6 +35,8 @@ import {
   type QuoteValidation,
   type ResaleQuoteDraft,
 } from "./resale-quote-model";
+import { partnerCommandFailure } from "./partner-command-errors";
+import { formatTerabytes } from "./partner-presentation";
 import { attributionStatement } from "./partner-rules";
 import styles from "./partner.module.css";
 import {
@@ -46,36 +51,32 @@ export type MissingQuoteInput =
 const nothingToQuote: Readonly<
   Record<
     MissingQuoteInput,
-    { title: string; description: string; href: Route; action: string }
+    { title: MessageId; description: MessageId; href: Route; action: MessageId }
   >
 > = {
   agreement: {
-    title: "No complete partner agreement is on file for this account",
-    description:
-      "A partner quote is written under a persisted channel agreement, and both the commercial route and the transfer tier come from that agreement rather than from this form. Your account returned no agreement type or no transfer tier, so there is nothing to quote under.",
+    title: "partner.quote.nothing.agreement.title",
+    description: "partner.quote.nothing.agreement.description",
     href: "/partner",
-    action: "Back to the partner desk",
+    action: "partner.quote.nothing.backToDesk",
   },
   referralRoute: {
-    title: "Fil One writes the quote on a referral agreement",
-    description:
-      "Your agreement is a referral: Fil One is merchant of record, prices the end client itself, and pays commission against your agreement. `core_partner_can_append_commercial_audit` admits a partner-written quote only where the partner is merchant of record, so a referral quote is not yours to create. Register the deal and the Fil One desk quotes it.",
+    title: "partner.quote.nothing.referral.title",
+    description: "partner.quote.nothing.referral.description",
     href: "/partner/registrations",
-    action: "Open deal registrations",
+    action: "partner.quote.nothing.openRegistrations",
   },
   offers: {
-    title: "No offer is available to quote",
-    description:
-      "A partner quote is priced from a rate card on an activated price book in your billing currency. None was returned for your partner account, so there is nothing to price this quote against yet.",
+    title: "partner.quote.nothing.offers.title",
+    description: "partner.quote.nothing.offers.description",
     href: "/partner/quotes",
-    action: "Back to quotes",
+    action: "partner.quote.new.back",
   },
   endClients: {
-    title: "No end client is available to quote",
-    description:
-      "A partner quote names an end client you hold an approved, currently protected deal registration for. Yours returned none, so register the opportunity before quoting it.",
+    title: "partner.quote.nothing.endClients.title",
+    description: "partner.quote.nothing.endClients.description",
     href: "/partner/registrations",
-    action: "Open deal registrations",
+    action: "partner.quote.nothing.openRegistrations",
   },
 };
 
@@ -86,20 +87,21 @@ const nothingToQuote: Readonly<
  * leave the seller guessing at.
  */
 export function NothingToQuote({ missing }: { missing: MissingQuoteInput }) {
+  const t = useTranslations();
   const copy = nothingToQuote[missing];
   return (
     <main className={styles.main} id="main-content">
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
-          title={copy.title}
-          description={copy.description}
+          title={t(copy.title)}
+          description={t(copy.description)}
           action={
             <Link
               className={buttonClassName({ variant: "secondary" })}
               href={copy.href}
             >
-              {copy.action}
+              {t(copy.action)}
             </Link>
           }
         />
@@ -107,6 +109,18 @@ export function NothingToQuote({ missing }: { missing: MissingQuoteInput }) {
     </main>
   );
 }
+
+const eyebrows = {
+  referral: "partner.quote.new.eyebrow.referral",
+  resale: "partner.quote.new.eyebrow.resale",
+  distributor: "partner.quote.new.eyebrow.distributor",
+} as const satisfies Record<PartnerQuoteContext["route"], MessageId>;
+
+const stageHelp = {
+  1: "partner.quote.new.help.offer",
+  2: "partner.quote.new.help.terms",
+  3: "partner.quote.new.help.review",
+} as const satisfies Record<1 | 2 | 3, MessageId>;
 
 export function ResaleQuoteBuilder({
   context,
@@ -154,8 +168,8 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [failure, setFailure] = useState("");
+  const [notice, setNotice] = useState<MessageId | null>(null);
+  const [failure, setFailure] = useState<MessageId | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const submissionRef = useRef<{
     idempotencyKey: string;
@@ -193,8 +207,8 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
     setErrors((current) => ({ ...current, [key]: undefined }));
     submissionRef.current = null;
     setSucceeded(false);
-    setNotice("");
-    setFailure("");
+    setNotice(null);
+    setFailure(null);
   }
 
   function focusFirstInvalid(nextErrors: QuoteValidation) {
@@ -250,8 +264,8 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
     if (Object.keys(nextErrors).length) return focusFirstInvalid(nextErrors);
     if (!confirmed) return;
     setPending(true);
-    setNotice("");
-    setFailure("");
+    setNotice(null);
+    setFailure(null);
     try {
       if (!submissionRef.current) {
         const payload = resaleQuotePayload(draft, context);
@@ -260,8 +274,8 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             const offer = context.offers.find(
               (item) => item.id === line.offerId,
             );
-            if (!offer)
-              throw new Error("Select an available offer for every line.");
+            // checkLines() above already refused a line without an offer.
+            if (!offer) throw new Error("Line offer is unresolved."); // i18n-exempt: internal invariant, not rendered
             return {
               lineId: uuidV7(),
               sku: offer.sku,
@@ -305,11 +319,9 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
         { idempotencyKey: submission.idempotencyKey },
       );
       setSucceeded(true);
-      setNotice(t("partner.quote.new.success"));
+      setNotice("partner.quote.new.success");
     } catch (error) {
-      setFailure(
-        error instanceof Error ? error.message : t("partner.quote.new.failure"),
-      );
+      setFailure(partnerCommandFailure(error, "partner.quote.new.failure"));
     } finally {
       setPending(false);
     }
@@ -318,43 +330,61 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const offer = resolveOption(draft.offerName, context.offers);
   const endClient = resolveOption(draft.endClientName, context.endClients);
   const selectableOffers = quotableOffers(context, draft.endClientName);
-  const summary = quoteReviewSummary(draft, context);
+  const summary = quoteReviewSummary(draft, context, t, formattingLocale);
+  const routeLabel = t(quoteRouteLabel(context.route));
+  const resaleCurrency = offer?.currency ?? endClient?.quoteCurrency;
+  const resaleAmount = parseDecimalAmount(draft.resalePrice);
+  const firstLineTerm = Number(draft.termMonths);
+  const months = (value: string) => {
+    const count = Number(value);
+    return value && Number.isInteger(count) && count > 0
+      ? t("partner.term.months", { count })
+      : "—";
+  };
+  const field = (label: MessageId, value: React.ReactNode) =>
+    richText(t, "partner.labelled", {
+      label: <strong>{t(label)}</strong>,
+      value,
+    });
   // A disabled primary action always says what would enable it.
-  const submitReason =
+  const submitReason: MessageId | null =
     stage < 3
-      ? ""
+      ? null
       : succeeded
-        ? t("partner.quote.new.disabled.created")
+        ? "partner.quote.new.disabled.created"
         : confirmed
-          ? ""
-          : t("partner.quote.new.disabled.unconfirmed");
+          ? null
+          : "partner.quote.new.disabled.unconfirmed";
 
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>
-            {quoteRouteLabel(context.route)} quote
-          </p>
+          <p className={styles.eyebrow}>{t(eyebrows[context.route])}</p>
           <h1>
-            {context.revision
-              ? context.revision.action === "edit"
-                ? "Edit partner draft"
-                : "Revise partner quote"
-              : "Create a partner quote"}
+            {t(
+              context.revision
+                ? context.revision.action === "edit"
+                  ? "partner.quote.new.title.edit"
+                  : "partner.quote.new.title.revise"
+                : "partner.quote.new.title.create",
+            )}
           </h1>
-          <p>{t("quotes.form.partnerDescription")}</p>
+          <p>{t("partner.quote.new.description")}</p>
         </div>
         <LeaveDraftControl
           armed={unsaved}
           className={`${styles.buttonLink} ${styles.buttonSecondary}`}
           discardClassName={`${styles.buttonLink} ${styles.buttonSecondary}`}
           href="/partner/quotes"
-          label="Back to quotes"
+          label={t("partner.quote.new.back")}
         />
       </header>
 
-      <ol className={styles.stages} aria-label="Quote creation stages">
+      <ol
+        className={styles.stages}
+        aria-label={t("partner.quote.new.stagesLabel")}
+      >
         {stages.map((label, index) => (
           <li
             className={styles.stage}
@@ -362,7 +392,9 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             aria-current={stage === index + 1 ? "step" : undefined}
             key={label}
           >
-            <span>Stage {index + 1}</span>
+            <span>
+              {t("partner.quote.new.stageNumber", { number: index + 1 })}
+            </span>
             <br />
             {label}
           </li>
@@ -374,16 +406,13 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
         className={styles.routeConsequence}
       >
         <div>
-          <p className={styles.classifier}>Agreement-bound route</p>
-          <h2 id="partner-route-consequence">
-            {quoteRouteLabel(context.route)}
-          </h2>
+          <p className={styles.classifier}>
+            {t("partner.quote.new.routeEyebrow")}
+          </p>
+          <h2 id="partner-route-consequence">{routeLabel}</h2>
         </div>
-        <p>{partnerRouteConsequence(context.route)}</p>
-        <p>
-          The commercial route is fixed when this quote is issued; changing it
-          later means issuing a revised quote.
-        </p>
+        <p>{t(partnerRouteConsequence(context.route))}</p>
+        <p>{t("partner.quote.new.routeFixed")}</p>
       </section>
 
       <div className={styles.workflowGrid}>
@@ -396,17 +425,11 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           noValidate
         >
           <h2>{stages[stage - 1]}</h2>
-          <p className={styles.muted}>
-            {stage === 1
-              ? "Choose the approved offer. Its price book, service region and currency come with it."
-              : stage === 2
-                ? "Set the partner-controlled commercial shape and end client."
-                : "Review both pricing boundaries before creating the server-priced draft."}
-          </p>
+          <p className={styles.muted}>{t(stageHelp[stage])}</p>
           <div className={styles.formGrid}>
             {stage === 1 ? (
               <label className={`${styles.field} ${styles.full}`}>
-                Offer and price book
+                {t("partner.quote.new.field.offer")}
                 <input
                   name="offerName"
                   list="partner-offers"
@@ -425,7 +448,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 </datalist>
                 {errors.offerName ? (
                   <span className={styles.error} id="offer-error" role="alert">
-                    {errors.offerName}
+                    {t(errors.offerName.id, errors.offerName.values)}
                   </span>
                 ) : null}
               </label>
@@ -433,7 +456,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             {stage === 2 ? (
               <>
                 <label className={styles.field}>
-                  Committed capacity (TB)
+                  {t("partner.quote.new.field.capacity")}
                   <input
                     name="capacity"
                     type="number"
@@ -445,12 +468,12 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   />
                   {errors.capacity ? (
                     <span className={styles.error} role="alert">
-                      {errors.capacity}
+                      {t(errors.capacity.id, errors.capacity.values)}
                     </span>
                   ) : null}
                 </label>
                 <label className={styles.field}>
-                  Term (months)
+                  {t("partner.quote.new.field.term")}
                   <input
                     name="termMonths"
                     type="number"
@@ -464,12 +487,12 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   />
                   {errors.termMonths ? (
                     <span className={styles.error} role="alert">
-                      {errors.termMonths}
+                      {t(errors.termMonths.id, errors.termMonths.values)}
                     </span>
                   ) : null}
                 </label>
                 <label className={styles.field}>
-                  End client
+                  {t("partner.quote.new.field.endClient")}
                   <input
                     name="endClientName"
                     list="partner-clients"
@@ -487,12 +510,12 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   </datalist>
                   {errors.endClientName ? (
                     <span className={styles.error} role="alert">
-                      {errors.endClientName}
+                      {t(errors.endClientName.id, errors.endClientName.values)}
                     </span>
                   ) : null}
                 </label>
                 <label className={styles.field}>
-                  Quote expiry
+                  {t("partner.quote.new.field.expiry")}
                   <input
                     name="expiresAt"
                     type="datetime-local"
@@ -504,15 +527,17 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   />
                   {errors.expiresAt ? (
                     <span className={styles.error} role="alert">
-                      {errors.expiresAt}
+                      {t(errors.expiresAt.id, errors.expiresAt.values)}
                     </span>
                   ) : null}
                 </label>
                 {partnerPriced ? (
                   <label className={styles.field}>
-                    {t("cp.partner.partnerPrice")} (
-                    {offer?.currency ?? endClient?.quoteCurrency ?? "major"}{" "}
-                    major units)
+                    {resaleCurrency
+                      ? t("partner.quote.new.field.resalePrice", {
+                          currency: resaleCurrency,
+                        })
+                      : t("cp.partner.partnerPrice")}
                     <input
                       name="resalePrice"
                       inputMode="decimal"
@@ -524,15 +549,13 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     />
                     {errors.resalePrice ? (
                       <span className={styles.error} role="alert">
-                        {errors.resalePrice}
+                        {t(errors.resalePrice.id, errors.resalePrice.values)}
                       </span>
                     ) : null}
                   </label>
                 ) : (
                   <p className={`${styles.muted} ${styles.full}`}>
-                    Fil One is merchant of record on a referral, prices the end
-                    client itself, and pays commission against your agreement.
-                    There is no partner-set price on this route.
+                    {t("partner.quote.new.referralNote")}
                   </p>
                 )}
                 {errors.offerName ? (
@@ -540,7 +563,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     className={`${styles.error} ${styles.full}`}
                     role="alert"
                   >
-                    {errors.offerName}
+                    {t(errors.offerName.id, errors.offerName.values)}
                   </span>
                 ) : null}
               </>
@@ -559,12 +582,17 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 <ul className={styles.summaryList}>
                   {lines.map((line, index) => (
                     <li key={`line-${index}`}>
-                      Line {index + 2}:{" "}
-                      {
-                        context.offers.find((item) => item.id === line.offerId)
-                          ?.name
-                      }{" "}
-                      · {line.capacity} TB · {line.termMonths} months
+                      {t("partner.quote.new.extraLine", {
+                        number: index + 2,
+                        offer:
+                          context.offers.find(
+                            (item) => item.id === line.offerId,
+                          )?.name ?? t("partner.quote.summary.chooseOffer"),
+                        capacity: line.capacity
+                          ? formatTerabytes(line.capacity, formattingLocale)
+                          : "—",
+                        term: months(line.termMonths),
+                      })}
                     </li>
                   ))}
                   {summary.map((item) => (
@@ -578,10 +606,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     checked={confirmed}
                     onChange={(event) => setConfirmed(event.target.checked)}
                   />
-                  <span>
-                    I reviewed the named end client, service commitment, partner
-                    resale price, expiry, and merchant-of-record boundary.
-                  </span>
+                  <span>{t("partner.quote.new.confirmation")}</span>
                 </label>
               </div>
             ) : null}
@@ -592,11 +617,11 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 variant="secondary"
                 onClick={() => setStage((current) => (current === 3 ? 2 : 1))}
               >
-                Back
+                {t("common.back")}
               </Button>
             ) : null}
             {stage < 3 ? (
-              <Button onClick={advance}>{t("demo.access.submit")}</Button>
+              <Button onClick={advance}>{t("common.continue")}</Button>
             ) : (
               <Button
                 type="submit"
@@ -604,30 +629,34 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 loading={pending}
                 aria-describedby={submitReason ? "submit-reason" : undefined}
               >
-                Create priced draft
+                {t("partner.quote.new.submit")}
               </Button>
             )}
           </div>
           {submitReason ? (
             <p className={styles.muted} id="submit-reason">
-              {submitReason}
+              {t(submitReason)}
             </p>
           ) : null}
           {failure ? (
             <p className={styles.failure} role="alert">
-              {failure}
+              {t(failure)}
             </p>
           ) : null}
           {notice ? (
             <p className={styles.success} role="status">
-              {notice}{" "}
-              {submissionRef.current ? (
-                <Link
-                  href={`/partner/quotes/quote-${submissionRef.current.quoteId}`}
-                >
-                  {t("quotes.builder.createdLink")}
-                </Link>
-              ) : null}
+              {submissionRef.current
+                ? richText(t, "common.join.sentences", {
+                    first: t(notice),
+                    second: (
+                      <Link
+                        href={`/partner/quotes/quote-${submissionRef.current.quoteId}`}
+                      >
+                        {t("quotes.builder.createdLink")}
+                      </Link>
+                    ),
+                  })
+                : t(notice)}
             </p>
           ) : null}
         </form>
@@ -639,54 +668,105 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           <h2 id="quote-summary-title">{t("cp.commercial.quoteSummary")}</h2>
           <ul className={styles.summaryList}>
             <li>
-              <strong>Offer:</strong> {draft.offerName || "Not selected"}
+              {field(
+                "partner.quote.summary.offer",
+                draft.offerName || t("partner.quote.summary.notSelected"),
+              )}
             </li>
             <li>
-              <strong>Region:</strong> {offer?.region ?? "Set by the offer"}
+              {field(
+                "common.region",
+                offer?.region ?? t("partner.quote.summary.setByOffer"),
+              )}
             </li>
             <li>
-              <strong>Commercial route:</strong>{" "}
-              {quoteRouteLabel(context.route)} · from your persisted partner
-              agreement
+              {field(
+                "partner.quote.summary.route",
+                t("partner.quote.summary.routeValue", { route: routeLabel }),
+              )}
             </li>
             <li>
-              <strong>End client:</strong>{" "}
-              {draft.endClientName || "Not selected"}
+              {field(
+                "partner.quote.summary.endClient",
+                draft.endClientName || t("partner.quote.summary.notSelected"),
+              )}
             </li>
             <li>
-              <strong>First line:</strong>{" "}
-              {draft.capacity ? `${draft.capacity} TB` : "Not recorded"} ·{" "}
-              {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
+              {field(
+                "partner.quote.summary.firstLine",
+                draft.capacity ||
+                  (Number.isInteger(firstLineTerm) && firstLineTerm > 0)
+                  ? t("partner.quote.summary.lineValue", {
+                      capacity: draft.capacity
+                        ? formatTerabytes(draft.capacity, formattingLocale)
+                        : "—",
+                      term: months(draft.termMonths),
+                    })
+                  : t("common.notRecorded"),
+              )}
             </li>
             <li>
-              <strong>{t("cp.partner.partnerPrice")}:</strong>{" "}
-              {!partnerPriced
-                ? "Not set on a referral"
-                : draft.resalePrice
-                  ? `${offer?.currency ?? ""} ${Number(draft.resalePrice).toLocaleString(formattingLocale)}`.trim()
-                  : "Not set"}
+              {field(
+                "cp.partner.partnerPrice",
+                !partnerPriced
+                  ? t("partner.quote.summary.notSetReferral")
+                  : resaleAmount !== undefined && draft.resalePrice
+                    ? resaleCurrency
+                      ? new Intl.NumberFormat(formattingLocale, {
+                          style: "currency",
+                          currency: resaleCurrency,
+                        }).format(resaleAmount)
+                      : new Intl.NumberFormat(formattingLocale).format(
+                          resaleAmount,
+                        )
+                    : t("partner.quote.summary.notSet"),
+              )}
             </li>
             <li>
-              <strong>{t("cp.partner.transferPrice")}:</strong> Server-priced
-              after draft creation
+              {field(
+                "cp.partner.transferPrice",
+                t("partner.quote.summary.transferPending"),
+              )}
             </li>
             <li>
-              <strong>{t("cp.partner.merchantOfRecord")}:</strong>{" "}
-              {merchantOfRecordName(context)}
+              {field(
+                "cp.partner.merchantOfRecord",
+                merchantOfRecordName(context),
+              )}
             </li>
             <li>
-              <strong>Route attribution:</strong>{" "}
-              {attributionStatement(context.route, context.partnerAccountName)}
+              {field(
+                "partner.quote.summary.attribution",
+                attributionStatement(
+                  context.route,
+                  context.partnerAccountName,
+                  t,
+                ),
+              )}
             </li>
           </ul>
           {lines.length ? (
             <ul>
               {lines.map((line, index) => (
                 <li key={index}>
-                  <strong>Line {index + 2}:</strong>{" "}
-                  {context.offers.find((offer) => offer.id === line.offerId)
-                    ?.sku ?? "Choose an offer"}{" "}
-                  · {line.capacity || "—"} TB · {line.termMonths || "—"} months
+                  {richText(t, "partner.labelled", {
+                    label: (
+                      <strong>
+                        {t("partner.quote.summary.lineNumber", {
+                          number: index + 2,
+                        })}
+                      </strong>
+                    ),
+                    value: t("partner.quote.summary.extraLineValue", {
+                      sku:
+                        context.offers.find((item) => item.id === line.offerId)
+                          ?.sku ?? t("partner.quote.summary.chooseOffer"),
+                      capacity: line.capacity
+                        ? formatTerabytes(line.capacity, formattingLocale)
+                        : "—",
+                      term: months(line.termMonths),
+                    }),
+                  })}
                 </li>
               ))}
             </ul>
@@ -694,19 +774,36 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           <details className={styles.technical}>
             <summary>{t("common.technicalDetails")}</summary>
             <p>
-              Price book ID: <code>{offer?.priceBookId ?? "Unresolved"}</code>
+              {field(
+                "partner.technical.priceBookId",
+                <code>
+                  {offer?.priceBookId ?? t("partner.technical.unresolved")}
+                </code>,
+              )}
             </p>
             <p>
-              Rate card:{" "}
-              <code>
-                {offer ? `${offer.sku}/${offer.region}` : "Unresolved"}
-              </code>
+              {field(
+                "partner.technical.rateCard",
+                <code>
+                  {offer
+                    ? `${offer.sku}/${offer.region}`
+                    : t("partner.technical.unresolved")}
+                </code>,
+              )}
             </p>
             <p>
-              End-client ID: <code>{endClient?.id ?? "Unresolved"}</code>
+              {field(
+                "partner.technical.endClientId",
+                <code>
+                  {endClient?.id ?? t("partner.technical.unresolved")}
+                </code>,
+              )}
             </p>
             <p>
-              Partner ID: <code>{context.partnerAccountId}</code>
+              {field(
+                "partner.technical.partnerId",
+                <code>{context.partnerAccountId}</code>,
+              )}
             </p>
           </details>
         </aside>

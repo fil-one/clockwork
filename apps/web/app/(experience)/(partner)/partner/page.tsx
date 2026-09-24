@@ -4,6 +4,9 @@ import {
   getRouteIdentity,
   getRouteSession,
 } from "@/src/features/shell/route-session";
+import { partnerPageMetadata } from "@/src/features/customer-partner/partner/partner-route";
+
+export const generateMetadata = () => partnerPageMetadata("partner.title");
 
 export default async function Page() {
   const [session, identity] = await Promise.all([

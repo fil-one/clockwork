@@ -10,6 +10,23 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import { isStoredQuote } from "./demo-partner-quote";
 import type { QuoteSnapshot } from "@clockwork/domain/core";
 
+/**
+ * A refused client response. `code` names the outcome so the review page can
+ * word it in the reader's language; the message is English API text.
+ */
+export class ClientReviewRefusal extends Error {
+  public constructor(
+    public readonly code:
+      | "CHANGES_NOTE_REQUIRED"
+      | "REVIEW_LINK_EXPIRED"
+      | "RESPONSE_ALREADY_RECORDED"
+      | "QUOTE_UNAVAILABLE",
+    detail: string,
+  ) {
+    super(detail);
+  }
+}
+
 export const clientReviewKey = (token: string) =>
   `demo-client-review:${createHash("sha256").update(token).digest("hex")}`;
 const responseSchema = z
@@ -67,26 +84,35 @@ export async function recordClientReview(
 ) {
   const input = responseSchema.parse(body);
   if (input.decision === "request_changes" && input.note.length < 8)
-    throw new Error("Describe the changes you need.");
+    throw new ClientReviewRefusal(
+      "CHANGES_NOTE_REQUIRED",
+      "Describe the changes you need.", // i18n-exempt: API problem detail; the review page maps the code
+    );
   let result:
     { decision: string; name: string; note: string; at: string } | undefined;
   await store.update((state) => {
     const view = clientReview(state, token, now);
     if (!view)
-      throw new Error(
-        "This review link has expired or the quote was replaced. Ask your partner for the current quote.",
+      throw new ClientReviewRefusal(
+        "REVIEW_LINK_EXPIRED",
+        "This review link has expired or the quote was replaced. Ask your partner for the current quote.", // i18n-exempt: API problem detail; the review page maps the code
       );
     const key = clientReviewKey(token);
     const share = state.projectionOverrides[key];
-    if (!share) throw new Error("Review link unavailable");
+    if (!share)
+      throw new ClientReviewRefusal(
+        "REVIEW_LINK_EXPIRED",
+        "Review link unavailable", // i18n-exempt: API problem detail; the review page maps the code
+      );
     if (view.response) {
       if (
         view.response.decision !== input.decision ||
         view.response.name !== input.name ||
         view.response.note !== input.note
       )
-        throw new Error(
-          "A response is already recorded. Contact your partner to change it.",
+        throw new ClientReviewRefusal(
+          "RESPONSE_ALREADY_RECORDED",
+          "A response is already recorded. Contact your partner to change it.", // i18n-exempt: API problem detail; the review page maps the code
         );
       result = view.response;
       return state;
@@ -94,9 +120,12 @@ export async function recordClientReview(
     result = { ...input, at: now.toISOString() };
     const quoteKey = `demo-partner-quote:${view.quoteId}`;
     const previous = state.projectionOverrides[quoteKey];
-    if (!previous) throw new Error("Quote unavailable");
-    const stored = previous.data;
-    if (!isStoredQuote(stored)) throw new Error("Quote unavailable");
+    const stored = previous?.data;
+    if (!previous || !isStoredQuote(stored))
+      throw new ClientReviewRefusal(
+        "QUOTE_UNAVAILABLE",
+        "Quote unavailable", // i18n-exempt: API problem detail; the review page maps the code
+      );
     return {
       ...state,
       revision: state.revision + 1,
@@ -106,19 +135,9 @@ export async function recordClientReview(
         [quoteKey]: {
           ...previous,
           updatedAt: now.toISOString(),
-          data: {
-            ...stored,
-            clientResponse: result,
-            record: {
-              ...stored.record,
-              secondary:
-                input.decision === "request_order"
-                  ? "Client requested an order · review purchase request"
-                  : input.decision === "request_changes"
-                    ? "Client requested changes · prepare a revision"
-                    : "Client declined the quotation",
-            },
-          },
+          // The response is the fact; the partner's ledger derives its line
+          // from it in the partner's own language.
+          data: { ...stored, clientResponse: result },
         },
       },
     };

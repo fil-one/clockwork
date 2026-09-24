@@ -12,12 +12,17 @@ import {
 } from "@/src/features/customer-partner/partner/deal-registration";
 import type { RegistrableEndClient } from "@/src/features/customer-partner/partner/deal-registration-model";
 import { demoRegistrableEndClients } from "@/src/features/customer-partner/partner/demo-deal-registration";
-import { PartnerCollectionRoute } from "@/src/features/customer-partner/partner/partner-route";
+import {
+  PartnerCollectionRoute,
+  partnerSurfaceMetadata,
+} from "@/src/features/customer-partner/partner/partner-route";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
   getRouteSession,
 } from "@/src/features/shell/route-session";
+
+export const generateMetadata = () => partnerSurfaceMetadata("registrations");
 
 // The session and the partner's own account scope are request-scoped reads.
 export const dynamic = "force-dynamic";

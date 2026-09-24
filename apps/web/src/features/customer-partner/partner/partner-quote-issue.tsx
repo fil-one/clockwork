@@ -4,17 +4,28 @@ import { useRouter } from "next/navigation";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { commercialArtifactRetainUntil } from "../commercial/artifact-retention";
 import { preparedArtifactRequestId } from "../commercial/quote-issuance-client";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
+import { partnerCommandFailure } from "./partner-command-errors";
 import type { PartnerRecord } from "./partner-data";
 import styles from "./partner.module.css";
+
+/** A failure this component detected itself, named by the message to show. */
+class IssueProblem extends Error {
+  public constructor(public readonly messageId: MessageId) {
+    super(messageId);
+  }
+}
 
 export function PartnerQuoteIssue({
   command,
 }: {
   command: NonNullable<PartnerRecord["quoteCommand"]>;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<MessageId | null>(null);
   const busy = useRef(false);
   const attempt = useRef<{
     issuedAt: string;
@@ -24,7 +35,7 @@ export function PartnerQuoteIssue({
     if (busy.current) return;
     busy.current = true;
     setPending(true);
-    setMessage("");
+    setMessage(null);
     attempt.current ??= {
       issuedAt: new Date().toISOString(),
       keys: [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()],
@@ -37,8 +48,8 @@ export function PartnerQuoteIssue({
       ).entries()) {
         setMessage(
           index === 0
-            ? "Preparing the confidential transfer quote…"
-            : "Preparing the end-client quotation…",
+            ? "partner.quote.issue.preparingTransfer"
+            : "partner.quote.issue.preparingResale",
         );
         const prepared = await sendCoreCommand(
           {
@@ -57,9 +68,7 @@ export function PartnerQuoteIssue({
         );
         const requestId = preparedArtifactRequestId(prepared);
         if (!requestId)
-          throw new Error(
-            "Document preparation did not return a reference. Retry to continue.",
-          );
+          throw new IssueProblem("partner.quote.issue.noReference");
         const kind =
           audience === "partner"
             ? "partner_transfer_quote"
@@ -83,18 +92,16 @@ export function PartnerQuoteIssue({
               artifact.subjectId !== command.quoteId ||
               !artifact.documentId
             )
-              throw new Error("The document does not match this quote.");
+              throw new IssueProblem("partner.quote.issue.mismatch");
             documentId = artifact.documentId;
             break;
           }
           if (response.status !== 404)
-            throw new Error("The document is unavailable. Retry to continue.");
+            throw new IssueProblem("partner.quote.issue.unavailable");
           await new Promise((resolve) => window.setTimeout(resolve, 1000));
         }
         if (!documentId)
-          throw new Error(
-            "Documents are still being prepared. Retry to continue.",
-          );
+          throw new IssueProblem("partner.quote.issue.stillPreparing");
         ids.push(documentId);
       }
       await sendCoreCommand(
@@ -112,15 +119,13 @@ export function PartnerQuoteIssue({
         },
         { idempotencyKey: saved.keys[2] },
       );
-      setMessage(
-        "Quote issued. Download the end-client quotation below to share with your client.",
-      );
+      setMessage("partner.quote.issue.issued");
       router.refresh();
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Issuance failed. Retry to continue.",
+        error instanceof IssueProblem
+          ? error.messageId
+          : partnerCommandFailure(error, "partner.quote.issue.failed"),
       );
     } finally {
       busy.current = false;
@@ -129,20 +134,20 @@ export function PartnerQuoteIssue({
   }
   return (
     <div>
-      <p>
-        Issue two separate documents: confidential transfer pricing for your
-        team, and your resale quotation for the end client. Issuance does not
-        place an order or send an email.
-      </p>
+      <p>{t("partner.quote.issue.description")}</p>
       <button
         className={styles.buttonLink}
         disabled={pending}
         onClick={() => void issue()}
       >
-        {pending ? "Preparing documents…" : "Prepare documents and issue quote"}
+        {t(
+          pending
+            ? "partner.quote.issue.working"
+            : "partner.quote.issue.action",
+        )}
       </button>
       <p role="status" aria-live="polite">
-        {message}
+        {message ? t(message) : null}
       </p>
     </div>
   );

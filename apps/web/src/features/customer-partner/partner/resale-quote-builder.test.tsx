@@ -162,7 +162,7 @@ describe("what the partner quote builder states before anyone types", () => {
     render(<ResaleQuoteBuilder context={redwood} />);
     const summary = quoteSummary();
     expect(summary).toHaveTextContent(
-      "Route attribution: Redwood Channel Group is the sourced partner because this route binds an approved deal registration. Merchant of record: Redwood Channel Group.",
+      "Route attribution: Redwood Channel Group is the sourced partner because this route binds an approved deal registration. Redwood Channel Group is the merchant of record.",
     );
     expect(screen.queryByRole("textbox", { name: /attribution/i })).toBeNull();
     expect(screen.queryByRole("spinbutton", { name: /influence/i })).toBeNull();
@@ -345,9 +345,12 @@ describe("resale quote builder submission states", () => {
     );
     await user.click(screen.getByRole("checkbox"));
     await user.click(submit);
+    // The server's own English is not shown; the reader gets the outcome in
+    // their language.
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Quote rejected: margin floor",
+      "The quote could not be created.",
     );
+    expect(screen.getByRole("alert")).not.toHaveTextContent("margin floor");
     expect(screen.queryByRole("status")).toBeNull();
     expect(submit).toBeEnabled();
   });

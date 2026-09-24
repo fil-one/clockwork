@@ -18,6 +18,17 @@ import {
 } from "@/src/features/experience-server/projection-source";
 
 import type { PartnerRecord, PartnerRisk, PartnerStatus } from "./partner-data";
+import {
+  partnerMilestoneText,
+  readPartnerMilestone,
+  type PartnerReader,
+} from "./partner-presentation";
+
+/*
+ * Problem `title` and `detail` strings in this file are English API text for
+ * logs and API clients. Partner pages never show them; the renewal panel says
+ * only that nothing changed.
+ */
 
 const receiptPrefix = "demo-partner-renewal-receipt:";
 
@@ -154,6 +165,7 @@ export function demoPartnerRenewalRecords(
   state: DemoAdapterState,
   partnerAccountId: string,
   records: readonly PartnerRecord[],
+  { t, formatting }: Pick<PartnerReader, "t" | "formatting">,
 ): readonly PartnerRecord[] {
   return records.map((record) => {
     const context = demoPartnerCollectionRenewalContext(
@@ -173,15 +185,23 @@ export function demoPartnerRenewalRecords(
     if (!override) return record;
     const status = partnerStatus(override.data.status);
     const risk = partnerRisk(override.data.risk);
-    const secondary =
-      typeof override.data.secondary === "string"
-        ? override.data.secondary
-        : undefined;
+    // The decision is a fact (`milestone`), worded for this reader. A decision
+    // stored before that fact existed carried an English `secondary`; its
+    // status says the same thing, so it reads the same way.
+    const milestone =
+      readPartnerMilestone(override.data.milestone) ??
+      (status === "canceled"
+        ? { kind: "renewalDeclined" as const }
+        : status === "pending"
+          ? { kind: "renewalRequested" as const }
+          : undefined);
     return {
       ...record,
       ...(status ? { status } : {}),
       ...(risk ? { risk } : {}),
-      ...(secondary ? { secondary } : {}),
+      ...(milestone
+        ? { secondary: partnerMilestoneText(milestone, t, formatting) }
+        : {}),
       recordVersion: override.version,
       allowedActions: [],
     };
@@ -217,14 +237,14 @@ function problem(requestId: string, error: unknown): Response {
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
-      title: "Renewal decision refused",
+      title: "Renewal decision refused", // i18n-exempt: API problem title, not rendered
       status,
       detail:
         known || validation
           ? error instanceof Error
             ? error.message
-            : "The renewal decision is invalid"
-          : "The demo could not record the renewal decision.",
+            : "The renewal decision is invalid" // i18n-exempt: API problem detail, not rendered
+          : "The demo could not record the renewal decision.", // i18n-exempt: API problem detail, not rendered
       code,
       requestId,
       retryable: status >= 500,
@@ -260,7 +280,7 @@ export async function handleDemoPartnerRenewal(
       throw new RenewalProblem(
         403,
         "PARTNER_RENEWAL_AUTHORITY_FORBIDDEN",
-        "Partner order authority is required",
+        "Partner order authority is required", // i18n-exempt: API problem detail, not rendered
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (
@@ -271,7 +291,7 @@ export async function handleDemoPartnerRenewal(
       throw new RenewalProblem(
         422,
         "IDEMPOTENCY_KEY_REQUIRED",
-        "A valid idempotency-key header is required",
+        "A valid idempotency-key header is required", // i18n-exempt: API problem detail, not rendered
       );
     const bytes = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
@@ -290,7 +310,7 @@ export async function handleDemoPartnerRenewal(
       throw new RenewalProblem(
         403,
         "PARTNER_RENEWAL_SCOPE_FORBIDDEN",
-        "The renewal does not belong to this partner relationship",
+        "The renewal does not belong to this partner relationship", // i18n-exempt: API problem detail, not rendered
       );
     const projectionId = demoProjectionRecordId(
       "partner",
@@ -306,7 +326,7 @@ export async function handleDemoPartnerRenewal(
       throw new RenewalProblem(
         404,
         "PORTFOLIO_NOT_FOUND",
-        "The portfolio record is unavailable",
+        "The portfolio record is unavailable", // i18n-exempt: API problem detail, not rendered
       );
     const now = input.now ?? new Date().toISOString();
     let result: Readonly<Record<string, unknown>> | undefined;
@@ -319,7 +339,7 @@ export async function handleDemoPartnerRenewal(
           throw new RenewalProblem(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "The idempotency key is already bound to another renewal decision",
+            "The idempotency key is already bound to another renewal decision", // i18n-exempt: API problem detail, not rendered
           );
         replayed = true;
         result = prior.response;
@@ -328,10 +348,11 @@ export async function handleDemoPartnerRenewal(
       const priorOverride = state.projectionOverrides[projectionId];
       const nextVersion = (priorOverride?.version ?? seedVersion) + 1;
       const status = target.action === "decline" ? "canceled" : "pending";
-      const secondary =
+      // A fact, worded for each reader by `partnerMilestoneText`.
+      const milestone =
         target.action === "decline"
-          ? "Renewal declined · current term will close at expiry"
-          : "Renewal request submitted · awaiting Fil One confirmation";
+          ? { kind: "renewalDeclined" }
+          : { kind: "renewalRequested" };
       result = {
         renewalRequestId: uuidV7(),
         orderId: target.orderId,
@@ -353,7 +374,7 @@ export async function handleDemoPartnerRenewal(
               ...(priorOverride?.data ?? {}),
               status,
               risk: target.action === "decline" ? "low" : "medium",
-              secondary,
+              milestone,
             },
           },
           [receiptKey]: {
@@ -368,7 +389,7 @@ export async function handleDemoPartnerRenewal(
         },
       };
     });
-    if (!result) throw new Error("Demo renewal produced no result");
+    if (!result) throw new Error("Demo renewal produced no result"); // i18n-exempt: internal invariant, not rendered
     return Response.json(result, {
       headers: {
         "cache-control": "private, no-store",

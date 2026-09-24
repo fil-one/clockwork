@@ -1,6 +1,8 @@
 import type { EditableQuoteLine } from "../commercial/quote-lines";
 import { uuidV7 } from "@clockwork/contracts";
 
+import type { MessageId, MessageValues, Translator } from "@/src/i18n";
+
 /**
  * The commercial route a partner quote is written under.
  *
@@ -101,7 +103,58 @@ export interface ResaleQuoteDraft {
 }
 
 export type QuoteDraftField = keyof ResaleQuoteDraft;
-export type QuoteValidation = Partial<Record<QuoteDraftField, string>>;
+/** A validation failure as a message the form renders in the reader's language. */
+export interface QuoteProblem {
+  readonly id: MessageId;
+  readonly values?: MessageValues;
+}
+export type QuoteValidation = Partial<Record<QuoteDraftField, QuoteProblem>>;
+
+/**
+ * A money amount as a seller types it, in whole currency units.
+ *
+ * A German or Brazilian seller writes "1.500,50" and a British one "1,500.50";
+ * both mean the same price. The last separator followed by one or two digits is
+ * the decimal mark and every other separator is grouping; a lone separator
+ * followed by exactly three digits is grouping ("1.500" is fifteen hundred,
+ * which is the only reading a two-decimal currency allows). Anything else is
+ * not an amount.
+ */
+export function parseDecimalAmount(input: string): number | undefined {
+  const compact = input.trim().replace(/[\s\u00a0\u202f'’]/gu, "");
+  if (!/^\d[\d.,]*$/u.test(compact)) return undefined;
+  const last = Math.max(compact.lastIndexOf("."), compact.lastIndexOf(","));
+  let normalized = compact;
+  if (last >= 0) {
+    const whole = compact.slice(0, last);
+    const fraction = compact.slice(last + 1);
+    // Grouping uses the other separator from the decimal mark, and one kind.
+    const groupedBy = (mark: "." | ",") =>
+      mark === "." ? /^\d{1,3}(?:\.\d{3})*$/u : /^\d{1,3}(?:,\d{3})*$/u;
+    const groupMark = compact[last] === "." ? "," : ".";
+    if (
+      /^\d{1,2}$/u.test(fraction) &&
+      (/^\d+$/u.test(whole) || groupedBy(groupMark).test(whole))
+    )
+      normalized = `${whole.replaceAll(groupMark, "")}.${fraction}`;
+    else if (
+      fraction.length === 3 &&
+      (groupedBy(".").test(compact) || groupedBy(",").test(compact))
+    )
+      normalized = compact.replace(/[.,]/gu, "");
+    else return undefined;
+  }
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+/** The typed resale amount in minor units, or undefined when it is not one. */
+export function resaleMinorUnits(input: string): number | undefined {
+  const value = parseDecimalAmount(input);
+  if (value === undefined) return undefined;
+  const minor = Math.round(value * 100);
+  return Number.isSafeInteger(minor) ? minor : undefined;
+}
 
 /**
  * How far ahead an untouched draft proposes to expire. A fixed calendar date
@@ -193,52 +246,57 @@ export function validateResaleQuoteStage(
   const errors: QuoteValidation = {};
   const offer = resolveOption(draft.offerName, context.offers);
   if (stage >= 1 && !offer)
-    errors.offerName = "Select an available offer by name.";
+    errors.offerName = { id: "partner.quote.new.error.offer" };
   if (stage >= 2) {
     // An empty field reads as zero here, which every bound below rejects.
     const capacity = Number(draft.capacity);
     if (!Number.isFinite(capacity) || capacity < 10)
-      errors.capacity = "Enter at least 10 TB of committed capacity.";
+      errors.capacity = { id: "partner.quote.new.error.capacity" };
     const termMonths = Number(draft.termMonths);
     if (!Number.isInteger(termMonths) || termMonths < 1)
-      errors.termMonths = "Enter a whole term of at least one month.";
+      errors.termMonths = { id: "partner.quote.new.error.term" };
     const client = resolveOption(draft.endClientName, context.endClients);
     if (!client)
-      errors.endClientName = "Select a registered end client by name.";
+      errors.endClientName = { id: "partner.quote.new.error.endClient" };
     // The server refuses a book whose currency is not the one this client is
     // billed in, so the mismatch is named here rather than at submission.
     else if (offer && offer.currency !== client.quoteCurrency)
-      errors.offerName = `Select an offer priced in ${client.quoteCurrency}, the billing currency for ${client.name}.`;
+      errors.offerName = {
+        id: "partner.quote.new.error.currency",
+        values: { currency: client.quoteCurrency, client: client.name },
+      };
     const expiry = Date.parse(draft.expiresAt);
     if (!Number.isFinite(expiry) || expiry <= now.getTime())
-      errors.expiresAt = "Choose an expiry after the current time.";
+      errors.expiresAt = { id: "partner.quote.new.error.expiry" };
     // A referral quote is billed by Fil One and carries no partner-set price;
     // the command rejects one that does.
     if (partnerPricedRoute(context.route)) {
-      const resaleMinor = Math.round(Number(draft.resalePrice) * 100);
-      if (!Number.isSafeInteger(resaleMinor) || resaleMinor <= 0)
-        errors.resalePrice = "Enter a positive partner resale price.";
+      const resaleMinor = resaleMinorUnits(draft.resalePrice);
+      if (resaleMinor === undefined || resaleMinor <= 0)
+        errors.resalePrice = { id: "partner.quote.new.error.resalePrice" };
     }
   }
   return errors;
 }
 
-const routeLabels: Readonly<Record<QuoteRoute, string>> = {
-  referral: "Referral",
-  resale: "Resale",
-  distributor: "Two-tier distributor",
-};
+const routeLabels = {
+  referral: "partner.route.referral",
+  resale: "partner.route.resale",
+  distributor: "partner.route.distributor",
+} as const satisfies Record<QuoteRoute, MessageId>;
 
-export function quoteRouteLabel(route: QuoteRoute): string {
+export function quoteRouteLabel(route: QuoteRoute): MessageId {
   return routeLabels[route];
 }
 
-export function partnerRouteConsequence(route: QuoteRoute): string {
-  if (route === "referral")
-    return "Fil One is merchant of record, contracts with and invoices the named end client, and pays commission under the persisted referral agreement.";
-  if (route === "distributor")
-    return "This route is available only because the account's saved transfer tier is distributor. The quote records the partner as merchant of record and Fil One prices it at that saved transfer tier.";
-  return "The partner is merchant of record to the named end client. Fil One prices and invoices the partner account at its saved transfer tier; the partner sets the resale price.";
+const routeConsequences = {
+  referral: "partner.route.consequence.referral",
+  resale: "partner.route.consequence.resale",
+  distributor: "partner.route.consequence.distributor",
+} as const satisfies Record<QuoteRoute, MessageId>;
+
+export function partnerRouteConsequence(route: QuoteRoute): MessageId {
+  return routeConsequences[route];
 }
 
 /** Who invoices the end client, as the command's own route rule decides it. */
@@ -247,28 +305,71 @@ export function merchantOfRecordName(
 ): string {
   return partnerPricedRoute(context.route)
     ? context.partnerAccountName
-    : "Fil One";
+    : "Fil One"; // i18n-exempt: company name, never translated
 }
 
+/**
+ * The stage-three review, one sentence per line, in the reader's language.
+ * Amounts and the expiry are formatted with `formatting` before they are
+ * placed into a message.
+ */
 export function quoteReviewSummary(
   draft: ResaleQuoteDraft,
   context: Pick<
     PartnerQuoteContext,
     "route" | "partnerAccountName" | "offers" | "endClients"
   >,
+  t: Translator,
+  formatting: string,
 ): readonly string[] {
   const offer = resolveOption(draft.offerName, context.offers);
   const client = resolveOption(draft.endClientName, context.endClients);
-  const currency = offer?.currency ?? client?.quoteCurrency ?? "";
+  const currency = offer?.currency ?? client?.quoteCurrency;
+  const route = t(quoteRouteLabel(context.route));
+  const termMonths = Number(draft.termMonths);
+  const resale = parseDecimalAmount(draft.resalePrice || "0") ?? 0;
+  const expiry = draft.expiresAt ? new Date(draft.expiresAt) : undefined;
   return [
-    `${client?.name ?? "No end client selected"} · ${quoteRouteLabel(context.route)}`,
-    `${draft.capacity || "No"} TB of ${offer?.sku ?? "no offer"} in ${offer?.region ?? "no region"} for ${draft.termMonths || "no"} months`,
+    client
+      ? t("partner.quote.review.client", { client: client.name, route })
+      : t("partner.quote.review.noClient", { route }),
+    offer && draft.capacity && Number.isInteger(termMonths) && termMonths > 0
+      ? t("partner.quote.review.line", {
+          capacity: new Intl.NumberFormat(formatting, {
+            style: "unit",
+            unit: "terabyte",
+            maximumFractionDigits: 3,
+          }).format(Number(draft.capacity)),
+          sku: offer.sku,
+          region: offer.region,
+          term: t("partner.term.months", { count: termMonths }),
+        })
+      : t("partner.quote.review.lineIncomplete"),
     partnerPricedRoute(context.route)
-      ? `Partner resale price: ${currency} ${Number(draft.resalePrice || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : "Fil One prices and invoices this referral; the partner sets no end-client price.",
-    `Quote expires ${draft.expiresAt ? new Date(draft.expiresAt).toLocaleString("en-US") : "after selection"}`,
-    `Merchant of record: ${merchantOfRecordName(context)}`,
-    "The authoritative transfer price is calculated from the selected price book.",
+      ? t("partner.quote.review.resalePrice", {
+          amount: currency
+            ? new Intl.NumberFormat(formatting, {
+                style: "currency",
+                currency,
+              }).format(resale)
+            : new Intl.NumberFormat(formatting, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }).format(resale),
+        })
+      : t("partner.quote.review.referralPrice"),
+    expiry && Number.isFinite(expiry.getTime())
+      ? t("partner.quote.review.expiry", {
+          time: new Intl.DateTimeFormat(formatting, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(expiry),
+        })
+      : t("partner.quote.review.expiryUnset"),
+    t("partner.quote.review.merchant", {
+      merchant: merchantOfRecordName(context),
+    }),
+    t("partner.quote.review.transferNote"),
   ];
 }
 
@@ -278,10 +379,11 @@ export function resaleQuotePayload(
 ) {
   const offer = resolveOption(draft.offerName, context.offers);
   const client = resolveOption(draft.endClientName, context.endClients);
+  // Invariants the stage validation already enforced; never shown to a reader.
   if (!offer || !client)
-    throw new Error("Quote selectors have not been resolved.");
+    throw new Error("Quote selectors have not been resolved."); // i18n-exempt: internal invariant, not rendered
   if (offer.currency !== client.quoteCurrency)
-    throw new Error("Quote currency does not match the end client.");
+    throw new Error("Quote currency does not match the end client."); // i18n-exempt: internal invariant, not rendered
   const partnerPriced = partnerPricedRoute(context.route);
   return {
     priceBookId: offer.priceBookId,
@@ -309,7 +411,7 @@ export function resaleQuotePayload(
       ? {
           partnerResaleTotal: {
             currency: offer.currency,
-            minor: String(Math.round(Number(draft.resalePrice) * 100)),
+            minor: String(resaleMinorUnits(draft.resalePrice) ?? 0),
           },
         }
       : {}),

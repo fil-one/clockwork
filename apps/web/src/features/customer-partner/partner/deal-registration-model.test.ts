@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   dealRegistrationPayload,
   emptyDealRegistrationDraft,
   resolveEndClient,
   validateDealRegistration,
   type DealRegistrationContext,
+  type DealRegistrationProblem,
 } from "./deal-registration-model";
+
+/** A validation problem as the English page states it. */
+function english(problem: DealRegistrationProblem | undefined) {
+  return problem ? translatorFor("en")(problem.id, problem.values) : undefined;
+}
 
 const context: DealRegistrationContext = {
   partnerAccountId: "10000000-0000-4000-8000-000000000002",
@@ -46,10 +54,12 @@ describe("deal registration draft", () => {
       maximumExtensions: 1,
     };
     expect(
-      validateDealRegistration(draft({ protectionDays: "61" }), {
-        ...context,
-        channelPolicy,
-      }).protectionDays,
+      english(
+        validateDealRegistration(draft({ protectionDays: "61" }), {
+          ...context,
+          channelPolicy,
+        }).protectionDays,
+      ),
     ).toContain("at most 60");
     expect(
       validateDealRegistration(draft({ protectionDays: "30" }), {
@@ -81,8 +91,10 @@ describe("deal registration draft", () => {
    */
   it("refuses an expected volume carrying a unit, as the command does", () => {
     expect(
-      validateDealRegistration(draft({ expectedVolume: "120 TB" }), context)
-        .expectedVolume,
+      english(
+        validateDealRegistration(draft({ expectedVolume: "120 TB" }), context)
+          .expectedVolume,
+      ),
     ).toContain("no unit");
     expect(
       validateDealRegistration(draft({ expectedVolume: "120.5" }), context),
@@ -91,34 +103,42 @@ describe("deal registration draft", () => {
 
   it("refuses an end client that is not in the partner's own list", () => {
     expect(
-      validateDealRegistration(
-        draft({ endClientName: "Somebody Else Ltd" }),
-        context,
-      ).endClientName,
+      english(
+        validateDealRegistration(
+          draft({ endClientName: "Somebody Else Ltd" }),
+          context,
+        ).endClientName,
+      ),
     ).toBe("Select one of your named end clients by name.");
   });
 
   /** `registerDeal` throws "Partner cannot register itself as end client". */
   it("refuses the partner's own account as its end client", () => {
     expect(
-      validateDealRegistration(
-        draft({ endClientName: "Redwood Channel Group" }),
-        context,
-      ).endClientName,
+      english(
+        validateDealRegistration(
+          draft({ endClientName: "Redwood Channel Group" }),
+          context,
+        ).endClientName,
+      ),
     ).toContain("cannot register itself");
   });
 
   it("refuses a protection window that is not a positive whole day count", () => {
     for (const protectionDays of ["0", "-1", "1.5", ""])
       expect(
-        validateDealRegistration(draft({ protectionDays }), context)
-          .protectionDays,
+        english(
+          validateDealRegistration(draft({ protectionDays }), context)
+            .protectionDays,
+        ),
       ).toContain("at least one whole day");
   });
 
   it("requires a described workload", () => {
     expect(
-      validateDealRegistration(draft({ workload: "   " }), context).workload,
+      english(
+        validateDealRegistration(draft({ workload: "   " }), context).workload,
+      ),
     ).toContain("Describe the workload");
   });
 

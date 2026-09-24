@@ -7,11 +7,25 @@ import type { DemoOrderAcceptanceState } from "@/src/features/experience-server/
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { formatMoney } from "@/src/features/shared/format";
-import { getFormattingLocale } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
+import { partnerQuoteLineText } from "./partner-presentation";
 import styles from "./partner.module.css";
 
+/** "1 Aug 2026 – 31 Jul 2027" for two calendar dates, in the reader's locale. */
+function serviceTerm(start: string, end: string, formatting: string): string {
+  const from = new Date(`${start}T00:00:00Z`);
+  const to = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(from.valueOf()) || Number.isNaN(to.valueOf()))
+    return `${start} – ${end}`;
+  return new Intl.DateTimeFormat(formatting, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).formatRange(from, to);
+}
+
 export async function PartnerOrders({ id }: { id?: string }) {
+  const t = await getTranslations();
   const formattingLocale = await getFormattingLocale();
   const identity = await getRouteIdentity("partner");
   if (!demoDeployIdentityEnabled(process.env))
@@ -30,13 +44,12 @@ export async function PartnerOrders({ id }: { id?: string }) {
     <main id="main-content" className={styles.main}>
       <header className={styles.pageHeader}>
         <div>
-          <h1>{id ? "Supply order" : "Supply orders"}</h1>
-          <p>
-            Fil One supplies your partner account at the transfer price. Your
-            end-client contract and billing stay with you.
-          </p>
+          <h1>
+            {t(id ? "partner.orders.supplyOrder" : "partner.orders.title")}
+          </h1>
+          <p>{t("partner.orders.demoDescription")}</p>
         </div>
-        <Link href="/partner/quotes">Partner quotes</Link>
+        <Link href="/partner/quotes">{t("partner.orders.quotesLink")}</Link>
       </header>
       {selected.length ? (
         selected.map((order) => (
@@ -45,13 +58,15 @@ export async function PartnerOrders({ id }: { id?: string }) {
               <Link href={`/partner/orders/${order.id}`}>{order.poNumber}</Link>
             </h2>
             <p>
-              {order.provisioning
-                ? "Provisioning · demo request submitted"
-                : "Accepted · awaiting provisioning"}
+              {t(
+                order.provisioning
+                  ? "partner.orders.state.provisioning"
+                  : "partner.orders.state.accepted",
+              )}
             </p>
             <dl>
               <div>
-                <dt>Transfer commitment</dt>
+                <dt>{t("partner.orders.transferCommitment")}</dt>
                 <dd>
                   {formatMoney(
                     order.totalMinor,
@@ -61,22 +76,29 @@ export async function PartnerOrders({ id }: { id?: string }) {
                 </dd>
               </div>
               <div>
-                <dt>Service term</dt>
+                <dt>{t("partner.orders.serviceTerm")}</dt>
                 <dd>
-                  {order.serviceStartsOn} – {order.serviceEndsOn}
+                  {serviceTerm(
+                    order.serviceStartsOn,
+                    order.serviceEndsOn,
+                    formattingLocale,
+                  )}
                 </dd>
               </div>
               <div>
-                <dt>Accepted by</dt>
+                <dt>{t("partner.orders.acceptedBy")}</dt>
                 <dd>
-                  {order.signerName} · {order.authorityTitle}
+                  {t("partner.orders.signer", {
+                    name: order.signerName,
+                    title: order.authorityTitle,
+                  })}
                 </dd>
               </div>
             </dl>
             <ul>
               {order.domainOrder?.lines.map((line) => (
                 <li key={line.id}>
-                  {line.quantity} TB · {line.region} · {line.termMonths} months
+                  {partnerQuoteLineText(line, t, formattingLocale)}
                 </li>
               ))}
             </ul>
@@ -85,24 +107,28 @@ export async function PartnerOrders({ id }: { id?: string }) {
                 className={styles.buttonLink}
                 href={`/api/experience/artifacts/order_form/${order.artifactRequestId}`}
               >
-                Accepted supply order · PDF
+                {t("partner.quote.document.link", {
+                  document: t("partner.orders.acceptedDocument"),
+                })}
               </a>
               <Link href={`/partner/quotes/${order.quoteRecordKey}`}>
-                Source quote
+                {t("partner.orders.sourceQuote")}
               </Link>
             </div>
             <p>
-              {order.provisioning
-                ? "The demo provisioner received the saved entitlements. Activation awaits a provider completion result."
-                : "Your order is in the internal provisioning handoff. It has not activated service."}
+              {t(
+                order.provisioning
+                  ? "partner.orders.provisioningNote"
+                  : "partner.orders.handoffNote",
+              )}
             </p>
           </section>
         ))
       ) : (
         <section className={styles.detailCard}>
-          <h2>No supply orders yet</h2>
-          <p>Open an issued partner quote to review its supply order.</p>
-          <Link href="/partner/quotes">Review partner quotes</Link>
+          <h2>{t("partner.orders.empty.title")}</h2>
+          <p>{t("partner.orders.empty.description")}</p>
+          <Link href="/partner/quotes">{t("partner.orders.empty.action")}</Link>
         </section>
       )}
     </main>
@@ -110,6 +136,7 @@ export async function PartnerOrders({ id }: { id?: string }) {
 }
 
 async function ProjectedPartnerOrders({ id }: { id?: string }) {
+  const t = await getTranslations();
   const projection = await loadPortalRecords("partner", "orders");
   const records = id
     ? projection.records.filter(
@@ -123,19 +150,15 @@ async function ProjectedPartnerOrders({ id }: { id?: string }) {
     <main id="main-content" className={styles.main}>
       <header className={styles.pageHeader}>
         <div>
-          <h1>{id ? "Supply order" : "Supply orders"}</h1>
-          <p>
-            Your authorized partner order records and current fulfillment
-            status.
-          </p>
+          <h1>
+            {t(id ? "partner.orders.supplyOrder" : "partner.orders.title")}
+          </h1>
+          <p>{t("partner.orders.description")}</p>
         </div>
-        <Link href="/partner/quotes">Partner quotes</Link>
+        <Link href="/partner/quotes">{t("partner.orders.quotesLink")}</Link>
       </header>
       {projection.truncated ? (
-        <p role="status">
-          More orders are available. Narrow your search through your partner
-          team.
-        </p>
+        <p role="status">{t("partner.orders.truncated")}</p>
       ) : null}
       {records.length ? (
         records.map((record) => (
@@ -148,22 +171,20 @@ async function ProjectedPartnerOrders({ id }: { id?: string }) {
               </Link>
             </h2>
             <p>
+              {/* A production order record carries its own status label. */}
               {text(record.data, "statusLabel") ??
                 text(record.data, "status") ??
-                "Status not recorded"}
+                t("status.notRecorded")}
             </p>
             <p>{text(record.data, "description")}</p>
             <p>{text(record.data, "value")}</p>
             {record.stale ? (
-              <p role="status">
-                This record is past its refresh window. Verify its current
-                status before acting.
-              </p>
+              <p role="status">{t("partner.orders.stale")}</p>
             ) : null}
           </section>
         ))
       ) : (
-        <p>No supply orders have been recorded for this partner account.</p>
+        <p>{t("partner.orders.none")}</p>
       )}
     </main>
   );

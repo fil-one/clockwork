@@ -7,10 +7,18 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 
 vi.mock("server-only", () => ({}));
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   demoPartnerBrandRecords,
   handleDemoPartnerBrand,
 } from "./demo-partner-brand";
+
+const en = {
+  t: translatorFor("en"),
+  locale: "en",
+  formatting: "en-US",
+} as const;
 
 const store = createMemoryDemoStore();
 const session: SessionClaims = {
@@ -60,7 +68,7 @@ describe("durable demo partner branding", () => {
       verification: "dns_required",
     });
     expect(
-      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller),
+      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller, en),
     ).toEqual([
       expect.objectContaining({
         name: "Aster House Archive",
@@ -125,11 +133,11 @@ describe("durable demo partner branding", () => {
       { store },
     );
     expect(
-      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller),
+      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(1);
     await store.replace(createPristineDemoAdapterState());
     expect(
-      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller),
+      demoPartnerBrandRecords(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(0);
   });
 });

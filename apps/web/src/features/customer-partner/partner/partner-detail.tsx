@@ -1,5 +1,10 @@
 import { PartnerQuoteControls } from "./partner-quote-controls";
-import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import {
+  getFormattingLocale,
+  getLocale,
+  getTranslations,
+} from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
 import { use } from "react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -12,19 +17,36 @@ import {
 } from "@clockwork/ui";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 import {
   getRouteIdentity,
   getRouteRoles,
+  getRouteSession,
 } from "@/src/features/shell/route-session";
+import type { MessageId } from "@/src/i18n";
 
 import type { PartnerRecord, PartnerSurfaceKey } from "./partner-data";
 import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
 import { PartnerQuoteIssue } from "./partner-quote-issue";
 import { demoPartnerQuoteRecord } from "./demo-partner-quote";
+import { partnerRiskLevels, partnerStatusLabels } from "./partner-presentation";
 import styles from "./partner.module.css";
 import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
+
+const documentNames = {
+  partner_transfer_quote: "partner.quote.document.transfer",
+  partner_resale_quote: "partner.quote.document.resale",
+} as const satisfies Record<
+  NonNullable<PartnerRecord["documents"]>[number]["kind"],
+  MessageId
+>;
+
+const clientDecisions: Readonly<Record<string, MessageId>> = {
+  request_order: "partner.quote.clientResponse.requestOrder",
+  request_changes: "partner.quote.clientResponse.requestChanges",
+};
 
 function MissingRecord({ backHref }: { backHref: Route }) {
   const t = use(getTranslations());
@@ -63,6 +85,11 @@ async function partnerRecordFor(
       await configuredDemoStateStore().read(),
       identity.accountId,
       recordKey,
+      {
+        t: await getTranslations(),
+        locale: await getLocale(),
+        formatting: await getFormattingLocale(),
+      },
     );
     if (created) return created;
   }
@@ -122,7 +149,7 @@ function CommercialSummary({ record }: { record: PartnerRecord }) {
         </div>
         <div>
           <dt>{t("partner.detail.risk")}</dt>
-          <dd>{record.risk}</dd>
+          <dd>{t(partnerRiskLevels[record.risk])}</dd>
         </div>
       </dl>
       <p className={styles.gate}>{t("cp.partner.boundary")}</p>
@@ -137,18 +164,25 @@ function ProjectionEvidence({ record }: { record: PartnerRecord }) {
     <details className={styles.technical}>
       <summary>{t("common.technicalDetails")}</summary>
       <p>
-        {t("partner.detail.reference")}: <code>{record.id}</code>
+        {richText(t, "partner.labelled", {
+          label: t("common.referenceLabel"),
+          value: <code>{record.id}</code>,
+        })}
       </p>
       {record.projectionId ? (
         <p>
-          {t("partner.detail.projection.record")}:{" "}
-          <code>{record.projectionId}</code>
+          {richText(t, "partner.labelled", {
+            label: t("partner.detail.projection.record"),
+            value: <code>{record.projectionId}</code>,
+          })}
         </p>
       ) : null}
       {record.recordVersion === undefined ? null : (
         <p>
-          {t("partner.detail.projection.version")}:{" "}
-          <code>{record.recordVersion}</code>
+          {richText(t, "partner.labelled", {
+            label: t("partner.detail.projection.version"),
+            value: <code>{record.recordVersion}</code>,
+          })}
         </p>
       )}
     </details>
@@ -190,7 +224,7 @@ export async function PartnerPortfolioDetail({
           <p className={styles.muted}>{record.context}</p>
         </div>
         <span className={styles.pill} data-tone={record.status}>
-          {record.status}
+          {t(partnerStatusLabels[record.status])}
         </span>
       </header>
       <section className={styles.term} aria-labelledby="client-term-title">
@@ -233,10 +267,10 @@ export async function PartnerPortfolioDetail({
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
   const t = await getTranslations();
-  const formattingLocale = await getFormattingLocale();
-  const [record, roles] = await Promise.all([
+  const [record, roles, session] = await Promise.all([
     partnerRecordFor("quotes", id),
     getRouteRoles("partner"),
+    getRouteSession("partner"),
   ]);
   if (!record) return <MissingRecord backHref="/partner/quotes" />;
   const role = currentPartnerRole(roles) ?? "partner_seller";
@@ -262,52 +296,50 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           <p className={styles.muted}>{record.context}</p>
         </div>
         <span className={styles.pill} data-tone={record.status}>
-          {record.status}
+          {t(partnerStatusLabels[record.status])}
         </span>
       </header>
       <PriceBoundary pricing={record.quotePricing} />
       {record.orderId ? (
         <section className={styles.detailCard}>
-          <h2>Supply order</h2>
+          <h2>{t("partner.orders.supplyOrder")}</h2>
           <Link href={`/partner/orders/${record.orderId}` as Route}>
-            Track your supply order
+            {t("partner.detail.quote.trackOrder")}
           </Link>
         </section>
       ) : record.quoteCommand &&
         record.status === "open" &&
         role === "partner_admin" ? (
         <section className={styles.detailCard}>
-          <h2>Order from Fil One</h2>
-          <p>
-            Review and accept the supply order at your confidential transfer
-            price. Your client contract and resale billing remain your
-            responsibility.
-          </p>
+          <h2>{t("partner.detail.quote.orderTitle")}</h2>
+          <p>{t("partner.detail.quote.orderDescription")}</p>
           <Link
             className={styles.buttonLink}
             href={
               `/partner/quotes/${encodeURIComponent(record.id)}/order` as Route
             }
           >
-            Review supply order
+            {t("partner.detail.quote.reviewOrder")}
           </Link>
         </section>
       ) : null}
       {record.clientResponse ? (
         <section className={styles.detailCard}>
-          <h2>Client response</h2>
+          <h2>{t("partner.quote.clientResponse.title")}</h2>
           <p>
-            {record.clientResponse.decision === "request_order"
-              ? "Purchase request received. Confirm the order terms with your client before placing the supply order."
-              : record.clientResponse.decision === "request_changes"
-                ? "Changes requested. Prepare a revised quote and share the new version."
-                : "The client declined this quote."}
+            {t(
+              clientDecisions[record.clientResponse.decision] ??
+                "partner.quote.clientResponse.declined",
+            )}
           </p>
           <p>
-            {record.clientResponse.name} ·{" "}
-            {new Date(record.clientResponse.at).toLocaleString(
-              formattingLocale,
-            )}
+            {t("partner.quote.clientResponse.by", {
+              name: record.clientResponse.name,
+              time: formatSurfaceTimestamp(record.clientResponse.at, {
+                locale: session.locale,
+                timeZone: session.timeZone,
+              }),
+            })}
           </p>
           <p>{record.clientResponse.note}</p>
         </section>
@@ -320,22 +352,20 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         />
       ) : (
         <section className={styles.detailCard}>
-          <h2>Example quote</h2>
-          <p>
-            This walkthrough record has no editable source. Create a priced
-            quote from your current catalogue to edit, issue documents, and
-            collect a client response.
-          </p>
-          <Link href="/partner/quotes/new">Create a priced quote</Link>
+          <h2>{t("partner.detail.quote.exampleTitle")}</h2>
+          <p>{t("partner.detail.quote.exampleDescription")}</p>
+          <Link href="/partner/quotes/new">
+            {t("partner.detail.quote.exampleAction")}
+          </Link>
         </section>
       )}
       {record.documents?.length ? (
-        <section className={styles.detailCard} aria-label="Issued documents">
-          <h2>Issued documents</h2>
-          <p>
-            Send only the end-client quotation to your client. Keep the transfer
-            quote within your commercial team.
-          </p>
+        <section
+          className={styles.detailCard}
+          aria-label={t("partner.detail.quote.documentsTitle")}
+        >
+          <h2>{t("partner.detail.quote.documentsTitle")}</h2>
+          <p>{t("partner.detail.quote.documentsDescription")}</p>
           <div className={styles.actions}>
             {record.documents.map((document) => (
               <a
@@ -343,7 +373,9 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
                 className={styles.buttonLink}
                 href={`/api/experience/artifacts/${document.kind}/${document.id}`}
               >
-                {document.label} · PDF
+                {t("partner.quote.document.link", {
+                  document: t(documentNames[document.kind]),
+                })}
               </a>
             ))}
           </div>
@@ -368,11 +400,13 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
                   : "/partner/quotes/new"
               }
             >
-              {record.quoteCommand
-                ? record.status === "draft"
-                  ? "Edit draft"
-                  : "Create revised quote"
-                : "Create a new quote"}
+              {t(
+                record.quoteCommand
+                  ? record.status === "draft"
+                    ? "partner.detail.quote.edit"
+                    : "partner.detail.quote.revise"
+                  : "partner.detail.quote.createNew",
+              )}
             </Link>
           ) : null}
         </div>
@@ -380,21 +414,29 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           <PartnerQuoteIssue command={record.quoteCommand} />
         ) : actions.includes("issue") ? (
           <p className={styles.gate}>
-            <strong>{t("partner.detail.quote.issue.title")}:</strong>{" "}
-            {t("partner.detail.quote.issue.description")}{" "}
+            {richText(t, "partner.labelled", {
+              label: <strong>{t("partner.detail.quote.issue.title")}</strong>,
+              value: t("partner.detail.quote.issue.description"),
+            })}{" "}
             <Link href="/partner/support">{t("nav.partner.support")}</Link>
           </p>
         ) : null}
         {actions.includes("cancel") && !record.quoteCommand ? (
           <p className={styles.gate}>
-            <strong>{t("partner.detail.quote.cancel.title")}:</strong>{" "}
-            {t("partner.detail.quote.cancel.description")}
+            {richText(t, "partner.labelled", {
+              label: <strong>{t("partner.detail.quote.cancel.title")}</strong>,
+              value: t("partner.detail.quote.cancel.description"),
+            })}
           </p>
         ) : null}
         {actions.includes("download") && !record.documents?.length ? (
           <p className={styles.gate}>
-            <strong>{t("partner.detail.quote.download.title")}:</strong>{" "}
-            {t("partner.detail.quote.download.description")}
+            {richText(t, "partner.labelled", {
+              label: (
+                <strong>{t("partner.detail.quote.download.title")}</strong>
+              ),
+              value: t("partner.detail.quote.download.description"),
+            })}
           </p>
         ) : null}
       </section>
