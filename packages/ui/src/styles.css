@@ -211,6 +211,157 @@
   --space-8: var(--cw-space-8);
 }
 
+/*
+ * Arabic glyphs come from the platform's Arabic UI face rather than from
+ * whatever Latin face happens to carry Arabic. Without this, Next's
+ * metric-matched fallback for Inter (a local Arial) draws Arabic, because
+ * Arial has Arabic glyphs on macOS and Windows. The alias is limited to the
+ * Arabic blocks, so Latin words and Western digits in an Arabic sentence stay
+ * in Inter. local() reads installed fonts and fetches nothing, so the content
+ * security policy is unaffected. The size adjustment brings Arabic to the
+ * optical size of Inter at the same nominal size.
+ */
+@font-face {
+  font-family: "Clockwork Arabic";
+  src:
+    local("Geeza Pro Regular"), local("GeezaPro"), local("Segoe UI"),
+    local("SegoeUI"), local("Noto Sans Arabic Regular"),
+    local("NotoSansArabic-Regular"), local("Noto Sans Arabic UI Regular"),
+    local("Tahoma");
+  font-weight: 100 500;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 110%;
+  unicode-range:
+    U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: "Clockwork Arabic";
+  src:
+    local("Geeza Pro Bold"), local("GeezaPro-Bold"), local("Segoe UI Bold"),
+    local("SegoeUI-Bold"), local("Noto Sans Arabic Bold"),
+    local("NotoSansArabic-Bold"), local("Noto Sans Arabic UI Bold"),
+    local("Tahoma Bold"), local("Tahoma-Bold");
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 110%;
+  unicode-range:
+    U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+/*
+ * Per-language stacks. Latin runs stay in Inter in every language; the
+ * script's own face follows it, so Kana, Han, and Arabic reach a face designed
+ * for them. Arabic leads with the alias above because the Inter variable's
+ * fallback would otherwise claim Arabic first.
+ */
+:lang(ja) {
+  --cw-font-sans:
+    var(--cw-font-latin), "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, var(--cw-font-system);
+  --cw-font-display: var(--cw-font-sans);
+  --cw-font-accent: var(--cw-font-sans);
+}
+
+:lang(zh) {
+  --cw-font-sans:
+    var(--cw-font-latin), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC",
+    var(--cw-font-system);
+  --cw-font-display: var(--cw-font-sans);
+  --cw-font-accent: var(--cw-font-sans);
+}
+
+:lang(ar) {
+  --cw-font-sans:
+    "Clockwork Arabic", var(--cw-font-latin), "Segoe UI", "Noto Sans Arabic",
+    Tahoma, var(--cw-font-system);
+  --cw-font-display: var(--cw-font-sans);
+  --cw-font-accent: var(--cw-font-sans);
+}
+
+/*
+ * Case and tracking. Uppercase means nothing in Kana, Han, or Arabic, and
+ * letter-spacing pulls Arabic letters apart and breaks their joining. The
+ * label tokens switch off for those languages, and because the product has
+ * letter-spaced and uppercased rules in many modules, the same switch is
+ * enforced here for every element rather than trusted to each module.
+ */
+:root:is(:lang(ja), :lang(zh), :lang(ar)) {
+  --cw-label-tracking: normal;
+  --cw-label-transform: none;
+}
+
+:root:is(:lang(ja), :lang(zh), :lang(ar)) *,
+:root:is(:lang(ja), :lang(zh), :lang(ar)) *::before,
+:root:is(:lang(ja), :lang(zh), :lang(ar)) *::after {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+/*
+ * Line breaking. Japanese breaks at phrase boundaries where the browser can
+ * find them (auto-phrase; browsers without it keep the normal rule), and both
+ * Japanese and Chinese use the strict kinsoku set so closing punctuation and
+ * small kana never start a line. Han and Kana want more leading than Latin,
+ * and so does Arabic, whose marks sit above and below the line.
+ */
+:root:lang(ja) body {
+  line-break: strict;
+  word-break: normal;
+  word-break: auto-phrase;
+  line-height: 1.7;
+}
+
+/* Proportional kana in Japanese headings only. Measured on the persona
+   picker title, palt removes the full-width gaps around small kana and the
+   long-vowel mark (356px to 332px for the same string) without touching
+   body text, where fixed-width kana keep columns of prose even. */
+:root:lang(ja) :is(h1, h2, h3) {
+  font-feature-settings: "palt";
+}
+
+:root:lang(zh) body {
+  line-break: strict;
+  line-height: 1.7;
+}
+
+:root:lang(ar) body {
+  line-height: 1.7;
+}
+
+/*
+ * Long German, French, Portuguese, and Spanish words wrap at hyphenation
+ * points in running text and table cells rather than overflowing a narrow
+ * column. Only words of ten or more letters break, with at least four on
+ * each side, so a short word in a narrow cell ("Medium") is never split.
+ * Controls, chips, headings, and figures do not hyphenate.
+ */
+:root:is(:lang(de), :lang(fr), :lang(pt), :lang(es))
+  :is(p, main li, dd, td, .cw-page-header__description, .cw-help) {
+  hyphens: auto;
+  hyphenate-limit-chars: 10 4 4;
+  overflow-wrap: break-word;
+}
+
+:root:is(:lang(de), :lang(fr), :lang(pt), :lang(es))
+  :is(
+    button,
+    .cw-button,
+    .cw-badge,
+    .cw-navigation,
+    h1,
+    h2,
+    h3,
+    h4,
+    th,
+    [data-numeric]
+  ) {
+  hyphens: manual;
+}
+
 *,
 *::before,
 *::after {
