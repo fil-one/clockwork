@@ -3386,7 +3386,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.quote.nothing.agreement.description": {
     en: "A partner quote is written under a saved channel agreement, and both the commercial route and the transfer tier come from that agreement, not from this form. Your account returned no agreement type or no transfer tier, so there is nothing to quote under.",
-    es: "Un presupuesto de socio se redacta al amparo de un acuerdo de canal registrado, y tanto la modalidad de venta como el nivel de cesión proceden de ese acuerdo, no de este formulario. Su cuenta no ha devuelto un tipo de acuerdo o un nivel de cesión, así que no hay nada al amparo de lo cual presupuestar.",
+    es: "Un presupuesto de socio se redacta al amparo de un acuerdo de canal registrado, y tanto la modalidad de venta como el nivel de cesión proceden de ese acuerdo, no de este formulario. En su cuenta no consta un tipo de acuerdo o un nivel de cesión, así que no hay base sobre la que presupuestar.",
     fr: "Un devis partenaire s’établit dans le cadre d’un accord de canal enregistré\u202f; le mode de vente et le niveau de cession proviennent de cet accord, pas de ce formulaire. Votre compte n’a renvoyé aucun type d’accord ou aucun niveau de cession\u00a0: il n’y a donc aucun cadre pour établir un devis.",
     de: "Ein Partnerangebot wird auf Grundlage einer hinterlegten Kanalvereinbarung erstellt; Vertriebsweg und Einkaufsstufe stammen aus dieser Vereinbarung, nicht aus diesem Formular. Für Ihr Konto ist kein Vereinbarungstyp oder keine Einkaufsstufe hinterlegt, daher gibt es keine Grundlage für ein Angebot.",
     ja: "パートナー見積もりは登録済みのチャネル契約に基づいて作成され、販売形態と仕切価格帯はこのフォームではなくその契約から決まります。貴社アカウントでは契約種別または仕切価格帯が返されなかったため、見積もりの根拠がありません。",
@@ -3526,11 +3526,11 @@ export const partnerMessages = defineMessages({
   },
   "partner.quote.new.title.revise": {
     en: "Revise partner quote",
-    es: "Revisar el presupuesto del socio",
+    es: "Nueva revisión del presupuesto del socio",
     fr: "Réviser le devis partenaire",
     de: "Partnerangebot überarbeiten",
     ja: "パートナー見積もりの改訂",
-    pt: "Revisar cotação de parceiro",
+    pt: "Nova revisão da cotação de parceiro",
     zh: "修订合作伙伴报价",
     ar: "تعديل عرض سعر الشريك",
   },
