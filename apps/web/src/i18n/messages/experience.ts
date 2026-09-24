@@ -288,7 +288,7 @@ export const experienceMessages = defineMessages({
     ja: "操作は正式な記録に対して実行され、監査証跡に記録されます。取り消すには、別途承認された操作が必要です。",
     pt: "O comando é executado no registro oficial e fica registrado na trilha de auditoria. Revertê-lo exige outra ação autorizada.",
     zh: "该命令作用于正式记录，并写入审计跟踪。撤销需要另行执行经授权的操作。",
-    ar: "يُنفَّذ الأمر على السجل المعتمد ويُدوَّن في سجل التدقيق. يتطلب التراجع عنه إجراءً منفصلاً مصرَّحاً به.",
+    ar: "يُنفَّذ الأمر على السجل المعتمد ويُدوَّن في سجل التدقيق. يتطلب التراجع عنه إجراءً منفصلًا مصرَّحًا به.",
   },
   "projection.action.confirm.cancel": {
     en: "Keep the record unchanged",
@@ -358,7 +358,7 @@ export const experienceMessages = defineMessages({
     ja: "請求書を統合",
     pt: "Consolidar faturas",
     zh: "合并发票",
-    ar: "تجميع الفواتير",
+    ar: "توحيد الفواتير",
   },
   "projection.action.create": {
     en: "Create record",
@@ -418,7 +418,7 @@ export const experienceMessages = defineMessages({
     ja: "回収不能に設定",
     pt: "Marcar como incobrável",
     zh: "标记为无法收回",
-    ar: "تصنيف كغير قابل للتحصيل",
+    ar: "تصنيف الفاتورة غير قابلة للتحصيل",
   },
   "projection.action.openInvoice": {
     en: "Open invoice",
@@ -478,7 +478,7 @@ export const experienceMessages = defineMessages({
     ja: "例外を却下",
     pt: "Rejeitar exceção",
     zh: "驳回例外",
-    ar: "ردّ الاستثناء",
+    ar: "رفض الاستثناء",
   },
   "projection.action.requestTeardown": {
     en: "Request teardown",
@@ -578,7 +578,7 @@ export const experienceMessages = defineMessages({
     ja: "請求書を無効化",
     pt: "Anular fatura",
     zh: "作废发票",
-    ar: "إلغاء الفاتورة",
+    ar: "إبطال الفاتورة",
   },
 
   // Failures the commerce API reports, rendered from its stable `code` and
@@ -1074,7 +1074,7 @@ export const experienceMessages = defineMessages({
     ja: "{time} 時点で最新",
     pt: "Atualizado em {time}",
     zh: "截至 {time} 为最新",
-    ar: "محدَّث حتى {time}",
+    ar: "محدَّث كما في {time}",
   },
   "experience.internal.freshness.stale": {
     en: "Some records need a refresh · as of {time}",
@@ -1084,7 +1084,7 @@ export const experienceMessages = defineMessages({
     ja: "一部の記録は再読み込みが必要です・{time} 時点",
     pt: "Alguns registros precisam ser atualizados · em {time}",
     zh: "部分记录需要刷新 · 截至 {time}",
-    ar: "بعض السجلات تحتاج إلى تحديث · حتى {time}",
+    ar: "بعض السجلات تحتاج إلى تحديث · كما في {time}",
   },
   "experience.internal.empty.title": {
     en: "No work in this queue",
@@ -1617,7 +1617,7 @@ export const experienceMessages = defineMessages({
     ja: "請求済み金額（税抜）",
     pt: "Faturado sem impostos",
     zh: "已开票金额（不含税）",
-    ar: "المبلغ المفوتر دون الضريبة",
+    ar: "المبلغ المفوتر قبل الضريبة",
   },
   "experience.derivation.fromSource": {
     en: "From source rows",
@@ -1807,7 +1807,7 @@ export const experienceMessages = defineMessages({
     ja: "明細金額の合計が、請求済みの税抜合計と一致しません。",
     pt: "A soma dos valores das linhas não corresponde ao total faturado sem impostos.",
     zh: "各行金额之和与已开票的不含税总额不一致。",
-    ar: "مجموع مبالغ البنود لا يساوي الإجمالي المفوتر دون الضريبة.",
+    ar: "مجموع مبالغ البنود لا يساوي الإجمالي المفوتر قبل الضريبة.",
   },
   "experience.derivation.payg": {
     en: "PAYG {month} · revision {revision}",
@@ -1817,7 +1817,7 @@ export const experienceMessages = defineMessages({
     ja: "従量課金・{month}・改訂 {revision}",
     pt: "Pagamento por uso · {month} · revisão {revision}",
     zh: "按量付费 · {month} · 修订 {revision}",
-    ar: "الدفع حسب الاستخدام · {month} · المراجعة {revision}",
+    ar: "الدفع حسب الاستخدام · {month} · النسخة المعدّلة {revision}",
   },
   "experience.derivation.paygCorrection": {
     en: "PAYG {month} · revision {revision} · correction",
@@ -1827,7 +1827,7 @@ export const experienceMessages = defineMessages({
     ja: "従量課金・{month}・改訂 {revision}・訂正",
     pt: "Pagamento por uso · {month} · revisão {revision} · correção",
     zh: "按量付费 · {month} · 修订 {revision} · 更正",
-    ar: "الدفع حسب الاستخدام · {month} · المراجعة {revision} · تصحيح",
+    ar: "الدفع حسب الاستخدام · {month} · النسخة المعدّلة {revision} · تصحيح",
   },
   "experience.derivation.net": {
     en: "Net",
@@ -2671,7 +2671,7 @@ export const experienceMessages = defineMessages({
     ja: "取引制限対象者の審査",
     pt: "Triagem de partes restritas",
     zh: "受限方筛查",
-    ar: "فحص الأطراف المقيَّدة",
+    ar: "فحص الأطراف المحظورة",
   },
   "experience.display.commercialAccount": {
     en: "Commercial account",
@@ -2691,7 +2691,7 @@ export const experienceMessages = defineMessages({
     ja: "取引制限対象者の審査：{status}",
     pt: "Triagem de partes restritas: {status}",
     zh: "受限方筛查：{status}",
-    ar: "فحص الأطراف المقيَّدة: {status}",
+    ar: "فحص الأطراف المحظورة: {status}",
   },
   "experience.display.floor.notConfigured": {
     en: "Not configured",
@@ -2701,7 +2701,7 @@ export const experienceMessages = defineMessages({
     ja: "未設定",
     pt: "Não configurado",
     zh: "未配置",
-    ar: "غير مهيأ",
+    ar: "غير محدد",
   },
   "experience.display.floor.pass": {
     en: "Passed",
@@ -2741,7 +2741,7 @@ export const experienceMessages = defineMessages({
     ja: "例外却下",
     pt: "Exceção rejeitada",
     zh: "例外已驳回",
-    ar: "رُدّ الاستثناء",
+    ar: "رُفض الاستثناء",
   },
   "experience.display.route.direct": {
     en: "Direct",
@@ -2811,7 +2811,7 @@ export const experienceMessages = defineMessages({
     ja: "顧客の契約書式",
     pt: "Contrato do cliente",
     zh: "客户合同文本",
-    ar: "نموذج عقد العميل",
+    ar: "عقد العميل",
   },
   "experience.display.renewal.auto": {
     en: "Renews automatically",
@@ -3001,7 +3001,7 @@ export const experienceMessages = defineMessages({
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
     zh: "续约与流失风险敞口",
-    ar: "التعرض للتجديد والتسرب",
+    ar: "التعرض لمخاطر التجديد وفقدان العملاء",
   },
   "experience.display.report.partnerPerformance": {
     en: "Partner performance",
@@ -3031,7 +3031,7 @@ export const experienceMessages = defineMessages({
     ja: "利益率と PoC コスト",
     pt: "Margem e custo de POCs",
     zh: "利润率与 POC 成本",
-    ar: "الهامش وتكلفة POC",
+    ar: "الهامش وتكلفة إثبات المفهوم",
   },
   "experience.display.report.weeklyScorecard": {
     en: "Weekly scorecard",
@@ -3121,7 +3121,7 @@ export const experienceMessages = defineMessages({
     ja: "ブロック",
     pt: "Bloqueada",
     zh: "已阻止",
-    ar: "متوقف",
+    ar: "محظور",
   },
   "experience.display.statement.exported": {
     en: "Exported",
@@ -3141,7 +3141,7 @@ export const experienceMessages = defineMessages({
     ja: "無効",
     pt: "Anulado",
     zh: "已作废",
-    ar: "ملغى",
+    ar: "لاغٍ",
   },
   "experience.display.queue.pricing": {
     en: "Pricing",
@@ -3181,7 +3181,7 @@ export const experienceMessages = defineMessages({
     ja: "取引制限対象者",
     pt: "Partes restritas",
     zh: "受限方",
-    ar: "الأطراف المقيَّدة",
+    ar: "الأطراف الخاضعة للقيود",
   },
   "experience.display.queue.disputes": {
     en: "Disputes",

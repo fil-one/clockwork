@@ -12,7 +12,7 @@ export const customerMessages = defineMessages({
     ja: "オファーを選択し、容量と期間を設定して、見積もりの下書きを確認します。",
     pt: "Escolha uma oferta, defina a capacidade e o prazo e revise o rascunho.",
     zh: "选择方案，设置容量和期限，然后核对报价草稿。",
-    ar: "اختر عرضًا وحدد السعة والمدة، ثم راجع مسودة عرض السعر.",
+    ar: "اختر باقة وحدد السعة والمدة، ثم راجع مسودة عرض السعر.",
   },
   "quotes.form.offerHelp": {
     en: "Choose an available offer for the region you need.",
@@ -22,7 +22,7 @@ export const customerMessages = defineMessages({
     ja: "必要なリージョンで利用できるオファーを選択してください。",
     pt: "Escolha uma oferta disponível para a região desejada.",
     zh: "选择所需区域中可用的方案。",
-    ar: "اختر عرضًا متاحًا للمنطقة التي تحتاجها.",
+    ar: "اختر باقة متاحة للمنطقة التي تحتاجها.",
   },
   "quotes.form.reviewTitle": {
     en: "Review your draft",
@@ -42,7 +42,7 @@ export const customerMessages = defineMessages({
     ja: "下書きを作成すると価格が計算されます。次に、保存済みの下書きを開いて見積書を作成し、発行します。注文を承諾する前に発行済みの見積もりを確認できます。",
     pt: "A criação do rascunho calcula seu preço. Depois, abra o rascunho salvo para preparar o documento e emitir a cotação. Você poderá revisá-la antes de aceitar um pedido.",
     zh: "创建草稿时将计算价格。随后打开已保存的草稿，准备文档并出具报价。接受订单前，您可以查看已出具的报价。",
-    ar: "يُحسب السعر عند إنشاء المسودة. بعد ذلك، افتح المسودة المحفوظة لتجهيز مستندها وإصدار عرض السعر. يمكنك مراجعة العرض الصادر قبل قبول الطلب.",
+    ar: "يُحسب السعر عند إنشاء المسودة. بعد ذلك، افتح المسودة المحفوظة لتجهيز مستندها وإصدار عرض السعر. يمكنك مراجعة عرض السعر الصادر قبل قبول الطلب.",
   },
   "quotes.form.expiryHelp": {
     en: "Use your local date and time.",
@@ -132,7 +132,7 @@ export const customerMessages = defineMessages({
     ja: "このページを更新して、最新の見積もりとアクセス権を確認してから、もう一度お試しください。",
     pt: "Atualize esta página para verificar a cotação e seu acesso e tente novamente.",
     zh: "请刷新此页面，检查最新报价和您的访问权限，然后重试。",
-    ar: "حدّث هذه الصفحة للتحقق من أحدث نسخة من عرض السعر وصلاحيات الوصول، ثم أعد المحاولة.",
+    ar: "حدّث هذه الصفحة للتحقق من أحدث نسخة من عرض السعر ومن صلاحية وصولك، ثم حاول مرة أخرى.",
   },
   "quotes.issue.pricingReview": {
     en: "This draft needs pricing review before it can be issued. Contact your Fil One team.",
@@ -152,7 +152,7 @@ export const customerMessages = defineMessages({
     ja: "見積書を確認できませんでした。見積もりは発行されていません。もう一度お試しください。",
     pt: "Não foi possível verificar o documento. Nenhuma cotação foi emitida. Tente novamente.",
     zh: "无法验证报价文档。未出具任何内容。请重试。",
-    ar: "تعذّر التحقق من مستند عرض السعر. لم يُصدر أي عرض سعر. أعد المحاولة.",
+    ar: "تعذّر التحقق من مستند عرض السعر. لم يُصدَر أي شيء. حاول مرة أخرى.",
   },
   "quotes.issue.rendering": {
     en: "The document is still being prepared. Continue this quote to check again.",
@@ -182,7 +182,7 @@ export const customerMessages = defineMessages({
     ja: "容量、期間、直接取引、有効期限",
     pt: "Capacidade, prazo, venda direta e validade",
     zh: "容量、期限、直销模式和有效期",
-    ar: "السعة والمدة والمسار المباشر وانتهاء الصلاحية",
+    ar: "السعة والمدة ومسار البيع المباشر وتاريخ الانتهاء",
   },
   "cp.commercial.quoteStages.2": {
     en: "Review and issue",
@@ -192,7 +192,7 @@ export const customerMessages = defineMessages({
     ja: "確認して発行",
     pt: "Revisar e emitir",
     zh: "核对并出具",
-    ar: "مراجعة وإصدار",
+    ar: "المراجعة والإصدار",
   },
   "cp.commercial.reviewIssue": {
     en: "Review and issue",
@@ -202,7 +202,7 @@ export const customerMessages = defineMessages({
     ja: "確認して発行",
     pt: "Revisar e emitir",
     zh: "核对并出具",
-    ar: "مراجعة وإصدار",
+    ar: "المراجعة والإصدار",
   },
   "cp.commercial.agreementAuthority": {
     en: "I confirm I am authorized to bind this legal entity to this agreement.",
@@ -292,7 +292,7 @@ export const customerMessages = defineMessages({
     ja: "決済プロバイダーのWebhookによる報告",
     pt: "Informado pelo webhook do provedor de pagamentos",
     zh: "由支付服务商的 Webhook 上报",
-    ar: "وفقًا لإشعار الويب هوك من مزوّد الدفع",
+    ar: "وفقًا لإشعار Webhook من مزوّد الدفع",
   },
   "cp.commercial.externalPayment": {
     en: "You will continue with the payment provider. The invoice is marked paid only after the provider confirms it.",
@@ -302,7 +302,7 @@ export const customerMessages = defineMessages({
     ja: "決済プロバイダーに移動します。プロバイダーの確認後にのみ、請求書は支払い済みと表示されます。",
     pt: "Você continuará com o provedor de pagamentos. A fatura só será marcada como paga após a confirmação do provedor.",
     zh: "您将转至支付服务商继续操作。只有在服务商确认后，发票才会标记为已付款。",
-    ar: "ستتابع لدى مزوّد الدفع. لن تُعلّم الفاتورة كمدفوعة إلا بعد تأكيد المزوّد.",
+    ar: "ستتابع لدى مزوّد الدفع. لا تُعلَّم الفاتورة مدفوعةً إلا بعد تأكيد المزوّد.",
   },
   "cp.commercial.confirmMutation": {
     en: "Review and confirm",
@@ -312,7 +312,7 @@ export const customerMessages = defineMessages({
     ja: "確認して確定",
     pt: "Revisar e confirmar",
     zh: "核对并确认",
-    ar: "مراجعة وتأكيد",
+    ar: "المراجعة والتأكيد",
   },
   "ui.115": {
     en: "Reason",
@@ -452,7 +452,7 @@ export const customerMessages = defineMessages({
     ja: "サービスを設定します。価格と承認判断の正規情報源はコマース API です。",
     pt: "Configure o serviço; a API comercial continua sendo a fonte dos preços e das aprovações.",
     zh: "配置服务；商务 API 仍是定价和审批决策的权威来源。",
-    ar: "اضبط الخدمة؛ تظل واجهة التجارة المصدر المعتمد للأسعار وقرارات الموافقة.",
+    ar: "اضبط الخدمة؛ تظل واجهة API التجارية المصدر المعتمد للأسعار وقرارات الموافقة.",
   },
   "quotes.builder.account.description": {
     en: "Account authorized for this session",
@@ -472,7 +472,7 @@ export const customerMessages = defineMessages({
     ja: "見積もり {reference} の改訂",
     pt: "Revisa a cotação {reference}",
     zh: "修订报价 {reference}",
-    ar: "مراجعة عرض السعر {reference}",
+    ar: "نسخة معدّلة من عرض السعر {reference}",
   },
   "quotes.builder.origin.poc": {
     en: "Converts proof of concept {reference}",
@@ -582,7 +582,7 @@ export const customerMessages = defineMessages({
     ja: "注文の受諾は、このアカウントの受諾済み見積もりから開始します。見積もり台帳で選択してください。",
     pt: "A aceitação do pedido começa por uma cotação emitida nesta conta. Escolha uma na lista de cotações.",
     zh: "订单接受须从此账户中已出具的报价开始。请从报价列表中选择。",
-    ar: "يبدأ قبول الطلب من عرض سعر مقبول لهذا الحساب. اختر عرضاً من سجل عروض الأسعار.",
+    ar: "يبدأ قبول الطلب من عرض سعر صادر في هذا الحساب. اختر عرض سعر من قائمة عروض الأسعار.",
   },
   "orders.accept.unavailable.action": {
     en: "Open the quote ledger",
@@ -592,7 +592,7 @@ export const customerMessages = defineMessages({
     ja: "見積もり台帳を開く",
     pt: "Abrir a lista de cotações",
     zh: "打开报价列表",
-    ar: "فتح سجل عروض الأسعار",
+    ar: "فتح قائمة عروض الأسعار",
   },
   "orders.accept.validation.po": {
     en: "Enter the purchase order reference.",
@@ -642,7 +642,7 @@ export const customerMessages = defineMessages({
     ja: "注文を作成しました。契約上の義務とプロビジョニング状態が正式に記録されました。",
     pt: "Pedido criado. O compromisso e o estado de provisionamento agora são oficiais.",
     zh: "订单已创建。其承诺和开通状态现在以此为准。",
-    ar: "تم إنشاء الطلب. أصبح الالتزام وحالة التهيئة مسجلين رسمياً.",
+    ar: "تم إنشاء الطلب. أصبح التزامه وحالة تهيئته هما المرجع المعتمد.",
   },
   "orders.accept.createdLink": {
     en: "Open the created order",
@@ -652,7 +652,7 @@ export const customerMessages = defineMessages({
     ja: "作成した注文を開く",
     pt: "Abrir o pedido criado",
     zh: "打开已创建订单",
-    ar: "فتح الطلب المنشأ",
+    ar: "فتح الطلب الجديد",
   },
   "orders.accept.prepared": {
     en: "Order form requested. Your commitment is created once that document is rendered and bound to the quote.",
@@ -742,7 +742,7 @@ export const customerMessages = defineMessages({
     ja: "請求書には元の注文と発注書、領収書、貸方票、経過期間、税務処理、支払方法が紐付きます。",
     pt: "As faturas incluem pedido e ordem de compra de origem, recibos, créditos, antiguidade, tratamento fiscal e meios de pagamento.",
     zh: "发票关联原始订单和采购订单，并包含收据、贷项、账龄、税务处理和支付渠道。",
-    ar: "تتضمن الفواتير الطلب وأمر الشراء الأصليين والإيصالات والإشعارات الدائنة وأعمار الديون والمعالجة الضريبية ووسائل الدفع.",
+    ar: "تتضمن الفواتير الطلب وأمر الشراء الأصليين والإيصالات والإشعارات الدائنة وأعمار الذمم المدينة والمعالجة الضريبية ووسائل الدفع.",
   },
   "billing.aging": {
     en: "Accounts receivable aging",
@@ -974,7 +974,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース・サービスの変更",
     pt: "Espaço do cliente · Alterações de serviço",
     zh: "客户工作区 · 服务变更",
-    ar: "مساحة العميل · تغييرات الخدمة",
+    ar: "مساحة عمل العميل · تغييرات الخدمة",
   },
   "customer.collection.amendments.title": {
     en: "Amendments",
@@ -1035,7 +1035,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース・商取引へのアクセス",
     pt: "Espaço do cliente · Acesso comercial",
     zh: "客户工作区 · 商务访问权限",
-    ar: "مساحة العميل · الوصول التجاري",
+    ar: "مساحة عمل العميل · الوصول التجاري",
   },
   "customer.collection.users.title": {
     en: "Users and access",
@@ -1116,7 +1116,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース・購買の準備状況",
     pt: "Espaço do cliente · Prontidão para compras",
     zh: "客户工作区 · 采购准备情况",
-    ar: "مساحة العميل · جاهزية الشراء",
+    ar: "مساحة عمل العميل · جاهزية الشراء",
   },
   "customer.collection.procurement.title": {
     en: "Procurement",
@@ -1156,7 +1156,7 @@ export const customerMessages = defineMessages({
     ja: "免税は、該当する管轄区域で有効な間のみ課税を免除します。",
     pt: "Uma isenção fiscal só suprime o imposto enquanto for válida na jurisdição aplicável.",
     zh: "免税资格仅在其对适用司法管辖区有效的期间内免除税款。",
-    ar: "لا يُلغي الإعفاء الضريبي الضريبة إلا ما دام ساريًا في الولاية القضائية المعنية.",
+    ar: "لا يُلغي الإعفاء الضريبي الضريبة إلا ما دام ساريًا في نطاق الاختصاص الضريبي المعني.",
   },
   "customer.collection.procurement.recordLabel": {
     en: "Requirement",
@@ -1187,7 +1187,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース・プロバイダー経由の購入",
     pt: "Espaço do cliente · Compras via provedores",
     zh: "客户工作区 · 通过服务商的采购",
-    ar: "مساحة العميل · المشتريات عبر المزوّدين",
+    ar: "مساحة عمل العميل · المشتريات عبر المزوّدين",
   },
   "customer.collection.marketplace.title": {
     en: "Marketplace purchases",
@@ -1278,7 +1278,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース・プロバイダーのサポート",
     pt: "Espaço do cliente · Suporte do provedor",
     zh: "客户工作区 · 服务商支持",
-    ar: "مساحة العميل · دعم المزوّد",
+    ar: "مساحة عمل العميل · دعم المزوّد",
   },
   "customer.collection.support.title": {
     en: "Support",
@@ -1379,7 +1379,7 @@ export const customerMessages = defineMessages({
     ja: "有効",
     pt: "Vigente",
     zh: "已生效",
-    ar: "ساري المفعول",
+    ar: "نافذ",
   },
   "customer.collection.status.closedNotAccepted": {
     en: "Closed · not accepted",
@@ -1459,7 +1459,7 @@ export const customerMessages = defineMessages({
     ja: "支払い保留中",
     pt: "Desembolso pendente",
     zh: "付款待处理",
-    ar: "صرف المستحقات معلّق",
+    ar: "صرف المستحقات قيد الانتظار",
   },
 
   "customer.collection.updated.updated": {
@@ -1611,7 +1611,7 @@ export const customerMessages = defineMessages({
     ja: "コミットメントなし",
     pt: "Sem compromisso",
     zh: "无承诺",
-    ar: "لا التزام",
+    ar: "دون التزام",
   },
   "customer.collection.value.taxFormYear": {
     en: "{year} form",
@@ -1903,7 +1903,7 @@ export const customerMessages = defineMessages({
     ja: "現在アクセス権なし",
     pt: "Sem acesso atual",
     zh: "当前无访问权限",
-    ar: "لا وصول حاليًا",
+    ar: "لا يوجد وصول حاليًا",
   },
   "customer.collection.context.mfaVerified": {
     en: "MFA verified",
@@ -1923,7 +1923,7 @@ export const customerMessages = defineMessages({
     ja: "MFA 未登録",
     pt: "MFA ainda não configurada",
     zh: "尚未注册 MFA",
-    ar: "لم يتم تسجيل MFA بعد",
+    ar: "لم يُفعَّل MFA بعد",
   },
   "customer.collection.context.removalRecorded": {
     en: "Removal recorded",
@@ -2024,7 +2024,7 @@ export const customerMessages = defineMessages({
     ja: "顧客ワークスペース",
     pt: "Espaço do cliente",
     zh: "客户工作区",
-    ar: "مساحة العميل",
+    ar: "مساحة عمل العميل",
   },
   "customer.account.title": {
     en: "Account settings",
@@ -2216,7 +2216,7 @@ export const customerMessages = defineMessages({
     ja: "データの取得、最終請求、保持の除外、撤去の権限を確認します。",
     pt: "Revise a recuperação de dados, o faturamento final, as exclusões de retenção e a autorização para o desmantelamento.",
     zh: "查看数据取回、最终账单、保留例外和拆除权限。",
-    ar: "راجع استرجاع البيانات والفوترة النهائية واستثناءات الاحتفاظ وصلاحية التفكيك.",
+    ar: "راجع استرجاع البيانات والفوترة النهائية واستبعادات الاحتفاظ وصلاحية التفكيك.",
   },
   "customer.account.areas.offboarding.meta": {
     en: "Confirmation required for every request",
@@ -2248,7 +2248,7 @@ export const customerMessages = defineMessages({
     ja: "まず取引上の期限に対応し、その後アカウントの状況を確認してください。",
     pt: "Atenda primeiro aos prazos comerciais e depois analise o desempenho da conta.",
     zh: "请先处理商务截止事项，再查看账户表现。",
-    ar: "تعامل أولًا مع المواعيد التجارية النهائية، ثم راجع أداء الحساب.",
+    ar: "ابدأ بالمواعيد التجارية المستحقة، ثم راجع أداء الحساب.",
   },
   "customer.dashboard.createQuote": {
     en: "Create quote",
@@ -2278,7 +2278,7 @@ export const customerMessages = defineMessages({
     ja: "対応が必要な項目",
     pt: "Requer atenção",
     zh: "待处理事项",
-    ar: "يتطلب المتابعة",
+    ar: "يحتاج إلى متابعة",
   },
   "customer.dashboard.attentionCount": {
     count: "count",
@@ -2334,7 +2334,7 @@ export const customerMessages = defineMessages({
     ja: "{time} 時点のアカウント情報",
     pt: "Dados da conta em {time}",
     zh: "截至 {time} 的账户信息",
-    ar: "بيانات الحساب حتى {time}",
+    ar: "بيانات الحساب كما في {time}",
   },
   "customer.dashboard.staleAsOf": {
     en: "Stale account facts from {time}",
@@ -2344,7 +2344,7 @@ export const customerMessages = defineMessages({
     ja: "{time} 時点のアカウント情報（最新ではありません）",
     pt: "Dados da conta desatualizados (de {time})",
     zh: "{time} 的账户信息（非最新）",
-    ar: "بيانات حساب غير محدّثة منذ {time}",
+    ar: "بيانات حساب غير محدّثة كما في {time}",
   },
   "customer.dashboard.noObligations": {
     en: "No open obligations",
@@ -2494,7 +2494,7 @@ export const customerMessages = defineMessages({
     ja: "使用量レポートはまだ連携されていません",
     pt: "O relatório de uso ainda não está conectado",
     zh: "用量报告尚未接入",
-    ar: "لم يتم ربط تقارير الاستخدام بعد",
+    ar: "لم تُربط تقارير الاستخدام بعد",
   },
   "customer.dashboard.usageNotConnectedBody": {
     en: "Committed capacity, current use, and the prior 30 days appear here once metered usage is reported for this account.",
@@ -2942,7 +2942,7 @@ export const customerMessages = defineMessages({
     ja: "設定はアカウントごとに保存され、テナント接続を通じて読み込まれますが、このデプロイにはランタイムデータベースが構成されていません。抑止されているアラートはありません。このアカウントが受け取るすべてのアラートは引き続き送信されています。",
     pt: "As preferências são armazenadas por conta e lidas pela conexão do locatário, e esta implantação não tem um banco de dados de execução configurado. Nada está sendo bloqueado: todos os alertas que esta conta receberia continuam sendo enviados.",
     zh: "偏好设置按账户存储并通过租户连接读取，而此部署未配置运行时数据库。没有任何提醒被屏蔽：此账户应收到的所有提醒仍在正常发送。",
-    ar: "تُخزَّن التفضيلات لكل حساب وتُقرأ عبر اتصال المستأجر، ولا توجد قاعدة بيانات تشغيل مهيأة في هذا النشر. لا يتم حجب أي شيء: كل التنبيهات التي يتلقاها هذا الحساب لا تزال تُرسَل.",
+    ar: "تُخزَّن التفضيلات لكل حساب وتُقرأ عبر اتصال المستأجر، ولا توجد قاعدة بيانات تشغيل مُعدّة في هذه البيئة. لا يُحجب أي شيء: كل التنبيهات التي يتلقاها هذا الحساب لا تزال تُرسَل.",
   },
   // ── Pay as you go and trials (customer)
   "customer.payg.eyebrow": {
@@ -3167,7 +3167,7 @@ export const customerMessages = defineMessages({
     },
     zh: { other: "{count} 天" },
     ar: {
-      zero: "لا أيام",
+      zero: "{count} يوم",
       one: "يوم واحد",
       two: "يومان",
       few: "{count} أيام",
@@ -3622,7 +3622,7 @@ export const customerMessages = defineMessages({
     ja: "申請 {id}",
     pt: "Solicitação {id}",
     zh: "申请 {id}",
-    ar: "الطلب {id}",
+    ar: "معرّف الطلب {id}",
   },
   "customer.payg.request.fingerprint": {
     en: "Offer evidence fingerprint: {fingerprint}",
@@ -3792,7 +3792,7 @@ export const customerMessages = defineMessages({
     ja: "この登録は現在有効ではないか、この組織に属していません。",
     pt: "A adesão não está vigente ou não pertence a esta organização.",
     zh: "该注册已失效或不属于此组织。",
-    ar: "الاشتراك غير ساري أو لا يخص هذه المؤسسة.",
+    ar: "الاشتراك غير سارٍ أو لا يخص هذه المؤسسة.",
   },
   "customer.payg.error.requestChanged": {
     en: "This request has already changed. Refresh before recording a decision.",

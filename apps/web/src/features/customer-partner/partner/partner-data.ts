@@ -309,7 +309,7 @@ const owners = {
     ja: "パートナー請求担当",
     pt: "Faturamento do parceiro",
     zh: "合作伙伴账单团队",
-    ar: "فريق فوترة الشريك",
+    ar: "فريق فوترة الشركاء",
   }),
   partnerFinance: demoText({
     en: "Partner finance",
@@ -319,7 +319,7 @@ const owners = {
     ja: "パートナー経理担当",
     pt: "Financeiro do parceiro",
     zh: "合作伙伴财务团队",
-    ar: "الفريق المالي للشريك",
+    ar: "فريق مالية الشركاء",
   }),
   partnerAdmin: demoText({
     en: "Partner admin",
@@ -329,7 +329,7 @@ const owners = {
     ja: "パートナー管理者",
     pt: "Administrador do parceiro",
     zh: "合作伙伴管理员",
-    ar: "مسؤول الشريك",
+    ar: "مشرف الشريك",
   }),
   filOneSupport: demoText({
     en: "Fil One support",
@@ -339,7 +339,7 @@ const owners = {
     ja: "Fil One サポート",
     pt: "Suporte da Fil One",
     zh: "Fil One 支持团队",
-    ar: "دعم Fil One",
+    ar: "فريق دعم Fil One",
   }),
 } as const;
 
@@ -468,7 +468,7 @@ const disputes: readonly PartnerFixture[] = [
       ja: "Halcyon のサービスクレジット",
       pt: "Crédito de serviço da Halcyon",
       zh: "Halcyon 服务抵扣金",
-      ar: "رصيد خدمة Halcyon",
+      ar: "رصيد تعويضي عن الخدمة · Halcyon",
     }),
     context: demoText({
       en: "Invoice line dispute · usage evidence attached",
@@ -832,7 +832,7 @@ const marketplace: readonly PartnerFixture[] = [
       ja: "Halcyon 向け AWS プライベートオファー",
       pt: "Oferta privada da AWS para a Halcyon",
       zh: "Halcyon 的 AWS 私有报价",
-      ar: "عرض خاص على AWS لصالح Halcyon",
+      ar: "عرض AWS الخاص لصالح Halcyon",
     }),
     context: demoText({
       en: "Resale · Fil One seller enrollment · Meridian commercial owner",
@@ -864,7 +864,7 @@ const marketplace: readonly PartnerFixture[] = [
       ja: "Atlas 向け Azure プライベートオファー",
       pt: "Oferta privada do Azure para a Atlas",
       zh: "Atlas 的 Azure 私有报价",
-      ar: "عرض خاص على Azure لصالح Atlas",
+      ar: "عرض Azure الخاص لصالح Atlas",
     }),
     context: demoText({
       en: "Two-tier preview · buyer has not accepted",
@@ -933,7 +933,7 @@ const brand: readonly PartnerFixture[] = [
       ja: "DNS 検証はドメイン管理者に委任",
       pt: "Verificação de DNS delegada ao administrador do domínio",
       zh: "DNS 验证已委托给域名管理员",
-      ar: "فُوِّض التحقق من DNS إلى مسؤول النطاق",
+      ar: "فُوِّض التحقق من DNS إلى مشرف النطاق",
     }),
     status: "blocked",
     risk: "medium",

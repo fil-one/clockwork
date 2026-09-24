@@ -12,7 +12,7 @@ export const commonMessages = defineMessages({
     ja: "容量、期間、有効期限",
     pt: "Capacidade, prazo e validade",
     zh: "容量、期限与有效期",
-    ar: "السعة والمدة والانتهاء",
+    ar: "السعة والمدة وتاريخ الانتهاء",
   },
   "quotes.form.stageReview": {
     en: "Review draft",
@@ -52,7 +52,7 @@ export const commonMessages = defineMessages({
     ja: "まだ記録がありません",
     pt: "Ainda não há nada aqui",
     zh: "暂无内容",
-    ar: "لا توجد بيانات بعد",
+    ar: "لا توجد سجلات بعد",
   },
   "cp.common.emptyBody": {
     en: "Records appear here as work starts on this account.",
@@ -202,7 +202,7 @@ export const commonMessages = defineMessages({
     ja: "保存せずに離れますか？",
     pt: "Sair sem salvar?",
     zh: "不保存就离开？",
-    ar: "المغادرة بدون حفظ؟",
+    ar: "هل تريد المغادرة دون حفظ؟",
   },
   "cp.common.unsavedBody": {
     en: "Nothing on this form has been sent to the server yet. Leaving discards everything entered here.",
@@ -222,7 +222,7 @@ export const commonMessages = defineMessages({
     ja: "破棄して離れる",
     pt: "Descartar e sair",
     zh: "丢弃并离开",
-    ar: "تجاهل والمغادرة",
+    ar: "تجاهل التغييرات والمغادرة",
   },
   "cp.common.unsavedKeep": {
     en: "Keep editing",
@@ -242,7 +242,7 @@ export const commonMessages = defineMessages({
     ja: "オファーとリージョン",
     pt: "Oferta e região",
     zh: "方案与区域",
-    ar: "العرض والمنطقة",
+    ar: "الباقة والمنطقة",
   },
   "cp.commercial.invoiceTruth": {
     en: "Invoiced amount",
@@ -292,7 +292,7 @@ export const commonMessages = defineMessages({
     ja: "プロビジョニング",
     pt: "Provisionamento",
     zh: "开通",
-    ar: "تهيئة الخدمات",
+    ar: "التهيئة",
   },
   "ui.16": {
     en: "stale",
@@ -302,7 +302,7 @@ export const commonMessages = defineMessages({
     ja: "更新が必要",
     pt: "desatualizado",
     zh: "非最新",
-    ar: "غير محدث",
+    ar: "غير محدّث",
   },
   "ui.30": {
     en: "Up to date",
@@ -312,7 +312,7 @@ export const commonMessages = defineMessages({
     ja: "最新",
     pt: "Atualizado",
     zh: "最新",
-    ar: "محدث",
+    ar: "محدّث",
   },
   "ui.53": {
     en: "Not recorded",
@@ -322,7 +322,7 @@ export const commonMessages = defineMessages({
     ja: "未記録",
     pt: "Não registrado",
     zh: "未记录",
-    ar: "غير مسجل",
+    ar: "غير مسجّل",
   },
   "ui.86": {
     en: "Search",
@@ -392,7 +392,7 @@ export const commonMessages = defineMessages({
     ja: "表示",
     pt: "Visualização",
     zh: "视图",
-    ar: "العرض",
+    ar: "طريقة العرض",
   },
   "ui.93": {
     en: "Rows per page",
@@ -632,7 +632,7 @@ export const commonMessages = defineMessages({
     ja: "対応する言語を選択して、もう一度お試しください。",
     pt: "Escolha um idioma disponível e tente novamente.",
     zh: "请选择支持的语言，然后重试。",
-    ar: "اختر لغة متاحة وحاول مرة أخرى.",
+    ar: "اختر لغة مدعومة وحاول مرة أخرى.",
   },
   "app.name": sameInAllLanguages("Fil One", "product name"),
   "demo.access.submit": {
@@ -653,7 +653,7 @@ export const commonMessages = defineMessages({
     ja: "リクエスト {id}",
     pt: "Solicitação {id}",
     zh: "请求 {id}",
-    ar: "الطلب {id}",
+    ar: "معرّف الطلب {id}",
   },
   "app.footer": {
     en: "Fil One commerce records are synchronized from the operating ledger.",
@@ -663,7 +663,7 @@ export const commonMessages = defineMessages({
     ja: "Fil One の取引記録は業務台帳と同期されます。",
     pt: "Os registros comerciais da Fil One são sincronizados a partir do registro operacional.",
     zh: "Fil One 商务记录同步自运营台账。",
-    ar: "تُزامَن سجلات Fil One التجارية مع السجل التشغيلي.",
+    ar: "تُزامَن سجلات Fil One التجارية من السجل التشغيلي.",
   },
   "nav.account": {
     en: "Account",
@@ -713,7 +713,7 @@ export const commonMessages = defineMessages({
     ja: "従量課金とトライアル",
     pt: "Pagamento por uso e períodos de teste",
     zh: "按量付费与试用",
-    ar: "الدفع حسب الاستخدام والتجارب",
+    ar: "الدفع حسب الاستخدام والفترات التجريبية",
   },
   "nav.group.organization": {
     en: "Organization",
@@ -743,7 +743,7 @@ export const commonMessages = defineMessages({
     ja: "再試行",
     pt: "Tentar novamente",
     zh: "重试",
-    ar: "المحاولة مجدداً",
+    ar: "إعادة المحاولة",
   },
   "action.returnHome": {
     en: "Return to your dashboard",
@@ -753,7 +753,7 @@ export const commonMessages = defineMessages({
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao painel",
     zh: "返回概览",
-    ar: "العودة إلى لوحة معلوماتك",
+    ar: "العودة إلى الصفحة الرئيسية",
   },
   "action.download": {
     en: "Download PDF",
@@ -783,7 +783,7 @@ export const commonMessages = defineMessages({
     ja: "案件を登録",
     pt: "Registrar oportunidade",
     zh: "报备商机",
-    ar: "تسجيل فرصة تجارية",
+    ar: "تسجيل فرصة",
   },
   "common.status": {
     en: "Status",
@@ -823,7 +823,7 @@ export const commonMessages = defineMessages({
     ja: "作成した下書きを開く",
     pt: "Abrir o rascunho criado",
     zh: "打开已创建的草稿",
-    ar: "فتح المسودة المنشأة",
+    ar: "فتح المسودة الجديدة",
   },
   "partner.detail.notRecorded": {
     en: "Not recorded",
@@ -833,7 +833,7 @@ export const commonMessages = defineMessages({
     ja: "未記録",
     pt: "Não registrado",
     zh: "未记录",
-    ar: "غير مسجل",
+    ar: "غير مسجّل",
   },
   "partner.detail.reference": {
     en: "Reference",
@@ -883,7 +883,7 @@ export const commonMessages = defineMessages({
     ja: "アドレスが変更されたか、このアカウントからレコードを閲覧できなくなった可能性があります。",
     pt: "O endereço pode ter mudado ou o registro pode não estar mais visível nesta conta.",
     zh: "地址可能已更改，或此账户已无法查看该记录。",
-    ar: "ربما تغير العنوان أو لم يعد السجل مرئياً لهذا الحساب.",
+    ar: "ربما تغير العنوان أو لم يعد السجل مرئيًا لهذا الحساب.",
   },
   "state.fatal.title": {
     en: "This action cannot continue",
@@ -903,7 +903,7 @@ export const commonMessages = defineMessages({
     ja: "再試行前に再読み込みして最新の記録を確認してください。問題が続く場合は、リクエスト ID を添えてサポートへ連絡してください。",
     pt: "Recarregue para conferir o registro atual antes de tentar novamente. Se o problema persistir, contate o suporte informando o ID da solicitação.",
     zh: "重试前请重新加载以检查最新记录。如问题持续，请提供请求 ID 联系支持。",
-    ar: "أعد التحميل للتحقق من أحدث سجل قبل المحاولة. إذا استمرت المشكلة فتواصل مع الدعم واذكر معرّف الطلب.",
+    ar: "أعد تحميل الصفحة للاطلاع على أحدث نسخة من السجل قبل المحاولة مرة أخرى. إذا استمرت المشكلة، فتواصل مع الدعم مع ذكر معرّف الطلب.",
   },
   "term.replica": {
     en: "Madrid compliance replica",
@@ -913,7 +913,7 @@ export const commonMessages = defineMessages({
     ja: "マドリードのコンプライアンスレプリカ",
     pt: "Réplica de conformidade de Madri",
     zh: "马德里合规副本",
-    ar: "نسخة الامتثال في مدريد",
+    ar: "النسخة المتماثلة للامتثال في مدريد",
   },
 
   "cp.commercial.quoteSummary": {
@@ -1729,7 +1729,7 @@ export const commonMessages = defineMessages({
     ja: "更新日時：{time}",
     pt: "Atualizado em {time}",
     zh: "更新于 {time}",
-    ar: "تاريخ التحديث: {time}",
+    ar: "آخر تحديث: {time}",
   },
   "common.updatedRelative": {
     en: "Updated {relative}",
@@ -1749,7 +1749,7 @@ export const commonMessages = defineMessages({
     ja: "{time} 時点",
     pt: "Em {time}",
     zh: "截至 {time}",
-    ar: "حتى {time}",
+    ar: "كما في {time}",
   },
   "common.readAt": {
     en: "Read {time}",

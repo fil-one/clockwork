@@ -76,7 +76,7 @@ export const platformMessages = defineMessages({
     ja: "デモ",
     pt: sameAsEnglish("Demo"),
     zh: "演示",
-    ar: "عرض تجريبي",
+    ar: "عرض توضيحي",
   },
   "app.verifyAuthentication": {
     en: "Verify identity for sensitive changes",
@@ -406,7 +406,7 @@ export const platformMessages = defineMessages({
     ja: "ログイン中の WorkOS ID でアクセスできる有効な組織を選択します。",
     pt: "Selecione uma organização ativa autorizada para sua identidade WorkOS.",
     zh: "选择当前 WorkOS 身份有权访问的一个已启用组织。",
-    ar: "اختر مؤسسة نشطة مصرحاً بها لهويتك المسجلة في WorkOS.",
+    ar: "اختر إحدى المؤسسات النشطة المصرّح بها لهويتك المسجَّل دخولها عبر WorkOS.",
   },
   "app.account.choose.empty.title": {
     en: "No authorized organizations",
@@ -426,7 +426,7 @@ export const platformMessages = defineMessages({
     ja: "この ID には有効なコマースメンバーシップがありません。組織管理者にアクセス権を依頼するか、別の ID でログインしてください。",
     pt: "Esta identidade não está vinculada a nenhuma organização ativa. Um administrador da organização pode conceder acesso, ou você pode sair e entrar com outra identidade.",
     zh: "此身份没有有效的商务成员资格。可由组织管理员授予访问权限，或退出登录后使用其他身份。",
-    ar: "لا تملك هذه الهوية عضوية تجارية نشطة. يمكن لمسؤول المؤسسة منح الوصول، أو يمكنك تسجيل الخروج واستخدام هوية أخرى.",
+    ar: "لا تملك هذه الهوية عضوية تجارية نشطة. يمكن لمشرف المؤسسة منح الوصول، أو يمكنك تسجيل الخروج واستخدام هوية أخرى.",
   },
   "app.profile": {
     en: "Open profile menu",
@@ -476,7 +476,7 @@ export const platformMessages = defineMessages({
     ja: "続行するには再度ログインしてください。下書きはこの端末に保存されています。",
     pt: "Entre novamente para continuar. Os rascunhos continuam salvos neste dispositivo.",
     zh: "请重新登录以继续。草稿仍保存在此设备上。",
-    ar: "سجّل الدخول مجدداً للمتابعة. لا تزال المسودات محفوظة على هذا الجهاز.",
+    ar: "سجّل الدخول مجددًا للمتابعة. لا تزال المسودات محفوظة على هذا الجهاز.",
   },
   "session.expired.action": {
     en: "Sign in again",
@@ -486,7 +486,7 @@ export const platformMessages = defineMessages({
     ja: "再ログイン",
     pt: "Entrar novamente",
     zh: "重新登录",
-    ar: "تسجيل الدخول مجدداً",
+    ar: "تسجيل الدخول مجددًا",
   },
   "session.mfa.title": {
     en: "One more verification",
@@ -536,7 +536,7 @@ export const platformMessages = defineMessages({
     ja: "組織を切り替えるか、所有者にコマースロールの更新を依頼してください。",
     pt: "Troque de organização ou peça a um proprietário que atualize sua função comercial.",
     zh: "请切换组织，或请所有者更新您的商务角色。",
-    ar: "بدّل المؤسسة أو اطلب من أحد المالكين تحديث دورك التجاري.",
+    ar: "بدّل المؤسسة أو اطلب من مالك الحساب تحديث دورك.",
   },
   "session.permission.action": {
     en: "Return to dashboard",
@@ -546,7 +546,7 @@ export const platformMessages = defineMessages({
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao painel",
     zh: "返回概览",
-    ar: "العودة إلى لوحة المعلومات",
+    ar: "العودة إلى الصفحة الرئيسية",
   },
   "nav.dashboard": {
     en: "Overview",
@@ -706,7 +706,7 @@ export const platformMessages = defineMessages({
     ja: "一括請求",
     pt: "Faturamento consolidado",
     zh: "合并账单",
-    ar: "الفوترة المجمّعة",
+    ar: "الفوترة الموحدة",
   },
   "nav.partner.commissions": {
     en: "Commissions",
@@ -776,7 +776,7 @@ export const platformMessages = defineMessages({
     ja: "パートナー支援",
     pt: "Recursos para parceiros",
     zh: "合作伙伴赋能",
-    ar: "موارد تمكين الشركاء",
+    ar: "تمكين الشركاء",
   },
   "nav.internal.search": {
     en: "Global search",
@@ -956,7 +956,7 @@ export const platformMessages = defineMessages({
     ja: "機能の有効化",
     pt: "Funcionalidades",
     zh: "功能开关",
-    ar: "الوظائف المفعّلة",
+    ar: "الإمكانيات",
   },
   "nav.internal.providers": {
     en: "Provider references",
@@ -1176,7 +1176,7 @@ export const platformMessages = defineMessages({
     ja: "契約期限と財務情報は別々に到着するため、準備できた部分から表示します。",
     pt: "Prazos contratuais e registros financeiros chegam separadamente; as seções disponíveis aparecem primeiro.",
     zh: "协议期限和财务记录独立加载；可用部分先显示。",
-    ar: "تصل مواعيد الاتفاقيات والسجلات المالية بشكل مستقل؛ فتظهر الأقسام المتاحة أولاً.",
+    ar: "تصل مواعيد الاتفاقيات والسجلات المالية بشكل مستقل؛ فتظهر الأقسام المتاحة أولًا.",
   },
   "state.empty.title": {
     en: "No records yet",
@@ -1196,7 +1196,7 @@ export const platformMessages = defineMessages({
     ja: "見積もりから始めましょう。他の記録はそこから作成されます。",
     pt: "Comece por uma cotação. Todo o resto parte dela.",
     zh: "从报价开始，其他流程由此展开。",
-    ar: "ابدأ بعرض سعر. كل ما بعده ينطلق منه.",
+    ar: "ابدأ بعرض سعر، فكل ما يليه يُبنى عليه.",
   },
   "state.partial.title": {
     en: "Usage is temporarily delayed",
@@ -1236,7 +1236,7 @@ export const platformMessages = defineMessages({
     ja: "不変文書、監査イベント、通知がまとめて作成されました。",
     pt: "O documento imutável, o evento de auditoria e a notificação foram criados juntos.",
     zh: "不可变文档、审计事件和通知已一并创建。",
-    ar: "تم إنشاء المستند غير القابل للتغيير وحدث التدقيق والإشعار معاً.",
+    ar: "تم إنشاء المستند غير القابل للتغيير وحدث التدقيق والإشعار معًا.",
   },
   "state.validation.title": {
     en: "Review the highlighted value",
@@ -1316,7 +1316,7 @@ export const platformMessages = defineMessages({
     ja: "契約条件で拒否された場合、前の値に戻り、説明にフォーカスが移動します。",
     pt: "Se o servidor rejeitar a alteração, o valor anterior será restaurado e o foco irá para a explicação.",
     zh: "若服务端校验拒绝此更改，将恢复原值，并将焦点移至说明。",
-    ar: "إذا رفضته قواعد العقد، تُستعاد القيمة السابقة وينتقل التركيز إلى التوضيح.",
+    ar: "إذا رفضه الخادم، تُستعاد القيمة السابقة وينتقل التركيز إلى التوضيح.",
   },
   "states.offline.title": {
     en: "Saved for reconnection",
@@ -1420,7 +1420,7 @@ export const platformMessages = defineMessages({
     ja: "このアカウントの承認済みメンバーではありません。",
     pt: "Você não é um membro autorizado dessa conta.",
     zh: "您不是该账户的授权成员。",
-    ar: "لست عضواً مصرحاً له في هذا الحساب.",
+    ar: "لست عضوًا مصرحًا له في هذا الحساب.",
   },
   "platform.shell.switch.denied": {
     en: "The organization switch was refused. Your session is unchanged.",
@@ -1525,7 +1525,7 @@ export const platformMessages = defineMessages({
       one: "انقضى {percent} من المدة، ومضى يوم واحد على بدايتها",
       two: "انقضى {percent} من المدة، ومضى يومان على بدايتها",
       few: "انقضى {percent} من المدة، ومضت {days} أيام على بدايتها",
-      many: "انقضى {percent} من المدة، ومضى {days} يوماً على بدايتها",
+      many: "انقضى {percent} من المدة، ومضى {days} يومًا على بدايتها",
       other: "انقضى {percent} من المدة، ومضى {days} يوم على بدايتها",
     },
   },
@@ -1555,7 +1555,7 @@ export const platformMessages = defineMessages({
       one: "يتبقى يوم واحد",
       two: "يتبقى يومان",
       few: "تتبقى {days} أيام",
-      many: "يتبقى {days} يوماً",
+      many: "يتبقى {days} يومًا",
       other: "يتبقى {days} يوم",
     },
   },
@@ -1677,7 +1677,7 @@ export const platformMessages = defineMessages({
     ja: "試行回数が多すぎます。10分待ってから、もう一度お試しください。",
     pt: "Muitas tentativas. Aguarde dez minutos antes de tentar novamente.",
     zh: "尝试次数过多。请等待 10 分钟后重试。",
-    ar: "محاولات كثيرة جداً. انتظر عشر دقائق قبل المحاولة مرة أخرى.",
+    ar: "محاولات كثيرة جدًا. انتظر عشر دقائق قبل المحاولة مرة أخرى.",
   },
   "platform.mfa.error.invalid": {
     en: "That code was not accepted. Enter the current code from your authenticator app.",
@@ -1697,7 +1697,7 @@ export const platformMessages = defineMessages({
     ja: "現在、確認を行えません。しばらくしてから再試行するか、もう一度ログインしてください。",
     pt: "A verificação está indisponível. Tente novamente em instantes ou entre novamente.",
     zh: "验证暂不可用。请稍后重试或重新登录。",
-    ar: "التحقق غير متاح حالياً. حاول مرة أخرى بعد قليل أو سجّل الدخول مجدداً.",
+    ar: "التحقق غير متاح حاليًا. حاول مرة أخرى بعد قليل أو سجّل الدخول مجددًا.",
   },
   "platform.mfa.code": {
     en: "Authenticator code",
@@ -1847,7 +1847,7 @@ export const platformMessages = defineMessages({
     ja: "現在、サービスを利用できません。しばらくしてから、もう一度お試しください。",
     pt: "O serviço está indisponível no momento. Tente novamente em instantes.",
     zh: "服务暂时不可用。请稍后重试。",
-    ar: "الخدمة غير متاحة حالياً. حاول مرة أخرى بعد قليل.",
+    ar: "الخدمة غير متاحة حاليًا. حاول مرة أخرى بعد قليل.",
   },
   "platform.api.unreachable": {
     en: "The service could not be reached. Check your connection and try again.",
@@ -1887,7 +1887,7 @@ export const platformMessages = defineMessages({
     ja: "この変更には、最近のサインインとフォームのセキュリティトークンが必要です。ページを再読み込みして、もう一度お試しください。",
     pt: "Esta alteração exige um login recente e um token de segurança do formulário. Atualize a página e tente novamente.",
     zh: "此更改需要近期登录并提供表单安全令牌。请刷新页面后重试。",
-    ar: "يتطلب هذا التغيير تسجيل دخول حديثاً ورمز أمان للنموذج. حدّث الصفحة وحاول مرة أخرى.",
+    ar: "يتطلب هذا التغيير تسجيل دخول حديثًا ورمز أمان للنموذج. حدّث الصفحة وحاول مرة أخرى.",
   },
   "platform.api.gate.conflict": {
     en: "This external gate changed on the server. Reload before trying again.",
@@ -2017,7 +2017,7 @@ export const platformMessages = defineMessages({
     ja: "署名を検証しました。締結済みの文書と完了証明書は契約の記録に保存されています。",
     pt: "Assinatura verificada. O documento firmado e o certificado de conclusão agora constam no registro do acordo.",
     zh: "签名已验证。已签订的文件和完成证书现已保存在协议记录中。",
-    ar: "تم التحقق من التوقيع. أصبح المستند المبرم وشهادة الإكمال في سجل الاتفاقية.",
+    ar: "تم التحقق من التوقيع. أصبحت نسخة الاتفاقية المُبرَمة وشهادة الإكمال ضمن سجل الاتفاقية.",
   },
   "signing.agreementId": {
     en: "Agreement ID",
@@ -2207,7 +2207,7 @@ export const platformMessages = defineMessages({
     ja: "契約が選択されていません",
     pt: "Escolha um acordo primeiro",
     zh: "请先选择协议",
-    ar: "اختر اتفاقية أولاً",
+    ar: "اختر اتفاقية أولًا",
   },
   "signing.choose.description": {
     en: "Signing starts from an agreement record you are authorized to open, so the server can select the exact document version.",
@@ -2227,7 +2227,7 @@ export const platformMessages = defineMessages({
     ja: "デモ署名サービス",
     pt: "Serviço de assinatura de demonstração",
     zh: "演示签署服务",
-    ar: "خدمة التوقيع التجريبية",
+    ar: "خدمة التوقيع للعرض التوضيحي",
   },
   "signing.demo.title": {
     en: "Sign document",
@@ -2247,7 +2247,7 @@ export const platformMessages = defineMessages({
     ja: "このサービスは電子署名プロバイダーの代わりです。ここで署名するとエンベロープが完了し、実際の戻り処理の照合を行う Fil One に戻ります。",
     pt: "Este serviço substitui o provedor de assinatura eletrônica. Ao assinar aqui, o envelope é concluído e você volta para a Fil One, onde ocorre a conciliação real do retorno.",
     zh: "此服务代替电子签署服务商。在此签署后，信封即完成，并返回 Fil One 执行真实的返回结果对账。",
-    ar: "تحلّ هذه الخدمة محلّ مزوّد التوقيع الإلكتروني. يؤدي التوقيع هنا إلى إكمال مظروف التوقيع وإعادتك إلى Fil One حيث تُجرى المطابقة الفعلية للرد.",
+    ar: "تحلّ هذه الخدمة محلّ مزوّد التوقيع الإلكتروني. يؤدي التوقيع هنا إلى إكمال مظروف التوقيع وإعادتك إلى Fil One، حيث تجري المطابقة الفعلية لنتيجة التوقيع.",
   },
   "signing.demo.document": {
     en: "Document",
@@ -2357,7 +2357,7 @@ export const platformMessages = defineMessages({
     ja: "署名プロバイダーが承認済みリスト外のアドレスを返したため、開いていません。",
     pt: "O provedor de assinatura retornou um endereço fora da lista aprovada, por isso ele não foi aberto.",
     zh: "签署服务商返回的地址不在批准列表中，因此未打开。",
-    ar: "أعاد مزوّد التوقيع عنواناً خارج القائمة المعتمدة، لذا لم يُفتح.",
+    ar: "أعاد مزوّد التوقيع عنوانًا خارج القائمة المعتمدة، لذا لم يُفتح.",
   },
   "platform.registration.eyebrow": {
     en: "Registration",
@@ -2387,7 +2387,7 @@ export const platformMessages = defineMessages({
     ja: "法人、請求担当者、会社のドメインを入力してください。アカウントを作成する前に、サーバーが WorkOS のワンタイムコードを引き換え、会社のドメインと異なるドメインの勤務先メールアドレスを拒否します。",
     pt: "Informe a pessoa jurídica, os contatos de faturamento e o domínio da empresa. Antes de criar qualquer conta, o servidor troca o código de uso único do WorkOS e rejeita o e-mail corporativo cujo domínio seja diferente do domínio da empresa.",
     zh: "请填写法律实体、账单联系人和企业域名。创建任何账户之前，服务器会先验证 WorkOS 一次性代码，并拒绝域名与企业域名不一致的工作邮箱。",
-    ar: "أدخل الكيان القانوني وجهات اتصال الفوترة ونطاق الشركة. قبل إنشاء أي حساب، يستبدل الخادم الرمز الصالح لمرة واحدة من WorkOS ويرفض أي بريد إلكتروني للعمل يختلف نطاقه عن نطاق الشركة.",
+    ar: "أدخل الكيان القانوني وجهات اتصال الفوترة ونطاق الشركة. قبل إنشاء أي حساب، يتحقق الخادم من رمز WorkOS الصالح لمرة واحدة ويرفض أي بريد عمل يختلف نطاقه عن نطاق الشركة.",
   },
   "platform.registration.tokenReceived": {
     en: "Verified sign-up details received. The one-time code has been removed from the address bar.",
@@ -2477,7 +2477,7 @@ export const platformMessages = defineMessages({
     ja: "確認済みの勤務先メールアドレス",
     pt: "E-mail corporativo verificado",
     zh: "已验证的工作邮箱",
-    ar: "البريد الإلكتروني للعمل الموثّق",
+    ar: "بريد العمل الإلكتروني الموثَّق",
   },
   "platform.registration.businessDomain": {
     en: "Business domain",
@@ -2497,7 +2497,7 @@ export const platformMessages = defineMessages({
     ja: "WorkOS で確認済みの勤務先メールアドレスのドメインと一致している必要があります。",
     pt: "Deve corresponder ao domínio do e-mail corporativo verificado pelo WorkOS.",
     zh: "必须与经 WorkOS 验证的工作邮箱域名一致。",
-    ar: "يجب أن يطابق نطاق البريد الإلكتروني للعمل الذي وثّقته WorkOS.",
+    ar: "يجب أن يطابق نطاق بريد العمل الذي وثّقته WorkOS.",
   },
   "platform.registration.country": {
     en: "Country",
@@ -2617,7 +2617,7 @@ export const platformMessages = defineMessages({
     ja: "課税管轄国",
     pt: "Jurisdição fiscal",
     zh: "税务管辖地",
-    ar: "الولاية الضريبية",
+    ar: "الاختصاص الضريبي",
   },
   "platform.registration.taxJurisdictionHelp": {
     en: "Two-letter country code, such as ES or GB.",
@@ -2647,7 +2647,7 @@ export const platformMessages = defineMessages({
     ja: "買掛金担当者の名前とメールアドレスは、両方入力するか両方とも空欄にしてください。",
     pt: "Informe o nome e o e-mail do contato de contas a pagar, ou deixe os dois em branco.",
     zh: "请同时填写应付账款联系人的姓名和邮箱，或两者都留空。",
-    ar: "أدخل اسم مسؤول الحسابات الدائنة وبريده الإلكتروني معاً، أو اترك الحقلين فارغين.",
+    ar: "أدخل اسم مسؤول الحسابات الدائنة وبريده الإلكتروني معًا، أو اترك الحقلين فارغين.",
   },
   "platform.registration.taxPair": {
     en: "Enter both the tax jurisdiction and the tax ID, or leave both blank.",
@@ -2657,7 +2657,7 @@ export const platformMessages = defineMessages({
     ja: "課税管轄国と税務識別番号は、両方入力するか両方とも空欄にしてください。",
     pt: "Informe a jurisdição fiscal e o número de identificação fiscal, ou deixe os dois em branco.",
     zh: "请同时填写税务管辖地和税号，或两者都留空。",
-    ar: "أدخل الولاية الضريبية والرقم الضريبي معاً، أو اترك الحقلين فارغين.",
+    ar: "أدخل الاختصاص الضريبي والرقم الضريبي معًا، أو اترك الحقلين فارغين.",
   },
   "platform.registration.failed": {
     en: "Registration failed. No organization was created.",
@@ -2717,7 +2717,7 @@ export const platformMessages = defineMessages({
     ja: "組織の記録を WorkOS と連携しています。サインインに進むことはできますが、連携が完了するまでアクセスはできません。",
     pt: "O registro da sua organização está sendo vinculado ao WorkOS. Você pode continuar para o login, mas o acesso permanece bloqueado até que o vínculo seja concluído.",
     zh: "正在将您的组织记录与 WorkOS 关联。您可以继续登录，但关联完成之前将无法访问。",
-    ar: "يجري ربط سجل مؤسستك بمنصة WorkOS. يمكنك متابعة تسجيل الدخول، لكن الوصول يظل مغلقاً حتى يكتمل الربط.",
+    ar: "يجري ربط سجل مؤسستك بمنصة WorkOS. يمكنك متابعة تسجيل الدخول، لكن الوصول يظل مغلقًا حتى يكتمل الربط.",
   },
   "platform.registration.accepted.continue": {
     en: "Continue to sign in",
@@ -2747,7 +2747,7 @@ export const platformMessages = defineMessages({
     ja: "この決定は上記の識別子に紐付けて記録されます。",
     pt: "Esta decisão é registrada com os identificadores acima.",
     zh: "此决定将关联上述标识符进行记录。",
-    ar: "يُسجَّل هذا القرار مقترناً بالمعرّفات أعلاه.",
+    ar: "يُسجَّل هذا القرار مقترنًا بالمعرّفات أعلاه.",
   },
   "workflow.confirm.detail": {
     en: "Check the record identifiers, the reason, and the evidence reference. A decline, rejection, or teardown request closes the current commercial path; only a new decision reopens it.",
@@ -2757,7 +2757,7 @@ export const platformMessages = defineMessages({
     ja: "記録の識別子、理由、証跡の参照を確認してください。辞退、却下、撤去の申請を行うと現在の取引経路は閉じられ、再開するには新たな決定が必要です。",
     pt: "Confira os identificadores do registro, o motivo e a referência da evidência. Uma recusa, uma rejeição ou uma solicitação de desmantelamento encerra o caminho comercial atual; somente uma nova decisão o reabre.",
     zh: "请核对记录标识符、理由和证据编号。拒绝、驳回或拆除请求会关闭当前商务路径；只有新的决定才能重新开启。",
-    ar: "تحقّق من معرّفات السجل والسبب ومرجع الدليل. يؤدي الرفض أو الردّ أو طلب التفكيك إلى إغلاق المسار التجاري الحالي، ولا يُعاد فتحه إلا بقرار جديد.",
+    ar: "تحقّق من معرّفات السجل والسبب ومرجع الدليل. يؤدي رفض الطرف المقابل أو رفض الموافِق أو طلب التفكيك إلى إغلاق المسار التجاري الحالي، ولا يُعاد فتحه إلا بقرار جديد.",
   },
   "workflow.confirm.cancel": {
     en: "Keep the record unchanged",
@@ -2959,7 +2959,7 @@ export const platformMessages = defineMessages({
     ja: "契約更新の決定を保存しました。ポートフォリオの記録に保留中の結果が表示されています。",
     pt: "A decisão de renovação foi salva. O registro do portfólio agora mostra o resultado pendente.",
     zh: "续约决定已保存。组合记录现在显示待定结果。",
-    ar: "تم حفظ قرار التجديد. يعرض سجل المحفظة الآن النتيجة المعلّقة.",
+    ar: "تم حفظ قرار التجديد. يعرض سجل العميل النهائي الآن النتيجة المعلّقة.",
   },
   "platform.workflow.success.request": {
     en: "Request accepted. The server record is now the source of truth.",
@@ -3143,7 +3143,7 @@ export const platformMessages = defineMessages({
     ja: "ワークロード",
     pt: "Carga de trabalho",
     zh: "工作负载",
-    ar: "عبء العمل",
+    ar: "حمل العمل",
   },
   "platform.workflow.poc.workload.default": {
     en: "Immutable archive validation",
@@ -3435,7 +3435,7 @@ export const platformMessages = defineMessages({
     ja: "辞退する場合のみ必須です。サーバーはこのドキュメントを辞退権限の証跡として記録します。",
     pt: "Obrigatório apenas ao recusar. O servidor registra este documento como evidência da autoridade para a recusa.",
     zh: "仅在拒绝时必填。服务器会将此文件记录为拒绝决定的授权证据。",
-    ar: "مطلوب فقط عند الرفض. يسجّل الخادم هذا المستند دليلاً على صلاحية الرفض.",
+    ar: "مطلوب فقط عند الرفض. يسجّل الخادم هذا المستند دليلًا على صلاحية الرفض.",
   },
   "platform.workflow.renewal.attestation": {
     en: "I am authorized to submit this renewal decision",
@@ -3549,7 +3549,7 @@ export const platformMessages = defineMessages({
     ja: "承認",
     pt: "Aprovar",
     zh: "批准",
-    ar: "الموافقة على الاستثناء",
+    ar: "الموافقة",
   },
   "platform.workflow.approval.decision.reject": {
     en: "Reject",
@@ -3559,7 +3559,7 @@ export const platformMessages = defineMessages({
     ja: "却下",
     pt: "Rejeitar",
     zh: "驳回",
-    ar: "ردّ الاستثناء",
+    ar: "الرفض",
   },
   "platform.workflow.approval.reason": {
     en: "Reason for the decision",
@@ -3641,7 +3641,7 @@ export const platformMessages = defineMessages({
     ja: "発注書が必要",
     pt: "É obrigatória uma ordem de compra",
     zh: "需要采购订单",
-    ar: "يلزم أمر شراء",
+    ar: "مطلوب أمر شراء",
   },
 
   // Invitation.
@@ -3765,7 +3765,7 @@ export const platformMessages = defineMessages({
     ja: "双方署名",
     pt: "Com contra-assinatura",
     zh: "双方签署",
-    ar: "بتوقيع مقابل",
+    ar: "بتوقيع الطرفين",
   },
   "platform.workflow.agreement.approvalEvidenceDocumentId": {
     en: "Approval evidence document ID",
@@ -3817,7 +3817,7 @@ export const platformMessages = defineMessages({
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
     zh: "续约与流失风险敞口",
-    ar: "مخاطر التجديد وفقدان العملاء",
+    ar: "التعرض لمخاطر التجديد وفقدان العملاء",
   },
   "platform.workflow.report.partnerPerformance": {
     en: "Partner performance",
@@ -3837,7 +3837,7 @@ export const platformMessages = defineMessages({
     ja: "ファネルのサイクルタイム",
     pt: "Tempo de ciclo do funil",
     zh: "漏斗周期时长",
-    ar: "مدة دورة المبيعات",
+    ar: "مدة دورة مسار المبيعات",
   },
   "platform.workflow.report.marginPocCost": {
     en: "Margin and POC cost",
@@ -3857,7 +3857,7 @@ export const platformMessages = defineMessages({
     ja: "ARR と MRR",
     pt: "ARR e MRR",
     zh: "ARR 与 MRR",
-    ar: "الإيرادات السنوية والشهرية المتكررة",
+    ar: "الإيرادات المتكررة السنوية والشهرية (ARR وMRR)",
   },
   "platform.workflow.report.billingCollections": {
     en: "Billing and collections",
@@ -3928,7 +3928,7 @@ export const platformMessages = defineMessages({
     ja: "このシステムが何を行っているかを、ご自身で確認できる形で示します。",
     pt: "O que este sistema faz, descrito de forma que você possa verificar.",
     zh: "本系统的实际做法，均以可供您核实的方式列出。",
-    ar: "ما يفعله هذا النظام، مبيَّناً بطريقة تتيح لك التحقق منه.",
+    ar: "ما يفعله هذا النظام، مبيَّنًا بطريقة تتيح لك التحقق منه.",
   },
   "platform.trust.metaDescription": {
     en: "The security, privacy and compliance controls this system implements, each citing the source that shows it, and a plain statement of what is not claimed.",
@@ -3938,7 +3938,7 @@ export const platformMessages = defineMessages({
     ja: "このシステムが実装しているセキュリティ、プライバシー、コンプライアンスのコントロールと、それぞれを示すソース、そして主張していないことの明確な説明。",
     pt: "Os controles de segurança, privacidade e conformidade que este sistema implementa, cada um com a fonte que o comprova, e uma declaração clara do que não é afirmado.",
     zh: "本系统实施的安全、隐私与合规控制措施，每项均附有证明来源，并明确说明哪些内容不作声明。",
-    ar: "ضوابط الأمان والخصوصية والامتثال التي يطبقها هذا النظام، مع المصدر الذي يثبت كلاً منها، وبيان واضح لما لا يُدّعى.",
+    ar: "ضوابط الأمان والخصوصية والامتثال التي يطبقها هذا النظام، مع المصدر الذي يثبت كلًا منها، وبيان واضح لما لا يُدّعى.",
   },
   "platform.trust.lede.checks": {
     en: "Every control below names a file in the product source and a piece of text that must appear in it. The build checks four things about that citation, and this is the complete list: the file exists; it still contains the cited text; the cited text appears in no more than {share} of the repository’s files, so that it names one implementation rather than a word that occurs everywhere; and any number of two or more digits that the control states appears somewhere in a file the control cites.",
@@ -3948,7 +3948,7 @@ export const platformMessages = defineMessages({
     ja: "以下の各コントロールは、製品のソースコード内のファイルと、そのファイルに含まれていなければならないテキストを示しています。ビルドはこの引用について4つの点を確認します。確認するのは次の項目だけです。ファイルが存在すること。引用したテキストが今も含まれていること。引用したテキストがリポジトリのファイルの {share} 以下にしか現れず、どこにでも出てくる語ではなく1つの実装を指していること。コントロールに記載された2桁以上の数値が、そのコントロールが引用するいずれかのファイルに現れること。",
     pt: "Cada controle abaixo indica um arquivo do código-fonte do produto e um trecho de texto que deve aparecer nele. O build verifica quatro coisas sobre essa citação, e esta é a lista completa: o arquivo existe; ele ainda contém o texto citado; o texto citado aparece em no máximo {share} dos arquivos do repositório, de modo que identifica uma única implementação, e não uma palavra que aparece em todo lugar; e todo número de dois ou mais dígitos que o controle declara aparece em algum arquivo citado pelo controle.",
     zh: "下文每项控制措施都指明产品源代码中的一个文件，以及该文件中必须出现的一段文本。构建过程会对该引用检查四项内容，完整清单如下：文件存在；文件仍包含所引用的文本；所引用的文本出现在不超过 {share} 的代码库文件中，从而指向某一具体实现，而不是随处可见的词；控制措施中陈述的任何两位及以上的数字，都出现在该控制措施所引用的某个文件中。",
-    ar: "يحدد كل ضابط أدناه ملفاً في الشيفرة المصدرية للمنتج ونصاً يجب أن يرد فيه. ويتحقق البناء من أربعة أمور بشأن هذا الاستشهاد، وهذه هي القائمة الكاملة: أن الملف موجود؛ وأنه لا يزال يحتوي على النص المُستشهَد به؛ وأن النص المُستشهَد به لا يظهر في أكثر من {share} من ملفات المستودع، بحيث يدل على تنفيذ واحد لا على كلمة ترد في كل مكان؛ وأن أي عدد من خانتين أو أكثر يذكره الضابط يظهر في ملف ما يستشهد به الضابط.",
+    ar: "يحدد كل ضابط أدناه ملفًا في الشيفرة المصدرية للمنتج ونصًا يجب أن يرد فيه. ويتحقق البناء من أربعة أمور بشأن هذا الاستشهاد، وهذه هي القائمة الكاملة: أن الملف موجود؛ وأنه لا يزال يحتوي على النص المُستشهَد به؛ وأن النص المُستشهَد به لا يظهر في أكثر من {share} من ملفات المستودع، بحيث يدل على تنفيذ واحد لا على كلمة ترد في كل مكان؛ وأن أي عدد من خانتين أو أكثر يذكره الضابط يظهر في ملف ما يستشهد به الضابط.",
   },
   "platform.trust.lede.numbers": {
     en: "That last check is weaker than it sounds. It matches a number as plain text anywhere in the cited file, so a match can be a coincidence: a “24” in a control can be satisfied by an unrelated “24” in the code. It does not see a quantity written as a single digit or spelled out as a word, so “rotated every ninety days” is not checked at all. We tested this by writing fabricated controls designed to slip past it, and they did.",
@@ -3958,7 +3958,7 @@ export const platformMessages = defineMessages({
     ja: "最後の確認は、見た目ほど強力ではありません。引用先ファイルのどこかに数値がテキストとして含まれていれば一致とみなすため、偶然の一致もありえます。コントロール中の「24」が、コード中の無関係な「24」で満たされることもあります。1桁で書かれた数量や文字で書かれた数量は検出できないため、「九十日ごとにローテーション」のような記述はまったく確認されません。この確認をすり抜けるように作った架空のコントロールで試したところ、実際にすり抜けました。",
     pt: "Essa última verificação é mais fraca do que parece. Ela procura o número como texto simples em qualquer parte do arquivo citado, então uma correspondência pode ser coincidência: um “24” em um controle pode ser satisfeito por um “24” sem relação no código. Ela não detecta uma quantidade escrita com um único dígito ou por extenso, então “rotação a cada noventa dias” não é verificado de forma alguma. Testamos isso escrevendo controles fictícios feitos para escapar dela, e eles escaparam.",
     zh: "最后一项检查比听起来要弱。它只在所引用的文件中按纯文本查找数字，因此匹配可能纯属巧合：控制措施中的“24”可能被代码中毫不相关的“24”满足。它无法识别用单个数字书写或用文字写出的数量，因此“每九十天轮换一次”这样的表述根本不会被检查。我们曾专门编写虚构的控制措施来绕过这项检查，结果确实绕过了。",
-    ar: "هذا الفحص الأخير أضعف مما يبدو. فهو يطابق العدد نصاً عادياً في أي موضع من الملف المُستشهَد به، لذا قد تكون المطابقة مصادفة: فقد يستوفي العددَ «24» في ضابطٍ ما عددُ «24» لا علاقة له في الشيفرة. ولا يلتقط كمية مكتوبة برقم واحد أو بالحروف، لذا لا يُفحص تعبير مثل «التدوير كل تسعين يوماً» إطلاقاً. وقد اختبرنا ذلك بكتابة ضوابط مختلَقة مصمَّمة للإفلات منه، فأفلتت.",
+    ar: "هذا الفحص الأخير أضعف مما يبدو. فهو يطابق العدد نصًا عاديًا في أي موضع من الملف المُستشهَد به، لذا قد تكون المطابقة مصادفة: فقد يستوفي العددَ «24» في ضابطٍ ما عددُ «24» لا علاقة له في الشيفرة. ولا يلتقط كمية مكتوبة برقم واحد أو بالحروف، لذا لا يُفحص تعبير مثل «التدوير كل تسعين يومًا» إطلاقًا. وقد اختبرنا ذلك بكتابة ضوابط مختلَقة مصمَّمة للإفلات منه، فأفلتت.",
   },
   "platform.trust.lede.judgement": {
     en: "What the build cannot check at all is whether the sentence is a fair description of the code it points at. A control worded loosely, or worded tightly around numbers the check cannot see, would pass all four checks. That fit is a human judgement, made by whoever writes the entry and whoever reviews the change, and it is the part you are trusting us on rather than checking. The four checks are evidence that the control is written down, not evidence that anyone outside this company has examined it.",
@@ -3968,7 +3968,7 @@ export const platformMessages = defineMessages({
     ja: "ビルドでまったく確認できないのは、その文が参照先のコードを正しく説明しているかどうかです。あいまいに書かれたコントロールや、確認で検出できない数値に合わせて巧みに書かれたコントロールは、4つの確認すべてを通過します。その対応関係は人による判断であり、エントリーを書く人と変更をレビューする人が行います。これは、お客様がご自身で確認するのではなく、当社を信頼していただく部分です。4つの確認は、コントロールが記述されていることの証跡であって、社外の誰かが精査したことの証跡ではありません。",
     pt: "O que o build não consegue verificar de forma alguma é se a frase descreve com fidelidade o código a que se refere. Um controle redigido de forma vaga, ou redigido sob medida em torno de números que a verificação não enxerga, passaria nas quatro verificações. Essa correspondência é um julgamento humano, feito por quem escreve a entrada e por quem revisa a alteração, e é a parte em que você confia em nós em vez de verificar. As quatro verificações são evidência de que o controle está escrito, não de que alguém de fora desta empresa o examinou.",
     zh: "构建过程完全无法检查的，是这句话是否如实描述了它所指向的代码。措辞宽泛的控制措施，或刻意围绕检查无法识别的数字来措辞的控制措施，都能通过全部四项检查。这种对应关系属于人工判断，由编写条目的人和审核变更的人作出；这部分需要您信任我们，而不是自行核实。这四项检查只能证明控制措施已被写明，并不能证明公司以外的任何人审查过它。",
-    ar: "ما لا يستطيع البناء التحقق منه إطلاقاً هو ما إذا كانت العبارة وصفاً منصفاً للشيفرة التي تشير إليها. فالضابط المصوغ بعبارات فضفاضة، أو المصوغ بإحكام حول أعداد لا يراها الفحص، سيجتاز الفحوص الأربعة جميعها. وهذا التوافق حكم بشري يصدره من يكتب الإدخال ومن يراجع التغيير، وهو الجزء الذي تثق بنا فيه بدلاً من التحقق منه بنفسك. والفحوص الأربعة دليل على أن الضابط مكتوب، لا دليل على أن أي جهة من خارج هذه الشركة قد فحصته.",
+    ar: "ما لا يستطيع البناء التحقق منه إطلاقًا هو ما إذا كانت العبارة وصفًا منصفًا للشيفرة التي تشير إليها. فالضابط المصوغ بعبارات فضفاضة، أو المصوغ بإحكام حول أعداد لا يراها الفحص، سيجتاز الفحوص الأربعة جميعها. وهذا التوافق حكم بشري يصدره من يكتب الإدخال ومن يراجع التغيير، وهو الجزء الذي تثق بنا فيه بدلًا من التحقق منه بنفسك. والفحوص الأربعة دليل على أن الضابط مكتوب، لا دليل على أن أي جهة من خارج هذه الشركة قد فحصته.",
   },
   "platform.trust.notice.title": {
     en: "This page publishes no certification, audit result or policy text.",
@@ -3998,7 +3998,7 @@ export const platformMessages = defineMessages({
     ja: "{section}：実装済みのコントロールと、それぞれを示すソース",
     pt: "{section}: controles implementados e o código-fonte que comprova cada um",
     zh: "{section}：已实施的控制措施及证明每项措施的源代码",
-    ar: "{section}: الضوابط المطبَّقة والمصدر الذي يثبت كلاً منها",
+    ar: "{section}: الضوابط المطبَّقة والمصدر الذي يثبت كلًا منها",
   },
   "platform.trust.controls.header.control": {
     en: "Control",
@@ -4038,7 +4038,7 @@ export const platformMessages = defineMessages({
     ja: "コミット済みの構成で指定されているため、ここに記載しています。これはソースツリー上の事実であり、サブプロセッサー（再委託先）一覧ではありません。下のセクションを参照してください。",
     pt: "Aparecem aqui porque a configuração versionada no repositório os nomeia. Isto é um fato do código-fonte, e não uma lista de suboperadores; veja a seção abaixo.",
     zh: "此处列出这些服务，是因为已提交的配置中写明了它们。这是源代码树中的事实，而非子处理者清单；请参阅下一节。",
-    ar: "تُذكر هنا لأن الإعدادات المحفوظة في المستودع تذكرها. وهذه حقيقة مستمدة من شجرة الشيفرة المصدرية، وليست جدولاً بالمعالجين الفرعيين؛ راجع القسم أدناه.",
+    ar: "تُذكر هنا لأن الإعدادات المحفوظة في المستودع تذكرها. وهذه حقيقة مستمدة من شجرة الشيفرة المصدرية، وليست جدولًا بالمعالجين الفرعيين؛ راجع القسم أدناه.",
   },
   "platform.trust.integrations.caption": {
     en: "Third-party services named in committed configuration",
@@ -4078,7 +4078,7 @@ export const platformMessages = defineMessages({
     ja: "ベンダー未選定の機能",
     pt: "Funcionalidades sem fornecedor selecionado",
     zh: "未选定供应商的功能",
-    ar: "وظائف لم يُختر لها مورّد",
+    ar: "إمكانيات لم يُختر لها مورّد",
   },
   "platform.trust.unselected.description": {
     en: "These reach an external provider over a signed, provider-neutral HTTP contract. No vendor is named anywhere in the source, so this page names none: the choice is a deployment setting, and it is made under the gate shown.",
@@ -4088,7 +4088,7 @@ export const platformMessages = defineMessages({
     ja: "これらの機能は、署名付きでプロバイダーに依存しない HTTP インターフェースを通じて外部プロバイダーに接続します。ソースコードのどこにもベンダー名は記載されていないため、このページでも記載していません。選定はデプロイメントの設定であり、表示されている外部要件のもとで行われます。",
     pt: "Estas funcionalidades acessam um provedor externo por meio de um contrato HTTP assinado e neutro em relação ao provedor. Nenhum fornecedor é nomeado no código-fonte, então esta página não nomeia nenhum: a escolha é uma configuração da implantação e é feita sob o pré-requisito externo indicado.",
     zh: "这些功能通过经签名、不绑定特定服务商的 HTTP 接口规范连接外部服务商。源代码中没有任何地方写明供应商，因此本页也不列出：选择属于部署设置，并在所示的外部前置条件下作出。",
-    ar: "تتصل هذه الوظائف بمزوّد خارجي عبر واجهة HTTP موقّعة ومحايدة تجاه المزوّدين. ولا يرد اسم أي مورّد في الشيفرة المصدرية، لذا لا تذكر هذه الصفحة أياً منهم: فالاختيار إعداد من إعدادات النشر، ويُتَّخذ في إطار المتطلب الخارجي المبيَّن.",
+    ar: "تتصل هذه الإمكانيات بمزوّد خارجي عبر واجهة HTTP موقّعة ومحايدة تجاه المزوّدين. ولا يرد اسم أي مورّد في الشيفرة المصدرية، لذا لا تذكر هذه الصفحة أيًا منهم: فالاختيار إعداد من إعدادات النشر، ويُتَّخذ في إطار المتطلب الخارجي المبيَّن.",
   },
   "platform.trust.unselected.caption": {
     en: "Capabilities whose provider is not selected in the source",
@@ -4098,7 +4098,7 @@ export const platformMessages = defineMessages({
     ja: "ソースコードでプロバイダーが選定されていない機能",
     pt: "Funcionalidades cujo provedor não está selecionado no código-fonte",
     zh: "源代码中未选定服务商的功能",
-    ar: "وظائف لم يُحدَّد مزوّدها في الشيفرة المصدرية",
+    ar: "إمكانيات لم يُحدَّد مزوّدها في الشيفرة المصدرية",
   },
   "platform.trust.unselected.header.capability": {
     en: "Capability",
@@ -4108,7 +4108,7 @@ export const platformMessages = defineMessages({
     ja: "機能",
     pt: "Funcionalidade",
     zh: "功能",
-    ar: "الوظيفة",
+    ar: "الإمكانية",
   },
   "platform.trust.unselected.header.gate": {
     en: "Selected under",
@@ -4138,7 +4138,7 @@ export const platformMessages = defineMessages({
     ja: "各項目には、その主張をそもそも行えるようになる前に満たす必要がある外部要件を記載しています。",
     pt: "Cada item indica o pré-requisito externo que precisa ser cumprido antes que a afirmação pudesse sequer ser feita.",
     zh: "每个项目都列出了必须先满足的外部前置条件，满足之后才可能作出该声明。",
-    ar: "يذكر كل بند المتطلب الخارجي الذي يجب استيفاؤه قبل أن يمكن تقديم الادعاء أصلاً.",
+    ar: "يذكر كل بند المتطلب الخارجي الذي يجب استيفاؤه قبل أن يمكن تقديم الادعاء أصلًا.",
   },
   "platform.trust.gaps.requires": {
     en: "Requires {gate}",
@@ -4284,7 +4284,7 @@ export const platformMessages = defineMessages({
     ja: "指定された金銭・ポリシー関連の操作（請求書の取り消し、価格例外の承認、価格表の有効化、コミッションの精算または返還、その他同種の操作）では、実行しようとした時点でさらに再認証が必要です。",
     pt: "Um conjunto definido de ações financeiras e de política (anular uma fatura, aprovar uma exceção de preço, ativar uma tabela de preços, liquidar ou estornar uma comissão, entre outras da mesma classe) exige, além disso, uma nova autenticação no momento em que são tentadas.",
     zh: "指定的资金和政策类操作（作废发票、审批价格例外、启用价目表、结算或追回佣金，以及同类的其他操作）在尝试执行时，还需要重新进行身份验证。",
-    ar: "تتطلب إجراءات مالية وإجراءات سياسات محددة بالاسم (إلغاء فاتورة، والموافقة على استثناء تسعير، وتفعيل قائمة أسعار، وتسوية عمولة أو استردادها، وغيرها من الفئة نفسها) إعادة مصادقة جديدة إضافية لحظة محاولة تنفيذها.",
+    ar: "تتطلب إجراءات مالية وإجراءات سياسات محددة بالاسم (إبطال فاتورة، والموافقة على استثناء تسعير، وتفعيل قائمة أسعار، وتسوية عمولة أو استردادها، وغيرها من الفئة نفسها) إعادة مصادقة جديدة لحظة محاولة تنفيذها.",
   },
   "platform.trust.control.rowLevelSecurity": {
     en: "Tenant isolation is enforced by PostgreSQL row-level security on the tables themselves, not only by application code. Security is forced rather than merely enabled, and the roles the application connects as cannot bypass it.",
@@ -4294,7 +4294,7 @@ export const platformMessages = defineMessages({
     ja: "テナント分離は、アプリケーションコードだけでなく、PostgreSQL の行レベルセキュリティによってテーブル自体に適用されています。セキュリティは有効化されているだけでなく強制されており、アプリケーションが接続に使うロールはこれを回避できません。",
     pt: "O isolamento entre locatários é aplicado pela segurança em nível de linha do PostgreSQL nas próprias tabelas, e não apenas pelo código da aplicação. A segurança é forçada, não apenas habilitada, e os papéis com que a aplicação se conecta não podem contorná-la.",
     zh: "租户隔离由 PostgreSQL 行级安全直接在数据表上强制执行，而不仅仅依靠应用代码。行级安全设为强制（FORCE），而不只是启用；应用连接时使用的角色无法绕过。",
-    ar: "يُفرَض عزل المستأجرين عبر ميزة الأمان على مستوى الصفوف في PostgreSQL على الجداول نفسها، وليس عبر شيفرة التطبيق وحدها. والأمان مفروض إلزامياً وليس مُفعّلاً فحسب، ولا تستطيع الأدوار التي يتصل بها التطبيق تجاوزه.",
+    ar: "يُفرَض عزل المستأجرين عبر ميزة الأمان على مستوى الصفوف في PostgreSQL على الجداول نفسها، وليس عبر شيفرة التطبيق وحدها. والأمان مفروض إلزاميًا وليس مُفعّلًا فحسب، ولا تستطيع الأدوار التي يتصل بها التطبيق تجاوزه.",
   },
   "platform.trust.control.identityFailClosed": {
     en: "A production deployment with no configured identity provider refuses every request with a 503 rather than serving an unauthenticated page.",
@@ -4304,7 +4304,7 @@ export const platformMessages = defineMessages({
     ja: "ID プロバイダーが構成されていない本番環境のデプロイメントは、認証なしのページを返すのではなく、すべてのリクエストを 503 で拒否します。",
     pt: "Uma implantação de produção sem provedor de identidade configurado recusa todas as solicitações com um 503, em vez de servir uma página não autenticada.",
     zh: "未配置身份提供商的生产部署会以 503 拒绝所有请求，而不会提供未经身份验证的页面。",
-    ar: "ترفض أي عملية نشر إنتاجية لم يُهيَّأ فيها مزوّد هوية كلَّ طلب برمز الحالة 503 بدلاً من تقديم صفحة دون مصادقة.",
+    ar: "ترفض أي عملية نشر إنتاجية لم يُعدّ فيها مزوّد هوية كلَّ طلب برمز الحالة 503 بدلًا من تقديم صفحة دون مصادقة.",
   },
   "platform.trust.control.objectLock": {
     en: "Executed agreements, signed documents and other evidence objects are written to object storage under a COMPLIANCE-mode Object Lock with a retain-until date and a legal-hold flag, so neither the application nor an operator can delete or overwrite them inside the retention window.",
@@ -4324,7 +4324,7 @@ export const platformMessages = defineMessages({
     ja: "すべての証跡オブジェクトには、SHA-256 のコンテンツハッシュ、ストレージバージョン、保持日、リーガルホールドフラグ、マルウェアスキャンの状態が付与されます。これらの要件を満たさないメタデータは保存されず、拒否されます。",
     pt: "Cada objeto de evidência traz um hash de conteúdo SHA-256, uma versão de armazenamento, uma data de retenção, um sinalizador de retenção legal e um status de verificação de malware, e metadados que não atendem a esses requisitos são rejeitados em vez de armazenados.",
     zh: "每个证据对象都带有 SHA-256 内容哈希、存储版本、保留日期、法律保留标志和恶意软件扫描状态；不满足这些要求的元数据会被拒绝，而不会被存储。",
-    ar: "يحمل كل كائن دليل تجزئة محتوى SHA-256 وإصدار تخزين وتاريخ احتفاظ وعلامة حجز قانوني وحالة فحص البرمجيات الضارة، وتُرفض البيانات الوصفية التي لا تستوفي هذه المتطلبات بدلاً من تخزينها.",
+    ar: "يحمل كل كائن دليل تجزئة محتوى SHA-256 وإصدار تخزين وتاريخ احتفاظ وعلامة حجز قانوني وحالة فحص البرمجيات الضارة، وتُرفض البيانات الوصفية التي لا تستوفي هذه المتطلبات بدلًا من تخزينها.",
   },
   "platform.trust.control.deniedPartyScreening": {
     en: "Counterparties are screened at registration, before signature and at partner activation, and re-screened on expiry. Four embargoed jurisdictions are refused regardless of what the screening provider answers, and a non-clear decision cannot be recorded without a stored match-evidence document.",
@@ -4334,7 +4334,7 @@ export const platformMessages = defineMessages({
     ja: "取引相手は、登録時、署名前、パートナー有効化時にスクリーニングされ、結果の有効期限が切れると再スクリーニングされます。禁輸対象の4つの法域は、スクリーニングプロバイダーの回答にかかわらず拒否されます。また、「該当なし」以外の判定は、照合の証跡文書が保存されていなければ記録できません。",
     pt: "As contrapartes passam por triagem no cadastro, antes da assinatura e na ativação de parceiros, e por nova triagem quando o resultado expira. Quatro jurisdições sob embargo são recusadas independentemente da resposta do provedor de triagem, e uma decisão diferente de “sem correspondência” não pode ser registrada sem um documento de evidência da correspondência armazenado.",
     zh: "交易对手在注册时、签署前和合作伙伴启用时接受筛查，并在结果到期时重新筛查。四个受禁运的司法管辖区无论筛查服务商如何答复均会被拒绝；任何非“无匹配”的决定，都必须存有匹配证据文件才能记录。",
-    ar: "يخضع الأطراف المقابلة للفحص عند التسجيل وقبل التوقيع وعند تفعيل الشريك، ويُعاد فحصهم عند انتهاء صلاحية النتيجة. وتُرفض أربع ولايات قضائية خاضعة للحظر أياً كان رد مزوّد الفحص، ولا يمكن تسجيل أي قرار غير «لا تطابق» دون مستند محفوظ يثبت التطابق.",
+    ar: "يخضع الأطراف المقابلة للفحص عند التسجيل وقبل التوقيع وعند تفعيل الشريك، ويُعاد فحصهم عند انتهاء صلاحية النتيجة. وتُرفض أربع ولايات قضائية خاضعة للحظر أيًا كان رد مزوّد الفحص، ولا يمكن تسجيل أي قرار غير «لا تطابق» دون مستند محفوظ يثبت التطابق.",
   },
   "platform.trust.control.evidenceAccess": {
     en: "Reading a stored document requires either ownership of the account it belongs to or a named internal role. The purpose of the access is part of the decision, and an upload for a purpose that does not permit uploads is refused.",
@@ -4344,7 +4344,7 @@ export const platformMessages = defineMessages({
     ja: "保存済みの文書を閲覧するには、その文書が属するアカウントの所有者であるか、指定された社内ロールを持っている必要があります。アクセスの目的も判断の対象となり、アップロードを認めていない目的でのアップロードは拒否されます。",
     pt: "Ler um documento armazenado exige ser proprietário da conta a que ele pertence ou ter uma função interna designada. A finalidade do acesso faz parte da decisão, e um upload para uma finalidade que não permite uploads é recusado.",
     zh: "读取已存储的文档，需要是该文档所属账户的所有者，或拥有指定的内部角色。访问目的是判定依据之一；对于不允许上传的目的，上传请求会被拒绝。",
-    ar: "تتطلب قراءة مستند محفوظ ملكيةَ الحساب الذي ينتمي إليه المستند أو دوراً داخلياً مسمّى. ويدخل غرض الوصول في القرار، ويُرفض رفع أي ملف لغرض لا يسمح بالرفع.",
+    ar: "تتطلب قراءة مستند محفوظ ملكيةَ الحساب الذي ينتمي إليه المستند أو دورًا داخليًا مسمّى. ويدخل غرض الوصول في القرار، ويُرفض رفع أي ملف لغرض لا يسمح بالرفع.",
   },
   "platform.trust.control.atomicAudit": {
     en: "Every core write returns the identifiers of an audit event and an outbox message written by the same transaction that wrote the row, so there is no state change without a corresponding record of who made it and what it replaced.",
@@ -4394,7 +4394,7 @@ export const platformMessages = defineMessages({
     ja: "状態を変更するすべての API リクエストは、ハンドラーに到達する前に、一致するダブルサブミット方式の CSRF トークンと、デプロイメントが許可するオリジンを提示する必要があります。ただし、意図的な例外が1つあります。{path} 配下のプロバイダーからの受信 Webhook ルートへのリクエストは、パスのプレフィックスによって、この確認と冪等性キーの要件の両方から除外されています。Webhook を送信するプロバイダーはブラウザーではなくサーバーであり、当社の Cookie を一切保持していません。そのため CSRF トークンは当社が渡した値にすぎず、この確認ではリクエストの送信元について何も証明できません。これらのルートは代わりに、未加工のリクエスト本文に対するプロバイダーの署名を検証することで認証されます。これが送信元を実際に確認するコントロールです。安全なメソッド（GET、HEAD、OPTIONS）も、何も変更しないため除外されています。",
     pt: "Toda solicitação de API que altera estado deve apresentar um token CSRF de envio duplo correspondente e uma origem permitida pela implantação antes de chegar a um manipulador, com uma exceção deliberada. As solicitações às rotas de webhooks de entrada de provedores, em {path}, ficam isentas dessa verificação e também da exigência de chave de idempotência, pelo prefixo do caminho. Um provedor que envia um webhook é um servidor, não um navegador: ele não tem nenhum dos nossos cookies, então um token CSRF seria apenas um valor que nós mesmos teríamos entregado a ele, e a verificação não provaria nada sobre quem enviou a solicitação. Essas rotas são autenticadas, em vez disso, pela verificação da assinatura do provedor sobre o corpo bruto da solicitação, que é o controle que de fato identifica o remetente. Os métodos seguros (GET, HEAD e OPTIONS) também ficam isentos, porque não alteram nada.",
     zh: "每个会改变状态的 API 请求在到达处理程序之前，都必须提供匹配的双重提交 CSRF 令牌和部署所允许的来源，但有一个有意设置的例外。发往 {path} 下服务商入站 Webhook 路由的请求按路径前缀免除这项检查，也免除幂等键要求。发送 Webhook 的服务商是服务器而非浏览器：它不持有我们的任何 Cookie，因此 CSRF 令牌只会是我们交给它的值，这项检查无法证明请求由谁发送。这些路由改为通过验证服务商对原始请求正文的签名来进行身份验证，这才是真正确认发送方的控制措施。安全方法（GET、HEAD 和 OPTIONS）同样免除，因为它们不会更改任何内容。",
-    ar: "يجب على كل طلب API يُغيّر الحالة أن يقدّم رمز CSRF مطابقاً بنمط الإرسال المزدوج وأصلاً تسمح به عملية النشر قبل أن يصل إلى معالج، مع استثناء واحد مقصود. فالطلبات الموجّهة إلى مسارات Webhook الواردة من المزوّدين ضمن {path} مُعفاة من هذا الفحص، ومن اشتراط مفتاح عدم التكرار أيضاً، بناءً على بادئة المسار. فالمزوّد الذي يرسل Webhook خادمٌ لا متصفح: لا يحمل أياً من ملفات تعريف الارتباط الخاصة بنا، فلن يكون رمز CSRF سوى قيمة سلّمناها إليه، ولن يثبت الفحص شيئاً عن مُرسل الطلب. وبدلاً من ذلك تُصادَق هذه المسارات بالتحقق من توقيع المزوّد على نص الطلب الخام، وهو الضابط الذي يحدد المُرسِل فعلاً. والطرق الآمنة (GET و HEAD و OPTIONS) مُعفاة كذلك لأنها لا تُغيّر شيئاً.",
+    ar: "يجب على كل طلب API يُغيّر الحالة أن يقدّم رمز CSRF مطابقًا بنمط الإرسال المزدوج وأصلًا تسمح به عملية النشر قبل أن يصل إلى معالج، مع استثناء واحد مقصود. فالطلبات الموجّهة إلى مسارات Webhook الواردة من المزوّدين ضمن {path} مُعفاة من هذا الفحص، ومن اشتراط مفتاح عدم التكرار أيضًا، بناءً على بادئة المسار. فالمزوّد الذي يرسل Webhook خادمٌ لا متصفح: لا يحمل أيًا من ملفات تعريف الارتباط الخاصة بنا، فلن يكون رمز CSRF سوى قيمة سلّمناها إليه، ولن يثبت الفحص شيئًا عن مُرسل الطلب. وبدلًا من ذلك تُصادَق هذه المسارات بالتحقق من توقيع المزوّد على نص الطلب الخام، وهو الضابط الذي يحدد المُرسِل فعلًا. والطرق الآمنة (GET و HEAD و OPTIONS) مُعفاة كذلك لأنها لا تُغيّر شيئًا.",
   },
   "platform.trust.control.webhookSignatures": {
     en: "An inbound provider webhook is refused unless its signature verifies against the raw request body, and a redelivered event is claimed and deduplicated rather than applied a second time.",
@@ -4404,7 +4404,7 @@ export const platformMessages = defineMessages({
     ja: "プロバイダーからの受信 Webhook は、署名が未加工のリクエスト本文に対して検証されない限り拒否されます。再配信されたイベントは、2回目に適用されるのではなく、取得済みとして記録され重複排除されます。",
     pt: "Um webhook de entrada de um provedor é recusado, a menos que sua assinatura seja verificada em relação ao corpo bruto da solicitação, e um evento reenviado é registrado e deduplicado em vez de aplicado uma segunda vez.",
     zh: "服务商的入站 Webhook 除非其签名能根据原始请求正文验证通过，否则会被拒绝；重复投递的事件会被认领并去重，而不会被第二次应用。",
-    ar: "يُرفض أي Webhook وارد من مزوّد ما لم يُتحقَّق من توقيعه مقابل نص الطلب الخام، ويُحجَز الحدث المُعاد تسليمه ويُزال تكراره بدلاً من تطبيقه مرة ثانية.",
+    ar: "يُرفض أي Webhook وارد من مزوّد ما لم يُتحقَّق من توقيعه مقابل نص الطلب الخام، ويُحجَز الحدث المُعاد تسليمه ويُزال تكراره بدلًا من تطبيقه مرة ثانية.",
   },
   "platform.trust.control.idempotency": {
     en: "State-changing requests require an idempotency key, and a repeated key replays the stored first response instead of performing the operation twice. The inbound provider webhook routes are exempt from this requirement as well, because a provider chooses its own retry identifiers; they are deduplicated instead by claiming the provider’s event ID. A response with status 500 or above is never stored for replay, so a dependency failure does not become a cached outage.",
@@ -4414,7 +4414,7 @@ export const platformMessages = defineMessages({
     ja: "状態を変更するリクエストには冪等性キーが必要で、同じキーが繰り返されると、操作を2回実行する代わりに保存済みの最初のレスポンスを再送します。プロバイダーからの受信 Webhook ルートは、プロバイダーが独自の再試行識別子を選ぶため、この要件からも除外されています。代わりに、プロバイダーのイベント ID を取得済みとして記録することで重複排除されます。ステータスが 500 以上のレスポンスが再送用に保存されることはないため、依存先の障害がキャッシュされた障害になることはありません。",
     pt: "Solicitações que alteram estado exigem uma chave de idempotência, e uma chave repetida reproduz a primeira resposta armazenada em vez de executar a operação duas vezes. As rotas de webhooks de entrada de provedores também ficam isentas dessa exigência, porque cada provedor escolhe seus próprios identificadores de nova tentativa; em vez disso, elas são deduplicadas registrando o ID de evento do provedor. Uma resposta com status 500 ou superior nunca é armazenada para reprodução, de modo que uma falha de dependência não vira uma indisponibilidade em cache.",
     zh: "会改变状态的请求必须提供幂等键；重复的键会重放已存储的首次响应，而不会将操作执行两次。服务商入站 Webhook 路由同样免除此要求，因为服务商会自行选择重试标识符；这些路由改为通过认领服务商的事件 ID 来去重。状态码为 500 或以上的响应绝不会被存储用于重放，因此依赖项故障不会变成被缓存的中断。",
-    ar: "تتطلب الطلبات التي تُغيّر الحالة مفتاح عدم تكرار (idempotency key)، ويؤدي تكرار المفتاح إلى إعادة الاستجابة الأولى المخزّنة بدلاً من تنفيذ العملية مرتين. ومسارات Webhook الواردة من المزوّدين مُعفاة من هذا الاشتراط أيضاً، لأن المزوّد يختار معرّفات إعادة المحاولة الخاصة به، وتُزال تكراراتها بدلاً من ذلك بحجز معرّف الحدث لدى المزوّد. ولا تُخزَّن أبداً لإعادة التشغيل أي استجابة بالحالة 500 أو أعلى، حتى لا يتحول تعطل أحد التوابع إلى انقطاع مخزّن مؤقتاً.",
+    ar: "تتطلب الطلبات التي تُغيّر الحالة مفتاح عدم تكرار (idempotency key)، ويؤدي تكرار المفتاح إلى إعادة الاستجابة الأولى المخزّنة بدلًا من تنفيذ العملية مرتين. ومسارات Webhook الواردة من المزوّدين مُعفاة من هذا الاشتراط أيضًا، لأن المزوّد يختار معرّفات إعادة المحاولة الخاصة به، وتُزال تكراراتها بدلًا من ذلك بحجز معرّف الحدث لدى المزوّد. ولا تُخزَّن أبدًا لإعادة التشغيل أي استجابة بالحالة 500 أو أعلى، حتى لا يتحول تعطل أحد التوابع إلى انقطاع مخزّن مؤقتًا.",
   },
   "platform.trust.control.secretScanning": {
     en: "Secret scanning runs across the whole working tree as part of the standard verification suite.",
@@ -4444,7 +4444,7 @@ export const platformMessages = defineMessages({
     ja: "公開されている API 仕様は実行中のアプリケーションから生成され、コミット済みの仕様がアプリケーションの実際の提供内容からずれている場合、検証スイートは失敗します。",
     pt: "O contrato de API publicado é gerado a partir da aplicação em execução, e o conjunto de verificação falha se o contrato versionado no repositório tiver divergido do que a aplicação realmente serve.",
     zh: "发布的 API 规范由运行中的应用生成；如果已提交的规范与应用实际提供的内容不一致，验证套件就会失败。",
-    ar: "تُولَّد مواصفات API المنشورة من التطبيق أثناء تشغيله، وتفشل حزمة التحقق إذا انحرفت المواصفات المحفوظة في المستودع عمّا يقدّمه التطبيق فعلاً.",
+    ar: "تُولَّد مواصفات API المنشورة من التطبيق أثناء تشغيله، وتفشل حزمة التحقق إذا انحرفت المواصفات المحفوظة في المستودع عمّا يقدّمه التطبيق فعلًا.",
   },
   "platform.trust.control.schemaDrift": {
     en: "The database schema is checked against its migrations for drift on every verification run.",
@@ -4476,7 +4476,7 @@ export const platformMessages = defineMessages({
     ja: "支払いの回収。支払い状況は検証済みの Webhook から取得され、手入力されることはありません。",
     pt: "Cobrança de pagamentos. O status do pagamento é derivado de webhooks verificados, nunca inserido manualmente.",
     zh: "收款。付款状态来自经过验证的 Webhook，从不手动录入。",
-    ar: "تحصيل المدفوعات. تُستمد حالة الدفع من رسائل Webhook تم التحقق منها، ولا تُدخَل يدوياً أبداً.",
+    ar: "تحصيل المدفوعات. تُستمد حالة الدفع من رسائل Webhook تم التحقق منها، ولا تُدخَل يدويًا أبدًا.",
   },
   "platform.trust.integration.amazonS3": {
     en: "Immutable evidence and document storage under Object Lock.",
@@ -4558,7 +4558,7 @@ export const platformMessages = defineMessages({
     ja: "会計データのエクスポート、通知の配信、利用状況の取り込み",
     pt: "Exportação contábil, envio de notificações e ingestão de uso",
     zh: "会计导出、通知发送和用量数据接入",
-    ar: "تصدير البيانات المحاسبية وإرسال الإشعارات واستيعاب بيانات الاستخدام",
+    ar: "تصدير البيانات المحاسبية وإرسال الإشعارات واستقبال بيانات الاستخدام",
   },
 
   // What the page does not claim. SOC 2, ISO 27001, PCI DSS, HIPAA and
@@ -4572,7 +4572,7 @@ export const platformMessages = defineMessages({
     ja: "SOC 2 報告書、ISO 27001 認証、PCI DSS 準拠証明、HIPAA の保証、FedRAMP 認可はいずれも取得しておらず、取得を主張することもありません。SOC 2 Type II の監査法人、対象範囲、観察期間はまだ確定しておらず、ISO 27001 の認証機関と対象範囲もまだ選定していません。また、独立したペネトレーションテストは開始していません。",
     pt: "Não detemos nenhum relatório SOC 2, certificado ISO 27001, atestado PCI DSS, garantia HIPAA ou autorização FedRAMP, e nenhum deles é declarado. A empresa de auditoria, o escopo e o período de observação de um SOC 2 Tipo II ainda não foram confirmados, o organismo e o escopo da ISO 27001 ainda não foram escolhidos, e nenhum teste de invasão independente foi iniciado.",
     zh: "我们未持有任何 SOC 2 报告、ISO 27001 证书、PCI DSS 合规证明、HIPAA 保证或 FedRAMP 授权，也不声称持有。SOC 2 Type II 的审计机构、范围和观察期尚未确定，ISO 27001 的认证机构和范围尚未选定，也未启动任何独立的渗透测试。",
-    ar: "لا نحمل أي تقرير SOC 2 أو شهادة ISO 27001 أو إقرار امتثال PCI DSS أو ضمان HIPAA أو تفويض FedRAMP، ولا ندّعي أياً منها. ولم يُؤكَّد بعد مكتب التدقيق ولا النطاق ولا فترة المراقبة لتقرير SOC 2 Type II، ولم تُختَر بعد جهة ISO 27001 ولا نطاقها، ولم يبدأ أي اختبار اختراق مستقل.",
+    ar: "لا نحمل أي تقرير SOC 2 أو شهادة ISO 27001 أو إقرار امتثال PCI DSS أو ضمان HIPAA أو تفويض FedRAMP، ولا ندّعي أيًا منها. ولم يُؤكَّد بعد مكتب التدقيق ولا النطاق ولا فترة المراقبة لتقرير SOC 2 Type II، ولم تُختَر بعد جهة ISO 27001 ولا نطاقها، ولم يبدأ أي اختبار اختراق مستقل.",
   },
   "platform.trust.gap.noPolicyText": {
     en: "The Data Processing Addendum, security addendum, acceptable use policy, privacy policy, service-level agreement and support policy are counsel deliverables. The software models each of these document types and can execute and store them; the approved text is not in this repository, so this page publishes none of it.",
@@ -4582,7 +4582,7 @@ export const platformMessages = defineMessages({
     ja: "データ処理補遺（DPA）、セキュリティ補遺、利用規定、プライバシーポリシー、サービスレベル契約（SLA）、サポートポリシーは、法務顧問が作成する成果物です。ソフトウェアはこれらの各文書タイプをモデル化しており、締結して保存できますが、承認済みの本文はこのリポジトリにないため、このページには一切掲載していません。",
     pt: "O Adendo de Processamento de Dados, o adendo de segurança, a política de uso aceitável, a política de privacidade, o acordo de nível de serviço e a política de suporte são entregas da assessoria jurídica. O software modela cada um desses tipos de documento e pode firmá-los e armazená-los; o texto aprovado não está neste repositório, por isso esta página não publica nada dele.",
     zh: "数据处理附录（DPA）、安全附录、可接受使用政策、隐私政策、服务级别协议（SLA）和支持政策均由法律顾问交付。软件为上述每类文档建立了模型，并能签订和存储它们；但经批准的文本不在本代码库中，因此本页不公布其中任何内容。",
-    ar: "ملحق معالجة البيانات وملحق الأمان وسياسة الاستخدام المقبول وسياسة الخصوصية واتفاقية مستوى الخدمة وسياسة الدعم كلها من مخرجات المستشار القانوني. ويُنمذج البرنامج كل نوع من أنواع هذه المستندات ويستطيع إبرامها وتخزينها، لكن النص المعتمد ليس في هذا المستودع، ولذلك لا تنشر هذه الصفحة شيئاً منه.",
+    ar: "ملحق معالجة البيانات وملحق الأمان وسياسة الاستخدام المقبول وسياسة الخصوصية واتفاقية مستوى الخدمة وسياسة الدعم كلها من مخرجات المستشار القانوني. ويُنمذج البرنامج كل نوع من أنواع هذه المستندات ويستطيع إبرامها وتخزينها، لكن النص المعتمد ليس في هذا المستودع، ولذلك لا تنشر هذه الصفحة شيئًا منه.",
   },
   "platform.trust.gap.notSubprocessorSchedule": {
     en: "The integrations listed above are a source-tree fact, not a subprocessor schedule. A subprocessor schedule names the entities that process personal data on a customer’s behalf under the Data Processing Addendum, states what each processes and where, and is produced with counsel. Do not treat the list above as one.",
@@ -4592,7 +4592,7 @@ export const platformMessages = defineMessages({
     ja: "上記の連携サービスはソースツリー上の事実であり、サブプロセッサー（再委託先）一覧ではありません。サブプロセッサー一覧は、データ処理補遺に基づいて顧客に代わって個人データを処理する事業者を示し、それぞれが何をどこで処理するかを記載するもので、法務顧問とともに作成されます。上記の一覧をそのように扱わないでください。",
     pt: "As integrações listadas acima são um fato da árvore de código-fonte, não uma lista de suboperadores. Uma lista de suboperadores identifica as entidades que tratam dados pessoais em nome de um cliente conforme o Adendo de Processamento de Dados, informa o que cada uma trata e onde, e é elaborada com a assessoria jurídica. Não trate a lista acima como tal.",
     zh: "上文列出的集成是源代码树中的事实，而非子处理者清单。子处理者清单列明依据数据处理附录代表客户处理个人数据的实体，说明各实体处理什么数据以及在何处处理，并与法律顾问共同编制。请勿将上述列表视为此类清单。",
-    ar: "عمليات التكامل المذكورة أعلاه حقيقة مستمدة من شجرة الشيفرة المصدرية، وليست جدولاً بالمعالجين الفرعيين. فجدول المعالجين الفرعيين يسمّي الجهات التي تعالج البيانات الشخصية نيابةً عن العميل بموجب ملحق معالجة البيانات، ويبيّن ما تعالجه كل جهة وأين، ويُعَدّ بالاستعانة بالمستشار القانوني. لا تتعامل مع القائمة أعلاه على أنها جدول كهذا.",
+    ar: "عمليات التكامل المذكورة أعلاه حقيقة مستمدة من شجرة الشيفرة المصدرية، وليست جدولًا بالمعالجين الفرعيين. فجدول المعالجين الفرعيين يسمّي الجهات التي تعالج البيانات الشخصية نيابةً عن العميل بموجب ملحق معالجة البيانات، ويبيّن ما تعالجه كل جهة وأين، ويُعَدّ بالاستعانة بالمستشار القانوني. لا تتعامل مع القائمة أعلاه على أنها جدول كهذا.",
   },
   "platform.trust.gap.notCounselReviewed": {
     en: "Nothing on this page has been reviewed or approved by counsel, and nothing on it has been verified by an external auditor. Every statement above is derived from this repository’s source at build time and is only as good as that source.",
@@ -4724,7 +4724,7 @@ export const platformMessages = defineMessages({
     ja: "機械可読の仕様は {link} にあり、型付きクライアントも同じドキュメントから生成されます。グループ名、パス、パラメーター名は仕様の記載どおりに表示しています。以下のリファレンスは手作業で管理していないため、API より古くなることはありません。",
     pt: "A especificação legível por máquina está em {link}, e um cliente tipado é gerado a partir desse mesmo documento. Nomes de grupo, caminhos e nomes de parâmetro aparecem exatamente como a especificação os escreve. Nada na referência abaixo é mantido manualmente, então ela não fica defasada em relação à API.",
     zh: "机器可读的规范位于 {link}，类型化客户端也由同一份文档生成。分组名称、路径和参数名称均按规范原文显示。以下参考内容均非手工维护，因此不会落后于 API。",
-    ar: "المواصفات القابلة للقراءة آلياً متاحة على {link}، ومن المستند نفسه يُولَّد عميل مضبوط الأنواع. تظهر أسماء المجموعات والمسارات وأسماء المعاملات كما تكتبها المواصفات تماماً. لا يُحدَّث أي جزء من المرجع أدناه يدوياً، لذا لا يمكن أن يتخلّف عن API.",
+    ar: "المواصفات القابلة للقراءة آليًا متاحة على {link}، ومن المستند نفسه يُولَّد عميل برمجي بأنواع محدّدة (typed client). تظهر أسماء المجموعات والمسارات وأسماء المعاملات كما تكتبها المواصفات تمامًا. لا يُحدَّث أي جزء من المرجع أدناه يدويًا، لذا لا يمكن أن يتخلّف عن API.",
   },
   "platform.developers.credential.missing.title": {
     en: "There is no API credential you can hold yet.",
@@ -4764,7 +4764,7 @@ export const platformMessages = defineMessages({
     ja: "Cookie は対話型のサインインで発行され、ブラウザーに紐づくため、保持して提示できる認証情報はありません。マシン用認証情報の発行、一覧表示、失効は実装されていません。セッションを必要としないオペレーションも、アクセス手段にはなりません。これらには署名、またはこのデプロイメントが発行するトークンが必要で、以下に記載しています。このリファレンスは API の構造を示すものであり、現時点での連携を勧めるものではありません。",
     pt: "Um cookie é emitido por um login interativo e pertence a um navegador, então não existe credencial que você possa guardar e apresentar. A emissão, a listagem e a revogação de credenciais de máquina não foram implementadas. As operações que não exigem sessão também não são uma porta de entrada: elas exigem uma assinatura ou um token emitido por esta implantação e estão listadas abaixo. Leia esta referência como o formato da API, não como um convite para integrar-se a ela hoje.",
     zh: "Cookie 由交互式登录签发并归属于浏览器，因此不存在可供您持有和出示的凭证。机器凭证的签发、列出和吊销功能尚未实现。无需会话的操作同样不是接入途径：它们要求提供签名或由本部署签发的令牌，下文已逐一列出。请将本参考视为 API 的结构说明，而不是邀请您现在就进行集成。",
-    ar: "يُصدَر ملف تعريف الارتباط (cookie) عند تسجيل دخول تفاعلي ويرتبط بمتصفح، لذا لا توجد بيانات اعتماد يمكنك الاحتفاظ بها وتقديمها. إصدار بيانات اعتماد الآلات وسردها وإبطالها غير منفَّذ. كما أن العمليات التي لا تحتاج إلى جلسة ليست منفذاً للدخول: فهي تتطلب توقيعاً أو رمزاً تُصدره هذه البيئة، وهي مذكورة أدناه. اقرأ هذا المرجع على أنه وصف لبنية API، لا دعوة إلى التكامل معها اليوم.",
+    ar: "يُصدَر ملف تعريف الارتباط (cookie) عند تسجيل دخول تفاعلي ويرتبط بمتصفح، لذا لا توجد بيانات اعتماد يمكنك الاحتفاظ بها وتقديمها. إصدار بيانات اعتماد الآلات وسردها وإبطالها غير منفَّذ. كما أن العمليات التي لا تحتاج إلى جلسة ليست منفذًا للدخول: فهي تتطلب توقيعًا أو رمزًا تُصدره هذه البيئة، وهي مذكورة أدناه. اقرأ هذا المرجع على أنه وصف لبنية API، لا دعوة إلى التكامل معها اليوم.",
   },
   "platform.developers.credential.machine.title": {
     en: "Machine credentials",
@@ -4845,12 +4845,12 @@ export const platformMessages = defineMessages({
     },
     ar: {
       zero: "لا تخلو أي عملية من أصل {total} من متطلب أمان في المستند.",
-      one: "عملية واحدة من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقاً.",
-      two: "عمليتان من أصل {total} لا تتضمنان أي متطلب أمان في المستند إطلاقاً.",
-      few: "{count} عمليات من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقاً.",
-      many: "{count} عملية من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقاً.",
+      one: "عملية واحدة من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقًا.",
+      two: "عمليتان من أصل {total} لا تتضمنان أي متطلب أمان في المستند إطلاقًا.",
+      few: "{count} عمليات من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقًا.",
+      many: "{count} عملية من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقًا.",
       other:
-        "{count} عملية من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقاً.",
+        "{count} عملية من أصل {total} لا تتضمن أي متطلب أمان في المستند إطلاقًا.",
     },
   },
   "platform.developers.authorization.body": {
@@ -4861,7 +4861,7 @@ export const platformMessages = defineMessages({
     ja: "これは公開仕様の欠落であって、ハンドラーの実装を述べたものではありません。ただし、欠落は一種類ではなく、答えも一つではありません。各オペレーションが実際に何を要求するかは、以下にクラスごとに示しています。クラスは互いに置き換えられません。内訳：{classes}。オペレーションに何が必要かを判断する前に、クラスを確認してください。",
     pt: "Isso é uma lacuna da especificação publicada, e não uma afirmação sobre os manipuladores, mas não é uma lacuna única com uma única resposta por trás. O que cada uma dessas operações realmente exige está detalhado abaixo, classe por classe, e as classes não são intercambiáveis: {classes}. Verifique a classe antes de decidir o que uma operação exige.",
     zh: "这是已发布规范中的缺漏，并不代表处理程序的实际行为；而且它并非只有一种情况、一个答案。这些操作各自实际需要什么，下文按类别逐一列出，各类别之间不可互换：{classes}。在判断某个操作需要什么之前，请先确认它属于哪个类别。",
-    ar: "هذه ثغرة في المواصفات المنشورة وليست وصفاً للمعالجات، لكنها ليست ثغرة واحدة وراءها إجابة واحدة. ما تتطلبه كل عملية من هذه العمليات فعلاً مبيَّن أدناه فئةً فئة، والفئات غير قابلة للتبادل: {classes}. تحقّق من الفئة قبل أن تقرّر ما تحتاجه العملية.",
+    ar: "هذه ثغرة في المواصفات المنشورة وليست وصفًا للمعالجات، لكنها ليست ثغرة واحدة وراءها إجابة واحدة. ما تتطلبه كل عملية من هذه العمليات فعلًا مبيَّن أدناه فئةً فئة، والفئات غير قابلة للتبادل: {classes}. تحقّق من الفئة قبل أن تقرّر ما تحتاجه العملية.",
   },
   "platform.developers.groups.label": {
     en: "Operation groups",
@@ -4891,7 +4891,7 @@ export const platformMessages = defineMessages({
     ja: "仕様から導出し、ハンドラーと照合しています。以前ここには手書きの一文があり、これらのオペレーションのうち10件については誤りでした。",
     pt: "Derivado da especificação e conferido com os manipuladores. Antes, aqui havia uma única frase escrita à mão, e ela era falsa para dez destas operações.",
     zh: "根据规范推导，并已与处理程序核对。此前这里只有一句手写说明，而它对其中 10 个操作并不成立。",
-    ar: "مستخلص من المواصفات ومُتحقَّق منه مقابل المعالجات. كانت هنا سابقاً جملة واحدة مكتوبة يدوياً، وكانت خاطئة بالنسبة إلى عشر من هذه العمليات.",
+    ar: "مستخلص من المواصفات ومُتحقَّق منه مقابل المعالجات. كانت هنا سابقًا جملة واحدة مكتوبة يدويًا، وكانت خاطئة بالنسبة إلى عشر من هذه العمليات.",
   },
   "platform.developers.authentication.caption": {
     en: "Authentication mechanism by route class",
@@ -4941,7 +4941,7 @@ export const platformMessages = defineMessages({
     ja: "以下のクラスはすべて列挙できる規模のため、例ではなく例外として読んでください。これらのリストのいずれにも含まれず、仕様でスキームも宣言していないオペレーションは、上の表のブラウザーセッションの行に該当します。",
     pt: "As classes abaixo são pequenas o bastante para serem listadas por completo, então leia-as como as exceções, e não como exemplos. Uma operação que não está em nenhuma dessas listas e não declara um esquema na especificação pertence à linha de sessão do navegador na tabela acima.",
     zh: "以下类别规模很小，可以完整列出，因此请将它们视为例外，而非示例。凡不在这些列表中、且未在规范中声明方案的操作，都属于上表中的浏览器会话一行。",
-    ar: "الفئات أدناه صغيرة بما يكفي لسردها كاملة، لذا اقرأها على أنها الاستثناءات لا الأمثلة. أي عملية لا ترد في أي من هذه القوائم ولا تُعلن مخططاً في المواصفات تندرج ضمن صف جلسة المتصفح في الجدول أعلاه.",
+    ar: "الفئات أدناه صغيرة بما يكفي لسردها كاملة، لذا اقرأها على أنها الاستثناءات لا الأمثلة. أي عملية لا ترد في أي من هذه القوائم ولا تُعلن مخططًا في المواصفات تندرج ضمن صف جلسة المتصفح في الجدول أعلاه.",
   },
   "platform.developers.class.declaredScheme.title": {
     en: "Declared in the contract",
@@ -5031,7 +5031,7 @@ export const platformMessages = defineMessages({
     ja: "セッション、権限、アカウントスコープはいずれもありません。署名がすべての制御です。署名は解析前のボディに対して検証され、イベント ID が記録されるため、再送は二重に適用されず重複として除外されます。これらのルートは意図的に CSRF と idempotency-key のチェックの対象外で、ブラウザープロキシもサインインを要求しません。",
     pt: "Sem sessão, sem permissão e sem escopo de conta. A assinatura é todo o controle: ela é verificada contra o corpo não analisado, e o ID do evento é registrado para que uma reentrega seja desduplicada em vez de aplicada duas vezes. Essas rotas são deliberadamente isentas das verificações de CSRF e de chave de idempotência, e o proxy do navegador não exige login antes delas.",
     zh: "没有会话、权限和账户范围。签名就是全部控制：它针对未解析的正文进行验证，并登记事件 ID，因此重复投递会被去重，而不会被应用两次。这些路由有意免除 CSRF 和幂等键检查，浏览器代理也不会在其前面要求登录。",
-    ar: "لا جلسة ولا صلاحية ولا نطاق حساب. التوقيع هو الضابط الوحيد: يُتحقَّق منه مقابل النص غير المحلَّل، ويُسجَّل معرّف الحدث بحيث يُستبعد التكرار عند إعادة التسليم بدلاً من تطبيقه مرتين. هذه المسارات مستثناة عمداً من فحص CSRF وفحص idempotency-key، ولا يفرض وكيل المتصفح تسجيل الدخول قبلها.",
+    ar: "لا جلسة ولا صلاحية ولا نطاق حساب. التوقيع هو الضابط الوحيد: يُتحقَّق منه مقابل النص غير المحلَّل، ويُسجَّل معرّف الحدث بحيث يُستبعد التكرار عند إعادة التسليم بدلًا من تطبيقه مرتين. هذه المسارات مستثناة عمدًا من فحص CSRF وفحص idempotency-key، ولا يفرض وكيل المتصفح تسجيل الدخول قبلها.",
   },
   "platform.developers.class.bootstrapToken.title": {
     en: "A bootstrap token carried in the request body",
@@ -5061,7 +5061,7 @@ export const platformMessages = defineMessages({
     ja: "呼び出し元にはまだアカウントがないため、適用するスコープも解決する権限もありません。サーバーが発行した登録トークンを、登録者のメールアドレスとビジネスドメインに照らして検証します。サインインを完全に迂回する Webhook の名前空間を除けば、ブラウザープロキシがセッションのない呼び出し元に提供する API パスはこれだけです。",
     pt: "Quem chama ainda não tem conta, então não há escopo a aplicar nem permissão a resolver. Um token de registro emitido pelo servidor é verificado em relação ao e-mail e ao domínio da empresa de quem se registra. Além do namespace de webhooks, que dispensa totalmente o login, este é o único caminho da API que o proxy do navegador atende para quem chama sem sessão.",
     zh: "调用方尚无账户，因此没有可限定的范围，也没有需要解析的权限。服务器签发的注册令牌会与注册人的电子邮件和企业域名进行核验。除完全绕过登录的 Webhook 命名空间外，这是浏览器代理向无会话调用方开放的唯一 API 路径。",
-    ar: "ليس لدى المستدعي حساب بعد، لذا لا يوجد نطاق يُقيَّد به ولا صلاحية تُحسم. يُتحقَّق من رمز تسجيل يصدره الخادم مقابل البريد الإلكتروني للمسجِّل ونطاق أعماله. وباستثناء نطاق أسماء Webhook الذي يتجاوز تسجيل الدخول كلياً، هذا هو مسار API الوحيد الذي يقدّمه وكيل المتصفح لمستدعٍ بلا جلسة.",
+    ar: "ليس لدى المستدعي حساب بعد، لذا لا يوجد نطاق يُقيَّد به ولا صلاحية تُحسم. يُتحقَّق من رمز تسجيل يصدره الخادم مقابل البريد الإلكتروني للمسجِّل ونطاق أعماله. وباستثناء نطاق أسماء Webhook الذي يتجاوز تسجيل الدخول كليًا، هذا هو مسار API الوحيد الذي يقدّمه وكيل المتصفح لمستدعٍ بلا جلسة.",
   },
   "platform.developers.class.none.title": {
     en: "Nothing",
@@ -5091,7 +5091,7 @@ export const platformMessages = defineMessages({
     ja: "ハンドラーは誰も認証せず、何も認可しません。これらは所属する API 領域の依存関係が設定済みかどうかを報告するもので、アカウントのデータは返しません。ブラウザープロキシは引き続きアクセスにセッションを要求するため、デプロイ済みのオリジンでは匿名ではありません。ただし、ハンドラーは何もチェックしないため、認可済みとは見なさないでください。",
     pt: "O manipulador não autentica ninguém nem autoriza nada. Essas operações informam se as dependências da sua área da API estão configuradas e não retornam nenhum dado de conta. O proxy do navegador ainda exige uma sessão para acessá-las, então elas não são anônimas em uma origem implantada, mas não as trate como autorizadas, porque o manipulador não faz nenhuma verificação.",
     zh: "处理程序不认证任何人，也不授权任何操作。这些操作报告其所属 API 分区的依赖项是否已配置，且不返回任何账户数据。浏览器代理仍要求会话才能访问它们，因此在已部署的源上它们并非匿名可访问；但不要将其视为已授权，因为处理程序不做任何检查。",
-    ar: "لا يصادق المعالج على أحد ولا يفوّض أي شيء. تُبلغ هذه العمليات عمّا إذا كانت تبعيات مجالها في API مهيأة، ولا تُرجع أي بيانات حسابات. لا يزال وكيل المتصفح يشترط جلسة للوصول إليها، لذا فهي ليست مجهولة الهوية على بيئة منشورة، لكن لا تعدّها مفوَّضة، لأن المعالج لا يجري أي فحص.",
+    ar: "لا يصادق المعالج على أحد ولا يفوّض أي شيء. تُبلغ هذه العمليات عمّا إذا كانت تبعيات مجالها في API مُعدّة، ولا تُرجع أي بيانات حسابات. لا يزال وكيل المتصفح يشترط جلسة للوصول إليها، لذا فهي ليست مجهولة الهوية على بيئة منشورة، لكن لا تعدّها مفوَّضة، لأن المعالج لا يجري أي فحص.",
   },
   "platform.developers.group.count": {
     count: "count",
@@ -5271,7 +5271,7 @@ export const platformMessages = defineMessages({
     ja: "契約締結後に判明するのではなく、ここで明示しています。",
     pt: "Informado aqui, em vez de descoberto depois de assinar um contrato.",
     zh: "在此说明，而不是等到签约后才发现。",
-    ar: "نذكره هنا بدلاً من أن يُكتشف بعد توقيع العقد.",
+    ar: "نذكره هنا بدلًا من أن يُكتشف بعد توقيع العقد.",
   },
   "platform.developers.missing.status.notBuilt": {
     en: "Not built",
@@ -5379,7 +5379,7 @@ export const platformMessages = defineMessages({
     ja: "仕様にこれが記載されるまでは、生成されたクライアントは認証情報を自動で提示できず、これらのクラスを区別することもできません。",
     pt: "Enquanto a especificação não trouxer isso, um cliente gerado não consegue apresentar uma credencial automaticamente nem distinguir essas classes.",
     zh: "在规范补充这些信息之前，生成的客户端无法自动提供凭证，也无法区分这些类别。",
-    ar: "وإلى أن تتضمن المواصفات ذلك، لا يستطيع العميل المُولَّد تقديم بيانات الاعتماد تلقائياً ولا التمييز بين تلك الفئات.",
+    ar: "وإلى أن تتضمن المواصفات ذلك، لا يستطيع العميل المُولَّد تقديم بيانات الاعتماد تلقائيًا ولا التمييز بين تلك الفئات.",
   },
   "platform.developers.footnote": {
     en: "Rendered from the contract at build time. If an operation is listed here, the application serves it; if the application stops serving it, this page loses it on the next build.",

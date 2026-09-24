@@ -79,7 +79,7 @@ export const experienceDataMessages = defineMessages({
     ja: "支払済み・デモ用サンドボックス",
     pt: "Paga · ambiente de testes da demonstração",
     zh: "已付款 · 演示沙盒",
-    ar: "مدفوعة · بيئة الاختبار التجريبية",
+    ar: "مدفوعة · بيئة اختبار العرض التوضيحي",
   },
   "experience.data.status.agreementInForce": {
     en: "Active",
@@ -149,7 +149,7 @@ export const experienceDataMessages = defineMessages({
     ja: "プロビジョニング中・デモ依頼を送信済み",
     pt: "Em provisionamento · solicitação de demonstração enviada",
     zh: "开通中 · 已提交演示请求",
-    ar: "قيد التهيئة · أُرسل الطلب التجريبي",
+    ar: "قيد التهيئة · أُرسل الطلب في العرض التوضيحي",
   },
   "experience.data.status.awaitingCustomer": {
     en: "Awaiting customer",
@@ -259,7 +259,7 @@ export const experienceDataMessages = defineMessages({
     ja: "要対応・期限超過の請求書",
     pt: "Atenção · fatura vencida",
     zh: "需关注 · 逾期发票",
-    ar: "يتطلب المتابعة · فاتورة متأخرة السداد",
+    ar: "يحتاج إلى متابعة · فاتورة متأخرة السداد",
   },
   "experience.data.status.onboardingProvisioningRecovery": {
     en: "Onboarding · provisioning recovery",
@@ -279,7 +279,7 @@ export const experienceDataMessages = defineMessages({
     ja: "要対応・通知期間",
     pt: "Atenção · prazo de aviso prévio",
     zh: "需关注 · 通知期",
-    ar: "يتطلب المتابعة · فترة الإشعار",
+    ar: "يحتاج إلى متابعة · فترة الإشعار",
   },
   "experience.data.status.documentPrepared": {
     en: "Document prepared",
@@ -420,7 +420,7 @@ export const experienceDataMessages = defineMessages({
     ja: "{date}までに確認して支払い",
     pt: "Revisar e pagar até {date}",
     zh: "{date}前审阅并付款",
-    ar: "المراجعة والدفع قبل {date}",
+    ar: "المراجعة والدفع في موعد أقصاه {date}",
   },
   "experience.data.next.verifyRetentionHold": {
     en: "Verify retention hold before service action",
@@ -570,7 +570,7 @@ export const experienceDataMessages = defineMessages({
     ja: "アカウントのタイムラインで実際の操作者と代理対象を確認",
     pt: "Verificar na linha do tempo da conta quem agiu e em nome de quem",
     zh: "在账户时间线中核实实际操作人与被代理人",
-    ar: "التحقق في المخطط الزمني للحساب ممن نفّذ الإجراء وباسم من",
+    ar: "التحقق في السجل الزمني للحساب من المنفّذ الفعلي والجهة التي نُفّذ الإجراء باسمها",
   },
   "experience.data.next.confirmPartnerRenewalPath": {
     en: "Confirm the partner agreement renewal path",
@@ -610,7 +610,7 @@ export const experienceDataMessages = defineMessages({
     ja: "デモのプロビジョニングシステムがこの注文を受け付けました。サービスの有効化は、プロバイダーからの完了結果を待っています。",
     pt: "O sistema de provisionamento da demonstração recebeu este pedido. A ativação do serviço aguarda o resultado de conclusão do provedor.",
     zh: "演示开通系统已收到此订单。服务启用需等待服务商返回完成结果。",
-    ar: "تلقّى نظام التهيئة التجريبي هذا الطلب. ويتوقف تفعيل الخدمة على نتيجة الإكمال من المزوّد.",
+    ar: "استلمت أداة تهيئة العرض التوضيحي هذا الطلب. ويتوقف تفعيل الخدمة على نتيجة الإكمال من المزوّد.",
   },
   "experience.data.next.serviceStartsQueued": {
     en: "Service starts {date}. Your accepted order is queued for the provisioning team.",
@@ -1041,7 +1041,7 @@ export const experienceDataMessages = defineMessages({
     ja: "買掛金の担当者",
     pt: "Contato de contas a pagar",
     zh: "应付账款联系人",
-    ar: "جهة الاتصال للحسابات الدائنة",
+    ar: "جهة اتصال الحسابات الدائنة",
   },
   // Record values: amounts, shares and closed values placed as facts.
   "experience.data.value.perYear": {
@@ -1285,7 +1285,7 @@ export const experienceDataMessages = defineMessages({
     ja: "請求済み {amount}",
     pt: "{amount} faturados",
     zh: "已开票 {amount}",
-    ar: "تمت فوترة {amount}",
+    ar: "{amount} مفوترة",
   },
   "experience.data.value.accrued": {
     en: "{amount} accrued",
@@ -1462,7 +1462,7 @@ export const experienceDataMessages = defineMessages({
     ja: "デモ支払いを{date}（UTC）に確認",
     pt: "Pagamento de demonstração confirmado em {date} (UTC)",
     zh: "演示付款已于 {date}（UTC）确认",
-    ar: "تأكد الدفع التجريبي في {date} (UTC)",
+    ar: "تأكدت دفعة العرض التوضيحي في {date} (UTC)",
   },
   "experience.data.date.invitedRecently": {
     en: "Invited recently",
@@ -1673,7 +1673,7 @@ export const experienceDataMessages = defineMessages({
     ja: "生成時点の最新の取引記録",
     pt: "Registros comerciais atuais no momento da geração",
     zh: "生成时的最新商务记录",
-    ar: "سجلات التجارة الحالية وقت الإنشاء",
+    ar: "السجلات التجارية الحالية وقت إنشاء التقرير",
   },
   "experience.data.desc.createdQuoteLines": {
     count: "count",
@@ -1719,7 +1719,7 @@ export const experienceDataMessages = defineMessages({
     ja: "デモ用領収書 {receipt}・サンドボックスのみ・実際の資金移動なし",
     pt: "Recibo de demonstração {receipt} · somente ambiente de testes · nenhum dinheiro foi movimentado",
     zh: "演示收据 {receipt} · 仅限沙盒 · 未发生资金转移",
-    ar: "إيصال تجريبي {receipt} · بيئة الاختبار فقط · لم تُحوَّل أي أموال",
+    ar: "إيصال العرض التوضيحي {receipt} · بيئة الاختبار فقط · لم تُحوَّل أي أموال",
   },
   "experience.data.desc.pendingInvitation": {
     en: "Pending invitation · {role}",
@@ -1739,7 +1739,7 @@ export const experienceDataMessages = defineMessages({
     ja: "請求書とクレジットノートを確認済みの請求用メールボックスに送付します。",
     pt: "Encaminha faturas e notas de crédito para a caixa de entrada de faturamento verificada.",
     zh: "将发票和贷项通知单发送至已验证的账单收件箱。",
-    ar: "يوجّه الفواتير والإشعارات الدائنة إلى صندوق بريد الفوترة المعتمد.",
+    ar: "يوجّه الفواتير والإشعارات الدائنة إلى صندوق بريد الفوترة المُتحقق منه.",
   },
   "experience.data.desc.orderAcceptedFrom": {
     en: "Accepted from {quote} · order form on file",
@@ -1789,7 +1789,7 @@ export const experienceDataMessages = defineMessages({
     ja: "契約更新と解約のリスク・{period}",
     pt: "Exposição a renovações e cancelamentos · {period}",
     zh: "续约与流失风险敞口 · {period}",
-    ar: "التعرض لمخاطر التجديد والانسحاب · {period}",
+    ar: "التعرض لمخاطر التجديد وفقدان العملاء · {period}",
   },
   "experience.data.owner.buyerWorkspace": {
     en: "Buyer workspace",

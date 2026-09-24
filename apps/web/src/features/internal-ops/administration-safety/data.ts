@@ -123,7 +123,7 @@ export const approvalCases: readonly ApprovalCase[] = [
         ja: "パートナーランクと下限価格の比較",
         pt: "Comparação entre o nível do parceiro e o preço mínimo",
         zh: "合作伙伴等级与底价对比",
-        ar: "مقارنة مستوى الشريك بالحد الأدنى للسعر",
+        ar: "مقارنة فئة الشريك بالحد الأدنى للسعر",
       }),
       demoText({
         en: "Credit exposure remains within the finance threshold",
@@ -240,7 +240,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       ja: "責任条項と監査条項を変更する顧客側の文言を受け入れるか却下します。",
       pt: "Aceita ou rejeita a redação do cliente que altera os termos de responsabilidade e auditoria.",
       zh: "接受或驳回客户对责任和审计条款的修改措辞。",
-      ar: "يقبل صياغة العميل التي تغيّر شروط المسؤولية والتدقيق أو يردّها.",
+      ar: "يقبل صياغة العميل التي تغيّر شروط المسؤولية والتدقيق أو يرفضها.",
     }),
     evidence: [
       demoText({
@@ -261,7 +261,7 @@ export const approvalCases: readonly ApprovalCase[] = [
         ja: "セキュリティ別紙の管理策マッピング",
         pt: "Mapeamento de controles do anexo de segurança",
         zh: "安全附表控制项映射",
-        ar: "مطابقة ضوابط ملحق الأمان",
+        ar: "ربط ضوابط ملحق الأمان",
       }),
       demoText({
         en: "Signed-text hash comparison completed",
@@ -292,7 +292,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       ja: "承認するとカウンター署名が可能になり、却下すると修正履歴がアカウント所有者に差し戻されます。",
       pt: "A aprovação libera a contra-assinatura; a rejeição devolve as marcações ao proprietário da conta.",
       zh: "批准后即可由双方签署；驳回则将修订稿退回账户所有者。",
-      ar: "تتيح الموافقة التوقيع المقابل، ويعيد الردّ التعديلات إلى مالك الحساب.",
+      ar: "تتيح الموافقة توقيع الطرفين، ويعيد الرفض التعديلات إلى مالك الحساب.",
     }),
     owner: "Priya Nair",
     requestedBy: "James Ortega",
@@ -365,7 +365,7 @@ export const approvalCases: readonly ApprovalCase[] = [
         ja: "保持による除外・2名体制での撤去",
         pt: "Exclusões de retenção · desmantelamento por duas pessoas",
         zh: "保留排除项 · 双人拆除",
-        ar: "استثناءات الاحتفاظ · تفكيك بموافقة شخصين",
+        ar: "استبعادات الاحتفاظ · تفكيك بموافقة شخصين",
       }),
     },
     decision: "destructive",
@@ -399,7 +399,7 @@ export const approvalCases: readonly ApprovalCase[] = [
         ja: "Object Lock による除外 4件を 2027年4月15日まで保持",
         pt: "Quatro exclusões de Object Lock preservadas até 15 de abril de 2027",
         zh: "4 项 Object Lock 排除项保留至 2027 年 4 月 15 日",
-        ar: "الإبقاء على أربعة استثناءات Object Lock حتى 15 أبريل 2027",
+        ar: "الإبقاء على أربعة استبعادات Object Lock حتى 15 أبريل 2027",
       }),
       demoText({
         en: "Final credit and invoice check is clear",
@@ -463,7 +463,7 @@ export const approvalCases: readonly ApprovalCase[] = [
         ja: "保持による除外を維持",
         pt: "Exclusões de retenção preservadas",
         zh: "保留排除项已保留",
-        ar: "استثناءات الاحتفاظ محفوظة",
+        ar: "استبعادات الاحتفاظ محفوظة",
       }),
       demoText({
         en: "Credit due check clear",
@@ -724,7 +724,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "ホスト型ランタイム、MFA、署名付きコールバック",
       pt: "Ambiente de execução hospedado, MFA e callbacks assinados",
       zh: "托管运行时、MFA 和签名回调",
-      ar: "بيئة التشغيل المستضافة والمصادقة متعددة العوامل (MFA) وعمليات رد الاتصال الموقّعة",
+      ar: "بيئة التشغيل المستضافة والمصادقة متعددة العوامل (MFA) والاستدعاءات الموقّعة",
     }),
     activationTest: demoText({
       en: "Hosted credential suite not run",
@@ -746,7 +746,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "スコープを限定したホスト環境の認証情報と、合格したコールバックテストが必要です。",
       pt: "São necessárias credenciais hospedadas com escopo definido e um teste de callback aprovado.",
       zh: "需要限定范围的托管凭证，以及通过的回调测试。",
-      ar: "يلزم توفر بيانات اعتماد مستضافة محددة النطاق واجتياز اختبار رد الاتصال.",
+      ar: "يلزم توفر بيانات اعتماد مستضافة محددة النطاق واجتياز اختبار الاستدعاء.",
     }),
     configuredState: "pending",
     effectiveState: "blocked",
@@ -880,7 +880,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "製品プロビジョニングの契約",
       pt: "Contrato de provisionamento do produto",
       zh: "产品开通接口规范",
-      ar: "عقد تهيئة المنتج",
+      ar: "مواصفات تهيئة المنتج",
     }),
     owner: demoText({
       en: "Provisioning lead",
@@ -1104,7 +1104,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "ドメインとコールバックのレコード",
       pt: "Domínios e registros de callback",
       zh: "域名和回调记录",
-      ar: "النطاقات وسجلات رد الاتصال",
+      ar: "النطاقات وسجلات الاستدعاء",
     }),
     owner: demoText({
       en: "Web platform",
@@ -1124,7 +1124,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "カスタムドメイン、TLS、コールバック、送信者レコード",
       pt: "Domínios personalizados, TLS, callbacks e registros de remetente",
       zh: "自定义域名、TLS、回调和发件人记录",
-      ar: "النطاقات المخصصة وشهادات TLS وعمليات رد الاتصال وسجلات المرسل",
+      ar: "النطاقات المخصصة وشهادات TLS والاستدعاءات وسجلات المرسل",
     }),
     activationTest: demoText({
       en: "Local callback test passed; DNS test not run",
@@ -1134,7 +1134,7 @@ const gateFixtures: readonly GateFixture[] = [
       ja: "ローカルのコールバックテストは合格、DNS テストは未実行",
       pt: "Teste local de callback aprovado; teste de DNS não executado",
       zh: "本地回调测试已通过；DNS 测试未运行",
-      ar: "نجح اختبار رد الاتصال المحلي؛ ولم يُشغَّل اختبار DNS",
+      ar: "نجح اختبار الاستدعاء المحلي؛ ولم يُشغَّل اختبار DNS",
     }),
     severity: gateSeverities.launchBlocker,
     state: gateStates.blocked,

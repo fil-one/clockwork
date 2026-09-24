@@ -188,7 +188,7 @@ export const operationsMessages = defineMessages({
     ja: "更新が必要",
     pt: "Desatualizado",
     zh: "需要刷新",
-    ar: "يتطلب تحديثاً",
+    ar: "بحاجة إلى تحديث",
   },
   "ui.32": {
     en: "Temporarily unavailable",
@@ -198,7 +198,7 @@ export const operationsMessages = defineMessages({
     ja: "一時的に利用できません",
     pt: "Temporariamente indisponível",
     zh: "暂时不可用",
-    ar: "غير متاح مؤقتاً",
+    ar: "غير متاح مؤقتًا",
   },
   "ui.33": {
     en: "Not available in this workspace",
@@ -228,7 +228,7 @@ export const operationsMessages = defineMessages({
     ja: "判断を行う前に、対象情報を元の記録と照合してください。",
     pt: "Confira os dados no registro de origem antes de decidir.",
     zh: "作决定前，请对照源记录核实将要操作的内容。",
-    ar: "تحقق من كل ما ستتخذ إجراءً بشأنه مقابل السجل المصدر قبل القرار.",
+    ar: "تحقق مما ستتخذ إجراءً بشأنه بمقارنته بالسجل المصدر قبل اتخاذ القرار.",
   },
   "ui.36": {
     en: "Renewal notice windows",
@@ -248,7 +248,7 @@ export const operationsMessages = defineMessages({
     ja: "契約上の通知日までの残り期間別に、登録済みチャネルと請求情報を含む注文を表示します。",
     pt: "Pedidos agrupados pelo tempo restante até a data de aviso prévio contratual, com a modalidade de venda e o faturamento já registrados.",
     zh: "按距合同通知日的剩余时间对订单分组，并显示已记录的销售模式和开票情况。",
-    ar: "طلبات مجمعة حسب المدة المتبقية للإشعار التعاقدي، مع المسار والفوترة المسجلين.",
+    ar: "الطلبات مجمّعة حسب المدة المتبقية حتى تاريخ الإشعار التعاقدي، مع مسار البيع والفوترة المسجّلين لكل طلب.",
   },
   "ui.38": {
     en: "About renewal value",
@@ -268,7 +268,7 @@ export const operationsMessages = defineMessages({
     ja: "請求済み額は各注文の請求額を示します。予測額はこの更新作業リストとは別に管理されます。",
     pt: "“Faturado até o momento” mostra o valor faturado de cada pedido. O valor previsto fica separado desta lista de renovações.",
     zh: "“累计已开票”显示每个订单的已开票金额。预测价值与此续约工作列表分开。",
-    ar: "يبين المفوتر حتى الآن قيمة كل طلب. وتظل التوقعات منفصلة عن قائمة التجديدات هذه.",
+    ar: "يبيّن «المفوتر حتى تاريخه» القيمة المفوترة لكل طلب. وتظل القيمة المتوقعة منفصلة عن قائمة أعمال التجديد هذه.",
   },
   "ui.40": {
     en: "Invoiced to date",
@@ -278,7 +278,7 @@ export const operationsMessages = defineMessages({
     ja: "請求済み額",
     pt: "Faturado até o momento",
     zh: "累计已开票",
-    ar: "المفوتر حتى الآن",
+    ar: "المفوتر حتى تاريخه",
   },
   "ui.41": {
     en: "No invoices recorded against this order",
@@ -298,7 +298,7 @@ export const operationsMessages = defineMessages({
     ja: "チャネル未記録",
     pt: "Modalidade de venda não registrada",
     zh: "未记录销售模式",
-    ar: "المسار غير مسجل",
+    ar: "مسار البيع غير مسجّل",
   },
   "ui.43": {
     en: "No orders fall in this window.",
@@ -318,7 +318,7 @@ export const operationsMessages = defineMessages({
     ja: "債権回収の優先順位",
     pt: "Prioridade de cobrança",
     zh: "收款优先级",
-    ar: "أولوية التحصيل",
+    ar: "أولويات التحصيل",
   },
   "ui.45": {
     en: "Open invoices ordered by exposure and age, with the corrections a finance approver may raise against them.",
@@ -328,7 +328,7 @@ export const operationsMessages = defineMessages({
     ja: "リスクと経過期間順の未払い請求書と、財務承認者が申請できる修正を表示します。",
     pt: "Faturas em aberto ordenadas por exposição e antiguidade, com as correções que um aprovador financeiro pode registrar.",
     zh: "按风险敞口和账龄排列未结发票，并显示财务审批人可提出的更正。",
-    ar: "فواتير مفتوحة مرتبة حسب الالتزامات والعمر، مع التصحيحات التي يمكن للموافق المالي طلبها.",
+    ar: "الفواتير المفتوحة مرتّبة حسب التعرض المالي والعمر، مع التصحيحات التي يجوز للموافِق المالي إجراؤها عليها.",
   },
   "ui.46": {
     en: "Priority order",
@@ -348,7 +348,7 @@ export const operationsMessages = defineMessages({
     ja: "未払い額、延滞日数、請求書参照の順に並べます。別通貨の金額は順位付けされますが、合計には加算されません。",
     pt: "Maior valor aberto, dias de atraso e referência. Valores em outra moeda são ordenados, mas nunca somados ao total.",
     zh: "依次按最高未付金额、逾期天数、发票编号排序。其他币种金额参与排序，但绝不合并总计。",
-    ar: "الأعلى مبلغاً ثم أيام التأخر ثم مرجع الفاتورة. تُرتب مبالغ العملات الأخرى دون جمعها في الإجمالي.",
+    ar: "أعلى مبلغ مفتوح، ثم أيام التأخر عن السداد، ثم مرجع الفاتورة. تُرتَّب المبالغ بعملة ثانية دون أن تُجمع في الإجمالي.",
   },
   "ui.48": {
     en: "Collections actions",
@@ -448,7 +448,7 @@ export const operationsMessages = defineMessages({
     ja: "プロビジョニング業務",
     pt: "Tarefas de provisionamento",
     zh: "开通任务",
-    ar: "أعمال تهيئة الخدمات",
+    ar: "مهام التهيئة",
   },
   "ui.59": {
     en: "Track provider work, service terminations, retry timing, and the items that need operator attention.",
@@ -458,7 +458,7 @@ export const operationsMessages = defineMessages({
     ja: "プロバイダー作業、サービス終了、再試行時刻、担当者の対応が必要な項目を追跡します。",
     pt: "Acompanhe as operações dos provedores, as rescisões de serviço, o agendamento de novas tentativas e os itens que exigem a atenção de um operador.",
     zh: "跟踪服务商工作、服务终止、重试时机及需要操作员处理的事项。",
-    ar: "تابع أعمال المزوّدين وإنهاء الخدمات ومواعيد إعادة المحاولة والعناصر التي تتطلب اهتمام المشغّل.",
+    ar: "تابع عمليات المزوّدين وحالات إنهاء الخدمة ومواعيد إعادة المحاولة والعناصر التي تحتاج إلى متابعة المشغّل.",
   },
   "ui.60": {
     en: "Stopped work is handled in recovery.",
@@ -468,7 +468,7 @@ export const operationsMessages = defineMessages({
     ja: "停止した作業は復旧画面で処理します。",
     pt: "As tarefas interrompidas são tratadas em Recuperação.",
     zh: "已停止的工作在恢复工作区处理。",
-    ar: "تُعالج الأعمال المتوقفة في مساحة الاستعادة.",
+    ar: "تُعالج المهام المتوقفة في مساحة الاستعادة.",
   },
   "ui.61": {
     en: "Open the recovery workspace to retry or abandon work that has exhausted its automatic attempts.",
@@ -478,7 +478,7 @@ export const operationsMessages = defineMessages({
     ja: "自動再試行を使い切った作業を再試行または中止するには、復旧ワークスペースを開いてください。",
     pt: "Abra Recuperação para tentar novamente ou descartar tarefas que esgotaram as tentativas automáticas.",
     zh: "打开恢复工作区，以重试或放弃已耗尽自动重试次数的工作。",
-    ar: "افتح مساحة الاستعادة لإعادة محاولة الأعمال التي استنفدت محاولاتها التلقائية أو التخلي عنها.",
+    ar: "افتح مساحة الاستعادة لإعادة محاولة المهام التي استنفدت محاولاتها التلقائية أو التخلي عنها.",
   },
   "ui.62": {
     en: "Open the recovery queue",
@@ -508,7 +508,7 @@ export const operationsMessages = defineMessages({
     ja: "サービス終了",
     pt: "Rescisões de serviço",
     zh: "服务终止",
-    ar: "إنهاء الخدمات",
+    ar: "حالات إنهاء الخدمة",
   },
   "ui.65": {
     en: "High risk",
@@ -528,7 +528,7 @@ export const operationsMessages = defineMessages({
     ja: "プロビジョニング記録",
     pt: "Registros de provisionamento",
     zh: "开通记录",
-    ar: "سجلات تهيئة الخدمات",
+    ar: "سجلات التهيئة",
   },
   "ui.67": {
     en: "Provisioning records ordered by risk then attempts spent",
@@ -548,7 +548,7 @@ export const operationsMessages = defineMessages({
     ja: "このワークスペースで対応が必要なプロビジョニング業務はありません。",
     pt: "Nenhum provisionamento exige atenção neste espaço.",
     zh: "此工作区没有需要处理的开通工作。",
-    ar: "لا توجد أعمال تهيئة تتطلب اهتماماً في هذه المساحة.",
+    ar: "لا توجد مهام تهيئة تحتاج إلى متابعة في مساحة العمل هذه.",
   },
   "ui.69": {
     en: "Attempts",
@@ -588,7 +588,7 @@ export const operationsMessages = defineMessages({
     ja: "担当者セッションに記録された出力と、今すぐ生成できるレポートです。",
     pt: "Exportações registradas na sua sessão e exportações disponíveis para gerar agora.",
     zh: "针对您的操作员会话记录的报表导出，以及当前可生成的导出。",
-    ar: "تصديرات التقارير المسجلة لجلسة المشغّل والتصديرات المدعومة التي يمكنك إنشاؤها الآن.",
+    ar: "عمليات تصدير التقارير المسجّلة في جلسة المشغّل الخاصة بك، وعمليات التصدير المدعومة التي يمكنك إنشاؤها الآن.",
   },
   "ui.73": {
     en: "Recorded report exports",
@@ -598,7 +598,7 @@ export const operationsMessages = defineMessages({
     ja: "記録済みレポート出力",
     pt: "Exportações de relatórios registradas",
     zh: "已记录报表导出",
-    ar: "تصديرات التقارير المسجلة",
+    ar: "عمليات تصدير التقارير المسجّلة",
   },
   "ui.74": {
     en: "Report exports newest first",
@@ -608,7 +608,7 @@ export const operationsMessages = defineMessages({
     ja: "新しい順のレポート出力",
     pt: "Exportações de relatórios, mais recentes primeiro",
     zh: "报表导出，最新优先",
-    ar: "تصديرات التقارير من الأحدث",
+    ar: "عمليات تصدير التقارير، الأحدث أولًا",
   },
   "ui.75": {
     en: "No report exports are projected into your operator scope. Generating an export below records one.",
@@ -618,7 +618,7 @@ export const operationsMessages = defineMessages({
     ja: "担当範囲にレポート出力はありません。以下から生成すると記録されます。",
     pt: "Nenhuma exportação no seu escopo de operador. Gere uma abaixo para registrá-la.",
     zh: "您的操作员范围内暂无报表导出。在下方生成导出后即会记录。",
-    ar: "لا توجد تصديرات تقارير ضمن نطاق المشغّل الخاص بك. أنشئ تصديراً أدناه لتسجيله.",
+    ar: "لا توجد عمليات تصدير تقارير ضمن نطاق المشغّل الخاص بك. يؤدي إنشاء عملية تصدير أدناه إلى تسجيلها.",
   },
   "ui.76": {
     en: "All supported reports",
@@ -658,7 +658,7 @@ export const operationsMessages = defineMessages({
     ja: "対応するエクスポート",
     pt: "Exportações disponíveis",
     zh: "支持的导出",
-    ar: "التصديرات المدعومة",
+    ar: "عمليات التصدير المدعومة",
   },
   "ui.80": {
     en: "The report registry in the commerce contract. Each one is generated on request; this page holds no cached result and states no freshness for one.",
@@ -668,7 +668,7 @@ export const operationsMessages = defineMessages({
     ja: "コマース API 仕様のレポート一覧です。各レポートは要求時に生成されます。このページは結果をキャッシュせず、鮮度も表示しません。",
     pt: "Registro de relatórios do contrato da API do Commerce. Cada um é gerado sob demanda; esta página não guarda resultados em cache nem informa a atualidade de nenhum deles.",
     zh: "商务 API 契约中的报表目录。每份报表按需生成；此页面不缓存结果，也不声明其时效性。",
-    ar: "سجل التقارير في مواصفات واجهة التجارة. يُنشأ كل تقرير عند الطلب؛ ولا تحتفظ الصفحة بنتائج مخزنة مؤقتاً أو تدعي حداثتها.",
+    ar: "سجل التقارير في مواصفات واجهة التجارة. يُنشأ كل تقرير عند الطلب؛ ولا تحتفظ الصفحة بنتائج مخزنة مؤقتًا أو تدعي حداثتها.",
   },
   "ui.81": {
     en: "ARR & MRR",
@@ -708,7 +708,7 @@ export const operationsMessages = defineMessages({
     ja: "エクスポートは要求時に生成されます",
     pt: "Exportações são geradas sob demanda",
     zh: "导出按需生成",
-    ar: "تُنشأ التصديرات عند الطلب",
+    ar: "تُنشأ عمليات التصدير عند الطلب",
   },
   "ui.85": {
     en: "Choose a report and account scope below. Completed exports remain available in the history list.",
@@ -718,7 +718,7 @@ export const operationsMessages = defineMessages({
     ja: "以下でレポートとアカウント範囲を選択してください。生成済みの出力は履歴で利用できます。",
     pt: "Escolha um relatório e escopo de contas abaixo. Exportações concluídas ficam no histórico.",
     zh: "在下方选择报表和账户范围。已完成的导出保留在历史记录中。",
-    ar: "اختر تقريراً ونطاق حساب أدناه. تظل التصديرات المكتملة متاحة في السجل.",
+    ar: "اختر تقريرًا ونطاق حساب أدناه. تظل عمليات التصدير المكتملة متاحة في السجل.",
   },
   "ui.116": {
     en: "Evidence",
@@ -2011,7 +2011,7 @@ export const operationsMessages = defineMessages({
     ja: "取引制限対象者",
     pt: "Partes restritas",
     zh: "受限方",
-    ar: "الأطراف المقيدة",
+    ar: "الأطراف الخاضعة للقيود",
   },
   "operations.queue.type.disputes": {
     en: "Disputes",
@@ -2241,7 +2241,7 @@ export const operationsMessages = defineMessages({
     ja: "例外を却下",
     pt: "Rejeitar exceção",
     zh: "驳回例外",
-    ar: "ردّ الاستثناء",
+    ar: "رفض الاستثناء",
   },
   "operations.queue.action.evaluateDunning": {
     en: "Evaluate dunning",
@@ -2311,7 +2311,7 @@ export const operationsMessages = defineMessages({
     ja: "代理操作モードでのアクセスは、保存された対象アカウントに限定されます。",
     pt: "O acesso no modo assistido continua restrito à conta assistida registrada.",
     zh: "代操作模式下的访问仍仅限于已保存的目标账户。",
-    ar: "يظل الوصول في الوضع المساعد مقتصرًا على الحساب الفعلي المحفوظ.",
+    ar: "يظل الوصول في الوضع المساعد مقتصرًا على الحساب المستهدف المحفوظ.",
   },
   "operations.account.openReports": {
     en: "Open reports workspace",
@@ -3167,7 +3167,7 @@ export const operationsMessages = defineMessages({
     ja: "デモ用の復旧台帳",
     pt: "Registro de recuperação de demonstração",
     zh: "演示恢复台账",
-    ar: "سجل الاستعادة التجريبي",
+    ar: "سجل الاستعادة للعرض التوضيحي",
   },
   "operations.recovery.source.unavailable": {
     en: "No queue read is available",
@@ -3807,7 +3807,7 @@ export const operationsMessages = defineMessages({
     ja: "境界とタスク",
     pt: "Fronteira e tarefa",
     zh: "边界与任务",
-    ar: "الحد والمهمة",
+    ar: "حدّ النظام والمهمة",
   },
   "operations.incidents.column.record": {
     en: "Record and identifiers",
@@ -3857,7 +3857,7 @@ export const operationsMessages = defineMessages({
     ja: "この書き込み元は境界を記録しません",
     pt: "O módulo que grava este evento não registra a fronteira",
     zh: "此写入方未记录边界",
-    ar: "لا تسجّل الوحدة التي تكتب هذا الحدث أي حد",
+    ar: "لم تسجّل الوحدة التي تكتب هذا الحدث حدّ النظام",
   },
   "operations.incidents.row.task": {
     en: "Task {id}",
@@ -3887,7 +3887,7 @@ export const operationsMessages = defineMessages({
     ja: "リクエスト {id}",
     pt: "Requisição {id}",
     zh: "请求 {id}",
-    ar: "معرّف الطلب {id}",
+    ar: "معرّف طلب التنفيذ {id}",
   },
   "operations.incidents.row.auditEvent": {
     en: "Audit event {id}",
@@ -4167,7 +4167,7 @@ export const operationsMessages = defineMessages({
     ja: "任意。要件キー、デプロイのリビジョン、チケット ID またはチケット URL を{limit}文字以内で入力します。印刷可能な文字の1行のみで、引用符、山かっこ、バッククォート、セミコロン、バックスラッシュは使用できません。",
     pt: "Opcional. Chave de pré-requisito, revisão de implantação, ID ou URL de chamado, com até {limit} caracteres. Uma única linha de texto imprimível, sem aspas, sinais de menor e maior, crases, ponto e vírgula ou barras invertidas.",
     zh: "可选。可填写前置条件键、部署版本、工单 ID 或工单 URL，最多 {limit} 个字符。仅限一行可打印文本，不得包含引号、尖括号、反引号、分号或反斜杠。",
-    ar: "اختياري. مفتاح المتطلب أو مراجعة النشر أو معرّف التذكرة أو رابطها، بحد أقصى {limit} من الأحرف. سطر واحد من نص قابل للطباعة، دون علامات اقتباس أو أقواس زاوية أو علامات اقتباس مائلة أو فواصل منقوطة أو شرطات مائلة عكسية.",
+    ar: "اختياري. مفتاح المتطلب أو إصدار النشر أو معرّف التذكرة أو رابطها، بحد أقصى {limit} من الأحرف. سطر واحد من نص قابل للطباعة، دون علامات اقتباس أو أقواس زاوية أو علامات اقتباس مائلة أو فواصل منقوطة أو شرطات مائلة عكسية.",
   },
   "operations.incidents.decision.reasonHelp": {
     en: "Between {min} and {max} characters. Kept with your name on the audit record.",
@@ -4237,7 +4237,7 @@ export const operationsMessages = defineMessages({
     ja: "デモ用の実行時障害台帳",
     pt: "Registro de falhas de execução de demonstração",
     zh: "演示运行时故障台账",
-    ar: "سجل إخفاقات وقت التشغيل التجريبي",
+    ar: "سجل إخفاقات وقت التشغيل للعرض التوضيحي",
   },
   "operations.incidents.source.unavailable": {
     en: "No audit read completed",
@@ -4277,7 +4277,7 @@ export const operationsMessages = defineMessages({
     ja: "失敗した、または未処理のプロバイダーのコールバックです。再実行すると、プロバイダーから配信された時点で検証済みのバイト列から処理し直します。",
     pt: "Callbacks de provedores que falharam ou não foram processados. A reexecução processa um deles novamente a partir dos bytes verificados quando o provedor o entregou.",
     zh: "失败或尚未处理的服务商回调。重放会基于服务商投递时已验证的字节重新处理该回调。",
-    ar: "استدعاءات المزوّدين التي أخفقت أو لم تُعالج. تعيد إعادة التشغيل معالجة الاستدعاء انطلاقًا من البايتات التي جرى التحقق منها عند تسليم المزوّد له.",
+    ar: "استدعاءات المزوّدين التي أخفقت أو لم تُعالج. تعالج إعادةُ التشغيل استدعاءً واحدًا من جديد انطلاقًا من البايتات التي جرى التحقق منها عند تسليم المزوّد له.",
   },
   "operations.webhookReplay.freshness.read": {
     en: "Read at page load",
@@ -4317,7 +4317,7 @@ export const operationsMessages = defineMessages({
     ja: "デモ用の検証済みコールバック台帳",
     pt: "Registro de demonstração de callbacks verificados",
     zh: "演示用已验证回调台账",
-    ar: "سجل الاستدعاءات الموثّقة التجريبي",
+    ar: "سجل الاستدعاءات الموثّقة للعرض التوضيحي",
   },
   "operations.webhookReplay.source.unavailable": {
     en: "No callback read is available",
@@ -4537,7 +4537,7 @@ export const operationsMessages = defineMessages({
     ja: "保存済みのイベントを、配信時に検証済みのバイト列から再処理します。修正済みのペイロードはここでは取り込めません。その場合は、プロバイダーにイベントの再配信を依頼してください。",
     pt: "O evento armazenado é processado novamente a partir dos bytes verificados na entrega. Um conteúdo corrigido não pode ser aproveitado aqui; para isso, peça ao provedor que reenvie o evento.",
     zh: "将基于投递时已验证的字节重新处理已存储的事件。此处无法采用更正后的负载；如需更正，请让服务商重新投递该事件。",
-    ar: "يُعاد معالجة الحدث المخزّن انطلاقًا من البايتات التي جرى التحقق منها عند التسليم. لا يمكن استخدام محتوى مصحّح هنا؛ ولذلك اطلب من المزوّد إعادة تسليم الحدث.",
+    ar: "تُعاد معالجة الحدث المخزّن انطلاقًا من البايتات التي جرى التحقق منها عند التسليم. لا يمكن استخدام محتوى مصحّح هنا؛ ولذلك اطلب من المزوّد إعادة تسليم الحدث.",
   },
   "operations.webhookReplay.detail.payloadHash": {
     en: "Payload hash",
@@ -4547,7 +4547,7 @@ export const operationsMessages = defineMessages({
     ja: "ペイロードのハッシュ",
     pt: "Hash do conteúdo",
     zh: "负载哈希",
-    ar: "تجزئة المحتوى",
+    ar: "قيمة تجزئة المحتوى",
   },
   "operations.webhookReplay.detail.repeatSubmission": {
     en: "Replays started by submitting twice",
@@ -4677,7 +4677,7 @@ export const operationsMessages = defineMessages({
     ja: "対象アカウント",
     pt: "Conta assistida",
     zh: "目标账户",
-    ar: "الحساب الفعلي",
+    ar: "الحساب المستهدف",
   },
   "operations.assisted.staffActor": {
     en: "Staff actor",
@@ -4717,7 +4717,7 @@ export const operationsMessages = defineMessages({
     ja: "サーバーセッション {id} は、承認済みのすべての操作について、変更できない操作者と対象アカウントを保持します。",
     pt: "A sessão do servidor {id} preserva, em cada ação autorizada, o autor da ação, que não pode ser alterado, e a conta assistida.",
     zh: "服务器会话 {id} 会在每次授权操作中保留不可更改的员工操作人和目标账户。",
-    ar: "تحتفظ جلسة الخادم {id} بالموظف المنفّذ غير القابل للتغيير وبالحساب الفعلي في كل إجراء مصرّح به.",
+    ar: "تحتفظ جلسة الخادم {id} بالموظف المنفّذ غير القابل للتغيير وبالحساب المستهدف في كل إجراء مصرّح به.",
   },
   "operations.assisted.exit": {
     en: "Exit assisted mode",
@@ -4757,7 +4757,7 @@ export const operationsMessages = defineMessages({
     ja: "外部要件の対象となるすべての機能",
     pt: "Todas as funcionalidades sujeitas a pré-requisitos externos",
     zh: "所有受外部前置条件约束的功能",
-    ar: "جميع الوظائف الخاضعة لمتطلبات خارجية",
+    ar: "جميع الإمكانيات الخاضعة لمتطلبات خارجية",
   },
   "operations.gates.unavailable.activationTest": {
     en: "Not available; activation is denied",

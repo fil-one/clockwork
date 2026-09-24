@@ -22,7 +22,7 @@ export const partnerMessages = defineMessages({
     ja: "パートナー契約の期限",
     pt: "Prazos do acordo de parceria",
     zh: "合作伙伴协议期限",
-    ar: "مواعيد اتفاقية الشريك",
+    ar: "مواعيد اتفاقية الشراكة",
   },
   "cp.partner.urgentTitle": {
     en: "Urgent partner work",
@@ -122,7 +122,7 @@ export const partnerMessages = defineMessages({
     ja: "このパートナー用ワークスペースは、代表する権限のある組織でのみ開けます。組織を切り替えるか、パートナー管理者にメンバーへの追加を依頼してください。",
     pt: "Este espaço de parceiro só abre para uma organização que você está autorizado a representar. Troque de organização ou peça a um administrador do parceiro para adicioná-lo como membro.",
     zh: "此合作伙伴工作区仅对您获授权代表的组织开放。请切换组织，或请合作伙伴管理员将您添加为成员。",
-    ar: "لا تُفتح مساحة الشريك هذه إلا لمؤسسة مخوّل لك تمثيلها. بدّل المؤسسة أو اطلب من مسؤول الشريك إضافتك عضوًا.",
+    ar: "لا تُفتح مساحة الشريك هذه إلا لمؤسسة مخوّل لك تمثيلها. بدّل المؤسسة أو اطلب من مشرف الشريك إضافتك عضوًا.",
   },
   "partner.access.action": {
     en: "Switch organization",
@@ -534,7 +534,7 @@ export const partnerMessages = defineMessages({
     ja: "帰属：発掘クレジットの記録なし",
     pt: "Atribuição: nenhum crédito de origem registrado",
     zh: "归属：未记录开拓归属",
-    ar: "الإسناد: لم يُسجَّل أي رصيد مصدره الشريك",
+    ar: "الإسناد: لم يُسجَّل إسناد للشريك بوصفه مصدر الفرصة",
   },
 
   // Renewal review panel on the renewals collection.
@@ -848,7 +848,7 @@ export const partnerMessages = defineMessages({
     ja: "登録の判断は Fil One のチャネル運用チームが行います。パートナーのロールは証跡を提出し、判断の状況を確認できます。このページは承認された登録から発掘クレジットを算出しますが、影響クレジットや異議の判断はここでは記録できません。",
     pt: "As decisões sobre registros são tomadas pela equipe de operações de canal da Fil One; os perfis de parceiro podem enviar evidências e acompanhar a decisão. Esta página calcula o crédito de origem a partir de um registro aceito, mas decisões de crédito por influência e de contestações não podem ser registradas aqui.",
     zh: "报备由 Fil One 渠道运营团队决定；合作伙伴角色可以提交证据并跟踪决定。本页根据已接受的报备计算开拓归属，但影响归属和争议的决定无法在此记录。",
-    ar: "يتخذ فريق عمليات القنوات في Fil One قرارات التسجيل، ويمكن لأدوار الشريك تقديم الأدلة ومتابعة القرار. تستمد هذه الصفحة رصيد المصدر من التسجيل المقبول، ولا يمكن تسجيل قرارات الأثر أو النزاعات هنا.",
+    ar: "يتخذ فريق عمليات القنوات في Fil One قرارات التسجيل، ويمكن لأدوار الشريك تقديم الأدلة ومتابعة القرار. تستمد هذه الصفحة إسناد الفرصة إلى الشريك بوصفه مصدرها من التسجيل المقبول، ولا يمكن هنا تسجيل قرارات الإسناد بالتأثير ولا قرارات النزاعات.",
   },
   "partner.surface.disputes.eyebrow": {
     en: "Partner desk · Evidence and resolution",
@@ -948,7 +948,7 @@ export const partnerMessages = defineMessages({
     ja: "影響額",
     pt: "Exposição",
     zh: "风险敞口",
-    ar: "المبلغ المعرّض للخطر",
+    ar: "التعرض المالي",
   },
   "partner.surface.disputes.column2": {
     en: "Deadline",
@@ -1068,7 +1068,7 @@ export const partnerMessages = defineMessages({
     ja: "価格の区分",
     pt: "Separação de preços",
     zh: "价格边界",
-    ar: "حدود الأسعار",
+    ar: "الفصل بين الأسعار",
   },
   "partner.surface.quotes.column2": {
     en: "Expiry",
@@ -1238,7 +1238,7 @@ export const partnerMessages = defineMessages({
     ja: "紹介報酬は回収済みの純収益に対して計上され、明細書では返金、クレジット、チャージバックが差し引かれます。",
     pt: "As comissões de indicação incidem sobre a receita líquida recebida e os demonstrativos descontam reembolsos, créditos e chargebacks.",
     zh: "推荐佣金按已收款净收入计提，结算单扣除退款、贷项和拒付。",
-    ar: "تُستحق عمولات الإحالة على صافي الإيرادات المحصّلة، وتخصم الكشوف المبالغ المستردة والأرصدة الدائنة والمبالغ المردودة.",
+    ar: "تُستحق عمولات الإحالة على صافي الإيرادات المحصّلة، وتخصم الكشوف المبالغ المستردة والأرصدة الدائنة وعمليات رد المبالغ المدفوعة.",
   },
   "partner.surface.commissions.count": {
     count: "count",
@@ -1693,7 +1693,7 @@ export const partnerMessages = defineMessages({
     ja: "パートナー向けの表示を管理しつつ、法的な区分と販売主体を明確に保ちます。",
     pt: "Gerencie a apresentação voltada ao parceiro mantendo explícitos os limites legais e quem é o vendedor.",
     zh: "管理面向合作伙伴的展示，同时明确法律边界和交易责任商户。",
-    ar: "أدِر طريقة العرض الموجّهة للشريك مع إبقاء الحدود القانونية والتاجر المسؤول واضحين.",
+    ar: "أدِر طريقة عرض علامة الشريك مع إبقاء الحدود القانونية وحدود التاجر المسؤول عن المعاملة واضحة.",
   },
   "partner.surface.brand.rule": {
     en: "Branding never changes the legal entity, merchant of record, or audit identity.",
@@ -1816,7 +1816,7 @@ export const partnerMessages = defineMessages({
     ja: "エンド顧客のサポート対応を、元のシステムの更新状況と表示範囲の区分とともに確認します。",
     pt: "Acompanhe o suporte aos clientes finais com a atualização do sistema de origem e os limites de visibilidade.",
     zh: "跟踪终端客户的支持工作，并显示源系统的更新时间和可见范围。",
-    ar: "تابع أعمال دعم العملاء النهائيين مع حداثة بيانات النظام المصدر وحدود الظهور.",
+    ar: "تابع أعمال دعم العملاء النهائيين مع بيان حداثة بيانات النظام المصدر وحدود الاطلاع.",
   },
   "partner.surface.support.rule": {
     en: "This page is read-only; replies and attachments stay in the support provider.",
@@ -2083,7 +2083,7 @@ export const partnerMessages = defineMessages({
     ja: "見込み容量 {capacity}",
     pt: "Carga de trabalho potencial: {capacity}",
     zh: "潜在用量 {capacity}",
-    ar: "حجم العمل المحتمل: {capacity}",
+    ar: "حمل العمل المحتمل: {capacity}",
   },
   "partner.position.domainVerified": {
     en: "Domain verified",
@@ -2143,7 +2143,7 @@ export const partnerMessages = defineMessages({
     ja: "コミッション対象 {rate}",
     pt: "Comissão aplicável: {rate}",
     zh: "可获佣金比例 {rate}",
-    ar: "نسبة العمولة المستحقة: {rate}",
+    ar: "مؤهَّل لعمولة بنسبة {rate}",
   },
   "partner.milestone.qualificationDueToday": {
     en: "Qualification due today",
@@ -2946,7 +2946,7 @@ export const partnerMessages = defineMessages({
     ja: "期限または影響額",
     pt: "Vencimento ou exposição",
     zh: "到期时间或风险敞口",
-    ar: "الاستحقاق أو المبلغ المعرّض للخطر",
+    ar: "الاستحقاق أو التعرض المالي",
   },
   "partner.desk.boundary.title": {
     en: "Commercial boundary",
@@ -3200,7 +3200,7 @@ export const partnerMessages = defineMessages({
     ja: "プロビジョニング中・デモの依頼を送信済み",
     pt: "Provisionamento · solicitação de demonstração enviada",
     zh: "开通中 · 已提交演示请求",
-    ar: "قيد التهيئة · أُرسل الطلب التجريبي",
+    ar: "قيد التهيئة · أُرسل الطلب في العرض التوضيحي",
   },
   "partner.orders.state.accepted": {
     en: "Accepted · awaiting provisioning",
@@ -3240,7 +3240,7 @@ export const partnerMessages = defineMessages({
     ja: "承諾者",
     pt: "Aceito por",
     zh: "接受人",
-    ar: "قبِل الطلب",
+    ar: "الموقِّع بالقبول",
   },
   "partner.orders.signer": {
     en: "{name} · {title}",
@@ -3280,7 +3280,7 @@ export const partnerMessages = defineMessages({
     ja: "デモ用のプロビジョニングが保存済みの利用権を受け取りました。有効化はプロバイダーの完了結果を待っています。",
     pt: "O provisionador de demonstração recebeu os direitos de uso salvos. A ativação aguarda o resultado de conclusão do provedor.",
     zh: "演示开通服务已收到已保存的权益。启用需等待服务商返回完成结果。",
-    ar: "استلمت أداة التهيئة التجريبية الاستحقاقات المحفوظة، وينتظر التفعيل نتيجة الإكمال من المزوّد.",
+    ar: "استلمت أداة تهيئة العرض التوضيحي الاستحقاقات المحفوظة، وينتظر التفعيل نتيجة الإكمال من المزوّد.",
   },
   "partner.orders.handoffNote": {
     en: "Your order is in the internal provisioning handoff. It has not activated service.",
@@ -3370,7 +3370,7 @@ export const partnerMessages = defineMessages({
     ja: "{partner} のデモ用パートナー契約",
     pt: "Acordo de parceria de demonstração de {partner}",
     zh: "{partner} 演示合作伙伴协议",
-    ar: "اتفاقية الشريك التجريبية لشركة {partner}",
+    ar: "اتفاقية الشراكة مع {partner} (عرض توضيحي)",
   },
 
   // Resale quote builder (resale-quote-builder.tsx, resale-quote-model.ts).
@@ -3382,7 +3382,7 @@ export const partnerMessages = defineMessages({
     ja: "このアカウントには完全なパートナー契約が登録されていません",
     pt: "Não há um acordo de parceria completo registrado para esta conta",
     zh: "此账户没有完整的合作伙伴协议记录",
-    ar: "لا توجد اتفاقية شريك مكتملة مسجلة لهذا الحساب",
+    ar: "لا توجد اتفاقية شراكة مكتملة مسجلة لهذا الحساب",
   },
   "partner.quote.nothing.agreement.description": {
     en: "A partner quote is written under a saved channel agreement, and both the commercial route and the transfer tier come from that agreement, not from this form. Your account returned no agreement type or no transfer tier, so there is nothing to quote under.",
@@ -3922,7 +3922,7 @@ export const partnerMessages = defineMessages({
     ja: "{route}・パートナー契約に基づく",
     pt: "{route} · conforme o seu acordo de parceria",
     zh: "{route} · 依据您的合作伙伴协议",
-    ar: "{route} · وفق اتفاقية الشريك الخاصة بك",
+    ar: "{route} · وفق اتفاقية الشراكة الخاصة بك",
   },
   "partner.quote.summary.endClient": {
     en: "End client",
@@ -3982,7 +3982,7 @@ export const partnerMessages = defineMessages({
     ja: "未選択",
     pt: "Sem seleção",
     zh: "未选择",
-    ar: "لا يوجد اختيار",
+    ar: "لم يُختَر",
   },
   "partner.quote.summary.setByOffer": {
     en: "Set by the offer",
@@ -4074,7 +4074,7 @@ export const partnerMessages = defineMessages({
     ja: "再販価格だけを表示する、非公開のデモ用確認リンクを作成します。顧客は注文の依頼、変更の依頼、または辞退ができます。回答はこの見積もりに表示されます。",
     pt: "Crie um link privado de revisão (demonstração) que mostra apenas o seu preço de revenda. O cliente pode solicitar um pedido, pedir alterações ou recusar. As respostas aparecem nesta cotação.",
     zh: "创建仅显示您转售价的非公开演示审阅链接。客户可以申请下单、要求修改或拒绝。回复将显示在此报价中。",
-    ar: "أنشئ رابط مراجعة تجريبيًا خاصًا لا يعرض إلا سعر إعادة البيع الخاص بك. يمكن للعميل أن يطلب الشراء أو يطلب تعديلات أو يرفض العرض، وتظهر الردود في عرض السعر هذا.",
+    ar: "أنشئ رابط مراجعة خاصًا للعرض التوضيحي لا يعرض إلا سعر إعادة البيع الخاص بك. يمكن للعميل أن يطلب الشراء أو يطلب تعديلات أو يرفض عرض السعر، وتظهر الردود في عرض السعر هذا.",
   },
   "partner.quote.share.create": {
     en: "Create client review link",
@@ -4144,7 +4144,7 @@ export const partnerMessages = defineMessages({
     ja: "デモのパスワードが必要です。このリンクは見積もりと同時に失効し、見積もりが改訂または取り下げられると使用できなくなります。",
     pt: "É necessária a senha da demonstração. Este link expira junto com a cotação e deixa de funcionar quando a cotação é revisada ou retirada.",
     zh: "需要演示密码。此链接随报价一同过期，报价被修订或撤回后即失效。",
-    ar: "تلزم كلمة مرور العرض التجريبي. تنتهي صلاحية هذا الرابط مع عرض السعر، ويتوقف عن العمل عند تعديل عرض السعر أو سحبه.",
+    ar: "تلزم كلمة مرور العرض التوضيحي. تنتهي صلاحية هذا الرابط مع عرض السعر، ويتوقف عن العمل عند تعديل عرض السعر أو سحبه.",
   },
   "partner.quote.share.noLink": {
     en: "No review link was returned. Try again.",
@@ -4566,7 +4566,7 @@ export const partnerMessages = defineMessages({
     ja: "エンド顧客を指定するには、アカウント一覧を範囲を限定して読み取る必要がありますが、この環境にはデータベース接続または認可コンテキストがありません。貴社アカウントに不足はありません。このページでは登録を紐づけられないだけです。",
     pt: "Identificar um cliente final exige uma leitura restrita do diretório de contas, e este ambiente não tem conexão com o banco de dados ou contexto de autorização para fazê-la. Não falta nada na sua conta; esta página apenas não consegue vincular um registro aqui.",
     zh: "指定终端客户需要在限定范围内读取账户目录，而此部署环境没有数据库连接或授权上下文。您的账户并无缺失，只是此页面无法在此关联报备。",
-    ar: "يتطلب تحديد عميل نهائي قراءة محدودة النطاق لدليل الحسابات، ولا تتوفر في هذه البيئة اتصال بقاعدة البيانات أو سياق تفويض لإجرائها. لا ينقص حسابك شيء، لكن هذه الصفحة لا تستطيع ربط تسجيل هنا.",
+    ar: "يتطلب تحديد عميل نهائي قراءة محدودة النطاق لدليل الحسابات، ولا يتوفر في هذه البيئة اتصال بقاعدة البيانات أو سياق تفويض لإجرائها. لا ينقص حسابك شيء، لكن هذه الصفحة لا تستطيع ربط تسجيل هنا.",
   },
   "partner.registration.intro": {
     en: "Name an opportunity and request its protection window. Fil One submits the existing account identifiers; the decision, the protection clock and any exclusion are recorded on the registration itself.",
@@ -4644,7 +4644,7 @@ export const partnerMessages = defineMessages({
     ja: "ワークロード",
     pt: "Carga de trabalho",
     zh: "工作负载",
-    ar: "عبء العمل",
+    ar: "حمل العمل",
   },
   "partner.registration.field.volume": {
     en: "Expected volume (TB)",
@@ -4694,7 +4694,7 @@ export const partnerMessages = defineMessages({
     ja: "登録を送信し、下の判断待ちキューに追加しました。判断は Fil One のチャネル運用チームが行います。直販アカウントや過去の案件による除外は、ここでの記載ではなく統合されたアカウント記録に基づいて判断されます。",
     pt: "Registro enviado e adicionado à fila de decisão abaixo. A equipe de operações de canal da Fil One decide; as exclusões por conta própria da Fil One e por oportunidade anterior são resolvidas com base nos registros de contas unificados, e não no que for informado aqui.",
     zh: "报备已提交并加入下方的待决定队列。由 Fil One 渠道运营团队决定；直营账户和既往商机的排除依据统一的账户记录判定，而不依据此处填写的内容。",
-    ar: "أُرسل التسجيل وأُضيف إلى قائمة انتظار القرار أدناه. يتخذ فريق عمليات القنوات في Fil One القرار، وتُحسم استثناءات الحسابات المباشرة والفرص السابقة وفق سجلات الحسابات الموحدة، لا وفق ما يُذكر هنا.",
+    ar: "أُرسل التسجيل وأُضيف إلى قائمة انتظار القرار أدناه. يتخذ فريق عمليات القنوات في Fil One القرار، وتُحسم استبعادات الحسابات المباشرة والفرص السابقة وفق سجلات الحسابات الموحدة، لا وفق ما يُذكر هنا.",
   },
   "partner.registration.failed": {
     en: "The registration failed. Nothing was recorded.",
@@ -4734,7 +4734,7 @@ export const partnerMessages = defineMessages({
     ja: "この案件の対象となるワークロードを入力してください。",
     pt: "Descreva a carga de trabalho coberta por esta oportunidade.",
     zh: "请描述此商机涵盖的工作负载。",
-    ar: "صِف عبء العمل الذي تشمله هذه الفرصة.",
+    ar: "صِف حمل العمل الذي تشمله هذه الفرصة.",
   },
   "partner.registration.error.volume": {
     en: "Enter the expected volume as a plain number of TB, with no unit.",
@@ -5398,7 +5398,7 @@ export const partnerMessages = defineMessages({
     ja: "パートナー管理者向けの評価と PoC（概念実証）の業務を開きます。",
     pt: "Abra as avaliações e provas de conceito para administradores do parceiro.",
     zh: "打开面向合作伙伴管理员的评估和概念验证事务。",
-    ar: "افتح أعمال التقييم وإثبات المفهوم الخاصة بمسؤولي الشريك.",
+    ar: "افتح أعمال التقييم وإثبات المفهوم الخاصة بمشرفي الشريك.",
   },
   "partner.enablement.item.brand.title": {
     en: "Manage brand and domains",
@@ -5418,7 +5418,7 @@ export const partnerMessages = defineMessages({
     ja: "パートナー管理者向けのブランドと検証済みドメインの設定を開きます。",
     pt: "Abra as configurações de marca e domínios verificados para administradores do parceiro.",
     zh: "打开面向合作伙伴管理员的品牌和已验证域名设置。",
-    ar: "افتح إعدادات العلامة التجارية والنطاقات المتحقق منها الخاصة بمسؤولي الشريك.",
+    ar: "افتح إعدادات العلامة التجارية والنطاقات المتحقق منها الخاصة بمشرفي الشريك.",
   },
 
   // Renewal review summary and role summaries (partner-rules.ts).

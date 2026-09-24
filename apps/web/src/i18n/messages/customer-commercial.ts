@@ -201,7 +201,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "顧客ワークスペース・提供と利用状況",
     pt: "Espaço do cliente · Entrega e uso",
     zh: "客户工作区 · 交付与用量",
-    ar: "مساحة عمل العميل · التقديم والاستخدام",
+    ar: "مساحة عمل العميل · تقديم الخدمة والاستخدام",
   },
   "customer.commercial.collection.services.title": {
     en: "Active services",
@@ -503,7 +503,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "もう一度お試しください。フィルターは保持されています。",
     pt: "Tente novamente. Seus filtros foram mantidos.",
     zh: "请重试。您的筛选条件已保留。",
-    ar: "أعد المحاولة. تم الاحتفاظ بعوامل التصفية.",
+    ar: "حاول مرة أخرى. تم الاحتفاظ بعوامل التصفية.",
   },
   "customer.commercial.state.emptyTitle": {
     en: "Nothing here yet",
@@ -647,7 +647,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "使用率 {percent}",
     pt: "{percent} em uso",
     zh: "已使用 {percent}",
-    ar: "{percent} مستخدمة",
+    ar: "نسبة الاستخدام {percent}",
   },
   "customer.commercial.value.provisioningReady": {
     en: "{percent} ready",
@@ -757,7 +757,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "年間の契約金額",
     pt: "Gasto anual contratado",
     zh: "承诺年度支出",
-    ar: "الإنفاق السنوي الملتزم به",
+    ar: "الإنفاق السنوي المتعاقد عليه",
   },
   "customer.commercial.valueLabel.capacityUsage": {
     en: "Capacity usage",
@@ -877,7 +877,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "計測日 {date}",
     pt: "Medido em {date}",
     zh: "计量于 {date}",
-    ar: "قيس في {date}",
+    ar: "قِيس الاستخدام في {date}",
   },
   "customer.commercial.timing.completed": {
     en: "Completed {date}",
@@ -1305,7 +1305,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "2名による保持の審査を待機",
     pt: "Aguardar a revisão de retenção por duas pessoas",
     zh: "等待双人保留审核",
-    ar: "انتظار مراجعة الاحتفاظ من قِبل شخصين",
+    ar: "انتظار مراجعة الاحتفاظ من شخصين",
   },
   "customer.commercial.next.noFurtherAction": {
     en: "No further action is due",
@@ -1934,7 +1934,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "注文を作成しました。コミットメントとプロビジョニングの状態が正式な記録になりました。",
     pt: "Pedido criado. O compromisso e o estado de provisionamento agora constam no registro oficial.",
     zh: "订单已创建。其承诺和开通状态现在以此为准。",
-    ar: "تم إنشاء الطلب. أصبح التزامه وحالة تهيئته مسجّلين رسميًا.",
+    ar: "تم إنشاء الطلب. أصبح التزامه وحالة تهيئته هما المرجع المعتمد.",
   },
   "customer.commercial.accept.createdTitle": {
     en: "Order created",
@@ -1954,7 +1954,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "作成した注文を開く",
     pt: "Abrir o pedido criado",
     zh: "打开已创建的订单",
-    ar: "فتح الطلب الذي تم إنشاؤه",
+    ar: "فتح الطلب الجديد",
   },
   "customer.commercial.accept.prepared": {
     en: "Order form requested. Your commitment is created once that document is rendered and bound to the quote.",
@@ -2435,7 +2435,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "未設定",
     pt: "Não definido",
     zh: "未设置",
-    ar: "غير محدد",
+    ar: "لم يُحدَّد",
   },
   "customer.commercial.builder.draftFacts": {
     en: "Draft facts",
@@ -2615,7 +2615,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "見積もり {reference} の改訂",
     pt: "Revisão da cotação {reference}",
     zh: "修订报价 {reference}",
-    ar: "تعديل عرض السعر {reference}",
+    ar: "نسخة معدّلة من عرض السعر {reference}",
   },
   "customer.commercial.builder.origin.poc": {
     en: "Converts proof of concept {reference}",
@@ -2745,7 +2745,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "前提条件",
     pt: "Pré-requisito",
     zh: "上游前提",
-    ar: "المتطلب السابق",
+    ar: "المتطلب المسبق",
   },
   "customer.commercial.builder.chain.upstreamValue": {
     en: "Agreement and account authority",
@@ -3025,7 +3025,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "作成前の最終確認",
     pt: "Revise o rascunho",
     zh: "创建前最终确认",
-    ar: "المراجعة النهائية قبل الإنشاء",
+    ar: "مراجعة المسودة",
   },
   "customer.commercial.builder.reviewDescription": {
     en: "Creating this draft calculates your price. Next, open the saved draft to prepare its document and issue the quote. You can review the issued quote before accepting an order.",
@@ -3085,7 +3085,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "作成した下書きを開く",
     pt: "Abrir o rascunho criado",
     zh: "打开已创建的草稿",
-    ar: "فتح المسودة التي تم إنشاؤها",
+    ar: "فتح المسودة الجديدة",
   },
   "customer.commercial.builder.creating": {
     en: "Creating…",
@@ -3341,7 +3341,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "このページを更新して最新の見積もりとアクセス権を確認してから、もう一度お試しください。",
     pt: "Atualize esta página para verificar a versão mais recente da cotação e o seu acesso e tente novamente.",
     zh: "请刷新此页面，确认最新报价和您的访问权限后重试。",
-    ar: "حدّث هذه الصفحة للتحقق من أحدث نسخة من عرض السعر ومن صلاحية وصولك، ثم أعد المحاولة.",
+    ar: "حدّث هذه الصفحة للتحقق من أحدث نسخة من عرض السعر ومن صلاحية وصولك، ثم حاول مرة أخرى.",
   },
   "customer.commercial.issue.pricingReview": {
     en: "This draft needs pricing review before it can be issued. Contact your Fil One team.",
@@ -3361,7 +3361,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "見積書を検証できませんでした。何も発行されていません。もう一度お試しください。",
     pt: "Não foi possível verificar o documento da cotação. Nada foi emitido. Tente novamente.",
     zh: "无法验证报价单。未出具任何内容。请重试。",
-    ar: "تعذّر التحقق من مستند عرض السعر. لم يُصدَر أي شيء. أعد المحاولة.",
+    ar: "تعذّر التحقق من مستند عرض السعر. لم يُصدَر أي شيء. حاول مرة أخرى.",
   },
   "customer.commercial.issue.rendering": {
     en: "The document is still being prepared. Continue this quote to check again.",
@@ -3405,7 +3405,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "ストレージの購入",
     pt: "Comprar armazenamento",
     zh: "购买存储",
-    ar: "شراء مساحة تخزين",
+    ar: "شراء سعة تخزين",
   },
   "customer.commercial.buy.description": {
     count: "count",
@@ -3533,7 +3533,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "{threshold} 以上は通常の見積もり作成画面で手続きします",
     pt: "A partir de {threshold}, segue para o espaço de cotação completa",
     zh: "{threshold} 及以上将转至完整报价工作区",
-    ar: "من {threshold} فأكثر يُحال الطلب إلى مساحة عرض السعر الكاملة",
+    ar: "من {threshold} فأكثر تُستكمل العملية في مساحة عرض السعر الكاملة",
   },
   "customer.commercial.buy.routingRule": {
     en: "Self-serve is below {threshold}. That line is a routing choice, not a pricing rule. Every quote is priced by the server.",
@@ -3705,7 +3705,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "価格付きの下書きに対するサーバーの応答が不完全でした。何も発行されていません。もう一度お試しください。",
     pt: "A resposta do servidor ao rascunho com preço veio incompleta. Nada foi emitido. Tente novamente.",
     zh: "服务器对定价草稿的响应不完整。未出具任何内容。请重试。",
-    ar: "كانت استجابة الخادم للمسودة المسعّرة غير مكتملة. لم يُصدَر أي شيء. أعد المحاولة.",
+    ar: "كانت استجابة الخادم للمسودة المسعّرة غير مكتملة. لم يُصدَر أي شيء. حاول مرة أخرى.",
   },
   "customer.commercial.buy.error.sessionCannotPrepare": {
     en: "Your session can no longer prepare this quote.",
@@ -3735,7 +3735,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "見積書はまだ作成中です。もう一度お試しいただくと、同じ下書きで続行できます。",
     pt: "O documento da cotação ainda está sendo gerado. Tente novamente para continuar este mesmo rascunho.",
     zh: "报价单仍在生成中。请重试，以继续处理同一草稿。",
-    ar: "لا يزال مستند عرض السعر قيد الإنشاء. أعد المحاولة لمتابعة المسودة نفسها.",
+    ar: "لا يزال مستند عرض السعر قيد الإنشاء. حاول مرة أخرى لمتابعة المسودة نفسها.",
   },
   "customer.commercial.buy.error.sessionCannotRead": {
     en: "Your session can no longer read this quote.",
@@ -3765,7 +3765,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "見積もりは発行されましたが、まだ顧客の見積もり一覧に表示されていません。承諾に進む前に、もう一度お試しください。",
     pt: "A cotação foi emitida, mas ainda não aparece na lista de cotações do cliente. Tente novamente antes de seguir para a aceitação.",
     zh: "报价已出具，但尚未出现在客户报价列表中。请重试后再进行接受。",
-    ar: "صدر عرض السعر، لكنه لم يظهر بعد في قائمة عروض أسعار العميل. أعد المحاولة قبل المتابعة إلى القبول.",
+    ar: "صدر عرض السعر، لكنه لم يظهر بعد في قائمة عروض أسعار العميل. حاول مرة أخرى قبل المتابعة إلى القبول.",
   },
   "customer.commercial.buy.error.requestUnverified": {
     en: "The quote document request could not be verified. Nothing was issued.",
@@ -3875,7 +3875,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "購入ポリシーを利用できません。見積もりを始める前に、もう一度お試しください。",
     pt: "A política de aquisição não está disponível. Tente novamente antes de iniciar uma cotação.",
     zh: "采购政策不可用。请重试后再开始报价。",
-    ar: "سياسة الاقتناء غير متاحة. أعد المحاولة قبل بدء عرض سعر.",
+    ar: "سياسة الشراء غير متاحة. حاول مرة أخرى قبل بدء عرض سعر.",
   },
 
   // ---------------------------------------------------------------------------
@@ -3899,7 +3899,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "プロバイダーへの引き継ぎ",
     pt: "Encaminhamento ao provedor",
     zh: "转交服务商",
-    ar: "التحويل إلى المزوّد",
+    ar: "الانتقال إلى المزوّد",
   },
   "customer.commercial.payment.title.demo": {
     en: "Try the payment flow",
@@ -4109,7 +4109,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "サンドボックスの決済を開始",
     pt: "Iniciar o checkout de testes",
     zh: "开始沙盒结账",
-    ar: "بدء الدفع التجريبي",
+    ar: "بدء الدفع في بيئة اختبار العرض التوضيحي",
   },
   "customer.commercial.payment.prepare": {
     en: "Prepare secure payment",
@@ -4129,7 +4129,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "デモデータをリセットすると、サンドボックスでの支払い、領収書、請求書の支払い済み状態が削除されます。",
     pt: "Redefina os dados da demonstração para remover o pagamento de teste, o recibo e o status de fatura paga.",
     zh: "重置演示数据即可删除沙盒付款、收据和发票的已付款状态。",
-    ar: "أعد تعيين بيانات العرض التوضيحي لإزالة الدفعة التجريبية والإيصال وحالة الفاتورة المدفوعة.",
+    ar: "أعد تعيين بيانات العرض التوضيحي لإزالة دفعة بيئة الاختبار والإيصال وحالة الفاتورة المدفوعة.",
   },
   "customer.commercial.payment.footer.live": {
     en: "Reported by the payment provider webhook. Returning from the provider does not mark the invoice paid.",
@@ -4149,7 +4149,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "フォームのセキュリティトークンを利用できません。ページを更新して、もう一度お試しください。",
     pt: "O token de segurança do formulário não está disponível. Atualize a página e tente novamente.",
     zh: "安全表单令牌不可用。请刷新页面后重试。",
-    ar: "رمز أمان النموذج غير متاح. حدّث الصفحة وأعد المحاولة.",
+    ar: "رمز أمان النموذج غير متاح. حدّث الصفحة وحاول مرة أخرى.",
   },
   "customer.commercial.payment.error.demoNotRecorded": {
     en: "The demo sandbox payment could not be recorded.",
@@ -4223,7 +4223,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "管理された利用終了",
     pt: "Encerramento controlado",
     zh: "受控的服务终止",
-    ar: "إنهاء خدمة مضبوط",
+    ar: "إنهاء خدمة خاضع للضوابط",
   },
   "customer.commercial.offboarding.title": {
     en: "Review service offboarding",
@@ -4243,7 +4243,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "利用終了は、保持、データの取り出し、2名による承認という保護措置を伴う管理された申請です。サービスが即座に撤去されることはありません。",
     pt: "O encerramento é uma solicitação controlada, com salvaguardas de retenção, recuperação de dados e aprovação por duas pessoas. Ele nunca desmantela o serviço imediatamente.",
     zh: "服务终止是一项受控申请，设有保留、数据取回和双人审批等保障措施，绝不会立即拆除服务。",
-    ar: "إنهاء الخدمة طلب مضبوط تحكمه ضمانات الاحتفاظ واسترجاع البيانات وموافقة شخصين، ولا يؤدي أبدًا إلى تفكيك الخدمة فورًا.",
+    ar: "إنهاء الخدمة طلب خاضع للضوابط تحكمه ضمانات الاحتفاظ واسترجاع البيانات وموافقة شخصين، ولا يؤدي أبدًا إلى تفكيك الخدمة فورًا.",
   },
   "customer.commercial.offboarding.return": {
     en: "Return to account",
@@ -4513,7 +4513,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "管理された利用終了の申請を送信",
     pt: "Enviar a solicitação de encerramento controlado",
     zh: "提交受控的服务终止申请",
-    ar: "إرسال طلب إنهاء الخدمة المضبوط",
+    ar: "إرسال طلب إنهاء الخدمة الخاضع للضوابط",
   },
   "customer.commercial.offboarding.prompt": {
     en: "Select the service, reason, effective time, and retrieval window, then open the final confirmation.",
@@ -4577,7 +4577,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "契約 {reference} の締結",
     pt: "Formalização do acordo {reference}",
     zh: "依据协议 {reference} 签订",
-    ar: "إبرام الاتفاقية {reference}",
+    ar: "الإبرام بموجب الاتفاقية {reference}",
   },
   "customer.commercial.agreement.loadingTitle": {
     en: "Loading counsel-approved agreement",
@@ -4617,7 +4617,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "クリック同意による締結",
     pt: "formalização com aceite por clique",
     zh: "点击同意签订",
-    ar: "الإبرام بالنقر على الموافقة",
+    ar: "الإبرام بالنقر",
   },
   "customer.commercial.agreement.mode.counterSigned": {
     en: "counter-signature required",
@@ -4627,7 +4627,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "相手方の署名が必要",
     pt: "exige contra-assinatura",
     zh: "需要双方签署",
-    ar: "يتطلب توقيعًا مقابلًا",
+    ar: "يتطلب توقيع الطرفين",
   },
   "customer.commercial.agreement.textLabel": {
     en: "Exact agreement text",
@@ -4787,7 +4787,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "承認済みの記録がサーバーから読み込まれるまで、法的な同意操作はできません。",
     pt: "Nenhuma ação de aceitação jurídica fica disponível até que o registro aprovado do servidor seja carregado.",
     zh: "在加载服务器上经批准的记录之前，无法执行任何法律接受操作。",
-    ar: "لا يتوفر أي إجراء قبول قانوني حتى يتم تحميل السجل المعتمد من الخادم.",
+    ar: "لا يتوفر أي إجراء قبول قانوني حتى يُحمَّل السجل المعتمد من الخادم.",
   },
   "customer.commercial.agreement.loadFailed": {
     en: "The approved agreement could not be loaded.",
@@ -4832,7 +4832,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "現在のロールまたはセッションでは、この操作を実行できません。ページを更新して、もう一度お試しください。",
     pt: "Sua função ou sessão atual não permite realizar esta ação. Atualize a página e tente novamente.",
     zh: "您的角色或当前会话无法执行此操作。请刷新页面后重试。",
-    ar: "لا يسمح دورك أو جلستك الحالية بتنفيذ هذا الإجراء. حدّث الصفحة وأعد المحاولة.",
+    ar: "لا يسمح دورك أو جلستك الحالية بتنفيذ هذا الإجراء. حدّث الصفحة وحاول مرة أخرى.",
   },
   "customer.commercial.failure.conflict": {
     en: "This record changed while you were working. Review the latest version and try again.",
@@ -4842,7 +4842,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "作業中にこの記録が変更されました。最新のバージョンを確認して、もう一度お試しください。",
     pt: "Este registro foi alterado enquanto você trabalhava. Revise a versão mais recente e tente novamente.",
     zh: "您在操作期间此记录已被更改。请查看最新版本后重试。",
-    ar: "تغيّر هذا السجل أثناء عملك. راجع أحدث إصدار وأعد المحاولة.",
+    ar: "تغيّر هذا السجل أثناء عملك. راجع أحدث إصدار وحاول مرة أخرى.",
   },
   "customer.commercial.failure.validation": {
     en: "The server did not accept these entries. Review them and try again.",
@@ -4852,7 +4852,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "サーバーがこの入力内容を受け付けませんでした。内容を確認して、もう一度お試しください。",
     pt: "O servidor não aceitou estes dados. Revise-os e tente novamente.",
     zh: "服务器未接受这些信息。请检查后重试。",
-    ar: "لم يقبل الخادم هذه المدخلات. راجعها وأعد المحاولة.",
+    ar: "لم يقبل الخادم هذه المدخلات. راجعها وحاول مرة أخرى.",
   },
   "customer.commercial.failure.unavailable": {
     en: "The commerce service is unavailable. Try again later.",
@@ -4862,7 +4862,7 @@ export const customerCommercialMessages = defineMessages({
     ja: "コマースサービスを利用できません。しばらくしてから、もう一度お試しください。",
     pt: "O serviço comercial está indisponível. Tente novamente mais tarde.",
     zh: "商务服务不可用。请稍后重试。",
-    ar: "الخدمة التجارية غير متاحة. أعد المحاولة لاحقًا.",
+    ar: "الخدمة التجارية غير متاحة. حاول مرة أخرى لاحقًا.",
   },
   "customer.commercial.failure.unknown": {
     en: "The request could not be completed. Nothing was changed.",

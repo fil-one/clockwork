@@ -90,7 +90,7 @@ const demoOfferWording: Readonly<
       ja: "架空のデモです。トライアルの利用資格は、組織とドメインごとに1回だけ確認されます。別途申請しない限り、有料への移行は行われません。",
       pt: "Apenas uma demonstração fictícia. A elegibilidade para o período de teste é verificada uma única vez por organização e domínio. Nenhuma conversão para serviço pago ocorre sem uma solicitação separada sua.",
       zh: "仅为虚构演示。试用资格按组织和域名仅验证一次。未经您单独申请，不会转为付费。",
-      ar: "عرض توضيحي افتراضي فقط. يُتحقق من أهلية الفترة التجريبية مرة واحدة للمؤسسة والنطاق. لا يتم أي تحويل إلى الاستخدام المدفوع دون طلب منفصل منك.",
+      ar: "عرض توضيحي افتراضي فقط. يُتحقق من أهلية الفترة التجريبية مرة واحدة للمؤسسة والنطاق. لا يجري أي تحويل إلى الاستخدام المدفوع دون طلب منفصل منك.",
     }),
     cancellationNotice: demoText({
       en: "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",

@@ -29,7 +29,7 @@ export const demoMessages = defineMessages({
     ja: "デモへのアクセス",
     pt: "Acesso à demo",
     zh: "演示访问",
-    ar: "الدخول إلى العرض التجريبي",
+    ar: "الدخول إلى العرض التوضيحي",
   },
   "demo.access.title": {
     en: "Enter the demo password",
@@ -39,7 +39,7 @@ export const demoMessages = defineMessages({
     ja: "デモのパスワードを入力",
     pt: "Digite a senha da demo",
     zh: "输入演示密码",
-    ar: "إدخال كلمة مرور العرض التجريبي",
+    ar: "إدخال كلمة مرور العرض التوضيحي",
   },
   "demo.access.description": {
     en: "Use the password you were given to explore Fil One Commerce.",
@@ -81,7 +81,7 @@ export const demoMessages = defineMessages({
     ja: "ガイド付きデモ",
     pt: "Demo guiada",
     zh: "引导式演示",
-    ar: "عرض تجريبي موجّه",
+    ar: "عرض توضيحي موجّه",
   },
   "demo.landing.title": {
     en: "Choose the person you are signing in as",
@@ -91,7 +91,7 @@ export const demoMessages = defineMessages({
     ja: "ログインするユーザーの選択",
     pt: "Escolha o perfil de acesso",
     zh: "选择登录身份",
-    ar: "اختيار هوية تسجيل الدخول",
+    ar: "اختر الشخصية التي تريد الدخول باسمها",
   },
   "demo.landing.description": {
     en: "Each person opens Fil One Commerce on the work they own. Switch at any time from the demo controls.",
@@ -101,7 +101,7 @@ export const demoMessages = defineMessages({
     ja: "Fil One Commerce は、選んだユーザーの担当業務の画面で開きます。デモ操作パネルからいつでも切り替えられます。",
     pt: "Cada perfil abre o Fil One Commerce nas tarefas pelas quais é responsável. Troque de perfil a qualquer momento nos controles da demo.",
     zh: "每个身份都会在其负责的工作中打开 Fil One Commerce。可随时通过演示控制面板切换。",
-    ar: "يفتح كل ملف شخصي Fil One Commerce على المهام التي يتولاها. ويمكنك التبديل في أي وقت من لوحة تحكم العرض التجريبي.",
+    ar: "تفتح كل شخصية Fil One Commerce على المهام التي تتولاها. ويمكنك التبديل في أي وقت من لوحة تحكم العرض التوضيحي.",
   },
   "demo.landing.start": {
     en: "Start as {name}",
@@ -143,7 +143,7 @@ export const demoMessages = defineMessages({
     ja: "{name}（{jobTitle}）",
     pt: "{name} · {jobTitle}",
     zh: "{name}（{jobTitle}）",
-    ar: "{name}، {jobTitle}",
+    ar: "{name} · {jobTitle}",
   },
 
   // Job titles, one per persona (Mara Voss, Meridian Archive Labs).
@@ -357,7 +357,7 @@ export const demoMessages = defineMessages({
     ja: "アカウント概要から契約更新の操作を開きます。",
     pt: "Abrir a ação de renovação na visão geral da conta.",
     zh: "从账户概览打开续约操作。",
-    ar: "فتح إجراء التجديد من نظرة عامة على الحساب.",
+    ar: "فتح إجراء التجديد من صفحة النظرة العامة للحساب.",
   },
   "demo.journey.directBuyerRenewal.reviewIssued": {
     en: "Review the issued version and proceed to acceptance.",
@@ -589,7 +589,7 @@ export const demoMessages = defineMessages({
     ja: "デモ操作パネル",
     pt: "Controles da demo",
     zh: "演示控制面板",
-    ar: "لوحة تحكم العرض التجريبي",
+    ar: "لوحة تحكم العرض التوضيحي",
   },
   "demo.panel.open": {
     en: "Open demo controls",
@@ -599,7 +599,7 @@ export const demoMessages = defineMessages({
     ja: "デモ操作パネルを開く",
     pt: "Abrir os controles da demo",
     zh: "打开演示控制面板",
-    ar: "فتح لوحة تحكم العرض التجريبي",
+    ar: "فتح لوحة تحكم العرض التوضيحي",
   },
   "demo.panel.persona": {
     en: "Signed in as",
@@ -609,7 +609,7 @@ export const demoMessages = defineMessages({
     ja: "ログイン中のユーザー",
     pt: "Conectado como",
     zh: "当前登录身份",
-    ar: "تسجيل الدخول باسم",
+    ar: "الدخول باسم",
   },
   "demo.panel.journey": {
     en: "Journey",
@@ -629,7 +629,7 @@ export const demoMessages = defineMessages({
     ja: "デモデータを復元",
     pt: "Restaurar os dados da demo",
     zh: "恢复演示数据",
-    ar: "استعادة بيانات العرض التجريبي",
+    ar: "استعادة بيانات العرض التوضيحي",
   },
   "demo.panel.resetting": {
     en: "Resetting…",
@@ -649,7 +649,7 @@ export const demoMessages = defineMessages({
     ja: "デモデータをリセットできませんでした。",
     pt: "Não foi possível redefinir os dados da demo.",
     zh: "无法重置演示数据。",
-    ar: "تعذّرت إعادة ضبط بيانات العرض التجريبي.",
+    ar: "تعذّرت إعادة ضبط بيانات العرض التوضيحي.",
   },
   "demo.panel.browse": {
     en: "All personas",
@@ -659,7 +659,7 @@ export const demoMessages = defineMessages({
     ja: "すべてのユーザー",
     pt: "Todos os perfis",
     zh: "所有身份",
-    ar: "جميع الملفات الشخصية",
+    ar: "جميع الشخصيات",
   },
   "demo.reset.confirm.title": {
     en: "Reset the demo environment?",
@@ -669,7 +669,7 @@ export const demoMessages = defineMessages({
     ja: "デモ環境をリセットしますか？",
     pt: "Redefinir o ambiente da demo?",
     zh: "重置演示环境？",
-    ar: "هل تريد إعادة ضبط بيئة العرض التجريبي؟",
+    ar: "هل تريد إعادة ضبط بيئة العرض التوضيحي؟",
   },
   "demo.reset.confirm.description": {
     en: "This restores every demo workspace to its starting point and reloads the page.",
@@ -679,7 +679,7 @@ export const demoMessages = defineMessages({
     ja: "すべてのデモワークスペースを初期状態に戻し、ページを再読み込みします。",
     pt: "Todos os espaços de trabalho da demo voltarão ao estado inicial e a página será recarregada.",
     zh: "所有演示工作区将恢复到初始状态，页面将重新加载。",
-    ar: "ستعود جميع مساحات العمل في العرض التجريبي إلى حالتها الأولية، وسيُعاد تحميل الصفحة.",
+    ar: "ستعود جميع مساحات العمل في العرض التوضيحي إلى حالتها الأولية، وسيُعاد تحميل الصفحة.",
   },
   "demo.reset.confirm.detail": {
     en: "Your demo changes and any unsaved work on this page will be removed.",
@@ -689,7 +689,7 @@ export const demoMessages = defineMessages({
     ja: "デモでの変更と、このページの未保存の作業は削除されます。",
     pt: "Suas alterações na demo e o trabalho não salvo nesta página serão removidos.",
     zh: "您在演示中的更改及此页面上未保存的工作将被删除。",
-    ar: "ستُحذف تغييراتك في العرض التجريبي وأي عمل غير محفوظ في هذه الصفحة.",
+    ar: "ستُحذف تغييراتك في العرض التوضيحي وأي عمل غير محفوظ في هذه الصفحة.",
   },
   "demo.reset.confirm.action": {
     en: "Reset demo",
@@ -699,7 +699,7 @@ export const demoMessages = defineMessages({
     ja: "デモをリセット",
     pt: "Redefinir a demo",
     zh: "重置演示",
-    ar: "إعادة ضبط العرض التجريبي",
+    ar: "إعادة ضبط العرض التوضيحي",
   },
   "demo.reset.confirm.cancel": {
     en: "Keep current state",
@@ -732,7 +732,7 @@ export const demoMessages = defineMessages({
     ja: "お客様確認・デモ",
     pt: "Revisão pelo cliente · demo",
     zh: "客户审阅 · 演示",
-    ar: "مراجعة العميل · عرض تجريبي",
+    ar: "مراجعة العميل · عرض توضيحي",
   },
   "demo.clientReview.validity": {
     en: "Revision {revision} · Valid until {date}",
@@ -879,7 +879,7 @@ export const demoMessages = defineMessages({
     ja: "記載されたお客様に代わり、このデモ見積もりを確認しています。",
     pt: "Estou revisando esta cotação de demonstração em nome do cliente identificado.",
     zh: "我正在代表指定客户审阅此演示报价。",
-    ar: "أراجع عرض السعر التجريبي هذا نيابةً عن العميل المذكور.",
+    ar: "أراجع عرض السعر التوضيحي هذا نيابةً عن العميل المذكور.",
   },
   "demo.clientReview.boundary": {
     en: "This records your intent for partner review. It does not create a binding contract, charge a payment method or activate service.",
@@ -889,7 +889,7 @@ export const demoMessages = defineMessages({
     ja: "ご意向をパートナーの確認用に記録します。法的拘束力のある契約は成立せず、お支払い方法への請求やサービスの有効化も行われません。",
     pt: "Isso registra sua intenção para análise do parceiro. Não cria um contrato vinculante, não cobra nenhum meio de pagamento nem ativa o serviço.",
     zh: "此操作会记录您的意向，供合作伙伴查看。不会形成有约束力的合同，不会从支付方式扣款，也不会开通服务。",
-    ar: "يُسجّل هذا الإجراء رغبتك لمراجعتها من قِبل الشريك. ولا يُنشئ عقدًا ملزمًا، ولا يخصم أي مبلغ من وسيلة الدفع، ولا يُفعّل الخدمة.",
+    ar: "يسجّل هذا الإجراء نيّتك ليراجعها الشريك. ولا يُنشئ عقدًا ملزمًا، ولا يخصم أي مبلغ من وسيلة الدفع، ولا يُفعّل الخدمة.",
   },
   "demo.clientReview.submit": {
     en: "Send response to partner",
@@ -949,7 +949,7 @@ export const demoMessages = defineMessages({
     ja: "{name} が {time} に送信",
     pt: "Enviada por {name} em {time}",
     zh: "{name} 于 {time} 发送",
-    ar: "أرسلها {name} في {time}",
+    ar: "أرسله {name} في {time}",
   },
   "demo.clientReview.visible": {
     en: "Your partner can see this response in their quote workspace.",

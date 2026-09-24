@@ -74,7 +74,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ページを再読み込みするか、しばらくしてからもう一度お試しください。",
     pt: "Atualize a página ou tente novamente em instantes.",
     zh: "请刷新页面或稍后重试。",
-    ar: "حدّث الصفحة أو أعد المحاولة بعد قليل.",
+    ar: "حدّث الصفحة أو حاول مرة أخرى بعد قليل.",
   },
   "operations.finance.frame.unwired": {
     en: "Not available in this workspace",
@@ -104,7 +104,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ガイド付きデモのワークスペース",
     pt: "Espaço de trabalho da demonstração guiada",
     zh: "引导式演示工作区",
-    ar: "مساحة عمل العرض التجريبي الموجَّه",
+    ar: "مساحة عمل العرض التوضيحي الموجَّه",
   },
   "operations.finance.frame.guided.detail": {
     en: "Changes can be reset from the demo controls.",
@@ -114,7 +114,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "変更は「デモ操作」からリセットできます。",
     pt: "É possível redefinir as alterações nos controles da demonstração.",
     zh: "可通过演示控制面板重置更改。",
-    ar: "يمكن إعادة ضبط التغييرات من عناصر التحكم بالعرض التجريبي.",
+    ar: "يمكن إعادة ضبط التغييرات من عناصر التحكم بالعرض التوضيحي.",
   },
 
   // ---------------------------------------------------------------------------
@@ -222,7 +222,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "直販",
     pt: "Venda direta",
     zh: "直销",
-    ar: "بيع مباشر",
+    ar: "البيع المباشر",
   },
   "operations.finance.route.referral": {
     en: "Referral",
@@ -232,7 +232,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "紹介",
     pt: "Indicação",
     zh: "推荐",
-    ar: "إحالة",
+    ar: "الإحالة",
   },
   "operations.finance.route.resale": {
     en: "Resale",
@@ -242,7 +242,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "再販",
     pt: "Revenda",
     zh: "转售",
-    ar: "إعادة بيع",
+    ar: "إعادة البيع",
   },
   "operations.finance.route.distributor": {
     en: "Distributor",
@@ -252,7 +252,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ディストリビューター",
     pt: "Distribuição",
     zh: "分销",
-    ar: "عبر موزّع",
+    ar: "التوزيع",
   },
   "operations.finance.route.marketplace": {
     en: "Marketplace",
@@ -472,7 +472,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "請求済み額（累計）",
     pt: "Faturado até o momento",
     zh: "累计已开票",
-    ar: "المفوتر حتى الآن",
+    ar: "المفوتر حتى تاريخه",
   },
   "operations.finance.renewals.riskUnrecorded": {
     en: "Risk not recorded",
@@ -582,7 +582,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "リスク額と経過日数の順に並べた未払い請求書と、財務承認者が起票できる修正です。",
     pt: "Faturas em aberto ordenadas por exposição e antiguidade, com as correções que um aprovador financeiro pode registrar.",
     zh: "按风险敞口和账龄排序的未结发票，以及财务审批人可对其发起的更正。",
-    ar: "الفواتير المفتوحة مرتّبة حسب المبلغ المعرَّض للمخاطر والعمر، مع التصحيحات التي يجوز للموافِق المالي إجراؤها عليها.",
+    ar: "الفواتير المفتوحة مرتّبة حسب التعرض المالي والعمر، مع التصحيحات التي يجوز للموافِق المالي إجراؤها عليها.",
   },
   "operations.finance.collections.summaryLabel": {
     en: "Collections summary",
@@ -855,7 +855,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "経過日数",
     pt: "Antiguidade",
     zh: "账龄",
-    ar: "عمر الدين",
+    ar: "العمر",
   },
   "operations.finance.collections.priorityRank": {
     en: "Priority {rank}",
@@ -1473,7 +1473,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "プラットフォームが完了まで進めているプロバイダーへの呼び出し",
     pt: "Operações em provedores que a plataforma está conduzindo até a conclusão",
     zh: "平台正在推进完成的服务商调用",
-    ar: "طلبات المزوّدين التي تتابعها المنصة حتى اكتمالها",
+    ar: "عمليات لدى المزوّدين تتابعها المنصة حتى اكتمالها",
   },
   "operations.finance.provisioning.terminations": {
     en: "Service terminations",
@@ -1513,7 +1513,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "停止した作業は「復旧」で処理します。",
     pt: "As tarefas interrompidas são tratadas em Recuperação.",
     zh: "已停止的任务在“恢复”中处理。",
-    ar: "تُعالَج الأعمال المتوقفة في قسم الاستعادة.",
+    ar: "تُعالج المهام المتوقفة في مساحة الاستعادة.",
   },
   "operations.finance.provisioning.retryBody": {
     en: "Open the recovery workspace to retry or abandon work that has used up its automatic attempts.",
@@ -1523,7 +1523,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "自動試行の上限に達した作業を再試行または中止するには、復旧ワークスペースを開いてください。",
     pt: "Abra o espaço de recuperação para tentar novamente ou descartar tarefas que esgotaram as tentativas automáticas.",
     zh: "请打开恢复工作区，重试或放弃已用尽自动重试次数的任务。",
-    ar: "افتح مساحة الاستعادة لإعادة محاولة الأعمال التي استنفدت محاولاتها التلقائية أو التخلي عنها.",
+    ar: "افتح مساحة الاستعادة لإعادة محاولة المهام التي استنفدت محاولاتها التلقائية أو التخلي عنها.",
   },
   "operations.finance.provisioning.recoveryLink": {
     en: "Open the recovery queue",
@@ -1767,7 +1767,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "デモ用プロビジョニングの承諾済み注文",
     pt: "Pedidos aceitos para o provisionamento de demonstração",
     zh: "待演示开通的已接受订单",
-    ar: "الطلبات المقبولة للتهيئة التجريبية",
+    ar: "الطلبات المقبولة للتهيئة في العرض التوضيحي",
   },
   "operations.finance.handoff.intro": {
     en: "Orders appear here as soon as the customer accepts. Submit the saved entitlements to the demo provisioner; an operation reference confirms receipt. Real service activation needs a completion result from the provider.",
@@ -1777,7 +1777,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "顧客が承諾すると、注文はすぐにここに表示されます。保存済みの利用権をデモ用プロビジョナーに送信してください。処理の参照番号が受領の確認になります。実際にサービスを有効化するには、プロバイダーからの完了結果が必要です。",
     pt: "Os pedidos aparecem aqui assim que o cliente os aceita. Envie os direitos de uso salvos ao provisionador de demonstração; uma referência de operação confirma o recebimento. A ativação real do serviço exige um resultado de conclusão do provedor.",
     zh: "客户接受后，订单会立即显示在此处。请将已保存的权益提交给演示开通服务；操作编号即为已接收的确认。实际开通服务需要服务商返回完成结果。",
-    ar: "تظهر الطلبات هنا بمجرد قبول العميل لها. أرسل الاستحقاقات المحفوظة إلى أداة التهيئة التجريبية؛ ويؤكد مرجع العملية استلامها. يتطلب التفعيل الفعلي للخدمة نتيجة اكتمال من المزوّد.",
+    ar: "تظهر الطلبات هنا بمجرد قبول العميل لها. أرسل الاستحقاقات المحفوظة إلى أداة تهيئة العرض التوضيحي؛ ويؤكد مرجع العملية استلامها. يتطلب التفعيل الفعلي للخدمة نتيجة اكتمال من المزوّد.",
   },
   "operations.finance.handoff.serviceStarts": {
     en: "Service starts {date}",
@@ -1807,7 +1807,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "デモ用プロビジョナーに送信",
     pt: "Enviar ao provisionador de demonstração",
     zh: "提交至演示开通服务",
-    ar: "إرسال إلى أداة التهيئة التجريبية",
+    ar: "إرسال إلى أداة تهيئة العرض التوضيحي",
   },
   "operations.finance.handoff.submitting": {
     en: "Submitting…",
@@ -1827,7 +1827,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "過去のデモ注文・プロビジョニング元を利用できません",
     pt: "Pedido de demonstração antigo · origem do provisionamento indisponível",
     zh: "历史演示订单 · 开通来源不可用",
-    ar: "طلب تجريبي سابق · مصدر التهيئة غير متاح",
+    ar: "طلب سابق في العرض التوضيحي · مصدر التهيئة غير متاح",
   },
   "operations.finance.handoff.empty": {
     en: "No accepted demo orders yet.",
@@ -1837,7 +1837,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "承諾済みのデモ注文はまだありません。",
     pt: "Ainda não há pedidos de demonstração aceitos.",
     zh: "暂无已接受的演示订单。",
-    ar: "لا توجد طلبات تجريبية مقبولة بعد.",
+    ar: "لا توجد طلبات مقبولة في العرض التوضيحي بعد.",
   },
   "operations.finance.handoff.received": {
     en: "The demo provisioner received the order. This is evidence of dispatch, not of service activation.",
@@ -1847,7 +1847,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "デモ用プロビジョナーが注文を受け付けました。これは送信の証跡であり、サービスの有効化ではありません。",
     pt: "O provisionador de demonstração recebeu o pedido. Isto comprova o envio, não a ativação do serviço.",
     zh: "演示开通服务已收到订单。这仅证明已发送，并不代表服务已开通。",
-    ar: "استلمت أداة التهيئة التجريبية الطلب. هذا دليل على الإرسال، وليس على تفعيل الخدمة.",
+    ar: "استلمت أداة تهيئة العرض التوضيحي الطلب. هذا دليل على الإرسال، وليس على تفعيل الخدمة.",
   },
   "operations.finance.handoff.forbidden": {
     en: "Internal operations authority is required to submit provisioning.",
@@ -1867,7 +1867,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "デモ用プロビジョナーがこの注文を拒否しました。もう一度試す前に、ページを再読み込みして現在の状態を確認してください。",
     pt: "O provisionador de demonstração recusou este pedido. Recarregue a página para ver a situação atual antes de tentar novamente.",
     zh: "演示开通服务拒绝了此订单。请重新加载页面查看当前状态后再重试。",
-    ar: "رفضت أداة التهيئة التجريبية هذا الطلب. أعد تحميل الصفحة للاطلاع على حالته الحالية قبل إعادة المحاولة.",
+    ar: "رفضت أداة تهيئة العرض التوضيحي هذا الطلب. أعد تحميل الصفحة للاطلاع على حالته الحالية قبل إعادة المحاولة.",
   },
   "operations.finance.handoff.failed": {
     en: "The provisioning request could not be submitted. Try again.",
@@ -1877,7 +1877,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "プロビジョニングのリクエストを送信できませんでした。もう一度お試しください。",
     pt: "Não foi possível enviar a solicitação de provisionamento. Tente novamente.",
     zh: "无法提交开通请求，请重试。",
-    ar: "تعذّر إرسال طلب التهيئة. أعد المحاولة.",
+    ar: "تعذّر إرسال طلب التهيئة. حاول مرة أخرى.",
   },
 
   // ---------------------------------------------------------------------------
@@ -2001,7 +2001,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "新規アカウントの確認後、スクリーニングと与信の審査",
     pt: "Revisão de conta nova e, depois, verificações de triagem e crédito",
     zh: "先审核新账户，再进行合规筛查和信用核查",
-    ar: "مراجعة الحساب الجديد، ثم ضوابط الفحص والائتمان",
+    ar: "مراجعة الحساب الجديد، ثم فحص الامتثال والتحقق الائتماني",
   },
   "operations.finance.migrations.ambiguityTitle": {
     en: "Ambiguity never creates an account.",
@@ -2031,7 +2031,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "移行の候補",
     pt: "Candidatos da migração",
     zh: "迁移候选",
-    ar: "مرشحو الترحيل",
+    ar: "الحسابات المرشحة للترحيل",
   },
   "operations.finance.migrations.relationship.directBuyer": {
     en: "Direct buyer",
@@ -2131,7 +2131,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "候補の一致度",
     pt: "Confiança da correspondência dos candidatos",
     zh: "候选匹配置信度",
-    ar: "درجة ثقة تطابق المرشحين",
+    ar: "درجة الثقة في تطابق الحسابات المرشحة",
   },
   "operations.finance.migrations.noMatch": {
     en: "No current account matched the verified legal name or domain.",
@@ -2401,7 +2401,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "アカウントが利用可能になる前に、スクリーニングと与信の審査が行われます。",
     pt: "As verificações de triagem e de crédito são executadas antes de qualquer conta ficar disponível.",
     zh: "任何账户可用之前，都会先执行合规筛查和信用核查。",
-    ar: "تُجرى ضوابط الفحص والائتمان قبل إتاحة أي حساب.",
+    ar: "يُجرى فحص الامتثال والتحقق الائتماني قبل إتاحة أي حساب.",
   },
   "operations.finance.migrations.review.technicalId": {
     en: "{migration} · source {source}",
@@ -2525,7 +2525,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "影響",
     pt: "Impacto",
     zh: "影响",
-    ar: "التأثير",
+    ar: "الأثر",
   },
   "operations.finance.review.term.evidence": {
     en: "Evidence",
@@ -2615,7 +2615,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "担当者の権限はサーバーのセッションから取得されます。与信、スクリーニング、プロバイダー、保持、二重承認の各審査は、該当する場合に再実行されます。",
     pt: "A autoridade do autor da ação vem da sessão do servidor. As verificações de crédito, triagem, provedor, retenção e controle duplo são executadas novamente quando se aplicam.",
     zh: "员工操作人的权限来自服务器会话。信用、合规筛查、服务商、保留和双人控制检查将在适用时重新执行。",
-    ar: "تُستمد صلاحية الموظف المنفّذ من جلسة الخادم. يُعاد تشغيل ضوابط الائتمان والفحص والمزوّد والاحتفاظ والرقابة المزدوجة حيثما تنطبق.",
+    ar: "تُستمد صلاحية الموظف المنفّذ من جلسة الخادم. يُعاد إجراء عمليات التحقق من الائتمان وفحص الامتثال والمزوّد والاحتفاظ والرقابة المزدوجة حيثما تنطبق.",
   },
   "operations.finance.review.handoffTitle": {
     en: "Review only",
@@ -2745,7 +2745,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "移行の判断は、ガイド付きデモ以外では利用できません。",
     pt: "Decisões de migração não estão disponíveis fora da demonstração guiada.",
     zh: "迁移决定仅在引导式演示中可用。",
-    ar: "قرارات الترحيل غير متاحة خارج العرض التجريبي الموجَّه.",
+    ar: "قرارات الترحيل غير متاحة خارج العرض التوضيحي الموجَّه.",
   },
   "operations.finance.review.error.failed": {
     en: "The migration decision could not be recorded. Nothing changed.",
@@ -3069,7 +3069,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
     zh: "续约与流失风险",
-    ar: "التعرّض لمخاطر التجديد وفقدان العملاء",
+    ar: "التعرض لمخاطر التجديد وفقدان العملاء",
   },
   "operations.finance.report.partnerPerformance": {
     en: "Partner performance",
@@ -3089,7 +3089,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ファネルのサイクルタイム",
     pt: "Tempo de ciclo do funil",
     zh: "漏斗周期时长",
-    ar: "مدة دورة مسار المبيعات",
+    ar: "مدة دورة قمع المبيعات",
   },
   "operations.finance.report.marginPocCost": {
     en: "Margin and POC cost",
@@ -3109,7 +3109,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ARR と MRR",
     pt: "ARR e MRR",
     zh: "ARR 与 MRR",
-    ar: "ARR و MRR",
+    ar: "ARR وMRR",
   },
   "operations.finance.report.billingCollections": {
     en: "Billing and collections",
@@ -3263,7 +3263,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ページを再読み込みするか、しばらくしてからもう一度お試しください。締めの判断は行われていません。",
     pt: "Atualize a página ou tente novamente em instantes. Nenhuma decisão de fechamento foi tomada.",
     zh: "请刷新页面或稍后重试。尚未做出任何结账决定。",
-    ar: "حدّث الصفحة أو أعد المحاولة بعد قليل. لم يُتخذ أي قرار بالإقفال.",
+    ar: "حدّث الصفحة أو حاول مرة أخرى بعد قليل. لم يُتخذ أي قرار بالإقفال.",
   },
   "operations.finance.reconciliation.periods.subheading": {
     en: "Platform against billing provider against general ledger.",
@@ -3759,7 +3759,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "請求の照合を操作する権限が変更されました。",
     pt: "Sua permissão para operar a conciliação de faturamento mudou.",
     zh: "您操作账单对账的权限已变更。",
-    ar: "تغيّر إذنك بتشغيل مطابقة الفوترة.",
+    ar: "تغيّرت صلاحيتك لتشغيل مطابقة الفوترة.",
   },
   "operations.finance.reconciliation.failure.unavailable": {
     en: "The reconciliation records cannot be reached.",
@@ -3849,7 +3849,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "勘定科目の対応付け",
     pt: "Mapeamento de contas contábeis",
     zh: "科目映射",
-    ar: "تعيين الحسابات",
+    ar: "ربط الحسابات",
   },
   "operations.finance.reconciliation.classification.missingOrDuplicateEvent": {
     en: "Missing or duplicate event",
@@ -3923,7 +3923,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "レポートビューに基づく、契約済み受注残、未承諾の見積もりのパイプライン、販売形態別の受注残、経常収益のランレートです。",
     pt: "Carteira contratada, pipeline de cotações não aceitas, carteira por modalidade de venda e receita recorrente, a partir das visões de relatórios.",
     zh: "来自报表视图的已签约在手订单、未接受报价的销售管道、按销售模式划分的在手订单，以及经常性收入运行率。",
-    ar: "الأعمال المتعاقد عليها غير المنفّذة، وخط عروض الأسعار غير المقبولة، والأعمال غير المنفّذة حسب مسار البيع، ومعدل الإيرادات المتكررة، من طرق عرض التقارير.",
+    ar: "الأعمال المتعاقد عليها غير المنفّذة، والفرص المحتملة من عروض الأسعار غير المقبولة، والأعمال غير المنفّذة حسب مسار البيع، ومعدل الإيرادات المتكررة، مقروءة من طرق عرض التقارير.",
   },
   "operations.finance.revenue.summaryLabel": {
     en: "Revenue report coverage",
@@ -3993,7 +3993,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "ARR と MRR に含まれる有効な契約",
     pt: "Contratos ativos incluídos no ARR e no MRR",
     zh: "计入 ARR 和 MRR 的有效合同",
-    ar: "العقود السارية المشمولة في ARR و MRR",
+    ar: "العقود السارية المشمولة في ARR وMRR",
   },
   "operations.finance.revenue.unreadable": {
     en: "Revenue reporting could not be read.",
@@ -4063,7 +4063,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "契約済み受注残と、未承諾の見積もりのパイプラインです。パイプラインは発行額の全額を示し、確度による加重はしていません。",
     pt: "Carteira contratada e pipeline de cotações não aceitas. O pipeline mostra o valor emitido integral e não é ponderado por probabilidade.",
     zh: "已签约在手订单及未接受报价的销售管道。销售管道显示已出具的全额价值，未按概率加权。",
-    ar: "الأعمال المتعاقد عليها غير المنفّذة وخط عروض الأسعار غير المقبولة. يعرض خط المبيعات القيمة الصادرة كاملة دون ترجيح بالاحتمالات.",
+    ar: "الأعمال المتعاقد عليها غير المنفّذة والفرص المحتملة من عروض الأسعار غير المقبولة. تعرض الفرص المحتملة القيمة الصادرة كاملة دون ترجيح بالاحتمالات.",
   },
   "operations.finance.revenue.stage.caption": {
     en: "Forecast totals by stage, currency and revenue basis",
@@ -4103,7 +4103,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "パイプライン",
     pt: sameAsEnglish("Pipeline"),
     zh: "销售管道",
-    ar: "خط المبيعات",
+    ar: "الفرص المحتملة",
   },
   "operations.finance.revenue.column.stage": {
     en: "Stage",
@@ -4251,7 +4251,7 @@ export const operationsFinanceMessages = defineMessages({
     ja: "今月と続く11か月間です。パイプラインは含みません。",
     pt: "Este mês e os próximos onze meses do calendário, sem o pipeline.",
     zh: "本月及之后十一个自然月，不含销售管道。",
-    ar: "هذا الشهر والأشهر الأحد عشر التالية، دون خط المبيعات.",
+    ar: "هذا الشهر والأشهر الأحد عشر التالية، دون الفرص المحتملة.",
   },
   "operations.finance.revenue.monthly.caption": {
     en: "Committed revenue scheduled for the next twelve months",

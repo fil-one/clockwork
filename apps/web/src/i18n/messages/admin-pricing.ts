@@ -293,7 +293,7 @@ export const adminPricingMessages = defineMessages({
     ja: "未設定",
     pt: "Não configurado",
     zh: "未配置",
-    ar: "غير مهيأ",
+    ar: "غير محدد",
   },
   "adminPricing.rate.transferPrice": {
     en: "{tier}: {amount}",
@@ -445,7 +445,7 @@ export const adminPricingMessages = defineMessages({
     ja: "価格を決めるのは有効化されたバージョンのみです。",
     pt: "Somente versões ativadas definem o preço.",
     zh: "仅已启用的版本决定价格。",
-    ar: "لا تحدد الأسعارَ إلا الإصداراتُ المفعّلة.",
+    ar: "الإصدارات المفعّلة وحدها هي التي تحدد الأسعار.",
   },
   "adminPricing.priceBooks.link.payg": {
     en: "Configure PAYG billing and trial offer policies",
@@ -455,7 +455,7 @@ export const adminPricingMessages = defineMessages({
     ja: "従量課金とトライアルのポリシーを設定",
     pt: "Configurar políticas de pagamento por uso e de período de teste",
     zh: "配置按量付费和试用政策",
-    ar: "تهيئة سياسات الدفع حسب الاستخدام والفترات التجريبية",
+    ar: "ضبط سياسات الدفع حسب الاستخدام والفترات التجريبية",
   },
   "adminPricing.priceBooks.link.channel": {
     en: "Configure channel and acquisition controls",
@@ -465,7 +465,7 @@ export const adminPricingMessages = defineMessages({
     ja: "チャネルと顧客獲得の統制を設定",
     pt: "Configurar controles de canal e aquisição",
     zh: "配置渠道与获客管控",
-    ar: "تهيئة ضوابط القنوات واستقطاب العملاء",
+    ar: "إعداد ضوابط القنوات واستقطاب العملاء",
   },
   "adminPricing.priceBooks.activation.authorities": {
     en: "Activation takes two finance approvers: one proposes it, a second decides it.",
@@ -585,7 +585,7 @@ export const adminPricingMessages = defineMessages({
     ja: "各価格は {currency} で、小数点以下2桁以内で入力してください。",
     pt: "Informe cada preço em {currency} com no máximo duas casas decimais.",
     zh: "请以 {currency} 输入每个价格，最多保留两位小数。",
-    ar: "أدخل كل سعر بعملة {currency} بخانتين عشريتين كحد أقصى.",
+    ar: "أدخل كل سعر بعملة {currency} بمنزلتين عشريتين كحد أقصى.",
   },
   "adminPricing.priceBooks.rateForm.tierError": {
     en: "Each transfer tier needs a unique name and a valid price with at most two decimal places.",
@@ -595,7 +595,7 @@ export const adminPricingMessages = defineMessages({
     ja: "各パートナー区分には、一意の名前と小数点以下2桁以内の有効な価格が必要です。",
     pt: "Cada faixa de repasse precisa de um nome exclusivo e de um preço válido com no máximo duas casas decimais.",
     zh: "每个合作伙伴等级都需要唯一的名称和有效价格（最多两位小数）。",
-    ar: "تحتاج كل فئة شريك إلى اسم فريد وسعر صالح بخانتين عشريتين كحد أقصى.",
+    ar: "تحتاج كل فئة شريك إلى اسم فريد وسعر صالح بمنزلتين عشريتين كحد أقصى.",
   },
   "adminPricing.priceBooks.rateForm.saved": {
     en: "Rate card saved. Reopen this draft to add or edit more rates, then review it before proposing activation.",
@@ -745,7 +745,7 @@ export const adminPricingMessages = defineMessages({
     ja: "料金表を追加",
     pt: "Adicionar tarifa",
     zh: "添加费率表",
-    ar: "إضافة جدول الأسعار",
+    ar: "إضافة جدول أسعار",
   },
   "adminPricing.priceBooks.rateForm.close": {
     en: "Close draft editor",
@@ -1021,7 +1021,7 @@ export const adminPricingMessages = defineMessages({
     ja: "この通貨の現行バージョンを廃止し、新しい見積もりの価格を決定します。",
     pt: "Descontinua a versão vigente desta moeda e define o preço das novas cotações.",
     zh: "这将停用该币种的当前版本，并为新报价定价。",
-    ar: "يوقف هذا الإصدارَ الحالي لهذه العملة ويحدد سعر عروض الأسعار الجديدة.",
+    ar: "يوقف هذا الإجراء الإصدار الحالي لهذه العملة ويحدد سعر عروض الأسعار الجديدة.",
   },
   "adminPricing.priceBooks.activation.retireLabel": {
     en: "Retire this version",
@@ -1464,7 +1464,7 @@ export const adminPricingMessages = defineMessages({
     ja: "下書きを再度開きました。別の SKU やリージョンを追加するか、下の料金を編集してください。",
     pt: "Rascunho reaberto. Adicione outro SKU ou região, ou edite uma tarifa abaixo.",
     zh: "草稿已重新打开。请添加其他 SKU 或区域，或编辑下方的费率。",
-    ar: "أُعيد فتح المسودة. أضف SKU أو منطقة أخرى، أو عدّل سعرًا أدناه.",
+    ar: "أُعيد فتح المسودة. أضف رمز SKU آخر أو منطقة أخرى، أو عدّل سعرًا أدناه.",
   },
   "adminPricing.priceBooks.rates.caption": {
     en: "Rate card economics",
@@ -1734,7 +1734,7 @@ export const adminPricingMessages = defineMessages({
     ja: "確認済みのこのバージョンはロックされています。",
     pt: "Esta versão revisada está bloqueada.",
     zh: "此版本已审核并锁定。",
-    ar: "هذا الإصدار الذي رُوجع مقفل.",
+    ar: "هذا الإصدار المُراجَع مقفل.",
   },
   "adminPricing.priceBooks.schedule.demoNote": {
     en: "This fictional schedule demonstrates advance approval and cancellation; it does not run the production worker.",
@@ -1744,7 +1744,7 @@ export const adminPricingMessages = defineMessages({
     ja: "この架空の予約は事前承認と取り消しを示すためのもので、本番のワーカーは実行されません。",
     pt: "Este agendamento fictício demonstra a aprovação antecipada e o cancelamento; ele não executa o worker de produção.",
     zh: "此虚构计划用于演示提前审批和取消，不会运行生产环境的工作进程。",
-    ar: "توضح هذه الجدولة الافتراضية الموافقة المسبقة والإلغاء، ولا تشغّل عملية الإنتاج.",
+    ar: "توضح هذه الجدولة الافتراضية الموافقة المسبقة والإلغاء، ولا تشغّل المهمة الخلفية في بيئة الإنتاج.",
   },
   "adminPricing.priceBooks.schedule.workerNote": {
     en: "From the effective date, the worker checks every minute and rechecks finance authority and the new-business control before changing current pricing.",
@@ -1754,7 +1754,7 @@ export const adminPricingMessages = defineMessages({
     ja: "適用開始日以降、ワーカーが毎分確認し、現行価格を変更する前に財務承認権限と新規取引の統制を再確認します。",
     pt: "A partir da data de vigência, o worker verifica a cada minuto e confere novamente a alçada financeira e o controle de novos negócios antes de alterar os preços vigentes.",
     zh: "自生效日期起，工作进程每分钟检查一次，并在更改当前价格前重新核验财务权限和新业务管控。",
-    ar: "اعتبارًا من تاريخ السريان، تفحص العملية كل دقيقة وتعيد التحقق من الصلاحية المالية وضابط الأعمال الجديدة قبل تغيير الأسعار الحالية.",
+    ar: "اعتبارًا من تاريخ السريان، تتحقق المهمة الخلفية كل دقيقة وتعيد التحقق من الصلاحية المالية وضابط الأعمال الجديدة قبل تغيير الأسعار الحالية.",
   },
   "adminPricing.priceBooks.schedule.cancelToReopen": {
     en: "Cancel this schedule to reopen the draft.",
@@ -2132,7 +2132,7 @@ export const adminPricingMessages = defineMessages({
     ja: "予約済みの有効化を承認しました。確認したバージョンは、実行または取り消しまでそのままロックされます。",
     pt: "Ativação agendada aprovada. A versão revisada fica bloqueada exatamente como está até a execução ou o cancelamento.",
     zh: "已批准计划启用。经审核的版本将保持锁定，直至执行或取消。",
-    ar: "تمت الموافقة على التفعيل المجدول. يبقى الإصدار الذي رُوجع مقفلًا كما هو حتى التنفيذ أو الإلغاء.",
+    ar: "تمت الموافقة على التفعيل المجدول. يبقى الإصدار المُراجَع مقفلًا كما هو حتى التنفيذ أو الإلغاء.",
   },
   "adminPricing.priceBooks.outcome.cancelled": {
     en: "Schedule cancelled. Current pricing is unchanged; the draft needs a new approval.",
@@ -2152,7 +2152,7 @@ export const adminPricingMessages = defineMessages({
     ja: "有効化を却下しました。下書きを編集して再申請できます。",
     pt: "Ativação rejeitada. O rascunho pode ser editado e proposto novamente.",
     zh: "已驳回启用申请。草稿可编辑后重新申请。",
-    ar: "رُدّ طلب التفعيل. يمكن تعديل المسودة واقتراحها من جديد.",
+    ar: "رُفض طلب التفعيل. يمكن تعديل المسودة واقتراحها من جديد.",
   },
   // ── PAYG and trial policies (payg-offers.tsx, demo PAYG pages) ─────────
   "adminPricing.payg.eyebrow": {
@@ -2193,7 +2193,7 @@ export const adminPricingMessages = defineMessages({
     ja: "バージョン管理された従量課金の料金とトライアルのルールを設定します。下書きの承認には、別の財務承認者が必要です。承認はポリシーの準備完了を記録するもので、有効化は引き続きプロバイダーのマッピング、外部ゲート、アカウントの切り替えによって制御されます。",
     pt: "Configure preços por uso e regras de período de teste com controle de versão. Os rascunhos exigem a aprovação de outro aprovador financeiro. A aprovação registra que a política está pronta; mapeamentos do provedor, pré-requisitos externos e a transição da conta continuam controlando a ativação.",
     zh: "配置带版本的按量付费价格和试用规则。草稿须由另一位财务审批人批准。批准仅记录政策已就绪；启用仍受服务商映射、外部前置条件和账户切换控制。",
-    ar: "اضبط أسعار الاستخدام وقواعد الفترة التجريبية بإصدارات مرقّمة. تتطلب المسودات موافقة موافِق مالي آخر. تُثبت الموافقة جاهزية السياسة، ويظل التفعيل خاضعًا لربط المزوّد والضوابط الخارجية ونقل الحساب.",
+    ar: "اضبط أسعار الاستخدام وقواعد الفترة التجريبية بإصدارات مرقّمة. تتطلب المسودات موافقة موافِق مالي آخر. تسجّل الموافقة جاهزية السياسة، ويظل التفعيل خاضعًا لربط المزوّد والمتطلبات الخارجية ونقل الحساب.",
   },
   "adminPricing.payg.priceBooksLink": {
     en: "Committed price books",
@@ -2323,7 +2323,7 @@ export const adminPricingMessages = defineMessages({
     ja: "ポリシーのバージョン {version} を今後の登録に対して廃止しました。販売の有効化状態は変わりません。",
     pt: "A versão {version} da política foi descontinuada para novas adesões. A ativação para venda não muda.",
     zh: "政策版本 {version} 已停用，不再用于新的开通。销售启用状态不变。",
-    ar: "أُوقف الإصدار {version} من السياسة للاشتراكات المستقبلية. لم يتغير تفعيل البيع.",
+    ar: "أُوقف الإصدار {version} من السياسة أمام الاشتراكات الجديدة. لم يتغير تفعيل البيع.",
   },
   "adminPricing.payg.versions.title": {
     en: "Policy versions",
@@ -2495,7 +2495,7 @@ export const adminPricingMessages = defineMessages({
     ja: "今後の登録に対して廃止",
     pt: "Descontinuar para novas adesões",
     zh: "不再用于新开通",
-    ar: "إيقاف للاشتراكات المستقبلية",
+    ar: "إيقاف أمام الاشتراكات الجديدة",
   },
   "adminPricing.payg.decision.distinctRequired": {
     en: "A different finance approver must review this version.",
@@ -2517,7 +2517,7 @@ export const adminPricingMessages = defineMessages({
     ja: "月次料金計算のプレビュー",
     pt: "Prévia da tarifação mensal",
     zh: "月度计费预览",
-    ar: "معاينة التسعير الشهري",
+    ar: "معاينة احتساب الرسوم الشهرية",
   },
   "adminPricing.payg.simulator.description": {
     en: "Uses the saved policy and a full UTC calendar month. This simulation creates no customer enrollment or invoice. Taxes are excluded.",
@@ -2729,7 +2729,7 @@ export const adminPricingMessages = defineMessages({
     ja: "クエリ文字列やフラグメントを含まない、ドキュメントの HTTPS URL。",
     pt: "URL HTTPS do documento, sem string de consulta nem fragmento.",
     zh: "文档的 HTTPS URL，不含查询字符串或片段。",
-    ar: "عنوان URL للمستند عبر HTTPS بدون سلسلة استعلام أو جزء.",
+    ar: "عنوان URL للمستند عبر HTTPS، بدون سلسلة استعلام (?) أو جزء (#).",
   },
   "adminPricing.payg.form.sourceCheckedAt": {
     en: "Evidence checked on (UTC)",
@@ -3241,7 +3241,7 @@ export const adminPricingMessages = defineMessages({
     ja: "トライアルの利用登録 {id}（組織につき1回限り）を保存しました。プロバイダー側での適用には、検証済みの認可アダプターが必要です。",
     pt: "Concessão única de período de teste {id} registrada. A aplicação pelo provedor exige o adaptador de autorização verificado.",
     zh: "已记录试用申领 {id}（终身仅限一次）。服务商侧执行需要经过验证的授权适配器。",
-    ar: "سُجّلت مطالبة الفترة التجريبية {id}، وهي مرة واحدة لكل مؤسسة. يتطلب التطبيق لدى المزوّد محوّل التفويض الموثّق.",
+    ar: "سُجّلت مطالبة الفترة التجريبية {id} (تُمنح مرة واحدة فقط). يتطلب الإنفاذ لدى المزوّد محوّل التفويض الموثّق.",
   },
   "adminPricing.payg.trials.converted": {
     en: "Trial {id} converted to its confirmed paid binding. Tenant and stored data are preserved.",
@@ -3715,7 +3715,7 @@ export const adminPricingMessages = defineMessages({
     ja: "保存済みの請求処理項目",
     pt: "Lançamentos de faturamento registrados",
     zh: "已记录的计费事项",
-    ar: "عمليات الفوترة المسجّلة",
+    ar: "عمليات الفوترة المحفوظة",
   },
   "adminPricing.payg.billing.description": {
     en: "Review rated periods and corrections, then create the corresponding financial documents. Each effect can be materialized once; provider delivery remains subject to capability gates. Corrections to paid invoices create customer balance credits; cash refunds require a separate approved refund.",
@@ -3725,7 +3725,7 @@ export const adminPricingMessages = defineMessages({
     ja: "料金計算済みの期間と修正を確認し、対応する財務書類を作成します。書類を作成できるのは各項目につき1回だけです。プロバイダーからの送付は、引き続き機能ゲートの対象です。支払済みの請求書に対する修正は顧客の残高クレジットになります。現金での返金には、別途承認された返金が必要です。",
     pt: "Revise os períodos tarifados e as correções e, em seguida, crie os documentos financeiros correspondentes. Cada lançamento só pode gerar documento uma vez; o envio pelo provedor continua sujeito aos controles de funcionalidades. Correções de faturas pagas geram crédito no saldo do cliente; reembolsos em dinheiro exigem um reembolso aprovado separadamente.",
     zh: "审核已计费的期间和更正，然后创建相应的财务单据。每个事项只能生成一次单据；服务商交付仍受功能前置条件限制。已付款发票的更正将计入客户余额抵扣；现金退款需另行批准退款。",
-    ar: "راجع الفترات المسعّرة والتصحيحات، ثم أنشئ المستندات المالية المقابلة. لا يمكن إنشاء مستند لكل عملية إلا مرة واحدة، ويظل التسليم عبر المزوّد خاضعًا لضوابط الإمكانات. تُنشئ تصحيحات الفواتير المدفوعة رصيدًا دائنًا للعميل، ويتطلب الاسترداد النقدي استردادًا معتمدًا منفصلًا.",
+    ar: "راجع الفترات المسعّرة والتصحيحات، ثم أنشئ المستندات المالية المقابلة. لا يمكن إنشاء مستند لكل عملية إلا مرة واحدة، ويظل التسليم عبر المزوّد خاضعًا لمتطلبات الإمكانيات. تُنشئ تصحيحات الفواتير المدفوعة رصيدًا دائنًا للعميل، ويتطلب الاسترداد النقدي استردادًا معتمدًا منفصلًا.",
   },
   "adminPricing.payg.billing.refresh": {
     en: "Refresh billing queue",
@@ -4071,7 +4071,7 @@ export const adminPricingMessages = defineMessages({
     ja: "すべての必須項目を確認してください。証跡のリンクは HTTPS を使用し、クエリ文字列、フラグメント、認証情報を含めないでください。",
     pt: "Verifique todos os campos obrigatórios. Os links de evidência devem usar HTTPS e não conter string de consulta, fragmento nem credenciais.",
     zh: "请检查所有必填字段。证据链接必须使用 HTTPS，且不得包含查询字符串、片段或凭据。",
-    ar: "تحقق من جميع الحقول المطلوبة. يجب أن تستخدم روابط الأدلة HTTPS وألا تتضمن سلسلة استعلام أو جزءًا أو بيانات اعتماد.",
+    ar: "تحقق من جميع الحقول المطلوبة. يجب أن تستخدم روابط الأدلة HTTPS وألا تتضمن سلسلة استعلام أو جزءًا (#) أو بيانات اعتماد.",
   },
   "adminPricing.payg.error.notSaved": {
     en: "The policy change was not saved. Refresh the page and check your finance access.",
@@ -4539,7 +4539,7 @@ export const adminPricingMessages = defineMessages({
     ja: "公開済みおよび申請中のポリシーは閲覧のみです。却下された下書きは編集して再申請できます。",
     pt: "Políticas publicadas e propostas são somente leitura. Um rascunho rejeitado pode ser editado e proposto novamente.",
     zh: "已发布或已提交审批的政策为只读。被驳回的草稿可编辑后重新提交。",
-    ar: "السياسات المنشورة والمقترحة للقراءة فقط. يمكن تعديل المسودة المردودة واقتراحها مرة أخرى.",
+    ar: "السياسات المنشورة والمقترحة للقراءة فقط. يمكن تعديل المسودة المرفوضة واقتراحها مرة أخرى.",
   },
   "adminPricing.simulation.title": {
     en: "Term quote simulation",
@@ -4669,7 +4669,7 @@ export const adminPricingMessages = defineMessages({
     ja: "価格ガードレール：この料金表には下限価格が設定されていません。",
     pt: "Salvaguardas de preço: nenhum preço mínimo configurado para esta tarifa.",
     zh: "价格护栏：此费率未配置底价。",
-    ar: "ضوابط التسعير: لم يُهيَّأ حد أدنى للسعر في جدول الأسعار هذا.",
+    ar: "ضوابط التسعير: لم يُحدَّد حد أدنى للسعر في جدول الأسعار هذا.",
   },
   "adminPricing.simulation.guardrail.exceptionRequired": {
     en: "Price guardrails: this price needs a pricing exception.",
@@ -4739,7 +4739,7 @@ export const adminPricingMessages = defineMessages({
     ja: "料金表は削除済み",
     pt: "Tarifa removida",
     zh: "费率已移除",
-    ar: "حُذف جدول الأسعار",
+    ar: "أُزيل السعر",
   },
   "adminPricing.diff.rulesChanged": {
     en: "{summary} (scoped rules changed)",
@@ -5035,7 +5035,7 @@ export const adminPricingMessages = defineMessages({
     ja: "検証済みの経済条件（全体）",
     pt: "Dados econômicos validados completos",
     zh: "完整的已验证经济条款",
-    ar: "البيانات الاقتصادية المُتحقَّق منها كاملةً",
+    ar: "البيانات الاقتصادية الكاملة المتحقَّق منها",
   },
   "adminPricing.import.legend": {
     en: "New draft (approval not requested)",
@@ -5075,7 +5075,7 @@ export const adminPricingMessages = defineMessages({
     ja: "インポートの適用開始日",
     pt: "Data de vigência da importação",
     zh: "导入生效日期",
-    ar: "تاريخ سريان الاستيراد",
+    ar: "تاريخ سريان القائمة المستوردة",
   },
   "adminPricing.import.reason": {
     en: "Import reason",
@@ -5365,7 +5365,7 @@ export const adminPricingMessages = defineMessages({
     ja: "書き込み停止中の保存済み利用権",
     pt: "Direitos de uso retidos com gravação suspensa",
     zh: "保留的已暂停写入权益",
-    ar: "الاستحقاقات المحفوظة المعلّق فيها الكتابة",
+    ar: "الاستحقاقات المحفوظة الموقوفة عن الكتابة",
   },
   // ── Catalog and provider mappings (/internal/catalog) ───────────────────
   "adminPricing.catalog.title": {
@@ -5476,7 +5476,7 @@ export const adminPricingMessages = defineMessages({
     ja: "カタログに料金がありません。安全な本番用ブートストラップまたは価格表エディターで最初の下書きを作成してください。",
     pt: "Não há tarifas no catálogo. Crie um rascunho inicial com a inicialização segura de produção ou com o editor de tabelas de preços.",
     zh: "目录中没有费率。请使用安全的生产环境初始化流程或价目表编辑器创建初始草稿。",
-    ar: "لا توجد أسعار في الكتالوج. أنشئ مسودة أولية باستخدام التهيئة الآمنة لبيئة الإنتاج أو محرر قوائم الأسعار.",
+    ar: "لا توجد أسعار في الكتالوج. أنشئ مسودة أولية باستخدام الإعداد الأولي الآمن لبيئة الإنتاج أو محرر قوائم الأسعار.",
   },
   "adminPricing.catalog.providerSkuRegion": {
     en: "Provider SKU and region",
@@ -5646,7 +5646,7 @@ export const adminPricingMessages = defineMessages({
     ja: "このマッピングは固定されています。保留中の申請を却下するか、新しい下書きバージョンを作成してください。",
     pt: "Este mapeamento está bloqueado. Rejeite a proposta pendente ou crie uma nova versão de rascunho.",
     zh: "此映射已冻结。请驳回待处理的申请，或创建新的草稿版本。",
-    ar: "هذا الربط مجمّد. ردّ المقترح المعلّق أو أنشئ إصدار مسودة جديدًا.",
+    ar: "هذا الربط مجمّد. ارفض المقترح المعلّق أو أنشئ إصدار مسودة جديدًا.",
   },
   "adminPricing.catalog.result.failed": {
     en: "The mapping could not be saved. Refresh and check your current authority and the source evidence.",
@@ -5738,7 +5738,7 @@ export const adminPricingMessages = defineMessages({
     ja: "この下書きには承認済みの予約がありません。",
     pt: "Não há agendamento aprovado para este rascunho.",
     zh: "此草稿没有已批准的计划。",
-    ar: "لا يوجد جدول معتمد لهذه المسودة.",
+    ar: "لا توجد جدولة معتمدة لهذه المسودة.",
   },
   "adminPricing.command.scheduleFrozen": {
     en: "This approved schedule is frozen; cancel it before changing the draft.",
@@ -5748,7 +5748,7 @@ export const adminPricingMessages = defineMessages({
     ja: "この承認済みの予約は固定されています。下書きを変更する前に予約を取り消してください。",
     pt: "Este agendamento aprovado está bloqueado; cancele-o antes de alterar o rascunho.",
     zh: "此已批准的计划已冻结；请先取消该计划，再更改草稿。",
-    ar: "هذا الجدول المعتمد مجمّد؛ ألغِه قبل تغيير المسودة.",
+    ar: "هذه الجدولة المعتمدة مجمّدة؛ ألغِها قبل تغيير المسودة.",
   },
   "adminPricing.command.scheduleDistinct": {
     en: "A different finance approver must approve the proposed schedule.",
@@ -5758,7 +5758,7 @@ export const adminPricingMessages = defineMessages({
     ja: "提案された予約は、別の財務承認者が承認する必要があります。",
     pt: "Outro aprovador financeiro deve aprovar o agendamento proposto.",
     zh: "拟议的计划必须由另一位财务审批人批准。",
-    ar: "يجب أن يوافق موافِق مالي آخر على الجدول المقترح.",
+    ar: "يجب أن يوافق موافِق مالي آخر على الجدولة المقترحة.",
   },
   "adminPricing.command.scheduleFuture": {
     en: "Advance approval requires a future effective date.",
@@ -5778,7 +5778,7 @@ export const adminPricingMessages = defineMessages({
     ja: "この通貨にはすでに承認済みの予約があります。",
     pt: "Esta moeda já tem um agendamento aprovado.",
     zh: "此币种已有已批准的计划。",
-    ar: "لهذه العملة جدول معتمد بالفعل.",
+    ar: "لهذه العملة جدولة معتمدة بالفعل.",
   },
   "adminPricing.command.editLocked": {
     en: "Only an unproposed draft can be edited; a different finance approver must reject activation before editing.",
@@ -5788,7 +5788,7 @@ export const adminPricingMessages = defineMessages({
     ja: "編集できるのは未申請の下書きのみです。編集する前に、別の財務承認者が有効化を却下する必要があります。",
     pt: "Somente um rascunho não proposto pode ser editado; antes da edição, outro aprovador financeiro deve rejeitar a ativação.",
     zh: "只能编辑尚未申请的草稿；编辑前，必须由另一位财务审批人驳回启用申请。",
-    ar: "لا يمكن تعديل إلا مسودة لم تُقترح بعد، ويجب أن يردّ موافِق مالي آخر التفعيل قبل التعديل.",
+    ar: "لا يمكن تعديل إلا مسودة لم تُقترح بعد، ويجب أن يرفض موافِق مالي آخر التفعيل قبل التعديل.",
   },
   "adminPricing.command.rateNotFound": {
     en: "The rate card was not found in this draft.",
@@ -5838,7 +5838,7 @@ export const adminPricingMessages = defineMessages({
     ja: "保留中の有効化は、別の財務承認者が却下する必要があります。",
     pt: "Uma ativação pendente deve ser rejeitada por outro aprovador financeiro.",
     zh: "待处理的启用申请必须由另一位财务审批人驳回。",
-    ar: "يجب أن يردّ موافِق مالي آخر التفعيل المعلّق.",
+    ar: "يجب أن يرفض موافِق مالي آخر التفعيل المعلّق.",
   },
   "adminPricing.command.proposeUnproposed": {
     en: "Only an unproposed draft can be proposed for activation.",
@@ -5868,7 +5868,7 @@ export const adminPricingMessages = defineMessages({
     ja: "別のバージョンを有効化する前に、この通貨の承認済みの予約を取り消してください。",
     pt: "Cancele o agendamento aprovado para esta moeda antes de ativar outra versão.",
     zh: "启用其他版本前，请先取消此币种已批准的计划。",
-    ar: "ألغِ الجدول المعتمد لهذه العملة قبل تفعيل إصدار آخر.",
+    ar: "ألغِ الجدولة المعتمدة لهذه العملة قبل تفعيل إصدار آخر.",
   },
   "adminPricing.command.activateDistinct": {
     en: "A different finance approver must activate the proposed draft.",

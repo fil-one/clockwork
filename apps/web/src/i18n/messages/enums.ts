@@ -82,7 +82,7 @@ export const enumMessages = defineMessages({
     ja: "プロビジョニング中",
     pt: "Em provisionamento",
     zh: "开通中",
-    ar: "جارٍ التهيئة",
+    ar: "قيد التهيئة",
   },
   "status.blocked": {
     en: "Blocked",
@@ -192,7 +192,7 @@ export const enumMessages = defineMessages({
     ja: "却下",
     pt: "Rejeitado",
     zh: "已驳回",
-    ar: "مردود",
+    ar: "مرفوض",
   },
   "status.declined": {
     en: "Declined",
@@ -202,7 +202,7 @@ export const enumMessages = defineMessages({
     ja: "辞退",
     pt: "Recusado",
     zh: "已拒绝",
-    ar: "مرفوض",
+    ar: "مرفوض من العميل",
   },
   "status.issued": {
     en: "Issued",
@@ -302,7 +302,7 @@ export const enumMessages = defineMessages({
     ja: "終了",
     pt: "Encerrado",
     zh: "已终止",
-    ar: "منتهٍ",
+    ar: "مُنهى",
   },
   "status.retired": {
     en: "Retired",
@@ -422,7 +422,7 @@ export const enumMessages = defineMessages({
     ja: "無効",
     pt: "Anulada",
     zh: "已作废",
-    ar: "ملغاة",
+    ar: "لاغية",
   },
   "status.invoice.uncollectible": {
     en: "Uncollectible",
@@ -492,7 +492,7 @@ export const enumMessages = defineMessages({
     ja: "却下",
     pt: "Rejeitada",
     zh: "已驳回",
-    ar: "مردود",
+    ar: "مرفوض",
   },
   "status.order.submitted": {
     en: "Submitted",
@@ -572,7 +572,7 @@ export const enumMessages = defineMessages({
     ja: "解約済み",
     pt: "Rescindido",
     zh: "已终止",
-    ar: "منتهٍ",
+    ar: "مُنهى",
   },
   "risk.level.low": {
     en: "Low",
